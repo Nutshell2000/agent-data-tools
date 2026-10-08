@@ -26,6 +26,7 @@ Each tool is defined once in `src/discovery.ts` (name, price, parameters) and im
 
 ## Where it is listed
 
+- Official MCP Registry: listed as `io.github.Nutshell2000/agent-data-tools`. To publish a new version, raise `version` in `server.json` and push a matching `v*` tag; the workflow in `.github/workflows/publish-mcp.yml` does the rest on GitHub's servers.
 - 402 Index (https://402index.io): all nine endpoints registered on 8 October 2026, pending their review.
 - x402scan: not yet. Needs a wallet sign-in at https://www.x402scan.com/resources/register.
 - Coinbase Bazaar: not yet. See below.
