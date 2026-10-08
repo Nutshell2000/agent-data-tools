@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Nutshell2000/agent-data-tools",
+  "title": "Agent Data Tools",
+  "description": "Pay-per-call web, AI and Base on-chain tools for agents. Paid per call in USDC via x402.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/Nutshell2000/agent-data-tools",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://agent-data-tools.peterbellbring.workers.dev/mcp"
+    }
+  ]
+}
