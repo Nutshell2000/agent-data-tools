@@ -16,7 +16,7 @@
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.
-    "FACILITATOR_URL": "https://facilitator.payai.network",
+    "FACILITATOR_URL": "https://api.cdp.coinbase.com/platform/v2/x402",
     // "off" disables the paywall (local testing only).
     "PAYWALL": "on",
     "BASE_RPC_URL": "https://mainnet.base.org"
