@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-A Cloudflare Worker that sells twelve tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells fifteen tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -16,6 +16,9 @@ A Cloudflare Worker that sells twelve tools to AI agents. Each call is paid in U
 | `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
 | `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.001 |
+| `GET /package?ecosystem=&name=` | Whether a package exists and is safe to install | $0.002 |
+| `GET /email?address=` | Email validation without sending mail | $0.001 |
+| `GET /papers?query=` | Academic paper search | $0.003 |
 
 Add `trial=1` to any GET request for a free call: up to 3 per caller per day, 300 a day in total. Without it, unpaid requests get the 402 challenge.
 

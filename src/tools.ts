@@ -2,7 +2,10 @@ import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { domainInfo } from "./routes/domain";
+import { emailCheck } from "./routes/email";
 import { extract } from "./routes/extract";
+import { packageInfo } from "./routes/package";
+import { searchPapers } from "./routes/papers";
 import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
 import { walletInfo } from "./routes/wallet";
@@ -24,4 +27,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/btc-fees": () => bitcoinFees(),
   "/btc-address": (_env, q) => bitcoinAddress(q("address") ?? ""),
   "/ln-invoice": async (_env, q) => lightningInvoice(q("invoice") ?? ""),
+  "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? ""),
+  "/email": (_env, q) => emailCheck(q("address") ?? ""),
+  "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
 };
