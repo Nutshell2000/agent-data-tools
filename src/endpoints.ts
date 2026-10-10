@@ -367,7 +367,7 @@ export const ENDPOINTS: Endpoint[] = [
       totalMatches: 819818,
       returned: 1,
       results: [
-        { title: "Off-target effects in CRISPR/Cas9 gene editing", authors: ["Congting Guo", "Xiaoteng Ma"], year: 2023, venue: "Frontiers in Bioengineering and Biotechnology", type: "journal-article", citations: 632, doi: "10.3389/fbioe.2023.1143157", url: "https://doi.org/10.3389/fbioe.2023.1143157", abstract: "Gene editing stands for the methods to precisely make changes to a specific nucleic acid sequence." },
+        { title: "Off-target effects in CRISPR/Cas9 gene editing", authors: ["Congting Guo", "Xiaoteng Ma"], year: 2023, venue: "Frontiers in Bioengineering and Biotechnology", type: "journal-article", citations: 632, doi: "10.3389/fbioe.2023.1143157", url: "https://doi.org/10.3389/fbioe.2023.1143157" },
       ],
     },
   },
