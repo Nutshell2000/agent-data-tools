@@ -7,3 +7,6 @@ node_modules/
 products/
 public/_files/
 .build/
+
+# Testnet-only wallet for scripts/pay-test.mjs
+.test-wallet.json
