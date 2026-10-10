@@ -358,16 +358,16 @@ export const ENDPOINTS: Endpoint[] = [
       "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
     tags: ["research", "papers", "academic", "search", "citations"],
     params: {
-      query: { type: "string", description: "Search terms, a title or a research question (3-300 characters)", required: true, example: "attention is all you need" },
+      query: { type: "string", description: "Search terms, a title or a research question (3-300 characters)", required: true, example: "CRISPR off-target effects" },
       limit: { type: "integer", description: "Number of results, 1-20 (default 5)", example: 5 },
       fromYear: { type: "integer", description: "Only works published in or after this year", example: 2020 },
     },
     outputExample: {
-      query: "attention is all you need",
-      totalMatches: 1392853,
+      query: "CRISPR off-target effects",
+      totalMatches: 819818,
       returned: 1,
       results: [
-        { title: "Is Attention All You Need?", authors: ["Patrick Mineault"], year: 2025, venue: "From Human Attention to Computational Attention", type: "book-chapter", citations: 55, doi: "10.1007/978-3-031-84300-6_13", url: "https://doi.org/10.1007/978-3-031-84300-6_13", abstract: null },
+        { title: "Off-target effects in CRISPR/Cas9 gene editing", authors: ["Congting Guo", "Xiaoteng Ma"], year: 2023, venue: "Frontiers in Bioengineering and Biotechnology", type: "journal-article", citations: 632, doi: "10.3389/fbioe.2023.1143157", url: "https://doi.org/10.3389/fbioe.2023.1143157", abstract: "Gene editing stands for the methods to precisely make changes to a specific nucleic acid sequence." },
       ],
     },
   },
