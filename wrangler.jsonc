@@ -8,7 +8,9 @@
   // Workers AI and Browser Rendering run on the account's free daily allowance.
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
-  // Counts free trial calls (?trial=1) per caller per day.
+  // Store downloads. run_worker_first keeps them behind the paid-order check.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+  // Counts free trial calls (?trial=1) per caller per day, and holds store orders.
   "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
   "vars": {
     // Address that receives every payment (USDC on Base).

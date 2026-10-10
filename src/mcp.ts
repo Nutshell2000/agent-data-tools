@@ -4,7 +4,7 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
-import { ENDPOINTS, SERVICE_NAME, type Endpoint } from "./discovery";
+import { ENDPOINTS, SERVICE_ID, SERVICE_NAME, type Endpoint } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { TOOLS } from "./tools";
@@ -67,7 +67,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
   const env = c.env;
   const paid = env.PAYWALL !== "off";
   const terms = paid ? await paymentTerms(env) : undefined;
-  const mcp = new McpServer({ name: "agent-data-tools", title: SERVICE_NAME, version: "1.0.0" });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: "1.0.0" });
 
   for (const e of ENDPOINTS) {
     const handler = (args: Args) => runTool(env, e, args);

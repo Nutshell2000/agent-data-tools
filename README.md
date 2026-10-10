@@ -23,6 +23,14 @@ The AI endpoints run on Workers AI and `/screenshot` on Browser Rendering, both 
 
 Free routes: `/` (a web page for browsers, JSON for programs), `/openapi.json`, `/llms.txt`, `/robots.txt`, `/health`, `/.well-known/x402`, `/.well-known/mcp/server-card.json`, `/.well-known/api-catalog`.
 
+## Store
+
+The service also sells digital products to people at `/store`. A buyer gets an exact USDC amount and the address in `PAY_TO`; the order page watches the chain and unlocks the download when a matching transfer arrives. Agents can buy the same products at `GET /buy/<slug>` through the normal paywall.
+
+- Products are listed in `src/store/catalog.ts`.
+- Orders and the sales log live in the `TRIALS` key-value store (`order:` and `paid:` keys). List sales with `npx wrangler kv key list --binding TRIALS --prefix paid: --remote`.
+- Product files are not in this repository.
+
 ## MCP
 
 The same nine tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
