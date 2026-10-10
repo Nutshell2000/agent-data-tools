@@ -6,10 +6,12 @@ import { ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, mcpServerCard, 
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { handleMcp } from "./mcp";
+import { PRODUCTS } from "./store/catalog";
+import { BUY_PATHS, store } from "./store/routes";
 import { TOOLS } from "./tools";
 
 const app = new Hono<{ Bindings: Env }>();
-const PAID_PATHS = new Set(ENDPOINTS.map((e) => e.path));
+const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
 
 app.use(
   cors({
@@ -49,7 +51,34 @@ function buildPaywall(env: Env): MiddlewareHandler {
       },
     ]),
   );
-  return paymentMiddleware(routes, resourceServer(env));
+  // Store products bought by agents: same paywall, one fixed price each.
+  const purchases = Object.fromEntries(
+    PRODUCTS.map((p) => [
+      `GET /buy/${p.slug}`,
+      {
+        accepts: [{ scheme: "exact", price: `$${p.priceUsd}`, network: env.NETWORK, payTo: env.PAY_TO }],
+        description: `${p.title}: ${p.tagline} Returns a download link for the product file.`,
+        mimeType: "application/json",
+        serviceName: SERVICE_NAME,
+        tags: ["template", "x402", "starter", "guide"],
+        extensions: {
+          ...declareDiscoveryExtension({
+            input: {},
+            inputSchema: { properties: {} },
+            output: {
+              example: {
+                product: p.title,
+                orderId: "0123456789abcdef0123456789abcdef",
+                downloadUrl: "https://example.com/order/0123456789abcdef0123456789abcdef/download",
+                receiptUrl: "https://example.com/order/0123456789abcdef0123456789abcdef",
+              },
+            },
+          }),
+        },
+      },
+    ]),
+  );
+  return paymentMiddleware({ ...routes, ...purchases }, resourceServer(env));
 }
 
 // Built on first request: Workers expose env bindings per request, not at module load.
@@ -77,7 +106,9 @@ async function takeTrial(env: Env, ip: string): Promise<number | null> {
 
 app.use(async (c, next) => {
   if (!PAID_PATHS.has(c.req.path) || c.env.PAYWALL === "off") return next();
-  if (c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
+  // Trials cover the per-call tools only, never store purchases.
+  const trialable = !c.req.path.startsWith("/buy/");
+  if (trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
     const left = await takeTrial(c.env, c.req.header("cf-connecting-ip") ?? "unknown");
     if (left !== null) {
       await next();
@@ -101,6 +132,9 @@ for (const e of ENDPOINTS) {
 
 // The same tools over MCP. Listing tools is free; calling one requires payment.
 app.all("/mcp", handleMcp);
+
+// Store for people: product pages, orders paid by plain USDC transfer, downloads.
+app.route("/", store);
 
 const origin = (url: string) => new URL(url).origin;
 app.get("/", (c) =>

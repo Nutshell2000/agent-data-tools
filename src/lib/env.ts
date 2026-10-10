@@ -8,7 +8,10 @@ export interface Env {
   CDP_API_KEY_SECRET?: string;
   AI: Ai;
   BROWSER: Fetcher;
+  // Holds trial counters and store orders.
   TRIALS?: KVNamespace;
+  // Product files under public/. The Worker runs first, so they are never served directly.
+  ASSETS: Fetcher;
 }
 
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */

@@ -1,6 +1,9 @@
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, fallback, http, type PublicClient } from "viem";
 import { base } from "viem/chains";
 import type { Env } from "./env";
+
+// Public endpoints rate-limit (HTTP 429) without warning, so a second one backs up the first.
+const BACKUP_RPC = "https://base-rpc.publicnode.com";
 
 let cached: { url: string; client: PublicClient } | undefined;
 
@@ -8,11 +11,12 @@ let cached: { url: string; client: PublicClient } | undefined;
 export function baseClient(env: Env): PublicClient {
   const url = env.BASE_RPC_URL || "https://mainnet.base.org";
   if (cached?.url !== url) {
+    const options = { timeout: 8_000, retryCount: 0 };
     cached = {
       url,
       client: createPublicClient({
         chain: base,
-        transport: http(url, { timeout: 8_000, retryCount: 1 }),
+        transport: fallback([http(url, options), http(BACKUP_RPC, options)], { rank: false }),
         batch: { multicall: true },
       }) as PublicClient,
     };

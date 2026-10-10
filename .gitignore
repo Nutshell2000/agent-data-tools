@@ -2,3 +2,8 @@ node_modules/
 .wrangler/
 .dev.vars
 *.log
+
+# The paid product: its source and built zip stay out of the public repo.
+products/
+public/_files/
+.build/
