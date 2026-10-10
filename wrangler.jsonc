@@ -8,6 +8,8 @@
   // Workers AI and Browser Rendering run on the account's free daily allowance.
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
+  // Counts free trial calls (?trial=1) per caller per day.
+  "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
   "vars": {
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",

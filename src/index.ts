@@ -55,8 +55,36 @@ function buildPaywall(env: Env): MiddlewareHandler {
 // Built on first request: Workers expose env bindings per request, not at module load.
 let paywall: MiddlewareHandler | undefined;
 
+const TRIALS_PER_CALLER = 3;
+const TRIALS_PER_DAY = 300;
+
+/**
+ * Free trial calls are opt-in (?trial=1) so that ordinary unpaid requests still get
+ * the 402 challenge directories and validators probe for. Counts are per caller IP
+ * and per UTC day; KV is eventually consistent, so the limits are approximate.
+ */
+async function takeTrial(env: Env, ip: string): Promise<number | null> {
+  if (!env.TRIALS) return null;
+  const day = new Date().toISOString().slice(0, 10);
+  const [mine, all] = await Promise.all([env.TRIALS.get(`${day}:${ip}`), env.TRIALS.get(`${day}:all`)]);
+  const used = Number(mine) || 0;
+  const total = Number(all) || 0;
+  if (used >= TRIALS_PER_CALLER || total >= TRIALS_PER_DAY) return null;
+  const ttl = { expirationTtl: 172_800 };
+  await Promise.all([env.TRIALS.put(`${day}:${ip}`, String(used + 1), ttl), env.TRIALS.put(`${day}:all`, String(total + 1), ttl)]);
+  return TRIALS_PER_CALLER - used - 1;
+}
+
 app.use(async (c, next) => {
   if (!PAID_PATHS.has(c.req.path) || c.env.PAYWALL === "off") return next();
+  if (c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
+    const left = await takeTrial(c.env, c.req.header("cf-connecting-ip") ?? "unknown");
+    if (left !== null) {
+      await next();
+      c.res.headers.set("X-Free-Trial-Remaining", String(left));
+      return;
+    }
+  }
   if (c.req.method !== "GET" && c.req.method !== "HEAD") return c.json({ error: "method not allowed; use GET" }, 405);
   if (c.req.method === "HEAD") {
     // Crawlers probe with HEAD. Answer with the same 402 challenge a GET would get.

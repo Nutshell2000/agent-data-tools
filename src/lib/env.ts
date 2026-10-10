@@ -8,6 +8,7 @@ export interface Env {
   CDP_API_KEY_SECRET?: string;
   AI: Ai;
   BROWSER: Fetcher;
+  TRIALS?: KVNamespace;
 }
 
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */
