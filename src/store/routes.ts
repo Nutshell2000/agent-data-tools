@@ -10,6 +10,38 @@ export const store = new Hono<{ Bindings: Env }>();
 /** Paths agents pay for with x402. The paywall in index.ts covers these. */
 export const BUY_PATHS = PRODUCTS.map((p) => `/buy/${p.slug}`);
 
+/** OpenAPI entries for the purchase routes, so directories that read /openapi.json list the products. */
+export const buyOpenApiPaths = () =>
+  Object.fromEntries(
+    PRODUCTS.map((p) => [
+      `/buy/${p.slug}`,
+      {
+        get: {
+          operationId: `buy-${p.slug}`,
+          summary: `Buy: ${p.title}`,
+          description: `${p.tagline} ${p.description[0]} Returns a download link for the product file.`,
+          tags: ["store"],
+          "x-payment-info": { price: { mode: "fixed", currency: "USD", amount: String(p.priceUsd) }, protocols: [{ x402: {} }] },
+          parameters: [],
+          responses: {
+            "200": {
+              description: "Purchase receipt with the download link",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { product: { type: "string" }, orderId: { type: "string" }, downloadUrl: { type: "string" }, receiptUrl: { type: "string" } },
+                  },
+                },
+              },
+            },
+            "402": { description: "Payment Required" },
+          },
+        },
+      },
+    ]),
+  );
+
 const product = (slug: string) => {
   const p = findProduct(slug);
   if (!p) throw new HttpError(404, "no such product");

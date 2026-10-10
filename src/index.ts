@@ -7,7 +7,7 @@ import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { handleMcp } from "./mcp";
 import { PRODUCTS } from "./store/catalog";
-import { BUY_PATHS, store } from "./store/routes";
+import { BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { TOOLS } from "./tools";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -143,7 +143,10 @@ app.get("/", (c) =>
     ? c.html(homePage(origin(c.req.url), c.env.PAY_TO))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK)),
 );
-app.get("/openapi.json", (c) => c.json(openApi(origin(c.req.url))));
+app.get("/openapi.json", (c) => {
+  const doc = openApi(origin(c.req.url));
+  return c.json({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths() } });
+});
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url))));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
