@@ -83,12 +83,12 @@ The Bazaar indexes an endpoint after its first settled payment. The CDP path has
 
 ## Checking that it works
 
-Live URL: https://agent-data-tools.peterbellbring.workers.dev
+Live URL: https://agent-data-tools.revmesh2074.workers.dev
 
 Coinbase runs a free validator. A pass shows `"valid":true` and `"simulation":{"outcome":"accepted"}`:
 
 ```bash
-curl -X POST https://api.cdp.coinbase.com/platform/v2/x402/validate -H "Content-Type: application/json" -d "{\"resource\":\"https://agent-data-tools.peterbellbring.workers.dev/domain?name=cloudflare.com\",\"method\":\"GET\"}"
+curl -X POST https://api.cdp.coinbase.com/platform/v2/x402/validate -H "Content-Type: application/json" -d "{\"resource\":\"https://agent-data-tools.revmesh2074.workers.dev/domain?name=cloudflare.com\",\"method\":\"GET\"}"
 ```
 
 Incoming payments show up as USDC transfers to `PAY_TO` on https://basescan.org.
