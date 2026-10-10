@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-A Cloudflare Worker that sells nine tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells twelve tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -13,6 +13,11 @@ A Cloudflare Worker that sells nine tools to AI agents. Each call is paid in USD
 | `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.005 |
 | `GET /token?address=` | Base ERC-20 facts and risk flags | $0.01 |
 | `GET /wallet?address=` | Base wallet balances | $0.005 |
+| `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
+| `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
+| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.001 |
+
+Add `trial=1` to any GET request for a free call: up to 3 per caller per day, 300 a day in total. Without it, unpaid requests get the 402 challenge.
 
 The AI endpoints run on Workers AI and `/screenshot` on Browser Rendering, both within Cloudflare's free daily allowance (10,000 AI "neurons" and 10 browser-minutes). When either runs out, or the browser is rate limited, the endpoint answers 503 and the caller is not charged.
 

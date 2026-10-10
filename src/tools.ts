@@ -1,5 +1,6 @@
 import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
+import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { domainInfo } from "./routes/domain";
 import { extract } from "./routes/extract";
 import { screenshot } from "./routes/screenshot";
@@ -20,4 +21,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/image": (env, q) => generateImage(env, q("prompt"), q("steps")),
   "/transcribe": (env, q) => transcribe(env, q("url")),
   "/describe": (env, q) => describeImage(env, q("url"), q("question")),
+  "/btc-fees": () => bitcoinFees(),
+  "/btc-address": (_env, q) => bitcoinAddress(q("address") ?? ""),
+  "/ln-invoice": async (_env, q) => lightningInvoice(q("invoice") ?? ""),
 };
