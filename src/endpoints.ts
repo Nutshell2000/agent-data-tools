@@ -297,12 +297,86 @@ export const ENDPOINTS: Endpoint[] = [
       expirySeconds: 60,
     },
   },
+  {
+    path: "/package",
+    price: "$0.002",
+    summary: "Does this package exist, and is it safe to install",
+    description:
+      "Check a software package before installing it: whether it exists at all (AI coding assistants sometimes invent names), latest version and release date, package age, number of versions, weekly downloads (npm), licenses, deprecation, and known security advisories with severity. Returns a verdict of ok, caution or not-found with the reasons. Covers npm, PyPI, Cargo, Go, Maven and NuGet. Use before adding a dependency or running an install command.",
+    tags: ["package", "npm", "pypi", "security", "dependencies"],
+    params: {
+      ecosystem: { type: "string", description: "One of npm, pypi, cargo, go, maven, nuget", required: true, example: "npm" },
+      name: { type: "string", description: "Exact package name, e.g. lodash or @scope/name", required: true, example: "lodash" },
+    },
+    outputExample: {
+      ecosystem: "npm",
+      name: "lodash",
+      exists: true,
+      verdict: "ok",
+      flags: [],
+      latestVersion: "4.18.1",
+      ageDays: 5282,
+      versionCount: 117,
+      weeklyDownloads: 162476177,
+      licenses: ["MIT"],
+      deprecated: false,
+      knownVulnerabilities: 0,
+      advisories: [],
+      repository: "git+https://github.com/lodash/lodash.git",
+    },
+  },
+  {
+    path: "/email",
+    price: "$0.001",
+    summary: "Email address validation without sending mail",
+    description:
+      "Validate an email address before using it: syntax, whether the domain exists and accepts mail (MX records), disposable or throwaway provider detection, role addresses such as info@ or support@, free-provider detection, and SPF and DMARC presence. Returns a verdict of likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. Use for sign-up checks, lead list cleaning and contact enrichment.",
+    tags: ["email", "validation", "verification", "leads", "deliverability"],
+    params: {
+      address: { type: "string", description: "The email address to check", required: true, example: "support@cloudflare.com" },
+    },
+    outputExample: {
+      address: "support@cloudflare.com",
+      validSyntax: true,
+      domain: "cloudflare.com",
+      domainExists: true,
+      acceptsMail: true,
+      disposable: false,
+      roleAddress: true,
+      freeProvider: false,
+      hasSpf: true,
+      hasDmarc: true,
+      verdict: "likely-deliverable",
+      reasons: ["role address, not a person"],
+    },
+  },
+  {
+    path: "/papers",
+    price: "$0.003",
+    summary: "Search academic papers",
+    description:
+      "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
+    tags: ["research", "papers", "academic", "search", "citations"],
+    params: {
+      query: { type: "string", description: "Search terms, a title or a research question (3-300 characters)", required: true, example: "attention is all you need" },
+      limit: { type: "integer", description: "Number of results, 1-20 (default 5)", example: 5 },
+      fromYear: { type: "integer", description: "Only works published in or after this year", example: 2020 },
+    },
+    outputExample: {
+      query: "attention is all you need",
+      totalMatches: 1392853,
+      returned: 1,
+      results: [
+        { title: "Is Attention All You Need?", authors: ["Patrick Mineault"], year: 2025, venue: "From Human Attention to Computational Attention", type: "book-chapter", citations: 55, doi: "10.1007/978-3-031-84300-6_13", url: "https://doi.org/10.1007/978-3-031-84300-6_13", abstract: null },
+      ],
+    },
+  },
 ];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. ";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. ";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
