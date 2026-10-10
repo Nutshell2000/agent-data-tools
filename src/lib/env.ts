@@ -12,6 +12,8 @@ export interface Env {
   TRIALS?: KVNamespace;
   // Product files under public/. The Worker runs first, so they are never served directly.
   ASSETS: Fetcher;
+  // Request counters. Optional so local runs without the binding still work.
+  METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }
 
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */
