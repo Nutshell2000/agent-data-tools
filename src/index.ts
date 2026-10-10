@@ -6,6 +6,7 @@ import { ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, mcpServerCard, 
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { handleMcp } from "./mcp";
+import { Metrics, type Outcome } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { TOOLS } from "./tools";
@@ -19,6 +20,23 @@ app.use(
     exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id"],
   }),
 );
+
+// Counts what happens to each request for a paid path. Runs after the response is
+// decided and never delays or fails it.
+app.use(async (c, next) => {
+  await next();
+  if (!PAID_PATHS.has(c.req.path) || !c.env.METRICS || c.req.method !== "GET") return;
+  const outcome: Outcome =
+    c.res.status === 402
+      ? "challenged"
+      : c.res.status >= 400
+        ? "failed"
+        : c.res.headers.has("X-Free-Trial-Remaining")
+          ? "trial"
+          : "paid";
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  c.executionCtx.waitUntil(metrics.bump(c.req.path, outcome).catch(() => {}));
+});
 
 function buildPaywall(env: Env): MiddlewareHandler {
   const routes = Object.fromEntries(
@@ -150,6 +168,11 @@ app.get("/openapi.json", (c) => {
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url))));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
+// Daily request counts per paid path. Aggregates only, so it is safe to leave public.
+app.get("/metrics", async (c) => {
+  if (!c.env.METRICS) return c.json({});
+  return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).report());
+});
 app.get("/.well-known/x402", (c) =>
   c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path) }),
 );
@@ -166,3 +189,4 @@ app.onError((err, c) => {
 });
 
 export default app;
+export { Metrics };

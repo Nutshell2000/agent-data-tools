@@ -12,6 +12,9 @@
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
   // Counts free trial calls (?trial=1) per caller per day, and holds store orders.
   "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
+  // Request counters per paid path (see src/metrics.ts).
+  "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
   "vars": {
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
