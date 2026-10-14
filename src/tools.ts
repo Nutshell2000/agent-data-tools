@@ -13,6 +13,7 @@ import { baseGas } from "./routes/gas";
 import { searchPapers } from "./routes/papers";
 import { bitcoinPrice, exchangeRates } from "./routes/rates";
 import { timeInZone } from "./routes/time";
+import { tradeInsight } from "./routes/trade-insight";
 import { weather } from "./routes/weather";
 import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
@@ -33,6 +34,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
   "/contract-risk": (env, q) => contractRisk(env, q("address") ?? ""),
+  "/trade-insight": (env, q) => tradeInsight(env, q("token") ?? "", q("wallet") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
   "/image": (env, q) => generateImage(env, q("prompt"), q("steps")),
