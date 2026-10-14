@@ -111,6 +111,34 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/token-report",
+    price: "$0.02",
+    summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
+    description:
+      "One call before you buy a Base token: overall risk rating (low/medium/high) with named flags, on-chain facts (owner, renounced, paused, proxy, mint/blacklist/fee-setter heuristics), plus live DEX market data: price, 24h volume and change, total liquidity, FDV, pair count and age, and 24h buys vs sells. Flags no-liquidity, thin liquidity, new pairs and no-sell patterns. Heuristic screening, not a guarantee.",
+    tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
+    params: {
+      address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
+    },
+    outputExample: {
+      chain: "base",
+      address: "0x4200000000000000000000000000000000000006",
+      risk: "low",
+      summary: "low risk: 0 high and 0 medium flag(s). Heuristic screening, not a guarantee of safety.",
+      flags: [],
+      token: { name: "Wrapped Ether", symbol: "WETH", decimals: 18 },
+      market: {
+        priceUsd: 2432.15,
+        priceChange24hPct: -3.05,
+        volume24hUsd: 40100383,
+        liquidityUsdTotal: 4904163,
+        pairCount: 2,
+        topPair: { dex: "pancakeswap", quote: "USDC", ageDays: 1000 },
+        trades24h: { buys: 32010, sells: 30694 },
+      },
+    },
+  },
+  {
     path: "/wallet",
     price: "$0.005",
     summary: "Base wallet balances snapshot",
