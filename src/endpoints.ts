@@ -5,10 +5,10 @@
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
 export const SERVICE_SUMMARY =
-  "Pay-per-call tools for AI agents: web page text extraction and summaries, screenshots, image generation, speech-to-text, image description, domain and email-auth intelligence, and live Base token and wallet lookups. No account or API key; pay per request in USDC on Base via x402.";
+  "Pay-per-call tools for AI agents: web page text extraction and summaries, screenshots, image generation, speech-to-text, image description, domain and email-auth intelligence, live Base token, wallet and gas lookups, Bitcoin price and fees, currency exchange rates, weather and time zones. No account or API key; pay per request in USDC on Base via x402.";
 
 export interface Param {
-  type: "string" | "integer";
+  type: "string" | "integer" | "number";
   description: string;
   required?: boolean;
   example: string | number;
@@ -371,12 +371,208 @@ export const ENDPOINTS: Endpoint[] = [
       ],
     },
   },
+  {
+    path: "/fx",
+    price: "$0.001",
+    summary: "Currency exchange rates and conversion",
+    description:
+      "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
+    tags: ["currency", "exchange-rate", "forex", "finance", "conversion"],
+    params: {
+      from: { type: "string", description: "Base currency as a three-letter ISO 4217 code, e.g. USD", required: true, example: "USD" },
+      to: { type: "string", description: "Optional comma-separated target currency codes, e.g. EUR,GBP; default is all available currencies", example: "EUR,GBP,SEK" },
+      amount: { type: "number", description: "Optional amount of the base currency to convert (default 1)", example: 100 },
+    },
+    outputExample: {
+      from: "USD",
+      amount: 100,
+      rateDate: "2026-10-12",
+      rates: { EUR: 0.89437, GBP: 0.75555, SEK: 10.0139 },
+      converted: { EUR: 89.437, GBP: 75.555, SEK: 1001.39 },
+      source: "European Central Bank reference rates (one rate per working day, published around 16:00 CET)",
+      checkedAt: "2026-10-13T09:00:00.000Z",
+    },
+  },
+  {
+    path: "/btc-price",
+    price: "$0.001",
+    summary: "Bitcoin price in major currencies",
+    description:
+      "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
+    tags: ["bitcoin", "price", "btc", "crypto", "market"],
+    params: {},
+    outputExample: {
+      asset: "BTC",
+      prices: { USD: 83463, EUR: 74624, GBP: 63152, CAD: 118855, CHF: 69423, AUD: 119532, JPY: 13210661 },
+      satsPerUsd: 1198,
+      usdPerSat: 0.00083463,
+      priceTime: "2026-10-13T09:10:05.000Z",
+      source: "mempool.space (average of major exchanges)",
+      checkedAt: "2026-10-13T09:12:00.000Z",
+    },
+  },
+  {
+    path: "/base-gas",
+    price: "$0.001",
+    summary: "Base network gas price and fee estimate",
+    description:
+      "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
+    tags: ["base", "gas", "fees", "ethereum", "onchain"],
+    params: {},
+    outputExample: {
+      chain: "base",
+      chainId: 8453,
+      blockNumber: 37000000,
+      blockTime: "2026-10-13T09:12:01.000Z",
+      baseFeeGwei: "0.0052",
+      priorityFeeGwei: "0.001",
+      gasPriceGwei: "0.0062",
+      suggested: { maxFeePerGasWei: "11400000", maxPriorityFeePerGasWei: "1000000" },
+      blockUsedPercent: 31.4,
+      estimatedExecutionFeeEth: { ethTransfer: "0.0000001302", erc20Transfer: "0.000000403" },
+      checkedAt: "2026-10-13T09:12:02.000Z",
+    },
+  },
+  {
+    path: "/base-tx",
+    price: "$0.003",
+    summary: "Base transaction status and details",
+    description:
+      "Look up any transaction on Base by hash: whether it succeeded, reverted or is still pending, sender and receiver, ETH value, called method id, block number and time, number of confirmations, gas used, gas price and the execution fee paid, and whether it created a contract. Use to confirm that a payment or contract call went through before acting on it.",
+    tags: ["base", "transaction", "receipt", "onchain", "payment-verification"],
+    params: {
+      hash: { type: "string", description: "Transaction hash on Base: 0x followed by 64 hex characters", required: true, example: "0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0" },
+    },
+    outputExample: {
+      chain: "base",
+      hash: "0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0",
+      status: "success",
+      from: "0x97acce27d5069544480bde0f04d9f47d7422a016",
+      to: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      contractCreated: null,
+      valueEth: "0",
+      nonce: 3363755,
+      methodId: "0xe3ee160e",
+      blockNumber: 52508570,
+      blockTime: "2026-10-12T12:01:27.000Z",
+      confirmations: 38598,
+      gasUsed: 103410,
+      gasPriceGwei: "0.00688587",
+      executionFeeEth: "0.0000007120678167",
+      logCount: 2,
+    },
+  },
+  {
+    path: "/base-allowance",
+    price: "$0.002",
+    summary: "ERC-20 token approval check on Base",
+    description:
+      "Check how much of a wallet's ERC-20 token a spender contract is approved to move on Base: the raw and formatted allowance, the token symbol and decimals, and whether the approval is unlimited. Use before a swap or deposit to see if an approve transaction is needed, and to audit a wallet for risky unlimited approvals.",
+    tags: ["base", "erc20", "allowance", "approval", "security"],
+    params: {
+      token: { type: "string", description: "ERC-20 token contract address on Base (0x...)", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+      owner: { type: "string", description: "Wallet address that holds the token (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
+      spender: { type: "string", description: "Address allowed to spend, usually a router or protocol contract (0x...)", required: true, example: "0x000000000022D473030F116dDEE9F6B43aC78BA3" },
+    },
+    outputExample: {
+      chain: "base",
+      token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      symbol: "USDC",
+      decimals: 6,
+      owner: "0x4200000000000000000000000000000000000006",
+      spender: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+      allowance: "0",
+      allowanceFormatted: "0",
+      unlimited: false,
+      approved: false,
+    },
+  },
+  {
+    path: "/ens",
+    price: "$0.002",
+    summary: "ENS name to address and address to ENS name",
+    description:
+      "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
+    tags: ["ens", "ethereum", "identity", "address", "resolve"],
+    params: {
+      name: { type: "string", description: "An ENS name such as vitalik.eth, or an address (0x...) for reverse lookup", required: true, example: "vitalik.eth" },
+    },
+    outputExample: {
+      query: "vitalik.eth",
+      type: "name",
+      name: "vitalik.eth",
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      avatar: "https://euc.li/vitalik.eth",
+      checkedAt: "2026-10-13T09:40:00.000Z",
+    },
+  },
+  {
+    path: "/weather",
+    price: "$0.002",
+    summary: "Current weather and hourly forecast for any coordinates",
+    description:
+      "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
+    tags: ["weather", "forecast", "temperature", "climate", "geo"],
+    params: {
+      lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90", required: true, example: 59.33 },
+      lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180", required: true, example: 18.07 },
+      hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12)", example: 12 },
+    },
+    outputExample: {
+      latitude: 59.33,
+      longitude: 18.07,
+      elevationM: 23,
+      current: {
+        time: "2026-10-13T09:00:00Z",
+        temperatureC: 7.5,
+        conditions: "cloudy",
+        precipitationMm: 0,
+        windSpeedMs: 1.1,
+        windFromDegrees: 317,
+        humidityPercent: 85.9,
+        cloudCoverPercent: 94.6,
+        pressureHpa: 1024.2,
+      },
+      forecast: [
+        { time: "2026-10-13T10:00:00Z", temperatureC: 8.5, conditions: "partlycloudy_day", precipitationMm: 0, windSpeedMs: 1.2, windFromDegrees: 335, humidityPercent: 83.9, cloudCoverPercent: 73, pressureHpa: 1023.8 },
+      ],
+      forecastUpdatedAt: "2026-10-13T08:30:57Z",
+      source: "MET Norway (api.met.no), licensed CC BY 4.0",
+      checkedAt: "2026-10-13T09:12:00.000Z",
+    },
+  },
+  {
+    path: "/time",
+    price: "$0.001",
+    summary: "Current time in a time zone and time zone conversion",
+    description:
+      "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time.",
+    tags: ["time", "timezone", "clock", "date", "scheduling"],
+    params: {
+      zone: { type: "string", description: "IANA time zone name, e.g. Europe/Stockholm or America/New_York", required: true, example: "Europe/Stockholm" },
+      at: { type: "string", description: "Optional moment to convert, as ISO 8601 with an offset (default: now)", example: "2026-03-01T09:00:00+01:00" },
+      to: { type: "string", description: "Optional comma-separated time zones to convert the same moment into (max 10)", example: "America/New_York,Asia/Tokyo" },
+    },
+    outputExample: {
+      utc: "2026-10-13T09:12:00.000Z",
+      unixSeconds: 1791882720,
+      zone: "Europe/Stockholm",
+      localTime: "2026-10-13T11:12:00",
+      isoWithOffset: "2026-10-13T11:12:00+02:00",
+      utcOffset: "+02:00",
+      weekday: "Tuesday",
+      abbreviation: "GMT+2",
+      converted: [
+        { zone: "America/New_York", localTime: "2026-10-13T05:12:00", isoWithOffset: "2026-10-13T05:12:00-04:00", utcOffset: "-04:00", weekday: "Tuesday", abbreviation: "EDT" },
+      ],
+    },
+  },
 ];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. ";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. ";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
