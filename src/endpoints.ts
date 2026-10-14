@@ -441,6 +441,27 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/trade-insight",
+    price: "$0.05",
+    summary: "Trading recommendation: composite token + wallet risk score",
+    description:
+      "AI-powered trade recommendation combining token risk analysis, wallet on-chain activity, market liquidity/volume, and holder concentration. Returns high-confidence buy/sell, medium recommendations, or high-risk flags with reasoning and confidence score (0-1). Scores token risk, wallet history, trading experience, liquidity, and balance. Use for informed trading decisions, bot detection, and pre-trade due diligence on any token-wallet pair.",
+    tags: ["trading", "ai", "recommendation", "risk", "base"],
+    params: {
+      token: { type: "string", description: "Token contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+      wallet: { type: "string", description: "Wallet address to evaluate, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+    },
+    outputExample: {
+      recommendation: "high-confidence-buy",
+      confidence: 0.88,
+      reasoning: ["All signals positive, low risk", "Good liquidity (>$50k)", "Experienced wallet (100+ txs)", "Sufficient balance for trading"],
+      warnings: [],
+      tokenRisk: "low",
+      walletRisk: "low",
+      compositeScore: 79.3,
+    },
+  },
+  {
     path: "/package",
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
