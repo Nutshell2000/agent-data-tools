@@ -54,8 +54,8 @@ async function order(env: Env, id: string) {
   return o;
 }
 
-store.get("/store", (c) => c.html(storePage()));
-store.get("/store/:slug", (c) => c.html(productPage(product(c.req.param("slug")))));
+store.get("/store", (c) => c.html(storePage(new URL(c.req.url).origin)));
+store.get("/store/:slug", (c) => c.html(productPage(product(c.req.param("slug")), new URL(c.req.url).origin)));
 
 store.post("/store/:slug/order", async (c) => {
   const o = await createOrder(c.env, product(c.req.param("slug")));

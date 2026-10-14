@@ -232,7 +232,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/btc-fees",
-    price: "$0.002",
+    price: "$0.0002",
     summary: "Bitcoin fee rates and mempool status",
     description:
       "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
@@ -299,7 +299,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/package",
-    price: "$0.002",
+    price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
     description:
       "Check a software package before installing it: whether it exists at all (AI coding assistants sometimes invent names), latest version and release date, package age, number of versions, weekly downloads (npm), licenses, deprecation, and known security advisories with severity. Returns a verdict of ok, caution or not-found with the reasons. Covers npm, PyPI, Cargo, Go, Maven and NuGet. Use before adding a dependency or running an install command.",

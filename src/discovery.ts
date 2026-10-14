@@ -68,8 +68,12 @@ export function homePage(origin: string, payTo: string) {
     const params = Object.entries(e.params)
       .map(([k, p]) => `<li><code>${esc(k)}</code>${p.required ? " (required)" : ""}: ${esc(p.description)}</li>`)
       .join("");
-    const example = `${origin}${e.path}?${exampleQuery(e)}`;
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${esc(example)}</a></p></section>`;
+    const query = exampleQuery(e);
+    // Keep the trial opt-in limited to human-facing homepage links; machine-readable
+    // discovery examples should continue to trigger the normal 402 challenge.
+    const example = `${origin}${e.path}?${query}${TRIALS_ENABLED ? "&trial=1" : ""}`;
+    const exampleLabel = TRIALS_ENABLED ? "Try free once" : "Example";
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
