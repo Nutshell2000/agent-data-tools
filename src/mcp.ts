@@ -17,7 +17,7 @@ export const toolName = (e: Endpoint) => e.path.slice(1);
 const inputShape = (e: Endpoint) =>
   Object.fromEntries(
     Object.entries(e.params).map(([name, p]) => {
-      const field = (p.type === "integer" ? z.number().int() : z.string()).describe(p.description);
+      const field = (p.type === "integer" ? z.number().int() : p.type === "number" ? z.number() : z.string()).describe(p.description);
       return [name, p.required ? field : field.optional()];
     }),
   );
