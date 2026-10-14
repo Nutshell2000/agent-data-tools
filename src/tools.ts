@@ -7,6 +7,7 @@ import { domainInfo } from "./routes/domain";
 import { domainReport } from "./routes/domain-report";
 import { emailCheck } from "./routes/email";
 import { extract } from "./routes/extract";
+import { liquidityPoolAudit } from "./routes/liquidity-pool-audit";
 import { packageInfo } from "./routes/package";
 import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
@@ -34,6 +35,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
   "/contract-risk": (env, q) => contractRisk(env, q("address") ?? ""),
+  "/liquidity-pool-audit": (env, q) => liquidityPoolAudit(env, q("address") ?? ""),
   "/trade-insight": (env, q) => tradeInsight(env, q("token") ?? "", q("wallet") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
