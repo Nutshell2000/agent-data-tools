@@ -2,6 +2,7 @@ import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { baseAllowance, baseTransaction, ensLookup } from "./routes/chain";
+import { contractRisk } from "./routes/contract-risk";
 import { domainInfo } from "./routes/domain";
 import { domainReport } from "./routes/domain-report";
 import { emailCheck } from "./routes/email";
@@ -31,6 +32,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
+  "/contract-risk": (env, q) => contractRisk(env, q("address") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
   "/image": (env, q) => generateImage(env, q("prompt"), q("steps")),
