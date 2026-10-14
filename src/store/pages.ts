@@ -35,7 +35,22 @@ button.small { padding:5px 10px; font-size:0.8rem; margin-left:8px; }
 footer { border-top:1px solid var(--line); margin-top:40px; padding-top:16px; }
 `;
 
-function shell(title: string, description: string, body: string) {
+type Share = { url: string; type: "website" | "product" };
+
+function metaTags(title: string, description: string, share?: Share) {
+  if (!share) return `<meta name="robots" content="noindex">`;
+  return `<link rel="canonical" href="${esc(share.url)}">
+<meta property="og:site_name" content="${esc(SERVICE_NAME)}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:type" content="${share.type}">
+<meta property="og:url" content="${esc(share.url)}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">`;
+}
+
+function shell(title: string, description: string, body: string, share?: Share) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -43,6 +58,7 @@ function shell(title: string, description: string, body: string) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
+${metaTags(title, description, share)}
 <style>${CSS}</style>
 </head>
 <body>
@@ -58,7 +74,7 @@ ${body}
 </html>`;
 }
 
-export function storePage() {
+export function storePage(origin: string) {
   const cards = PRODUCTS.map(
     (p) => `<div class="card">
 <h2 style="margin-top:0"><a href="/store/${esc(p.slug)}">${esc(p.title)}</a></h2>
@@ -73,10 +89,11 @@ export function storePage() {
     `<h1>Store</h1>
 <p class="lead">Digital products for developers building paid APIs for AI agents. Pay in USDC, download straight away, no account.</p>
 ${cards}`,
+    { url: `${origin}/store`, type: "website" },
   );
 }
 
-export function productPage(p: Product) {
+export function productPage(p: Product, origin: string) {
   return shell(
     `${p.title} | ${SERVICE_NAME}`,
     p.tagline,
@@ -91,7 +108,8 @@ ${p.description.map((d) => `<p>${esc(d)}</p>`).join("")}
 <p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>
 </div>
 <p class="note">Agents can buy it too: <code>GET /buy/${esc(p.slug)}</code> with an x402 client.</p>`,
-  );
+   { url: `${origin}/store/${encodeURIComponent(p.slug)}`, type: "product" },
+ );
 }
 
 export function orderPage(order: Order, p: Product, payTo: string) {
