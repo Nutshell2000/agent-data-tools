@@ -11,7 +11,7 @@ const exampleQuery = (e: Endpoint) =>
 
 // Empty when trials are off, so the pages never advertise something that isn't there.
 export const TRIAL_NOTE = TRIALS_ENABLED
-  ? "Free trial: add trial=1 to any GET request for a free call, up to 3 per caller per day while the daily trial pool lasts. Without it, unpaid requests get the 402 challenge."
+  ? "Free trial: add trial=1 to any GET request for a free call, up to 10 per caller per day while the daily trial pool lasts. Without it, unpaid requests get the 402 challenge."
   : "";
 
 export function serviceCard(origin: string, payTo: string, network: string) {
@@ -185,6 +185,34 @@ export function openApi(origin: string) {
           },
         },
       ]),
+    ),
+  };
+}
+
+// Left out of marketplace listings: these run on a limited daily allowance, which a
+// subscription plan with a monthly quota could exhaust.
+export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe"]);
+
+/** The same tools described for an API marketplace, where the marketplace handles payment. */
+export function marketplaceOpenApi(origin: string) {
+  const doc = openApi(origin);
+  return {
+    openapi: doc.openapi,
+    info: {
+      title: SERVICE_NAME,
+      version: doc.info.version,
+      description:
+        "Everyday lookups in one API: currency exchange rates, weather, time zones, email validation, domain DNS and WHOIS, web page text extraction, package safety checks, academic paper search, Bitcoin price, fees and address balances, Lightning invoice decoding, ENS names, and Base token, wallet, transaction and gas data. All endpoints are GET and return JSON.",
+    },
+    servers: doc.servers,
+    paths: Object.fromEntries(
+      Object.entries(doc.paths)
+        .filter(([path]) => !CAPACITY_LIMITED.has(path))
+        .map(([path, item]) => {
+          const { "x-payment-info": _payment, responses, ...get } = item.get;
+          const { "402": _unpaid, ...rest } = responses;
+          return [path, { get: { ...get, responses: { ...rest, "404": { description: "Not found" } } } }];
+        }),
     ),
   };
 }

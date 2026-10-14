@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
 /** What happened to a request for a paid path. */
-export type Outcome = "challenged" | "paid" | "trial" | "failed";
+export type Outcome = "challenged" | "paid" | "trial" | "failed" | "marketplace";
 type Day = Record<string, Partial<Record<Outcome, number>>>;
 
 const KEEP_DAYS = 30;

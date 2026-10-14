@@ -10,3 +10,6 @@ public/_files/
 
 # Testnet-only wallet for scripts/pay-test.mjs
 .test-wallet.json
+
+# Credential for editing our 402 Index listings
+.402index-token
