@@ -30,6 +30,25 @@ export const PRODUCTS: Product[] = [
     ],
     file: "x402-seller-kit.zip",
   },
+  {
+    slug: "defi-trader-bundle",
+    title: "DeFi Trader Intelligence Bundle",
+    priceUsd: 9.9,
+    tagline: "API credentials + 250 premium calls on Agent Data Tools' highest-value DeFi endpoints.",
+    description: [
+      "Get instant access to trade-time risk intelligence: token contract audits, wallet due diligence, MEV cost estimates, and liquidity pool analysis—all via a single API key.",
+      "No setup required. Start scoring tokens, validating wallets, and optimizing transaction costs immediately. Ideal for active traders, portfolio managers, and trading bots.",
+      "Credentials grant 250 verified calls on our most trusted endpoints (/trade-insight, /wallet-audit, /contract-risk, /mev-simulator, /liquidity-pool-audit). After these 250 run out, you can upgrade to a pay-per-call subscription.",
+    ],
+    includes: [
+      "API key for permanent use on Agent Data Tools endpoints",
+      "250 verified calls across 5 premium DeFi endpoints (~$12 retail value)",
+      "Priority support (48h email response)",
+      "Renewal option: upgrade to monthly subscription at cost + 20% discount",
+      "Access to all future DeFi report endpoints added to the platform",
+    ],
+    file: "defi-bundle-key.txt",
+  },
 ];
 
 export const findProduct = (slug: string) => PRODUCTS.find((p) => p.slug === slug);
