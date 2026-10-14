@@ -406,6 +406,41 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/contract-risk",
+    price: "$0.02",
+    summary: "Contract risk verdict: rug-pull and scam heuristics",
+    description:
+      "Audit a smart contract on Base: critical/high/medium/low risk with named flags (proxy pattern, zero supply, bytecode size, uninitialized proxy, suspicious ERC-20 properties). Detects EIP-1967 proxy patterns and reads token properties (name, symbol, decimals, total supply, ownership status). Use for token contract audits, before trading or approving a token, and for rug-pull detection.",
+    tags: ["contract", "security", "token", "blockchain", "scam-detection"],
+    params: {
+      address: { type: "string", description: "Base chain contract address, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+    },
+    outputExample: {
+      chain: "base",
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      type: "contract",
+      riskLevel: "low",
+      riskFlags: [],
+      summary: "low risk: 0 flag(s). Bytecode 8953 bytes.",
+      facts: {
+        bytecodeSize: 8953,
+        deployedAt: null,
+        hasCode: true,
+        isProxy: false,
+        proxyImplementation: null,
+      },
+      tokenProperties: {
+        name: "USD Coin",
+        symbol: "USDC",
+        decimals: 6,
+        totalSupply: "10000000000000",
+        ownershipRenounced: false,
+        pausable: false,
+      },
+      lastUpdatedBlock: 18650000,
+    },
+  },
+  {
     path: "/package",
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
