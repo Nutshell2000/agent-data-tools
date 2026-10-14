@@ -7,6 +7,7 @@ import { domainReport } from "./routes/domain-report";
 import { emailCheck } from "./routes/email";
 import { extract } from "./routes/extract";
 import { packageInfo } from "./routes/package";
+import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
 import { searchPapers } from "./routes/papers";
 import { bitcoinPrice, exchangeRates } from "./routes/rates";
@@ -36,6 +37,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/btc-fees": () => bitcoinFees(),
   "/btc-address": (_env, q) => bitcoinAddress(q("address") ?? ""),
   "/ln-invoice": async (_env, q) => lightningInvoice(q("invoice") ?? ""),
+  "/package-audit": (_env, q) => packageAudit(q("packages")),
   "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? ""),
   "/email": (_env, q) => emailCheck(q("address") ?? ""),
   "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
