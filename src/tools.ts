@@ -3,6 +3,7 @@ import { describeImage, generateImage, summarize, transcribe } from "./routes/ai
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { baseAllowance, baseTransaction, ensLookup } from "./routes/chain";
 import { domainInfo } from "./routes/domain";
+import { domainReport } from "./routes/domain-report";
 import { emailCheck } from "./routes/email";
 import { extract } from "./routes/extract";
 import { packageInfo } from "./routes/package";
@@ -23,6 +24,7 @@ export type Input = (name: string) => string | undefined;
 export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>> = {
   "/extract": (_env, q) => extract(q("url"), q("maxChars")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
+  "/domain-report": (env, q) => domainReport(env, q("name") ?? ""),
   "/token": (env, q) => tokenInfo(env, q("address") ?? ""),
   "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
