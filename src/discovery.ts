@@ -3,11 +3,19 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 export * from "./endpoints";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
-const exampleQuery = (e: Endpoint) =>
-  Object.entries(e.params)
+const exampleQuery = (e: Endpoint) => {
+  const q = Object.entries(e.params)
     .filter(([, p]) => p.required)
     .map(([k, p]) => `${k}=${encodeURIComponent(String(p.example))}`)
-    .join("&") || "format=json";
+    .join("&");
+  // If trials are enabled and this is a per-call tool (not a store purchase),
+  // offer the opt-in free trial in examples so humans can click and try without paying.
+  const trialSuffix = TRIALS_ENABLED && !e.path.startsWith("/buy/") ? "trial=1" : null;
+  if (q && trialSuffix) return `${q}&${trialSuffix}`;
+  if (q) return q;
+  if (trialSuffix) return trialSuffix;
+  return "format=json";
+};
 
 // Empty when trials are off, so the pages never advertise something that isn't there.
 export const TRIAL_NOTE = TRIALS_ENABLED
@@ -69,7 +77,7 @@ export function homePage(origin: string, payTo: string) {
       .map(([k, p]) => `<li><code>${esc(k)}</code>${p.required ? " (required)" : ""}: ${esc(p.description)}</li>`)
       .join("");
     const example = `${origin}${e.path}?${exampleQuery(e)}`;
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${esc(example)}</a></p></section>`;
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">Try free once</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
