@@ -13,6 +13,7 @@ import { timeInZone } from "./routes/time";
 import { weather } from "./routes/weather";
 import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
+import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
@@ -23,6 +24,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/extract": (_env, q) => extract(q("url"), q("maxChars")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
   "/token": (env, q) => tokenInfo(env, q("address") ?? ""),
+  "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
