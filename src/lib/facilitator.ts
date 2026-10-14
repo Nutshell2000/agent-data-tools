@@ -15,6 +15,26 @@ export function buildFacilitator(env: Env): HTTPFacilitatorClient {
  * last good response.
  */
 function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorClient {
+  // An HTML error page means the request was stopped at the edge and never reached the
+  // facilitator, so retrying verify/settle cannot double-process a payment.
+  const edgeBlock = (err: unknown) => /\((403|429|5\d\d)\):\s*<(!doctype|html)/i.test(String((err as Error)?.message ?? err));
+  const retrying = <A extends unknown[], R>(call: (...args: A) => Promise<R>, attempts: number) =>
+    async (...args: A): Promise<R> => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        try {
+          return await call(...args);
+        } catch (err) {
+          lastError = err;
+          if (!edgeBlock(err)) throw err;
+          await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+        }
+      }
+      throw lastError;
+    };
+  client.verify = retrying(client.verify.bind(client), 4);
+  client.settle = retrying(client.settle.bind(client), 4);
+
   const original = client.getSupported.bind(client);
   let lastGood: Awaited<ReturnType<typeof original>> | undefined;
   client.getSupported = async () => {
