@@ -484,7 +484,30 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
-    path: "/package",
+    path: "/mev-simulator",
+    price: "$0.04",
+    summary: "MEV simulator: transaction costs and sandwich attack risk under different gas scenarios",
+    description:
+      "Estimate transaction costs under different market conditions (standard, high MEV risk, low gas): base/priority/max fees in gwei, and estimated gas costs in ETH + USD for a simple swap, complex swap, and liquidity add. Includes MEV risk assessment (low/medium/high) and recommendations for MEV protection. Use for trading cost analysis, MEV risk evaluation, and timing decisions.",
+    tags: ["mev", "gas", "defi", "transaction-cost", "base"],
+    params: {
+      scenario: { type: "string", description: "One of standard, high-mev, low-gas (default: standard)", example: "standard" },
+    },
+    outputExample: {
+      chain: "base",
+      scenario: "standard",
+      gasPrice: { baseFeeGwei: "0.05", priorityFeeGwei: "0.1", maxFeeGwei: "0.15" },
+      estimatedCosts: {
+        simpleSwap: { gasUnits: 100000, costEth: "0.015", costUsd: "62.10" },
+        complexSwap: { gasUnits: 250000, costEth: "0.0375", costUsd: "155.25" },
+        addLiquidity: { gasUnits: 180000, costEth: "0.027", costUsd: "111.78" },
+      },
+      mevRisk: "medium",
+      recommendations: ["Standard conditions: No special precautions needed"],
+      blockNumber: 18650000,
+    },
+  },
+  {
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
     description:
