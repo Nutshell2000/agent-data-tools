@@ -378,6 +378,34 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/wallet-audit",
+    price: "$0.02",
+    summary: "Wallet risk verdict: activity, balance and token holdings on Base",
+    description:
+      "Audit a Base wallet address in one call: high/medium/low risk verdict with named flags (no history, single tx, low balance+low activity, contract), token holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), on-chain labels (high ETH holder, active small holder, new address), and transaction count. Use for trader due diligence, suspicious address checks, and before sending a payment or trade to an address.",
+    tags: ["wallet", "security", "base", "ethereum", "crypto"],
+    params: {
+      address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+    },
+    outputExample: {
+      chain: "base",
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      type: "eoa",
+      riskLevel: "low",
+      riskFlags: [],
+      summary: "low risk: 0 flag(s). 2 token(s) held. 42 transaction(s).",
+      eth: { wei: "1500000000000000000", formatted: "1.5" },
+      transactionCount: 42,
+      tokenCount: 2,
+      tokens: [
+        { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", decimals: 6, balance: "1000000000", balanceFormatted: "1000", riskLevel: "low" },
+        { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18, balance: "500000000000000000", balanceFormatted: "0.5", riskLevel: "low" },
+      ],
+      labels: ["high-eth-holder"],
+      lastUpdatedBlock: 18650000,
+    },
+  },
+  {
     path: "/package",
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",

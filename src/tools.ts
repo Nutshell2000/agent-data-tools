@@ -17,6 +17,7 @@ import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
 import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
+import { walletAudit } from "./routes/wallet-audit";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
@@ -29,6 +30,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/token": (env, q) => tokenInfo(env, q("address") ?? ""),
   "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
+  "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
   "/image": (env, q) => generateImage(env, q("prompt"), q("steps")),
