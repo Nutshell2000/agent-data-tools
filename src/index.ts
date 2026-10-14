@@ -117,8 +117,8 @@ function buildPaywall(env: Env): MiddlewareHandler {
 // Built on first request: Workers expose env bindings per request, not at module load.
 let paywall: MiddlewareHandler | undefined;
 
-const TRIALS_PER_CALLER = 3;
-const TRIALS_PER_DAY = 300;
+const TRIALS_PER_CALLER = 10;
+const TRIALS_PER_DAY = 1000;
 
 /**
  * Free trial calls are opt-in (?trial=1) so that ordinary unpaid requests still get
