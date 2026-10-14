@@ -37,7 +37,7 @@ export async function mevSimulator(env: Env, scenario: string = "standard"): Pro
     throw new HttpError(502, `Chain/market data error: ${(e as any)?.message}`);
   });
 
-  const baseFee = feeData.baseFeePerGas || 1000000n;
+  const baseFee = feeData.maxFeePerGas ? feeData.maxFeePerGas - (feeData.maxPriorityFeePerGas || 0n) : 1000000n;
   const priorityFee = feeData.maxPriorityFeePerGas || 1000000n;
 
   let adjustedPriority = priorityFee;
