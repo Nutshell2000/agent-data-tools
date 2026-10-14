@@ -6,6 +6,8 @@ export interface Env {
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
+  // Set once the API is listed on RapidAPI: the secret its proxy sends with every call.
+  RAPIDAPI_PROXY_SECRET?: string;
   AI: Ai;
   BROWSER: Fetcher;
   // Holds trial counters and store orders.
