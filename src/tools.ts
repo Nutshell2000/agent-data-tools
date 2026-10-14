@@ -24,6 +24,9 @@ import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
 import { walletAudit } from "./routes/wallet-audit";
 import walletHistory from "./routes/wallet-history";
+import { airdropScanner } from "./routes/airdrop-scanner";
+import { liquidityReturnAnalyzer } from "./routes/liquidity-return-analyzer";
+import { tokenHolderAnalysis } from "./routes/token-holder-analysis";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
@@ -69,4 +72,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/base-allowance": (env, q) => baseAllowance(env, q("token") ?? "", q("owner") ?? "", q("spender") ?? ""),
   "/ens": (_env, q) => ensLookup(q("name") ?? ""),
   "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
+  "/airdrop-scanner": (_env, q) => airdropScanner(q("address") ?? "", q("chain") ?? "ethereum"),
+  "/liquidity-return-analyzer": (_env, q) => liquidityReturnAnalyzer(q("poolAddress") ?? "", q("lpAddress") ?? "", q("chain") ?? "ethereum"),
+  "/token-holder-analysis": (_env, q) => tokenHolderAnalysis(q("tokenAddress") ?? "", q("chain") ?? "ethereum"),
 };

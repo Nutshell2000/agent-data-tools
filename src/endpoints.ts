@@ -829,12 +829,116 @@ export const ENDPOINTS: Endpoint[] = [
       recommendations: ["Wallet appears to be human-operated"],
     },
   },
+  {
+    path: "/airdrop-scanner",
+    price: "$0.03",
+    summary: "Airdrop eligibility scanner and opportunity finder",
+    description:
+      "Analyze a wallet for airdrop eligibility based on transaction history, holdings, and on-chain labels. Returns list of eligible airdrops with estimated rewards, historical eligibility patterns, wallet age signals, activity level scoring, and risk flags for eligibility (e.g., young wallet, low activity). Helps traders maximize airdrop income and understand which future airdrops they may qualify for. Use before claiming or coordinating airdrop strategies.",
+    tags: ["defi", "airdrop", "eligibility", "rewards", "opportunities"],
+    params: {
+      address: { type: "string", description: "Wallet address to analyze (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
+      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
+    },
+    outputExample: {
+      address: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
+      chain: "ethereum",
+      eligibleAirdrops: [
+        {
+          token: "Example Token",
+          tokenAddress: "0x1234567890123456789012345678901234567890",
+          airdropType: "activity",
+          snapshotBlock: 18500000,
+          eligibilityScore: 0.72,
+          estimatedReward: "250 tokens",
+          reason: "Wallet has sufficient transaction history and was active before snapshot",
+        },
+      ],
+      riskLevel: "low",
+      riskFlags: [],
+      recommendations: ["Consider increasing transaction activity for future airdrops"],
+    },
+  },
+  {
+    path: "/liquidity-return-analyzer",
+    price: "$0.02",
+    summary: "LP position ROI analysis: fees earned vs impermanent loss",
+    description:
+      "Analyze a liquidity provider position ROI: entry and exit prices, liquidity provided, current value, fees earned, impermanent loss calculation (IL), total return percentage, and whether the position is actually profitable. Helps LPs understand true ROI accounting for IL, track fees earned, and make hold/rebalance/exit decisions. Returns ROI recommendation (positive/neutral/negative) and specific risk warnings.",
+    tags: ["defi", "lp", "roi", "impermanent-loss", "liquidity"],
+    params: {
+      poolAddress: { type: "string", description: "Pool address (0x...)", required: true, example: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8" },
+      lpAddress: { type: "string", description: "Your wallet address (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
+      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
+    },
+    outputExample: {
+      poolAddress: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
+      lpAddress: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
+      chain: "ethereum",
+      positionStatus: "active",
+      entryPrice: { token0: 1.0, token1: 2000 },
+      currentPrice: { token0: 0.8, token1: 2500 },
+      liquidityProvided: { token0: "25000000000000000000", token1: "12500000000" },
+      fees: { earned: 1200, currency: "USD" },
+      impermanentLoss: { absolute: 12.5, percentage: 12.5 },
+      totalReturn: { absolute: -8.3, percentage: -8.3 },
+      roiRecommendation: "neutral",
+      warnings: ["Fees earned do not offset impermanent loss. Position underwater."],
+    },
+  },
+  {
+    path: "/token-holder-analysis",
+    price: "$0.02",
+    summary: "Token holder distribution and rug-pull risk assessment",
+    description:
+      "Analyze a token's holder distribution to assess rug-pull risk and whale concentration: top 10/100 holders and their percentages, Gini coefficient (concentration metric), whale activity (recent large transfers), and rug-risk score (0-1). Returns risk level (low/medium/high), specific risk flags, and recommendations for trading or investing. Use for due diligence before buying, trading, or providing liquidity.",
+    tags: ["defi", "token", "holders", "rug-risk", "whale"],
+    params: {
+      tokenAddress: { type: "string", description: "Token contract address (0x...)", required: true, example: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" },
+      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
+    },
+    outputExample: {
+      tokenAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      chain: "ethereum",
+      totalSupply: "1000000000000000000000000000",
+      totalHolders: 45000,
+      topHolders: [
+        {
+          rank: 1,
+          address: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
+          balance: "150000000000000000000000000",
+          percentageOfSupply: 15.0,
+          isExchange: true,
+          isContract: false,
+        },
+      ],
+      concentrationMetrics: {
+        giniCoefficient: 0.15,
+        top10Percentage: 76.2,
+        top100Percentage: 92.5,
+        rugRiskScore: 0.8,
+      },
+      whaleActivity: {
+        recentLargeTransfers: [
+          {
+            from: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
+            to: "0x0000000000000000000000000000000000000000",
+            amount: "10000000000000000000000000",
+            timestamp: 1728878400,
+            description: "Large transfer (possible dump)",
+          },
+        ],
+        majorDumpRisk: "high",
+      },
+      recommendations: ["🚨 CRITICAL: Top 10 holders control >50% of supply. High rug-pull risk."],
+    },
+  },
 ];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight AI-scored token + wallet risk with buy/sell recommendation; /wallet-audit combines balance + activity + on-chain labels; /contract-risk rug-pull detection and proxy patterns; /liquidity-pool-audit DEX pool analysis; /pair-analyzer Uniswap pair deep dive; /wallet-history bot detection and wash trading analysis; /mev-simulator transaction cost estimation; /package-audit batch dependency audit.";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight AI-scored token + wallet risk with buy/sell recommendation; /wallet-audit combines balance + activity + on-chain labels; /contract-risk rug-pull detection and proxy patterns; /liquidity-pool-audit DEX pool analysis; /pair-analyzer Uniswap pair deep dive; /wallet-history bot detection and wash trading analysis; /airdrop-scanner airdrop eligibility checking; /liquidity-return-analyzer LP position ROI; /token-holder-analysis rug-pull risk and whale concentration; /mev-simulator transaction cost estimation; /package-audit batch dependency audit.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
