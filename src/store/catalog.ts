@@ -14,7 +14,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: "x402-seller-kit",
     title: "x402 Seller Kit",
-    priceUsd: 19,
+    priceUsd: 1.9,
     tagline: "Go from an empty folder to a live, listed pay-per-call API in a day.",
     description: [
       "A working Cloudflare Worker template that sells API calls to AI agents over x402 and MCP, plus the guide and directory playbook we wish we'd had when we built this site.",
