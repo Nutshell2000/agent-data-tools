@@ -72,7 +72,8 @@ export function homePage(origin: string, payTo: string) {
     // Keep the trial opt-in limited to human-facing homepage links; machine-readable
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${TRIALS_ENABLED ? "&trial=1" : ""}`;
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">Try free once</a> — <code>${esc(example)}</code></p></section>`;
+    const exampleLabel = TRIALS_ENABLED ? "Try free once" : "Example";
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
