@@ -2,7 +2,7 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, mcpServerCard, openApi, robotsTxt, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, serviceCard } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { handleMcp } from "./mcp";
@@ -33,10 +33,25 @@ app.use(async (c, next) => {
         ? "failed"
         : c.res.headers.has("X-Free-Trial-Remaining")
           ? "trial"
-          : "paid";
+          : viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret"))
+            ? "marketplace"
+            : "paid";
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   c.executionCtx.waitUntil(metrics.bump(c.req.path, outcome).catch(() => {}));
 });
+
+/**
+ * True for a call that came through RapidAPI's proxy. Those callers pay RapidAPI, which
+ * pays us, so they skip the x402 paywall. Off until the secret is configured.
+ */
+function viaMarketplace(env: Env, sent: string | undefined): boolean {
+  const secret = env.RAPIDAPI_PROXY_SECRET;
+  if (!secret || secret.length < 16 || !sent || sent.length !== secret.length) return false;
+  // Compare every character so the time taken does not reveal how much matched.
+  let diff = 0;
+  for (let i = 0; i < secret.length; i++) diff |= secret.charCodeAt(i) ^ sent.charCodeAt(i);
+  return diff === 0;
+}
 
 function buildPaywall(env: Env): MiddlewareHandler {
   const routes = Object.fromEntries(
@@ -126,6 +141,7 @@ app.use(async (c, next) => {
   if (!PAID_PATHS.has(c.req.path) || c.env.PAYWALL === "off") return next();
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
+  if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
   if (trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
     const left = await takeTrial(c.env, c.req.header("cf-connecting-ip") ?? "unknown");
     if (left !== null) {
@@ -165,6 +181,7 @@ app.get("/openapi.json", (c) => {
   const doc = openApi(origin(c.req.url));
   return c.json({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths() } });
 });
+app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url))));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
@@ -176,6 +193,8 @@ app.get("/metrics", async (c) => {
 app.get("/.well-known/x402", (c) =>
   c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path) }),
 );
+// Proves to the 402 Index directory that we run this domain. A hash, not a secret.
+app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
 app.get("/.well-known/mcp/server-card.json", (c) => c.json(mcpServerCard(origin(c.req.url))));
 app.get("/.well-known/api-catalog", (c) =>
   c.body(JSON.stringify(apiCatalog(origin(c.req.url))), 200, { "content-type": "application/linkset+json" }),

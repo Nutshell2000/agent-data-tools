@@ -1,11 +1,16 @@
 import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
+import { baseAllowance, baseTransaction, ensLookup } from "./routes/chain";
 import { domainInfo } from "./routes/domain";
 import { emailCheck } from "./routes/email";
 import { extract } from "./routes/extract";
 import { packageInfo } from "./routes/package";
+import { baseGas } from "./routes/gas";
 import { searchPapers } from "./routes/papers";
+import { bitcoinPrice, exchangeRates } from "./routes/rates";
+import { timeInZone } from "./routes/time";
+import { weather } from "./routes/weather";
 import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
 import { walletInfo } from "./routes/wallet";
@@ -30,4 +35,12 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? ""),
   "/email": (_env, q) => emailCheck(q("address") ?? ""),
   "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
+  "/fx": (_env, q) => exchangeRates(q("from") ?? "", q("to"), q("amount")),
+  "/btc-price": () => bitcoinPrice(),
+  "/base-gas": (env) => baseGas(env),
+  "/weather": (_env, q) => weather(q("lat"), q("lon"), q("hours")),
+  "/base-tx": (env, q) => baseTransaction(env, q("hash") ?? ""),
+  "/base-allowance": (env, q) => baseAllowance(env, q("token") ?? "", q("owner") ?? "", q("spender") ?? ""),
+  "/ens": (_env, q) => ensLookup(q("name") ?? ""),
+  "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
 };
