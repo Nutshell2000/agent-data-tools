@@ -462,7 +462,28 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
-    path: "/package",
+    path: "/liquidity-pool-audit",
+    price: "$0.03",
+    summary: "DeFi liquidity pool security audit: contract type, activity, risk flags",
+    description:
+      "Audit a Base liquidity pool contract: contract type detection (Uniswap V3/V2, Balancer, unknown), activity level (transaction count), bytecode analysis, and risk flags (no code, low activity, unusual bytecode size). Use for DEX trading pair audits, LP investment screening, and pool existence checks before trading or adding liquidity.",
+    tags: ["defi", "liquidity", "pool", "security", "uniswap"],
+    params: {
+      address: { type: "string", description: "Pool contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+    },
+    outputExample: {
+      chain: "base",
+      poolAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      type: "uniswap-v3",
+      riskLevel: "low",
+      riskFlags: [],
+      summary: "low risk: 0 flag(s). Type: uniswap-v3. Activity: 142 txs.",
+      facts: { hasCode: true, bytecodeSize: 2847, age: null },
+      metrics: { poolExists: true, eventCount: 142, lastActivity: null },
+      lastUpdatedBlock: 18650000,
+    },
+  },
+  {
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
     description:
