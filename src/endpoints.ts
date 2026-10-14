@@ -356,6 +356,28 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/package-audit",
+    price: "$0.01",
+    summary: "Audit up to 10 dependencies at once: exists, flags, verdict",
+    description:
+      "Check a whole dependency list in one call. Pass up to 10 ecosystem:name pairs (npm, pypi, cargo, go, maven, nuget) and get per-package existence, verdict and flags (not-found, deprecated, known advisories, very new or unmaintained), plus a summary. Catches hallucinated or typosquat package names an AI coding agent might install. Bad input is not charged.",
+    tags: ["package", "security", "supply-chain", "npm", "pypi"],
+    params: {
+      packages: { type: "string", description: "Comma-separated ecosystem:name pairs, max 10, e.g. npm:left-pad,pypi:requests", required: true, example: "npm:left-pad,pypi:requests" },
+    },
+    outputExample: {
+      checked: 2,
+      notFound: 0,
+      lookupFailed: 0,
+      summary: "All 2 package(s) exist. Review each verdict and flags before installing.",
+      results: [
+        { ecosystem: "npm", name: "left-pad", exists: true, verdict: "caution", flags: ["deprecated"] },
+        { ecosystem: "pypi", name: "requests", exists: true, verdict: "ok", flags: [] },
+      ],
+      source: "deps.dev",
+    },
+  },
+  {
     path: "/package",
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
