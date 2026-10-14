@@ -82,6 +82,36 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/domain-report",
+    price: "$0.01",
+    summary: "Domain trust verdict: age, DNS and email-auth flags",
+    description:
+      "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee.",
+    tags: ["domain", "security", "trust", "phishing", "email"],
+    params: {
+      name: { type: "string", description: "Domain name, e.g. cloudflare.com", required: true, example: "cloudflare.com" },
+    },
+    outputExample: {
+      domain: "cloudflare.com",
+      trust: "high",
+      summary: "high trust: 0 high and 0 medium flag(s). Based on DNS, registration and email-authentication signals only.",
+      flags: [],
+      facts: {
+        exists: true,
+        registrar: "Cloudflare, Inc.",
+        registeredAt: "2009-02-17T22:07:54Z",
+        expiresAt: "2033-02-17T22:07:54Z",
+        ageDays: 6447,
+        nameservers: ["ns3.cloudflare.com", "ns4.cloudflare.com"],
+        acceptsMail: true,
+        spfPolicy: "-all",
+        dmarcPolicy: "reject",
+        dnssecValidated: true,
+      },
+      checkedAt: "2026-10-14T19:25:28.425Z",
+    },
+  },
+  {
     path: "/token",
     price: "$0.01",
     summary: "Base ERC-20 token facts and risk flags",
