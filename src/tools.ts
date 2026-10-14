@@ -12,6 +12,7 @@ import { mevSimulator } from "./routes/mev-simulator";
 import { packageInfo } from "./routes/package";
 import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
+import pairAnalyzer from "./routes/pair-analyzer";
 import { searchPapers } from "./routes/papers";
 import { bitcoinPrice, exchangeRates } from "./routes/rates";
 import { timeInZone } from "./routes/time";
@@ -22,6 +23,7 @@ import { tokenInfo } from "./routes/token";
 import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
 import { walletAudit } from "./routes/wallet-audit";
+import walletHistory from "./routes/wallet-history";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
@@ -35,8 +37,16 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
+  "/wallet-history": async (env, q) => {
+    const resp = await walletHistory.fetch(new Request("http://localhost?" + new URLSearchParams({ address: q("address") ?? "", chain: q("chain") ?? "ethereum" }).toString()));
+    return resp.json();
+  },
   "/contract-risk": (env, q) => contractRisk(env, q("address") ?? ""),
   "/liquidity-pool-audit": (env, q) => liquidityPoolAudit(env, q("address") ?? ""),
+  "/pair-analyzer": async (env, q) => {
+    const resp = await pairAnalyzer.fetch(new Request("http://localhost?" + new URLSearchParams({ pairAddress: q("pairAddress") ?? "", chain: q("chain") ?? "ethereum" }).toString()));
+    return resp.json();
+  },
   "/mev-simulator": (env, q) => mevSimulator(env, q("scenario")),
   "/trade-insight": (env, q) => tradeInsight(env, q("token") ?? "", q("wallet") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
