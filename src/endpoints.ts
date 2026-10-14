@@ -777,12 +777,64 @@ export const ENDPOINTS: Endpoint[] = [
       ],
     },
   },
+  {
+    path: "/pair-analyzer",
+    price: "$0.03",
+    summary: "Uniswap pair deep dive: liquidity trends, token risk, price impact, protocol fees",
+    description:
+      "Analyze a Uniswap liquidity pair for trading risk: liquidity USD, 24h trading volume, price impact estimates (1%, 5%, 10% swaps), fee tier, transaction count, liquidity trend (increasing/decreasing/stable). Combines contract risk (token0/token1 properties) with pool activity to assess slippage and impermanent loss risk. Use for large order planning, LP due diligence, and identifying low-activity pools.",
+    tags: ["defi", "uniswap", "pair", "liquidity", "risk", "slippage"],
+    params: {
+      pairAddress: { type: "string", description: "Uniswap pool contract address (0x...)", required: true, example: "0x8ad599c3a0ff1de082011efddc58f1908762f2f" },
+      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
+    },
+    outputExample: {
+      pairAddress: "0x8ad599c3a0ff1de082011efddc58f1908762f2f",
+      liquidityUsd: 125000.5,
+      volumeUsd24h: 15000.25,
+      txCount24h: 42,
+      feeTier: 0.05,
+      priceImpact: { buy1Percent: 0.18, buy5Percent: 0.92, buy10Percent: 1.95 },
+      riskLevel: "low",
+      riskFlags: [],
+      liquidity_trend: "increasing",
+      recommendations: ["Pair liquidity is healthy for orders under $10k"],
+      token0: { symbol: "USDC", decimals: 6, totalSupply: "100000000000000" },
+      token1: { symbol: "WETH", decimals: 18, totalSupply: "12000000000000000000000" },
+    },
+  },
+  {
+    path: "/wallet-history",
+    price: "$0.02",
+    summary: "Historical transaction pattern analysis for bot detection and wash trading identification",
+    description:
+      "Analyze a wallet's transaction history to distinguish bots from humans and identify wash trading signatures: transaction count, wallet age, pattern frequency (burst vs. regular), token diversity, transaction timing variance, and historical analysis (all-time, last 30 days, last 7 days). Returns bot probability score (0-1), wash trading indicators, and specific risk flags. Use for counterparty due diligence, liquidity provider validation, and bot detection.",
+    tags: ["defi", "wallet", "history", "bot", "wash-trading", "risk"],
+    params: {
+      address: { type: "string", description: "Wallet address to analyze (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
+      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
+    },
+    outputExample: {
+      address: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
+      txCount: 342,
+      ageDays: 567,
+      riskLevel: "low",
+      botProbability: 0.15,
+      txPatterns: {
+        allTime: { count: 342, frequency: "regular", avgIntervalSeconds: 120000, topTokens: [{ token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", count: 142 }] },
+        last30Days: { count: 18, frequency: "sporadic", avgIntervalSeconds: 345600, topTokens: [] },
+      },
+      washTradingIndicators: [],
+      riskFlags: [],
+      recommendations: ["Wallet appears to be human-operated"],
+    },
+  },
 ];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. ";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight AI-scored token + wallet risk with buy/sell recommendation; /wallet-audit combines balance + activity + on-chain labels; /contract-risk rug-pull detection and proxy patterns; /liquidity-pool-audit DEX pool analysis; /pair-analyzer Uniswap pair deep dive; /wallet-history bot detection and wash trading analysis; /mev-simulator transaction cost estimation; /package-audit batch dependency audit.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
