@@ -484,6 +484,7 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
+    path: "/package",
     price: "$0.0002",
     summary: "Does this package exist, and is it safe to install",
     description:

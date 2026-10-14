@@ -88,12 +88,12 @@ export async function liquidityPoolAudit(env: Env, address: string): Promise<Poo
     riskFlags: riskFlags.sort(),
     summary: `${riskLevel} risk: ${riskFlags.length} flag(s). Type: ${poolType}. Activity: ${txCount} txs.`,
     facts: {
-      hasCode,
+      hasCode: hasCode ?? false,
       bytecodeSize,
       age: null,
     },
     metrics: {
-      poolExists: hasCode,
+      poolExists: hasCode ?? false,
       eventCount: txCount,
       lastActivity: null,
     },
