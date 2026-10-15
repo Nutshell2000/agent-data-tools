@@ -41,7 +41,7 @@ export function markStage(stage: FunnelStage) {
 /** Minimal request evidence only; no input URLs, signatures, page content or keys. */
 export async function saveFunnel(storage: DurableObjectStorage, event: FunnelEvent) {
   if (!/^[0-9a-f-]{36}$/.test(event.requestId) || !STAGES.includes(event.stage) ||
-      !/^\/[a-z0-9/.-]{0,80}$/.test(event.path) || !["http", "mcp"].includes(event.transport) ||
+      !/^\/[a-zA-Z0-9/.-]{0,80}$/.test(event.path) || !["http", "mcp"].includes(event.transport) ||
       (event.source !== undefined && safeSource(event.source) !== event.source) || !Number.isFinite(Date.parse(event.at))) throw new Error("invalid funnel event");
   // Copy only allowlisted fields, even on an internal RPC call.
   const clean = { requestId: event.requestId, path: event.path, transport: event.transport,

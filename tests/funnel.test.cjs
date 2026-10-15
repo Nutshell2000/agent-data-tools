@@ -23,6 +23,8 @@ test('funnel recording de-duplicates a stage and excludes customer inputs from p
   await Promise.all([funnel.saveFunnel(storage,e),funnel.saveFunnel(storage,e)]);
   const summary=await funnel.funnelSummary(storage);assert.equal(Object.values(summary.days)[0]['http:/extract:attempt'],1);
   assert.doesNotMatch(JSON.stringify([...records]),/PRIVATE_PAGE|PRIVATE_SIGNATURE/);
+  await funnel.saveFunnel(storage,{...e,requestId:crypto.randomUUID(),path:'/clients/reader/1.1.1/SHA256SUMS',stage:'visit'});
+  assert.equal(Object.values((await funnel.funnelSummary(storage)).days)[0]['http:/clients/reader/1.1.1/SHA256SUMS:visit'],1);
   await assert.rejects(()=>funnel.saveFunnel(storage,{...e,source:'https://private.example'}),/invalid funnel/);
 });
 
