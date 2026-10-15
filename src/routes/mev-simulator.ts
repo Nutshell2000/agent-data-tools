@@ -1,6 +1,6 @@
 import { HttpError, type Env } from "../lib/env";
 import { baseClient } from "../lib/rpc";
-import { formatGwei, parseGwei } from "viem";
+import { formatEther, formatGwei } from "viem";
 
 interface MEVSimulatorResult {
   chain: string;
@@ -15,12 +15,24 @@ interface MEVSimulatorResult {
     complexSwap: { gasUnits: number; costEth: string; costUsd: string | null };
     addLiquidity: { gasUnits: number; costEth: string; costUsd: string | null };
   };
-  mevRisk: "low" | "medium" | "high";
-  recommendations: string[];
+  scenarioNotes: string[];
   blockNumber: number;
 }
 
+const SCENARIOS = ["standard", "high-mev", "low-gas"] as const;
+type Scenario = (typeof SCENARIOS)[number];
+const GAS_ESTIMATE_NOTE =
+  "Gas units use typical fixed assumptions (100,000 simple swap, 250,000 complex swap, 180,000 add-liquidity), not a transaction-specific estimate or quote.";
+
+function isScenario(value: string): value is Scenario {
+  return SCENARIOS.some((scenario) => scenario === value);
+}
+
 export async function mevSimulator(env: Env, scenario: string = "standard"): Promise<MEVSimulatorResult> {
+  if (!isScenario(scenario)) {
+    throw new HttpError(400, `scenario must be one of: ${SCENARIOS.join(", ")}`);
+  }
+
   const client = baseClient(env);
 
   const [feeData, blockNumber, ethPrice] = await Promise.all([
@@ -41,19 +53,16 @@ export async function mevSimulator(env: Env, scenario: string = "standard"): Pro
   const priorityFee = feeData.maxPriorityFeePerGas || 1000000n;
 
   let adjustedPriority = priorityFee;
-  let mevRisk: "low" | "medium" | "high" = "medium";
-  const recommendations: string[] = [];
+  const scenarioNotes: string[] = [GAS_ESTIMATE_NOTE];
 
   if (scenario === "high-mev") {
     adjustedPriority = (priorityFee * 3n) / 1n;
-    mevRisk = "high";
-    recommendations.push("High MEV risk: Use MEV protection (MEV-Blocker, Flashbots Protect)");
+    scenarioNotes.push("This preset triples the current priority fee; it does not measure MEV risk or exposure.");
   } else if (scenario === "low-gas") {
     adjustedPriority = priorityFee / 2n;
-    mevRisk = "low";
-    recommendations.push("Low priority: Consider batch execution or delayed settlement");
+    scenarioNotes.push("This preset halves the current priority fee; inclusion time and MEV exposure are not estimated.");
   } else {
-    recommendations.push("Standard conditions: No special precautions needed");
+    scenarioNotes.push("This preset uses the current priority fee without adjustment.");
   }
 
   const maxFee = baseFee + adjustedPriority;
@@ -67,19 +76,14 @@ export async function mevSimulator(env: Env, scenario: string = "standard"): Pro
 
   const makeCost = (gas: number) => {
     const costWei = BigInt(gas) * maxFee;
-    const costEth = formatGwei(costWei);
+    const costEth = formatEther(costWei);
     const costUsd = ethPrice ? (parseFloat(costEth) * ethPrice).toFixed(2) : null;
     return { gasUnits: gas, costEth, costUsd };
   };
 
-  if (mevRisk === "high") {
-    recommendations.push("Monitor mempool for sandwich attacks");
-    recommendations.push("Consider private tx pool: bloxroute.com or MEV-Blocker");
-  }
-
   return {
     chain: "base",
-    scenario: (scenario as any) ?? "standard",
+    scenario,
     gasPrice: {
       baseFeeGwei: formatGwei(baseFee),
       priorityFeeGwei: formatGwei(adjustedPriority),
@@ -90,8 +94,7 @@ export async function mevSimulator(env: Env, scenario: string = "standard"): Pro
       complexSwap: makeCost(estimates.complexSwap),
       addLiquidity: makeCost(estimates.addLiquidity),
     },
-    mevRisk,
-    recommendations,
+    scenarioNotes,
     blockNumber: Number(blockNumber),
   };
 }

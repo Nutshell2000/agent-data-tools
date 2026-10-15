@@ -1,5 +1,5 @@
 import { SERVICE_NAME } from "../endpoints";
-import { PRODUCTS, type Product } from "./catalog";
+import { PRODUCTS, type OrderProduct, type Product } from "./catalog";
 import { USDC_BASE } from "./chain";
 import { formatUsdc, orderState, type Order } from "./orders";
 
@@ -74,12 +74,16 @@ ${body}
 </html>`;
 }
 
-export function storePage(origin: string) {
+export function storePage(origin: string, availability: Readonly<Record<string, boolean>>) {
+  const lead = PRODUCTS.every((p) => availability[p.slug] === true)
+    ? "Digital products for developers building paid APIs for AI agents. Pay in USDC, download straight away, no account."
+    : "Digital products for developers building paid APIs for AI agents. Browse product details; purchase availability depends on download verification.";
   const cards = PRODUCTS.map(
     (p) => `<div class="card">
 <h2 style="margin-top:0"><a href="/store/${esc(p.slug)}">${esc(p.title)}</a></h2>
 <p>${esc(p.tagline)}</p>
-<p><span class="price">$${p.priceUsd}</span> <span class="note">in USDC on Base</span></p>
+<p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">in USDC on Base</span></p>
+${availability[p.slug] ? "" : `<p class="status" role="status">Temporarily unavailable: purchase is paused until the download is verified.</p>`}
 <a class="btn" href="/store/${esc(p.slug)}">See what's inside</a>
 </div>`,
   ).join("");
@@ -87,13 +91,17 @@ export function storePage(origin: string) {
     `Store | ${SERVICE_NAME}`,
     "Digital products for developers building paid APIs for AI agents.",
     `<h1>Store</h1>
-<p class="lead">Digital products for developers building paid APIs for AI agents. Pay in USDC, download straight away, no account.</p>
+<p class="lead">${esc(lead)}</p>
 ${cards}`,
     { url: `${origin}/store`, type: "website" },
   );
 }
 
-export function productPage(p: Product, origin: string) {
+export function productPage(p: Product, origin: string, assetAvailable: boolean) {
+  const purchaseControls = assetAvailable
+    ? `<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
+<p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>`
+    : `<p class="status" role="status">Purchasing is temporarily unavailable because the download asset cannot be verified. Please check back later.</p>`;
   return shell(
     `${p.title} | ${SERVICE_NAME}`,
     p.tagline,
@@ -103,16 +111,15 @@ ${p.description.map((d) => `<p>${esc(d)}</p>`).join("")}
 <h2>What's inside</h2>
 <ul>${p.includes.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
 <div class="card">
-<p><span class="price">$${p.priceUsd}</span> <span class="note">one-time, in USDC on Base</span></p>
-<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
-<p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>
+<p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">one-time, in USDC on Base</span></p>
+${purchaseControls}
 </div>
-<p class="note">Agents can buy it too: <code>GET /buy/${esc(p.slug)}</code> with an x402 client.</p>`,
+${assetAvailable ? `<p class="note">Agents can buy it too: <code>GET /buy/${esc(p.slug)}</code> with an x402 client.</p>` : ""}`,
    { url: `${origin}/store/${encodeURIComponent(p.slug)}`, type: "product" },
  );
 }
 
-export function orderPage(order: Order, p: Product, payTo: string) {
+export function orderPage(order: Order, p: OrderProduct, payTo: string) {
   const state = orderState(order);
   const amount = formatUsdc(order.amount);
   // EIP-681 link: lets a mobile wallet prefill the USDC transfer on Base.

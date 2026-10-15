@@ -26,35 +26,27 @@ interface WalletAuditResult {
   riskFlags: string[];
   summary: string;
   eth: { wei: string; formatted: string };
-  transactionCount: number;
+  accountNonce: number;
   tokenCount: number;
   tokens: TokenHolding[];
   labels: string[];
+  limitations: string[];
   lastUpdatedBlock: number;
 }
 
-// Simple heuristic labels based on activity and balance
-function assessRisk(txCount: number, tokenCount: number, ethBalance: string): "low" | "medium" | "high" {
-  const ethNum = parseFloat(ethBalance);
-  const flags: string[] = [];
-
-  if (txCount === 0) flags.push("no-activity");
-  if (txCount === 1) flags.push("single-tx");
-  if (ethNum < 0.001 && txCount < 5) flags.push("low-balance-low-activity");
-
-  if (flags.length >= 2) return "high";
-  if (flags.length === 1) return "medium";
+function assessRisk(riskFlags: readonly string[]): "low" | "medium" | "high" {
+  if (riskFlags.length >= 2) return "high";
+  if (riskFlags.length === 1) return "medium";
   return "low";
 }
 
-function getLabels(address: string, txCount: number, ethBalance: string): string[] {
+function getLabels(accountNonce: number, ethBalance: string): string[] {
   const labels: string[] = [];
   const ethNum = parseFloat(ethBalance);
 
-  if (ethNum > 10) labels.push("high-eth-holder");
-  if (ethNum < 0.0001 && txCount > 10) labels.push("active-small-holder");
-  if (txCount === 0) labels.push("new-address");
-  if (txCount === 1) labels.push("single-transaction");
+  if (ethNum > 10) labels.push("high-eth-balance");
+  if (accountNonce === 0) labels.push("zero-account-nonce");
+  if (accountNonce === 1) labels.push("account-nonce-one");
 
   return labels;
 }
@@ -63,7 +55,7 @@ export async function walletAudit(env: Env, address: string): Promise<WalletAudi
   if (!isAddress(address)) throw new HttpError(400, "address must be a 0x-prefixed 20-byte hex address");
 
   const client = baseClient(env);
-  const [balance, txCount, code, calls, blockNumber] = await Promise.all([
+  const [balance, accountNonce, code, calls, blockNumber] = await Promise.all([
     client.getBalance({ address }),
     client.getTransactionCount({ address }),
     client.getCode({ address }),
@@ -93,7 +85,7 @@ export async function walletAudit(env: Env, address: string): Promise<WalletAudi
     if (raw === 0n) return [];
 
     const balanceFormatted = formatUnits(raw, decimals);
-    const riskLevel: "low" | "medium" | "high" | "unknown" = "low";
+    const riskLevel: "low" | "medium" | "high" | "unknown" = "unknown";
 
     return [
       {
@@ -107,15 +99,14 @@ export async function walletAudit(env: Env, address: string): Promise<WalletAudi
     ];
   });
 
-  const riskLevel = assessRisk(txCount, tokens.length, ethFormatted);
   const riskFlags: string[] = [];
 
-  if (txCount === 0) riskFlags.push("no-transaction-history");
-  if (txCount === 1) riskFlags.push("single-transaction-only");
-  if (parseFloat(ethFormatted) < 0.0001 && txCount < 3) riskFlags.push("low-balance-low-activity");
-  if (type === "contract" && !delegatedTo) riskFlags.push("contract-address");
+  if (accountNonce === 0) riskFlags.push("zero-account-nonce");
+  if (accountNonce === 1) riskFlags.push("account-nonce-one");
+  if (parseFloat(ethFormatted) < 0.0001 && accountNonce < 3) riskFlags.push("low-balance-low-nonce");
 
-  const labels = getLabels(address, txCount, ethFormatted);
+  const riskLevel = assessRisk(riskFlags);
+  const labels = getLabels(accountNonce, ethFormatted);
 
   return {
     chain: "base",
@@ -123,12 +114,15 @@ export async function walletAudit(env: Env, address: string): Promise<WalletAudi
     type,
     riskLevel,
     riskFlags,
-    summary: `${riskLevel} risk: ${riskFlags.length} flag(s). ${tokens.length} token(s) held. ${txCount} transaction(s).`,
+    summary: `${riskLevel} risk: ${riskFlags.length} flag(s). ${tokens.length} token(s) held. Account nonce: ${accountNonce}.`,
     eth: { wei: balance.toString(), formatted: ethFormatted },
-    transactionCount: txCount,
+    accountNonce,
     tokenCount: tokens.length,
     tokens,
     labels,
+    limitations: [
+      "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+    ],
     lastUpdatedBlock: Number(blockNumber),
   };
 }

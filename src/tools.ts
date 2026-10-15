@@ -12,7 +12,6 @@ import { mevSimulator } from "./routes/mev-simulator";
 import { packageInfo } from "./routes/package";
 import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
-import pairAnalyzer from "./routes/pair-analyzer";
 import { searchPapers } from "./routes/papers";
 import { bitcoinPrice, exchangeRates } from "./routes/rates";
 import { timeInZone } from "./routes/time";
@@ -23,16 +22,13 @@ import { tokenInfo } from "./routes/token";
 import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
 import { walletAudit } from "./routes/wallet-audit";
-import walletHistory from "./routes/wallet-history";
-import { airdropScanner } from "./routes/airdrop-scanner";
-import { liquidityReturnAnalyzer } from "./routes/liquidity-return-analyzer";
-import { tokenHolderAnalysis } from "./routes/token-holder-analysis";
+import type { EndpointPath } from "./endpoints";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
 
 /** One implementation per catalog path, shared by the HTTP routes and the MCP tools. */
-export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>> = {
+export const TOOLS: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> = {
   "/extract": (_env, q) => extract(q("url"), q("maxChars")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
   "/domain-report": (env, q) => domainReport(env, q("name") ?? ""),
@@ -40,16 +36,8 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/token-report": (env, q) => tokenReport(env, q("address") ?? ""),
   "/wallet": (env, q) => walletInfo(env, q("address") ?? "", q("tokens")),
   "/wallet-audit": (env, q) => walletAudit(env, q("address") ?? ""),
-  "/wallet-history": async (env, q) => {
-    const resp = await walletHistory.fetch(new Request("http://localhost?" + new URLSearchParams({ address: q("address") ?? "", chain: q("chain") ?? "ethereum" }).toString()));
-    return resp.json();
-  },
   "/contract-risk": (env, q) => contractRisk(env, q("address") ?? ""),
   "/liquidity-pool-audit": (env, q) => liquidityPoolAudit(env, q("address") ?? ""),
-  "/pair-analyzer": async (env, q) => {
-    const resp = await pairAnalyzer.fetch(new Request("http://localhost?" + new URLSearchParams({ pairAddress: q("pairAddress") ?? "", chain: q("chain") ?? "ethereum" }).toString()));
-    return resp.json();
-  },
   "/mev-simulator": (env, q) => mevSimulator(env, q("scenario")),
   "/trade-insight": (env, q) => tradeInsight(env, q("token") ?? "", q("wallet") ?? ""),
   "/summarize": (env, q) => summarize(env, q("url")),
@@ -61,7 +49,7 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/btc-address": (_env, q) => bitcoinAddress(q("address") ?? ""),
   "/ln-invoice": async (_env, q) => lightningInvoice(q("invoice") ?? ""),
   "/package-audit": (_env, q) => packageAudit(q("packages")),
-  "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? ""),
+  "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? "", q("version")),
   "/email": (_env, q) => emailCheck(q("address") ?? ""),
   "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
   "/fx": (_env, q) => exchangeRates(q("from") ?? "", q("to"), q("amount")),
@@ -72,7 +60,4 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/base-allowance": (env, q) => baseAllowance(env, q("token") ?? "", q("owner") ?? "", q("spender") ?? ""),
   "/ens": (_env, q) => ensLookup(q("name") ?? ""),
   "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
-  "/airdrop-scanner": (_env, q) => airdropScanner(q("address") ?? "", q("chain") ?? "ethereum"),
-  "/liquidity-return-analyzer": (_env, q) => liquidityReturnAnalyzer(q("poolAddress") ?? "", q("lpAddress") ?? "", q("chain") ?? "ethereum"),
-  "/token-holder-analysis": (_env, q) => tokenHolderAnalysis(q("tokenAddress") ?? "", q("chain") ?? "ethereum"),
 };

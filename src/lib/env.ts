@@ -3,6 +3,7 @@ export interface Env {
   NETWORK: `${string}:${string}`;
   FACILITATOR_URL: string;
   PAYWALL: string;
+  TRIALS_ENABLED?: string;
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
@@ -17,6 +18,8 @@ export interface Env {
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }
+
+export const trialsEnabled = (env: Pick<Env, "TRIALS_ENABLED">): boolean => env.TRIALS_ENABLED === "on";
 
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */
 export class HttpError extends Error {
