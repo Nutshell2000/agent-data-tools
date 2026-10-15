@@ -52,3 +52,23 @@ test('service redirects are never followed, including after signing',async()=>{
 test('actual SDK can authorize an offline fixture once without a chain transaction',async()=>{
  const f=fixture({realSigning:true});const v=await core.runReader(['buy',target,'--max-usdc','0.002'],f.deps);assert.equal(v.ok,true);assert.equal(f.counts().submissions,1);
 });
+
+
+test('sitemap commands pin their resource and safely encode options without changing extract limits',async()=>{
+  const options=core.parseReaderArgs(['quote-sitemap','https://public.example/map.xml','--contains','docs & guide','--max-urls','3','--offset','2']);
+  assert.equal(options.path,'/sitemap');assert.equal(options.format,'text');assert.equal(options.query.contains,'docs & guide');assert.equal(options.query.offset,'2');
+  let signs=0,requests=0;const required={...quote(),resource:{url:core.READER_ORIGIN+'/sitemap'}};
+  const deps={getKey:()=>assert.fail('no key for quote'),fetcher:async url=>{requests++;const u=new URL(url);assert.equal(u.pathname,'/sitemap');assert.equal(u.searchParams.get('contains'),'docs & guide');return new Response(null,{status:402,headers:{'PAYMENT-REQUIRED':encode(required)}});},createPayload:async()=>{signs++;}};
+  const result=await core.runReader(['quote-sitemap','https://public.example/map.xml','--contains','docs & guide'],deps);assert.equal(result.ok,true);assert.equal(requests,1);assert.equal(signs,0);
+  for(const flags of [['--max-usdc','0.003'],['--max-usdc','0.002','--max-urls','101'],['--max-usdc','0.002','--offset','-1'],['--max-usdc','0.002','--format','markdown']]){const r=await core.runReader(['buy-sitemap',target,...flags],{fetcher:()=>assert.fail('invalid options must not fetch')});assert.equal(r.ok,false);}
+  const wrong=await core.runReader(['buy-sitemap',target,'--max-usdc','0.002'],fixture().deps);assert.equal(wrong.error,'unexpected_payment_resource');
+});
+
+test('sitemap purchase authorizes once and an uncertain response never starts another purchase',async()=>{
+  const required={...quote(),resource:{url:core.READER_ORIGIN+'/sitemap'}};
+  for(const lose of [false,true]){
+    let signs=0,submissions=0;const text='https://public.example/docs/start';
+    const result=await core.runReader(['buy-sitemap','https://public.example/map.xml','--max-usdc','0.002'],{getKey:()=>key,createPayload:async ask=>{signs++;return{x402Version:2,resource:ask.resource,accepted:ask.accepts[0],payload:{signature}};},fetcher:async(_url,init)=>{if(!init.headers['PAYMENT-SIGNATURE'])return new Response(null,{status:402,headers:{'PAYMENT-REQUIRED':encode(required)}});submissions++;if(lose)throw Error('lost');return new Response(JSON.stringify({format:'text',hashFormat:'text',text,entries:[{url:text,lastModified:null}],contentHash:'sha256:'+createHash('sha256').update(text).digest('hex')}),{headers:{'PAYMENT-RESPONSE':encode(receipt)}});}});
+    assert.equal(signs,1);assert.equal(submissions,1);assert.equal(result.ok,!lose);if(lose){assert.equal(result.paymentStatus,'unknown');assert.equal(result.retryAutomatically,false);}
+  }
+});
