@@ -28,8 +28,7 @@ income are not inferred. Historical paid counters cannot be backfilled using tod
 prices: the two indexed historical receipts are 2,000 atomic units each, while today's
 `/btc-fees` challenge is now 2,000 atomic units. Tests and self-payments are never customer income.
 
-The older setup notes below are retained for history; the live catalog is authoritative
-for current tools, prices and trial availability.
+The live catalog is authoritative for current tools, prices and trial availability.
 
 A Cloudflare Worker that sells 31 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
@@ -77,9 +76,9 @@ The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 clie
 
 `/airdrop-scanner`, `/liquidity-return-analyzer`, `/token-holder-analysis`, `/pair-analyzer` and `/wallet-history` are deferred because this service has no verified live data sources for their advertised analyses. They are not listed as paid tools and return HTTP 503 without a payment challenge or charge.
 
-The AI endpoints run on Workers AI and `/screenshot` on Browser Rendering, both within Cloudflare's free daily allowance (10,000 AI "neurons" and 10 browser-minutes). When either runs out, or the browser is rate limited, the endpoint answers 503 and the caller is not charged.
+The AI endpoints use Workers AI and `/screenshot` uses Browser Rendering. Account allowances and actual operating costs must be checked separately; they are not established by the API price. Upstream capacity or rate-limit failures return errors without settling a charge.
 
-Free routes: `/` (a web page for browsers, JSON for programs), `/openapi.json`, `/llms.txt`, `/robots.txt`, `/health`, `/.well-known/x402`, `/.well-known/mcp/server-card.json`, `/.well-known/api-catalog`.
+Free routes include the owned `/examples/extract/` results, versioned `/clients/reader/` downloads, `/sitemap.xml`, `/` (a web page for browsers, JSON for programs), `/openapi.json`, `/llms.txt`, `/robots.txt`, `/health`, `/.well-known/x402`, `/.well-known/mcp/server-card.json`, `/.well-known/api-catalog`.
 
 `/metrics` reports daily request counts by path. `unsettled` counts successful HTTP 2xx responses on paid paths without a verified successful `PAYMENT-RESPONSE`; only calls with a valid settlement response increment `paid`. `revenueUsdMicros` is gross USD in millionths of a dollar, and `trackedPaidCalls` counts settled x402 HTTP API, MCP tool and `/buy/<slug>` calls included in that total. MCP totals are recorded only when the payment wrapper returns a successful structured settlement result; x402 product purchases use the exact product catalog price. Revenue fields are prospective and have no historical backfill. `paid` counts from before settlement validation are not proof of payment and must not be used as revenue. Challenges, trials, marketplace requests, unsettled responses, and direct storefront-transfer amounts are excluded.
 
@@ -89,7 +88,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 - Products are listed in `src/store/catalog.ts`.
 - Orders and the sales log live in the `TRIALS` key-value store (`order:` and `paid:` keys). List sales with `npx wrangler kv key list --binding TRIALS --prefix paid: --remote`.
-- The DeFi Trader Intelligence Bundle is delisted because the service has no API-key authentication, 250-call quota or `/account` endpoint. Legacy order receipts remain supported, but actual download fulfillment is unverified. Product assets under the gitignored `public/_files/` directory are absent from this snapshot and must be privately provisioned in any deployment artifact; missing assets make paid downloads return 502. Do not deploy this worktree until the assets are reconciled.
+- The DeFi Trader Intelligence Bundle is delisted because the service has no API-key authentication, 250-call quota or `/account` endpoint. Legacy order receipts remain supported, but actual download fulfillment is unverified. Product assets under the gitignored `public/_files/` directory are intentionally absent from Git and must be privately provisioned before deploying a fresh checkout; missing assets make paid downloads return 502. The existing production worktree retains these assets. Never publish them in source control.
 
 ## MCP
 
@@ -100,7 +99,7 @@ Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and im
 ## Where it is listed
 
 - Official MCP Registry: listed as `io.github.Nutshell2000/agent-data-tools`. To publish a new version, raise `version` in `server.json` and push a matching `v*` tag; the workflow in `.github/workflows/publish-mcp.yml` does the rest on GitHub's servers.
-- 402 Index (https://402index.io): reconcile directory listings after deploying this 31-endpoint source; the five deferred routes should no longer be advertised as paid tools.
+- 402 Index (https://402index.io): existing reader entries and catalog metadata were refreshed on 15 October 2026. Third-party caches can remain stale; the live catalog and quotes take precedence.
 - x402scan: existing listings cover the catalog. Reconcile current prices after each release; no new duplicate registration is needed.
 - Coinbase Bazaar: Bitcoin fees and package metadata have indexed entries. Other routes require a genuine settled payment; a readiness pass alone does not index them.
 
