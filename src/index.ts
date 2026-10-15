@@ -6,6 +6,7 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { CAPACITY_LIMITED, ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
+import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
 import { handleMcp } from "./mcp";
@@ -195,6 +196,8 @@ app.get("/openapi.json", (c) => {
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
+app.get("/guides/dependency-audit.md", (c) => c.text(auditGuideMarkdown(origin(c.req.url), c.env.PAY_TO)));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.
