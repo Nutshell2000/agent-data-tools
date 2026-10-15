@@ -5,7 +5,7 @@
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
 export const SERVICE_SUMMARY =
-  "Pay-per-call tools for AI agents: web page text extraction and summaries, screenshots, image generation, speech-to-text, image description, domain and email-auth intelligence, live Base token, wallet and gas lookups, Bitcoin price and fees, currency exchange rates, weather and time zones. No account or API key; pay per request in USDC on Base via x402.";
+  "Pay-per-call tools for AI agents: web page text extraction and summaries, screenshots, image generation, speech-to-text, image description, domain and email-auth intelligence, live Base token, wallet and gas lookups, Bitcoin price and fees, currency exchange rates, weather and time zones, plus x402 pre-payment checks, OFAC crypto-address sanctions screening, EU VAT validation, global company (LEI) lookup and IBAN validation. No account or API key; pay per request in USDC on Base via x402.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -625,12 +625,165 @@ export const ENDPOINTS: Endpoint[] = [
       ],
     },
   },
+  {
+    path: "/x402-check",
+    price: "$0.005",
+    summary: "Check an x402 endpoint before paying it: pay, caution or avoid",
+    description:
+      "Check any x402 paid endpoint before your agent pays it. Probes the URL without paying, decodes the payment request (x402 v1 or v2), and returns a pay / caution / avoid verdict with named flags: sanctioned receiving address (OFAC), price above your maxPrice, testnet-only, unknown token, resource on another host, new domain, no TLS. Includes the dollar price of each option and the receiver's on-chain facts on Base.",
+    tags: ["x402", "payments", "security", "due-diligence", "agents"],
+    params: {
+      url: { type: "string", description: "The x402 endpoint URL to check, as the agent would call it", required: true, example: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees" },
+      method: { type: "string", description: "HTTP method the endpoint expects: GET (default) or POST", example: "GET" },
+      maxPrice: { type: "number", description: "Optional budget in dollars; a cheapest option above it is flagged over_budget", example: 0.05 },
+    },
+    outputExample: {
+      url: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees",
+      verdict: "pay",
+      summary: "pay: 0 high and 0 medium flag(s). Cheapest mainnet option $0.0002.",
+      httpStatus: 402,
+      x402Version: 2,
+      description: "Current Bitcoin network fee rates and mempool status.",
+      cheapestPrice: 0.0002,
+      options: [
+        {
+          scheme: "exact",
+          network: "eip155:8453",
+          networkName: "Base",
+          testnet: false,
+          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          assetSymbol: "USDC",
+          amount: "200",
+          price: 0.0002,
+          payTo: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+          resource: null,
+          maxTimeoutSeconds: 300,
+        },
+      ],
+      receiver: { address: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", network: "eip155:8453", type: "eoa", transactionCount: 3, usdcBalance: 1.25 },
+      domain: { name: "agent-data-tools.revmesh2074.workers.dev", registrar: "Cloudflare, Inc.", ageDays: 3000 },
+      flags: [],
+      note: "Nothing was paid. Checks the payment request, receiving address and domain only; it cannot prove what the endpoint returns after payment.",
+      checkedAt: "2026-10-15T07:03:36.993Z",
+    },
+  },
+  {
+    path: "/sanctions",
+    price: "$0.005",
+    summary: "OFAC sanctions screen for crypto addresses",
+    description:
+      "Screen up to 25 crypto addresses in one call against the OFAC SDN list of sanctioned digital currency addresses: Ethereum and other EVM chains, Bitcoin, Tron, Solana, Litecoin, Monero, XRP and more. Returns whether each address is listed and under which assets. Use before an agent sends funds to, or accepts funds from, an address. Exact address matches only; not legal advice.",
+    tags: ["sanctions", "ofac", "compliance", "aml", "wallet"],
+    params: {
+      address: { type: "string", description: "One crypto address, or up to 25 separated by commas", required: true, example: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5" },
+    },
+    outputExample: {
+      sanctioned: true,
+      summary: "1 of 2 address(es) are on the OFAC SDN list. Do not send funds to or accept funds from them.",
+      results: [
+        { address: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", format: "evm", sanctioned: false, listedUnder: [] },
+        { address: "0x04DBA1194ee10112fE6C3207C0687DEf0e78baCf", format: "evm", sanctioned: true, listedUnder: ["ETH"] },
+      ],
+      listedAddresses: 1047,
+      source:
+        "OFAC SDN list, digital currency address entries (exact address matches only), via github.com/0xB10C/ofac-sanctioned-digital-currency-addresses, refreshed daily",
+      note: "Exact-match screening of the addresses themselves. It does not trace funds or cover other sanctions programs, and it is not legal advice.",
+      checkedAt: "2026-10-15T07:02:34.589Z",
+    },
+  },
+  {
+    path: "/vat",
+    price: "$0.005",
+    summary: "EU VAT number validation with company name and address",
+    description:
+      "Validate an EU VAT number live against the European Commission's VIES service and get the registered company name and address where the member state shares them. Covers all 27 EU countries plus Northern Ireland (XI). Accepts numbers with spaces, dots or dashes. Use for B2B invoicing, reverse-charge checks, supplier onboarding and KYB. If a national registry is down you get 503 and are not charged.",
+    tags: ["vat", "tax", "kyb", "invoicing", "eu"],
+    params: {
+      number: { type: "string", description: "VAT number including its country prefix, e.g. SE556703748501 or DE 123 456 789", required: true, example: "SE556703748501" },
+      country: { type: "string", description: "Optional two-letter country code, if number has no prefix", example: "SE" },
+    },
+    outputExample: {
+      vatNumber: "SE556703748501",
+      country: "SE",
+      valid: true,
+      name: "Spotify AB",
+      address: "REGERINGSGATAN 19, 111 53 STOCKHOLM",
+      summary: "SE556703748501 is a valid, active EU VAT number registered to Spotify AB.",
+      note: null,
+      source: "European Commission VIES (live check against the national registry)",
+      requestDate: "2026-10-15T07:00:00.000Z",
+      checkedAt: "2026-10-15T07:03:37.012Z",
+    },
+  },
+  {
+    path: "/company",
+    price: "$0.01",
+    summary: "Company lookup in the global LEI register, with parent companies",
+    description:
+      "Find companies worldwide in the official Global LEI Index (GLEIF): legal name, status, legal form, jurisdiction, national registry number, founding date, legal and headquarters addresses, BIC codes and LEI registration status. Search by name (optionally filtered by country), or pass a 20-character LEI to get that company with its direct and ultimate parent. Use for KYB, counterparty checks, invoicing and corporate-structure questions.",
+    tags: ["company", "kyb", "lei", "business", "registry"],
+    params: {
+      query: { type: "string", description: "Company name, or a 20-character LEI for one company with its parents", required: true, example: "Apple Inc" },
+      country: { type: "string", description: "Optional two-letter country code of the legal address, e.g. US", example: "US" },
+      limit: { type: "integer", description: "Maximum companies for a name search, 1 to 20 (default 5)", example: 5 },
+    },
+    outputExample: {
+      match: "name",
+      query: "Apple Inc",
+      country: "US",
+      total: 1,
+      companies: [
+        {
+          lei: "HWUPKR0MPOU8FGXBT394",
+          name: "Apple Inc.",
+          otherNames: [],
+          status: "ACTIVE",
+          legalForm: "Corporation",
+          jurisdiction: "US-CA",
+          registryNumber: null,
+          category: "GENERAL",
+          founded: null,
+          legalAddress: { lines: ["One Apple Park Way"], city: "Cupertino", region: "US-CA", postalCode: "95014", country: "US" },
+          headquarters: { lines: ["One Apple Park Way"], city: "Cupertino", region: "US-CA", postalCode: "95014", country: "US" },
+          bic: [],
+          leiRegistration: { status: "ISSUED", firstRegistered: "2012-06-06T15:53:00Z", lastUpdated: "2026-06-01T00:00:00Z", nextRenewal: "2027-06-01T00:00:00Z" },
+        },
+      ],
+      note: "Pass a company's LEI as query to get that one company with its direct and ultimate parent.",
+      source: "GLEIF Global LEI Index (official, updated daily)",
+      checkedAt: "2026-10-15T07:03:37.014Z",
+    },
+  },
+  {
+    path: "/iban",
+    price: "$0.001",
+    summary: "IBAN validation with bank code and SEPA membership",
+    description:
+      "Validate an IBAN for any of 90 countries: length for the country, characters and the ISO 13616 mod-97 check digits, with a plain-language reason when it fails. Returns the formatted IBAN, country, bank and branch codes for major European countries, and whether the country is in SEPA. Use before an agent sends a bank transfer or stores payout details. Proves the number is well formed, not that the account exists.",
+    tags: ["iban", "banking", "payments", "sepa", "validation"],
+    params: {
+      iban: { type: "string", description: "The IBAN, with or without spaces", required: true, example: "DE89 3704 0044 0532 0130 00" },
+    },
+    outputExample: {
+      iban: "DE89370400440532013000",
+      valid: true,
+      errors: [],
+      formatted: "DE89 3704 0044 0532 0130 00",
+      country: "DE",
+      checkDigits: "89",
+      bban: "370400440532013000",
+      bankCode: "37040044",
+      branchCode: null,
+      sepa: true,
+      note: "Structure and check digits are valid. This does not prove the account is open or who holds it.",
+    },
+  },
 ];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. ";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name, /weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. Trust and compliance: /x402-check checks an x402 endpoint before you pay it and answers pay, caution or avoid, /sanctions screens crypto addresses against the OFAC SDN list, /vat validates an EU VAT number and returns the company name, /company finds companies in the global LEI register, /iban validates an IBAN.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
