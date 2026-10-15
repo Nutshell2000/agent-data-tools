@@ -14,7 +14,7 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>new URL(r.url).pathname==='/fail'?new Response('failure',{status:500}):new Response('<html><title>Paid fixture</title><main><h1>Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}})}));
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>new URL(r.url).pathname==='/fail'?new Response('failure',{status:500}):new Response(new URL(r.url).pathname==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1>Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}})}));
 });
 after(async()=>{await mf?.dispose();});
 function payload(requirements,nonce='3'.repeat(64),url='https://api.test/extract'){
@@ -38,9 +38,10 @@ test('actual HTTP paywall links successful payment to completed output and never
     if(receipt) assert.equal(JSON.parse(Buffer.from(receipt,'base64')).success,false);
     await rejected.body?.cancel();
   }
+  const empty=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Fshell',{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(requirements,'7'.repeat(64)))).toString('base64')}});assert.equal(empty.status,422);assert.equal((await empty.json()).code,'EXTRACTION_EMPTY');assert.ok(!empty.headers.has('PAYMENT-RESPONSE'));
   const summary=await revenue();assert.equal(summary.settlements,1);assert.equal(summary.grossAtomic,'2000');
   const counts=Object.values(summary.funnel.days).reduce((a,d)=>{for(const[k,v]of Object.entries(d))a[k]=(a[k]||0)+v;return a;},{});
-  assert.equal(counts['http:/extract:completed'],1);assert.equal(counts['http:/extract:settled'],1);assert.equal(counts['http:/extract:execution_failed'],1);
+  assert.equal(counts['http:/extract:completed'],1);assert.equal(counts['http:/extract:settled'],1);assert.equal(counts['http:/extract:execution_failed'],2);
   assert.equal(counts['http:/extract:verification_failed'],1);assert.equal(counts['http:/extract:settlement_failed'],1);
 });
 test('actual MCP transport supplies a free quote and returns a separately tracked paid fixture result',async()=>{
@@ -51,12 +52,13 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);assert.equal((await client.listTools()).tools.length,31);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,31);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
-    assert.ok(!result.isError,JSON.stringify(result));assert.ok(result._meta.requestId);assert.equal(result._meta['x402/payment-response'].success,true);
+    assert.ok(!result.isError,JSON.stringify(result));assert.match(result.structuredContent.text,/Useful result/);assert.equal(result.structuredContent.contentHash,JSON.parse(result.content[0].text).contentHash);assert.ok(result._meta.requestId);assert.equal(result._meta['x402/payment-response'].success,true);
+    const empty=await client.callTool({name:'extract',arguments:{url:'https://public.example/shell'},_meta:{'x402/payment':payload(required.accepts[0],'8'.repeat(64),'mcp://tool/extract')}});assert.equal(empty.isError,true);assert.equal(empty.structuredContent.code,'EXTRACTION_EMPTY');assert.ok(!empty._meta?.['x402/payment-response']?.success);
     const summary=await revenue();assert.equal(summary.settlements,2);assert.equal(summary.grossAtomic,'4000');
-    const day=Object.values(summary.funnel.days).at(-1);assert.equal(day['mcp:/extract:quote'],1);assert.equal(day['mcp:/extract:attempt'],1);assert.equal(day['mcp:/extract:completed'],1);
+    const day=Object.values(summary.funnel.days).at(-1);assert.equal(day['mcp:/extract:quote'],1);assert.equal(day['mcp:/extract:attempt'],2);assert.equal(day['mcp:/extract:completed'],1);
   }finally{await client.close();}
 });

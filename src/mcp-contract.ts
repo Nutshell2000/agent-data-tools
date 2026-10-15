@@ -1,6 +1,8 @@
 import type { Endpoint } from "./endpoints";
 
 export const toolName = (endpoint: Endpoint) => endpoint.path.slice(1);
+// Every invocation can spend money, even when the underlying data is read-only.
+export const toolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 
 export const toolDescription = (endpoint: Endpoint) =>
   `${endpoint.description} Costs ${endpoint.price} in USDC on Base per successful call, paid with x402.`;

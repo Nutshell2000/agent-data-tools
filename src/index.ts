@@ -241,7 +241,7 @@ app.get("/.well-known/api-catalog", (c) =>
 
 app.notFound((c) => c.json({ error: "not found", docs: `${origin(c.req.url)}/llms.txt` }, 404));
 app.onError((err, c) => {
-  if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
+  if (err instanceof HttpError) return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}) }, err.status);
   console.error(err);
   return c.json({ error: "internal error" }, 500);
 });
