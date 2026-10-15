@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 
 /** What happened to a request for a paid path. */
 export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "marketplace";
@@ -18,6 +19,14 @@ const today = () => new Date().toISOString().slice(0, 10);
  * One object holds every counter; it stores no addresses, payers or request contents.
  */
 export class Metrics extends DurableObject {
+  async reserveCheckoutAmount(reservation: AmountReservation): Promise<boolean> {
+    return reserveAmount(this.ctx.storage, reservation);
+  }
+
+  async claimCheckoutPayment(claim: TransferClaim): Promise<boolean> {
+    return claimTransfer(this.ctx.storage, claim);
+  }
+
   async bump(path: string, outcome: Outcome, revenueUsdMicros?: number): Promise<void> {
     const key = `day:${today()}`;
     await this.ctx.storage.transaction(async (txn) => {

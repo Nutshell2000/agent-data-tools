@@ -112,7 +112,7 @@ test("storefront preserves purchase controls when asset HEAD succeeds", async ()
 
   assert.equal(storeResponse.status, 200);
   assert.doesNotMatch(storeHtml, /Temporarily unavailable/);
-  assert.match(storeHtml, /Pay in USDC, download straight away, no account/);
+  assert.match(storeHtml, /Pay in USDC and download after confirmation, no account/);
   assert.match(storeHtml, /See what's inside/);
   assert.equal(productResponse.status, 200);
   assert.match(productHtml, /<form method="post" action="\/store\/x402-seller-kit\/order">/);
