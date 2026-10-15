@@ -13,3 +13,10 @@ public/_files/
 
 # Credential for editing our 402 Index listings
 .402index-token
+
+# Local release verification bundle
+.release-build/
+
+# Reproducible public reader downloads and owned cached examples.
+public/clients/reader/
+public/examples/extract/

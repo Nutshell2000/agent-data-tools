@@ -27,7 +27,7 @@ export async function walletInfo(env: Env, address: string, extraTokens?: string
   const tokens = [...new Set([...DEFAULT_TOKENS, ...extras].map((t) => t.toLowerCase()))] as `0x${string}`[];
   const client = baseClient(env);
 
-  const [balance, txCount, code, calls, blockNumber] = await Promise.all([
+  const [balance, accountNonce, code, calls, blockNumber] = await Promise.all([
     client.getBalance({ address }),
     client.getTransactionCount({ address }),
     client.getCode({ address }),
@@ -71,7 +71,10 @@ export async function walletInfo(env: Env, address: string, extraTokens?: string
     type: delegatedTo ? "eoa-delegated" : hex === "0x" ? "eoa" : "contract",
     delegatedTo,
     eth: { wei: balance.toString(), formatted: formatEther(balance) },
-    transactionCount: txCount,
+    accountNonce,
+    limitations: [
+      "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+    ],
     tokens: balances.filter((t) => t.balance !== "0"),
     tokensChecked: balances.length,
     blockNumber: Number(blockNumber),

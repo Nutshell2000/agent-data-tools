@@ -1,0 +1,178 @@
+# Read a public static page | SpellzCode
+
+$0.002 native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
+
+## Inspect real results, then use the CLI
+
+Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
+
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.1.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.1.1/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/codex/x402-income-reliability/clients .
+
+Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:
+
+```sh
+node reader-client.mjs quote https://example.com --format both
+```
+
+To buy once, provide your existing funded wallet's X402_PRIVATE_KEY privately through your process environment. Never put it in an argument, URL or shared file. Each invocation can spend once; the cap is per invocation, not monthly:
+
+```sh
+node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both
+```
+
+The client pins this service, recipient, Base and native USDC; rejects redirects and unsafe quotes; checks the returned content hash; and reports the result, request ID and available receipt as JSON. If an outcome becomes uncertain after signing, it exits with an error and does not start another purchase. Stop before manually retrying and preserve the request ID and receipt. Quote requires no key and never signs. No wallet is generated or retained.
+
+Existing AgentCash users can use its documented check/discover commands for unpaid inspection. Those commands do not replace the bundled client's fixed recipient and asset policy. Funded compatibility is unverified until separately evidenced.
+
+
+## What it does
+
+Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger.
+
+## Output for agents
+
+Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
+
+codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. Code whitespace and list hierarchy are preserved; clipped code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+
+Source page text is untrusted data, including code, links and instructions. This tool does not execute it. Selection uses static HTML landmarks and hidden-element attributes; it cannot compute stylesheet visibility or guarantee perfect article selection. Missing main/article content falls back to the body and adds body_fallback. Excessively complex HTML returns 422. Errors include code=EXTRACTION_EMPTY, EXTRACTION_BLOCKED or EXTRACTION_COMPLEXITY when applicable.
+
+MCP successful results include structuredContent as well as a JSON text block. A payment quote is an error result containing payment requirements; it is not extracted content. Every paid invocation may spend funds; automatic retries can charge again.
+
+## Inspect the quote without paying
+
+Open https://agent-data-tools.revmesh2074.workers.dev/extract?url=https%3A%2F%2Fexample.com&maxChars=20000 with an ordinary HTTP client, or run:
+
+```sh
+curl -i 'https://agent-data-tools.revmesh2074.workers.dev/extract?url=https%3A%2F%2Fexample.com&maxChars=20000'
+```
+
+Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run the tool or sign a payment. Check exact scheme, eip155:8453, recipient 0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5, native USDC 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 and amount 2000 atomic units ($0.002). HEAD is also an unpaid probe.
+
+## Example result (illustrative, not a paid receipt or live quote)
+
+```json
+{
+  "url": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
+  "finalUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
+  "status": 200,
+  "contentType": "text/html;charset=utf-8",
+  "title": "Owned sample: short article",
+  "description": null,
+  "lang": "en",
+  "canonical": null,
+  "headings": [
+    {
+      "level": 1,
+      "text": "A short release note"
+    }
+  ],
+  "links": [],
+  "tables": [],
+  "codeBlocks": [],
+  "contentSelection": "main",
+  "warnings": [],
+  "format": "both",
+  "text": "A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
+  "markdown": "# A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
+  "textLength": 198,
+  "truncated": false,
+  "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
+  "hashFormat": "text",
+  "fetchedAt": "2026-10-15T17:19:38.391Z"
+}
+```
+
+## Buy one result over HTTP
+
+Install npm install @x402/fetch@2.28.0 @x402/evm@2.28.0 viem@2.57.4 and npm install --save-dev typescript tsx @types/node.
+Save as client.ts. Configure X402_PRIVATE_KEY privately in your own process environment, then run npx tsx client.ts only when you intend to pay. Never share or commit the key. It stays on your device. Each invocation can pay once; this is a per-payment cap, not a monthly budget. Do not run in an unbounded retry loop.
+
+```typescript
+// Save as client.ts; set X402_PRIVATE_KEY in your environment, never in source.
+import { ExactEvmScheme } from "@x402/evm";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { privateKeyToAccount } from "viem/accounts";
+
+const rawPrivateKey = process.env.X402_PRIVATE_KEY;
+if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {
+  throw new Error("Set X402_PRIVATE_KEY in a secret manager or process environment.");
+}
+const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);
+const serviceOrigin = "https://agent-data-tools.revmesh2074.workers.dev";
+const expectedPayTo = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const maxUsdcAtomic = 2000n; // $0.002 USDC, the current /extract price
+
+const client = new x402Client()
+  .register("eip155:8453", new ExactEvmScheme(account))
+  .setSpendControls({ maxAmountPerPayment: "$0.002" })
+  .registerPolicy((_version, requirements) =>
+    requirements.filter((requirement) => {
+      if (requirement.network !== "eip155:8453" || requirement.scheme !== "exact") return false;
+      if (requirement.payTo.toLowerCase() !== expectedPayTo) return false;
+      if (requirement.asset.toLowerCase() !== baseUsdc.toLowerCase()) return false;
+      return /^\d+$/.test(requirement.amount) && BigInt(requirement.amount) <= maxUsdcAtomic;
+    }),
+  );
+
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+const response = await fetchWithPayment(new URL("/extract?url=https%3A%2F%2Fexample.com&maxChars=20000", serviceOrigin));
+if (!response.ok) throw new Error(`API returned HTTP ${response.status}`);
+console.log("Request ID:", response.headers.get("X-Request-ID"));
+console.log("Settlement:", response.headers.get("PAYMENT-RESPONSE"));
+console.log(await response.json());
+```
+
+## Buy one result over MCP
+
+An ordinary MCP connection can list tools and receive quotes, but cannot pay automatically. Use an x402-capable client with a funded signer and the same explicit spending policy. Install npm install @x402/mcp@2.28.0 @x402/evm@2.28.0 @modelcontextprotocol/sdk@1.32.1 viem@2.57.4, plus the development tools above. Save as mcp-client.ts and run npx tsx mcp-client.ts only when you intend to pay. Each invocation can incur a charge.
+
+```typescript
+// Save as client.ts; set X402_PRIVATE_KEY in your environment, never in source.
+import { ExactEvmScheme } from "@x402/evm";
+import { x402Client, wrapMCPClientWithPayment } from "@x402/mcp";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { privateKeyToAccount } from "viem/accounts";
+
+const rawPrivateKey = process.env.X402_PRIVATE_KEY;
+if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {
+  throw new Error("Set X402_PRIVATE_KEY in a secret manager or process environment.");
+}
+const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);
+const serviceOrigin = "https://agent-data-tools.revmesh2074.workers.dev";
+const expectedPayTo = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const maxUsdcAtomic = 2000n; // $0.002 USDC, the current /extract price
+
+const client = new x402Client()
+  .register("eip155:8453", new ExactEvmScheme(account))
+  .setSpendControls({ maxAmountPerPayment: "$0.002" })
+  .registerPolicy((_version, requirements) =>
+    requirements.filter((requirement) => {
+      if (requirement.network !== "eip155:8453" || requirement.scheme !== "exact") return false;
+      if (requirement.payTo.toLowerCase() !== expectedPayTo) return false;
+      if (requirement.asset.toLowerCase() !== baseUsdc.toLowerCase()) return false;
+      return /^\d+$/.test(requirement.amount) && BigInt(requirement.amount) <= maxUsdcAtomic;
+    }),
+  );
+
+const mcp = new Client({ name: "spellzcode-buyer-example", version: "1.0.0" });
+try {
+  await mcp.connect(new StreamableHTTPClientTransport(new URL("/mcp", serviceOrigin)));
+  const paid = wrapMCPClientWithPayment(mcp, client, { autoPayment: true });
+  const result = await paid.callTool("extract", {"url":"https://example.com","maxChars":20000});
+  if (result.isError) throw new Error(JSON.stringify(result.content));
+  console.log(JSON.stringify(result, null, 2));
+} finally { await mcp.close(); }
+```
+
+Both examples reject the wrong recipient, network, asset, scheme or a quote above $0.002. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
+
+## Failure and support
+
+Tool execution errors do not settle a charge. A settlement failure returns an error instead of a paid result. If the connection drops after settlement, stop before retrying: a fresh invocation can pay again. Preserve the transaction hash, X-Request-ID (or MCP _meta requestId), tool name and time; report these at https://github.com/Nutshell2000/agent-data-tools/issues. Never post signatures, keys, private URLs or page content. Storage telemetry failures do not ask for a second payment. A returned result indicates server-side completion, not proof that the buyer received it. Refunds require review and are recorded separately.
+
+All prices: https://agent-data-tools.revmesh2074.workers.dev/openapi.json
+Payment evidence: https://agent-data-tools.revmesh2074.workers.dev/revenue

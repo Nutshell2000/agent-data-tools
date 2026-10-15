@@ -3,6 +3,7 @@ export interface Env {
   NETWORK: `${string}:${string}`;
   FACILITATOR_URL: string;
   PAYWALL: string;
+  TRIALS_ENABLED?: string;
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
@@ -18,11 +19,14 @@ export interface Env {
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }
 
+export const trialsEnabled = (env: Pick<Env, "TRIALS_ENABLED">): boolean => env.TRIALS_ENABLED === "on";
+
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */
 export class HttpError extends Error {
   constructor(
     public status: 400 | 404 | 415 | 422 | 502 | 503 | 504,
     message: string,
+    public code?: string,
   ) {
     super(message);
   }

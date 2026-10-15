@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "agent-data-tools",
   "main": "src/index.ts",
+  "build": { "command": "npm run build:reader" },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
@@ -9,8 +10,8 @@
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
   // Store downloads. run_worker_first keeps them behind the paid-order check.
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
-  // Counts free trial calls (?trial=1) per caller per day, and holds store orders.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
+  // Trial counters are opt-in via TRIALS_ENABLED=on; this KV binding also holds store orders.
   "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
   // Request counters per paid path (see src/metrics.ts).
   "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
@@ -26,6 +27,8 @@
     "FACILITATOR_URL": "https://api.cdp.coinbase.com/platform/v2/x402",
     // "off" disables the paywall (local testing only).
     "PAYWALL": "on",
+    // Reversible opt-in. Without the exact value "on", trial=1 receives the normal 402 challenge.
+    "TRIALS_ENABLED": "off",
     "BASE_RPC_URL": "https://mainnet.base.org"
   }
 }

@@ -11,7 +11,9 @@ export function parseTarget(raw: string | undefined): URL {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new HttpError(400, "only http and https URLs are supported");
   if (url.username || url.password) throw new HttpError(400, "URLs with credentials are not supported");
-  const host = url.hostname.toLowerCase();
+  if (url.port) throw new HttpError(400, "only standard HTTP and HTTPS ports are supported");
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  const ipv4 = /^\d+\.\d+\.\d+\.\d+$/.test(host) ? host.split(".").map(Number) : null;
   const privateHost =
     host === "localhost" ||
     host.endsWith(".localhost") ||
@@ -22,6 +24,8 @@ export function parseTarget(raw: string | undefined): URL {
     /^169\.254\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    Boolean(ipv4 && ((ipv4[0] === 100 && ipv4[1] >= 64 && ipv4[1] <= 127) ||
+      (ipv4[0] === 198 && (ipv4[1] === 18 || ipv4[1] === 19)) || ipv4[0] >= 224)) ||
     !host.includes(".");
   if (privateHost) throw new HttpError(400, "private, loopback and IPv6-literal hosts are not supported");
   return url;
@@ -33,7 +37,7 @@ export function capBytes(body: ReadableStream<Uint8Array>, limit: number, onTrun
   return body.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
-        if (seen >= limit) return;
+        if (seen >= limit) { onTruncate(); controller.terminate(); return; }
         const room = limit - seen;
         seen += chunk.byteLength;
         if (chunk.byteLength > room) {
@@ -50,22 +54,38 @@ export function capBytes(body: ReadableStream<Uint8Array>, limit: number, onTrun
 
 /** Fetches a public URL with the same guards as /extract. Throws HttpError on any failure. */
 export async function fetchPublic(target: URL, accept: string): Promise<Response> {
-  let res: Response;
-  try {
-    res = await fetch(target, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(8_000),
-      headers: { "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)", accept, "accept-language": "en" },
-    });
-  } catch (e) {
-    const timedOut = e instanceof Error && e.name === "TimeoutError";
-    throw new HttpError(timedOut ? 504 : 502, timedOut ? "target did not respond within 8 seconds" : "could not reach target URL");
+  let current = parseTarget(target.href);
+  const signal = AbortSignal.timeout(8_000);
+  for (let redirects = 0; redirects <= 5; redirects++) {
+    let res: Response;
+    try {
+      res = await fetch(current, {
+        redirect: "manual", signal,
+        headers: { "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)", accept, "accept-language": "en" },
+      });
+    } catch (e) {
+      const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");
+      throw new HttpError(timedOut ? 504 : 502, timedOut ? "target did not respond within 8 seconds" : "could not reach target URL");
+    }
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      const location = res.headers.get("location");
+      await res.body?.cancel().catch(() => {});
+      if (!location) throw new HttpError(502, "target redirect has no location");
+      if (redirects === 5) throw new HttpError(502, "target exceeded the five redirect limit");
+      let next: URL;
+      try { next = new URL(location, current); }
+      catch { throw new HttpError(502, "target redirect location is invalid"); }
+      // Validate BEFORE making the redirected request, never after automatic follow.
+      current = parseTarget(next.href);
+      continue;
+    }
+    if (!res.ok) { await res.body?.cancel().catch(() => {}); throw new HttpError(502, `target responded with HTTP ${res.status}`); }
+    if (!res.body) throw new HttpError(502, "target returned an empty body");
+    // A response from a manual redirect chain otherwise loses its effective URL.
+    Object.defineProperty(res, "url", { value: current.href });
+    return res;
   }
-  // A redirect must not smuggle the request to a blocked host.
-  parseTarget(res.url || target.href);
-  if (!res.ok) throw new HttpError(502, `target responded with HTTP ${res.status}`);
-  if (!res.body) throw new HttpError(502, "target returned an empty body");
-  return res;
+  throw new HttpError(502, "target exceeded the redirect limit");
 }
 
 /** Downloads a file of an expected media type, refusing anything over `maxBytes`. */

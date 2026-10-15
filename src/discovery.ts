@@ -1,6 +1,8 @@
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, TRIALS_ENABLED, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, type Endpoint } from "./endpoints";
 
 export * from "./endpoints";
+
+export const MCP_SERVER_VERSION = "1.1.1";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -9,10 +11,10 @@ const exampleQuery = (e: Endpoint) =>
     .map(([k, p]) => `${k}=${encodeURIComponent(String(p.example))}`)
     .join("&") || "format=json";
 
-// Empty when trials are off, so the pages never advertise something that isn't there.
-export const TRIAL_NOTE = TRIALS_ENABLED
-  ? "Free trial: add trial=1 to any GET request for a free call, up to 10 per caller per day while the daily trial pool lasts. Without it, unpaid requests get the 402 challenge."
-  : "";
+const trialNote = (enabled: boolean) =>
+  enabled
+    ? "Free trial: add trial=1 to a GET request for a free call, up to 10 per caller per day and 1,000 total per day. This opt-in can be disabled by the service operator."
+    : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
 export function serviceCard(origin: string, payTo: string, network: string) {
   return {
@@ -27,14 +29,14 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp` },
+    docs: { readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
 /** Advertises the MCP endpoint to clients that look for a server card. */
 export function mcpServerCard(origin: string) {
   return {
-    serverInfo: { name: SERVICE_ID, title: SERVICE_NAME, version: "1.0.0" },
+    serverInfo: { name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION },
     description: SERVICE_SUMMARY,
     transport: { type: "streamable-http", endpoint: `${origin}/mcp` },
     capabilities: { tools: { listChanged: false } },
@@ -59,8 +61,69 @@ export function apiCatalog(origin: string) {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
 
+function catalogEndpoint(path: string): Endpoint {
+  const endpoint = ENDPOINTS.find((item) => item.path === path);
+  if (!endpoint) throw new Error(`Missing catalog endpoint ${path}`);
+  return endpoint;
+}
+
+function endpointSpendCap(path: string) {
+  const endpoint = catalogEndpoint(path);
+  const match = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(endpoint.price);
+  if (!match) throw new Error(`Cannot express ${endpoint.price} as six-decimal USDC`);
+  const atomic = BigInt(match[1]) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0") || "0");
+  return { price: endpoint.price, atomic: atomic.toString() };
+}
+
+const exampleSpendCap = () => endpointSpendCap("/extract");
+
+export function paymentClientExample(origin: string, payTo: string, path = "/extract", query = "url=https%3A%2F%2Fexample.com") {
+  const cap = endpointSpendCap(path);
+  const requestPath = `${path}?${query}`;
+  return [
+    "// Save as client.ts; set X402_PRIVATE_KEY in your environment, never in source.",
+    'import { ExactEvmScheme } from "@x402/evm";',
+    'import { wrapFetchWithPayment, x402Client } from "@x402/fetch";',
+    'import { privateKeyToAccount } from "viem/accounts";',
+    "",
+    "const rawPrivateKey = process.env.X402_PRIVATE_KEY;",
+    'if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {',
+    '  throw new Error("Set X402_PRIVATE_KEY in a secret manager or process environment.");',
+    "}",
+    "const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);",
+    `const serviceOrigin = ${JSON.stringify(origin)};`,
+    `const expectedPayTo = ${JSON.stringify(payTo.toLowerCase())};`,
+    'const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";',
+    `const maxUsdcAtomic = ${cap.atomic}n; // ${cap.price} USDC, the current ${path} price`,
+    "",
+    'const client = new x402Client()',
+    '  .register("eip155:8453", new ExactEvmScheme(account))',
+    `  .setSpendControls({ maxAmountPerPayment: "${cap.price}" })`,
+    "  .registerPolicy((_version, requirements) =>",
+    "    requirements.filter((requirement) => {",
+    '      if (requirement.network !== "eip155:8453" || requirement.scheme !== "exact") return false;',
+    "      if (requirement.payTo.toLowerCase() !== expectedPayTo) return false;",
+    "      if (requirement.asset.toLowerCase() !== baseUsdc.toLowerCase()) return false;",
+    "      return /^\\d+$/.test(requirement.amount) && BigInt(requirement.amount) <= maxUsdcAtomic;",
+    "    }),",
+    "  );",
+    "",
+    "const fetchWithPayment = wrapFetchWithPayment(fetch, client);",
+    `const response = await fetchWithPayment(new URL(${JSON.stringify(requestPath)}, serviceOrigin));`,
+    'if (!response.ok) throw new Error(`API returned HTTP ${response.status}`);',
+    "console.log(await response.json());",
+  ].join("\n");
+}
+
+function clientGuidance() {
+  const entryPrice = exampleSpendCap().price;
+  const packageAuditPrice = catalogEndpoint("/package-audit").price;
+  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
+}
+
 /** Human-readable front page for people arriving from a directory listing. */
-export function homePage(origin: string, payTo: string) {
+export function homePage(origin: string, payTo: string, trialsEnabled = false) {
+  const clientExample = paymentClientExample(origin, payTo);
   const rows = ENDPOINTS.map(
     (e) => `<tr><td class="path"><code>${esc(e.path)}</code></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
   ).join("");
@@ -71,9 +134,9 @@ export function homePage(origin: string, payTo: string) {
     const query = exampleQuery(e);
     // Keep the trial opt-in limited to human-facing homepage links; machine-readable
     // discovery examples should continue to trigger the normal 402 challenge.
-    const example = `${origin}${e.path}?${query}${TRIALS_ENABLED ? "&trial=1" : ""}`;
-    const exampleLabel = TRIALS_ENABLED ? "Try free once" : "Example";
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
+    const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
+    const exampleLabel = trialsEnabled ? "Try free once" : "Example";
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -103,20 +166,34 @@ ul { margin:0 0 12px; padding-left:20px; }
 a { color:var(--accent); overflow-wrap:anywhere; }
 .ex, .note { color:var(--muted); font-size:0.92rem; }
 .wrap { overflow-x:auto; }
+pre { overflow-x:auto; padding:16px; border:1px solid var(--line); border-radius:6px; background:var(--code); white-space:pre; }
+pre code { padding:0; background:transparent; }
 </style>
 </head>
 <body>
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
+<p>Operated by SpellzCode. Read a public static page as text or Markdown, with headings, links, code and tables for <strong>${esc(catalogEndpoint("/extract").price)} USDC</strong> using your funded x402 wallet.</p>
+<p><a href="/examples/extract/">Inspect real cached reader examples</a> &middot; <a href="/guides/web-reading">Read a page: capped CLI, HTTP and MCP examples</a> &middot; <a href="/guides/bitcoin-fees">Bitcoin fee lookup: ${esc(catalogEndpoint("/btc-fees").price)} USDC</a></p>
+<p class="note">Static pages only: no JavaScript rendering, authenticated pages or paywall access. Bounded size with explicit truncation. <a href="/guides/web-reading">See a labelled example result and limits.</a></p>
 
 <h2>Tools and prices</h2>
 <div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
 
 <h2>How paying works</h2>
 <p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header. Calls that fail are not charged.</p>
-<p>${esc(TRIAL_NOTE)}</p>
+<p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
+
+<h2>Read a page with Node.js</h2>
+<p>Download the <a href="/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs">standalone reader client</a> and verify its <a href="/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS">SHA-256 checksum</a>. Requires Node.js 20.19 or newer; no package installation.</p>
+<pre><code>node reader-client.mjs quote https://example.com --format both
+node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both</code></pre>
+<p>The quote is free and never signs. Buy requires your existing funded Base wallet through <code>X402_PRIVATE_KEY</code>. Each buy invocation can authorize one payment. An unknown payment outcome must be reconciled before buying again. <a href="/guides/web-reading">Full instructions and limits</a>.</p>
+<h2>Advanced TypeScript client</h2>
+<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
+<pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
 <h2>For agents and developers</h2>
 <ul>
@@ -133,14 +210,15 @@ ${details}
 </html>`;
 }
 
-export function openApi(origin: string) {
+export function openApi(origin: string, trialsEnabled = false) {
+  const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)}`;
   return {
     openapi: "3.1.0",
     info: {
       title: SERVICE_NAME,
-      version: "1.0.0",
+      version: MCP_SERVER_VERSION,
       description: SERVICE_SUMMARY,
-      "x-guidance": GUIDANCE + TRIAL_NOTE,
+      "x-guidance": guidance,
     },
     servers: [{ url: origin }],
     paths: Object.fromEntries(
@@ -150,7 +228,8 @@ export function openApi(origin: string) {
           get: {
             operationId: e.path.slice(1),
             summary: e.summary,
-            description: e.description,
+            description: (e as Endpoint).details ?? e.description,
+            ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
             // Shape required by x402scan's discovery spec. Amount is decimal USD.
             "x-payment-info": {
@@ -162,7 +241,7 @@ export function openApi(origin: string) {
               in: "query",
               required: p.required ?? false,
               description: p.description,
-              schema: { type: p.type },
+              schema: { type: p.type, ...(p.enum ? { enum: p.enum } : {}) },
               example: p.example,
             })),
             responses: {
@@ -170,7 +249,7 @@ export function openApi(origin: string) {
                 description: "Result",
                 content: {
                   "application/json": {
-                    schema: {
+                    schema: (e as Endpoint).outputSchema ?? {
                       type: "object",
                       properties: Object.fromEntries(
                         Object.entries(e.outputExample).map(([k, v]) => [
@@ -198,15 +277,15 @@ export function openApi(origin: string) {
 export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe"]);
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
-export function marketplaceOpenApi(origin: string) {
-  const doc = openApi(origin);
+export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
+  const doc = openApi(origin, trialsEnabled);
   return {
     openapi: doc.openapi,
     info: {
       title: SERVICE_NAME,
       version: doc.info.version,
       description:
-        "Everyday lookups in one API: currency exchange rates, weather, time zones, email validation, domain DNS and WHOIS, web page text extraction, package safety checks, academic paper search, Bitcoin price, fees and address balances, Lightning invoice decoding, ENS names, and Base token, wallet, transaction and gas data. All endpoints are GET and return JSON.",
+        "Everyday lookups in one API: currency exchange rates, weather, time zones, email validation, domain DNS and WHOIS, web page text extraction, package metadata and bounded dependency-risk signals, academic paper search, Bitcoin price, fees and address balances, Lightning invoice decoding, ENS names, and Base token, wallet, transaction and gas data. All endpoints are GET and return JSON.",
     },
     servers: doc.servers,
     paths: Object.fromEntries(
@@ -221,7 +300,8 @@ export function marketplaceOpenApi(origin: string) {
   };
 }
 
-export function llmsTxt(origin: string) {
+export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
+  const clientExample = paymentClientExample(origin, payTo);
   const lines = [
     `# ${SERVICE_NAME}`,
     "",
@@ -229,13 +309,40 @@ export function llmsTxt(origin: string) {
     "",
     "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base). Sign the payment and retry with the PAYMENT-SIGNATURE header. Failed calls (4xx/5xx) are not charged.",
     "",
-    TRIAL_NOTE,
+    trialNote(trialsEnabled),
+    "",
+    `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
+    "",
+    `Dependency audit buying guide: ${origin}/guides/dependency-audit.md (up to 10 pinned package versions, ${catalogEndpoint("/package-audit").price} USDC per successful request; dedicated capped client included).`,
+    "",
+    "## Buy a static page with the standalone Node CLI",
+    "",
+    `Download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`,
+    `Verify SHA-256: ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`,
+    `Inspect real cached outputs first: ${origin}/examples/extract/manifest.json (demonstrations, not customer receipts).`,
+    "Requires Node.js 20.19 or newer. No package installation or TypeScript required.",
+    "```sh",
+    "node reader-client.mjs quote https://example.com --format both",
+    "node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both",
+    "```",
+    "Quote needs no key and never signs. Buy requires an existing funded Base wallet via X402_PRIVATE_KEY and an explicit positive cap of at most 0.002 USDC. Both support --format text|markdown|both and --max-chars 500..100000. The client pins this service, recipient, native Base USDC and exact payment terms. At most one authorization per invocation; never automatically retry an unknown payment outcome. Keys remain on the buyer device.",
+    "Static public HTML/plain text only; no JavaScript rendering, login or paywall access. Input limit 2 MiB, default output 20,000 characters with explicit truncation. Ordinary MCP discovery does not pay automatically.",
+    "",
+    "## Advanced TypeScript x402 client",
+    "",
+    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at the current /extract price (${exampleSpendCap().price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
+    "",
+    "Install with `npm install @x402/fetch @x402/evm viem` and `npm install --save-dev typescript tsx @types/node`. Save as `client.ts` and run `npx tsx client.ts`. Set `X402_PRIVATE_KEY` in a secret manager or process environment; never paste it into source or commit it.",
+    "",
+    "```typescript",
+    clientExample,
+    "```",
     "",
     "## Endpoints",
     "",
     ...ENDPOINTS.flatMap((e) => [
       `### GET ${e.path} — ${e.price}`,
-      e.description,
+      (e as Endpoint).details ?? e.description,
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,
       "",
@@ -252,4 +359,10 @@ export function llmsTxt(origin: string) {
 }
 
 export const robotsTxt = (origin: string) =>
-  ["User-agent: *", "Allow: /", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/llms.txt`].join("\n");
+  ["User-agent: *", "Allow: /", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
+
+/** Index only owned, free documentation and demonstrations, never payment URLs. */
+export function sitemapXml(origin: string) {
+  const paths = ["/", "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/examples/extract/"];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
+}

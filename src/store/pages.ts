@@ -1,5 +1,5 @@
 import { SERVICE_NAME } from "../endpoints";
-import { PRODUCTS, type Product } from "./catalog";
+import { PRODUCTS, type OrderProduct, type Product } from "./catalog";
 import { USDC_BASE } from "./chain";
 import { formatUsdc, orderState, type Order } from "./orders";
 
@@ -66,7 +66,7 @@ ${metaTags(title, description, share)}
 <nav><a href="/">${esc(SERVICE_NAME)}</a> / <a href="/store">Store</a></nav>
 ${body}
 <footer>
-<p>Digital downloads, delivered as soon as the payment is seen on chain. Payments are in USDC on Base and can't be reversed, so there are no automatic refunds. If a download is broken or not what was described, <a href="${REPO}/issues">open an issue</a> and we'll put it right.</p>
+<p>Digital downloads unlock after payment confirmation. Direct transfers wait for the network to finalize the payment, so downloads may take longer to unlock. Payments are in USDC on Base and can't be reversed, so there are no automatic refunds. If a download is broken or not what was described, <a href="${REPO}/issues">open an issue</a> and we'll put it right.</p>
 <p>Sold by the maintainer of ${esc(SERVICE_NAME)}. Contact: <a href="${REPO}/issues">${esc(REPO.replace("https://", ""))}/issues</a></p>
 </footer>
 </main>
@@ -74,12 +74,16 @@ ${body}
 </html>`;
 }
 
-export function storePage(origin: string) {
+export function storePage(origin: string, availability: Readonly<Record<string, boolean>>) {
+  const lead = PRODUCTS.every((p) => availability[p.slug] === true)
+    ? "Digital products for developers building paid APIs for AI agents. Pay in USDC and download after confirmation, no account."
+    : "New seller-kit purchases are paused for template verification. Existing paid orders retain their download access.";
   const cards = PRODUCTS.map(
     (p) => `<div class="card">
 <h2 style="margin-top:0"><a href="/store/${esc(p.slug)}">${esc(p.title)}</a></h2>
 <p>${esc(p.tagline)}</p>
-<p><span class="price">$${p.priceUsd}</span> <span class="note">in USDC on Base</span></p>
+<p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">in USDC on Base</span></p>
+${availability[p.slug] ? "" : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`}
 <a class="btn" href="/store/${esc(p.slug)}">See what's inside</a>
 </div>`,
   ).join("");
@@ -87,13 +91,17 @@ export function storePage(origin: string) {
     `Store | ${SERVICE_NAME}`,
     "Digital products for developers building paid APIs for AI agents.",
     `<h1>Store</h1>
-<p class="lead">Digital products for developers building paid APIs for AI agents. Pay in USDC, download straight away, no account.</p>
+<p class="lead">${esc(lead)}</p>
 ${cards}`,
     { url: `${origin}/store`, type: "website" },
   );
 }
 
-export function productPage(p: Product, origin: string) {
+export function productPage(p: Product, origin: string, assetAvailable: boolean) {
+  const purchaseControls = assetAvailable
+    ? `<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
+<p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>`
+    : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`;
   return shell(
     `${p.title} | ${SERVICE_NAME}`,
     p.tagline,
@@ -103,16 +111,15 @@ ${p.description.map((d) => `<p>${esc(d)}</p>`).join("")}
 <h2>What's inside</h2>
 <ul>${p.includes.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
 <div class="card">
-<p><span class="price">$${p.priceUsd}</span> <span class="note">one-time, in USDC on Base</span></p>
-<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
-<p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>
+<p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">one-time, in USDC on Base</span></p>
+${purchaseControls}
 </div>
-<p class="note">Agents can buy it too: <code>GET /buy/${esc(p.slug)}</code> with an x402 client.</p>`,
+${assetAvailable ? `<p class="note">Agents can buy it too: <code>GET /buy/${esc(p.slug)}</code> with an x402 client.</p>` : ""}`,
    { url: `${origin}/store/${encodeURIComponent(p.slug)}`, type: "product" },
  );
 }
 
-export function orderPage(order: Order, p: Product, payTo: string) {
+export function orderPage(order: Order, p: OrderProduct, payTo: string) {
   const state = orderState(order);
   const amount = formatUsdc(order.amount);
   // EIP-681 link: lets a mobile wallet prefill the USDC transfer on Base.
