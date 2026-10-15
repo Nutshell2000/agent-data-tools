@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { READER_SAMPLES } from "../examples/reader-samples.mjs";
@@ -26,13 +26,23 @@ const bundle = await build({
     js: '#!/usr/bin/env node\nimport { createRequire as readerCreateRequire } from "node:module"; const require = readerCreateRequire(import.meta.url);',
   },
 });
+const browserBundle = await build({ entryPoints: ["clients/reader-command-builder.ts"], bundle: true, write: false, platform: "browser", format: "esm", target: "es2022" });
+const browser = browserBundle.outputFiles[0].text;
+await writeFile(new URL("command-builder.js", clientDir), browser);
 const client = bundle.outputFiles[0].text;
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 await writeFile(new URL("reader-client.mjs", clientDir), client);
 await writeFile(
   new URL("SHA256SUMS", clientDir),
-  hash(client) + "  reader-client.mjs\n",
+  hash(client) + "  reader-client.mjs\n" + hash(browser) + "  command-builder.js\n",
 );
+// Preserve the exact previously published version, independently of new bundles.
+const archive = new URL("../clients/releases/1.1.1/", import.meta.url);
+const oldClient = await readFile(new URL("reader-client.mjs", archive));
+if (hash(oldClient) !== "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c205e357a395") throw Error("Immutable 1.1.1 client changed");
+const oldDir = new URL("../public/clients/reader/1.1.1/", import.meta.url);
+await mkdir(oldDir, { recursive: true });
+for (const file of ["reader-client.mjs", "SHA256SUMS"]) await copyFile(new URL(file, archive), new URL(file, oldDir));
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,

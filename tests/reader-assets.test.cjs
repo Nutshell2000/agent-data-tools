@@ -32,6 +32,8 @@ before(async () => {
 });
 const env = {
   PAYWALL: "on",
+  PAY_TO: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+  NETWORK: "eip155:8453",
   ASSETS: {
     async fetch(request) {
       assetFetches++;
@@ -54,13 +56,13 @@ const env = {
     },
   },
 };
-const call = (url, method = "GET") =>
-  app.fetch(new Request("https://api.test" + url, { method }), env, {
+const call = (url, method = "GET", accept = "application/json") =>
+  app.fetch(new Request("https://api.test" + url, { method, headers: { accept } }), env, {
     waitUntil() {},
   });
 test("owned cached examples match their sources, hashes and declared truncation", async () => {
   const manifest = await (await call("/examples/extract/manifest.json")).json();
-  assert.equal(manifest.toolVersion, "1.1.1");
+  assert.equal(manifest.toolVersion, "1.1.2");
   assert.equal(manifest.samples.length, 3);
   assert.equal(manifest.demonstration, true);
   for (const sample of manifest.samples) {
@@ -107,10 +109,10 @@ test("static routes cannot expose arbitrary assets or private seller-kit files",
   }
 });
 test("standalone client checksum matches and the bundle runs outside the repository", async () => {
-  const binary = "public/clients/reader/1.1.1/reader-client.mjs";
+  const binary = "public/clients/reader/1.1.2/reader-client.mjs";
   const bytes = await fs.readFile(binary);
   const checksum = (
-    await fs.readFile("public/clients/reader/1.1.1/SHA256SUMS", "utf8")
+    await fs.readFile("public/clients/reader/1.1.2/SHA256SUMS", "utf8")
   ).split(/\s+/)[0];
   assert.equal(createHash("sha256").update(bytes).digest("hex"), checksum);
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "reader-client-check-"));
@@ -127,5 +129,33 @@ test("standalone client checksum matches and the bundle runs outside the reposit
   } finally {
     await fs.unlink(target);
     await fs.rmdir(temp);
+  }
+});
+
+
+test("old immutable download remains exact and current artifacts match every checksum", async () => {
+  const old = await (await call("/clients/reader/1.1.1/reader-client.mjs")).arrayBuffer();
+  assert.equal(createHash("sha256").update(Buffer.from(old)).digest("hex"), "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c205e357a395");
+  const checksums = await (await call("/clients/reader/1.1.2/SHA256SUMS")).text();
+  for (const line of checksums.trim().split("\n")) {
+    const [hash, file] = line.trim().split(/\s+/);
+    const response = await call(`/clients/reader/1.1.2/${file}`);
+    assert.equal(response.status, 200);
+    assert.equal(createHash("sha256").update(Buffer.from(await response.arrayBuffer())).digest("hex"), hash);
+  }
+});
+
+test("homepage and guide show actual cached technical output before advanced material", async () => {
+  const demo = JSON.parse(await fs.readFile("public/examples/extract/technical-guide.json", "utf8"));
+  const escaped = demo.result.markdown.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]).replace(/'/g, "&#39;");
+  for (const path of ["/", "/guides/web-reading"]) {
+    const response = await call(path, "GET", "text/html");
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.ok(html.includes(escaped));
+    assert.match(html, /View a real result.*Inspect a free quote.*Buy one page/);
+    assert.match(html, /type="module" src="\/clients\/reader\/1.1.2\/command-builder.js"/);
+    assert.doesNotMatch(html, /<form|type="password"|href="\/store"/);
+    assert.ok(html.indexOf('id="reader-builder"') < html.indexOf(path === "/" ? "Tools and prices" : "Buy one result over HTTP"));
   }
 });
