@@ -1,0 +1,1 @@
+Immutable copy of the previously published standalone client. SHA-256 was verified against the live 1.1.1 release evidence. Retained so existing versioned links remain valid. Public client only; no keys or paid assets.

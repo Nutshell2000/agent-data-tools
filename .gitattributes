@@ -1,0 +1,2 @@
+# Published client artifacts must remain byte-for-byte identical on every checkout.
+clients/releases/** -text

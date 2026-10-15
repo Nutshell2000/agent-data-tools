@@ -1,3 +1,4 @@
+import { loadReaderDemo } from "./guides/reader-buying";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
@@ -200,10 +201,10 @@ app.all("/mcp", handleMcp);
 app.route("/", store);
 
 const origin = (url: string) => new URL(url).origin;
-app.get("/", (c) =>
+app.get("/", async (c) =>
   // Browsers get a readable page, programs get the JSON service card.
   (c.req.header("accept") ?? "").includes("text/html")
-    ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env)))
+    ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK)),
 );
 app.get("/openapi.json", (c) => {
@@ -215,7 +216,7 @@ app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.en
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
 app.get("/guides/dependency-audit.md", (c) => c.text(auditGuideMarkdown(origin(c.req.url), c.env.PAY_TO)));
 for (const kind of ["web-reading", "bitcoin-fees"] as const) {
-  app.get(`/guides/${kind}`, c => c.html(toolGuideHtml(kind, origin(c.req.url), c.env.PAY_TO)));
+  app.get(`/guides/${kind}`, async c => c.html(toolGuideHtml(kind, origin(c.req.url), c.env.PAY_TO, kind === "web-reading" ? await loadReaderDemo(c.env.ASSETS, origin(c.req.url)) : undefined)));
   app.get(`/guides/${kind}.md`, c => c.text(toolGuideMarkdown(kind, origin(c.req.url), c.env.PAY_TO)));
 }
 app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
@@ -225,6 +226,7 @@ app.get("/health", (c) => c.json({ ok: true }));
 // Static, generated public examples and client artifacts. No arbitrary-URL proxy or paid work.
 const readerAssets = new Set([
   "/clients/reader/1.1.1/reader-client.mjs", "/clients/reader/1.1.1/SHA256SUMS",
+  "/clients/reader/1.1.2/reader-client.mjs", "/clients/reader/1.1.2/SHA256SUMS", "/clients/reader/1.1.2/command-builder.js",
   "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",
   ...["technical-guide", "short-article", "long-document"].flatMap(id => [`/examples/extract/${id}.json`, `/examples/extract/sources/${id}.html`]),
 ]);
