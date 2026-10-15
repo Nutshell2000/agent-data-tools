@@ -1,8 +1,9 @@
+import { readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, type Endpoint } from "./endpoints";
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.1.1";
+export const MCP_SERVER_VERSION = "1.1.2";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -122,7 +123,7 @@ function clientGuidance() {
 }
 
 /** Human-readable front page for people arriving from a directory listing. */
-export function homePage(origin: string, payTo: string, trialsEnabled = false) {
+export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo);
   const rows = ENDPOINTS.map(
     (e) => `<tr><td class="path"><code>${esc(e.path)}</code></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
@@ -136,14 +137,15 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false) {
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(SERVICE_NAME)}</title>
+<title>Static documentation to Markdown for $0.002 | SpellzCode</title>
+<link rel="canonical" href="${esc(origin)}/">
 <meta name="description" content="${esc(SERVICE_SUMMARY)}">
 <style>
 :root { --bg:#fbfaf7; --fg:#1d1b16; --muted:#6b665c; --line:#e3ded3; --accent:#0b6e4f; --code:#f1ede4; }
@@ -168,15 +170,14 @@ a { color:var(--accent); overflow-wrap:anywhere; }
 .wrap { overflow-x:auto; }
 pre { overflow-x:auto; padding:16px; border:1px solid var(--line); border-radius:6px; background:var(--code); white-space:pre; }
 pre code { padding:0; background:transparent; }
-</style>
+input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}</style>
 </head>
 <body>
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
-<p>Operated by SpellzCode. Read a public static page as text or Markdown, with headings, links, code and tables for <strong>${esc(catalogEndpoint("/extract").price)} USDC</strong> using your funded x402 wallet.</p>
-<p><a href="/examples/extract/">Inspect real cached reader examples</a> &middot; <a href="/guides/web-reading">Read a page: capped CLI, HTTP and MCP examples</a> &middot; <a href="/guides/bitcoin-fees">Bitcoin fee lookup: ${esc(catalogEndpoint("/btc-fees").price)} USDC</a></p>
-<p class="note">Static pages only: no JavaScript rendering, authenticated pages or paywall access. Bounded size with explicit truncation. <a href="/guides/web-reading">See a labelled example result and limits.</a></p>
+${readerBuyingHtml(origin, MCP_SERVER_VERSION, demo)}
+<p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
 <h2>Tools and prices</h2>
 <div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
@@ -186,11 +187,6 @@ pre code { padding:0; background:transparent; }
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 
-<h2>Read a page with Node.js</h2>
-<p>Download the <a href="/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs">standalone reader client</a> and verify its <a href="/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS">SHA-256 checksum</a>. Requires Node.js 20.19 or newer; no package installation.</p>
-<pre><code>node reader-client.mjs quote https://example.com --format both
-node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both</code></pre>
-<p>The quote is free and never signs. Buy requires your existing funded Base wallet through <code>X402_PRIVATE_KEY</code>. Each buy invocation can authorize one payment. An unknown payment outcome must be reconciled before buying again. <a href="/guides/web-reading">Full instructions and limits</a>.</p>
 <h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
@@ -220,6 +216,7 @@ export function openApi(origin: string, trialsEnabled = false) {
       description: SERVICE_SUMMARY,
       "x-guidance": guidance,
     },
+    externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },
     servers: [{ url: origin }],
     paths: Object.fromEntries(
       ENDPOINTS.map((e) => [
@@ -229,6 +226,7 @@ export function openApi(origin: string, trialsEnabled = false) {
             operationId: e.path.slice(1),
             summary: e.summary,
             description: (e as Endpoint).details ?? e.description,
+            ...(e.path === "/extract" ? { externalDocs: { description: "Read a public documentation page for $0.002", url: `${origin}/guides/web-reading` } } : {}),
             ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
             // Shape required by x402scan's discovery spec. Amount is decimal USD.
@@ -341,7 +339,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "## Endpoints",
     "",
     ...ENDPOINTS.flatMap((e) => [
-      `### GET ${e.path} — ${e.price}`,
+      `### GET ${e.path} â€” ${e.price}`,
       (e as Endpoint).details ?? e.description,
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,
