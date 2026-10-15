@@ -1,11 +1,12 @@
 import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
+import { localMcpHtml, localMcpMarkdown } from "./guides/local-mcp";
 import { loadReaderDemo } from "./guides/reader-buying";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { CAPACITY_LIMITED, ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, MCP_SERVER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -214,6 +215,8 @@ app.get("/openapi.json", (c) => {
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), MCP_SERVER_VERSION)));
+app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), MCP_SERVER_VERSION)));
 app.get("/guides/sitemap", c => c.html(sitemapGuideHtml(origin(c.req.url))));
 app.get("/guides/sitemap.md", c => c.text(sitemapGuideMarkdown(origin(c.req.url))));
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
@@ -231,6 +234,7 @@ const readerAssets = new Set([
   "/clients/reader/1.1.1/reader-client.mjs", "/clients/reader/1.1.1/SHA256SUMS",
   "/clients/reader/1.1.2/reader-client.mjs", "/clients/reader/1.1.2/SHA256SUMS", "/clients/reader/1.1.2/command-builder.js",
   "/clients/reader/1.2.0/reader-client.mjs", "/clients/reader/1.2.0/SHA256SUMS", "/clients/reader/1.2.0/command-builder.js",
+  "/clients/reader/1.2.1/reader-client.mjs", "/clients/reader/1.2.1/SHA256SUMS", "/clients/reader/1.2.1/command-builder.js", "/clients/reader/1.2.1/reader-mcp.mjs",
   ...["source.xml", "index.xml", "result.json", "manifest.json", "index.html"].map(file => `/examples/sitemap/${file}`),
   "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",
   ...["technical-guide", "short-article", "long-document"].flatMap(id => [`/examples/extract/${id}.json`, `/examples/extract/sources/${id}.html`]),

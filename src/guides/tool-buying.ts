@@ -35,6 +35,8 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
   const quickBuy = kind === "web-reading" ? [
     "## Inspect real results, then use the CLI",
     "",
+    `For an existing MCP agent, use the bundled local adapter: ${origin}/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.`,
+    "",
     `Open ${origin}/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
     "",
     `Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .`,

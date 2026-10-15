@@ -17,3 +17,8 @@ console.log("Exported two buying guides and four capped clients from the live gu
 const sitemapBundle = await build({entryPoints:["src/guides/sitemap.ts"],bundle:true,platform:"node",format:"esm",write:false});
 const sitemapGuide = await import("data:text/javascript;base64,"+Buffer.from(sitemapBundle.outputFiles[0].text).toString("base64"));
 await writeFile("docs/sitemap.md", sitemapGuide.sitemapGuideMarkdown(origin));
+
+const localBundle = await build({entryPoints:["src/guides/local-mcp.ts"],bundle:true,platform:"node",format:"esm",write:false});
+const localGuide = await import("data:text/javascript;base64,"+Buffer.from(localBundle.outputFiles[0].text).toString("base64"));
+const currentVersion = JSON.parse(await (await import("node:fs/promises")).readFile("package.json","utf8")).version;
+await writeFile("docs/local-mcp.md", localGuide.localMcpMarkdown(origin,currentVersion));
