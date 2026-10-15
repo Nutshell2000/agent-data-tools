@@ -13,3 +13,7 @@ for (const kind of ["web-reading", "bitcoin-fees"]) {
 }
 await writeFile("docs/three-page-research.md", guides.researchWorkflowMarkdown());
 console.log("Exported two buying guides and four capped clients from the live guide generator. No payment made.");
+
+const sitemapBundle = await build({entryPoints:["src/guides/sitemap.ts"],bundle:true,platform:"node",format:"esm",write:false});
+const sitemapGuide = await import("data:text/javascript;base64,"+Buffer.from(sitemapBundle.outputFiles[0].text).toString("base64"));
+await writeFile("docs/sitemap.md", sitemapGuide.sitemapGuideMarkdown(origin));

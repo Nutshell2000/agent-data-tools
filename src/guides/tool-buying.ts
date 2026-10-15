@@ -69,6 +69,7 @@ ${kind === "web-reading" ? researchWorkflowMarkdown() : ""}
 ## What it does
 
 ${limits}
+${kind === "web-reading" ? `Find public page URLs first with the optional $0.002 sitemap tool: ${origin}/guides/sitemap . It does not crawl or buy pages automatically.` : ""}
 ${kind === "web-reading" ? `
 ## Output for agents
 

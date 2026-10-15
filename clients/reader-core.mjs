@@ -19,13 +19,22 @@ const fail = (code) => {
 
 export function parseReaderArgs(args) {
   if (!args.length || args[0] === "--help") return { command: "help" };
-  const [command, target, ...rest] = args;
-  if (!["quote", "buy"].includes(command) || !target) fail("usage_error");
+  const [rawCommand, target, ...rest] = args;
+  if (
+    !["quote", "buy", "quote-sitemap", "buy-sitemap"].includes(rawCommand) ||
+    !target
+  )
+    fail("usage_error");
+  const sitemap = rawCommand.endsWith("-sitemap");
+  const command = rawCommand.startsWith("quote") ? "quote" : "buy";
+  const permittedFlags = sitemap
+    ? ["--max-usdc", "--contains", "--max-urls", "--offset"]
+    : ["--max-usdc", "--format", "--max-chars"];
   const url = parseTarget(target).href;
   const flags = new Map();
   for (let i = 0; i < rest.length; i += 2) {
     if (
-      !["--max-usdc", "--format", "--max-chars"].includes(rest[i]) ||
+      !permittedFlags.includes(rest[i]) ||
       flags.has(rest[i]) ||
       rest[i + 1] === undefined
     )
@@ -51,7 +60,38 @@ export function parseReaderArgs(args) {
     if (capAtomic <= 0n || capAtomic > 2000n)
       fail("explicit_cap_required_at_most_0.002");
   }
-  return { command, url, format, maxChars: Number(limit), capAtomic };
+  const query = { url, format, maxChars: String(Number(limit)) };
+  if (sitemap) {
+    const contains = flags.get("--contains") ?? "",
+      maxUrls = flags.get("--max-urls") ?? "25",
+      offset = flags.get("--offset") ?? "0";
+    if (
+      contains.length > 200 ||
+      /[\u0000-\u001f\u007f]/.test(contains) ||
+      !/^\d+$/.test(maxUrls) ||
+      +maxUrls < 1 ||
+      +maxUrls > 100 ||
+      !/^\d+$/.test(offset) ||
+      +offset > 1000
+    )
+      fail("invalid_sitemap_options");
+    delete query.format;
+    delete query.maxChars;
+    Object.assign(query, {
+      contains,
+      maxUrls: String(Number(maxUrls)),
+      offset: String(Number(offset)),
+    });
+  }
+  return {
+    command,
+    url,
+    format,
+    maxChars: Number(limit),
+    capAtomic,
+    path: sitemap ? "/sitemap" : "/extract",
+    query,
+  };
 }
 
 export function allowedRequirement(r, cap) {
@@ -150,14 +190,10 @@ export async function runReader(
     if (options.command === "help")
       return {
         ok: true,
-        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000]; buy <public-url> --max-usdc 0.002 [same options]. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
+        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000]; buy <public-url> --max-usdc 0.002 [same options]. quote-sitemap <xml-url> [--contains value] [--max-urls 1..100] [--offset 0..1000]; buy-sitemap <xml-url> --max-usdc 0.002 [same sitemap options]. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
       };
-    const url = new URL("/extract", READER_ORIGIN);
-    url.search = new URLSearchParams({
-      url: options.url,
-      format: options.format,
-      maxChars: String(options.maxChars),
-    }).toString();
+    const url = new URL(options.path, READER_ORIGIN);
+    url.search = new URLSearchParams(options.query).toString();
     const response = await fetcher(url, {
       method: "GET",
       redirect: "error",
@@ -173,7 +209,7 @@ export async function runReader(
     if (required.x402Version !== 2 || !Array.isArray(required.accepts))
       fail("invalid_payment_quote");
     const resource = new URL(required.resource?.url ?? "");
-    if (resource.origin !== READER_ORIGIN || resource.pathname !== "/extract")
+    if (resource.origin !== READER_ORIGIN || resource.pathname !== options.path)
       fail("unexpected_payment_resource");
     const selected = required.accepts.find((r) =>
       allowedRequirement(r, options.capAtomic),
@@ -258,6 +294,7 @@ export async function runReader(
     const safe = new Set([
       "usage_error",
       "invalid_format_or_limit",
+      "invalid_sitemap_options",
       "explicit_cap_required_at_most_0.002",
       "expected_unpaid_402_quote",
       "invalid_payment_quote",

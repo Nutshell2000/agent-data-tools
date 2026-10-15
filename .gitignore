@@ -20,3 +20,6 @@ public/_files/
 # Reproducible public reader downloads and owned cached examples.
 public/clients/reader/
 public/examples/extract/
+
+# Generated owned sitemap demonstration assets
+public/examples/sitemap/

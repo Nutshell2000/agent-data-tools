@@ -1,3 +1,4 @@
+import { sitemap } from "./routes/sitemap";
 import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
@@ -30,6 +31,7 @@ export type Input = (name: string) => string | undefined;
 /** One implementation per catalog path, shared by the HTTP routes and the MCP tools. */
 export const TOOLS: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> = {
   "/extract": (_env, q) => extract(q("url"), q("maxChars"), q("format")),
+  "/sitemap": (_env, q) => sitemap(q("url"), q("contains"), q("maxUrls"), q("offset")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
   "/domain-report": (env, q) => domainReport(env, q("name") ?? ""),
   "/token": (env, q) => tokenInfo(env, q("address") ?? ""),
