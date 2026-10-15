@@ -1,6 +1,6 @@
 // Gets every endpoint into the Coinbase Bazaar directory. The Bazaar lists an endpoint only
 // after one real payment for it has settled, so this buys each endpoint once.
-// REAL MONEY on Base mainnet: about $0.12 in USDC in total, and it is paid to our own wallet.
+// REAL MONEY on Base mainnet: about $0.18 in USDC in total, and it is paid to our own wallet.
 //
 //   node scripts/index-listings.mjs          show what would be bought and the total; pays nothing
 //   node scripts/index-listings.mjs --pay    buy each endpoint once

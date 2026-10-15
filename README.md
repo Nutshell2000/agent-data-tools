@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-A Cloudflare Worker that sells 25 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 30 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -29,6 +29,11 @@ A Cloudflare Worker that sells 25 tools to AI agents. Each call is paid in USDC 
 | `GET /fx?from=` | Currency exchange rates and conversion | $0.001 |
 | `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
 | `GET /time?zone=` | Current time in a time zone, and conversion | $0.001 |
+| `GET /x402-check?url=` | Checks an x402 endpoint before paying it: pay, caution or avoid | $0.005 |
+| `GET /sanctions?address=` | OFAC sanctions screen for up to 25 crypto addresses | $0.005 |
+| `GET /vat?number=` | EU VAT number validation with company name and address (VIES) | $0.005 |
+| `GET /company?query=` | Company lookup by name or LEI in the global LEI register (GLEIF) | $0.01 |
+| `GET /iban?iban=` | IBAN validation with bank code and SEPA membership | $0.001 |
 
 Add `trial=1` to any GET request for a free call: up to 10 per caller per day, 1,000 a day in total. Without it, unpaid requests get the 402 challenge.
 
@@ -46,14 +51,14 @@ The service also sells digital products to people at `/store`. A buyer gets an e
 
 ## MCP
 
-The same 25 tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
+The same 30 tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, the MCP tool, the OpenAPI document and the web page are all generated from those.
 
 ## Where it is listed
 
 - Official MCP Registry: listed as `io.github.Nutshell2000/agent-data-tools`. To publish a new version, raise `version` in `server.json` and push a matching `v*` tag; the workflow in `.github/workflows/publish-mcp.yml` does the rest on GitHub's servers.
-- 402 Index (https://402index.io): the nine endpoints that existed on 8 October 2026 are registered, pending their review. The 16 added since are not registered yet.
+- 402 Index (https://402index.io): the nine endpoints that existed on 8 October 2026 are registered, pending their review. The 21 added since are not registered yet.
 - awesome-x402 lists: entries added on the `claude/admiring-mendel-6gbiu2` branch of the Nutshell2000 forks of awesome-x402 and awesome-x402-servers. They reach readers once a pull request to each original list is merged.
 - x402scan: not yet. Needs a wallet sign-in at https://www.x402scan.com/resources/register.
 - Coinbase Bazaar: not yet. See below.
@@ -125,3 +130,6 @@ Incoming payments show up as USDC transfers to `PAY_TO` on https://basescan.org.
 - `/extract` reads at most 2 MB of a page and waits at most 8 seconds for it.
 - `/token` and `/wallet` use the public Base RPC, which is rate limited. Set `BASE_RPC_URL` to a private endpoint if volume grows.
 - Token capability flags are bytecode heuristics, and for a proxy they describe the proxy, not its implementation.
+- `/sanctions` and `/x402-check` match addresses against the OFAC SDN digital-currency list, as published daily by github.com/0xB10C/ofac-sanctioned-digital-currency-addresses. Each isolate reloads it every 3 hours. Exact address matches only.
+- `/vat` depends on the EU's VIES service, and national registries go offline at times. Then the call answers 503 and is not charged.
+- `wrangler.jsonc` sets the `global_fetch_strictly_public` flag so `/x402-check` (and `/extract`) can reach this service's own workers.dev URL, which Cloudflare otherwise blocks.

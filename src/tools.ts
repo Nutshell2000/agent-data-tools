@@ -16,6 +16,11 @@ import { screenshot } from "./routes/screenshot";
 import { tokenInfo } from "./routes/token";
 import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
+import { companyLookup } from "./routes/company";
+import { ibanCheck } from "./routes/iban";
+import { sanctionsCheck } from "./routes/sanctions";
+import { vatCheck } from "./routes/vat";
+import { x402Check } from "./routes/x402-check";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
@@ -47,4 +52,9 @@ export const TOOLS: Record<string, (env: Env, input: Input) => Promise<unknown>>
   "/base-allowance": (env, q) => baseAllowance(env, q("token") ?? "", q("owner") ?? "", q("spender") ?? ""),
   "/ens": (_env, q) => ensLookup(q("name") ?? ""),
   "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
+  "/x402-check": (env, q) => x402Check(env, q("url"), q("method"), q("maxPrice")),
+  "/sanctions": (_env, q) => sanctionsCheck(q("address") ?? ""),
+  "/vat": (_env, q) => vatCheck(q("number") ?? "", q("country")),
+  "/company": (_env, q) => companyLookup(q("query"), q("country"), q("limit")),
+  "/iban": (_env, q) => ibanCheck(q("iban") ?? ""),
 };
