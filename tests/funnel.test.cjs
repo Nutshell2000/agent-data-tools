@@ -25,3 +25,12 @@ test('funnel recording de-duplicates a stage and excludes customer inputs from p
   assert.doesNotMatch(JSON.stringify([...records]),/PRIVATE_PAGE|PRIVATE_SIGNATURE/);
   await assert.rejects(()=>funnel.saveFunnel(storage,{...e,source:'https://private.example'}),/invalid funnel/);
 });
+
+test('visits cover actual buying resources and exclude probes, failures and arbitrary assets',()=>{
+  for(const path of ['/','/llms.txt','/openapi.json','/.well-known/x402','/guides/web-reading','/guides/web-reading.md','/examples/extract/','/examples/extract/manifest.json','/examples/extract/technical-guide.json','/clients/reader/1.1.1/reader-client.mjs','/clients/reader/1.1.1/SHA256SUMS']){
+    assert.equal(funnel.isDiscoveryVisit('GET',path,200),true,path);
+    for(const method of ['HEAD','POST','OPTIONS'])assert.equal(funnel.isDiscoveryVisit(method,path,200),false,method+path);
+    for(const status of [301,308,400,402,404,500])assert.equal(funnel.isDiscoveryVisit('GET',path,status),false,status+path);
+  }
+  for(const path of ['/guides/nonexistent','/extract','/revenue','/metrics','/health','/clients/reader/1.1.1/secrets.txt','/examples/extract/private.json','/_files/x402-seller-kit.zip'])assert.equal(funnel.isDiscoveryVisit('GET',path,200),false,path);
+});
