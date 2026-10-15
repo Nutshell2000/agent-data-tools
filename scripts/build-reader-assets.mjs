@@ -30,11 +30,18 @@ const browserBundle = await build({ entryPoints: ["clients/reader-command-builde
 const browser = browserBundle.outputFiles[0].text;
 await writeFile(new URL("command-builder.js", clientDir), browser);
 const client = bundle.outputFiles[0].text;
+const mcpBundle = await build({
+  entryPoints: ["clients/reader-mcp.mjs"], bundle: true, write: false,
+  platform: "node", format: "esm", target: "node20.19",
+  banner: { js: '#!/usr/bin/env node\nimport { createRequire as mcpCreateRequire } from "node:module"; const require = mcpCreateRequire(import.meta.url);' }
+});
+const mcpClient = mcpBundle.outputFiles[0].text;
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 await writeFile(new URL("reader-client.mjs", clientDir), client);
+await writeFile(new URL("reader-mcp.mjs", clientDir), mcpClient);
 await writeFile(
   new URL("SHA256SUMS", clientDir),
-  hash(client) + "  reader-client.mjs\n" + hash(browser) + "  command-builder.js\n",
+  hash(client) + "  reader-client.mjs\n" + hash(browser) + "  command-builder.js\n" + hash(mcpClient) + "  reader-mcp.mjs\n",
 );
 // Preserve the exact previously published version, independently of new bundles.
 const archive = new URL("../clients/releases/1.1.1/", import.meta.url);
@@ -56,6 +63,18 @@ for (const line of (await readFile(new URL("SHA256SUMS", archive112), "utf8")).t
   await copyFile(new URL(file, archive112), new URL(file, old112));
 }
 await copyFile(new URL("SHA256SUMS", archive112), new URL("SHA256SUMS", old112));
+// Match the deployed 1.2.0 downloads exactly; new builds never replace old URLs.
+const archive120 = new URL("../clients/releases/1.2.0/", import.meta.url);
+const old120 = new URL("../public/clients/reader/1.2.0/", import.meta.url);
+await mkdir(old120, { recursive: true });
+const pinned120 = { "reader-client.mjs": "1ef97c9314184c2d96046b55b22eabdd87168ee58a11f5c7f4be3ddaa9ce7d4f", "command-builder.js": "5b66356133ae5c307680eae0bcf690e96e14db073ea6005a311723a3e1735cd0" };
+for (const [file, expected] of Object.entries(pinned120)) {
+  const bytes = await readFile(new URL(file, archive120));
+  if (hash(bytes) !== expected) throw Error("Immutable 1.2.0 artifact changed");
+  await copyFile(new URL(file, archive120), new URL(file, old120));
+}
+if (hash(await readFile(new URL("SHA256SUMS", archive120))) !== "808a059bb962e37f3fd17dd80dbda5cd6494ea75285800640ea80fc71b0445a9") throw Error("Immutable 1.2.0 checksum changed");
+await copyFile(new URL("SHA256SUMS", archive120), new URL("SHA256SUMS", old120));
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,

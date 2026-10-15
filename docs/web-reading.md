@@ -4,9 +4,11 @@ $0.002 native USDC on Base per successful call. No API account or subscription. 
 
 ## Inspect real results, then use the CLI
 
+For an existing MCP agent, use the bundled local adapter: https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.
+
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.0/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.1/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:
 
