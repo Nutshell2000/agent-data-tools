@@ -1,4 +1,8 @@
 module.exports = {
+  manyTables: '<main>'+Array.from({length:21},(_,i)=>'<table><tr><td>table_'+i+'</td><td>value_'+i+'</td></tr></table>').join('')+'<table>'+Array.from({length:110},(_,i)=>'<tr><td>row_'+i+'</td><td>data_'+i+'</td></tr>').join('')+'</table></main>',
+  codeWhitespace: '<main><pre><code class="language-text">first  \n\n\n\n    second\nlast  </code></pre></main>',
+  tableAfterLinks: '<main>'+Array.from({length:200},(_,i)=>'<a href="https://public.example/'+i+'/'+ 'x'.repeat(120)+'">Reference '+i+'</a> ').join('')+'<table><tr><th>Parameter</th><th>Value</th></tr><tr><td>critical_limit</td><td>314159</td></tr></table></main>',
+  nestedLists: '<main><ol start="3"><li>Outer step<ul><li>Nested detail<ol start="8"><li>Deeper</li></ol></li></ul></li><li value="7">Next step</li></ol></main>',
   ordered: '<main><ol start="3"><li>Third step</li><li>Fourth step</li></ol><div class="highlight-python3"><pre>def f():\n    return 1</pre></div></main>',
 
   deep: '<div>'.repeat(140)+'text'+'</div>'.repeat(140),

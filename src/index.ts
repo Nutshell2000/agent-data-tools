@@ -220,6 +220,18 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
 }
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
+
+// Static, generated public examples and client artifacts. No arbitrary-URL proxy or paid work.
+const readerAssets = new Set([
+  "/clients/reader/1.1.1/reader-client.mjs", "/clients/reader/1.1.1/SHA256SUMS",
+  "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",
+  ...["technical-guide", "short-article", "long-document"].flatMap(id => [`/examples/extract/${id}.json`, `/examples/extract/sources/${id}.html`]),
+]);
+app.get("/examples/extract", c => c.redirect("/examples/extract/", 308));
+app.on(["GET", "HEAD"], "/examples/extract/", c => c.env.ASSETS.fetch(new Request(new URL("/examples/extract/index.html", c.req.url), c.req.raw)));
+for (const prefix of ["/examples/extract/*", "/clients/reader/*"]) {
+  app.on(["GET", "HEAD"], prefix, async c => readerAssets.has(c.req.path) ? await c.env.ASSETS.fetch(c.req.raw) : c.json({ error: "not found" }, 404));
+}
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.
 app.get("/metrics", async (c) => {
   if (!c.env.METRICS) return c.json({});

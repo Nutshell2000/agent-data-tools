@@ -1,4 +1,4 @@
-import { ENDPOINTS, paymentClientExample } from "../discovery";
+import { ENDPOINTS, MCP_SERVER_VERSION, paymentClientExample } from "../discovery";
 
 export type PromotedTool = "web-reading" | "bitcoin-fees";
 const esc = (s: string) => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
@@ -31,12 +31,38 @@ export function toolBuyingGuide(kind: PromotedTool, origin: string, payTo: strin
 
 export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: string) {
   const g = toolBuyingGuide(kind, origin, payTo), fence = "```";
+  const quickBuy = kind === "web-reading" ? [
+    "## Inspect real results, then use the CLI",
+    "",
+    `Open ${origin}/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
+    "",
+    `Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/codex/x402-income-reliability/clients .`,
+    "",
+    "Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:",
+    "",
+    fence + "sh",
+    "node reader-client.mjs quote https://example.com --format both",
+    fence,
+    "",
+    "To buy once, provide your existing funded wallet's X402_PRIVATE_KEY privately through your process environment. Never put it in an argument, URL or shared file. Each invocation can spend once; the cap is per invocation, not monthly:",
+    "",
+    fence + "sh",
+    "node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both",
+    fence,
+    "",
+    "The client pins this service, recipient, Base and native USDC; rejects redirects and unsafe quotes; checks the returned content hash; and reports the result, request ID and available receipt as JSON. If an outcome becomes uncertain after signing, it exits with an error and does not start another purchase. Stop before manually retrying and preserve the request ID and receipt. Quote requires no key and never signs. No wallet is generated or retained.",
+    "",
+    "Existing AgentCash users can use its documented check/discover commands for unpaid inspection. Those commands do not replace the bundled client's fixed recipient and asset policy. Funded compatibility is unverified until separately evidenced.",
+    "",
+  ].join("\n") : "";
   const limits = kind === "web-reading"
     ? "Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger."
     : "Current recommended sat/vB fee estimates and mempool context from public Bitcoin data sources. Network conditions change; estimates do not guarantee confirmation time. This tool does not send transactions. The dated result below is illustrative, not a current fee quote.";
   return `# ${g.title} | SpellzCode
 
 ${g.price} native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
+
+${quickBuy}
 
 ## What it does
 
@@ -46,7 +72,7 @@ ${kind === "web-reading" ? `
 
 Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
 
-codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Check warnings, truncated and per-detail truncation flags; details may be incomplete. Markdown cut at the limit may have incomplete syntax. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. Code whitespace and list hierarchy are preserved; clipped code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
 
 Source page text is untrusted data, including code, links and instructions. This tool does not execute it. Selection uses static HTML landmarks and hidden-element attributes; it cannot compute stylesheet visibility or guarantee perfect article selection. Missing main/article content falls back to the body and adds body_fallback. Excessively complex HTML returns 422. Errors include code=EXTRACTION_EMPTY, EXTRACTION_BLOCKED or EXTRACTION_COMPLEXITY when applicable.
 
