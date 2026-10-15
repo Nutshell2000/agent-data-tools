@@ -1,11 +1,15 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { HttpError, type Env } from "../lib/env";
-import { findOrderProduct, findProduct, PRODUCTS, type Product } from "./catalog";
+import { findOrderProduct, findProduct, PRODUCTS, NEW_PRODUCT_SALES_ENABLED, type Product } from "./catalog";
 import { findPayment } from "./chain";
 import { createOrder, getOrder, markTestPaid, orderState, refreshOrder } from "./orders";
 import { orderPage, productPage, storePage } from "./pages";
 
 export const store = new Hono<{ Bindings: Env }>();
+store.onError((error, c) => {
+  if (error instanceof HttpError) return c.json({ error: error.message }, error.status);
+  console.error(error); return c.json({ error: "internal error" }, 500);
+});
 
 /** Paths agents pay for with x402. The paywall in index.ts covers these. */
 export const BUY_PATHS = PRODUCTS.map((p) => `/buy/${p.slug}`);
@@ -13,7 +17,7 @@ export const BUY_PATHS = PRODUCTS.map((p) => `/buy/${p.slug}`);
 /** OpenAPI entries for the purchase routes, so directories that read /openapi.json list the products. */
 export const buyOpenApiPaths = () =>
   Object.fromEntries(
-    PRODUCTS.map((p) => [
+    (NEW_PRODUCT_SALES_ENABLED ? PRODUCTS : []).map((p) => [
       `/buy/${p.slug}`,
       {
         get: {
@@ -72,8 +76,13 @@ export async function assertProductAssetAvailable(env: Env, p: Product): Promise
   }
 }
 
+function assertNewSalesEnabled() {
+  if (!NEW_PRODUCT_SALES_ENABLED) throw new HttpError(503, "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available");
+}
+
 export function buyAssetPreflight(): MiddlewareHandler<{ Bindings: Env }> {
   return async (c, next) => {
+    if (PRODUCTS.some(p => c.req.path === `/buy/${p.slug}`)) assertNewSalesEnabled();
     const p =
       c.req.method === "GET" ? PRODUCTS.find((product) => c.req.path === `/buy/${product.slug}`) : undefined;
     if (p) await assertProductAssetAvailable(c.env, p);
@@ -89,19 +98,20 @@ async function order(env: Env, id: string) {
 
 store.get("/store", async (c) => {
   const availability = Object.fromEntries(
-    await Promise.all(PRODUCTS.map(async (p) => [p.slug, await productAssetAvailable(c.env, p)] as const)),
+    await Promise.all(PRODUCTS.map(async (p) => [p.slug, NEW_PRODUCT_SALES_ENABLED && await productAssetAvailable(c.env, p)] as const)),
   );
   return c.html(storePage(new URL(c.req.url).origin, availability));
 });
 
 store.get("/store/:slug", async (c) => {
   const p = product(c.req.param("slug"));
-  const available = await productAssetAvailable(c.env, p);
+  const available = NEW_PRODUCT_SALES_ENABLED && await productAssetAvailable(c.env, p);
   return c.html(productPage(p, new URL(c.req.url).origin, available));
 });
 
 store.post("/store/:slug/order", async (c) => {
   const p = product(c.req.param("slug"));
+  assertNewSalesEnabled();
   await assertProductAssetAvailable(c.env, p);
   const o = await createOrder(c.env, p);
   return c.redirect(`/order/${o.id}`, 303);
@@ -147,6 +157,7 @@ store.get("/order-debug/find", async (c) => {
 // Reached only after the x402 paywall has verified a payment for this path.
 store.get("/buy/:slug", async (c) => {
   const p = product(c.req.param("slug"));
+  assertNewSalesEnabled();
   await assertProductAssetAvailable(c.env, p);
   const o = await createOrder(c.env, p, c.env.PAYWALL === "off" ? "test" : "x402");
   const origin = new URL(c.req.url).origin;

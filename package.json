@@ -1,12 +1,14 @@
 {
   "name": "x402-api",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "node --test tests/*.test.cjs scripts/*.test.mjs",
     "check:mcp-contract": "node scripts/check-mcp-contract.mjs",
-    "update:mcp-contract": "node scripts/check-mcp-contract.mjs --update"
+    "update:mcp-contract": "node scripts/check-mcp-contract.mjs --update",
+    "export:guides": "node scripts/export-buying-guides.mjs",
+    "check:live": "node scripts/check-live-readiness.mjs"
   },
   "keywords": [],
   "author": "",

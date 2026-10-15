@@ -61,7 +61,7 @@ test("publishes the same safely capped client example on homepage and llms.txt",
   assert.match(example, /requirement\.network !== "eip155:8453"/);
   assert.match(example, /expectedPayTo = "0x1111111111111111111111111111111111111111"/);
   assert.match(example, /0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913/);
-  assert.match(example, /const maxUsdcAtomic = 5000n; \/\/ \$0\.005 USDC/);
+  assert.match(example, /const maxUsdcAtomic = 2000n; \/\/ \$0\.002 USDC/);
   assert.match(example, /return \/\^\\d\+\$\/\.test\(requirement\.amount\)/);
   assert.doesNotMatch(example, /trial=1/);
   assert.doesNotMatch(example, /0x[0-9a-fA-F]{64}/, "the example must not contain a private-key literal");

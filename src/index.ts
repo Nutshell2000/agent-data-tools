@@ -7,8 +7,10 @@ import { CAPACITY_LIMITED, ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTx
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
+import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
+import { activeTrace, markStage, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
@@ -28,9 +30,23 @@ const DEFERRED_PATHS = [
 app.use(
   cors({
     origin: "*",
-    exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id"],
+    exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id", "X-Request-ID"],
   }),
 );
+
+app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X402-Source") ?? null,
+  p => c.executionCtx.waitUntil(p), async () => {
+    const id = activeTrace()!.requestId;
+    c.header("X-Request-ID", id);
+    if (c.req.method === "GET" && (c.req.path.startsWith("/guides/") || (c.req.path === "/" && (c.req.header("accept") ?? "").includes("text/html")))) markStage("visit");
+    if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path) && c.req.header("payment-signature")) markStage("attempt");
+    await next();
+    if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path)) {
+      if (c.res.status === 402 && !c.req.header("payment-signature")) markStage("quote");
+      if (c.res.status >= 400 && activeTrace()?.stages.has("verified") && !activeTrace()?.stages.has("settlement_failed")) markStage("execution_failed");
+      if (c.res.ok && c.res.headers.has("PAYMENT-RESPONSE")) markStage("completed");
+    }
+  }));
 
 // Counts requests after their response is decided; telemetry never delays or fails it.
 app.use(requestMetricsMiddleware(PAID_PATHS, viaMarketplace));
@@ -198,6 +214,10 @@ app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.r
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
 app.get("/guides/dependency-audit.md", (c) => c.text(auditGuideMarkdown(origin(c.req.url), c.env.PAY_TO)));
+for (const kind of ["web-reading", "bitcoin-fees"] as const) {
+  app.get(`/guides/${kind}`, c => c.html(toolGuideHtml(kind, origin(c.req.url), c.env.PAY_TO)));
+  app.get(`/guides/${kind}.md`, c => c.text(toolGuideMarkdown(kind, origin(c.req.url), c.env.PAY_TO)));
+}
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.

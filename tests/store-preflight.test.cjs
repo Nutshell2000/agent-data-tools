@@ -1,140 +1,52 @@
-const assert = require("node:assert/strict");
-const Module = require("node:module");
-const { before, test } = require("node:test");
-const esbuild = require("esbuild");
-const { Hono } = require("hono");
-
-async function loadTypeScript(entry) {
-  const result = await esbuild.build({
-    entryPoints: [entry],
-    bundle: true,
-    platform: "node",
-    format: "cjs",
-    write: false,
-  });
-  const loaded = new Module(entry, module);
-  loaded.filename = entry;
-  loaded.paths = Module._nodeModulePaths(process.cwd());
-  loaded._compile(result.outputFiles[0].text, entry);
-  return loaded.exports;
-}
-
-let buyAssetPreflight;
-let store;
-
+const assert = require('node:assert/strict');
+const Module = require('node:module');
+const { before, test } = require('node:test');
+const esbuild = require('esbuild');
+const { Hono } = require('hono');
+let routes;
 before(async () => {
-  ({ buyAssetPreflight, store } = await loadTypeScript(require.resolve("../src/store/routes.ts")));
+  const entry = require.resolve('../src/store/routes.ts');
+  const built = await esbuild.build({ entryPoints:[entry], bundle:true, platform:'node', format:'cjs', write:false });
+  const m = new Module(entry,module); m.filename=entry; m.paths=Module._nodeModulePaths(process.cwd());
+  m._compile(built.outputFiles[0].text,entry); routes=m.exports;
 });
-
-test("missing seller-kit asset fails before the unpaid x402 challenge", async () => {
-  const app = new Hono();
-  let challengeReached = false;
-  const assetRequests = [];
-  app.onError((error, c) => c.json({ error: error.message }, error.status ?? 500));
-
-  // Exercise the production preflight middleware before a challenge stub; this avoids booting the x402 Worker.
-  app.use(buyAssetPreflight());
-  app.use((c, next) => {
-    if (c.req.path === "/buy/x402-seller-kit") {
-      challengeReached = true;
-      return c.json({ error: "payment required" }, 402, { "PAYMENT-REQUIRED": "challenge" });
-    }
-    return next();
-  });
-  app.get("/buy/x402-seller-kit", (c) => c.json({ ok: true }));
-
-  const response = await app.fetch(new Request("https://example.test/buy/x402-seller-kit"), {
-    ASSETS: {
-      async fetch(request) {
-        assetRequests.push({ method: request.method, pathname: new URL(request.url).pathname });
-        return new Response(null, { status: 404 });
-      },
-    },
-  });
-
-  assert.equal(response.status, 503);
-  assert.equal(response.headers.has("PAYMENT-REQUIRED"), false);
-  assert.equal(challengeReached, false);
-  assert.deepEqual(assetRequests, [{ method: "HEAD", pathname: "/_files/x402-seller-kit.zip" }]);
-  await response.body?.cancel();
-});
-
-function createStoreApp(assetFetch) {
-  const app = new Hono();
-  app.route("/", store);
-  return {
-    app,
-    env: { ASSETS: { fetch: assetFetch } },
-  };
+function fixture() {
+  let assets=0, writes=0, challenges=0;
+  const id='a'.repeat(32);
+  const order={id,slug:'x402-seller-kit',amount:'1900000',createdAt:Date.now(),createdBlock:'0',paidAt:Date.now(),via:'x402'};
+  const env={ASSETS:{fetch:async()=>{assets++;return new Response('original-paid-asset');}},TRIALS:{get:async key=>key===`order:${id}`?order:null,put:async()=>{writes++;}}};
+  const app=new Hono(); app.onError((e,c)=>c.json({error:e.message},e.status??500));
+  app.use(routes.buyAssetPreflight());
+  app.use((c,next)=>{if(c.req.path.startsWith('/buy/')) {challenges++;return c.body(null,402,{'PAYMENT-REQUIRED':'fixture'});}return next();});
+  routes.store.onError((e,c)=>c.json({error:e.message},e.status??500));
+  app.route('/',routes.store);
+  return {app,env,id,counts:()=>({assets,writes,challenges})};
 }
-
-test("storefront shows product details but hides purchase controls when asset HEAD is 404", async () => {
-  const assetRequests = [];
-  const { app, env } = createStoreApp(async (request) => {
-    assetRequests.push({ method: request.method, pathname: new URL(request.url).pathname });
-    return new Response(null, { status: 404 });
-  });
-
-  const storeResponse = await app.fetch(new Request("https://example.test/store"), env);
-  const storeHtml = await storeResponse.text();
-  const productResponse = await app.fetch(new Request("https://example.test/store/x402-seller-kit"), env);
-  const productHtml = await productResponse.text();
-
-  assert.equal(storeResponse.status, 200);
-  assert.match(storeHtml, /Temporarily unavailable: purchase is paused until the download is verified/);
-  assert.match(storeHtml, /\$1\.90/);
-  assert.match(storeHtml, /Browse product details; purchase availability depends on download verification/);
-  assert.doesNotMatch(storeHtml, /Pay in USDC, download straight away/);
-  assert.match(storeHtml, /See what's inside/);
-  assert.equal(productResponse.status, 200);
-  assert.match(productHtml, /x402 Seller Kit/);
-  assert.match(productHtml, /\$1\.90/);
-  assert.match(productHtml, /Purchasing is temporarily unavailable because the download asset cannot be verified/);
-  assert.doesNotMatch(productHtml, /<form method="post" action="\/store\/x402-seller-kit\/order">/);
-  assert.doesNotMatch(productHtml, /Agents can buy it too/);
-  assert.deepEqual(assetRequests, [
-    { method: "HEAD", pathname: "/_files/x402-seller-kit.zip" },
-    { method: "HEAD", pathname: "/_files/x402-seller-kit.zip" },
-  ]);
-});
-
-test("storefront preserves purchase controls when asset HEAD succeeds", async () => {
-  const { app, env } = createStoreApp(async (request) => {
-    assert.equal(request.method, "HEAD");
-    assert.equal(new URL(request.url).pathname, "/_files/x402-seller-kit.zip");
-    return new Response(null, { status: 200 });
-  });
-
-  const storeResponse = await app.fetch(new Request("https://example.test/store"), env);
-  const storeHtml = await storeResponse.text();
-  const productResponse = await app.fetch(new Request("https://example.test/store/x402-seller-kit"), env);
-  const productHtml = await productResponse.text();
-
-  assert.equal(storeResponse.status, 200);
-  assert.doesNotMatch(storeHtml, /Temporarily unavailable/);
-  assert.match(storeHtml, /Pay in USDC and download after confirmation, no account/);
-  assert.match(storeHtml, /See what's inside/);
-  assert.equal(productResponse.status, 200);
-  assert.match(productHtml, /<form method="post" action="\/store\/x402-seller-kit\/order">/);
-  assert.match(productHtml, /Agents can buy it too/);
-  assert.doesNotMatch(productHtml, /Temporarily unavailable/);
-});
-
-test("storefront fails closed when asset HEAD cannot be verified", async () => {
-  const { app, env } = createStoreApp(async () => {
-    throw new Error("asset binding unavailable");
-  });
-  const originalError = console.error;
-  const logged = [];
-  console.error = (message) => logged.push(String(message));
-  try {
-    const response = await app.fetch(new Request("https://example.test/store/x402-seller-kit"), env);
-    const html = await response.text();
-    assert.equal(response.status, 200);
-    assert.match(html, /Purchasing is temporarily unavailable/);
-    assert.doesNotMatch(html, /<form method="post" action="\/store\/x402-seller-kit\/order">/);
-    assert.ok(logged.some((message) => message.includes("x402-seller-kit")));
-  } finally {
-    console.error = originalError;
+test('paused seller-kit GET, HEAD and direct order creation fail before payment or writes',async()=>{
+  const f=fixture();
+  for(const [path,method] of [['/buy/x402-seller-kit','GET'],['/buy/x402-seller-kit','HEAD'],['/store/x402-seller-kit/order','POST']]) {
+    const r=await f.app.fetch(new Request('https://example.test'+path,{method}),f.env);
+    assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);await r.body?.cancel();
   }
+  assert.deepEqual(f.counts(),{assets:0,writes:0,challenges:0});
+  assert.deepEqual(routes.buyOpenApiPaths(),{});
+});
+test('storefront explains pause even when the asset exists and has no purchase controls',async()=>{
+  const f=fixture();
+  for(const path of ['/store','/store/x402-seller-kit']) {
+    const r=await f.app.fetch(new Request('https://example.test'+path),f.env);const html=await r.text();
+    assert.equal(r.status,200);assert.match(html,/New purchases paused for template verification/);
+    assert.doesNotMatch(html,/<form method="post"|Agents can buy it too/);
+  }
+  assert.equal(f.counts().assets,0);
+});
+test('existing paid seller-kit downloads continue to resolve while new sales are paused',async()=>{
+  const f=fixture(); const r=await f.app.fetch(new Request(`https://example.test/order/${f.id}/download`),f.env);
+  assert.equal(r.status,200);assert.equal(await r.text(),'original-paid-asset');
+  assert.equal(r.headers.get('cache-control'),'private, no-store');assert.equal(f.counts().writes,0);
+});
+test('asset availability still verifies the actual file independently of sales state',async()=>{
+  const product={slug:'x402-seller-kit',file:'x402-seller-kit.zip'};
+  assert.equal(await routes.productAssetAvailable({ASSETS:{fetch:async()=>new Response(null,{status:404})}},product),false);
+  assert.equal(await routes.productAssetAvailable({ASSETS:{fetch:async()=>new Response(null,{status:200})}},product),true);
 });

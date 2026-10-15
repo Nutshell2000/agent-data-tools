@@ -2,7 +2,7 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.0.1";
+export const MCP_SERVER_VERSION = "1.0.2";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -29,7 +29,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
+    docs: { webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -75,9 +75,9 @@ function endpointSpendCap(path: string) {
   return { price: endpoint.price, atomic: atomic.toString() };
 }
 
-const domainSpendCap = () => endpointSpendCap("/domain");
+const exampleSpendCap = () => endpointSpendCap("/extract");
 
-export function paymentClientExample(origin: string, payTo: string, path = "/domain", query = "name=example.com") {
+export function paymentClientExample(origin: string, payTo: string, path = "/extract", query = "url=https%3A%2F%2Fexample.com") {
   const cap = endpointSpendCap(path);
   const requestPath = `${path}?${query}`;
   return [
@@ -116,9 +116,9 @@ export function paymentClientExample(origin: string, payTo: string, path = "/dom
 }
 
 function clientGuidance() {
-  const domainPrice = domainSpendCap().price;
+  const entryPrice = exampleSpendCap().price;
   const packageAuditPrice = catalogEndpoint("/package-audit").price;
-  return `The homepage and llms.txt include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /domain price (${domainPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
+  return `The homepage and llms.txt include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
 }
 
 /** Human-readable front page for people arriving from a directory listing. */
@@ -136,7 +136,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false) {
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
+    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -174,7 +174,9 @@ pre code { padding:0; background:transparent; }
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
-<p><a href="/guides/dependency-audit">Check pinned dependencies before installing them: one request, up to 10 packages, ${esc(catalogEndpoint("/package-audit").price)} USDC.</a></p>
+<p>Operated by SpellzCode. Read a public static page as text, headings and links for <strong>${esc(catalogEndpoint("/extract").price)} USDC</strong> using your funded x402 wallet.</p>
+<p><a href="/guides/web-reading">Read a page: HTTP and MCP buying examples</a> &middot; <a href="/guides/bitcoin-fees">Bitcoin fee lookup: ${esc(catalogEndpoint("/btc-fees").price)} USDC</a></p>
+<p class="note">Static pages only: no JavaScript rendering, authenticated pages or paywall access. Bounded size with explicit truncation. <a href="/guides/web-reading">See a labelled example result and limits.</a></p>
 
 <h2>Tools and prices</h2>
 <div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
@@ -185,7 +187,7 @@ pre code { padding:0; background:transparent; }
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 
 <h2>Node.js / TypeScript client</h2>
-<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/domain</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
+<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
 <h2>For agents and developers</h2>
@@ -209,7 +211,7 @@ export function openApi(origin: string, trialsEnabled = false) {
     openapi: "3.1.0",
     info: {
       title: SERVICE_NAME,
-      version: "1.0.0",
+      version: MCP_SERVER_VERSION,
       description: SERVICE_SUMMARY,
       "x-guidance": guidance,
     },
@@ -221,7 +223,7 @@ export function openApi(origin: string, trialsEnabled = false) {
           get: {
             operationId: e.path.slice(1),
             summary: e.summary,
-            description: e.description,
+            description: (e as Endpoint).details ?? e.description,
             ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
             // Shape required by x402scan's discovery spec. Amount is decimal USD.
@@ -304,11 +306,13 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     trialNote(trialsEnabled),
     "",
+    `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
+    "",
     `Dependency audit buying guide: ${origin}/guides/dependency-audit.md (up to 10 pinned package versions, ${catalogEndpoint("/package-audit").price} USDC per successful request; dedicated capped client included).`,
     "",
     "## Node.js / TypeScript x402 client",
     "",
-    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at the current /domain price (${domainSpendCap().price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
+    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at the current /extract price (${exampleSpendCap().price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
     "",
     "Install with `npm install @x402/fetch @x402/evm viem` and `npm install --save-dev typescript tsx @types/node`. Save as `client.ts` and run `npx tsx client.ts`. Set `X402_PRIVATE_KEY` in a secret manager or process environment; never paste it into source or commit it.",
     "",
@@ -320,7 +324,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     ...ENDPOINTS.flatMap((e) => [
       `### GET ${e.path} — ${e.price}`,
-      e.description,
+      (e as Endpoint).details ?? e.description,
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,
       "",

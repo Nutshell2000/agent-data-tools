@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
+import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
 
 /** What happened to a request for a paid path. */
 export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "marketplace";
@@ -26,8 +27,10 @@ export class Metrics extends DurableObject {
   }
 
   async revenueSummary() {
-    return ledgerSummary(this.ctx.storage);
+    return { ...await ledgerSummary(this.ctx.storage), funnel: await funnelSummary(this.ctx.storage) };
   }
+
+  async recordFunnel(event: FunnelEvent) { await saveFunnel(this.ctx.storage, event); }
 
   async reserveCheckoutAmount(reservation: AmountReservation): Promise<boolean> {
     return reserveAmount(this.ctx.storage, reservation);
