@@ -29,7 +29,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp` },
+    docs: { openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -67,16 +67,19 @@ function catalogEndpoint(path: string): Endpoint {
   return endpoint;
 }
 
-function domainSpendCap() {
-  const endpoint = catalogEndpoint("/domain");
+function endpointSpendCap(path: string) {
+  const endpoint = catalogEndpoint(path);
   const match = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(endpoint.price);
   if (!match) throw new Error(`Cannot express ${endpoint.price} as six-decimal USDC`);
   const atomic = BigInt(match[1]) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0") || "0");
   return { price: endpoint.price, atomic: atomic.toString() };
 }
 
-function paymentClientExample(origin: string, payTo: string) {
-  const cap = domainSpendCap();
+const domainSpendCap = () => endpointSpendCap("/domain");
+
+export function paymentClientExample(origin: string, payTo: string, path = "/domain", query = "name=example.com") {
+  const cap = endpointSpendCap(path);
+  const requestPath = `${path}?${query}`;
   return [
     "// Save as client.ts; set X402_PRIVATE_KEY in your environment, never in source.",
     'import { ExactEvmScheme } from "@x402/evm";',
@@ -91,7 +94,7 @@ function paymentClientExample(origin: string, payTo: string) {
     `const serviceOrigin = ${JSON.stringify(origin)};`,
     `const expectedPayTo = ${JSON.stringify(payTo.toLowerCase())};`,
     'const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";',
-    `const maxUsdcAtomic = ${cap.atomic}n; // ${cap.price} USDC, the current /domain price`,
+    `const maxUsdcAtomic = ${cap.atomic}n; // ${cap.price} USDC, the current ${path} price`,
     "",
     'const client = new x402Client()',
     '  .register("eip155:8453", new ExactEvmScheme(account))',
@@ -106,7 +109,7 @@ function paymentClientExample(origin: string, payTo: string) {
     "  );",
     "",
     "const fetchWithPayment = wrapFetchWithPayment(fetch, client);",
-    'const response = await fetchWithPayment(new URL("/domain?name=example.com", serviceOrigin));',
+    `const response = await fetchWithPayment(new URL(${JSON.stringify(requestPath)}, serviceOrigin));`,
     'if (!response.ok) throw new Error(`API returned HTTP ${response.status}`);',
     "console.log(await response.json());",
   ].join("\n");
@@ -171,6 +174,7 @@ pre code { padding:0; background:transparent; }
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
+<p><a href="/guides/dependency-audit">Check pinned dependencies before installing them: one request, up to 10 packages, ${esc(catalogEndpoint("/package-audit").price)} USDC.</a></p>
 
 <h2>Tools and prices</h2>
 <div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
@@ -218,6 +222,7 @@ export function openApi(origin: string, trialsEnabled = false) {
             operationId: e.path.slice(1),
             summary: e.summary,
             description: e.description,
+            ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
             // Shape required by x402scan's discovery spec. Amount is decimal USD.
             "x-payment-info": {
@@ -298,6 +303,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base). Sign the payment and retry with the PAYMENT-SIGNATURE header. Failed calls (4xx/5xx) are not charged.",
     "",
     trialNote(trialsEnabled),
+    "",
+    `Dependency audit buying guide: ${origin}/guides/dependency-audit.md (up to 10 pinned package versions, ${catalogEndpoint("/package-audit").price} USDC per successful request; dedicated capped client included).`,
     "",
     "## Node.js / TypeScript x402 client",
     "",
