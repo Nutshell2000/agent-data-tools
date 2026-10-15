@@ -187,3 +187,7 @@ node scripts/check-agent-discovery.mjs /path/to/@agentcash/discovery/dist/index.
 ```
 
 The script does not install packages, initialize wallets, sign payments or execute paid extraction. It checks the current production catalog, price, guidance and structured output schema; funded HTTP, CLI and MCP delivery require separate evidence.
+
+### Use a local MCP agent without writing a client
+
+The [bundled local MCP adapter](https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp) runs with Node 20.19+ and no npm installation. Quotes-only by default. Explicit paid mode enables one-call purchases capped at $0.002 each and a process session allowance; unknown signed outcomes lock further buys. [Source and setup](docs/local-mcp.md). Preserve host tool approvals. The remote MCP connection alone does not pay automatically.
