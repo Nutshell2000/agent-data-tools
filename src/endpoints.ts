@@ -12,6 +12,7 @@ export interface Param {
   description: string;
   required?: boolean;
   example: string | number;
+  enum?: readonly [string, ...string[]];
 }
 
 export interface Endpoint {
@@ -20,12 +21,12 @@ export interface Endpoint {
   summary: string;
   /** Shown in x402 directories. Must stay under 500 characters. */
   description: string;
-  tags: string[];
+  tags: readonly string[];
   params: Record<string, Param>;
   outputExample: Record<string, unknown>;
 }
 
-export const ENDPOINTS: Endpoint[] = [
+export const ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
@@ -145,7 +146,7 @@ export const ENDPOINTS: Endpoint[] = [
     price: "$0.02",
     summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
     description:
-      "One call before you buy a Base token: overall risk rating (low/medium/high) with named flags, on-chain facts (owner, renounced, paused, proxy, mint/blacklist/fee-setter heuristics), plus live DEX market data: price, 24h volume and change, total liquidity, FDV, pair count and age, and 24h buys vs sells. Flags no-liquidity, thin liquidity, new pairs and no-sell patterns. Heuristic screening, not a guarantee.",
+      "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
     tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
     params: {
       address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -153,6 +154,8 @@ export const ENDPOINTS: Endpoint[] = [
     outputExample: {
       chain: "base",
       address: "0x4200000000000000000000000000000000000006",
+      marketDataSource: "DexScreener",
+      marketRetrievedAt: "2026-10-14T12:00:00.000Z",
       risk: "low",
       summary: "low risk: 0 high and 0 medium flag(s). Heuristic screening, not a guarantee of safety.",
       flags: [],
@@ -171,9 +174,9 @@ export const ENDPOINTS: Endpoint[] = [
   {
     path: "/wallet",
     price: "$0.005",
-    summary: "Base wallet balances snapshot",
+    summary: "Base wallet balances and account nonce snapshot",
     description:
-      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, transaction count, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. Use for portfolio checks, counterparty screening and payment verification.",
+      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history.",
     tags: ["base", "wallet", "balance", "portfolio", "onchain"],
     params: {
       address: { type: "string", description: "Wallet or contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -184,7 +187,10 @@ export const ENDPOINTS: Endpoint[] = [
       address: "0x4200000000000000000000000000000000000006",
       type: "contract",
       eth: { wei: "286016330790748434767802", formatted: "286016.330790748434767802" },
-      transactionCount: 0,
+      accountNonce: 0,
+      limitations: [
+        "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
       tokens: [
         { address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", decimals: 6, balance: "167551481", balanceFormatted: "167.551481" },
       ],
@@ -357,22 +363,96 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/package-audit",
-    price: "$0.01",
-    summary: "Audit up to 10 dependencies at once: exists, flags, verdict",
+    price: "$0.20",
+    summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
     description:
-      "Check a whole dependency list in one call. Pass up to 10 ecosystem:name pairs (npm, pypi, cargo, go, maven, nuget) and get per-package existence, verdict and flags (not-found, deprecated, known advisories, very new or unmaintained), plus a summary. Catches hallucinated or typosquat package names an AI coding agent might install. Bad input is not charged.",
+      "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
     tags: ["package", "security", "supply-chain", "npm", "pypi"],
     params: {
-      packages: { type: "string", description: "Comma-separated ecosystem:name pairs, max 10, e.g. npm:left-pad,pypi:requests", required: true, example: "npm:left-pad,pypi:requests" },
+      packages: { type: "string", description: "Comma-separated ecosystem:name items, optionally name@exact-version; max 10. For scoped npm, use npm:@scope/name@version.", required: true, example: "npm:lodash@4.17.20,pypi:requests@2.31.0,npm:@types/node@22.0.0" },
     },
     outputExample: {
-      checked: 2,
+      checked: 1,
       notFound: 0,
       lookupFailed: 0,
-      summary: "All 2 package(s) exist. Review each verdict and flags before installing.",
+      versionNotFound: 0,
+      versionAdvisoryLookupIncomplete: 0,
+      epssLookup: {
+        source: "FIRST EPSS",
+        status: "complete",
+        sourceStatus: "available",
+        retrievedAt: "2026-10-14T12:00:00.000Z",
+        requestedCves: 1,
+        queriedCves: 1,
+        returnedScores: 1,
+        omittedCves: 0,
+        uninspectedAdvisoryDetails: 0,
+        malformedRows: 0,
+        note: "FIRST EPSS estimates 30-day exploitation probability, not package safety.",
+      },
+      summary: "All 1 package(s) exist. Review each verdict and flags before installing.",
       results: [
-        { ecosystem: "npm", name: "left-pad", exists: true, verdict: "caution", flags: ["deprecated"] },
-        { ecosystem: "pypi", name: "requests", exists: true, verdict: "ok", flags: [] },
+        {
+          ecosystem: "npm",
+          name: "minimist",
+          exists: true,
+          version: "1.2.5",
+          versionExists: true,
+          verdict: "caution",
+          flags: ["known-vulnerabilities"],
+          weeklyDownloads: null,
+          weeklyDownloadsStatus: "not-fetched-subrequest-budget",
+          knownVulnerabilities: 1,
+          advisoryIds: ["GHSA-xvch-5gv4-984h"],
+          knownVulnerabilityCountSources: ["deps.dev", "OSV"],
+          advisoryDetailsStatus: "not-fetched-subrequest-budget",
+          advisoryDetailsOmitted: 1,
+          advisoryDetailsUnavailable: 0,
+          advisories: [],
+          source: "deps.dev",
+          retrievedAt: "2026-10-14T12:00:00.000Z",
+          versionAdvisories: {
+            source: "OSV",
+            status: "complete",
+            retrievedAt: "2026-10-14T12:00:00.000Z",
+            advisoryCount: 1,
+            vulnerabilities: [
+              {
+                id: "GHSA-xvch-5gv4-984h",
+                source: "OSV",
+                sourceUrl: "https://osv.dev/vulnerability/GHSA-xvch-5gv4-984h",
+                retrievedAt: "2026-10-14T12:00:00.000Z",
+                detailStatus: "available",
+                modified: "2026-03-13T22:11:59.523514Z",
+                published: "2022-03-18T00:01:09Z",
+                aliases: ["CVE-2021-44906"],
+                summary: "Prototype Pollution in minimist",
+                rangeStatus: "reported",
+                fixedVersionRanges: [
+                  { type: "SEMVER", events: [{ introduced: "1.0.0" }, { fixed: "1.2.6" }], fixedVersions: ["1.2.6"] },
+                  { type: "SEMVER", events: [{ introduced: "0" }, { fixed: "0.2.4" }], fixedVersions: ["0.2.4"] },
+                ],
+                epss: {
+                  source: "FIRST EPSS",
+                  status: "complete",
+                  sourceStatus: "available",
+                  retrievedAt: "2026-10-14T12:00:00.000Z",
+                  scores: [
+                    {
+                      cve: "CVE-2021-44906",
+                      status: "available",
+                      score: 0.04581,
+                      percentile: 0.91484,
+                      date: "2026-10-14",
+                    },
+                  ],
+                  note: "EPSS estimates 30-day exploitation probability for CVE aliases; it is not a package-safety guarantee. Null scores are unknown, not zero.",
+                },
+              },
+            ],
+            note: "OSV advisories are matched to this exact package version.",
+          },
+        },
       ],
       source: "deps.dev",
     },
@@ -380,10 +460,10 @@ export const ENDPOINTS: Endpoint[] = [
   {
     path: "/wallet-audit",
     price: "$0.02",
-    summary: "Wallet risk verdict: activity, balance and token holdings on Base",
+    summary: "Heuristic wallet risk indicators, balances and account nonce on Base",
     description:
-      "Audit a Base wallet address in one call: high/medium/low risk verdict with named flags (no history, single tx, low balance+low activity, contract), token holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), on-chain labels (high ETH holder, active small holder, new address), and transaction count. Use for trader due diligence, suspicious address checks, and before sending a payment or trade to an address.",
-    tags: ["wallet", "security", "base", "ethereum", "crypto"],
+      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce reflects outgoing transactions only; it is not full transaction, token-transfer or trading history. Address type is reported separately and does not affect the balance/nonce-based risk tier.",
+    tags: ["wallet", "base", "ethereum", "crypto"],
     params: {
       address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
     },
@@ -393,25 +473,28 @@ export const ENDPOINTS: Endpoint[] = [
       type: "eoa",
       riskLevel: "low",
       riskFlags: [],
-      summary: "low risk: 0 flag(s). 2 token(s) held. 42 transaction(s).",
+      summary: "low risk: 0 flag(s). 2 token(s) held. Account nonce: 42.",
       eth: { wei: "1500000000000000000", formatted: "1.5" },
-      transactionCount: 42,
+      accountNonce: 42,
       tokenCount: 2,
       tokens: [
-        { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", decimals: 6, balance: "1000000000", balanceFormatted: "1000", riskLevel: "low" },
-        { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18, balance: "500000000000000000", balanceFormatted: "0.5", riskLevel: "low" },
+        { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", decimals: 6, balance: "1000000000", balanceFormatted: "1000", riskLevel: "unknown" },
+        { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18, balance: "500000000000000000", balanceFormatted: "0.5", riskLevel: "unknown" },
       ],
-      labels: ["high-eth-holder"],
+      labels: [],
+      limitations: [
+        "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
       lastUpdatedBlock: 18650000,
     },
   },
   {
     path: "/contract-risk",
     price: "$0.02",
-    summary: "Contract risk verdict: rug-pull and scam heuristics",
+    summary: "Base contract bytecode, proxy-slot and zero-supply heuristics",
     description:
-      "Audit a smart contract on Base: critical/high/medium/low risk with named flags (proxy pattern, zero supply, bytecode size, uninitialized proxy, suspicious ERC-20 properties). Detects EIP-1967 proxy patterns and reads token properties (name, symbol, decimals, total supply, ownership status). Use for token contract audits, before trading or approving a token, and for rug-pull detection.",
-    tags: ["contract", "security", "token", "blockchain", "scam-detection"],
+      "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
+    tags: ["contract", "bytecode", "proxy", "token-properties", "base"],
     params: {
       address: { type: "string", description: "Base chain contract address, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
     },
@@ -434,8 +517,9 @@ export const ENDPOINTS: Endpoint[] = [
         symbol: "USDC",
         decimals: 6,
         totalSupply: "10000000000000",
+        owner: "0x0000000000000000000000000000000000000001",
         ownershipRenounced: false,
-        pausable: false,
+        paused: null,
       },
       lastUpdatedBlock: 18650000,
     },
@@ -443,80 +527,98 @@ export const ENDPOINTS: Endpoint[] = [
   {
     path: "/trade-insight",
     price: "$0.05",
-    summary: "Trading recommendation: composite token + wallet risk score",
+    summary: "Sourced token and wallet risk indicators with market facts",
     description:
-      "AI-powered trade recommendation combining token risk analysis, wallet on-chain activity, market liquidity/volume, and holder concentration. Returns high-confidence buy/sell, medium recommendations, or high-risk flags with reasoning and confidence score (0-1). Scores token risk, wallet history, trading experience, liquidity, and balance. Use for informed trading decisions, bot detection, and pre-trade due diligence on any token-wallet pair.",
-    tags: ["trading", "ai", "recommendation", "risk", "base"],
+      "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history.",
+    tags: ["trading", "risk", "base", "market"],
     params: {
       token: { type: "string", description: "Token contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
       wallet: { type: "string", description: "Wallet address to evaluate, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
     },
     outputExample: {
-      recommendation: "high-confidence-buy",
-      confidence: 0.88,
-      reasoning: ["All signals positive, low risk", "Good liquidity (>$50k)", "Experienced wallet (100+ txs)", "Sufficient balance for trading"],
-      warnings: [],
-      tokenRisk: "low",
+      tokenRisk: "high",
+      tokenRiskFlags: [{ level: "high", code: "no_liquidity", message: "No DEX trading pair found on Base." }],
+      tokenMarket: null,
       walletRisk: "low",
-      compositeScore: 79.3,
+      walletRiskFlags: [],
+      walletFacts: { accountNonce: 42, ethBalance: "0.5" },
+      limitations: [
+        "Rule-based risk indicators only; this response is not a buy/sell recommendation and has no calibrated confidence score.",
+        "Holder concentration is not evaluated.",
+        "walletFacts.accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
     },
   },
   {
     path: "/liquidity-pool-audit",
     price: "$0.03",
-    summary: "DeFi liquidity pool security audit: contract type, activity, risk flags",
+    summary: "Verified Base DEX pair details and market data",
     description:
-      "Audit a Base liquidity pool contract: contract type detection (Uniswap V3/V2, Balancer, unknown), activity level (transaction count), bytecode analysis, and risk flags (no code, low activity, unusual bytecode size). Use for DEX trading pair audits, LP investment screening, and pool existence checks before trading or adding liquidity.",
-    tags: ["defi", "liquidity", "pool", "security", "uniswap"],
+      "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
+    tags: ["defi", "liquidity", "pool", "market", "base"],
     params: {
-      address: { type: "string", description: "Pool contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+      address: { type: "string", description: "DEX pair address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x98c7A2338336d2d354663246F64676009c7bDa97" },
     },
     outputExample: {
       chain: "base",
-      poolAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      type: "uniswap-v3",
-      riskLevel: "low",
-      riskFlags: [],
-      summary: "low risk: 0 flag(s). Type: uniswap-v3. Activity: 142 txs.",
-      facts: { hasCode: true, bytecodeSize: 2847, age: null },
-      metrics: { poolExists: true, eventCount: 142, lastActivity: null },
-      lastUpdatedBlock: 18650000,
+      source: "DexScreener",
+      retrievedAt: "2026-10-14T12:00:00.000Z",
+      pairAddress: "0x98c7A2338336d2d354663246F64676009c7bDa97",
+      dex: "aerodrome",
+      url: "https://dexscreener.com/base/0x98c7a2338336d2d354663246f64676009c7bda97",
+      baseToken: { address: null, name: null, symbol: "USDC" },
+      quoteToken: { address: null, name: null, symbol: "USDbC" },
+      priceUsd: "1.00",
+      priceChange24hPct: 0,
+      liquidityUsd: 1000000,
+      volume24hUsd: 500000,
+      trades24h: { buys: 1250, sells: 980 },
+      pairCreatedAt: null,
+      ageDays: null,
     },
   },
   {
     path: "/mev-simulator",
     price: "$0.04",
-    summary: "MEV simulator: transaction costs and sandwich attack risk under different gas scenarios",
+    summary: "Base gas-cost estimates under priority-fee scenarios",
     description:
-      "Estimate transaction costs under different market conditions (standard, high MEV risk, low gas): base/priority/max fees in gwei, and estimated gas costs in ETH + USD for a simple swap, complex swap, and liquidity add. Includes MEV risk assessment (low/medium/high) and recommendations for MEV protection. Use for trading cost analysis, MEV risk evaluation, and timing decisions.",
-    tags: ["mev", "gas", "defi", "transaction-cost", "base"],
+      "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement.",
+    tags: ["gas", "defi", "transaction-cost", "scenario-estimate", "base"],
     params: {
-      scenario: { type: "string", description: "One of standard, high-mev, low-gas (default: standard)", example: "standard" },
+      scenario: {
+        type: "string",
+        description: "One of standard, high-mev, low-gas (default: standard)",
+        example: "standard",
+        enum: ["standard", "high-mev", "low-gas"],
+      },
     },
     outputExample: {
       chain: "base",
       scenario: "standard",
       gasPrice: { baseFeeGwei: "0.05", priorityFeeGwei: "0.1", maxFeeGwei: "0.15" },
       estimatedCosts: {
-        simpleSwap: { gasUnits: 100000, costEth: "0.015", costUsd: "62.10" },
-        complexSwap: { gasUnits: 250000, costEth: "0.0375", costUsd: "155.25" },
-        addLiquidity: { gasUnits: 180000, costEth: "0.027", costUsd: "111.78" },
+        simpleSwap: { gasUnits: 100000, costEth: "0.000015", costUsd: "0.06" },
+        complexSwap: { gasUnits: 250000, costEth: "0.0000375", costUsd: "0.16" },
+        addLiquidity: { gasUnits: 180000, costEth: "0.000027", costUsd: "0.11" },
       },
-      mevRisk: "medium",
-      recommendations: ["Standard conditions: No special precautions needed"],
+      scenarioNotes: [
+        "Gas units use typical fixed assumptions (100,000 simple swap, 250,000 complex swap, 180,000 add-liquidity), not a transaction-specific estimate or quote.",
+        "This preset uses the current priority fee without adjustment.",
+      ],
       blockNumber: 18650000,
     },
   },
   {
     path: "/package",
     price: "$0.0002",
-    summary: "Does this package exist, and is it safe to install",
+    summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
-      "Check a software package before installing it: whether it exists at all (AI coding assistants sometimes invent names), latest version and release date, package age, number of versions, weekly downloads (npm), licenses, deprecation, and known security advisories with severity. Returns a verdict of ok, caution or not-found with the reasons. Covers npm, PyPI, Cargo, Go, Maven and NuGet. Use before adding a dependency or running an install command.",
+      "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. Bounded signals: ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates.",
     tags: ["package", "npm", "pypi", "security", "dependencies"],
     params: {
       ecosystem: { type: "string", description: "One of npm, pypi, cargo, go, maven, nuget", required: true, example: "npm" },
       name: { type: "string", description: "Exact package name, e.g. lodash or @scope/name", required: true, example: "lodash" },
+      version: { type: "string", description: "Optional exact version to inspect; ranges and tags are not accepted", example: "4.17.20" },
     },
     outputExample: {
       ecosystem: "npm",
@@ -777,171 +879,14 @@ export const ENDPOINTS: Endpoint[] = [
       ],
     },
   },
-  {
-    path: "/pair-analyzer",
-    price: "$0.03",
-    summary: "Uniswap pair deep dive: liquidity trends, token risk, price impact, protocol fees",
-    description:
-      "Analyze a Uniswap liquidity pair for trading risk: liquidity USD, 24h trading volume, price impact estimates (1%, 5%, 10% swaps), fee tier, transaction count, liquidity trend (increasing/decreasing/stable). Combines contract risk (token0/token1 properties) with pool activity to assess slippage and impermanent loss risk. Use for large order planning, LP due diligence, and identifying low-activity pools.",
-    tags: ["defi", "uniswap", "pair", "liquidity", "risk", "slippage"],
-    params: {
-      pairAddress: { type: "string", description: "Uniswap pool contract address (0x...)", required: true, example: "0x8ad599c3a0ff1de082011efddc58f1908762f2f" },
-      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
-    },
-    outputExample: {
-      pairAddress: "0x8ad599c3a0ff1de082011efddc58f1908762f2f",
-      liquidityUsd: 125000.5,
-      volumeUsd24h: 15000.25,
-      txCount24h: 42,
-      feeTier: 0.05,
-      priceImpact: { buy1Percent: 0.18, buy5Percent: 0.92, buy10Percent: 1.95 },
-      riskLevel: "low",
-      riskFlags: [],
-      liquidity_trend: "increasing",
-      recommendations: ["Pair liquidity is healthy for orders under $10k"],
-      token0: { symbol: "USDC", decimals: 6, totalSupply: "100000000000000" },
-      token1: { symbol: "WETH", decimals: 18, totalSupply: "12000000000000000000000" },
-    },
-  },
-  {
-    path: "/wallet-history",
-    price: "$0.02",
-    summary: "Historical transaction pattern analysis for bot detection and wash trading identification",
-    description:
-      "Analyze a wallet's transaction history to distinguish bots from humans and identify wash trading signatures: transaction count, wallet age, pattern frequency (burst vs. regular), token diversity, transaction timing variance, and historical analysis (all-time, last 30 days, last 7 days). Returns bot probability score (0-1), wash trading indicators, and specific risk flags. Use for counterparty due diligence, liquidity provider validation, and bot detection.",
-    tags: ["defi", "wallet", "history", "bot", "wash-trading", "risk"],
-    params: {
-      address: { type: "string", description: "Wallet address to analyze (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
-      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
-    },
-    outputExample: {
-      address: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
-      txCount: 342,
-      ageDays: 567,
-      riskLevel: "low",
-      botProbability: 0.15,
-      txPatterns: {
-        allTime: { count: 342, frequency: "regular", avgIntervalSeconds: 120000, topTokens: [{ token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", count: 142 }] },
-        last30Days: { count: 18, frequency: "sporadic", avgIntervalSeconds: 345600, topTokens: [] },
-      },
-      washTradingIndicators: [],
-      riskFlags: [],
-      recommendations: ["Wallet appears to be human-operated"],
-    },
-  },
-  {
-    path: "/airdrop-scanner",
-    price: "$0.03",
-    summary: "Airdrop eligibility scanner and opportunity finder",
-    description:
-      "Analyze a wallet for airdrop eligibility based on transaction history, holdings, and on-chain labels. Returns list of eligible airdrops with estimated rewards, historical eligibility patterns, wallet age signals, activity level scoring, and risk flags for eligibility (e.g., young wallet, low activity). Helps traders maximize airdrop income and understand which future airdrops they may qualify for. Use before claiming or coordinating airdrop strategies.",
-    tags: ["defi", "airdrop", "eligibility", "rewards", "opportunities"],
-    params: {
-      address: { type: "string", description: "Wallet address to analyze (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
-      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
-    },
-    outputExample: {
-      address: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
-      chain: "ethereum",
-      eligibleAirdrops: [
-        {
-          token: "Example Token",
-          tokenAddress: "0x1234567890123456789012345678901234567890",
-          airdropType: "activity",
-          snapshotBlock: 18500000,
-          eligibilityScore: 0.72,
-          estimatedReward: "250 tokens",
-          reason: "Wallet has sufficient transaction history and was active before snapshot",
-        },
-      ],
-      riskLevel: "low",
-      riskFlags: [],
-      recommendations: ["Consider increasing transaction activity for future airdrops"],
-    },
-  },
-  {
-    path: "/liquidity-return-analyzer",
-    price: "$0.02",
-    summary: "LP position ROI analysis: fees earned vs impermanent loss",
-    description:
-      "Analyze a liquidity provider position ROI: entry and exit prices, liquidity provided, current value, fees earned, impermanent loss calculation (IL), total return percentage, and whether the position is actually profitable. Helps LPs understand true ROI accounting for IL, track fees earned, and make hold/rebalance/exit decisions. Returns ROI recommendation (positive/neutral/negative) and specific risk warnings.",
-    tags: ["defi", "lp", "roi", "impermanent-loss", "liquidity"],
-    params: {
-      poolAddress: { type: "string", description: "Pool address (0x...)", required: true, example: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8" },
-      lpAddress: { type: "string", description: "Your wallet address (0x...)", required: true, example: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee" },
-      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
-    },
-    outputExample: {
-      poolAddress: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
-      lpAddress: "0x742d35cc6634c0532925a3b844bc57e94f4e75ee",
-      chain: "ethereum",
-      positionStatus: "active",
-      entryPrice: { token0: 1.0, token1: 2000 },
-      currentPrice: { token0: 0.8, token1: 2500 },
-      liquidityProvided: { token0: "25000000000000000000", token1: "12500000000" },
-      fees: { earned: 1200, currency: "USD" },
-      impermanentLoss: { absolute: 12.5, percentage: 12.5 },
-      totalReturn: { absolute: -8.3, percentage: -8.3 },
-      roiRecommendation: "neutral",
-      warnings: ["Fees earned do not offset impermanent loss. Position underwater."],
-    },
-  },
-  {
-    path: "/token-holder-analysis",
-    price: "$0.02",
-    summary: "Token holder distribution and rug-pull risk assessment",
-    description:
-      "Analyze a token's holder distribution to assess rug-pull risk and whale concentration: top 10/100 holders and their percentages, Gini coefficient (concentration metric), whale activity (recent large transfers), and rug-risk score (0-1). Returns risk level (low/medium/high), specific risk flags, and recommendations for trading or investing. Use for due diligence before buying, trading, or providing liquidity.",
-    tags: ["defi", "token", "holders", "rug-risk", "whale"],
-    params: {
-      tokenAddress: { type: "string", description: "Token contract address (0x...)", required: true, example: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48" },
-      chain: { type: "string", description: "Blockchain: ethereum, polygon, arbitrum, optimism (default ethereum)", example: "ethereum" },
-    },
-    outputExample: {
-      tokenAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-      chain: "ethereum",
-      totalSupply: "1000000000000000000000000000",
-      totalHolders: 45000,
-      topHolders: [
-        {
-          rank: 1,
-          address: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
-          balance: "150000000000000000000000000",
-          percentageOfSupply: 15.0,
-          isExchange: true,
-          isContract: false,
-        },
-      ],
-      concentrationMetrics: {
-        giniCoefficient: 0.15,
-        top10Percentage: 76.2,
-        top100Percentage: 92.5,
-        rugRiskScore: 0.8,
-      },
-      whaleActivity: {
-        recentLargeTransfers: [
-          {
-            from: "0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD",
-            to: "0x0000000000000000000000000000000000000000",
-            amount: "10000000000000000000000000",
-            timestamp: 1728878400,
-            description: "Large transfer (possible dump)",
-          },
-        ],
-        majorDumpRisk: "high",
-      },
-      recommendations: ["🚨 CRITICAL: Top 10 holders control >50% of supply. High rug-pull risk."],
-    },
-  },
-];
+] as const satisfies readonly Endpoint[];
+
+export type EndpointPath = (typeof ENDPOINTS)[number]["path"];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight AI-scored token + wallet risk with buy/sell recommendation; /wallet-audit combines balance + activity + on-chain labels; /contract-risk rug-pull detection and proxy patterns; /liquidity-pool-audit DEX pool analysis; /pair-analyzer Uniswap pair deep dive; /wallet-history bot detection and wash trading analysis; /airdrop-scanner airdrop eligibility checking; /liquidity-return-analyzer LP position ROI; /token-holder-analysis rug-pull risk and whale concentration; /mev-simulator transaction cost estimation; /package-audit batch dependency audit.";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives Base balances and account nonce (not full transaction history). Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package reports package metadata and bounded dependency-risk signals, not a safety guarantee; /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name, /weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight returns separate token and wallet risk indicators without a trade recommendation; /wallet-audit returns balance/holding facts and nonce-based heuristic indicators, not activity history; /contract-risk reports limited bytecode, EIP-1967 slot and zero-supply heuristics; /liquidity-pool-audit returns Base DEX pair and market data; /mev-simulator estimates Base gas costs from typical fixed gas-unit assumptions, not a transaction quote or MEV analysis; /package-audit costs $0.20 per call and supports exact-version advisory checks with source timestamps, remediation ranges and dated FIRST EPSS exploitation-probability estimates for CVE aliases (up to 50 unique CVEs per request).";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
-
-/** Set to true once the TRIALS key-value binding exists in wrangler.jsonc. */
-export const TRIALS_ENABLED = true;

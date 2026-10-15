@@ -1,6 +1,6 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { HttpError, type Env } from "../lib/env";
-import { findProduct, PRODUCTS } from "./catalog";
+import { findOrderProduct, findProduct, PRODUCTS, type Product } from "./catalog";
 import { findPayment } from "./chain";
 import { createOrder, getOrder, markTestPaid, orderState, refreshOrder } from "./orders";
 import { orderPage, productPage, storePage } from "./pages";
@@ -48,24 +48,69 @@ const product = (slug: string) => {
   return p;
 };
 
+const orderProduct = (slug: string) => {
+  const p = findOrderProduct(slug);
+  if (!p) throw new HttpError(404, "no such product");
+  return p;
+};
+
+export async function productAssetAvailable(env: Env, p: Product): Promise<boolean> {
+  try {
+    const response = await env.ASSETS.fetch(
+      new Request(`https://assets.local/_files/${encodeURIComponent(p.file)}`, { method: "HEAD" }),
+    );
+    return response.ok;
+  } catch (error) {
+    console.error(`product asset availability check failed for ${p.slug}: ${error}`);
+    return false;
+  }
+}
+
+export async function assertProductAssetAvailable(env: Env, p: Product): Promise<void> {
+  if (!(await productAssetAvailable(env, p))) {
+    throw new HttpError(503, "the product download is unavailable; purchase was not created");
+  }
+}
+
+export function buyAssetPreflight(): MiddlewareHandler<{ Bindings: Env }> {
+  return async (c, next) => {
+    const p =
+      c.req.method === "GET" ? PRODUCTS.find((product) => c.req.path === `/buy/${product.slug}`) : undefined;
+    if (p) await assertProductAssetAvailable(c.env, p);
+    await next();
+  };
+}
+
 async function order(env: Env, id: string) {
   const o = await getOrder(env, id);
   if (!o) throw new HttpError(404, "no such order");
   return o;
 }
 
-store.get("/store", (c) => c.html(storePage(new URL(c.req.url).origin)));
-store.get("/store/:slug", (c) => c.html(productPage(product(c.req.param("slug")), new URL(c.req.url).origin)));
+store.get("/store", async (c) => {
+  const availability = Object.fromEntries(
+    await Promise.all(PRODUCTS.map(async (p) => [p.slug, await productAssetAvailable(c.env, p)] as const)),
+  );
+  return c.html(storePage(new URL(c.req.url).origin, availability));
+});
+
+store.get("/store/:slug", async (c) => {
+  const p = product(c.req.param("slug"));
+  const available = await productAssetAvailable(c.env, p);
+  return c.html(productPage(p, new URL(c.req.url).origin, available));
+});
 
 store.post("/store/:slug/order", async (c) => {
-  const o = await createOrder(c.env, product(c.req.param("slug")));
+  const p = product(c.req.param("slug"));
+  await assertProductAssetAvailable(c.env, p);
+  const o = await createOrder(c.env, p);
   return c.redirect(`/order/${o.id}`, 303);
 });
 
 store.get("/order/:id", async (c) => {
   const o = await refreshOrder(c.env, await order(c.env, c.req.param("id")));
   c.header("cache-control", "no-store");
-  return c.html(orderPage(o, product(o.slug), c.env.PAY_TO));
+  return c.html(orderPage(o, orderProduct(o.slug), c.env.PAY_TO));
 });
 
 store.get("/order/:id/status", async (c) => {
@@ -79,7 +124,7 @@ store.get("/order/:id/status", async (c) => {
 store.get("/order/:id/download", async (c) => {
   const o = await order(c.env, c.req.param("id"));
   if (orderState(o) !== "paid") throw new HttpError(404, "this order has not been paid");
-  const p = product(o.slug);
+  const p = orderProduct(o.slug);
   const file = await c.env.ASSETS.fetch(new URL(`/_files/${p.file}`, c.req.url));
   if (!file.ok) throw new HttpError(502, "the download is temporarily unavailable");
   return new Response(file.body, {
@@ -102,6 +147,7 @@ store.get("/order-debug/find", async (c) => {
 // Reached only after the x402 paywall has verified a payment for this path.
 store.get("/buy/:slug", async (c) => {
   const p = product(c.req.param("slug"));
+  await assertProductAssetAvailable(c.env, p);
   const o = await createOrder(c.env, p, c.env.PAYWALL === "off" ? "test" : "x402");
   const origin = new URL(c.req.url).origin;
   return c.json({ product: p.title, orderId: o.id, downloadUrl: `${origin}/order/${o.id}/download`, receiptUrl: `${origin}/order/${o.id}` });
