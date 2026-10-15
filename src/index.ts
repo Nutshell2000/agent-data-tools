@@ -10,7 +10,7 @@ import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
-import { activeTrace, markStage, withRequestTrace } from "./lib/funnel";
+import { activeTrace, isDiscoveryVisit, markStage, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
@@ -38,9 +38,9 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
   p => c.executionCtx.waitUntil(p), async () => {
     const id = activeTrace()!.requestId;
     c.header("X-Request-ID", id);
-    if (c.req.method === "GET" && (c.req.path.startsWith("/guides/") || (c.req.path === "/" && (c.req.header("accept") ?? "").includes("text/html")))) markStage("visit");
     if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path) && c.req.header("payment-signature")) markStage("attempt");
     await next();
+    if (isDiscoveryVisit(c.req.method, c.req.path, c.res.status)) markStage("visit");
     if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path)) {
       if (c.res.status === 402 && !c.req.header("payment-signature")) markStage("quote");
       if (c.res.status >= 400 && activeTrace()?.stages.has("verified") && !activeTrace()?.stages.has("settlement_failed")) markStage("execution_failed");

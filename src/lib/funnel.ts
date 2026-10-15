@@ -68,5 +68,14 @@ export async function funnelSummary(storage: DurableObjectStorage) {
   const from = new Date(Date.now() - 29 * 86400_000).toISOString().slice(0, 10);
   const days = await storage.list<Record<string, number>>({ prefix: "funnel:day:", start: `funnel:day:${from}` });
   return { sinceUtc: from, days: Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v])),
-    note: "Stages count server-observed requests, not unique people or customer conversion. Completed means result prepared after settlement; receipt by the buyer is unconfirmed. Source tags are optional, untrusted attribution. Invitations and buyer task confirmation require operator evidence." };
+    note: "Visits count successful GET requests to published buying resources, including machine discovery and client downloads; they include bots and operator checks. Stages count server-observed requests, not unique people or customer conversion. Completed means result prepared after settlement; receipt by the buyer is unconfirmed. Source tags are optional, untrusted attribution. Invitations and buyer task confirmation require operator evidence." };
+}
+
+/** Successful reads of published buying resources; no identity or cross-request tracking. */
+export function isDiscoveryVisit(method: string, path: string, status: number): boolean {
+  if (method !== "GET" || status < 200 || status >= 300) return false;
+  if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json"].includes(path)) return true;
+  if (/^\/guides\/(web-reading|bitcoin-fees|dependency-audit)(\.md)?$/.test(path)) return true;
+  if (/^\/clients\/reader\/\d+\.\d+\.\d+\/(reader-client\.mjs|SHA256SUMS)$/.test(path)) return true;
+  return /^\/examples\/extract\/(technical-guide|short-article|long-document)\.json$/.test(path);
 }
