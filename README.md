@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-A Cloudflare Worker that sells fifteen tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 25 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -11,16 +11,26 @@ A Cloudflare Worker that sells fifteen tools to AI agents. Each call is paid in 
 | `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.02 |
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
 | `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.005 |
+| `GET /domain-report?name=` | Domain trust verdict with named flags | $0.01 |
+| `GET /email?address=` | Email validation without sending mail | $0.001 |
+| `GET /package?ecosystem=&name=` | Whether a package exists and is safe to install | $0.0002 |
+| `GET /papers?query=` | Academic paper search | $0.003 |
 | `GET /token?address=` | Base ERC-20 facts and risk flags | $0.01 |
+| `GET /token-report?address=` | Base token risk plus live DEX market data | $0.02 |
 | `GET /wallet?address=` | Base wallet balances | $0.005 |
-| `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
+| `GET /base-tx?hash=` | Base transaction status and details | $0.003 |
+| `GET /base-gas` | Base gas price and fee estimate | $0.001 |
+| `GET /base-allowance?token=&owner=&spender=` | ERC-20 approval check on Base | $0.002 |
+| `GET /ens?name=` | ENS name to address, or address to name | $0.002 |
+| `GET /btc-price` | Bitcoin price in major currencies | $0.001 |
+| `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.0002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
 | `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.001 |
-| `GET /package?ecosystem=&name=` | Whether a package exists and is safe to install | $0.002 |
-| `GET /email?address=` | Email validation without sending mail | $0.001 |
-| `GET /papers?query=` | Academic paper search | $0.003 |
+| `GET /fx?from=` | Currency exchange rates and conversion | $0.001 |
+| `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
+| `GET /time?zone=` | Current time in a time zone, and conversion | $0.001 |
 
-Add `trial=1` to any GET request for a free call: up to 3 per caller per day, 300 a day in total. Without it, unpaid requests get the 402 challenge.
+Add `trial=1` to any GET request for a free call: up to 10 per caller per day, 1,000 a day in total. Without it, unpaid requests get the 402 challenge.
 
 The AI endpoints run on Workers AI and `/screenshot` on Browser Rendering, both within Cloudflare's free daily allowance (10,000 AI "neurons" and 10 browser-minutes). When either runs out, or the browser is rate limited, the endpoint answers 503 and the caller is not charged.
 
@@ -36,14 +46,15 @@ The service also sells digital products to people at `/store`. A buyer gets an e
 
 ## MCP
 
-The same nine tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
+The same 25 tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
 
-Each tool is defined once in `src/discovery.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, the MCP tool, the OpenAPI document and the web page are all generated from those.
+Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, the MCP tool, the OpenAPI document and the web page are all generated from those.
 
 ## Where it is listed
 
 - Official MCP Registry: listed as `io.github.Nutshell2000/agent-data-tools`. To publish a new version, raise `version` in `server.json` and push a matching `v*` tag; the workflow in `.github/workflows/publish-mcp.yml` does the rest on GitHub's servers.
-- 402 Index (https://402index.io): all nine endpoints registered on 8 October 2026, pending their review.
+- 402 Index (https://402index.io): the nine endpoints that existed on 8 October 2026 are registered, pending their review. The 16 added since are not registered yet.
+- awesome-x402 lists: entries added on the `claude/admiring-mendel-6gbiu2` branch of the Nutshell2000 forks of awesome-x402 and awesome-x402-servers. They reach readers once a pull request to each original list is merged.
 - x402scan: not yet. Needs a wallet sign-in at https://www.x402scan.com/resources/register.
 - Coinbase Bazaar: not yet. See below.
 
