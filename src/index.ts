@@ -235,6 +235,8 @@ const readerAssets = new Set([
   "/clients/reader/1.1.2/reader-client.mjs", "/clients/reader/1.1.2/SHA256SUMS", "/clients/reader/1.1.2/command-builder.js",
   "/clients/reader/1.2.0/reader-client.mjs", "/clients/reader/1.2.0/SHA256SUMS", "/clients/reader/1.2.0/command-builder.js",
   "/clients/reader/1.2.1/reader-client.mjs", "/clients/reader/1.2.1/SHA256SUMS", "/clients/reader/1.2.1/command-builder.js", "/clients/reader/1.2.1/reader-mcp.mjs",
+  "/clients/reader/1.3.0/reader-client.mjs", "/clients/reader/1.3.0/SHA256SUMS", "/clients/reader/1.3.0/command-builder.js", "/clients/reader/1.3.0/reader-mcp.mjs",
+  "/examples/extract/section-result.json",
   ...["source.xml", "index.xml", "result.json", "manifest.json", "index.html"].map(file => `/examples/sitemap/${file}`),
   "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",
   ...["technical-guide", "short-article", "long-document"].flatMap(id => [`/examples/extract/${id}.json`, `/examples/extract/sources/${id}.html`]),

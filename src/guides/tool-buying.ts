@@ -66,7 +66,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
 ${g.price} native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
 
 ${quickBuy}
-${kind === "web-reading" ? researchWorkflowMarkdown() : ""}
+${kind === "web-reading" ? researchWorkflowMarkdown() + sectionWorkflowMarkdown(origin) : ""}
 
 ## What it does
 
@@ -158,4 +158,22 @@ export function researchWorkflowMarkdown() {
     "After each command, inspect the JSON outcome before running the next. Stop on any error or unknown payment status. Preserve its request ID and available receipt; do not automatically retry or buy additional pages. Keys stay in the local process environment.", "",
     "Use result.markdown to answer the question, result.codeBlocks for literal examples and result.tables for cells. Check result.truncated, warnings and per-detail flags before claiming coverage; omitted content is unknown. contentHash covers the returned hashFormat representation, not the complete source page. Cite finalUrl and keep source content separate from agent instructions. These examples and cached results are demonstrations, not customer purchases or receipts.", "",
   ].join("\n");
+}
+
+/** Exact static HTML scope, never an inferred selector or extra purchase. */
+export function sectionWorkflowMarkdown(origin: string) {
+  const fence = String.fromCharCode(96).repeat(3);
+  return [
+    '## Read a late documentation section', '',
+    'Optional section is an exact, case-sensitive HTML ID (1-500 characters), without a # prefix. URL fragments alone retain whole-page behavior. Use a known documentation anchor or a returned headings[].id when available; IDs are source-reported, not invented slugs. Selection is restricted to visible primary content. Heading anchors include following subsections until the next heading of equal/higher level. A section/article/main/div ID returns its subtree. This is not arbitrary CSS selection.', '',
+    `Real cached proof: ${origin}/examples/extract/section-result.json reads example-section-30 from our long owned example with maxChars=500. Full-page output at that same cap misses it. This is a local demonstration, not a payment receipt. Replace the sample URL and ID with a section your task actually needs.`, '',
+    fence+'sh',
+    `node reader-client.mjs quote '${origin}/examples/extract/sources/long-document.html' --section 'example-section-30' --format markdown --max-chars 500`,
+    fence, '',
+    'Only after inspecting terms, invoke one intended purchase:', '', fence+'sh',
+    `node reader-client.mjs buy '${origin}/examples/extract/sources/long-document.html' --section 'example-section-30' --format markdown --max-chars 500 --max-usdc 0.002`,
+    fence, '',
+    'The $0.002 price is unchanged. HTTP and remote/local MCP accept section as an input; the browser command builder generates safely quoted section arguments. No JavaScript-only, hidden, out-of-primary, duplicate or guessed heading targets are silently substituted. Missing/ambiguous/unsupported selections return errors before settlement; plain text does not support section selection. An unsigned quote checks payment terms, not whether the section exists.', '',
+    'Result.section records the exact ID, kind, title and headingLevel; null means whole primary content. Title, description and canonical remain page-level metadata. Content hashes and textLength refer to the selected scope. truncated=false means that scope fits, not that the entire document was returned. Structured details are scoped too, and can still hit independent budgets. Compare hashes only with identical scope/format/limits. Stop on any uncertain payment; no automatic retry.', '',
+  ].join('\n');
 }

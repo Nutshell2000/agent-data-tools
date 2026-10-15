@@ -9,6 +9,7 @@ export function readerCommands(
   format = "markdown",
   maxChars = "20000",
   shell: ReaderShell = "posix",
+  section = "",
 ) {
   if (raw.length > 8192 || /[\u0000-\u001f\u007f]/.test(raw))
     throw new Error("Use a public HTTP(S) URL without control characters.");
@@ -19,15 +20,19 @@ export function readerCommands(
     throw new Error("Character limit must be an integer from 500 to 100000.");
   if (shell !== "posix" && shell !== "powershell")
     throw new Error("Choose POSIX shell or PowerShell.");
+  if (section.length > 500 || /[\u0000-\u001f\u007f]/.test(section))
+    throw new Error("Section ID must be at most 500 characters without control characters.");
+  const shellQuote = (value: string) => "'" + value.replace(/'/g, shell === "powershell" ? "''" : "'\"'\"'") + "'";
   const quoted =
-    "'" + target.replace(/'/g, shell === "powershell" ? "''" : "'\"'\"'") + "'";
-  const options = ` --format ${format} --max-chars ${Number(maxChars)}`;
+    shellQuote(target);
+  const options = ` --format ${format} --max-chars ${Number(maxChars)}` + (section ? ` --section ${shellQuote(section)}` : "");
   const quote = new URL("/extract", origin);
   quote.search = new URLSearchParams({
     url: target,
     format,
     maxChars: String(Number(maxChars)),
   }).toString();
+  if (section) quote.searchParams.set("section",section);
   return {
     quoteUrl: quote.href,
     quoteCommand: `node reader-client.mjs quote ${quoted}${options}`,

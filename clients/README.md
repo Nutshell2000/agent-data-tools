@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.2.1/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.3.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `SHA256SUMS` from the website, verify the checksum, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -20,3 +20,5 @@ The published 1.1.1 client is preserved byte-for-byte under clients/releases/1.1
 Version 1.2.1 also supports quote-sitemap and buy-sitemap with --contains, --max-urls and --offset. Both tools share the explicit maximum $0.002 cap and identical fixed payment pins. Published 1.1.1 and 1.1.2 artifacts remain immutable.
 
 The 1.2.1 reader-mcp.mjs bundle is a local MCP stdio server. Default mode exposes only reader_session, reader_quote and sitemap_quote. Explicit --enable-buy --session-max-usdc 0.006 enables reader_buy/sitemap_buy with required per-call maxUsdc, a shared reservation cap, concurrent-buy rejection and a lock after unknown signed outcomes. This in-memory cap resets on restart and is not a wallet-wide or monthly budget. Keep host approvals enabled. See [setup and failure rules](../docs/local-mcp.md).
+
+Reader 1.3.0 adds optional --section <exact-html-id> to quote/buy. HTTP and MCP accept section. The client rejects a successful paid result whose section.id differs from the requested ID. IDs are exact and case-sensitive; URL fragments alone retain full-page behavior. See docs/web-reading.md for scope boundaries and no-charge errors. Published 1.2.1 CLI, browser and MCP artifacts remain immutable.

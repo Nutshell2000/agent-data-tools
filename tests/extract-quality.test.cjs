@@ -3,7 +3,7 @@ const {before,after,test}=require('node:test');
 const {build}=require('esbuild');
 const {Miniflare,convertV4MiniflareOptions}=require('miniflare');
 const pages=require('./fixtures/extract-pages.cjs');
-let mf,validateOutput;
+let mf,validateOutput,publishedExample;
 test('table count and row metadata limits do not remove late primary content',async()=>{
  const v=await result('manyTables',{format:'both',maxChars:'100000'});assert.equal(v.tables.length,20);assert.match(v.text,/table_20\tvalue_20/);assert.match(v.text,/row_109\tdata_109/);assert.ok(v.markdown.includes('data\\_109'));assert.equal(v.truncated,false);assert.ok(v.warnings.includes('details_truncated'));
 });
@@ -20,7 +20,7 @@ test('truncated code has a complete fence inside the requested limit',async()=>{
  const v=await result('bigcode',{format:'markdown',maxChars:'500'});assert.ok(v.markdown.length<=500);assert.match(v.markdown,/^~~~text\n[\s\S]*\n~~~$/);assert.equal(v.truncated,true);
 });
 before(async()=>{
- const schemaBundle=await build({entryPoints:['src/discovery.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const schemaModule={exports:{}};new Function('require','module','exports',schemaBundle.outputFiles[0].text)(require,schemaModule,schemaModule.exports);const schema=schemaModule.exports.openApi('https://worker.test').paths['/extract'].get.responses['200'].content['application/json'].schema;const Ajv=require('ajv/dist/2020').default;validateOutput=new Ajv({strict:false}).compile(schema);
+ const schemaBundle=await build({entryPoints:['src/discovery.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const schemaModule={exports:{}};new Function('require','module','exports',schemaBundle.outputFiles[0].text)(require,schemaModule,schemaModule.exports);const response=schemaModule.exports.openApi('https://worker.test').paths['/extract'].get.responses['200'].content['application/json'];publishedExample=response.example;const schema=response.schema;const Ajv=require('ajv/dist/2020').default;validateOutput=new Ajv({strict:false}).compile(schema);
  const b=await build({stdin:{contents:`import {extract} from './src/routes/extract';export default{async fetch(r){const q=new URL(r.url).searchParams;try{return Response.json(await extract(q.get('url'),q.get('maxChars')??undefined,q.get('format')??undefined))}catch(e){return Response.json({error:e.message,code:e.code},{status:e.status||500})}}}`,resolveDir:process.cwd(),sourcefile:'quality-worker.ts'},bundle:true,write:false,format:'esm',platform:'browser'});
  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',outboundService:async r=>new Response(pages[new URL(r.url).pathname.slice(1)]??'missing',{headers:{'content-type':'text/html'}})}));
 });
@@ -29,6 +29,7 @@ async function call(page,params={}){const q=new URLSearchParams({url:'https://pu
 async function result(page,params={}){const r=await call(page,params);assert.equal(r.status,200);return r.json();}
 
 test('actual results in every representation conform to the published OpenAPI schema',async()=>{
+ assert.equal(validateOutput(publishedExample),true,JSON.stringify(validateOutput.errors));
  for(const format of ['text','markdown','both'])for(const page of ['table','code','short','spans']){const v=await result(page,{format});assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));}
 });
 test('short semantic articles exclude unrelated page chrome and outside links',async()=>{

@@ -58,7 +58,7 @@ const longestTicks = (s: string) => {
 const escape = (s: string) => s.replace(/[\\`*_[\]<>|~]/g, "\\$&");
 
 /** Inert, bounded HTML parsing. No scripts, layout or external subrequests. */
-export function pageContent(html: string, base: string, maxChars: number) {
+export function pageContent(html: string, base: string, maxChars: number, sectionId?: string) {
   const root: Node = { tag: "root", attrs: {}, children: [] },
     stack = [root],
     all: Node[] = [];
@@ -98,10 +98,11 @@ export function pageContent(html: string, base: string, maxChars: number) {
     }
   };
   const visible: Node[] = [];
+  const parents = new Map<Node, Node>();
   const scan = (n: Node) => {
     if (hidden(n)) return;
     visible.push(n);
-    for (const c of n.children) if (typeof c !== "string") scan(c);
+    for (const c of n.children) if (typeof c !== "string") { parents.set(c,n); scan(c); }
   };
   scan(root);
   const titleNode = all.find((n) => n.tag === "title");
@@ -135,6 +136,48 @@ export function pageContent(html: string, base: string, maxChars: number) {
   );
   const selected =
     candidates[0]?.n ?? visible.find((n) => n.tag === "body") ?? root;
+  let renderRoot = selected;
+  let section: { id: string; title: string | null; kind: "heading" | "container"; headingLevel: number | null } | null = null;
+  if (sectionId !== undefined) {
+    const primary: Node[] = [];
+    const collect = (n: Node) => { if (hidden(n)) return; primary.push(n); for(const c of n.children) if(typeof c !== "string") collect(c); };
+    collect(selected);
+    const matches = primary.filter(n => n.attrs.id === sectionId);
+    if (!matches.length) throw new HttpError(422, "Section ID was not found in visible primary content", "EXTRACTION_SECTION_NOT_FOUND");
+    if (matches.length !== 1) throw new HttpError(422, "Section ID is ambiguous in visible primary content", "EXTRACTION_SECTION_AMBIGUOUS");
+    let match = matches[0];
+    // Documentation often puts an anchor ID inside a heading rather than on it.
+    for (let ancestor: Node | undefined = match; ancestor; ancestor = parents.get(ancestor)) {
+      if (/^h[1-6]$/.test(ancestor.tag)) { match = ancestor; break; }
+      if (ancestor === selected) break;
+    }
+    if (/^h[1-6]$/.test(match.tag)) {
+      const level = +match.tag[1];
+      let active = false, stopped = false;
+      const slice = (n: Node): Node | null => {
+        if (stopped || hidden(n)) return null;
+        if (n === match) active = true;
+        else if (active && /^h[1-6]$/.test(n.tag) && +n.tag[1] <= level) { stopped = true; return null; }
+        const children: (Node | string)[] = [];
+        for (const child of n.children) {
+          if (typeof child === "string") { if (active && !stopped) children.push(child); }
+          else { const kept = slice(child); if (kept) children.push(kept); }
+        }
+        return children.length || n === match || (active && !stopped && n.attrs.id) ? { ...n, children } : null;
+      };
+      renderRoot = slice(selected)!;
+      section = { id: sectionId, title: squash(raw(match)).slice(0,1000) || null, kind: "heading", headingLevel: level };
+    } else if (["section", "article", "main", "div"].includes(match.tag)) {
+      renderRoot = match;
+      const findHeading = (n: Node): Node | undefined => {
+        if(hidden(n)) return;
+        if(/^h[1-6]$/.test(n.tag)) return n;
+        for(const c of n.children) if(typeof c !== "string") { const found=findHeading(c); if(found) return found; }
+      };
+      const firstHeading = findHeading(match);
+      section = { id: sectionId, title: firstHeading ? squash(raw(firstHeading)).slice(0,1000) || null : null, kind: "container", headingLevel: null };
+    } else throw new HttpError(422, "Section ID must identify a heading, heading anchor, section, article, main or div", "EXTRACTION_SECTION_UNSUPPORTED");
+  }
   // Protect literal blocks from prose cleanup. The prefix cannot occur in decoded source text.
   const decodedSource = raw(root);
   let prefix = "\uE000LITERAL";
@@ -158,7 +201,7 @@ export function pageContent(html: string, base: string, maxChars: number) {
   const warnings = new Set<string>();
   if (semantic.length > 8) warnings.add("landmarks_limited");
   if (!candidates.length) warnings.add("body_fallback");
-  const headings: { level: number; text: string }[] = [],
+  const headings: { level: number; text: string; id: string | null }[] = [],
     links: { href: string; text: string }[] = [],
     codeBlocks: {
       language: string | null;
@@ -350,10 +393,13 @@ export function pageContent(html: string, base: string, maxChars: number) {
     let text = children.map((c) => c.text).join(""),
       md = children.map((c) => c.md).join("");
     if (/^h[1-6]$/.test(n.tag)) {
+      const sourceId = n.attrs.id ?? n.children.find((c): c is Node => typeof c !== "string" && c.tag === "a" && Boolean(c.attrs.id))?.attrs.id;
+      const id = sourceId && sourceId.length <= 500 && !/[\u0000-\u001f\u007f]/.test(sourceId) && detail(sourceId,500) === sourceId ? sourceId : null;
       if (headings.length < 100)
         headings.push({
           level: +n.tag[1],
           text: detail(squash(restore(text)), 1000),
+          id,
         });
       else warnings.add("headings_limited");
       return {
@@ -389,7 +435,7 @@ export function pageContent(html: string, base: string, maxChars: number) {
     }
     return { text, md };
   };
-  const rendered = render(selected);
+  const rendered = render(renderRoot);
   const text = restore(tidy(rendered.text)),
     markdown = restore(tidy(rendered.md));
   if (!text.trim())
@@ -418,6 +464,7 @@ export function pageContent(html: string, base: string, maxChars: number) {
       )?.attrs.href,
     ),
     headings,
+    section,
     links,
     tables,
     codeBlocks,

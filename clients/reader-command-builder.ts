@@ -19,6 +19,7 @@ if (panel) {
         input("reader-format").value,
         input("reader-limit").value,
         input("reader-shell").value as ReaderShell,
+        input("reader-section").value,
       );
       quote.href = commands.quoteUrl;
       document.getElementById("reader-quote-command")!.textContent =
@@ -41,6 +42,7 @@ if (panel) {
     "reader-format",
     "reader-limit",
     "reader-shell",
+    "reader-section",
   ])
     document.getElementById(id)!.addEventListener("input", update);
   for (const button of panel.querySelectorAll<HTMLButtonElement>(

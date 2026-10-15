@@ -11,6 +11,7 @@ export const EXTRACT_OUTPUT_SCHEMA = {
     "lang",
     "canonical",
     "headings",
+    "section",
     "links",
     "codeBlocks",
     "tables",
@@ -56,12 +57,17 @@ export const EXTRACT_OUTPUT_SCHEMA = {
       maxItems: 100,
       items: {
         type: "object",
-        required: ["level", "text"],
+        required: ["level", "text", "id"],
         properties: {
           level: { type: "integer", minimum: 1, maximum: 6 },
           text: { type: "string" },
+          id: { type: ["string", "null"], maxLength: 500, description: "Source HTML heading ID or direct child anchor ID, when present and supported; not a generated slug." },
         },
       },
+    },
+    section: {
+      description: "Null for full primary-content reading. Otherwise the explicitly requested scope; title/description/canonical remain page-level metadata. Heading scope ends before the next same/higher-level heading, including nested subsections; container scope is its subtree.",
+      anyOf: [{type:"null"},{type:"object",required:["id","title","kind","headingLevel"],properties:{id:{type:"string",maxLength:500},title:nullableText,kind:{enum:["heading","container"]},headingLevel:{type:["integer","null"],minimum:1,maximum:6}}}]
     },
     links: {
       type: "array",

@@ -3,7 +3,7 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.2.1";
+export const MCP_SERVER_VERSION = "1.3.0";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -313,6 +313,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
     `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
+    "",
+    `Read a specific HTML heading/container with optional section=<exact-id> on /extract, --section on the CLI, or section in local/remote MCP. Scope is explicit in result.section. URL fragments alone do not select. Missing/ambiguous targets fail before settlement. Cached proof: ${origin}/examples/extract/section-result.json.`,
     "",
     `Discover documentation URLs first: ${origin}/guides/sitemap.md. The current standalone client supports quote-sitemap and buy-sitemap with --contains, --max-urls and --offset; each explicit buy remains capped at $0.002.`,
     "",
