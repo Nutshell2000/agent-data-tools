@@ -1,8 +1,16 @@
 # Agent Data Tools
 
+Operated by **SpellzCode**. Start with [static web reading](docs/web-reading.md): clean text, headings and links for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML and plain text only; no JavaScript rendering, authenticated pages or paywall access.
+
+- [Web reading: capped HTTP and x402 MCP examples](docs/web-reading.md)
+- [Bitcoin fees: capped HTTP and x402 MCP examples](docs/bitcoin-fees.md)
+- [Live buying guide](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
+
+Examples are illustrative. Local fixture tests do not establish funded production delivery or customer demand.
+
 ## Current revenue operations
 
-The active catalog has 31 tools and the x402 Seller Kit. Free trials remain disabled.
+The active catalog has 31 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
 `/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
 settlements observed since the ledger was deployed. Its amounts are integer native
 Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
@@ -14,7 +22,7 @@ an already-settled customer response into another payment request.
 These totals remain pending independent chain reconciliation. Fees, expenses and net
 income are not inferred. Historical paid counters cannot be backfilled using today's
 prices: the two indexed historical receipts are 2,000 atomic units each, while today's
-`/btc-fees` challenge is 200 atomic units. Tests and self-payments are never customer income.
+`/btc-fees` challenge is now 2,000 atomic units. Tests and self-payments are never customer income.
 
 The older setup notes below are retained for history; the live catalog is authoritative
 for current tools, prices and trial availability.
@@ -34,30 +42,30 @@ A Cloudflare Worker that sells 31 tools to AI agents. Each call is paid in USDC 
 | `GET /image?prompt=` | Generated 1024x1024 image (base64) | $0.02 |
 | `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.02 |
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
-| `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.0002 |
+| `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
-| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.001 |
+| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.002 |
 | `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.20 |
 | `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.02 |
 | `GET /contract-risk?address=` | Limited bytecode, EIP-1967 slot and zero-supply heuristics | $0.02 |
 | `GET /trade-insight?token=&wallet=` | Separate token and wallet risk indicators; no trade recommendation | $0.05 |
 | `GET /liquidity-pool-audit?address=` | Verified Base DEX pair details and reported market data | $0.03 |
 | `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.04 |
-| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | $0.0002 |
-| `GET /email?address=` | Email validation without sending mail | $0.001 |
+| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | $0.002 |
+| `GET /email?address=` | Email validation without sending mail | $0.002 |
 | `GET /papers?query=` | Academic paper search | $0.003 |
-| `GET /fx?from=&to=` | Currency exchange rates and conversion | $0.001 |
-| `GET /btc-price` | Bitcoin price in major currencies | $0.001 |
-| `GET /base-gas` | Base network gas price and fee estimate | $0.001 |
+| `GET /fx?from=&to=` | Currency exchange rates and conversion | $0.002 |
+| `GET /btc-price` | Bitcoin price in major currencies | $0.002 |
+| `GET /base-gas` | Base network gas price and fee estimate | $0.002 |
 | `GET /base-tx?hash=` | Base transaction status and details | $0.003 |
 | `GET /base-allowance?token=&owner=&spender=` | ERC-20 approval check on Base | $0.002 |
 | `GET /ens?name=` | ENS name/address resolution | $0.002 |
 | `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
-| `GET /time?zone=` | Current time and time zone conversion | $0.001 |
+| `GET /time?zone=` | Current time and time zone conversion | $0.002 |
 
 The catalog lists 31 paid tools. Free trials are disabled by default. A request with `trial=1` gets the normal 402 challenge unless the Worker variable `TRIALS_ENABLED` is set to exactly `on`; this opt-in is reversible. When enabled, the trial limits are 10 calls per caller per day and 1,000 calls total per day.
 
-The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at the `/domain` catalog price of $0.005. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes.
+The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at the `/extract` catalog price of $0.002. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes.
 
 `/package` keeps its latest-version behavior when `version` is omitted. Pass `ecosystem`, `name` and an optional exact `version` as separate inputs (for example, `ecosystem=npm&name=lodash&version=4.17.20`) to return pinned-version metadata and deps.dev advisories. Version ranges and tags are rejected. For exact-version OSV affected ranges and dated FIRST EPSS CVE estimates, use `/package-audit`.
 
@@ -73,7 +81,7 @@ Free routes: `/` (a web page for browsers, JSON for programs), `/openapi.json`, 
 
 ## Store
 
-The service also sells digital products to people at `/store`. A buyer gets an exact USDC amount and the address in `PAY_TO`; the order page watches the chain and unlocks the download when a matching transfer arrives. Agents can buy the same products at `GET /buy/<slug>` through the normal paywall.
+New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no payment challenge). Existing orders and downloads are preserved. The retained implementation works as follows: A buyer gets an exact USDC amount and the address in `PAY_TO`; the order page watches the chain and unlocks the download when a matching transfer arrives. Agents can buy the same products at `GET /buy/<slug>` through the normal paywall.
 
 - Products are listed in `src/store/catalog.ts`.
 - Orders and the sales log live in the `TRIALS` key-value store (`order:` and `paid:` keys). List sales with `npx wrangler kv key list --binding TRIALS --prefix paid: --remote`.
@@ -89,8 +97,8 @@ Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and im
 
 - Official MCP Registry: listed as `io.github.Nutshell2000/agent-data-tools`. To publish a new version, raise `version` in `server.json` and push a matching `v*` tag; the workflow in `.github/workflows/publish-mcp.yml` does the rest on GitHub's servers.
 - 402 Index (https://402index.io): reconcile directory listings after deploying this 31-endpoint source; the five deferred routes should no longer be advertised as paid tools.
-- x402scan: not yet. Needs a wallet sign-in at https://www.x402scan.com/resources/register.
-- Coinbase Bazaar: not yet. See below.
+- x402scan: existing listings cover the catalog. Reconcile current prices after each release; no new duplicate registration is needed.
+- Coinbase Bazaar: Bitcoin fees and package metadata have indexed entries. Other routes require a genuine settled payment; a readiness pass alone does not index them.
 
 An unpaid request gets HTTP 402 with a `PAYMENT-REQUIRED` header. Calls that fail (4xx/5xx) are not charged.
 
@@ -126,7 +134,7 @@ To try `/screenshot` without the paywall, use `npx wrangler dev --remote --var P
 
 ## Listing in the Coinbase Bazaar
 
-The default facilitator needs no account. To appear in Coinbase's x402 Bazaar, payments must go through the Coinbase CDP facilitator:
+This deployment already uses the authenticated Coinbase CDP facilitator. For a separate installation, configure your own account:
 
 1. Create a free API key at https://portal.cdp.coinbase.com.
 2. Store it as Worker secrets (you'll be prompted for each value):
@@ -141,7 +149,7 @@ The default facilitator needs no account. To appear in Coinbase's x402 Bazaar, p
 
 3. In `wrangler.jsonc`, set `FACILITATOR_URL` to `https://api.cdp.coinbase.com/platform/v2/x402` and deploy.
 
-The Bazaar indexes an endpoint after its first settled payment. The CDP path has not been tested end to end, because that needs a real key.
+The Bazaar indexes an endpoint after a successful settled payment with discovery metadata. Never manufacture self-purchases to seed it. `npm run check:live` runs the free, read-only Coinbase validator against every documented tool example. It does not sign, settle or create an index entry. The historical `scripts/index-listings.mjs --pay` route is disabled. HTTP and MCP funded production delivery remain separate evidence requirements.
 
 ## Checking that it works
 

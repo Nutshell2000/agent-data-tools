@@ -77,13 +77,13 @@ ${body}
 export function storePage(origin: string, availability: Readonly<Record<string, boolean>>) {
   const lead = PRODUCTS.every((p) => availability[p.slug] === true)
     ? "Digital products for developers building paid APIs for AI agents. Pay in USDC and download after confirmation, no account."
-    : "Digital products for developers building paid APIs for AI agents. Browse product details; purchase availability depends on download verification.";
+    : "New seller-kit purchases are paused for template verification. Existing paid orders retain their download access.";
   const cards = PRODUCTS.map(
     (p) => `<div class="card">
 <h2 style="margin-top:0"><a href="/store/${esc(p.slug)}">${esc(p.title)}</a></h2>
 <p>${esc(p.tagline)}</p>
 <p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">in USDC on Base</span></p>
-${availability[p.slug] ? "" : `<p class="status" role="status">Temporarily unavailable: purchase is paused until the download is verified.</p>`}
+${availability[p.slug] ? "" : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`}
 <a class="btn" href="/store/${esc(p.slug)}">See what's inside</a>
 </div>`,
   ).join("");
@@ -101,7 +101,7 @@ export function productPage(p: Product, origin: string, assetAvailable: boolean)
   const purchaseControls = assetAvailable
     ? `<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
 <p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>`
-    : `<p class="status" role="status">Purchasing is temporarily unavailable because the download asset cannot be verified. Please check back later.</p>`;
+    : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`;
   return shell(
     `${p.title} | ${SERVICE_NAME}`,
     p.tagline,

@@ -8,6 +8,7 @@ import { ENDPOINTS, MCP_SERVER_VERSION, SERVICE_ID, SERVICE_NAME, type Endpoint,
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { withMcpRevenue } from "./lib/revenue";
+import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 
@@ -105,11 +106,26 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
           );
         })()
       : handler;
+    const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
+      const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
+      const paidAttempt = Boolean(meta?.["x402/payment"]);
+      if (paidAttempt) markStage("attempt");
+      try {
+        const result = await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
+        const trace = activeTrace();
+        if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
+        if (trace?.stages.has("settled") && !result.isError) markStage("completed");
+        else if (result.isError && trace?.stages.has("verified") && !trace.stages.has("settlement_failed")) markStage("execution_failed");
+        return { ...result, _meta: { ...result._meta, requestId: trace?.requestId } };
+      } catch (error) {
+        throw error;
+      }
+    });
     mcp.tool(
       toolName(e),
       toolDescription(e),
       toolInputShape(e, z),
-      callback as never,
+      tracked as never,
     );
   }
 

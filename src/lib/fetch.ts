@@ -37,7 +37,7 @@ export function capBytes(body: ReadableStream<Uint8Array>, limit: number, onTrun
   return body.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
-        if (seen >= limit) return;
+        if (seen >= limit) { onTruncate(); controller.terminate(); return; }
         const room = limit - seen;
         seen += chunk.byteLength;
         if (chunk.byteLength > room) {

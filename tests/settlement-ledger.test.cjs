@@ -90,6 +90,17 @@ test('known self-payments are excluded even if a caller supplies a false classif
   assert.equal(summary.settlements, 0); assert.equal(summary.grossAtomic, '0'); assert.equal(summary.selfPayments, 3);
 });
 
+test('repeat wallet and payer-tool counts require settlements on different days and exclude self-payments', async () => {
+  const { storage } = storageFixture();
+  const record = await settlementRecord(context(), recipient);
+  await saveSettlement(storage, record);
+  await saveSettlement(storage, { ...record, id: 'a'.repeat(64), authorizationNonce: '0x'+'a'.repeat(64), recordedAt: new Date(Date.now()-86400000).toISOString() });
+  const summary = await ledgerSummary(storage);
+  assert.equal(summary.payerActivity.distinctExternalWallets, 1);
+  assert.equal(summary.payerActivity.returningOnAnotherUtcDay, 1);
+  assert.equal(summary.payerActivity.repeatPayerToolPairs, 1);
+});
+
 test('actual resource-server settle hook records receipts and never requests another payment after a write failure', async () => {
   const plugin = { name: 'facilitator-fixture', setup(build) {
     build.onResolve({ filter: /^\.\/facilitator$/ }, () => ({ path: 'facilitator', namespace: 'fixture' }));

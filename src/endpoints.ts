@@ -21,6 +21,8 @@ export interface Endpoint {
   summary: string;
   /** Shown in x402 directories. Must stay under 500 characters. */
   description: string;
+  /** Full source/coverage limitations, kept out of bounded discovery metadata. */
+  details?: string;
   tags: readonly string[];
   params: Record<string, Param>;
   outputExample: Record<string, unknown>;
@@ -32,7 +34,7 @@ export const ENDPOINTS = [
     price: "$0.002",
     summary: "Web page to clean text",
     description:
-      "Fetch any public web page and get clean readable text for LLM input: title, meta description, language, canonical URL, H1-H3 headings, main body text with navigation, scripts and boilerplate removed, and the page's outbound links. Use for web scraping, article reading, research and RAG ingestion.",
+      "Read public static HTML or plain text as clean text, title, headings and links for research agents. Defaults to 20,000 output characters (maximum 100,000), with a 2 MiB input cap and explicit truncation. Does not render JavaScript or read authenticated or paywalled content. HTTP errors and unsupported media types are not charged.",
     tags: ["web", "scraping", "extract", "text", "rag"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of the page to fetch", required: true, example: "https://example.com" },
@@ -146,7 +148,8 @@ export const ENDPOINTS = [
     price: "$0.02",
     summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
     description:
-      "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
+      "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits.",
+    details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
     tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
     params: {
       address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -296,7 +299,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/btc-fees",
-    price: "$0.0002",
+    price: "$0.002",
     summary: "Bitcoin fee rates and mempool status",
     description:
       "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
@@ -335,7 +338,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/ln-invoice",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Decode a Lightning invoice",
     description:
       "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it.",
@@ -366,7 +369,8 @@ export const ENDPOINTS = [
     price: "$0.20",
     summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
     description:
-      "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
+      "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits.",
+    details: "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
     tags: ["package", "security", "supply-chain", "npm", "pypi"],
     params: {
       packages: { type: "string", description: "Comma-separated ecosystem:name items, optionally name@exact-version; max 10. For scoped npm, use npm:@scope/name@version.", required: true, example: "npm:lodash@4.17.20,pypi:requests@2.31.0,npm:@types/node@22.0.0" },
@@ -493,7 +497,8 @@ export const ENDPOINTS = [
     price: "$0.02",
     summary: "Base contract bytecode, proxy-slot and zero-supply heuristics",
     description:
-      "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
+      "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits.",
+    details: "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
     tags: ["contract", "bytecode", "proxy", "token-properties", "base"],
     params: {
       address: { type: "string", description: "Base chain contract address, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
@@ -554,7 +559,8 @@ export const ENDPOINTS = [
     price: "$0.03",
     summary: "Verified Base DEX pair details and market data",
     description:
-      "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
+      "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative.",
+    details: "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
     tags: ["defi", "liquidity", "pool", "market", "base"],
     params: {
       address: { type: "string", description: "DEX pair address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x98c7A2338336d2d354663246F64676009c7bDa97" },
@@ -610,7 +616,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/package",
-    price: "$0.0002",
+    price: "$0.002",
     summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. Bounded signals: ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates.",
@@ -639,10 +645,10 @@ export const ENDPOINTS = [
   },
   {
     path: "/email",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Email address validation without sending mail",
     description:
-      "Validate an email address before using it: syntax, whether the domain exists and accepts mail (MX records), disposable or throwaway provider detection, role addresses such as info@ or support@, free-provider detection, and SPF and DMARC presence. Returns a verdict of likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. Use for sign-up checks, lead list cleaning and contact enrichment.",
+      "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
     params: {
       address: { type: "string", description: "The email address to check", required: true, example: "support@cloudflare.com" },
@@ -685,7 +691,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/fx",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Currency exchange rates and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
@@ -707,7 +713,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/btc-price",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Bitcoin price in major currencies",
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
@@ -725,7 +731,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/base-gas",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Base network gas price and fee estimate",
     description:
       "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
@@ -855,7 +861,7 @@ export const ENDPOINTS = [
   },
   {
     path: "/time",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Current time in a time zone and time zone conversion",
     description:
       "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time.",

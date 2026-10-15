@@ -1,6 +1,7 @@
 import type { SettleResultContext } from "@x402/core/server";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
+import { activeTrace } from "./funnel";
 
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const HASH = /^0x[0-9a-f]{64}$/;
@@ -14,6 +15,7 @@ const object = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" ? value as Record<string, unknown> : null;
 
 export interface SettlementRecord {
+  requestId?: string;
   id: string;
   transaction: string;
   network: "eip155:8453";
@@ -57,7 +59,7 @@ export async function settlementRecord(context: SettleResultContext, recipient: 
   if (!PATHS.has(path)) return null;
   const bytes = new TextEncoder().encode(`${result.network}:${USDC}:${payer}:${nonce}`);
   const id = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
-  return { id, transaction, network: "eip155:8453", asset: USDC, recipient: to, payer,
+  return { id, requestId: activeTrace()?.requestId, transaction, network: "eip155:8453", asset: USDC, recipient: to, payer,
     authorizationNonce: nonce, amountAtomic: amount,
     amountEvidence: result.amount === undefined ? "accepted-requirements" : "facilitator-result",
     path, transport, recordedAt: new Date().toISOString(),
@@ -100,6 +102,9 @@ export async function saveSettlement(storage: DurableObjectStorage, record: Sett
     }
     await txn.put(key, record);
     await txn.put(dayKey, day);
+    if (!record.selfPayment) await txn.put(`settlement:activity:${record.recordedAt.slice(0, 10)}:${record.payer}:${record.path}`, {
+      day: record.recordedAt.slice(0, 10), payer: record.payer, path: record.path,
+    });
     return true;
   });
 }
@@ -119,7 +124,22 @@ export async function ledgerSummary(storage: DurableObjectStorage) {
       row.grossAtomic = (BigInt(row.grossAtomic) + BigInt(value.grossAtomic)).toString();
     }
   }
+  // Bound the small-buyer experiment's read cost. Report coverage instead of
+  // presenting a truncated activity scan as an exact count at larger scale.
+  const activity = await storage.list<{ day: string; payer: string; path: string }>({ prefix: "settlement:activity:", start: `settlement:activity:${from}`, limit: 10_000 });
+  const payers = new Map<string, Set<string>>(), pairs = new Map<string, Set<string>>();
+  for (const row of activity.values()) {
+    if (!payers.has(row.payer)) payers.set(row.payer, new Set());
+    payers.get(row.payer)!.add(row.day);
+    const pair = `${row.payer}:${row.path}`;
+    if (!pairs.has(pair)) pairs.set(pair, new Set());
+    pairs.get(pair)!.add(row.day);
+  }
   return { sinceUtc: from, ...total, asset: "USDC", decimals: 6,
+    payerActivity: { distinctExternalWallets: payers.size, returningOnAnotherUtcDay: [...payers.values()].filter(days => days.size > 1).length,
+      repeatPayerToolPairs: [...pairs.values()].filter(days => days.size > 1).length,
+      coverage: activity.size < 10_000 ? "complete since activity tracking began" : "bounded scan; counts are lower bounds",
+      demandEvidence: "External wallet identities are not verified customers. Sweeps, tests and buyer task confirmation require operator review." },
     evidence: "facilitator-reported; independent chain reconciliation pending",
     fees: "unmeasured", netIncome: null,
     note: "Historical paid counters are not backfilled using current prices. Self-payments are excluded from grossAtomic." };
