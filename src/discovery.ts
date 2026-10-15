@@ -29,7 +29,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
+    docs: { readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -118,7 +118,7 @@ export function paymentClientExample(origin: string, payTo: string, path = "/ext
 function clientGuidance() {
   const entryPrice = exampleSpendCap().price;
   const packageAuditPrice = catalogEndpoint("/package-audit").price;
-  return `The homepage and llms.txt include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
+  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
 }
 
 /** Human-readable front page for people arriving from a directory listing. */
@@ -186,7 +186,12 @@ pre code { padding:0; background:transparent; }
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 
-<h2>Node.js / TypeScript client</h2>
+<h2>Read a page with Node.js</h2>
+<p>Download the <a href="/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs">standalone reader client</a> and verify its <a href="/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS">SHA-256 checksum</a>. Requires Node.js 20.19 or newer; no package installation.</p>
+<pre><code>node reader-client.mjs quote https://example.com --format both
+node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both</code></pre>
+<p>The quote is free and never signs. Buy requires your existing funded Base wallet through <code>X402_PRIVATE_KEY</code>. Each buy invocation can authorize one payment. An unknown payment outcome must be reconciled before buying again. <a href="/guides/web-reading">Full instructions and limits</a>.</p>
+<h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
@@ -310,7 +315,20 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Dependency audit buying guide: ${origin}/guides/dependency-audit.md (up to 10 pinned package versions, ${catalogEndpoint("/package-audit").price} USDC per successful request; dedicated capped client included).`,
     "",
-    "## Node.js / TypeScript x402 client",
+    "## Buy a static page with the standalone Node CLI",
+    "",
+    `Download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`,
+    `Verify SHA-256: ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`,
+    `Inspect real cached outputs first: ${origin}/examples/extract/manifest.json (demonstrations, not customer receipts).`,
+    "Requires Node.js 20.19 or newer. No package installation or TypeScript required.",
+    "```sh",
+    "node reader-client.mjs quote https://example.com --format both",
+    "node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both",
+    "```",
+    "Quote needs no key and never signs. Buy requires an existing funded Base wallet via X402_PRIVATE_KEY and an explicit positive cap of at most 0.002 USDC. Both support --format text|markdown|both and --max-chars 500..100000. The client pins this service, recipient, native Base USDC and exact payment terms. At most one authorization per invocation; never automatically retry an unknown payment outcome. Keys remain on the buyer device.",
+    "Static public HTML/plain text only; no JavaScript rendering, login or paywall access. Input limit 2 MiB, default output 20,000 characters with explicit truncation. Ordinary MCP discovery does not pay automatically.",
+    "",
+    "## Advanced TypeScript x402 client",
     "",
     `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at the current /extract price (${exampleSpendCap().price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
     "",
@@ -341,4 +359,10 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
 }
 
 export const robotsTxt = (origin: string) =>
-  ["User-agent: *", "Allow: /", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/llms.txt`].join("\n");
+  ["User-agent: *", "Allow: /", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
+
+/** Index only owned, free documentation and demonstrations, never payment URLs. */
+export function sitemapXml(origin: string) {
+  const paths = ["/", "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/examples/extract/"];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
+}

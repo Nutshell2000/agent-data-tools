@@ -92,3 +92,20 @@ test("MCP runtime options and server card match server.json version", () => {
   assert.equal(mcpServerVersion, manifest.version);
   assert.equal(serverCard.serverInfo.version, manifest.version);
 });
+
+test("agent discovery leads to a free quote and downloadable capped client", async () => {
+  const discovery = await loadTypeScript(require.resolve("../src/discovery.ts"));
+  const origin = "https://api.example.test";
+  const document = discovery.llmsTxt(origin, false, "0x1111111111111111111111111111111111111111");
+  assert.ok(document.indexOf("standalone Node CLI") < document.indexOf("npm install"));
+  assert.match(document, /quote https:\/\/example.com --format both/);
+  assert.match(document, /buy https:\/\/example.com --max-usdc 0\.002/);
+  const card = discovery.serviceCard(origin, "recipient", "eip155:8453");
+  assert.ok(card.docs.readerClient.endsWith(`/clients/reader/${discovery.MCP_SERVER_VERSION}/reader-client.mjs`));
+  assert.ok(card.docs.readerExamples.endsWith("/examples/extract/manifest.json"));
+  assert.match(discovery.robotsTxt(origin), /Sitemap: https:\/\/api.example.test\/sitemap.xml/);
+  const sitemap = discovery.sitemapXml(origin);
+  assert.match(sitemap, /xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9"/);
+  assert.match(sitemap, /<loc>https:\/\/api.example.test\/guides\/web-reading<\/loc>/);
+  assert.doesNotMatch(sitemap, /extract\?|private|clients\/reader/);
+});
