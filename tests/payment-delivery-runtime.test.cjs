@@ -18,7 +18,7 @@ before(async()=>{
     const path=new URL(r.url).pathname;
     if(path==='/sitemap.xml')return new Response('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://public.example/docs/start</loc></url></urlset>',{headers:{'content-type':'application/xml'}});
     if(path==='/bad-sitemap.xml')return new Response('<urlset><url>',{headers:{'content-type':'application/xml'}});
-    return path==='/fail'?new Response('failure',{status:500}):new Response(path==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1>Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}});
+    return path==='/fail'?new Response('failure',{status:500}):new Response(path==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1 id="result">Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}});
   }}));
 });
 after(async()=>{await mf?.dispose();});
@@ -87,4 +87,20 @@ test('sitemap HTTP and MCP fixtures settle successful output but never malformed
     const invalid=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/bad-sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'e'.repeat(60)+'1111','mcp://tool/sitemap')}});assert.equal(invalid.isError,true);assert.equal(invalid.structuredContent.code,'SITEMAP_INVALID');assert.ok(!invalid._meta?.['x402/payment-response']?.success);
   }finally{await client.close();}
   const summary=await revenue();assert.equal(summary.settlements,before+2);
+});
+
+
+test('explicit section HTTP/MCP output settles only after successful selection',async()=>{
+ const before=(await revenue()).settlements;
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle&section=result&format=both';
+ const q=await mf.dispatchFetch(url);assert.equal(q.status,402);const required=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64'));await q.body?.cancel();
+ const headers=n=>({'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(required.accepts[0],'1'.repeat(60)+n))).toString('base64')});
+ const paid=await mf.dispatchFetch(url,{headers:headers('ab01')});assert.equal(paid.status,200);assert.equal((await paid.json()).section.id,'result');assert.equal(paid.headers.has('PAYMENT-RESPONSE'),true);
+ const bad=await mf.dispatchFetch(url.replace('section=result','section=missing'),{headers:headers('ab02')});assert.equal(bad.status,422);assert.equal((await bad.json()).code,'EXTRACTION_SECTION_NOT_FOUND');assert.equal(bad.headers.has('PAYMENT-RESPONSE'),false);
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'offline-section-fixture',version:'1'});
+ try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(url,init)=>mf.dispatchFetch(url,init)}));
+ const success=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'result'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab03','mcp://tool/extract')}});assert.ok(!success.isError,JSON.stringify(success));assert.equal(success.structuredContent.section.id,'result');assert.equal(success._meta['x402/payment-response'].success,true);
+ const failure=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'missing'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab04','mcp://tool/extract')}});assert.equal(failure.isError,true);assert.equal(failure.structuredContent.code,'EXTRACTION_SECTION_NOT_FOUND');assert.ok(!failure._meta?.['x402/payment-response']?.success);
+ }finally{await client.close();}
+ assert.equal((await revenue()).settlements,before+2);
 });

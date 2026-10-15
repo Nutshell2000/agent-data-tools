@@ -1,9 +1,9 @@
 {
-  "version": "1.2.1",
+  "version": "1.3.0",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML/plain text as text or Markdown, with headings, safe links, code blocks, tables and a content hash. Prefers main/article content. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authenticated or paywalled access. Empty pages, detected browser challenges and execution errors are not charged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read public static HTML/plain text as text or Markdown, with code, tables, links, headings/IDs and a content hash. Optional exact section ID focuses a heading or container. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, missing/ambiguous sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -32,6 +32,10 @@
               "both"
             ],
             "description": "Returned representation: text (default), markdown, or both. Structured details are included in every format."
+          },
+          "section": {
+            "type": "string",
+            "description": "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section."
           }
         },
         "required": [

@@ -191,3 +191,7 @@ The script does not install packages, initialize wallets, sign payments or execu
 ### Use a local MCP agent without writing a client
 
 The [bundled local MCP adapter](https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp) runs with Node 20.19+ and no npm installation. Quotes-only by default. Explicit paid mode enables one-call purchases capped at $0.002 each and a process session allowance; unknown signed outcomes lock further buys. [Source and setup](docs/local-mcp.md). Preserve host tool approvals. The remote MCP connection alone does not pay automatically.
+
+### Read the relevant section of a long document
+
+Optional `section` selects an exact visible heading/container ID within primary HTML. Use `--section` with the CLI or `section` with MCP. Missing/ambiguous selections fail uncharged; returned scope is explicit. [Actual cached late-section example](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/section-result.json) and [scope instructions](docs/web-reading.md). Price remains $0.002. URL fragments alone do not change scope.
