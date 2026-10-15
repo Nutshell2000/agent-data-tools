@@ -1,5 +1,6 @@
 import { Parser } from "htmlparser2";
 import { HttpError } from "./env";
+import { fencedCode } from "./markdown";
 type Node = {
   tag: string;
   attrs: Record<string, string>;
@@ -54,7 +55,7 @@ const longestTicks = (s: string) => {
   for (const m of s.matchAll(/`+/g)) longest = Math.max(longest, m[0].length);
   return longest;
 };
-const escape = (s: string) => s.replace(/[\\`*_[\]<>|]/g, "\\$&");
+const escape = (s: string) => s.replace(/[\\`*_[\]<>|~]/g, "\\$&");
 
 /** Inert, bounded HTML parsing. No scripts, layout or external subrequests. */
 export function pageContent(html: string, base: string, maxChars: number) {
@@ -134,6 +135,26 @@ export function pageContent(html: string, base: string, maxChars: number) {
   );
   const selected =
     candidates[0]?.n ?? visible.find((n) => n.tag === "body") ?? root;
+  // Protect literal blocks from prose cleanup. The prefix cannot occur in decoded source text.
+  const decodedSource = raw(root);
+  let prefix = "\uE000LITERAL";
+  while (decodedSource.includes(prefix)) prefix += "X";
+  const literals: string[] = [];
+  const protect = (s: string) => `${prefix}${literals.push(s) - 1}\uE001`;
+  const restore = (s: string): string =>
+    s.replace(
+      new RegExp(prefix + "(\\d+)\uE001", "g"),
+      (_, id) => literals[Number(id)],
+    );
+  const forget = (s: string) => {
+    for (const match of s.matchAll(new RegExp(prefix + "(\\d+)\uE001", "g")))
+      literals[Number(match[1])] = "";
+  };
+  const tidy = (s: string) =>
+    s
+      .replace(/ *\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   const warnings = new Set<string>();
   if (semantic.length > 8) warnings.add("landmarks_limited");
   if (!candidates.length) warnings.add("body_fallback");
@@ -162,23 +183,21 @@ export function pageContent(html: string, base: string, maxChars: number) {
   const render = (
     n: Node,
     inheritedLanguage: string | null = null,
-    listMarker = "-",
   ): { text: string; md: string } => {
     if (hidden(n)) return { text: "", md: "" };
     const languageHint =
-      /(?:language|lang|highlight)-([\w+-]+)/.exec(n.attrs.class ?? "")?.[1] ??
-      inheritedLanguage;
+      /(?:language|lang|highlight)-([\w+-]+)/
+        .exec(n.attrs.class ?? "")?.[1]
+        ?.slice(0, 64) ?? inheritedLanguage;
     if (n.tag === "pre") {
-      const value = raw(n)
-        .replace(/\r\n?/g, "\n")
-        .replace(/^\n|\n$/g, "");
+      const value = raw(n).replace(/\r\n?/g, "\n");
       const code = n.children.find(
         (c): c is Node => typeof c !== "string" && c.tag === "code",
       );
       const language =
-        /(?:language|lang)-([\w+-]+)/.exec(
-          code?.attrs.class ?? n.attrs.class ?? "",
-        )?.[1] ?? languageHint;
+        /(?:language|lang)-([\w+-]+)/
+          .exec(code?.attrs.class ?? n.attrs.class ?? "")?.[1]
+          ?.slice(0, 64) ?? languageHint;
       if (codeBlocks.length < 20 && budget > 0) {
         const text = detail(value, maxChars);
         codeBlocks.push({
@@ -187,21 +206,15 @@ export function pageContent(html: string, base: string, maxChars: number) {
           truncated: text.length < value.length,
         });
       } else warnings.add("details_truncated");
-      const fence = "`".repeat(Math.max(3, longestTicks(value) + 1));
       return {
-        text: "\n\n" + value + "\n\n",
-        md: `\n\n${fence}${language ?? ""}\n${value}\n${fence}\n\n`,
+        text: "\n\n" + protect(value) + "\n\n",
+        md: "\n\n" + protect(fencedCode(value, language)) + "\n\n",
       };
     }
     if (n.tag === "table") {
-      if (tables.length >= 20) {
-        warnings.add("details_truncated");
-        return { text: "", md: "" };
-      }
-      const rows: string[][] = [],
-        headerRows: number[] = [];
-      let hasSpans = false,
-        truncated = false;
+      const bodyRows: string[][] = [],
+        bodyHeaders: number[] = [];
+      let hasSpans = false;
       const visit = (v: Node) => {
         if (hidden(v)) return;
         if (v.tag === "table" && v !== n) {
@@ -213,10 +226,6 @@ export function pageContent(html: string, base: string, maxChars: number) {
             (c): c is Node =>
               typeof c !== "string" && /^(td|th)$/.test(c.tag) && !hidden(c),
           );
-          if (rows.length >= 100 || budget <= 0) {
-            truncated = true;
-            return;
-          }
           if (
             cells.some(
               (c) =>
@@ -225,69 +234,127 @@ export function pageContent(html: string, base: string, maxChars: number) {
             )
           )
             hasSpans = true;
-          if (cells.length > 20) truncated = true;
-          if (cells.some((c) => c.tag === "th")) headerRows.push(rows.length);
-          rows.push(
-            cells.slice(0, 20).map((c) => {
-              const s = squash(raw(c)),
-                out = detail(s, 2000);
-              if (out.length < s.length) truncated = true;
-              return out;
-            }),
-          );
+          if (cells.some((c) => c.tag === "th"))
+            bodyHeaders.push(bodyRows.length);
+          bodyRows.push(cells.map((c) => squash(raw(c))));
         } else for (const c of v.children) if (typeof c !== "string") visit(c);
       };
       visit(n);
       const cap = n.children.find(
         (c): c is Node => typeof c !== "string" && c.tag === "caption",
       );
-      const caption = cap ? detail(squash(raw(cap)), 500) : null;
-      tables.push({ caption, rows, headerRows, hasSpans, truncated });
+      const bodyCaption = cap ? squash(raw(cap)) : null;
+      // Structured details cannot consume the primary-content budget.
+      if (tables.length < 20) {
+        let truncated =
+          bodyRows.length > 100 || bodyRows.some((r) => r.length > 20);
+        const rows: string[][] = [];
+        for (const row of bodyRows.slice(0, 100)) {
+          if (budget <= 0) {
+            truncated = true;
+            break;
+          }
+          rows.push(
+            row.slice(0, 20).map((s) => {
+              const v = detail(s, 2000);
+              if (v.length < s.length) truncated = true;
+              return v;
+            }),
+          );
+        }
+        const caption = bodyCaption === null ? null : detail(bodyCaption, 500);
+        if (caption !== bodyCaption) truncated = true;
+        tables.push({
+          caption,
+          rows,
+          headerRows: bodyHeaders.filter((i) => i < rows.length),
+          hasSpans,
+          truncated,
+        });
+        if (truncated) warnings.add("details_truncated");
+      } else warnings.add("details_truncated");
       if (hasSpans) warnings.add("table_spans_present");
-      if (truncated) warnings.add("details_truncated");
-      const width = Math.max(0, ...rows.map((r) => r.length));
-      const line = (r: string[]) =>
-        "| " +
-        Array.from({ length: width }, (_, i) => escape(r[i] ?? "")).join(
-          " | ",
-        ) +
-        " |";
-      const mdRows = headerRows.includes(0)
-        ? rows
-        : [Array(width).fill(""), ...rows];
-      const md = width
-        ? [
-            line(mdRows[0]),
-            line(Array(width).fill("---")),
-            ...mdRows.slice(1).map(line),
-          ].join("\n")
-        : "";
+      const width = bodyRows[0]?.length ?? 0;
+      const line = (r: string[]) => "| " + r.map(escape).join(" | ") + " |";
+      const mdRows = bodyHeaders.includes(0)
+        ? bodyRows
+        : [Array(width).fill(""), ...bodyRows];
+      const tsv = bodyRows.map((r) => r.join("\t")).join("\n");
+      let md = "";
+      if (width && !hasSpans && bodyRows.every((r) => r.length === width)) {
+        md = [
+          line(mdRows[0]),
+          line(Array(width).fill("---")),
+          ...mdRows.slice(1).map(line),
+        ].join("\n");
+      } else if (tsv) {
+        warnings.add("table_shape_preserved_as_tsv");
+        md = fencedCode(tsv, "tsv");
+      }
       return {
-        text: `\n\n${caption ? caption + "\n" : ""}${rows.map((r) => r.join("\t")).join("\n")}\n\n`,
-        md: `\n\n${caption ? escape(caption) + "\n\n" : ""}${md}\n\n`,
+        text: `\n\n${bodyCaption ? bodyCaption + "\n" : ""}${protect(tsv)}\n\n`,
+        md: `\n\n${bodyCaption ? escape(bodyCaption) + "\n\n" : ""}${protect(md)}\n\n`,
       };
     }
-    const start = Number(n.attrs.start ?? 1);
-    let ordinal =
-      Number.isSafeInteger(start) && Math.abs(start) < 1_000_000 ? start : 1;
+    if (n.tag === "ul" || n.tag === "ol") {
+      const items = n.children.filter(
+        (c): c is Node => typeof c !== "string" && c.tag === "li" && !hidden(c),
+      );
+      const validOrdinal = (s: string | undefined) =>
+        s !== undefined &&
+        /^-?\d+$/.test(s) &&
+        Number.isSafeInteger(Number(s)) &&
+        Math.abs(Number(s)) < 1_000_000;
+      const reversed = "reversed" in n.attrs;
+      let ordinal = validOrdinal(n.attrs.start)
+        ? Number(n.attrs.start)
+        : reversed
+          ? items.length
+          : 1;
+      const text: string[] = [],
+        md: string[] = [];
+      for (const item of items) {
+        if (validOrdinal(item.attrs.value)) ordinal = Number(item.attrs.value);
+        const marker = n.tag === "ol" ? `${ordinal}.` : "-";
+        ordinal += reversed ? -1 : 1;
+        const rendered = render(item, languageHint);
+        const indent = " ".repeat(marker.length + 1);
+        const format = (s: string) => {
+          const lines = restore(tidy(s)).split("\n");
+          return (
+            marker +
+            " " +
+            lines[0] +
+            lines
+              .slice(1)
+              .map((line) => "\n" + (line ? indent + line : ""))
+              .join("")
+          );
+        };
+        text.push(format(rendered.text));
+        md.push(format(rendered.md));
+        // Parent lists now own these strings; do not retain a full copy at every nesting level.
+        forget(rendered.text);
+        forget(rendered.md);
+      }
+      return {
+        text: "\n\n" + protect(text.join("\n")) + "\n\n",
+        md: "\n\n" + protect(md.join("\n")) + "\n\n",
+      };
+    }
     const children = n.children.map((c) =>
       typeof c === "string"
         ? { text: c.replace(/\s+/g, " "), md: escape(c.replace(/\s+/g, " ")) }
-        : render(
-            c,
-            languageHint,
-            n.tag === "ol" && c.tag === "li" ? `${ordinal++}.` : "-",
-          ),
+        : render(c, languageHint),
     );
     let text = children.map((c) => c.text).join(""),
       md = children.map((c) => c.md).join("");
-    if (n.tag === "ul" || n.tag === "ol") {
-      text = text.replace(/\n\n(?=\S)/g, "\n");
-      md = md.replace(/\n\n(?=(?:-|\d+\.) )/g, "\n");
-    }
     if (/^h[1-6]$/.test(n.tag)) {
       if (headings.length < 100)
-        headings.push({ level: +n.tag[1], text: detail(squash(text), 1000) });
+        headings.push({
+          level: +n.tag[1],
+          text: detail(squash(restore(text)), 1000),
+        });
       else warnings.add("headings_limited");
       return {
         text: `\n\n${text}\n\n`,
@@ -299,7 +366,7 @@ export function pageContent(html: string, base: string, maxChars: number) {
       if (href && !seen.has(href) && links.length < 200 && budget > 0) {
         seen.add(href);
         if (detail(href, 4096) === href)
-          links.push({ href, text: detail(squash(text), 200) });
+          links.push({ href, text: detail(squash(restore(text)), 200) });
       } else if (href && !seen.has(href)) warnings.add("links_limited");
       if (href)
         md = `[${md.trim()}](${href.replace(/[()\\]/g, (c) => "\\" + c)})`;
@@ -312,8 +379,8 @@ export function pageContent(html: string, base: string, maxChars: number) {
     if (n.tag === "em" || n.tag === "i") md = `*${md}*`;
     if (n.tag === "li")
       return {
-        text: `\n${text.trim()}\n`,
-        md: `\n${listMarker} ${md.trim()}\n`,
+        text,
+        md,
       };
     if (n.tag === "br" || n.tag === "hr") return { text: "\n", md: "\n" };
     if (block.has(n.tag)) {
@@ -323,14 +390,9 @@ export function pageContent(html: string, base: string, maxChars: number) {
     return { text, md };
   };
   const rendered = render(selected);
-  const clean = (s: string) =>
-    s
-      .replace(/ *\n/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  const text = clean(rendered.text),
-    markdown = clean(rendered.md);
-  if (!text)
+  const text = restore(tidy(rendered.text)),
+    markdown = restore(tidy(rendered.md));
+  if (!text.trim())
     throw new HttpError(
       422,
       "No readable static content; the page may require JavaScript",

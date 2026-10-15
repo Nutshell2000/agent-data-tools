@@ -2,11 +2,15 @@
 
 Operated by **SpellzCode**. Start with [static web reading](docs/web-reading.md): clean text, headings and links for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Web reading: capped HTTP and x402 MCP examples](docs/web-reading.md)
+- [Web reading: bundled CLI, capped HTTP and x402 MCP examples](docs/web-reading.md)
+- [Real cached examples and owned source HTML](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/)
+- [Extraction benchmark and limitations](docs/extraction-quality.md)
 - [Bitcoin fees: capped HTTP and x402 MCP examples](docs/bitcoin-fees.md)
 - [Live buying guide](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 
-Examples are illustrative. Local fixture tests do not establish funded production delivery or customer demand.
+Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
+
+Version 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
 
 ## Current revenue operations
 

@@ -1,6 +1,7 @@
 import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { pageContent } from "../lib/page-content";
+import { clipMarkdown } from "../lib/markdown";
 export async function extract(
   rawUrl: string | undefined,
   maxCharsParam?: string,
@@ -61,10 +62,16 @@ export async function extract(
     throw new HttpError(422, "No readable static content", "EXTRACTION_EMPTY");
   const { text: fullText, markdown: fullMarkdown, ...metadata } = content;
   const text = fullText.slice(0, maxChars),
-    markdown = fullMarkdown.slice(0, maxChars);
+    markdown = clipMarkdown(fullMarkdown, maxChars);
+  if (formatParam === "markdown" && !markdown.trim())
+    throw new HttpError(
+      422,
+      "The requested Markdown limit contains no readable content; request text or raise maxChars",
+      "EXTRACTION_EMPTY",
+    );
   const truncated =
     inputTruncated ||
-    fullText.length > maxChars ||
+    (formatParam !== "markdown" && fullText.length > maxChars) ||
     (formatParam !== "text" && fullMarkdown.length > maxChars);
   if (inputTruncated) metadata.warnings.push("input_truncated");
   if (truncated) metadata.warnings.push("output_may_be_incomplete");

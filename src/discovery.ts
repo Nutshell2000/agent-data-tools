@@ -2,7 +2,7 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.1.0";
+export const MCP_SERVER_VERSION = "1.1.1";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -175,7 +175,7 @@ pre code { padding:0; background:transparent; }
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
 <p>Operated by SpellzCode. Read a public static page as text or Markdown, with headings, links, code and tables for <strong>${esc(catalogEndpoint("/extract").price)} USDC</strong> using your funded x402 wallet.</p>
-<p><a href="/guides/web-reading">Read a page: HTTP and MCP buying examples</a> &middot; <a href="/guides/bitcoin-fees">Bitcoin fee lookup: ${esc(catalogEndpoint("/btc-fees").price)} USDC</a></p>
+<p><a href="/examples/extract/">Inspect real cached reader examples</a> &middot; <a href="/guides/web-reading">Read a page: capped CLI, HTTP and MCP examples</a> &middot; <a href="/guides/bitcoin-fees">Bitcoin fee lookup: ${esc(catalogEndpoint("/btc-fees").price)} USDC</a></p>
 <p class="note">Static pages only: no JavaScript rendering, authenticated pages or paywall access. Bounded size with explicit truncation. <a href="/guides/web-reading">See a labelled example result and limits.</a></p>
 
 <h2>Tools and prices</h2>
@@ -244,7 +244,7 @@ export function openApi(origin: string, trialsEnabled = false) {
                 description: "Result",
                 content: {
                   "application/json": {
-                    schema: {
+                    schema: (e as Endpoint).outputSchema ?? {
                       type: "object",
                       properties: Object.fromEntries(
                         Object.entries(e.outputExample).map(([k, v]) => [
