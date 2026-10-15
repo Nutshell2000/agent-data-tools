@@ -202,6 +202,10 @@ app.get("/metrics", async (c) => {
   if (!c.env.METRICS) return c.json({});
   return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).report());
 });
+app.get("/revenue", async (c) => {
+  if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
+  return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).revenueSummary());
+});
 app.get("/.well-known/x402", (c) =>
   c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path) }),
 );
