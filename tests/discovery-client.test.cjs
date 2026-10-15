@@ -109,3 +109,17 @@ test("agent discovery leads to a free quote and downloadable capped client", asy
   assert.match(sitemap, /<loc>https:\/\/api.example.test\/guides\/web-reading<\/loc>/);
   assert.doesNotMatch(sitemap, /extract\?|private|clients\/reader/);
 });
+
+
+test("reader documentation is canonical across owned discovery metadata", async () => {
+  const d = await loadTypeScript(require.resolve("../src/discovery.ts"));
+  const origin = "https://api.example.test";
+  const api = d.openApi(origin);
+  assert.equal(api.externalDocs.url, origin + "/guides/web-reading");
+  assert.equal(api.paths["/extract"].get.externalDocs.url, api.externalDocs.url);
+  assert.match(api.info.description, /^Read public static documentation/);
+  assert.ok(d.EXTRA_LINKS.every(link => link.href !== "/store"));
+  const html = d.homePage(origin, "0x1111111111111111111111111111111111111111");
+  assert.match(html, /rel="canonical" href="https:\/\/api.example.test\/"/);
+  assert.ok(html.indexOf("Buy one page") < html.indexOf("Tools and prices"));
+});

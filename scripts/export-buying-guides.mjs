@@ -11,4 +11,5 @@ for (const kind of ["web-reading", "bitcoin-fees"]) {
   await writeFile(`examples/${kind}-http.ts`, guide.http + "\n");
   await writeFile(`examples/${kind}-mcp.ts`, guide.mcp + "\n");
 }
+await writeFile("docs/three-page-research.md", guides.researchWorkflowMarkdown());
 console.log("Exported two buying guides and four capped clients from the live guide generator. No payment made.");

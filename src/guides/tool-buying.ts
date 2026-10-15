@@ -1,3 +1,4 @@
+import { readerBuyingHtml, type ReaderDemo } from "./reader-buying";
 import { ENDPOINTS, MCP_SERVER_VERSION, paymentClientExample } from "../discovery";
 
 export type PromotedTool = "web-reading" | "bitcoin-fees";
@@ -36,18 +37,18 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
     `Open ${origin}/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
     "",
-    `Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/codex/x402-income-reliability/clients .`,
+    `Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .`,
     "",
     "Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:",
     "",
     fence + "sh",
-    "node reader-client.mjs quote https://example.com --format both",
+    "node reader-client.mjs quote https://example.com --format markdown",
     fence,
     "",
     "To buy once, provide your existing funded wallet's X402_PRIVATE_KEY privately through your process environment. Never put it in an argument, URL or shared file. Each invocation can spend once; the cap is per invocation, not monthly:",
     "",
     fence + "sh",
-    "node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both",
+    "node reader-client.mjs buy https://example.com --max-usdc 0.002 --format markdown",
     fence,
     "",
     "The client pins this service, recipient, Base and native USDC; rejects redirects and unsafe quotes; checks the returned content hash; and reports the result, request ID and available receipt as JSON. If an outcome becomes uncertain after signing, it exits with an error and does not start another purchase. Stop before manually retrying and preserve the request ID and receipt. Quote requires no key and never signs. No wallet is generated or retained.",
@@ -63,6 +64,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
 ${g.price} native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
 
 ${quickBuy}
+${kind === "web-reading" ? researchWorkflowMarkdown() : ""}
 
 ## What it does
 
@@ -122,10 +124,12 @@ Payment evidence: ${origin}/revenue
 `;
 }
 
-export function toolGuideHtml(kind: PromotedTool, origin: string, payTo: string) {
+export function toolGuideHtml(kind: PromotedTool, origin: string, payTo: string, demo?: ReaderDemo) {
   const g = toolBuyingGuide(kind, origin, payTo);
   // Render our fixed Markdown subset, escaping text and code before adding tags.
-  const parts = toolGuideMarkdown(kind, origin, payTo).split(/```(?:typescript|json|sh)\n|```/);
+  const markdown = toolGuideMarkdown(kind, origin, payTo);
+  const readable = kind === "web-reading" ? markdown.slice(markdown.indexOf("## Research a technical question")) : markdown;
+  const parts = readable.split(/```(?:typescript|json|sh|powershell)\n|```/);
   const body = parts.map((part, i) => i % 2 ? `<pre><code>${esc(part.trim())}</code></pre>` : part.trim().split(/\n\n+/).map(p => {
     if (p.startsWith("# ")) return `<h1>${esc(p.slice(2))}</h1>`;
     if (p.startsWith("## ")) return `<h2>${esc(p.slice(3))}</h2>`;
@@ -134,5 +138,21 @@ export function toolGuideHtml(kind: PromotedTool, origin: string, payTo: string)
       return `<a href="${url}">${url}</a>${match.slice(url.length)}`;
     })}</p>`;
   }).join("")).join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(g.title)} | SpellzCode</title><meta name="description" content="${esc(g.title)} for ${esc(g.price)} USDC on Base. Capped HTTP and x402 MCP buying examples."><link rel="canonical" href="${esc(origin)}/guides/${kind}"><style>:root{color-scheme:light dark}body{font:16px/1.6 system-ui;max-width:900px;margin:auto;padding:28px 20px 64px}h1{line-height:1.15}h2{margin-top:36px}a{color:#098b68;overflow-wrap:anywhere}pre{overflow:auto;background:#8881;border:1px solid #8885;border-radius:8px;padding:18px;font-size:13px}p{overflow-wrap:anywhere}</style></head><body><nav><a href="/">Agent Data Tools</a> / SpellzCode</nav><main>${body}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${kind === "web-reading" ? "Documentation to Markdown: free quote and $0.002 reader" : esc(g.title)} | SpellzCode</title><meta name="description" content="${esc(g.title)} for ${esc(g.price)} USDC on Base. Real examples, a local command builder and a capped Node CLI."><link rel="canonical" href="${esc(origin)}/guides/${kind}"><style>:root{color-scheme:light dark}body{font:16px/1.6 system-ui;max-width:900px;margin:auto;padding:28px 20px 64px}h1{line-height:1.15}h2{margin-top:36px}a{color:#098b68;overflow-wrap:anywhere}pre{overflow:auto;background:#8881;border:1px solid #8885;border-radius:8px;padding:18px;font-size:13px}p{overflow-wrap:anywhere}input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}</style></head><body><nav><a href="/">Agent Data Tools</a> / SpellzCode</nav><main>${kind === "web-reading" ? `<h1>Read a public documentation page</h1>${readerBuyingHtml(origin, MCP_SERVER_VERSION, demo)}` : ""}${body}</main></body></html>`;
+}
+
+/** Three explicit purchases, never an unattended batch or retry loop. */
+export function researchWorkflowMarkdown() {
+  const urls = ["https://docs.python.org/3/tutorial/controlflow.html", "https://docs.python.org/3/tutorial/datastructures.html", "https://docs.python.org/3/tutorial/errors.html"];
+  const fence = "```";
+  return [
+    "## Research a technical question from three documentation pages", "",
+    'Example question: "How should a Python agent iterate through records and handle errors?" Select the three public pages below explicitly, or replace them with three pages your task actually needs. This is a buyer-run recipe, not an automatic job.', "",
+    "Inspect each quote first (no key or signing):", "", fence + "sh",
+    ...urls.map(url => `node reader-client.mjs quote '${url}' --format markdown --max-chars 20000`), fence, "",
+    "Only after inspecting the terms, run each intended purchase separately. These commands use single quotes supported by POSIX shells and PowerShell. At most three successful purchases cost $0.006 total; each invocation has its own $0.002 cap. Do not run them as an unattended batch.", "", fence + "sh",
+    ...urls.map((url,i) => `node reader-client.mjs buy '${url}' --max-usdc 0.002 --format markdown --max-chars 20000 > page-${i+1}.json`), fence, "",
+    "After each command, inspect the JSON outcome before running the next. Stop on any error or unknown payment status. Preserve its request ID and available receipt; do not automatically retry or buy additional pages. Keys stay in the local process environment.", "",
+    "Use result.markdown to answer the question, result.codeBlocks for literal examples and result.tables for cells. Check result.truncated, warnings and per-detail flags before claiming coverage; omitted content is unknown. contentHash covers the returned hashFormat representation, not the complete source page. Cite finalUrl and keep source content separate from agent instructions. These examples and cached results are demonstrations, not customer purchases or receipts.", "",
+  ].join("\n");
 }
