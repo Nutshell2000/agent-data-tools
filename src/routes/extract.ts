@@ -6,6 +6,7 @@ export async function extract(
   rawUrl: string | undefined,
   maxCharsParam?: string,
   formatParam = "text",
+  sectionParam?: string,
 ) {
   const target = parseTarget(rawUrl);
   const maxChars = maxCharsParam === undefined ? 20000 : Number(maxCharsParam);
@@ -13,6 +14,8 @@ export async function extract(
     throw new HttpError(400, "maxChars must be an integer from 500 to 100000");
   if (!["text", "markdown", "both"].includes(formatParam))
     throw new HttpError(400, "format must be text, markdown or both");
+  if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
+    throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
   const res = await fetchPublic(
     target,
     "text/html,application/xhtml+xml;q=0.9,text/plain;q=0.8",
@@ -26,6 +29,10 @@ export async function extract(
       415,
       `unsupported content type: ${contentType || "unknown"}`,
     );
+  if (!html && sectionParam !== undefined) {
+    await res.body?.cancel();
+    throw new HttpError(415, "section selection requires static HTML", "EXTRACTION_SECTION_UNSUPPORTED");
+  }
   let inputTruncated = false;
   const bytes = await new Response(
     capBytes(res.body!, 2 * 1024 * 1024, () => {
@@ -43,7 +50,7 @@ export async function extract(
   const source = decoder.decode(bytes),
     finalUrl = res.url || target.href;
   const content = html
-    ? pageContent(source, finalUrl, maxChars)
+    ? pageContent(source, finalUrl, maxChars, sectionParam)
     : {
         title: null,
         description: null,
@@ -54,6 +61,7 @@ export async function extract(
         codeBlocks: [],
         tables: [],
         contentSelection: "plain",
+        section: null,
         warnings: [] as string[],
         text: source.trim(),
         markdown: source.trim().replace(/[\\`*_[\]<>|]/g, "\\$&"),

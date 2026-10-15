@@ -8,7 +8,7 @@ https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/ contains actu
 
 ## Quote, then choose whether to buy
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.1/SHA256SUMS. Verify SHA-256 before running. Node 20.19+ is required, with no npm installation. The following single-quoted commands work in POSIX shells and PowerShell.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS. Verify SHA-256 before running. Node 20.19+ is required, with no npm installation. The following single-quoted commands work in POSIX shells and PowerShell.
 
 ```sh
 node reader-client.mjs quote-sitemap 'https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/source.xml' --contains '/examples/' --max-urls 3

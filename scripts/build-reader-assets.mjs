@@ -75,6 +75,15 @@ for (const [file, expected] of Object.entries(pinned120)) {
 }
 if (hash(await readFile(new URL("SHA256SUMS", archive120))) !== "808a059bb962e37f3fd17dd80dbda5cd6494ea75285800640ea80fc71b0445a9") throw Error("Immutable 1.2.0 checksum changed");
 await copyFile(new URL("SHA256SUMS", archive120), new URL("SHA256SUMS", old120));
+const archive121 = new URL("../clients/releases/1.2.1/", import.meta.url);
+const old121 = new URL("../public/clients/reader/1.2.1/", import.meta.url);
+await mkdir(old121, { recursive: true });
+const pinned121 = { "reader-client.mjs": "1ef97c9314184c2d96046b55b22eabdd87168ee58a11f5c7f4be3ddaa9ce7d4f", "command-builder.js": "5b66356133ae5c307680eae0bcf690e96e14db073ea6005a311723a3e1735cd0", "reader-mcp.mjs": "fd2f7cbbd69d489d3709a2a3cfe6072f79da3f3682bcb067baa9a613e0fa3557", "SHA256SUMS": "e4942306f221e149e0556bc714a812ece4bcf95c15eb67061799de4db37d6342" };
+for(const [file,expected] of Object.entries(pinned121)) {
+  const bytes=await readFile(new URL(file,archive121));
+  if(hash(bytes)!==expected) throw Error("Immutable 1.2.1 artifact changed");
+  await copyFile(new URL(file,archive121),new URL(file,old121));
+}
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,
@@ -95,6 +104,7 @@ const sources = new Map(
 );
 const generatedAt = new Date().toISOString(),
   samples = [];
+let sectionDemo;
 try {
   globalThis.fetch = async (input) => {
     const url = String(input);
@@ -138,6 +148,10 @@ try {
       truncated: result.truncated,
     });
   }
+  const sectionSource = origin + "/examples/extract/sources/long-document.html";
+  const result = await extract(sectionSource,"500","both","example-section-30");
+  sectionDemo = JSON.stringify({demonstration:true,generatedAt,toolVersion:version,method:"Actual local extraction of an explicit section in owned HTML; no payment or customer receipt",sectionParameter:"example-section-30",result},null,2)+"\n";
+  await writeFile(new URL("section-result.json",samplesDir),sectionDemo);
 } finally {
   globalThis.fetch = actualFetch;
 }
@@ -148,6 +162,7 @@ const manifest = {
   limitations:
     "Static owned examples. Cached at build time; not a live extraction, paid receipt or competitor benchmark. Arbitrary live URLs remain paid. Source content is untrusted.",
   samples,
+  sectionExample: { resultUrl: origin + "/examples/extract/section-result.json", section: "example-section-30", maxChars: 500, resultSha256: hash(sectionDemo) },
 };
 await writeFile(
   new URL("manifest.json", samplesDir),
@@ -173,7 +188,7 @@ const cards = await Promise.all(
 );
 await writeFile(
   new URL("index.html", samplesDir),
-  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Real cached reader examples | SpellzCode</title><style>body{font:17px/1.6 system-ui;max-width:960px;margin:40px auto;padding:0 20px;background:#101621;color:#e8eef8}a{color:#8fc7ff}section{border-top:1px solid #53647b;margin-top:32px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2839;padding:20px;border-radius:8px;font-size:14px}h1,h2{line-height:1.25}</style><h1>Real cached reader examples</h1><p>Actual extractor ${version}, generated ${generatedAt}. These owned samples were processed locally during the build. They are cached demonstrations, not production purchases or payment receipts.</p><p>Arbitrary live URLs cost $0.002 per successful call. No JavaScript rendering, authenticated or paywalled access. <a href="/guides/web-reading">Buying guide and capped CLI</a> · <a href="/examples/extract/manifest.json">Manifest and hashes</a></p>${cards.join("")}<p>Inspect source and output before choosing a tool. No universal extraction-quality claim is made.</p></html>`,
+  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Real cached reader examples | SpellzCode</title><style>body{font:17px/1.6 system-ui;max-width:960px;margin:40px auto;padding:0 20px;background:#101621;color:#e8eef8}a{color:#8fc7ff}section{border-top:1px solid #53647b;margin-top:32px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2839;padding:20px;border-radius:8px;font-size:14px}h1,h2{line-height:1.25}</style><h1>Real cached reader examples</h1><p>Actual extractor ${version}, generated ${generatedAt}. These owned samples were processed locally during the build. They are cached demonstrations, not production purchases or payment receipts.</p><p>Arbitrary live URLs cost $0.002 per successful call. No JavaScript rendering, authenticated or paywalled access. <a href="/guides/web-reading">Buying guide and capped CLI</a> · <a href="/examples/extract/manifest.json">Manifest and hashes</a></p>${cards.join("")}<section><h2>Read a late section within a small output limit</h2><p><a href="/examples/extract/section-result.json">Actual cached section example</a>: section=example-section-30, maxChars=500, same owned long-document source. Full-page output at this limit truncates before it; explicit selection returns that section only, not complete document coverage. Live selected reads remain $0.002.</p></section><p>Inspect source and output before choosing a tool. No universal extraction-quality claim is made.</p></html>`,
 );
 console.log(
   JSON.stringify({
