@@ -29,6 +29,7 @@ test("builds a priced contract with required, numeric, and enum parameter schema
     tools: [
       {
         name: "lookup",
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
         description: "Look up a value. Costs $0.005 in USDC on Base per successful call, paid with x402.",
         inputSchema: {
           $schema: "http://json-schema.org/draft-07/schema#",

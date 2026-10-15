@@ -32,13 +32,15 @@ export const ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Web page to clean text",
+    summary: "Static web page to text, Markdown, code and tables",
     description:
-      "Read public static HTML or plain text as clean text, title, headings and links for research agents. Defaults to 20,000 output characters (maximum 100,000), with a 2 MiB input cap and explicit truncation. Does not render JavaScript or read authenticated or paywalled content. HTTP errors and unsupported media types are not charged.",
+      "Read public static HTML/plain text as text or Markdown, with headings, safe links, code blocks, tables and a content hash. Prefers main/article content. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authenticated or paywalled access. Empty pages, detected browser challenges and execution errors are not charged.",
+    details: "Structured details share a 20,000-character budget, with up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Table spans are flagged, not expanded. Markdown truncation may leave incomplete syntax. Content hashes cover the returned hashFormat representation, not the full source. Source content is untrusted. HTML complexity is bounded to 20,000 elements and 128 nested levels.",
     tags: ["web", "scraping", "extract", "text", "rag"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of the page to fetch", required: true, example: "https://example.com" },
       maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
+      format: { type: "string", description: "Returned representation: text (default), markdown, or both. Structured details are included in every format.", enum: ["text", "markdown", "both"], example: "text" },
     },
     outputExample: {
       url: "https://example.com/",

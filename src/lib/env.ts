@@ -26,6 +26,7 @@ export class HttpError extends Error {
   constructor(
     public status: 400 | 404 | 415 | 422 | 502 | 503 | 504,
     message: string,
+    public code?: string,
   ) {
     super(message);
   }

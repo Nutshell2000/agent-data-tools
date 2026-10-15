@@ -4,7 +4,7 @@ const { build } = require('esbuild');
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 let mf;
 before(async () => {
-  const bundle = await build({ stdin: { contents: `import {extract} from './src/routes/extract'; export default {async fetch(r){const u=new URL(r.url);try{return Response.json(await extract(u.searchParams.get('url'),u.searchParams.get('maxChars')))}catch(e){return Response.json({error:e.message},{status:e.status||500})}}}`, resolveDir: process.cwd(), sourcefile:'extract-fixture.ts' }, bundle:true, write:false, format:'esm', platform:'browser' });
+  const bundle = await build({ stdin: { contents: `import {extract} from './src/routes/extract'; export default {async fetch(r){const u=new URL(r.url);try{return Response.json(await extract(u.searchParams.get('url'),u.searchParams.get('maxChars')??undefined))}catch(e){return Response.json({error:e.message},{status:e.status||500})}}}`, resolveDir: process.cwd(), sourcefile:'extract-fixture.ts' }, bundle:true, write:false, format:'esm', platform:'browser' });
   mf = new Miniflare(convertV4MiniflareOptions({ modules:true, script:bundle.outputFiles[0].text, compatibilityDate:'2026-09-01', outboundService:async request => {
     const path = new URL(request.url).pathname;
     if(path==='/redirect') return new Response(null,{status:302,headers:{location:'/article'}});
@@ -19,7 +19,7 @@ before(async () => {
 });
 after(async()=>{await mf?.dispose();});
 const call = (path, maxChars) => mf.dispatchFetch(`https://worker.test/?url=${encodeURIComponent('https://public.example'+path)}${maxChars?'&maxChars='+maxChars:''}`);
-test('real Workers HTMLRewriter extracts a static article, metadata, headings and absolute links',async()=>{
+test('real Workers runtime extracts a static article, metadata, headings and absolute links',async()=>{
   const r=await call('/article');const v=await r.json();assert.equal(r.status,200);
   assert.equal(v.title,'Research fixture');assert.equal(v.description,'Static fixture');assert.equal(v.lang,'en');
   assert.equal(v.canonical,'https://public.example/article');assert.equal(v.headings[0].text,'Useful article');
@@ -33,5 +33,5 @@ test('extraction reports final URL and rejects private redirects, unsupported fi
 test('text output and oversized input expose truncation and JavaScript shells are not rendered',async()=>{
   const plain=await (await call('/plain',500)).json();assert.equal(plain.text.length,500);assert.equal(plain.textLength,600);assert.equal(plain.truncated,true);
   const big=await (await call('/big',100000)).json();assert.equal(big.text.length,100000);assert.equal(big.truncated,true);
-  const shell=await (await call('/shell')).json();assert.equal(shell.text,'');assert.doesNotMatch(shell.text,/SECRET_JS/);
+  const shell=await call('/shell');assert.equal(shell.status,422);assert.match((await shell.json()).error,/No readable static content/);
 });

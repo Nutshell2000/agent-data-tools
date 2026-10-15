@@ -9,7 +9,7 @@ import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { withMcpRevenue } from "./lib/revenue";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
-import { toolDescription, toolInputShape, toolName } from "./mcp-contract";
+import { toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 
 type Args = Record<string, unknown>;
@@ -32,10 +32,11 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
   try {
     const path: EndpointPath = e.path;
     const result = await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name])));
-    return { content: toContent(result) };
+    const { imageBase64: _image, ...structuredContent } = result as Record<string, unknown>;
+    return { content: toContent(result), structuredContent };
   } catch (err) {
     if (!(err instanceof HttpError)) console.error(err);
-    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : "internal error" }] };
+    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : "internal error" }], ...(err instanceof HttpError && err.code ? { structuredContent: { error: err.message, code: err.code } } : {}) };
   }
 }
 
@@ -125,6 +126,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
       toolName(e),
       toolDescription(e),
       toolInputShape(e, z),
+      toolAnnotations,
       tracked as never,
     );
   }
