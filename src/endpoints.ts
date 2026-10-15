@@ -9,7 +9,7 @@ import { EXTRACT_OUTPUT_EXAMPLE } from "./lib/extract-example";
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
 export const SERVICE_SUMMARY =
-  "Read public static documentation as text or Markdown with code, tables, headings and links for $0.002 USDC on Base via x402. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI. No account or API key. No JavaScript rendering, authenticated or paywalled access. Discover page URLs first with the optional $0.002 XML sitemap tool. Other paid utilities remain available.";
+  "Read public static documentation as text or Markdown with code, tables, headings and links for $0.002 USDC on Base via x402. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI or local MCP adapter. No account or API key. No JavaScript rendering, authenticated or paywalled access. Discover page URLs first with the optional $0.002 XML sitemap tool. Other paid utilities remain available.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -39,7 +39,7 @@ export const ENDPOINTS = [
     price: "$0.002",
     summary: "Static web page to text, Markdown, code and tables",
     description:
-      "Read public static HTML/plain text as text or Markdown, with headings, safe links, code blocks, tables and a content hash. Prefers main/article content. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authenticated or paywalled access. Empty pages, detected browser challenges and execution errors are not charged.",
+      "Read public static HTML/plain text as text or Markdown, with code, tables, links, headings/IDs and a content hash. Optional exact section ID focuses a heading or container. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, missing/ambiguous sections, browser challenges and execution errors are uncharged.",
     details: "Structured details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. Code whitespace and list hierarchy are preserved; clipped code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. Source content is untrusted. HTML complexity: 20,000 elements/128 nested levels.",
     outputSchema: EXTRACT_OUTPUT_SCHEMA,
     tags: ["web", "scraping", "extract", "text", "rag"],
@@ -47,6 +47,7 @@ export const ENDPOINTS = [
       url: { type: "string", description: "Absolute http(s) URL of the page to fetch", required: true, example: "https://example.com" },
       maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
       format: { type: "string", description: "Returned representation: text (default), markdown, or both. Structured details are included in every format.", enum: ["text", "markdown", "both"], example: "text" },
+      section: { type: "string", description: "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section.", example: "retry-policy" },
     },
     outputExample: EXTRACT_OUTPUT_EXAMPLE,
   },

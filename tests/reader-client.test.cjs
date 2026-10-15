@@ -9,9 +9,10 @@ const receipt={success:true,network:'eip155:8453',transaction:'0x'+'2'.repeat(64
 const encode=v=>Buffer.from(JSON.stringify(v)).toString('base64');
 before(async()=>{const b=await build({entryPoints:['clients/reader-core.mjs'],bundle:true,write:false,format:'cjs',platform:'node'});const mod={exports:{}};new Function('require','module','exports',b.outputFiles[0].text)(require,mod,mod.exports);core=mod.exports;});
 function quote(change={}){return{x402Version:2,resource:{url:core.READER_ORIGIN+'/extract'},accepts:[{scheme:'exact',network:'eip155:8453',asset:core.READER_ASSET,payTo:core.READER_RECIPIENT,amount:'2000',maxTimeoutSeconds:300,extra:{name:'USD Coin',version:'2'},...change}]};}
-function fixture({change={},paidError,paidStatus=200,receiptValue=receipt,realSigning=false,invalidResult=false}={}){
+function fixture({change={},paidError,paidStatus=200,receiptValue=receipt,realSigning=false,invalidResult=false,resultSection}={}){
  let requests=0,authorizations=0,submissions=0;
  const result={format:'text',hashFormat:'text',text:'Useful page',contentHash:'sha256:'+createHash('sha256').update('Useful page').digest('hex')};
+ if(resultSection!==undefined)result.section=resultSection;
  const deps={getKey:()=>key,fetcher:async(url,init)=>{
   requests++;assert.equal(new URL(url).origin,core.READER_ORIGIN);assert.equal(init.redirect,'error');
   if(!init.headers['PAYMENT-SIGNATURE'])return new Response(null,{status:402,headers:{'PAYMENT-REQUIRED':encode(quote(change)),'X-Request-ID':'quote-id'}});
@@ -25,6 +26,11 @@ function fixture({change={},paidError,paidStatus=200,receiptValue=receipt,realSi
 }
 test('unsigned quote never reads a key or authorizes and reports pinned terms',async()=>{
  const f=fixture();f.deps.getKey=()=>assert.fail('quote must not access keys');const v=await core.runReader(['quote',target],f.deps);assert.equal(v.ok,true);assert.equal(v.paymentStatus,'not_signed');assert.equal(v.quote.amountAtomic,'2000');assert.deepEqual(f.counts(),{requests:1,authorizations:0,submissions:0});
+});
+test('section options encode exact IDs and reject wrong paid scope without retrying',async()=>{
+ const id='retry & example';const parsed=core.parseReaderArgs(['quote',target,'--section',id]);assert.equal(parsed.query.section,id);
+ for(const section of ['', 'x'.repeat(501), 'bad\nline']){const r=await core.runReader(['buy',target,'--section',section,'--max-usdc','0.002'],{fetcher:()=>assert.fail('invalid section must not fetch')});assert.equal(r.error,'invalid_section_id');}
+ for(const section of [{id},null,{id:'other'}]){const f=fixture({resultSection:section});const r=await core.runReader(['buy',target,'--section',id,'--max-usdc','0.002'],f.deps);assert.equal(r.ok,section?.id===id);assert.equal(r.paymentStatus,'settled');assert.equal(f.counts().authorizations,1);assert.equal(f.counts().submissions,1);if(!r.ok){assert.equal(r.error,'invalid_result');assert.equal(r.retryAutomatically,false);}}
 });
 test('wrong recipients, chains, assets, schemes and prices cannot reach signing',async()=>{
  for(const change of [{payTo:'0x'+'9'.repeat(40)},{network:'eip155:1'},{asset:'0x'+'9'.repeat(40)},{scheme:'upto'},{amount:'2001'},{amount:'0'},{amount:'NaN'},{extra:{assetTransferMethod:'permit2'}}]){

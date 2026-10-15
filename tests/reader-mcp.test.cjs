@@ -47,6 +47,10 @@ test('missing/excessive caps and extra fields fail before network or signing',as
  assert.equal(runs,0);
  }finally{await c.close();}
 });
+test('MCP section selection maps an explicit ID through the existing capped runner',async()=>{
+ let args;const c=await connection({enabled:true,sessionCapAtomic:2000n,run:async a=>{args=a;return{ok:false,paymentStatus:'not_signed'};}});
+ try{await call(c.client,'reader_buy',{...page,section:'retry-policy'});assert.deepEqual(args,['buy',page.url,'--format','markdown','--max-chars','20000','--section','retry-policy','--max-usdc','0.002']);assert.equal((await call(c.client,'reader_quote',{url:page.url,section:''})).schemaRejected,true);}finally{await c.close();}
+});
 test('concurrent buys reserve once; uncertainty locks subsequent buys but not quotes',async()=>{
  let release,runs=0;const started=new Promise(resolve=>release=resolve);let ready;
  const entered=new Promise(resolve=>ready=resolve);
@@ -89,7 +93,7 @@ test('adapter default runner preserves payment pins and redirect refusal before 
 });
 test('standalone stdio bundle runs outside checkout and exposes only unpaid tools by default',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'reader-mcp-'));
- const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.2.1/reader-mcp.mjs',file);
+ const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.3.0/reader-mcp.mjs',file);
  const transport=new StdioClientTransport({command:process.execPath,args:[file],cwd:dir,env:{X402_PRIVATE_KEY:''},stderr:'pipe'});
  let stderr='';transport.stderr.on('data',chunk=>stderr+=chunk);
  const client=new Client({name:'stdio-bundle-test',version:'1'});

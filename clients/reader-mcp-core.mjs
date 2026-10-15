@@ -39,7 +39,7 @@ export function createReaderMcp({ enabled = false, sessionCapAtomic = 0n, run = 
   server.registerTool("reader_session", { description: "Inspect the local purchase budget and reconciliation lock without network access or reading keys.", inputSchema: z.object({}).strict(), annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false } }, async () => answer(status()));
 
   const url = z.string().min(1).max(8192).describe("Explicit public static page or XML sitemap URL. No private/authenticated content.");
-  const extract = { url, format: z.enum(["text", "markdown", "both"]).default("markdown"), maxChars: z.number().int().min(500).max(100000).default(20000) };
+  const extract = { url, format: z.enum(["text", "markdown", "both"]).default("markdown"), maxChars: z.number().int().min(500).max(100000).default(20000), section: z.string().min(1).max(500).regex(/^[^\u0000-\u001f\u007f]+$/).optional().describe("Exact HTML section/heading ID in primary content. URL fragments alone do not select it. Missing or ambiguous targets fail uncharged.") };
   const sitemap = { url, contains: z.string().max(200).optional(), maxUrls: z.number().int().min(1).max(100).default(25), offset: z.number().int().min(0).max(1000).default(0) };
   const register = (name, kind, buy) => {
     const shape = kind === "extract" ? extract : sitemap;
@@ -52,7 +52,7 @@ export function createReaderMcp({ enabled = false, sessionCapAtomic = 0n, run = 
       annotations: { readOnlyHint: !buy, destructiveHint: buy, idempotentHint: !buy, openWorldHint: true }
     }, async input => {
       const args = [buy ? (kind === "extract" ? "buy" : "buy-sitemap") : (kind === "extract" ? "quote" : "quote-sitemap"), input.url];
-      if (kind === "extract") args.push("--format", input.format, "--max-chars", String(input.maxChars));
+      if (kind === "extract") { args.push("--format", input.format, "--max-chars", String(input.maxChars)); if(input.section !== undefined) args.push("--section", input.section); }
       else {
         args.push("--max-urls", String(input.maxUrls), "--offset", String(input.offset));
         if (input.contains !== undefined) args.push("--contains", input.contains);

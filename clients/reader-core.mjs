@@ -29,7 +29,7 @@ export function parseReaderArgs(args) {
   const command = rawCommand.startsWith("quote") ? "quote" : "buy";
   const permittedFlags = sitemap
     ? ["--max-usdc", "--contains", "--max-urls", "--offset"]
-    : ["--max-usdc", "--format", "--max-chars"];
+    : ["--max-usdc", "--format", "--max-chars", "--section"];
   const url = parseTarget(target).href;
   const flags = new Map();
   for (let i = 0; i < rest.length; i += 2) {
@@ -61,6 +61,11 @@ export function parseReaderArgs(args) {
       fail("explicit_cap_required_at_most_0.002");
   }
   const query = { url, format, maxChars: String(Number(limit)) };
+  const section = flags.get("--section");
+  if (section !== undefined) {
+    if (!section || section.length > 500 || /[\u0000-\u001f\u007f]/.test(section)) fail("invalid_section_id");
+    query.section = section;
+  }
   if (sitemap) {
     const contains = flags.get("--contains") ?? "",
       maxUrls = flags.get("--max-urls") ?? "25",
@@ -190,7 +195,7 @@ export async function runReader(
     if (options.command === "help")
       return {
         ok: true,
-        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000]; buy <public-url> --max-usdc 0.002 [same options]. quote-sitemap <xml-url> [--contains value] [--max-urls 1..100] [--offset 0..1000]; buy-sitemap <xml-url> --max-usdc 0.002 [same sitemap options]. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
+        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000] [--section exact-html-id]; buy <public-url> --max-usdc 0.002 [same options]. quote-sitemap <xml-url> [--contains value] [--max-urls 1..100] [--offset 0..1000]; buy-sitemap <xml-url> --max-usdc 0.002 [same sitemap options]. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
       };
     const url = new URL(options.path, READER_ORIGIN);
     url.search = new URLSearchParams(options.query).toString();
@@ -280,6 +285,7 @@ export async function runReader(
     const representation = options.format === "markdown" ? "markdown" : "text";
     if (
       result?.format !== options.format ||
+      (options.query.section !== undefined && result.section?.id !== options.query.section) ||
       result.hashFormat !== representation ||
       typeof result[representation] !== "string" ||
       !result[representation].trim() ||
@@ -295,6 +301,7 @@ export async function runReader(
       "usage_error",
       "invalid_format_or_limit",
       "invalid_sitemap_options",
+      "invalid_section_id",
       "explicit_cap_required_at_most_0.002",
       "expected_unpaid_402_quote",
       "invalid_payment_quote",
