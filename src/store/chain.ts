@@ -11,12 +11,16 @@ export interface Payment {
   tx: string;
   from: string;
   block: bigint;
+  logIndex: number;
 }
 
 /** Finds a USDC transfer of exactly `amount` (6-decimal units) to `to`, at or after `fromBlock`. */
 export async function findPayment(env: Env, to: string, amount: bigint, fromBlock: bigint, toBlock?: bigint): Promise<Payment | null> {
   const client = baseClient(env);
-  const latest = toBlock ?? (await client.getBlockNumber());
+  // Do not release downloads against a merely pending or reorg-prone latest block.
+  const finalized = await client.getBlock({ blockTag: "finalized" });
+  if (finalized.number === null) return null;
+  const latest = toBlock !== undefined && toBlock < finalized.number ? toBlock : finalized.number;
   for (let start = fromBlock; start <= latest; start += CHUNK) {
     const end = start + CHUNK - 1n > latest ? latest : start + CHUNK - 1n;
     const logs = await client.getLogs({
@@ -27,7 +31,12 @@ export async function findPayment(env: Env, to: string, amount: bigint, fromBloc
       toBlock: end,
     });
     const hit = logs.find((l) => l.args.value === amount);
-    if (hit) return { tx: hit.transactionHash, from: hit.args.from ?? "", block: hit.blockNumber };
+    if (hit && hit.logIndex !== null) {
+      const receipt = await client.getTransactionReceipt({ hash: hit.transactionHash });
+      if (receipt.status === "success" && receipt.blockNumber === hit.blockNumber && receipt.blockNumber <= finalized.number) {
+        return { tx: hit.transactionHash, from: hit.args.from ?? "", block: hit.blockNumber, logIndex: hit.logIndex };
+      }
+    }
   }
   return null;
 }

@@ -18,19 +18,23 @@ interface Pair {
   pairCreatedAt?: number;
 }
 
-async function pairs(address: string): Promise<Pair[]> {
+async function pairs(address: string): Promise<{ pairs: Pair[]; retrievedAt: string }> {
   const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`, {
     headers: { accept: "application/json" },
     signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) throw new HttpError(502, "market data source unavailable");
   const body = (await res.json()) as { pairs?: Pair[] | null };
-  return (body.pairs ?? []).filter((p) => p.chainId === "base" && p.baseToken.address.toLowerCase() === address.toLowerCase());
+  return {
+    pairs: (body.pairs ?? []).filter((p) => p.chainId === "base" && p.baseToken.address.toLowerCase() === address.toLowerCase()),
+    retrievedAt: new Date().toISOString(),
+  };
 }
 
 /** On-chain facts plus live DEX market data and a rule-based risk summary, in one call. */
 export async function tokenReport(env: Env, address: string) {
-  const [token, found] = await Promise.all([tokenInfo(env, address), pairs(address).catch(() => null)]);
+  const [token, marketData] = await Promise.all([tokenInfo(env, address), pairs(address).catch(() => null)]);
+  const found = marketData?.pairs ?? null;
   const flags: { level: "high" | "medium" | "info"; code: string; message: string }[] = [];
   const caps = (token as { capabilities?: Record<string, boolean> }).capabilities ?? {};
   const t = token as { ownershipRenounced?: boolean; paused?: boolean; proxy?: { isProxy?: boolean } };
@@ -38,7 +42,19 @@ export async function tokenReport(env: Env, address: string) {
   if (t.paused) flags.push({ level: "high", code: "paused", message: "Token transfers are currently paused." });
   if (caps.blacklist) flags.push({ level: "high", code: "blacklist", message: "Contract can blacklist or freeze addresses." });
   if (caps.feeSetter) flags.push({ level: "high", code: "fee_setter", message: "Owner can change transfer fees or tax." });
-  if (caps.mint && !t.ownershipRenounced) flags.push({ level: "medium", code: "mintable", message: "Supply can be minted by a non-renounced owner." });
+  if (caps.mint && t.ownershipRenounced === false) {
+    flags.push({
+      level: "medium",
+      code: "mintable",
+      message: "Bytecode contains a mint selector and owner() reports a nonzero owner; this heuristic does not prove the selector is callable or owner-controlled.",
+    });
+  } else if (caps.mint) {
+    flags.push({
+      level: "info",
+      code: "mint_selector_unverified",
+      message: "Bytecode contains a mint selector, but an active minting authority is not verified; selector presence alone does not prove mintability.",
+    });
+  }
   if (t.proxy?.isProxy) flags.push({ level: "medium", code: "upgradeable", message: "Upgradeable proxy: contract logic can be replaced by its admin." });
 
   let market: Record<string, unknown> | null = null;
@@ -64,7 +80,7 @@ export async function tokenReport(env: Env, address: string) {
     };
     if (totalLiquidity < 10_000) flags.push({ level: "high", code: "low_liquidity", message: `Total liquidity is only about $${Math.round(totalLiquidity)}.` });
     else if (totalLiquidity < 100_000) flags.push({ level: "medium", code: "thin_liquidity", message: `Liquidity is thin (about $${Math.round(totalLiquidity)}).` });
-    if (ageDays !== null && ageDays < 7) flags.push({ level: "medium", code: "new_pair", message: `Oldest listed pair is only ${ageDays} day(s) old.` });
+    if (ageDays !== null && ageDays < 7) flags.push({ level: "medium", code: "new_pair", message: `Top-liquidity listed pair is only ${ageDays} day(s) old.` });
     if (tx && tx.buys > 20 && tx.sells === 0) flags.push({ level: "high", code: "no_sells", message: "Buys but no sells in 24h, a possible honeypot pattern." });
   }
 
@@ -74,6 +90,8 @@ export async function tokenReport(env: Env, address: string) {
   return {
     chain: "base",
     address,
+    marketDataSource: "DexScreener",
+    marketRetrievedAt: marketData?.retrievedAt ?? null,
     risk,
     summary: `${risk} risk: ${high} high and ${medium} medium flag(s). Heuristic screening, not a guarantee of safety.`,
     flags,

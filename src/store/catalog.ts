@@ -10,6 +10,13 @@ export interface Product {
   file: string;
 }
 
+export interface OrderProduct {
+  slug: string;
+  title: string;
+  /** File name under public/_files/, served only to paid orders. */
+  file: string;
+}
+
 export const PRODUCTS: Product[] = [
   {
     slug: "x402-seller-kit",
@@ -33,3 +40,15 @@ export const PRODUCTS: Product[] = [
 ];
 
 export const findProduct = (slug: string) => PRODUCTS.find((p) => p.slug === slug);
+
+// New sales stay closed through the paid-tool experiment. Existing paid orders
+// resolve through findOrderProduct and keep access to their original downloads.
+export const NEW_PRODUCT_SALES_ENABLED = false;
+
+// Keep resolving paid legacy orders to their existing asset, but never list or sell them.
+const LEGACY_ORDER_PRODUCTS: OrderProduct[] = [
+  { slug: "defi-trader-bundle", title: "DeFi Trader Intelligence Bundle", file: "defi-bundle-key.txt" },
+];
+
+export const findOrderProduct = (slug: string): OrderProduct | undefined =>
+  findProduct(slug) ?? LEGACY_ORDER_PRODUCTS.find((p) => p.slug === slug);

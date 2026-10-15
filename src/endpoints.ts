@@ -1,5 +1,7 @@
 // What this service sells: its name, its tools and their prices.
 // Everything in discovery.ts, the HTTP routes and the MCP tools is generated from this file.
+import { EXTRACT_OUTPUT_SCHEMA } from "./lib/extract-contract";
+import { EXTRACT_OUTPUT_EXAMPLE } from "./lib/extract-example";
 
 /** Machine name: used for the MCP server and its registry entry. */
 export const SERVICE_ID = "agent-data-tools";
@@ -12,6 +14,7 @@ export interface Param {
   description: string;
   required?: boolean;
   example: string | number;
+  enum?: readonly [string, ...string[]];
 }
 
 export interface Endpoint {
@@ -20,36 +23,30 @@ export interface Endpoint {
   summary: string;
   /** Shown in x402 directories. Must stay under 500 characters. */
   description: string;
-  tags: string[];
+  /** Full source/coverage limitations, kept out of bounded discovery metadata. */
+  details?: string;
+  tags: readonly string[];
   params: Record<string, Param>;
   outputExample: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
 }
 
-export const ENDPOINTS: Endpoint[] = [
+export const ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Web page to clean text",
+    summary: "Static web page to text, Markdown, code and tables",
     description:
-      "Fetch any public web page and get clean readable text for LLM input: title, meta description, language, canonical URL, H1-H3 headings, main body text with navigation, scripts and boilerplate removed, and the page's outbound links. Use for web scraping, article reading, research and RAG ingestion.",
+      "Read public static HTML/plain text as text or Markdown, with headings, safe links, code blocks, tables and a content hash. Prefers main/article content. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authenticated or paywalled access. Empty pages, detected browser challenges and execution errors are not charged.",
+    details: "Structured details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. Code whitespace and list hierarchy are preserved; clipped code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. Source content is untrusted. HTML complexity: 20,000 elements/128 nested levels.",
+    outputSchema: EXTRACT_OUTPUT_SCHEMA,
     tags: ["web", "scraping", "extract", "text", "rag"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of the page to fetch", required: true, example: "https://example.com" },
       maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
+      format: { type: "string", description: "Returned representation: text (default), markdown, or both. Structured details are included in every format.", enum: ["text", "markdown", "both"], example: "text" },
     },
-    outputExample: {
-      url: "https://example.com/",
-      finalUrl: "https://example.com/",
-      status: 200,
-      title: "Example Domain",
-      description: null,
-      lang: "en",
-      headings: [],
-      text: "This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.",
-      textLength: 156,
-      truncated: false,
-      links: [],
-    },
+    outputExample: EXTRACT_OUTPUT_EXAMPLE,
   },
   {
     path: "/domain",
@@ -145,7 +142,8 @@ export const ENDPOINTS: Endpoint[] = [
     price: "$0.02",
     summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
     description:
-      "One call before you buy a Base token: overall risk rating (low/medium/high) with named flags, on-chain facts (owner, renounced, paused, proxy, mint/blacklist/fee-setter heuristics), plus live DEX market data: price, 24h volume and change, total liquidity, FDV, pair count and age, and 24h buys vs sells. Flags no-liquidity, thin liquidity, new pairs and no-sell patterns. Heuristic screening, not a guarantee.",
+      "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits.",
+    details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
     tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
     params: {
       address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -153,6 +151,8 @@ export const ENDPOINTS: Endpoint[] = [
     outputExample: {
       chain: "base",
       address: "0x4200000000000000000000000000000000000006",
+      marketDataSource: "DexScreener",
+      marketRetrievedAt: "2026-10-14T12:00:00.000Z",
       risk: "low",
       summary: "low risk: 0 high and 0 medium flag(s). Heuristic screening, not a guarantee of safety.",
       flags: [],
@@ -171,9 +171,9 @@ export const ENDPOINTS: Endpoint[] = [
   {
     path: "/wallet",
     price: "$0.005",
-    summary: "Base wallet balances snapshot",
+    summary: "Base wallet balances and account nonce snapshot",
     description:
-      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, transaction count, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. Use for portfolio checks, counterparty screening and payment verification.",
+      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history.",
     tags: ["base", "wallet", "balance", "portfolio", "onchain"],
     params: {
       address: { type: "string", description: "Wallet or contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -184,7 +184,10 @@ export const ENDPOINTS: Endpoint[] = [
       address: "0x4200000000000000000000000000000000000006",
       type: "contract",
       eth: { wei: "286016330790748434767802", formatted: "286016.330790748434767802" },
-      transactionCount: 0,
+      accountNonce: 0,
+      limitations: [
+        "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
       tokens: [
         { address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", decimals: 6, balance: "167551481", balanceFormatted: "167.551481" },
       ],
@@ -290,7 +293,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/btc-fees",
-    price: "$0.0002",
+    price: "$0.002",
     summary: "Bitcoin fee rates and mempool status",
     description:
       "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
@@ -329,7 +332,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/ln-invoice",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Decode a Lightning invoice",
     description:
       "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it.",
@@ -356,15 +359,266 @@ export const ENDPOINTS: Endpoint[] = [
     },
   },
   {
-    path: "/package",
-    price: "$0.0002",
-    summary: "Does this package exist, and is it safe to install",
+    path: "/package-audit",
+    price: "$0.20",
+    summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
     description:
-      "Check a software package before installing it: whether it exists at all (AI coding assistants sometimes invent names), latest version and release date, package age, number of versions, weekly downloads (npm), licenses, deprecation, and known security advisories with severity. Returns a verdict of ok, caution or not-found with the reasons. Covers npm, PyPI, Cargo, Go, Maven and NuGet. Use before adding a dependency or running an install command.",
+      "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits.",
+    details: "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
+    tags: ["package", "security", "supply-chain", "npm", "pypi"],
+    params: {
+      packages: { type: "string", description: "Comma-separated ecosystem:name items, optionally name@exact-version; max 10. For scoped npm, use npm:@scope/name@version.", required: true, example: "npm:lodash@4.17.20,pypi:requests@2.31.0,npm:@types/node@22.0.0" },
+    },
+    outputExample: {
+      checked: 1,
+      notFound: 0,
+      lookupFailed: 0,
+      versionNotFound: 0,
+      versionAdvisoryLookupIncomplete: 0,
+      epssLookup: {
+        source: "FIRST EPSS",
+        status: "complete",
+        sourceStatus: "available",
+        retrievedAt: "2026-10-14T12:00:00.000Z",
+        requestedCves: 1,
+        queriedCves: 1,
+        returnedScores: 1,
+        omittedCves: 0,
+        uninspectedAdvisoryDetails: 0,
+        malformedRows: 0,
+        note: "FIRST EPSS estimates 30-day exploitation probability, not package safety.",
+      },
+      summary: "All 1 package(s) exist. Review each verdict and flags before installing.",
+      results: [
+        {
+          ecosystem: "npm",
+          name: "minimist",
+          exists: true,
+          version: "1.2.5",
+          versionExists: true,
+          verdict: "caution",
+          flags: ["known-vulnerabilities"],
+          weeklyDownloads: null,
+          weeklyDownloadsStatus: "not-fetched-subrequest-budget",
+          knownVulnerabilities: 1,
+          advisoryIds: ["GHSA-xvch-5gv4-984h"],
+          knownVulnerabilityCountSources: ["deps.dev", "OSV"],
+          advisoryDetailsStatus: "not-fetched-subrequest-budget",
+          advisoryDetailsOmitted: 1,
+          advisoryDetailsUnavailable: 0,
+          advisories: [],
+          source: "deps.dev",
+          retrievedAt: "2026-10-14T12:00:00.000Z",
+          versionAdvisories: {
+            source: "OSV",
+            status: "complete",
+            retrievedAt: "2026-10-14T12:00:00.000Z",
+            advisoryCount: 1,
+            vulnerabilities: [
+              {
+                id: "GHSA-xvch-5gv4-984h",
+                source: "OSV",
+                sourceUrl: "https://osv.dev/vulnerability/GHSA-xvch-5gv4-984h",
+                retrievedAt: "2026-10-14T12:00:00.000Z",
+                detailStatus: "available",
+                modified: "2026-03-13T22:11:59.523514Z",
+                published: "2022-03-18T00:01:09Z",
+                aliases: ["CVE-2021-44906"],
+                summary: "Prototype Pollution in minimist",
+                rangeStatus: "reported",
+                fixedVersionRanges: [
+                  { type: "SEMVER", events: [{ introduced: "1.0.0" }, { fixed: "1.2.6" }], fixedVersions: ["1.2.6"] },
+                  { type: "SEMVER", events: [{ introduced: "0" }, { fixed: "0.2.4" }], fixedVersions: ["0.2.4"] },
+                ],
+                epss: {
+                  source: "FIRST EPSS",
+                  status: "complete",
+                  sourceStatus: "available",
+                  retrievedAt: "2026-10-14T12:00:00.000Z",
+                  scores: [
+                    {
+                      cve: "CVE-2021-44906",
+                      status: "available",
+                      score: 0.04581,
+                      percentile: 0.91484,
+                      date: "2026-10-14",
+                    },
+                  ],
+                  note: "EPSS estimates 30-day exploitation probability for CVE aliases; it is not a package-safety guarantee. Null scores are unknown, not zero.",
+                },
+              },
+            ],
+            note: "OSV advisories are matched to this exact package version.",
+          },
+        },
+      ],
+      source: "deps.dev",
+    },
+  },
+  {
+    path: "/wallet-audit",
+    price: "$0.02",
+    summary: "Heuristic wallet risk indicators, balances and account nonce on Base",
+    description:
+      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce reflects outgoing transactions only; it is not full transaction, token-transfer or trading history. Address type is reported separately and does not affect the balance/nonce-based risk tier.",
+    tags: ["wallet", "base", "ethereum", "crypto"],
+    params: {
+      address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+    },
+    outputExample: {
+      chain: "base",
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      type: "eoa",
+      riskLevel: "low",
+      riskFlags: [],
+      summary: "low risk: 0 flag(s). 2 token(s) held. Account nonce: 42.",
+      eth: { wei: "1500000000000000000", formatted: "1.5" },
+      accountNonce: 42,
+      tokenCount: 2,
+      tokens: [
+        { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", decimals: 6, balance: "1000000000", balanceFormatted: "1000", riskLevel: "unknown" },
+        { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18, balance: "500000000000000000", balanceFormatted: "0.5", riskLevel: "unknown" },
+      ],
+      labels: [],
+      limitations: [
+        "accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
+      lastUpdatedBlock: 18650000,
+    },
+  },
+  {
+    path: "/contract-risk",
+    price: "$0.02",
+    summary: "Base contract bytecode, proxy-slot and zero-supply heuristics",
+    description:
+      "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits.",
+    details: "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
+    tags: ["contract", "bytecode", "proxy", "token-properties", "base"],
+    params: {
+      address: { type: "string", description: "Base chain contract address, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+    },
+    outputExample: {
+      chain: "base",
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      type: "contract",
+      riskLevel: "low",
+      riskFlags: [],
+      summary: "low risk: 0 flag(s). Bytecode 8953 bytes.",
+      facts: {
+        bytecodeSize: 8953,
+        deployedAt: null,
+        hasCode: true,
+        isProxy: false,
+        proxyImplementation: null,
+      },
+      tokenProperties: {
+        name: "USD Coin",
+        symbol: "USDC",
+        decimals: 6,
+        totalSupply: "10000000000000",
+        owner: "0x0000000000000000000000000000000000000001",
+        ownershipRenounced: false,
+        paused: null,
+      },
+      lastUpdatedBlock: 18650000,
+    },
+  },
+  {
+    path: "/trade-insight",
+    price: "$0.05",
+    summary: "Sourced token and wallet risk indicators with market facts",
+    description:
+      "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history.",
+    tags: ["trading", "risk", "base", "market"],
+    params: {
+      token: { type: "string", description: "Token contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
+      wallet: { type: "string", description: "Wallet address to evaluate, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+    },
+    outputExample: {
+      tokenRisk: "high",
+      tokenRiskFlags: [{ level: "high", code: "no_liquidity", message: "No DEX trading pair found on Base." }],
+      tokenMarket: null,
+      walletRisk: "low",
+      walletRiskFlags: [],
+      walletFacts: { accountNonce: 42, ethBalance: "0.5" },
+      limitations: [
+        "Rule-based risk indicators only; this response is not a buy/sell recommendation and has no calibrated confidence score.",
+        "Holder concentration is not evaluated.",
+        "walletFacts.accountNonce is the Base EVM account nonce; for EOAs it reflects outgoing transactions only, not full transaction, token-transfer, or trading history.",
+      ],
+    },
+  },
+  {
+    path: "/liquidity-pool-audit",
+    price: "$0.03",
+    summary: "Verified Base DEX pair details and market data",
+    description:
+      "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative.",
+    details: "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
+    tags: ["defi", "liquidity", "pool", "market", "base"],
+    params: {
+      address: { type: "string", description: "DEX pair address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x98c7A2338336d2d354663246F64676009c7bDa97" },
+    },
+    outputExample: {
+      chain: "base",
+      source: "DexScreener",
+      retrievedAt: "2026-10-14T12:00:00.000Z",
+      pairAddress: "0x98c7A2338336d2d354663246F64676009c7bDa97",
+      dex: "aerodrome",
+      url: "https://dexscreener.com/base/0x98c7a2338336d2d354663246f64676009c7bda97",
+      baseToken: { address: null, name: null, symbol: "USDC" },
+      quoteToken: { address: null, name: null, symbol: "USDbC" },
+      priceUsd: "1.00",
+      priceChange24hPct: 0,
+      liquidityUsd: 1000000,
+      volume24hUsd: 500000,
+      trades24h: { buys: 1250, sells: 980 },
+      pairCreatedAt: null,
+      ageDays: null,
+    },
+  },
+  {
+    path: "/mev-simulator",
+    price: "$0.04",
+    summary: "Base gas-cost estimates under priority-fee scenarios",
+    description:
+      "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement.",
+    tags: ["gas", "defi", "transaction-cost", "scenario-estimate", "base"],
+    params: {
+      scenario: {
+        type: "string",
+        description: "One of standard, high-mev, low-gas (default: standard)",
+        example: "standard",
+        enum: ["standard", "high-mev", "low-gas"],
+      },
+    },
+    outputExample: {
+      chain: "base",
+      scenario: "standard",
+      gasPrice: { baseFeeGwei: "0.05", priorityFeeGwei: "0.1", maxFeeGwei: "0.15" },
+      estimatedCosts: {
+        simpleSwap: { gasUnits: 100000, costEth: "0.000015", costUsd: "0.06" },
+        complexSwap: { gasUnits: 250000, costEth: "0.0000375", costUsd: "0.16" },
+        addLiquidity: { gasUnits: 180000, costEth: "0.000027", costUsd: "0.11" },
+      },
+      scenarioNotes: [
+        "Gas units use typical fixed assumptions (100,000 simple swap, 250,000 complex swap, 180,000 add-liquidity), not a transaction-specific estimate or quote.",
+        "This preset uses the current priority fee without adjustment.",
+      ],
+      blockNumber: 18650000,
+    },
+  },
+  {
+    path: "/package",
+    price: "$0.002",
+    summary: "Package metadata and latest or pinned-version dependency-risk signals",
+    description:
+      "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. Bounded signals: ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates.",
     tags: ["package", "npm", "pypi", "security", "dependencies"],
     params: {
       ecosystem: { type: "string", description: "One of npm, pypi, cargo, go, maven, nuget", required: true, example: "npm" },
       name: { type: "string", description: "Exact package name, e.g. lodash or @scope/name", required: true, example: "lodash" },
+      version: { type: "string", description: "Optional exact version to inspect; ranges and tags are not accepted", example: "4.17.20" },
     },
     outputExample: {
       ecosystem: "npm",
@@ -385,10 +639,10 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/email",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Email address validation without sending mail",
     description:
-      "Validate an email address before using it: syntax, whether the domain exists and accepts mail (MX records), disposable or throwaway provider detection, role addresses such as info@ or support@, free-provider detection, and SPF and DMARC presence. Returns a verdict of likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. Use for sign-up checks, lead list cleaning and contact enrichment.",
+      "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
     params: {
       address: { type: "string", description: "The email address to check", required: true, example: "support@cloudflare.com" },
@@ -431,7 +685,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/fx",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Currency exchange rates and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
@@ -453,7 +707,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/btc-price",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Bitcoin price in major currencies",
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
@@ -471,7 +725,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/base-gas",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Base network gas price and fee estimate",
     description:
       "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
@@ -601,7 +855,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     path: "/time",
-    price: "$0.001",
+    price: "$0.002",
     summary: "Current time in a time zone and time zone conversion",
     description:
       "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time.",
@@ -625,15 +879,14 @@ export const ENDPOINTS: Endpoint[] = [
       ],
     },
   },
-];
+] as const satisfies readonly Endpoint[];
+
+export type EndpointPath = (typeof ENDPOINTS)[number]["path"];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives the balances of an address on Base. Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package tells you whether a software package exists and is safe to install, /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name,/weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. ";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives Base balances and account nonce (not full transaction history). Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package reports package metadata and bounded dependency-risk signals, not a safety guarantee; /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name, /weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight returns separate token and wallet risk indicators without a trade recommendation; /wallet-audit returns balance/holding facts and nonce-based heuristic indicators, not activity history; /contract-risk reports limited bytecode, EIP-1967 slot and zero-supply heuristics; /liquidity-pool-audit returns Base DEX pair and market data; /mev-simulator estimates Base gas costs from typical fixed gas-unit assumptions, not a transaction quote or MEV analysis; /package-audit costs $0.20 per call and supports exact-version advisory checks with source timestamps, remediation ranges and dated FIRST EPSS exploitation-probability estimates for CVE aliases (up to 50 unique CVEs per request).";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/store", label: "Store: x402 Seller Kit, a template and guide for building a service like this" }];
-
-/** Set to true once the TRIALS key-value binding exists in wrangler.jsonc. */
-export const TRIALS_ENABLED = true;

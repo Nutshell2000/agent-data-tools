@@ -1,0 +1,13 @@
+{
+  "source_head": "ef74819dde5e71a372b0eec9699c1ceabe05dcba",
+  "deployed_worker": "agent-data-tools",
+  "preserved_files": 61,
+  "removed_files": [
+    "src/routes/wallet-history.ts",
+    "src/routes/pair-analyzer.ts",
+    "src/routes/airdrop-scanner.ts",
+    "src/routes/liquidity-return-analyzer.ts",
+    "src/routes/token-holder-analysis.ts"
+  ],
+  "credentials_copied": false
+}

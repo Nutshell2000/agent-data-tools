@@ -14,7 +14,8 @@ async function mempool<T>(path: string): Promise<T> {
   }
   if (res.status === 400 || res.status === 404) throw new HttpError(404, "not found on the Bitcoin network");
   if (!res.ok) throw new HttpError(502, `the Bitcoin data source returned HTTP ${res.status}`);
-  return res.json();
+  try { return await res.json() as T; }
+  catch { throw new HttpError(502, "the Bitcoin data source returned invalid JSON", "SOURCE_INVALID"); }
 }
 
 interface Fees {
@@ -31,6 +32,11 @@ export async function bitcoinFees() {
     mempool<{ count: number; vsize: number; total_fee: number }>("/mempool"),
     mempool<number>("/blocks/tip/height"),
   ]);
+  const nonnegative = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER / 141;
+  if (!fees || !pool || ![fees.fastestFee, fees.halfHourFee, fees.hourFee, fees.economyFee, fees.minimumFee].every(nonnegative)
+    || ![pool.count, pool.vsize, pool.total_fee, height].every(v => nonnegative(v) && Number.isSafeInteger(v))) {
+    throw new HttpError(502, "the Bitcoin data source returned incomplete or invalid fee data", "SOURCE_INVALID");
+  }
   return {
     network: "bitcoin",
     unit: "sat/vB",
@@ -43,6 +49,9 @@ export async function bitcoinFees() {
     },
     // A plain one-input, two-output SegWit payment is about 141 vB.
     typicalPaymentSats: { nextBlock: fees.fastestFee * 141, hour: fees.hourFee * 141 },
+    typicalPaymentVbytes: 141,
+    source: API,
+    limitations: ["Estimates do not guarantee confirmation time", "141 vB assumes one input and two outputs in a typical SegWit payment; actual transaction size varies", "Source endpoints are fetched concurrently, not as an atomic snapshot"],
     mempool: { transactions: pool.count, vsize: pool.vsize, totalFeesBtc: pool.total_fee / SATS },
     blockHeight: height,
     checkedAt: new Date().toISOString(),

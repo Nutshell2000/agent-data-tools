@@ -4,23 +4,18 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
-import { ENDPOINTS, SERVICE_ID, SERVICE_NAME, type Endpoint } from "./discovery";
+import { ENDPOINTS, MCP_SERVER_VERSION, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
+import { withMcpRevenue } from "./lib/revenue";
+import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
+import { toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
 
-export const toolName = (e: Endpoint) => e.path.slice(1);
-
-const inputShape = (e: Endpoint) =>
-  Object.fromEntries(
-    Object.entries(e.params).map(([name, p]) => {
-      const field = (p.type === "integer" ? z.number().int() : p.type === "number" ? z.number() : z.string()).describe(p.description);
-      return [name, p.required ? field : field.optional()];
-    }),
-  );
+export { toolName } from "./mcp-contract";
 
 /** Images go back as MCP image blocks so clients don't have to parse base64 out of JSON. */
 function toContent(value: unknown) {
@@ -33,13 +28,15 @@ function toContent(value: unknown) {
 }
 
 /** A failed tool returns isError, which makes the payment wrapper cancel the charge. */
-async function runTool(env: Env, e: Endpoint, args: Args) {
+async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Args) {
   try {
-    const result = await TOOLS[e.path](env, (name) => (args[name] === undefined ? undefined : String(args[name])));
-    return { content: toContent(result) };
+    const path: EndpointPath = e.path;
+    const result = await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name])));
+    const { imageBase64: _image, ...structuredContent } = result as Record<string, unknown>;
+    return { content: toContent(result), structuredContent };
   } catch (err) {
     if (!(err instanceof HttpError)) console.error(err);
-    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : "internal error" }] };
+    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : "internal error" }], ...(err instanceof HttpError && err.code ? { structuredContent: { error: err.message, code: err.code } } : {}) };
   }
 }
 
@@ -67,7 +64,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
   const env = c.env;
   const paid = env.PAYWALL !== "off";
   const terms = paid ? await paymentTerms(env) : undefined;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: "1.0.0" });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
 
   for (const e of ENDPOINTS) {
     const handler = (args: Args) => runTool(env, e, args);
@@ -75,35 +72,62 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
       .filter(([, p]) => p.required)
       .map(([name]) => name);
     const callback = terms
-      ? createPaymentWrapper(resourceServer(env), {
-          accepts: terms[e.path],
-          resource: {
-            // The wrapper can't see the tool's name, so the default URL would be a placeholder.
-            url: `mcp://tool/${toolName(e)}`,
-            description: e.description,
-            mimeType: "application/json",
-            serviceName: SERVICE_NAME,
-            tags: e.tags,
-          },
-          extensions: declareDiscoveryExtension({
-            toolName: toolName(e),
-            description: e.description,
-            inputSchema: {
-              type: "object",
-              properties: Object.fromEntries(
-                Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description }]),
-              ),
-              required,
+      ? (() => {
+          const wrapped = createPaymentWrapper(resourceServer(env), {
+            accepts: terms[e.path],
+            resource: {
+              // The wrapper can't see the tool's name, so the default URL would be a placeholder.
+              url: `mcp://tool/${toolName(e)}`,
+              description: e.description,
+              mimeType: "application/json",
+              serviceName: SERVICE_NAME,
+              tags: [...e.tags],
             },
-            output: { example: e.outputExample },
-          }),
-        })(handler as never)
+            extensions: declareDiscoveryExtension({
+              toolName: toolName(e),
+              description: e.description,
+              inputSchema: {
+                type: "object",
+                properties: Object.fromEntries(
+                  Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
+                ),
+                required,
+              },
+              output: { example: e.outputExample },
+            }),
+          })(handler as never) as (args: Args, extra: unknown) => Promise<{
+            isError?: boolean;
+            _meta?: Record<string, unknown>;
+          }>;
+          return withMcpRevenue(
+            e.path,
+            wrapped,
+            () => env.METRICS?.get(env.METRICS.idFromName("global")),
+            (promise) => c.executionCtx.waitUntil(promise),
+          );
+        })()
       : handler;
+    const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
+      const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
+      const paidAttempt = Boolean(meta?.["x402/payment"]);
+      if (paidAttempt) markStage("attempt");
+      try {
+        const result = await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
+        const trace = activeTrace();
+        if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
+        if (trace?.stages.has("settled") && !result.isError) markStage("completed");
+        else if (result.isError && trace?.stages.has("verified") && !trace.stages.has("settlement_failed")) markStage("execution_failed");
+        return { ...result, _meta: { ...result._meta, requestId: trace?.requestId } };
+      } catch (error) {
+        throw error;
+      }
+    });
     mcp.tool(
       toolName(e),
-      `${e.description} Costs ${e.price} in USDC on Base per successful call, paid with x402.`,
-      inputShape(e),
-      callback as never,
+      toolDescription(e),
+      toolInputShape(e, z),
+      toolAnnotations,
+      tracked as never,
     );
   }
 

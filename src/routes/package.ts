@@ -33,6 +33,11 @@ interface Advisory {
   url?: string;
 }
 
+interface PackageInfoOptions {
+  includeWeeklyDownloads?: boolean;
+  maxAdvisoryDetails?: number;
+}
+
 const enc = encodeURIComponent;
 const daysSince = (iso?: string) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / DAY) : null);
 
@@ -45,11 +50,26 @@ async function npmWeeklyDownloads(name: string): Promise<number | null> {
   }
 }
 
-export async function packageInfo(ecosystemParam: string, nameParam: string) {
+export async function packageInfo(
+  ecosystemParam: string,
+  nameParam: string,
+  versionParam?: string,
+  options?: PackageInfoOptions,
+) {
   const system = SYSTEMS[ecosystemParam.trim().toLowerCase()];
   if (!system) throw new HttpError(400, `ecosystem must be one of: ${Object.keys(SYSTEMS).join(", ")}`);
   const name = nameParam.trim();
   if (!name || name.length > 214 || /\s/.test(name)) throw new HttpError(400, "name must be a package name without spaces");
+  const requestedVersion = versionParam?.trim();
+  if (
+    versionParam !== undefined &&
+    (!requestedVersion ||
+      requestedVersion.length > 128 ||
+      /[\s*^~<>|=,\[\]()]/.test(requestedVersion) ||
+      ["latest", "next"].includes(requestedVersion.toLowerCase()))
+  ) {
+    throw new HttpError(400, "version must be an exact version, not a range or tag");
+  }
 
   const pkg = await deps<Pkg>(`systems/${system}/packages/${enc(name)}`);
   if (!pkg?.versions?.length) {
@@ -62,20 +82,48 @@ export async function packageInfo(ecosystemParam: string, nameParam: string) {
       flags: ["not-found"],
       note: "No package with this name is published. If an AI model suggested it, the name may be invented; do not install a look-alike.",
       source: "deps.dev",
+      ...(requestedVersion ? { version: requestedVersion, versionExists: false, retrievedAt: new Date().toISOString() } : {}),
     };
   }
 
   const dated = pkg.versions.filter((v) => v.publishedAt).sort((a, b) => Date.parse(a.publishedAt!) - Date.parse(b.publishedAt!));
   const latest = pkg.versions.find((v) => v.isDefault) ?? dated[dated.length - 1] ?? pkg.versions[pkg.versions.length - 1];
+  const versionInPackageList = requestedVersion
+    ? pkg.versions.find((v) => v.versionKey.version === requestedVersion)
+    : latest;
+  const selectedVersion = requestedVersion ?? latest.versionKey.version;
+  const includeWeeklyDownloads = options?.includeWeeklyDownloads !== false;
   const [version, downloads] = await Promise.all([
-    deps<Version>(`systems/${system}/packages/${enc(name)}/versions/${enc(latest.versionKey.version)}`),
-    system === "npm" ? npmWeeklyDownloads(name) : Promise.resolve(null),
+    deps<Version>(`systems/${system}/packages/${enc(name)}/versions/${enc(selectedVersion)}`),
+    system === "npm" && includeWeeklyDownloads ? npmWeeklyDownloads(name) : Promise.resolve(null),
   ]);
+  if (requestedVersion && !version) {
+    return {
+      ecosystem: system,
+      name,
+      exists: true,
+      version: requestedVersion,
+      versionExists: false,
+      latestVersion: latest.versionKey.version,
+      verdict: "not-found",
+      flags: ["version-not-found"],
+      note: `Exact version ${requestedVersion} is not listed by deps.dev.`,
+      source: "deps.dev",
+      retrievedAt: new Date().toISOString(),
+      ...(system === "npm" && !includeWeeklyDownloads
+        ? { weeklyDownloads: null, weeklyDownloadsStatus: "not-fetched-subrequest-budget" }
+        : {}),
+    };
+  }
 
   const advisoryIds = (version?.advisoryKeys ?? []).map((a) => a.id);
-  const advisories = (
-    await Promise.all(advisoryIds.slice(0, 5).map(async (id) => ({ id, detail: await deps<Advisory>(`advisories/${enc(id)}`).catch(() => null) })))
-  ).map(({ id, detail }) => ({
+  const advisoryDetailLimit = Math.max(0, Math.min(5, options?.maxAdvisoryDetails ?? 5));
+  const advisoryIdsToFetch = advisoryIds.slice(0, advisoryDetailLimit);
+  const fetchedAdvisories = await Promise.all(
+    advisoryIdsToFetch.map(async (id) => ({ id, detail: await deps<Advisory>(`advisories/${enc(id)}`).catch(() => null) })),
+  );
+  const advisoryDetailsUnavailable = fetchedAdvisories.filter(({ detail }) => detail === null).length;
+  const advisories = fetchedAdvisories.map(({ id, detail }) => ({
     id,
     title: detail?.title ?? null,
     cvss: detail?.cvss3Score ?? null,
@@ -85,7 +133,7 @@ export async function packageInfo(ecosystemParam: string, nameParam: string) {
 
   const ageDays = daysSince(dated[0]?.publishedAt);
   const lastReleaseDays = daysSince(latest.publishedAt ?? dated[dated.length - 1]?.publishedAt);
-  const deprecated = Boolean(version?.isDeprecated ?? latest.isDeprecated);
+  const deprecated = Boolean(version?.isDeprecated ?? versionInPackageList?.isDeprecated);
   const flags = [
     ageDays !== null && ageDays < 30 && "very-new",
     pkg.versions.length < 3 && "few-versions",
@@ -114,6 +162,34 @@ export async function packageInfo(ecosystemParam: string, nameParam: string) {
     deprecated,
     knownVulnerabilities: advisoryIds.length,
     advisories,
+    ...(options
+      ? {
+          advisoryIds,
+          advisoryDetailsStatus:
+            advisoryDetailsUnavailable > 0
+              ? "partial"
+              : advisoryIds.length <= advisoryIdsToFetch.length
+                ? "complete"
+                : advisoryDetailLimit === 0
+                  ? "not-fetched-subrequest-budget"
+                  : "partial",
+          advisoryDetailsOmitted: advisoryIds.length - advisoryIdsToFetch.length,
+          advisoryDetailsUnavailable,
+          ...(system === "npm" && !includeWeeklyDownloads
+            ? { weeklyDownloadsStatus: "not-fetched-subrequest-budget" }
+            : {}),
+        }
+      : {}),
+    ...(requestedVersion
+      ? {
+          version: requestedVersion,
+          versionExists: true,
+          versionPublishedAt: versionInPackageList?.publishedAt ?? null,
+          advisoryIds,
+          knownVulnerabilityCountSources: ["deps.dev"],
+          retrievedAt: new Date().toISOString(),
+        }
+      : {}),
     repository: link("SOURCE_REPO"),
     homepage: link("HOMEPAGE"),
     source: "deps.dev",
