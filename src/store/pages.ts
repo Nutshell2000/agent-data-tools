@@ -66,7 +66,7 @@ ${metaTags(title, description, share)}
 <nav><a href="/">${esc(SERVICE_NAME)}</a> / <a href="/store">Store</a></nav>
 ${body}
 <footer>
-<p>Digital downloads, delivered as soon as the payment is seen on chain. Payments are in USDC on Base and can't be reversed, so there are no automatic refunds. If a download is broken or not what was described, <a href="${REPO}/issues">open an issue</a> and we'll put it right.</p>
+<p>Digital downloads unlock after payment confirmation. Direct transfers wait for the network to finalize the payment, so downloads may take longer to unlock. Payments are in USDC on Base and can't be reversed, so there are no automatic refunds. If a download is broken or not what was described, <a href="${REPO}/issues">open an issue</a> and we'll put it right.</p>
 <p>Sold by the maintainer of ${esc(SERVICE_NAME)}. Contact: <a href="${REPO}/issues">${esc(REPO.replace("https://", ""))}/issues</a></p>
 </footer>
 </main>
@@ -76,7 +76,7 @@ ${body}
 
 export function storePage(origin: string, availability: Readonly<Record<string, boolean>>) {
   const lead = PRODUCTS.every((p) => availability[p.slug] === true)
-    ? "Digital products for developers building paid APIs for AI agents. Pay in USDC, download straight away, no account."
+    ? "Digital products for developers building paid APIs for AI agents. Pay in USDC and download after confirmation, no account."
     : "Digital products for developers building paid APIs for AI agents. Browse product details; purchase availability depends on download verification.";
   const cards = PRODUCTS.map(
     (p) => `<div class="card">

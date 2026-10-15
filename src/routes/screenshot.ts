@@ -17,6 +17,7 @@ export async function screenshot(env: Env, rawUrl: string | undefined, fullPageP
   const fullPage = fullPageParam === "true" || fullPageParam === "1";
 
   let browser: Awaited<ReturnType<typeof puppeteer.launch>>;
+  let blockedNavigation = false;
   try {
     browser = await puppeteer.launch(env.BROWSER);
   } catch (e) {
@@ -26,8 +27,22 @@ export async function screenshot(env: Env, rawUrl: string | undefined, fullPageP
 
   try {
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      try {
+        const url = request.url();
+        // Inline browser resources make no outbound network request.
+        if (!/^(data:|blob:|about:blank$)/i.test(url)) parseTarget(url);
+        void request.continue().catch(() => {});
+      } catch {
+        if (request.isNavigationRequest() && request.frame() === page.mainFrame()) blockedNavigation = true;
+        void request.abort("blockedbyclient").catch(() => {});
+      }
+    });
     await page.setViewport({ width: WIDTH, height: HEIGHT });
     const response = await page.goto(target.href, { waitUntil: "networkidle2", timeout: 15_000 });
+    if (blockedNavigation) throw new HttpError(400, "the page redirected to a blocked URL");
+    parseTarget(page.url());
     let height = HEIGHT;
     if (fullPage) {
       // Evaluated in the page, so it is passed as a string (this project has no DOM types).
@@ -47,6 +62,7 @@ export async function screenshot(env: Env, rawUrl: string | undefined, fullPageP
       imageBase64: Buffer.from(image).toString("base64"),
     };
   } catch (e) {
+    if (blockedNavigation) throw new HttpError(400, "the page redirected to a blocked URL");
     if (e instanceof HttpError) throw e;
     const timedOut = e instanceof Error && /timeout/i.test(e.message);
     throw new HttpError(timedOut ? 504 : 502, timedOut ? "the page did not finish loading within 15 seconds" : "the page could not be rendered");

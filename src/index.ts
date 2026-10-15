@@ -6,6 +6,7 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { CAPACITY_LIMITED, ENDPOINTS, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
+import { headPaymentProbe } from "./lib/payment-probe";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
@@ -156,9 +157,7 @@ app.use(async (c, next) => {
   }
   if (c.req.method !== "GET" && c.req.method !== "HEAD") return c.json({ error: "method not allowed; use GET" }, 405);
   if (c.req.method === "HEAD") {
-    // Crawlers probe with HEAD. Answer with the same 402 challenge a GET would get.
-    const probe = await app.fetch(new Request(c.req.url, { method: "GET", headers: c.req.raw.headers }), c.env, c.executionCtx);
-    return new Response(null, { status: probe.status, headers: probe.headers });
+    return headPaymentProbe(c.req.raw, (probe) => app.fetch(probe, c.env, c.executionCtx));
   }
   paywall ??= buildPaywall(c.env);
   return paywall(c, next);

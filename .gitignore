@@ -13,3 +13,6 @@ public/_files/
 
 # Credential for editing our 402 Index listings
 .402index-token
+
+# Local release verification bundle
+.release-build/
