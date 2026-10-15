@@ -1,0 +1,71 @@
+const count = { type: "integer", minimum: 0 };
+const digest = { type: "string", pattern: "^sha256:[a-f0-9]{64}$" };
+export const SITEMAP_OUTPUT_SCHEMA = {
+  type: "object",
+  required: [
+    "url",
+    "finalUrl",
+    "kind",
+    "entries",
+    "reportedEntries",
+    "uniqueReportedLocations",
+    "missingOrInvalidLocations",
+    "duplicateReportedLocations",
+    "rejectedLocationsInPage",
+    "matchingReportedLocations",
+    "contains",
+    "offset",
+    "nextOffset",
+    "hasMore",
+    "warnings",
+    "text",
+    "format",
+    "hashFormat",
+    "contentHash",
+    "sourceHash",
+    "fetchedAt",
+  ],
+  properties: {
+    url: { type: "string" },
+    finalUrl: { type: "string" },
+    kind: { enum: ["urlset", "sitemapindex"] },
+    entries: {
+      type: "array",
+      maxItems: 100,
+      items: {
+        type: "object",
+        required: ["url", "lastModified"],
+        properties: {
+          url: { type: "string", maxLength: 2048 },
+          lastModified: {
+            type: ["string", "null"],
+            maxLength: 80,
+            description:
+              "Source-reported value; not a verified modification time.",
+          },
+        },
+      },
+    },
+    reportedEntries: { ...count, maximum: 1000 },
+    uniqueReportedLocations: { ...count, maximum: 1000 },
+    missingOrInvalidLocations: count,
+    duplicateReportedLocations: count,
+    rejectedLocationsInPage: count,
+    matchingReportedLocations: {
+      ...count,
+      description:
+        "Distinct reported locations matching contains, before public-URL validation of the selected page.",
+    },
+    contains: { type: "string", maxLength: 200 },
+    offset: count,
+    nextOffset: { type: ["integer", "null"], minimum: 0 },
+    hasMore: { type: "boolean" },
+    warnings: { type: "array", items: { type: "string" } },
+    text: { type: "string" },
+    format: { const: "text" },
+    hashFormat: { const: "text" },
+    contentHash: digest,
+    sourceHash: digest,
+    fetchedAt: { type: "string" },
+  },
+};

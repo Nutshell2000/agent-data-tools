@@ -14,7 +14,12 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>new URL(r.url).pathname==='/fail'?new Response('failure',{status:500}):new Response(new URL(r.url).pathname==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1>Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}})}));
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>{
+    const path=new URL(r.url).pathname;
+    if(path==='/sitemap.xml')return new Response('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://public.example/docs/start</loc></url></urlset>',{headers:{'content-type':'application/xml'}});
+    if(path==='/bad-sitemap.xml')return new Response('<urlset><url>',{headers:{'content-type':'application/xml'}});
+    return path==='/fail'?new Response('failure',{status:500}):new Response(path==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1>Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}});
+  }}));
 });
 after(async()=>{await mf?.dispose();});
 function payload(requirements,nonce='3'.repeat(64),url='https://api.test/extract'){
@@ -52,7 +57,7 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,31);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,32);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
@@ -61,4 +66,25 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const summary=await revenue();assert.equal(summary.settlements,2);assert.equal(summary.grossAtomic,'4000');
     const day=Object.values(summary.funnel.days).at(-1);assert.equal(day['mcp:/extract:quote'],1);assert.equal(day['mcp:/extract:attempt'],2);assert.equal(day['mcp:/extract:completed'],1);
   }finally{await client.close();}
+});
+
+
+test('sitemap HTTP and MCP fixtures settle successful output but never malformed XML or HEAD',async()=>{
+  const before=(await revenue()).settlements;
+  const url='https://api.test/sitemap?url=https%3A%2F%2Fpublic.example%2Fsitemap.xml';
+  const quote=await mf.dispatchFetch(url);assert.equal(quote.status,402);
+  const terms=JSON.parse(Buffer.from(quote.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];await quote.body?.cancel();assert.equal(terms.amount,'2000');
+  const headers={'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(terms,'9'.repeat(64),'https://api.test/sitemap'))).toString('base64')};
+  const head=await mf.dispatchFetch(url,{method:'HEAD',headers});assert.equal(head.status,402);await head.body?.cancel();assert.equal((await revenue()).settlements,before);
+  const paid=await mf.dispatchFetch(url,{headers});assert.equal(paid.status,200);assert.ok(paid.headers.has('PAYMENT-RESPONSE'));assert.equal((await paid.json()).entries[0].url,'https://public.example/docs/start');
+  const bad=await mf.dispatchFetch('https://api.test/sitemap?url=https%3A%2F%2Fpublic.example%2Fbad-sitemap.xml',{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(terms,'c'.repeat(64),'https://api.test/sitemap'))).toString('base64')}});assert.equal(bad.status,422);assert.equal((await bad.json()).code,'SITEMAP_INVALID');assert.equal(bad.headers.has('PAYMENT-RESPONSE'),false);
+  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const {StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const client=new Client({name:'offline-sitemap-fixture',version:'1.0.0'});
+  await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:async(input,init)=>{const r=new Request(input,init);return mf.dispatchFetch(r.url,{method:r.method,headers:r.headers,...(r.method==='POST'?{body:await r.text()}:{})});}}));
+  try{
+    const q=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/sitemap.xml'}});assert.equal(q.isError,true);const required=q.structuredContent??JSON.parse(q.content[0].text);
+    const result=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'d'.repeat(64),'mcp://tool/sitemap')}});assert.ok(!result.isError,JSON.stringify(result));assert.equal(result.structuredContent.kind,'urlset');assert.equal(result._meta['x402/payment-response'].success,true);
+    const invalid=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/bad-sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'e'.repeat(60)+'1111','mcp://tool/sitemap')}});assert.equal(invalid.isError,true);assert.equal(invalid.structuredContent.code,'SITEMAP_INVALID');assert.ok(!invalid._meta?.['x402/payment-response']?.success);
+  }finally{await client.close();}
+  const summary=await revenue();assert.equal(summary.settlements,before+2);
 });

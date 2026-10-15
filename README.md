@@ -4,6 +4,7 @@ Operated by **SpellzCode**. Start with [static documentation reading](docs/web-r
 
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Research a technical question from three pages: maximum $0.006](docs/three-page-research.md)
+- [Discover documentation URLs from a sitemap: $0.002](docs/sitemap.md)
 - [Plain-text CLI, capped HTTP and x402 MCP instructions](docs/web-reading.md)
 - [Real cached examples and owned source HTML](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/)
 - [Extraction benchmark and limitations](docs/extraction-quality.md)
@@ -12,11 +13,11 @@ Operated by **SpellzCode**. Start with [static documentation reading](docs/web-r
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-Version 1.1.2 adds a local command builder with POSIX/PowerShell quoting and a three-page research recipe, while preserving immutable 1.1.1 downloads. Reader 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
+Version 1.2.0 adds the bounded `/sitemap` tool and capped `quote-sitemap`/`buy-sitemap` commands. Version 1.1.2 adds a local command builder with POSIX/PowerShell quoting and a three-page research recipe, while preserving immutable 1.1.1 downloads. Reader 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
 
 ## Current revenue operations
 
-The active catalog has 31 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
+The active catalog has 32 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
 `/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
 settlements observed since the ledger was deployed. Its amounts are integer native
 Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
@@ -32,10 +33,11 @@ prices: the two indexed historical receipts are 2,000 atomic units each, while t
 
 The live catalog is authoritative for current tools, prices and trial availability.
 
-A Cloudflare Worker that sells 31 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 32 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
+| `GET /sitemap?url=&contains=&maxUrls=&offset=` | XML sitemap URLs, source-reported dates and pagination (bounded, no crawling) | $0.002 |
 | `GET /extract?url=` | Web page as clean text, headings and links | $0.002 |
 | `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.005 |
 | `GET /domain-report?name=` | Domain trust verdict and email-auth flags | $0.01 |
@@ -68,7 +70,7 @@ A Cloudflare Worker that sells 31 tools to AI agents. Each call is paid in USDC 
 | `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
 | `GET /time?zone=` | Current time and time zone conversion | $0.002 |
 
-The catalog lists 31 paid tools. Free trials are disabled by default. A request with `trial=1` gets the normal 402 challenge unless the Worker variable `TRIALS_ENABLED` is set to exactly `on`; this opt-in is reversible. When enabled, the trial limits are 10 calls per caller per day and 1,000 calls total per day.
+The catalog lists 32 paid tools. Free trials are disabled by default. A request with `trial=1` gets the normal 402 challenge unless the Worker variable `TRIALS_ENABLED` is set to exactly `on`; this opt-in is reversible. When enabled, the trial limits are 10 calls per caller per day and 1,000 calls total per day.
 
 The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at the `/extract` catalog price of $0.002. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes.
 
@@ -94,7 +96,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 ## MCP
 
-The same 31 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
+The same 32 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, MCP tool, OpenAPI document and web page are generated from that catalog.
 

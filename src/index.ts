@@ -1,3 +1,4 @@
+import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
 import { loadReaderDemo } from "./guides/reader-buying";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
@@ -213,6 +214,8 @@ app.get("/openapi.json", (c) => {
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+app.get("/guides/sitemap", c => c.html(sitemapGuideHtml(origin(c.req.url))));
+app.get("/guides/sitemap.md", c => c.text(sitemapGuideMarkdown(origin(c.req.url))));
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
 app.get("/guides/dependency-audit.md", (c) => c.text(auditGuideMarkdown(origin(c.req.url), c.env.PAY_TO)));
 for (const kind of ["web-reading", "bitcoin-fees"] as const) {
@@ -227,12 +230,16 @@ app.get("/health", (c) => c.json({ ok: true }));
 const readerAssets = new Set([
   "/clients/reader/1.1.1/reader-client.mjs", "/clients/reader/1.1.1/SHA256SUMS",
   "/clients/reader/1.1.2/reader-client.mjs", "/clients/reader/1.1.2/SHA256SUMS", "/clients/reader/1.1.2/command-builder.js",
+  "/clients/reader/1.2.0/reader-client.mjs", "/clients/reader/1.2.0/SHA256SUMS", "/clients/reader/1.2.0/command-builder.js",
+  ...["source.xml", "index.xml", "result.json", "manifest.json", "index.html"].map(file => `/examples/sitemap/${file}`),
   "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",
   ...["technical-guide", "short-article", "long-document"].flatMap(id => [`/examples/extract/${id}.json`, `/examples/extract/sources/${id}.html`]),
 ]);
+app.get("/examples/sitemap", c => c.redirect("/examples/sitemap/", 308));
+app.on(["GET", "HEAD"], "/examples/sitemap/", c => c.env.ASSETS.fetch(new Request(new URL("/examples/sitemap/index.html", c.req.url), c.req.raw)));
 app.get("/examples/extract", c => c.redirect("/examples/extract/", 308));
 app.on(["GET", "HEAD"], "/examples/extract/", c => c.env.ASSETS.fetch(new Request(new URL("/examples/extract/index.html", c.req.url), c.req.raw)));
-for (const prefix of ["/examples/extract/*", "/clients/reader/*"]) {
+for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/reader/*"]) {
   app.on(["GET", "HEAD"], prefix, async c => readerAssets.has(c.req.path) ? await c.env.ASSETS.fetch(c.req.raw) : c.json({ error: "not found" }, 404));
 }
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.
