@@ -43,6 +43,19 @@ if (hash(oldClient) !== "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c20
 const oldDir = new URL("../public/clients/reader/1.1.1/", import.meta.url);
 await mkdir(oldDir, { recursive: true });
 for (const file of ["reader-client.mjs", "SHA256SUMS"]) await copyFile(new URL(file, archive), new URL(file, oldDir));
+// Retain the second published version as well, including its browser command builder.
+const archive112 = new URL("../clients/releases/1.1.2/", import.meta.url);
+const old112 = new URL("../public/clients/reader/1.1.2/", import.meta.url);
+await mkdir(old112, { recursive: true });
+const pinned112 = { "reader-client.mjs": "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c205e357a395", "command-builder.js": "5b66356133ae5c307680eae0bcf690e96e14db073ea6005a311723a3e1735cd0" };
+for (const line of (await readFile(new URL("SHA256SUMS", archive112), "utf8")).trim().split("\n")) {
+  const [expected, file] = line.trim().split(/\s+/);
+  if (!["reader-client.mjs", "command-builder.js"].includes(file)) throw Error("Unexpected archived file");
+  const bytes = await readFile(new URL(file, archive112));
+  if (pinned112[file] !== expected || hash(bytes) !== expected) throw Error("Immutable 1.1.2 artifact changed");
+  await copyFile(new URL(file, archive112), new URL(file, old112));
+}
+await copyFile(new URL("SHA256SUMS", archive112), new URL("SHA256SUMS", old112));
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,
@@ -153,3 +166,25 @@ console.log(
     noPayments: true,
   }),
 );
+
+// A real cached sitemap result from owned source; no arbitrary live extraction.
+const { SITEMAP_SOURCE, SITEMAP_INDEX } = await import("../examples/sitemap-sample.mjs");
+const sitemapBundle = await build({entryPoints:["src/routes/sitemap.ts"],bundle:true,write:false,platform:"node",format:"esm"});
+const { sitemap } = await import("data:text/javascript;base64," + Buffer.from(sitemapBundle.outputFiles[0].text).toString("base64"));
+const sitemapDir = new URL("../public/examples/sitemap/", import.meta.url);
+await mkdir(sitemapDir, { recursive: true });
+const previousFetch = globalThis.fetch;
+let sitemapResult;
+try {
+  globalThis.fetch = async input => {
+    if (String(input) !== origin + "/examples/sitemap/source.xml") throw Error("Unexpected sitemap example request");
+    return new Response(SITEMAP_SOURCE,{headers:{"content-type":"application/xml"}});
+  };
+  sitemapResult = await sitemap(origin + "/examples/sitemap/source.xml", "", "2", "0");
+} finally { globalThis.fetch = previousFetch; }
+const sitemapOutput = JSON.stringify({demonstration:true,generatedAt,toolVersion:version,method:"Actual local sitemap tool on owned XML; no payment or customer receipt",result:sitemapResult},null,2)+"\n";
+await writeFile(new URL("source.xml", sitemapDir), SITEMAP_SOURCE);
+await writeFile(new URL("index.xml", sitemapDir), SITEMAP_INDEX);
+await writeFile(new URL("result.json", sitemapDir), sitemapOutput);
+await writeFile(new URL("manifest.json", sitemapDir), JSON.stringify({demonstration:true,generatedAt,toolVersion:version,sourceSha256:hash(SITEMAP_SOURCE),resultSha256:hash(sitemapOutput),limits:"512 KiB compressed/expanded XML, 1000 entries; no crawling or automatic child requests"},null,2)+"\n");
+await writeFile(new URL("index.html", sitemapDir), `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Actual cached sitemap example | SpellzCode</title><style>body{font:17px/1.6 system-ui;max-width:900px;margin:40px auto;padding:0 20px}pre{overflow:auto;background:#8881;padding:20px}a{color:LinkText}</style><h1>Actual cached sitemap result</h1><p>Tool ${version}, generated ${generatedAt}. Owned XML processed locally during build; not a customer purchase or receipt. Live arbitrary sitemap requests cost $0.002 per successful call. A valid empty match is charged.</p><p><a href="/examples/sitemap/source.xml">Owned XML source</a> · <a href="/examples/sitemap/index.xml">Example sitemap index</a> · <a href="/examples/sitemap/result.json">Full result</a> · <a href="/examples/sitemap/manifest.json">Hashes</a></p><pre>${esc(JSON.stringify(sitemapResult,null,2))}</pre><p><a href="/guides/sitemap">Quote and capped purchase instructions</a></p></html>`);

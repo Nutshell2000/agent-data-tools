@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.1.2/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.2.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `SHA256SUMS` from the website, verify the checksum, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -16,3 +16,5 @@ Output is JSON; unsuccessful outcomes exit nonzero. A cap covers one invocation,
 Tests inject an offline facilitator/network response. The actual SDK signing test uses a fixed public test key and performs no network payment, chain transaction or customer purchase.
 
 The published 1.1.1 client is preserved byte-for-byte under clients/releases/1.1.1 and copied into release assets. The command-builder bundle is local-only browser code: no network, wallet or signing APIs.
+
+Version 1.2.0 also supports quote-sitemap and buy-sitemap with --contains, --max-urls and --offset. Both tools share the explicit maximum $0.002 cap and identical fixed payment pins. Published 1.1.1 and 1.1.2 artifacts remain immutable.

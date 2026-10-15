@@ -6,7 +6,7 @@ $0.002 native USDC on Base per successful call. No API account or subscription. 
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.1.2/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.1.2/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.2.0/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:
 
@@ -52,6 +52,7 @@ Use result.markdown to answer the question, result.codeBlocks for literal exampl
 ## What it does
 
 Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger.
+Find public page URLs first with the optional $0.002 sitemap tool: https://agent-data-tools.revmesh2074.workers.dev/guides/sitemap . It does not crawl or buy pages automatically.
 
 ## Output for agents
 

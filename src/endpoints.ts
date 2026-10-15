@@ -1,3 +1,5 @@
+import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
+import { SITEMAP_OUTPUT_EXAMPLE } from "./lib/sitemap-example";
 // What this service sells: its name, its tools and their prices.
 // Everything in discovery.ts, the HTTP routes and the MCP tools is generated from this file.
 import { EXTRACT_OUTPUT_SCHEMA } from "./lib/extract-contract";
@@ -7,7 +9,7 @@ import { EXTRACT_OUTPUT_EXAMPLE } from "./lib/extract-example";
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
 export const SERVICE_SUMMARY =
-  "Read public static documentation as text or Markdown with code, tables, headings and links for $0.002 USDC on Base via x402. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI. No account or API key. No JavaScript rendering, authenticated or paywalled access. Other paid utilities remain available.";
+  "Read public static documentation as text or Markdown with code, tables, headings and links for $0.002 USDC on Base via x402. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI. No account or API key. No JavaScript rendering, authenticated or paywalled access. Discover page URLs first with the optional $0.002 XML sitemap tool. Other paid utilities remain available.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -47,6 +49,22 @@ export const ENDPOINTS = [
       format: { type: "string", description: "Returned representation: text (default), markdown, or both. Structured details are included in every format.", enum: ["text", "markdown", "both"], example: "text" },
     },
     outputExample: EXTRACT_OUTPUT_EXAMPLE,
+  },
+  {
+    path: "/sitemap",
+    price: "$0.002",
+    summary: "Discover documentation URLs from a bounded XML sitemap",
+    description: "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged.",
+    details: "XML only: 512 KiB compressed and expanded, 1000 entries, 8000 XML elements, depth 16, locations up to 2048 characters. DTD declarations are rejected. contains is a case-insensitive substring of source-reported URLs, not semantic search. Pagination counts distinct reported loc values before public-URL validation of the selected page. Returned URLs are not probed; dates are not verified. Index entries are child sitemaps, not pages. DNS-resolution limitations of the public-fetch guard remain.",
+    tags: ["web", "sitemap", "discovery", "research"],
+    params: {
+      url: { type: "string", required: true, description: "Absolute public HTTP(S) XML sitemap URL; child sitemaps are not fetched automatically", example: "https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/source.xml" },
+      contains: { type: "string", description: "Optional case-insensitive URL substring, at most 200 characters", example: "/examples/" },
+      maxUrls: { type: "integer", description: "Reported matching locations examined in one page (1-100, default 25); invalid/nonpublic locations may reduce returned entries", example: 25 },
+      offset: { type: "integer", description: "Offset into distinct reported matching locations (0-1000, default 0); use nextOffset to continue", example: 0 },
+    },
+    outputSchema: SITEMAP_OUTPUT_SCHEMA,
+    outputExample: SITEMAP_OUTPUT_EXAMPLE,
   },
   {
     path: "/domain",

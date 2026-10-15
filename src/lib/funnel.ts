@@ -74,8 +74,8 @@ export async function funnelSummary(storage: DurableObjectStorage) {
 /** Successful reads of published buying resources; no identity or cross-request tracking. */
 export function isDiscoveryVisit(method: string, path: string, status: number): boolean {
   if (method !== "GET" || status < 200 || status >= 300) return false;
-  if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json"].includes(path)) return true;
-  if (/^\/guides\/(web-reading|bitcoin-fees|dependency-audit)(\.md)?$/.test(path)) return true;
+  if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json", "/examples/sitemap/", "/examples/sitemap/manifest.json", "/examples/sitemap/result.json", "/examples/sitemap/source.xml", "/examples/sitemap/index.xml"].includes(path)) return true;
+  if (/^\/guides\/(web-reading|bitcoin-fees|dependency-audit|sitemap)(\.md)?$/.test(path)) return true;
   if (/^\/clients\/reader\/\d+\.\d+\.\d+\/(reader-client\.mjs|SHA256SUMS)$/.test(path)) return true;
   return /^\/examples\/extract\/(technical-guide|short-article|long-document)\.json$/.test(path);
 }

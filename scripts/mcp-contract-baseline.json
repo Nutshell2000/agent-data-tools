@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
+  "version": "1.2.0",
   "tools": [
     {
       "name": "extract",
@@ -32,6 +32,46 @@
               "both"
             ],
             "description": "Returned representation: text (default), markdown, or both. Structured details are included in every format."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "sitemap",
+      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public HTTP(S) XML sitemap URL; child sitemaps are not fetched automatically"
+          },
+          "contains": {
+            "type": "string",
+            "description": "Optional case-insensitive URL substring, at most 200 characters"
+          },
+          "maxUrls": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Reported matching locations examined in one page (1-100, default 25); invalid/nonpublic locations may reduce returned entries"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Offset into distinct reported matching locations (0-1000, default 0); use nextOffset to continue"
           }
         },
         "required": [
