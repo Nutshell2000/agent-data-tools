@@ -172,3 +172,15 @@ Incoming payments show up as USDC transfers to `PAY_TO` on https://basescan.org.
 - `/extract` reads at most 2 MB of a page and waits at most 8 seconds for it.
 - `/token` and `/wallet` use the public Base RPC, which is rate limited. Set `BASE_RPC_URL` to a private endpoint if volume grows.
 - Token capability flags are bytecode heuristics, and for a proxy they describe the proxy, not its implementation.
+
+### Agent-client compatibility evidence
+
+On 15 October 2026, `@agentcash/discovery` 1.7.5 discovered all 31 live routes from our OpenAPI, recognized `/extract` as paid x402 at `0.002 USD`, retrieved the standalone-client guidance and read the full reader schema. This was a wallet-free metadata check, not funded delivery or a customer purchase. AgentCash CLI 0.17.1's `check` command loads an existing wallet; its discovery library can inspect schemas without one. Our standalone `quote` needs no wallet or key.
+
+Reproduce the read-only check with an independently installed discovery library:
+
+```sh
+node scripts/check-agent-discovery.mjs /path/to/@agentcash/discovery/dist/index.js /private/path/evidence.json
+```
+
+The script does not install packages, initialize wallets, sign payments or execute paid extraction. It checks the current production catalog, price, guidance and structured output schema; funded HTTP, CLI and MCP delivery require separate evidence.
