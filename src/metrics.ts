@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
+import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 
 /** What happened to a request for a paid path. */
 export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "marketplace";
@@ -16,9 +17,18 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Counts requests per paid path per day, including gross revenue for x402 settlements.
- * One object holds every counter; it stores no addresses, payers or request contents.
+ * Public reports contain aggregates only. Private settlement records retain payer
+ * and authorization identities for deduplication and operator reconciliation.
  */
 export class Metrics extends DurableObject {
+  async recordSettlement(record: SettlementRecord): Promise<boolean> {
+    return saveSettlement(this.ctx.storage, record);
+  }
+
+  async revenueSummary() {
+    return ledgerSummary(this.ctx.storage);
+  }
+
   async reserveCheckoutAmount(reservation: AmountReservation): Promise<boolean> {
     return reserveAmount(this.ctx.storage, reservation);
   }

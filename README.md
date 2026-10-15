@@ -1,5 +1,24 @@
 # Agent Data Tools
 
+## Current revenue operations
+
+The active catalog has 31 tools and the x402 Seller Kit. Free trials remain disabled.
+`/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
+settlements observed since the ledger was deployed. Its amounts are integer native
+Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
+Receipts preserve transaction, payer, authorization nonce, endpoint and amount evidence
+privately in the existing Durable Object. Signatures and request content are not stored.
+Public responses expose aggregate totals only. A storage error is logged without turning
+an already-settled customer response into another payment request.
+
+These totals remain pending independent chain reconciliation. Fees, expenses and net
+income are not inferred. Historical paid counters cannot be backfilled using today's
+prices: the two indexed historical receipts are 2,000 atomic units each, while today's
+`/btc-fees` challenge is 200 atomic units. Tests and self-payments are never customer income.
+
+The older setup notes below are retained for history; the live catalog is authoritative
+for current tools, prices and trial availability.
+
 A Cloudflare Worker that sells 31 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
