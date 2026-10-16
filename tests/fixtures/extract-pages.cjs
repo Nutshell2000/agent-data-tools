@@ -1,4 +1,11 @@
 module.exports = {
+  permalinks: '<main><h1 id="intro">Guide<a class="headerlink" href="#intro">¶</a></h1><p id="rule">Keep the actual rule.<a class="pilcrow" href="#rule">¶</a></p><p><a href="#rule">Read that rule</a></p><section id="plain"><h2 id="plain-title">No controls here</h2><p>Selected scope.</p></section></main>',
+  permalinkReferences: '<main><h1 id="here">References</h1><p><a class="pilcrow" href="#elsewhere">¶</a> <a href="#here">#</a> <a class="pilcrow" href="https://other.example/page#here">¶</a> <a class="PILCROW" href="#here">¶</a> <a class="permalink" href="#here">Full reference</a> <a class="pilcrow" href="#bad%ZZ">¶</a></p><div id="elsewhere">Actual target.</div></main>',
+  permalinkLiteral: '<main><pre id="literal"><code>first  \n<a class="pilcrow" href="#literal">¶</a>\n    last</code></pre><p>Literal prose ¶ and # remain.</p></main>',
+  permalinkBase: '<html><head><base href="https://other.example/page"></head><body><main><p id="rule">A source link.<a class="pilcrow" href="#rule">¶</a></p></main></body></html>',
+  permalinkTable: '<main><table><tr><th>Limit</th></tr><tr><td id="cell">42<a class="pilcrow" href="#cell">¶</a></td></tr></table></main>',
+  permalinkBudget: '<main>'+Array.from({length:200},(_,i)=>'<p id="p'+i+'">Rule '+i+'.<a class="pilcrow" href="#p'+i+'">¶</a></p>').join('')+'<pre><code>'+'x'.repeat(12000)+'</code></pre></main>',
+
   tableBoundaries: '<main><table><caption>API<br>permissions</caption><tr><th>Operations</th><th>Notes</th></tr><tr><td>Read<br>Write</td><td><p>First rule</p><p>Second rule</p></td></tr><tr><td><ul><li>Open</li><li>Close</li></ul></td><td><code>read</code>Only <span hidden>SECRET</span><span>visible</span><img alt="state diagram"></td></tr></table></main>',
   manyTables: '<main>'+Array.from({length:21},(_,i)=>'<table><tr><td>table_'+i+'</td><td>value_'+i+'</td></tr></table>').join('')+'<table>'+Array.from({length:110},(_,i)=>'<tr><td>row_'+i+'</td><td>data_'+i+'</td></tr>').join('')+'</table></main>',
   codeWhitespace: '<main><pre><code class="language-text">first  \n\n\n\n    second\nlast  </code></pre></main>',

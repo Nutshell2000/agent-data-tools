@@ -17,6 +17,7 @@ before(async()=>{
   mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
     if(new URL(r.url).hostname==='mempool.space'){const value=path.endsWith('recommended')?(feeScenario==='invalid'?{fastestFee:3}:{fastestFee:3,halfHourFee:2,hourFee:1,economyFee:1,minimumFee:1}):path.endsWith('height')?950000:{count:20,vsize:10000,total_fee:20000};return Response.json(value);}
+    if(path==='/permalink-only')return new Response('<main><p id=empty><a class=pilcrow href="#empty">¶</a></p></main>',{headers:{'content-type':'text/html'}});
     if(path==='/image-described')return new Response('<main><img alt="Source says retry at most three times" src="https://unfetched.invalid/image.png"></main>',{headers:{'content-type':'text/html'}});
     if(path==='/image-undescribed')return new Response('<main><img src="https://unfetched.invalid/image.png"></main>',{headers:{'content-type':'text/html'}});
     if(path==='/sitemap.xml')return new Response('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://public.example/docs/start</loc></url></urlset>',{headers:{'content-type':'application/xml'}});
@@ -133,4 +134,12 @@ test('Bitcoin fee HTTP/MCP purchases settle valid data and never charge invalid 
  try{await c.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));feeScenario='valid';const good=await c.callTool({name:'btc-fees',arguments:{},_meta:{'x402/payment':payload(terms,'b'.repeat(60)+'cd03','mcp://tool/btc-fees')}});assert.ok(!good.isError,JSON.stringify(good));assert.equal(good.structuredContent.source,'https://mempool.space/api');assert.equal(good._meta['x402/payment-response'].success,true);
  feeScenario='invalid';const bad=await c.callTool({name:'btc-fees',arguments:{},_meta:{'x402/payment':payload(terms,'b'.repeat(60)+'cd04','mcp://tool/btc-fees')}});assert.equal(bad.isError,true);assert.equal(errorBody(bad).code,'SOURCE_INVALID');assert.ok(!bad._meta?.['x402/payment-response']?.success);
  }finally{feeScenario='valid';await c.close();}assert.equal((await revenue()).settlements,before+2);
+});
+
+test('permalink-only pages fail as empty over paid HTTP/MCP fixtures without settlement',async()=>{
+ const before=(await revenue()).settlements,url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Fpermalink-only';const q=await mf.dispatchFetch(url);assert.equal(q.status,402);const terms=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];await q.body?.cancel();
+ const failed=await mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(terms,'d'.repeat(60)+'de01'))).toString('base64')}});assert.equal(failed.status,422);assert.equal((await failed.json()).code,'EXTRACTION_EMPTY');assert.equal(failed.headers.has('PAYMENT-RESPONSE'),false);
+ const{Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const c=new Client({name:'offline-permalink-flow',version:'1'});
+ try{await c.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));await c.listTools();const bad=await c.callTool({name:'extract',arguments:{url:'https://public.example/permalink-only'},_meta:{'x402/payment':payload(terms,'d'.repeat(60)+'de02','mcp://tool/extract')}});assert.equal(bad.isError,true);assert.equal(errorBody(bad).code,'EXTRACTION_EMPTY');assert.ok(!bad._meta?.['x402/payment-response']?.success);
+ }finally{await c.close();}assert.equal((await revenue()).settlements,before);
 });
