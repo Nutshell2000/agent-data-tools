@@ -1,9 +1,9 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date declarations with provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Known permalink controls are omitted. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,

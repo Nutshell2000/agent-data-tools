@@ -6,6 +6,7 @@ type Node = {
   tag: string;
   attrs: Record<string, string>;
   children: (Node | string)[];
+  omitPermalink?: true;
 };
 const skip = new Set([
   "head",
@@ -46,7 +47,7 @@ const concealed = (n: Node) =>
   /(?:^|\s)cookie[-_](?:banner|notice|consent)(?:$|\s)/i.test(
     n.attrs.class ?? "",
   );
-const hidden = (n: Node) => skip.has(n.tag) || concealed(n);
+const hidden = (n: Node) => n.omitPermalink || skip.has(n.tag) || concealed(n);
 const imageAlt = (n: Node) => n.attrs.alt === undefined ? null : squash(n.attrs.alt);
 const imageLabel = (n: Node) => { const alt=imageAlt(n); return alt ? `[Image alt text: ${alt}]` : ""; };
 const raw = (n: Node, includeImageAlt = false): string => {
@@ -65,6 +66,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   const root: Node = { tag: "root", attrs: {}, children: [] },
     stack = [root],
     all: Node[] = [];
+  const parents = new Map<Node, Node>();
   let count = 0;
   new Parser(
     {
@@ -76,6 +78,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
             "EXTRACTION_COMPLEXITY",
           );
         const n: Node = { tag, attrs, children: [] };
+        parents.set(n, stack[stack.length - 1]);
         stack[stack.length - 1].children.push(n);
         stack.push(n);
         all.push(n);
@@ -114,8 +117,25 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   const linkBaseUrl = resolvedBase ?? base;
   const baseWarnings = declaredBase ? [resolvedBase ? "document_base_applied" : "document_base_ignored"] : [];
   const safeUrl = (v?: string) => v ? resolveHttpUrl(v, linkBaseUrl) : null;
+  // Known documentation permalink affordances are not article content. Require a
+  // marker-only link, a same-document destination and an exact ancestor target.
+  // Literal pre/code content and ordinary references keep their source text.
+  const documentUrl = new URL(base); documentUrl.hash = "";
+  for (const n of all) {
+    if(n.tag !== "a" || !/(?:^|\s)(?:pilcrow|headerlink|permalink)(?:$|\s)/.test(n.attrs.class ?? "") || !/^[¶#]$/.test(squash(raw(n)))) continue;
+    const href = safeUrl(n.attrs.href);
+    if(!href) continue;
+    const destination=new URL(href),fragment=destination.hash.slice(1); destination.hash="";
+    if(!fragment || destination.href!==documentUrl.href) continue;
+    let target:string; try{target=decodeURIComponent(fragment);}catch{continue;}
+    let matched=false,literal=false;
+    for(let ancestor=parents.get(n);ancestor;ancestor=parents.get(ancestor)) {
+      if(ancestor.tag==="pre" || ancestor.tag==="code") literal=true;
+      if(ancestor.attrs.id===target) matched=true;
+    }
+    if(matched && !literal) n.omitPermalink=true;
+  }
   const visible: Node[] = [];
-  const parents = new Map<Node, Node>();
   const scan = (n: Node) => {
     if (hidden(n)) return;
     visible.push(n);
@@ -154,6 +174,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   const selected =
     candidates[0]?.n ?? visible.find((n) => n.tag === "body") ?? root;
   let renderRoot = selected;
+  let scopedPermalinkOmitted = false;
   let section: { id: string; title: string | null; kind: "heading" | "container"; headingLevel: number | null } | null = null;
   if (sectionId !== undefined) {
     const primary: Node[] = [];
@@ -172,6 +193,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       const level = +match.tag[1];
       let active = false, stopped = false;
       const slice = (n: Node): Node | null => {
+        if(n.omitPermalink && active && !stopped) scopedPermalinkOmitted=true;
         if (stopped || concealed(n) || (hidden(n) && n.tag !== "svg")) return null;
         // Retain an inert marker so scoped output can report an uninterpreted diagram.
         if (n.tag === "svg") return active ? { ...n, children: [] } : null;
@@ -218,8 +240,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   const warnings = new Set<string>(baseWarnings);
+  if(scopedPermalinkOmitted) warnings.add("permalink_controls_omitted");
   const inspectVisuals = (n: Node, inLiteralCode = false) => {
     if (concealed(n)) return;
+    if(n.omitPermalink) {warnings.add("permalink_controls_omitted");return;}
     if (n.tag === "svg") { if(!["presentation","none"].includes(n.attrs.role)) warnings.add("visual_content_omitted"); return; }
     if (hidden(n)) return;
     if (n.tag === "canvas" && !["presentation","none"].includes(n.attrs.role)) warnings.add("visual_content_omitted");
@@ -259,6 +283,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     n: Node,
     inheritedLanguage: string | null = null,
   ): { text: string; md: string } => {
+    if(n.omitPermalink) {warnings.add("permalink_controls_omitted");return {text:"",md:""};}
     if (hidden(n)) return { text: "", md: "" };
     if (n.tag === "img") {
       const label=imageLabel(n);

@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.1/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -40,3 +40,5 @@ Version 1.5.1 resolves HTML links/canonical against the first supported declared
 Version 1.6.0 adds sourceMetadata: bounded unverified author and date declarations with provenance, page identity selection and local author-reference resolution. No external contexts or profiles are fetched; dates are not normalized or independently verified. Metadata limits do not erase readable body content. Prior 1.5.1 website and repository downloads stay unchanged.
 
 Version 1.7.0 advertises exact successful-result JSON schemas for the remote MCP extract, sitemap and btc-fees tools, shared with OpenAPI. Both HTTP and remote MCP validate these results before settlement. MCP quotes and errors use JSON text content with isError=true; parse content[0].text for payment requirements or error codes. They have no successful structuredContent. Other tools do not yet advertise output schemas. Prior downloads remain unchanged. Offline payment fixtures validate charge cancellation; genuine funded delivery remains unverified.
+
+Reader 1.7.1 omits clearly identified same-document permalink controls from HTML prose/Markdown and link metadata, retaining real references, literal code, heading IDs and section scope. permalink_controls_omitted discloses the cleanup. Current clients retain the same payment controls; all six 1.7.0 downloads, including the repository release, remain unchanged.
