@@ -100,3 +100,13 @@ test('permalink controls in table cells are omitted with an explicit warning and
 test('many permalink controls leave the structured code budget for literal code rather than navigation',async()=>{
  const v=await result('permalinkBudget',{format:'both',maxChars:'100000'});assert.equal(v.codeBlocks[0].text.length,12000);assert.equal(v.codeBlocks[0].truncated,false);assert.equal(v.links.length,0);assert.equal(v.truncated,false);assert.ok(!v.warnings.includes('details_truncated'));assert.ok(v.warnings.includes('permalink_controls_omitted'));
 });
+
+test('superscript and subscript retain distinct meaning without changing literal code',async()=>{
+ const v=await result('notation',{format:'both'});assert.match(v.text,/Maximum 2\^\{31\}; water H_\{2\}O; nested x\^\{a_\{i\}\}/);assert.ok(v.markdown.includes('2^{31}'));assert.ok(v.markdown.includes('H\\_{2}O'));assert.match(v.text,/cite\^\{1\}/);assert.ok(v.links.some(l=>l.text==='1'));assert.ok(v.markdown.includes('`x2 + yi`'));assert.equal(v.codeBlocks[0].text,'231\nH2O');assert.ok(v.warnings.includes('superscript_subscript_normalized'));assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+test('table values and selected heading titles preserve superscript and subscript notation',async()=>{
+ const v=await result('notationTable',{format:'both',section:'limit'});assert.equal(v.section.title,'Capacity 2^{31}');assert.equal(v.headings[0].text,'Capacity 2^{31}');assert.equal(v.tables[0].caption,'H_{2}O');assert.deepEqual(v.tables[0].rows,[['Term','Value'],['Power','2^{31}'],['Index','x_{i}'],['Code','x2']]);assert.ok(v.markdown.includes('x\\_{i}'));assert.ok(v.warnings.includes('superscript_subscript_normalized'));
+});
+test('literal code, empty and hidden annotations add no invented notation or out-of-scope warning',async()=>{
+ const v=await result('notationLiteral',{format:'both',section:'plain'});assert.equal(v.codeBlocks[0].text,'231\nH2O');assert.ok(!v.warnings.includes('superscript_subscript_normalized'));assert.ok(!v.text.includes('99'));assert.ok(!v.text.includes('^{}'));assert.ok(!v.text.includes('Other'));
+});

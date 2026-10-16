@@ -50,9 +50,12 @@ const concealed = (n: Node) =>
 const hidden = (n: Node) => n.omitPermalink || skip.has(n.tag) || concealed(n);
 const imageAlt = (n: Node) => n.attrs.alt === undefined ? null : squash(n.attrs.alt);
 const imageLabel = (n: Node) => { const alt=imageAlt(n); return alt ? `[Image alt text: ${alt}]` : ""; };
-const raw = (n: Node, includeImageAlt = false): string => {
+const raw = (n: Node, includeImageAlt = false, notation = false, literal = false): string => {
   if (includeImageAlt && n.tag === "img") return imageLabel(n);
-  return n.children.map(c=>typeof c === "string" ? c : hidden(c) ? "" : raw(c,includeImageAlt)).join("");
+  const inLiteral = literal || n.tag === "pre" || n.tag === "code";
+  const text = n.children.map(c=>typeof c === "string" ? c : hidden(c) ? "" : raw(c,includeImageAlt,notation,inLiteral)).join("");
+  return notation && !inLiteral && (n.tag === "sup" || n.tag === "sub") && text.trim()
+    ? `${n.tag === "sup" ? "^" : "_"}{${text}}` : text;
 };
 const longestTicks = (s: string) => {
   let longest = 0;
@@ -207,7 +210,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         return children.length || n === match || (active && !stopped) ? { ...n, children } : null;
       };
       renderRoot = slice(selected)!;
-      section = { id: sectionId, title: squash(raw(match)).slice(0,1000) || null, kind: "heading", headingLevel: level };
+      section = { id: sectionId, title: squash(raw(match,false,true)).slice(0,1000) || null, kind: "heading", headingLevel: level };
     } else if (["section", "article", "main", "div"].includes(match.tag)) {
       renderRoot = match;
       const findHeading = (n: Node): Node | undefined => {
@@ -216,7 +219,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         for(const c of n.children) if(typeof c !== "string") { const found=findHeading(c); if(found) return found; }
       };
       const firstHeading = findHeading(match);
-      section = { id: sectionId, title: firstHeading ? squash(raw(firstHeading)).slice(0,1000) || null : null, kind: "container", headingLevel: null };
+      section = { id: sectionId, title: firstHeading ? squash(raw(firstHeading,false,true)).slice(0,1000) || null : null, kind: "container", headingLevel: null };
     } else throw new HttpError(422, "Section ID must identify a heading, heading anchor, section, article, main or div", "EXTRACTION_SECTION_UNSUPPORTED");
   }
   // Protect literal blocks from prose cleanup. The prefix cannot occur in decoded source text.
@@ -241,6 +244,12 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .trim();
   const warnings = new Set<string>(baseWarnings);
   if(scopedPermalinkOmitted) warnings.add("permalink_controls_omitted");
+  const normalizeNotation = (n: Node, value: string, markdown = false, literal = false): string => {
+    if((n.tag !== "sup" && n.tag !== "sub") || !value.trim() || literal) return value;
+    warnings.add("superscript_subscript_normalized");
+    const marker = n.tag === "sup" ? "^" : markdown ? "\\_" : "_";
+    return `${marker}{${value}}`;
+  };
   const inspectVisuals = (n: Node, inLiteralCode = false) => {
     if (concealed(n)) return;
     if(n.omitPermalink) {warnings.add("permalink_controls_omitted");return;}
@@ -282,6 +291,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   const render = (
     n: Node,
     inheritedLanguage: string | null = null,
+    inLiteralCode = false,
   ): { text: string; md: string } => {
     if(n.omitPermalink) {warnings.add("permalink_controls_omitted");return {text:"",md:""};}
     if (hidden(n)) return { text: "", md: "" };
@@ -321,11 +331,11 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       let hasSpans = false;
       // Cell markup carries word boundaries even when source HTML has no whitespace.
       // Keep the established single-line cell contract while retaining those boundaries.
-      const cellContent = (cell: Node): string => {
+      const cellContent = (cell: Node, literal = inLiteralCode): string => {
         if (hidden(cell)) return "";
         if (cell.tag === "img") return ` ${imageLabel(cell)} `;
         if (cell.tag === "br" || cell.tag === "hr") return " ";
-        const value = cell.children.map(c => typeof c === "string" ? c : cellContent(c)).join("");
+        const value = normalizeNotation(cell,cell.children.map(c => typeof c === "string" ? c : cellContent(c,literal || cell.tag === "code" || cell.tag === "pre")).join(""),false,literal);
         return block.has(cell.tag) || /^h[1-6]$/.test(cell.tag) || ["tr", "td", "th", "li", "pre"].includes(cell.tag)
           ? ` ${value} ` : value;
       };
@@ -431,7 +441,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         if (validOrdinal(item.attrs.value)) ordinal = Number(item.attrs.value);
         const marker = n.tag === "ol" ? `${ordinal}.` : "-";
         ordinal += reversed ? -1 : 1;
-        const rendered = render(item, languageHint);
+        const rendered = render(item, languageHint,inLiteralCode);
         const indent = " ".repeat(marker.length + 1);
         const format = (s: string) => {
           const lines = restore(tidy(s)).split("\n");
@@ -459,7 +469,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     const children = n.children.map((c) =>
       typeof c === "string"
         ? { text: c.replace(/\s+/g, " "), md: escape(c.replace(/\s+/g, " ")) }
-        : render(c, languageHint),
+        : render(c, languageHint,inLiteralCode || n.tag === "code"),
     );
     let text = children.map((c) => c.text).join(""),
       md = children.map((c) => c.md).join("");
@@ -491,6 +501,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     if (n.tag === "code") {
       const fence = "`".repeat(Math.max(1, longestTicks(text) + 1));
       md = text.includes("`") ? `${fence} ${text} ${fence}` : "`" + text + "`";
+    }
+    if (n.tag === "sup" || n.tag === "sub") {
+      text = normalizeNotation(n,text,false,inLiteralCode);
+      md = normalizeNotation(n,md,true,inLiteralCode);
     }
     if (n.tag === "strong" || n.tag === "b") md = `**${md}**`;
     if (n.tag === "em" || n.tag === "i") md = `*${md}*`;
