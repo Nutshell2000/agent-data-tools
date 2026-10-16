@@ -22,3 +22,7 @@ const localBundle = await build({entryPoints:["src/guides/local-mcp.ts"],bundle:
 const localGuide = await import("data:text/javascript;base64,"+Buffer.from(localBundle.outputFiles[0].text).toString("base64"));
 const currentVersion = JSON.parse(await (await import("node:fs/promises")).readFile("package.json","utf8")).version;
 await writeFile("docs/local-mcp.md", localGuide.localMcpMarkdown(origin,currentVersion));
+const skillBundle = await build({entryPoints:["src/guides/reader-skill.ts"],bundle:true,platform:"node",format:"esm",write:false});
+const skill = await import("data:text/javascript;base64,"+Buffer.from(skillBundle.outputFiles[0].text).toString("base64"));
+await mkdir(`skills/${skill.READER_SKILL_NAME}`,{recursive:true});
+await writeFile(`skills/${skill.READER_SKILL_NAME}/SKILL.md`,skill.readerSkillMarkdown(origin,currentVersion));

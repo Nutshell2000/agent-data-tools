@@ -165,6 +165,17 @@ test('single-file checksum routes are explicit public assets and linked by the b
  for(const route of ['/','/guides/web-reading','/guides/local-mcp','/guides/sitemap']){const html=await(await call(route,'GET','text/html')).text();assert.ok(html.includes('.mjs.sha256'),route);assert.ok(html.includes('Get-FileHash'),route);}
  assert.equal((await call('/clients/reader/1.3.0/anything.sha256')).status,404);
 });
+test('buyer skill GET/HEAD is free, byte-consistent and discoverable without exposing arbitrary skills files',async()=>{
+ const route='/skills/spellzcode-x402-reader/SKILL.md';
+ const response=await call(route);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/markdown/);assert.equal(response.headers.has('PAYMENT-REQUIRED'),false);
+ assert.equal(await response.text(),(await fs.readFile('skills/spellzcode-x402-reader/SKILL.md','utf8')).replaceAll('https://agent-data-tools.revmesh2074.workers.dev','https://api.test'));
+ const head=await call(route,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
+ const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.3.0');
+ const card=await(await call('/')).json();assert.equal(card.docs.buyerSkill,'https://api.test'+route);
+ for(const p of ['/','/guides/web-reading','/llms.txt']){const text=await(await call(p,'GET','text/html')).text();assert.ok(text.includes(route),p);}
+ assert.equal((await call('/skills/spellzcode-x402-reader/private.json')).status,404);
+ assert.equal((await call('/skills/unknown/SKILL.md')).status,404);
+});
 
 test('local MCP guide and downloadable adapter are available without paid work',async()=>{
   const html=await(await call('/guides/local-mcp','GET','text/html')).text();

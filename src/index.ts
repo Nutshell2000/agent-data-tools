@@ -1,5 +1,6 @@
 import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
 import { localMcpHtml, localMcpMarkdown } from "./guides/local-mcp";
+import { readerSkillMarkdown, readerSkillIndex } from "./guides/reader-skill";
 import { loadReaderDemo } from "./guides/reader-buying";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
@@ -228,6 +229,9 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
 app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
+// Owned buyer instructions only. No installation, wallet work or paid execution.
+app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),MCP_SERVER_VERSION)));
+app.on(["GET","HEAD"],"/skills/spellzcode-x402-reader/SKILL.md",c=>c.body(readerSkillMarkdown(origin(c.req.url),MCP_SERVER_VERSION),200,{"Content-Type":"text/markdown; charset=utf-8"}));
 
 // Static, generated public examples and client artifacts. No arbitrary-URL proxy or paid work.
 const readerAssets = new Set([
