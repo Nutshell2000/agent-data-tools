@@ -98,7 +98,7 @@ test('adapter default runner preserves payment pins and redirect refusal before 
 });
 test('standalone stdio bundle runs outside checkout and exposes only unpaid tools by default',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'reader-mcp-'));
- const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.5.0/reader-mcp.mjs',file);
+ const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.5.1/reader-mcp.mjs',file);
  const transport=new StdioClientTransport({command:process.execPath,args:[file],cwd:dir,env:{X402_PRIVATE_KEY:''},stderr:'pipe'});
  let stderr='';transport.stderr.on('data',chunk=>stderr+=chunk);
  const client=new Client({name:'stdio-bundle-test',version:'1'});
