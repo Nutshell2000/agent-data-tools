@@ -1,4 +1,4 @@
-import { readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
+import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, type Endpoint } from "./endpoints";
 
 export * from "./endpoints";
@@ -170,7 +170,7 @@ a { color:var(--accent); overflow-wrap:anywhere; }
 .wrap { overflow-x:auto; }
 pre { overflow-x:auto; padding:16px; border:1px solid var(--line); border-radius:6px; background:var(--code); white-space:pre; }
 pre code { padding:0; background:transparent; }
-input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}</style>
+input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}${readerBuyingCss}</style>
 </head>
 <body>
 <main>
