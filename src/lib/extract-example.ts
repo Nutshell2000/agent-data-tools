@@ -4,6 +4,7 @@ export const EXTRACT_OUTPUT_EXAMPLE = {
   "finalUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
   "status": 200,
   "contentType": "text/html;charset=utf-8",
+  "sourceFormat": "html",
   "title": "Owned sample: short article",
   "description": null,
   "lang": "en",
@@ -28,5 +29,5 @@ export const EXTRACT_OUTPUT_EXAMPLE = {
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
   "hashFormat": "text",
-  "fetchedAt": "2026-10-15T22:22:16.615Z"
+  "fetchedAt": "2026-10-16T06:19:21.568Z"
 };

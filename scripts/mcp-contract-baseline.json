@@ -1,9 +1,9 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML/plain text as text or Markdown, with code, tables, links, heading IDs, source image alt text and a content hash. Optional exact section ID focuses a heading or container. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, missing/ambiguous sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read public static HTML, Markdown or plain text as text or Markdown, with code, tables, links, heading IDs, source image alt text and a content hash. Optional exact section ID focuses a heading or container. Default 20,000 characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, missing/ambiguous sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -31,7 +31,7 @@
               "markdown",
               "both"
             ],
-            "description": "Returned representation: text (default), markdown, or both. Structured details are included in every format."
+            "description": "Returned representation: text (default), markdown, or both. HTML structured details are included in every format; Markdown/plain sources have empty details."
           },
           "section": {
             "type": "string",
