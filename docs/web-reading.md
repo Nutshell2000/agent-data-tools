@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -133,6 +133,7 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "status": 200,
   "contentType": "text/html;charset=utf-8",
   "sourceFormat": "html",
+  "linkBaseUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
   "title": "Owned sample: short article",
   "description": null,
   "lang": "en",
@@ -157,7 +158,7 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
   "hashFormat": "text",
-  "fetchedAt": "2026-10-16T06:19:21.568Z"
+  "fetchedAt": "2026-10-16T06:36:17.164Z"
 }
 ```
 
@@ -248,9 +249,13 @@ try {
 
 Both examples reject the wrong recipient, network, asset, scheme or a quote above $0.002. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
 
+## Source link resolution
+
+HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
+
 ## Direct Markdown documents
 
-The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use finalUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
+The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use linkBaseUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
 
 Real owned Markdown source and cached output: https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/markdown-guide.md and https://agent-data-tools.revmesh2074.workers.dev/examples/extract/markdown-guide.json . Cached output is a demonstration, not a receipt.
 
