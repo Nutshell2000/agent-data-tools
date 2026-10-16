@@ -4,6 +4,8 @@ Run `npm ci` and `npm run build:reader` in the source checkout. The generated st
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
+The [1.5.1 repository release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.5.1) provides the same six published files as a fallback download. Choose the CLI executable and its one-file checksum, or the MCP adapter and its one-file checksum. Keep their filenames unchanged and verify before running; the release notes link to shell-specific verification and setup instructions. The release is pinned to source commit `651be3de54798b3fda285dad5a24457bd0778bfa`. No wallet or payment is needed to download or inspect it.
+
 ```sh
 node reader-client.mjs quote https://example.com --format both
 node reader-client.mjs buy https://example.com --max-usdc 0.002 --format both
