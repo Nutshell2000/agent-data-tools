@@ -1,2 +1,4 @@
 # Published client artifacts must remain byte-for-byte identical on every checkout.
 clients/releases/** -text
+# Buyer instruction downloads and repository copies use the same bytes across hosts.
+skills/**/SKILL.md text eol=lf
