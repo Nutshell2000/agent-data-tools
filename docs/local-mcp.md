@@ -1,6 +1,6 @@
 # Read documentation from an existing MCP agent
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/reader-mcp.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/reader-mcp.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-mcp.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-mcp.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -25,7 +25,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-mcp.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 
 ## Start without spending

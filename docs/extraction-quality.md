@@ -1,5 +1,9 @@
 # Reader quality evidence — 16 October 2026
 
+## Reader 1.7.2: preserve superscript and subscript meaning
+
+The pinned RFC 9111 source contains 2 followed by superscript 31. Earlier output merged them as 231; 1.7.2 retains 2^{31}. HTML subscripts use _{...}. Authored regressions cover nested notation, source references, literal code, table values/captions, scoped heading titles and warnings. This is source-markup preservation, not general formula interpretation. Both long RFC snapshots still exceed the Markdown output cap. No competitor output was purchased and no customer outcome is inferred.
+
 ## Reader 1.7.1: remove documentation permalink controls
 
 The 1.7.1 patch omits source-declared paragraph and heading permalink controls when their marker and same-document ancestor target match. Real references, literal code and ordinary symbols remain. On the same pinned snapshots, generated Markdown falls from 130,608 to 106,128 characters for RFC 9111 and from 739,470 to 603,532 for RFC 9110. These are generated character counts before clipping, not token, latency or revenue measurements. Both RFCs still exceed the 100,000-character Markdown limit. New regressions cover code, references, tables, section scope and structured-detail budgets.

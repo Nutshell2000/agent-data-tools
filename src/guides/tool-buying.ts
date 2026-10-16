@@ -136,6 +136,10 @@ The owned technical-guide example includes illustrative author/date declarations
 
 HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
 
+## Superscript and subscript meaning
+
+HTML sup/sub annotations use explicit ^{...} and _{...} notation so an exponent such as 2 to the power 31 does not become the number 231. Markdown escapes the subscript underscore for literal display. The same notation is used in heading titles, section titles, table cells and captions. superscript_subscript_normalized records this interpretation. Literal pre/code content and raw Markdown stay unchanged. This preserves source markup distinctions; it does not evaluate formulas, recognize mathematical meaning, parse MathML or interpret image-based equations. The owned technical guide includes illustrative notation.
+
 ## Documentation permalink controls
 
 Marker-only paragraph and heading permalink controls are omitted from HTML text, Markdown and structured links when their source class is pilcrow, headerlink or permalink and their destination is the same document with an exact ancestor ID. permalink_controls_omitted discloses this cleanup. Other reference links, ordinary prose symbols and literal pre/code content remain. The declared HTML base is honored, so a fragment resolving to another document is retained. Heading IDs and explicit section selection remain available. This is source interpretation, not computed CSS visibility or universal clutter detection. Raw Markdown is unchanged. The owned technical guide includes a heading control to inspect.
