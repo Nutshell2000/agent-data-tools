@@ -61,7 +61,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
   ].join("\n") : bitcoinCliMarkdown(origin);
   const limits = kind === "web-reading"
-    ? "Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger."
+    ? "Static HTML, Markdown and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger."
     : "Current recommended sat/vB fee estimates and mempool context from public Bitcoin data sources. Network conditions change; estimates do not guarantee confirmation time. This tool does not send transactions. The dated result below is illustrative, not a current fee quote.";
   return `# ${g.title} | SpellzCode
 
@@ -79,7 +79,7 @@ ${kind === "web-reading" ? `
 
 Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
 
-codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. Code whitespace and list hierarchy are preserved; clipped code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+For HTML, codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. HTML code whitespace and list hierarchy are preserved; generated code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
 
 Source image alt text is retained in text/Markdown (and table cells) as labelled source descriptions. This is not image interpretation: image bytes are never fetched, and Markdown does not embed remote images. Nonempty alt text adds image_alt_text_only; missing descriptions add images_without_alt. Uninterpreted nondecorative inline SVG/canvas adds visual_content_omitted. Hidden/decorative empty-alt images add no text. Images inside literal code are omitted with images_in_literal_code_omitted so code bytes are not invented. Visual-only pages without usable source text fail before settlement.
 
@@ -122,7 +122,13 @@ ${fence}
 
 Both examples reject the wrong recipient, network, asset, scheme or a quote above ${g.price}. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
 
-## Failure and support
+${kind === "web-reading" ? `## Direct Markdown documents
+
+The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use finalUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
+
+Real owned Markdown source and cached output: ${origin}/examples/extract/sources/markdown-guide.md and ${origin}/examples/extract/markdown-guide.json . Cached output is a demonstration, not a receipt.
+
+` : ""}## Failure and support
 
 Tool execution errors do not settle a charge. A settlement failure returns an error instead of a paid result. If the connection drops after settlement, stop before retrying: a fresh invocation can pay again. Preserve the transaction hash, X-Request-ID (or MCP _meta requestId), tool name and time; report these at ${SUPPORT}. Never post signatures, keys, private URLs or page content. Storage telemetry failures do not ask for a second payment. A returned result indicates server-side completion, not proof that the buyer received it. Refunds require review and are recorded separately.
 

@@ -18,17 +18,24 @@ export async function extract(
     throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
   const res = await fetchPublic(
     target,
-    "text/html,application/xhtml+xml;q=0.9,text/plain;q=0.8",
+    "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8",
   );
   const contentType = res.headers.get("content-type") ?? "";
   const html = /^(text\/html|application\/xhtml\+xml)(?:;|$)/i.test(
     contentType,
   );
-  if (!html && !/^text\/plain(?:;|$)/i.test(contentType))
+  const plain = /^text\/plain(?:;|$)/i.test(contentType);
+  const markdownMime = /^text\/markdown(?:;|$)/i.test(contentType);
+  const finalUrl = res.url || target.href;
+  const markdownPath = plain && /\.(?:md|markdown)$/i.test(new URL(finalUrl).pathname);
+  const markdownSource = markdownMime || markdownPath;
+  if (!html && !plain && !markdownMime) {
+    await res.body?.cancel();
     throw new HttpError(
       415,
       `unsupported content type: ${contentType || "unknown"}`,
     );
+  }
   if (!html && sectionParam !== undefined) {
     await res.body?.cancel();
     throw new HttpError(415, "section selection requires static HTML", "EXTRACTION_SECTION_UNSUPPORTED");
@@ -47,8 +54,7 @@ export async function extract(
   } catch {
     throw new HttpError(415, "unsupported source character encoding");
   }
-  const source = decoder.decode(bytes),
-    finalUrl = res.url || target.href;
+  const source = decoder.decode(bytes);
   const content = html
     ? pageContent(source, finalUrl, maxChars, sectionParam)
     : {
@@ -62,19 +68,19 @@ export async function extract(
         tables: [],
         contentSelection: "plain",
         section: null,
-        warnings: [] as string[],
-        text: source.trim(),
-        markdown: source.trim().replace(/[\\`*_[\]<>|]/g, "\\$&"),
+        warnings: markdownSource ? ["markdown_source_preserved", "markdown_metadata_unparsed", ...(markdownPath ? ["markdown_inferred_from_path"] : [])] : [] as string[],
+        text: markdownSource ? source : source.trim(),
+        markdown: markdownSource ? source : source.trim().replace(/[\\`*_[\]<>|]/g, "\\$&"),
       };
-  if (!content.text)
+  if (!content.text.trim())
     throw new HttpError(422, "No readable static content", "EXTRACTION_EMPTY");
   const { text: fullText, markdown: fullMarkdown, ...metadata } = content;
   const text = fullText.slice(0, maxChars),
-    markdown = clipMarkdown(fullMarkdown, maxChars);
-  if (formatParam === "markdown" && !markdown.trim())
+    markdown = markdownSource ? fullMarkdown.slice(0, maxChars) : clipMarkdown(fullMarkdown, maxChars);
+  if (!(formatParam === "markdown" ? markdown : text).trim())
     throw new HttpError(
       422,
-      "The requested Markdown limit contains no readable content; request text or raise maxChars",
+      "The requested output limit contains no readable content; raise maxChars",
       "EXTRACTION_EMPTY",
     );
   const truncated =
@@ -85,6 +91,8 @@ export async function extract(
   if (truncated) metadata.warnings.push("output_may_be_incomplete");
   if (formatParam !== "text" && fullMarkdown.length > maxChars)
     metadata.warnings.push("markdown_truncated");
+  if (markdownSource && (inputTruncated || fullMarkdown.length > maxChars))
+    metadata.warnings.push("source_markdown_may_be_incomplete");
   const hashFormat = formatParam === "markdown" ? "markdown" : "text";
   const digest = await crypto.subtle.digest(
     "SHA-256",
@@ -95,6 +103,7 @@ export async function extract(
     finalUrl,
     status: res.status,
     contentType,
+    sourceFormat: html ? "html" : markdownSource ? "markdown" : "plain",
     ...metadata,
     format: formatParam,
     ...(formatParam !== "markdown" ? { text } : {}),

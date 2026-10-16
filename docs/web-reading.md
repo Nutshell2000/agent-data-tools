@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.1/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -99,14 +99,14 @@ Result.section records the exact ID, kind, title and headingLevel; null means wh
 
 ## What it does
 
-Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger.
+Static HTML, Markdown and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger.
 Find public page URLs first with the optional $0.002 sitemap tool: https://agent-data-tools.revmesh2074.workers.dev/guides/sitemap . It does not crawl or buy pages automatically.
 
 ## Output for agents
 
 Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
 
-codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. Code whitespace and list hierarchy are preserved; clipped code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+For HTML, codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. HTML code whitespace and list hierarchy are preserved; generated code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
 
 Source image alt text is retained in text/Markdown (and table cells) as labelled source descriptions. This is not image interpretation: image bytes are never fetched, and Markdown does not embed remote images. Nonempty alt text adds image_alt_text_only; missing descriptions add images_without_alt. Uninterpreted nondecorative inline SVG/canvas adds visual_content_omitted. Hidden/decorative empty-alt images add no text. Images inside literal code are omitted with images_in_literal_code_omitted so code bytes are not invented. Visual-only pages without usable source text fail before settlement.
 
@@ -132,6 +132,7 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "finalUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
   "status": 200,
   "contentType": "text/html;charset=utf-8",
+  "sourceFormat": "html",
   "title": "Owned sample: short article",
   "description": null,
   "lang": "en",
@@ -156,7 +157,7 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
   "hashFormat": "text",
-  "fetchedAt": "2026-10-15T22:22:16.615Z"
+  "fetchedAt": "2026-10-16T06:19:21.568Z"
 }
 ```
 
@@ -246,6 +247,12 @@ try {
 ```
 
 Both examples reject the wrong recipient, network, asset, scheme or a quote above $0.002. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
+
+## Direct Markdown documents
+
+The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use finalUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
+
+Real owned Markdown source and cached output: https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/markdown-guide.md and https://agent-data-tools.revmesh2074.workers.dev/examples/extract/markdown-guide.json . Cached output is a demonstration, not a receipt.
 
 ## Failure and support
 

@@ -7,7 +7,7 @@ body:
       value: |
         This report is public. Use a public page or a small authored example that you are allowed to share. Do not include keys, signatures, payment headers, private content or complete third-party documents. A reproduction does not require another paid purchase.
 
-        Static public HTML/plain text is supported. JavaScript rendering, logged-in pages and paywall access are not supported. Source image alt text is retained, but image bytes are not read or interpreted. If payment status is uncertain, stop purchases and use the purchase-problem form.
+        Static public HTML, Markdown or plain text is supported. JavaScript rendering, logged-in pages and paywall access are not supported. Source image alt text is retained, but image bytes are not read or interpreted. If payment status is uncertain, stop purchases and use the purchase-problem form.
   - type: input
     id: version
     attributes:
