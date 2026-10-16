@@ -2,7 +2,7 @@ import { build } from "esbuild";
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { READER_SAMPLES } from "../examples/reader-samples.mjs";
+import { READER_SAMPLES, READER_DIAGRAM } from "../examples/reader-samples.mjs";
 
 const origin = "https://agent-data-tools.revmesh2074.workers.dev";
 const { version } = JSON.parse(
@@ -87,6 +87,12 @@ for(const [file,expected] of Object.entries(pinned121)) {
   if(hash(bytes)!==expected) throw Error("Immutable 1.2.1 artifact changed");
   await copyFile(new URL(file,archive121),new URL(file,old121));
 }
+const pinned130 = {"command-builder.js": "5909385fb9455fb2ed16b9ee4580a534e7541ec668a3e650c8131ae08f53a446", "reader-client.mjs": "4ab8363a3380c3debb56ae552fc4f328281b209992b25d38d02df6b59e9da400", "reader-client.mjs.sha256": "1322406c3b4378363da245fdce48b4f5a10134dede69d0087d235446592392e9", "reader-mcp.mjs": "07eea006e23b894a23c0bd78f3244c8fff3cfbb7c5411b938464e14d55f5f90d", "reader-mcp.mjs.sha256": "ca3d5787667c2ee4bac205453a4c3999447693f8a260d32c7ee02189ef39386d", "SHA256SUMS": "545576432640401ff533f88bf3b7f8c8a5c4277b5a638a24afc40b252facd85d"};
+for(const [file,expected] of Object.entries(pinned130)) {
+  const from=new URL("../clients/releases/1.3.0/"+file,import.meta.url),to=new URL("../public/clients/reader/1.3.0/"+file,import.meta.url);
+  const bytes=await readFile(from);if(hash(bytes)!==expected)throw Error("Immutable 1.3.0 artifact changed");
+  await mkdir(new URL("../public/clients/reader/1.3.0/",import.meta.url),{recursive:true});await copyFile(from,to);
+}
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,
@@ -98,6 +104,7 @@ const { extract } = await import(
   "data:text/javascript;base64," +
     Buffer.from(compiled.outputFiles[0].text).toString("base64")
 );
+await writeFile(new URL("sources/job-flow.svg",samplesDir),READER_DIAGRAM);
 const actualFetch = globalThis.fetch;
 const sources = new Map(
   READER_SAMPLES.map((s) => [
@@ -165,6 +172,7 @@ const manifest = {
   limitations:
     "Static owned examples. Cached at build time; not a live extraction, paid receipt or competitor benchmark. Arbitrary live URLs remain paid. Source content is untrusted.",
   samples,
+  auxiliarySources: [{url:origin+"/examples/extract/sources/job-flow.svg",sourceSha256:hash(READER_DIAGRAM)}],
   sectionExample: { resultUrl: origin + "/examples/extract/section-result.json", section: "example-section-30", maxChars: 500, resultSha256: hash(sectionDemo) },
 };
 await writeFile(

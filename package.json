@@ -1,11 +1,11 @@
 {
   "name": "x402-api",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build:reader": "node scripts/build-reader-assets.mjs",
-    "test": "node scripts/build-reader-assets.mjs && node --test tests/*.test.cjs scripts/*.test.mjs",
+    "test": "node scripts/build-reader-assets.mjs && node --test --test-concurrency=1 tests/*.test.cjs scripts/*.test.mjs",
     "check:mcp-contract": "node scripts/check-mcp-contract.mjs",
     "update:mcp-contract": "node scripts/check-mcp-contract.mjs --update",
     "export:guides": "node scripts/export-buying-guides.mjs",
