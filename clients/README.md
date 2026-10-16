@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.2/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.3/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -44,3 +44,5 @@ Version 1.7.0 advertises exact successful-result JSON schemas for the remote MCP
 Reader 1.7.1 omits clearly identified same-document permalink controls from HTML prose/Markdown and link metadata, retaining real references, literal code, heading IDs and section scope. permalink_controls_omitted discloses the cleanup. Current clients retain the same payment controls; all six 1.7.0 downloads, including the repository release, remain unchanged.
 
 Reader 1.7.2 preserves HTML superscript/subscript distinctions using ^{...}/_{...} notation and superscript_subscript_normalized, including table values and heading/section titles. Literal code and raw Markdown retain their existing interpretation. Prior published client downloads remain unchanged.
+
+Clients 1.7.3 retain recognized service error codes with static actionable guidance and HTTP status, without echoing arbitrary error messages or content. Error reads are capped at 8 KiB. Invalid public URLs receive local guidance before requests. A signed error without receipt remains unknown, with no automatic fresh authorization and the same MCP reconciliation lock. All prior downloads remain unchanged.
