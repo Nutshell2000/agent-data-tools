@@ -42,18 +42,21 @@ export function createReaderMcp({ enabled = false, sessionCapAtomic = 0n, run = 
   const extract = { url, format: z.enum(["text", "markdown", "both"]).default("markdown"), maxChars: z.number().int().min(500).max(100000).default(20000), section: z.string().min(1).max(500).regex(/^[^\u0000-\u001f\u007f]+$/).optional().describe("Exact HTML section/heading ID in primary content. URL fragments alone do not select it. Missing or ambiguous targets fail uncharged.") };
   const sitemap = { url, contains: z.string().max(200).optional(), maxUrls: z.number().int().min(1).max(100).default(25), offset: z.number().int().min(0).max(1000).default(0) };
   const register = (name, kind, buy) => {
-    const shape = kind === "extract" ? extract : sitemap;
+    const shape = kind === "extract" ? extract : kind === "sitemap" ? sitemap : {};
+    const label = kind === "extract" ? "static HTML/plain-text page read" : kind === "sitemap" ? "bounded XML sitemap read, no crawling" : "Bitcoin fee-rate and mempool data snapshot, no Bitcoin transaction";
     const schema = z.object(buy ? { ...shape, maxUsdc: z.string().describe("Explicit positive per-call cap, at most 0.002 USDC. Does not override the session cap.") } : shape).strict();
     server.registerTool(name, {
       description: buy
-        ? `PAID: one ${kind === "extract" ? "static HTML/plain-text page read" : "bounded XML sitemap read, no crawling"} for up to $0.002 Base USDC. Requires owner approval, maxUsdc and remaining local session budget. Never automatically retry an uncertain purchase.`
-        : `FREE unsigned price quote for ${kind === "extract" ? "one static page" : "one XML sitemap"}. Does not extract, read keys or sign.`,
+        ? `PAID: one ${label} for up to $0.002 Base USDC. Requires owner approval, maxUsdc and remaining local session budget. Never automatically retry an uncertain purchase.`
+        : `FREE unsigned price quote for one ${label}. Does not run the tool, read keys or sign.`,
       inputSchema: schema,
       annotations: { readOnlyHint: !buy, destructiveHint: buy, idempotentHint: !buy, openWorldHint: true }
     }, async input => {
-      const args = [buy ? (kind === "extract" ? "buy" : "buy-sitemap") : (kind === "extract" ? "quote" : "quote-sitemap"), input.url];
+      const suffix = kind === "extract" ? "" : kind === "sitemap" ? "-sitemap" : "-btc-fees";
+      const args = [(buy ? "buy" : "quote") + suffix];
+      if(kind !== "bitcoin") args.push(input.url);
       if (kind === "extract") { args.push("--format", input.format, "--max-chars", String(input.maxChars)); if(input.section !== undefined) args.push("--section", input.section); }
-      else {
+      else if(kind === "sitemap") {
         args.push("--max-urls", String(input.maxUrls), "--offset", String(input.offset));
         if (input.contains !== undefined) args.push("--contains", input.contains);
       }
@@ -88,10 +91,12 @@ export function createReaderMcp({ enabled = false, sessionCapAtomic = 0n, run = 
   };
   register("reader_quote", "extract", false);
   register("sitemap_quote", "sitemap", false);
+  register("btc_fees_quote", "bitcoin", false);
   // Quotes-only processes do not advertise paid tools at all.
   if (enabled) {
     register("reader_buy", "extract", true);
     register("sitemap_buy", "sitemap", true);
+    register("btc_fees_buy", "bitcoin", true);
   }
   return server;
 }

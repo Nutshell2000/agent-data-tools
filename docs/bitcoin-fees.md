@@ -2,6 +2,54 @@
 
 $0.002 native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
 
+## Quote and buy Bitcoin fee data without writing a client
+
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+
+Verify this one executable before running it. Stop on any failure. Linux:
+
+```sh
+sha256sum -c reader-client.mjs.sha256
+```
+
+macOS:
+
+```sh
+shasum -a 256 -c reader-client.mjs.sha256
+```
+
+PowerShell:
+
+```powershell
+$line = (Get-Content -LiteralPath 'reader-client.mjs.sha256' -Raw).Trim()
+$match = [regex]::Match($line, '^([a-f0-9]{64})  reader-client\.mjs$')
+if (-not $match.Success) { throw 'Invalid checksum file' }
+$actual = (Get-FileHash -LiteralPath 'reader-client.mjs' -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run the download' }
+Write-Output 'reader-client.mjs: OK'
+```
+
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+
+Inspect the unpaid price quote (no URL, key, signing or Bitcoin-data fetch):
+
+```sh
+node reader-client.mjs quote-btc-fees
+```
+
+Only for an authorized purchase, configure an existing funded Base wallet's X402_PRIVATE_KEY privately in the local process environment and invoke once:
+
+```sh
+node reader-client.mjs buy-btc-fees --max-usdc 0.002
+```
+
+This buys a JSON data result for at most $0.002 native USDC on Base; it does not buy Bitcoin, select a transaction fee for you, or send a Bitcoin transaction. No Bitcoin key is needed. The same client pins our service, recipient, Base/native USDC and exact scheme, permits one authorization and never retries an uncertain payment.
+
+The client validates the expected network/unit/source, numeric fields and the illustrative 141-vB arithmetic. This is structural consistency checking, not independent confirmation of upstream data. Inspect checkedAt, source and limitations; the three upstream reads are not atomic, transaction size varies and fee estimates do not guarantee confirmation time. Bitcoin fee results do not carry the reader's contentHash.
+
+Using an existing MCP host? https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp provides btc_fees_quote (no arguments) and, only after paid-mode opt-in, btc_fees_buy with maxUsdc. The reader, sitemap and Bitcoin-data tools share one process reservation budget and uncertainty lock. No purchase happens on startup, discovery or quote.
+
+On an unknown signed outcome or a settled but invalid result, stop, preserve request ID and available receipt, and reconcile before buying again. A paid result receipt is server-reported evidence, not an independent chain audit. Offline fixtures and this dated example are not customer purchases; funded CLI/local-adapter fee delivery remains unverified until separately evidenced.
 
 
 
@@ -37,12 +85,20 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
     "nextBlock": 564,
     "hour": 141
   },
+  "typicalPaymentVbytes": 141,
+  "source": "https://mempool.space/api",
+  "limitations": [
+    "Estimates do not guarantee confirmation time",
+    "141 vB is an illustrative one-input/two-output SegWit size; actual transaction size varies",
+    "Source endpoints are fetched concurrently, not as an atomic snapshot"
+  ],
   "mempool": {
     "transactions": 83832,
     "vsize": 42066150,
     "totalFeesBtc": 0.1093664
   },
-  "blockHeight": 970000
+  "blockHeight": 970000,
+  "checkedAt": "2026-10-01T00:00:00.000Z"
 }
 ```
 

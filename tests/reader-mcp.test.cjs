@@ -24,7 +24,7 @@ const call=async(c,name,args={})=>{
 const page={url:'https://public.example/docs',maxUsdc:'0.002'};
 test('quotes-only startup advertises no buying tools and never invokes runner at discovery',async()=>{
  let runs=0;const c=await connection({run:async args=>{runs++;assert.equal(args[0],'quote');assert.ok(!args.includes('--max-usdc'));return{ok:true,paymentStatus:'not_signed'};}});
- try{assert.deepEqual((await c.client.listTools()).tools.map(t=>t.name),['reader_session','reader_quote','sitemap_quote']);
+ try{assert.deepEqual((await c.client.listTools()).tools.map(t=>t.name),['reader_session','reader_quote','sitemap_quote','btc_fees_quote']);
  assert.equal((await call(c.client,'reader_session')).buyingEnabled,false);assert.equal(runs,0);
  assert.equal((await call(c.client,'reader_quote',{url:page.url})).ok,true);assert.equal(runs,1);
  assert.equal((await call(c.client,'reader_buy',page)).ok,false);assert.equal(runs,1);
@@ -32,7 +32,7 @@ test('quotes-only startup advertises no buying tools and never invokes runner at
 });
 test('explicit opt-in enforces shared reader/sitemap session cap and maps separate options',async()=>{
  const args=[];const c=await connection({enabled:true,sessionCapAtomic:4000n,run:async a=>{args.push(a);return{ok:true,paymentStatus:'settled',receipt:{success:true}};}});
- try{const tools=(await c.client.listTools()).tools;assert.equal(tools.length,5);assert.equal(tools.find(t=>t.name==='reader_buy').annotations.destructiveHint,true);
+ try{const tools=(await c.client.listTools()).tools;assert.equal(tools.length,7);assert.equal(tools.find(t=>t.name==='reader_buy').annotations.destructiveHint,true);
  assert.equal((await call(c.client,'reader_buy',page)).ok,true);
  assert.deepEqual(args[0],['buy',page.url,'--format','markdown','--max-chars','20000','--max-usdc','0.002']);
  assert.equal((await call(c.client,'sitemap_buy',{...page,contains:'docs & api',maxUrls:3,offset:2})).ok,true);
@@ -50,6 +50,11 @@ test('missing/excessive caps and extra fields fail before network or signing',as
 test('MCP section selection maps an explicit ID through the existing capped runner',async()=>{
  let args;const c=await connection({enabled:true,sessionCapAtomic:2000n,run:async a=>{args=a;return{ok:false,paymentStatus:'not_signed'};}});
  try{await call(c.client,'reader_buy',{...page,section:'retry-policy'});assert.deepEqual(args,['buy',page.url,'--format','markdown','--max-chars','20000','--section','retry-policy','--max-usdc','0.002']);assert.equal((await call(c.client,'reader_quote',{url:page.url,section:''})).schemaRejected,true);}finally{await c.close();}
+});
+test('Bitcoin fee buys share the reader/sitemap budget and cannot take a URL or bypass uncertainty locks',async()=>{
+ const args=[];const c=await connection({enabled:true,sessionCapAtomic:4000n,run:async a=>{args.push(a);return{ok:true,paymentStatus:'settled'};}});
+ try{assert.equal((await call(c.client,'btc_fees_quote')).ok,true);assert.deepEqual(args[0],['quote-btc-fees']);assert.equal((await call(c.client,'btc_fees_buy',{maxUsdc:'0.002'})).ok,true);assert.deepEqual(args[1],['buy-btc-fees','--max-usdc','0.002']);assert.equal((await call(c.client,'reader_buy',page)).ok,true);assert.equal((await call(c.client,'sitemap_buy',page)).error,'session_budget_exhausted');assert.equal((await call(c.client,'btc_fees_buy',{maxUsdc:'0.002',url:page.url})).schemaRejected,true);}finally{await c.close();}
+ const locked=await connection({enabled:true,sessionCapAtomic:6000n,run:async()=>({ok:false,paymentStatus:'unknown'})});try{await call(locked.client,'btc_fees_buy',{maxUsdc:'0.002'});assert.equal((await call(locked.client,'reader_buy',page)).error,'reconciliation_required');}finally{await locked.close();}
 });
 test('concurrent buys reserve once; uncertainty locks subsequent buys but not quotes',async()=>{
  let release,runs=0;const started=new Promise(resolve=>release=resolve);let ready;
@@ -93,10 +98,10 @@ test('adapter default runner preserves payment pins and redirect refusal before 
 });
 test('standalone stdio bundle runs outside checkout and exposes only unpaid tools by default',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'reader-mcp-'));
- const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.3.1/reader-mcp.mjs',file);
+ const file=path.join(dir,'reader-mcp.mjs');await fs.copyFile('public/clients/reader/1.4.0/reader-mcp.mjs',file);
  const transport=new StdioClientTransport({command:process.execPath,args:[file],cwd:dir,env:{X402_PRIVATE_KEY:''},stderr:'pipe'});
  let stderr='';transport.stderr.on('data',chunk=>stderr+=chunk);
  const client=new Client({name:'stdio-bundle-test',version:'1'});
- try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,3);assert.equal((await call(client,'reader_session')).buyingEnabled,false);assert.equal(stderr,'');}
+ try{await client.connect(transport);assert.equal((await client.listTools()).tools.length,4);assert.equal((await call(client,'reader_session')).buyingEnabled,false);assert.equal(stderr,'');}
  finally{await client.close();await fs.unlink(file);await fs.rmdir(dir);}
 });
