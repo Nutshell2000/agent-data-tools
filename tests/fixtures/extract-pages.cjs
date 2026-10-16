@@ -1,4 +1,5 @@
 module.exports = {
+  tableBoundaries: '<main><table><caption>API<br>permissions</caption><tr><th>Operations</th><th>Notes</th></tr><tr><td>Read<br>Write</td><td><p>First rule</p><p>Second rule</p></td></tr><tr><td><ul><li>Open</li><li>Close</li></ul></td><td><code>read</code>Only <span hidden>SECRET</span><span>visible</span><img alt="state diagram"></td></tr></table></main>',
   manyTables: '<main>'+Array.from({length:21},(_,i)=>'<table><tr><td>table_'+i+'</td><td>value_'+i+'</td></tr></table>').join('')+'<table>'+Array.from({length:110},(_,i)=>'<tr><td>row_'+i+'</td><td>data_'+i+'</td></tr>').join('')+'</table></main>',
   codeWhitespace: '<main><pre><code class="language-text">first  \n\n\n\n    second\nlast  </code></pre></main>',
   tableAfterLinks: '<main>'+Array.from({length:200},(_,i)=>'<a href="https://public.example/'+i+'/'+ 'x'.repeat(120)+'">Reference '+i+'</a> ').join('')+'<table><tr><th>Parameter</th><th>Value</th></tr><tr><td>critical_limit</td><td>314159</td></tr></table></main>',
