@@ -30,7 +30,7 @@ test('truncated code has a complete fence inside the requested limit',async()=>{
 });
 before(async()=>{
  const schemaBundle=await build({entryPoints:['src/discovery.ts'],bundle:true,write:false,format:'cjs',platform:'node'});const schemaModule={exports:{}};new Function('require','module','exports',schemaBundle.outputFiles[0].text)(require,schemaModule,schemaModule.exports);const response=schemaModule.exports.openApi('https://worker.test').paths['/extract'].get.responses['200'].content['application/json'];publishedExample=response.example;const schema=response.schema;const Ajv=require('ajv/dist/2020').default;validateOutput=new Ajv({strict:false}).compile(schema);
- const b=await build({stdin:{contents:`import {extract} from './src/routes/extract';export default{async fetch(r){const q=new URL(r.url).searchParams;try{return Response.json(await extract(q.get('url'),q.get('maxChars')??undefined,q.get('format')??undefined))}catch(e){return Response.json({error:e.message,code:e.code},{status:e.status||500})}}}`,resolveDir:process.cwd(),sourcefile:'quality-worker.ts'},bundle:true,write:false,format:'esm',platform:'browser'});
+ const b=await build({stdin:{contents:`import {extract} from './src/routes/extract';export default{async fetch(r){const q=new URL(r.url).searchParams;try{return Response.json(await extract(q.get('url'),q.get('maxChars')??undefined,q.get('format')??undefined,q.get('section')??undefined))}catch(e){return Response.json({error:e.message,code:e.code},{status:e.status||500})}}}`,resolveDir:process.cwd(),sourcefile:'quality-worker.ts'},bundle:true,write:false,format:'esm',platform:'browser'});
  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',outboundService:async r=>new Response(pages[new URL(r.url).pathname.slice(1)]??'missing',{headers:{'content-type':'text/html'}})}));
 });
 after(async()=>{await mf?.dispose();});
@@ -79,3 +79,24 @@ test('content hashes are deterministic for the returned representation and table
  test('ordered steps retain their start number and code inherits a declared language',async()=>{
   const v=await result('ordered',{format:'both'});assert.match(v.markdown,/3\. Third step\n4\. Fourth step/);assert.equal(v.codeBlocks[0].language,'python3');
  });
+
+test('documentation permalink controls do not consume content or link metadata, while references and section IDs remain',async()=>{
+ const v=await result('permalinks',{format:'both'});assert.doesNotMatch(v.text,/¶/);assert.doesNotMatch(v.markdown,/¶/);assert.match(v.text,/Keep the actual rule/);assert.deepEqual(v.links,[{href:'https://public.example/permalinks#rule',text:'Read that rule'}]);assert.equal(v.headings[0].text,'Guide');assert.equal(v.headings[0].id,'intro');assert.ok(v.warnings.includes('permalink_controls_omitted'));assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+test('ordinary symbol references, external destinations and non-ancestor targets keep source content',async()=>{
+ const v=await result('permalinkReferences',{format:'both'});assert.equal((v.text.match(/¶/g)||[]).length,4);assert.match(v.text,/#/);assert.match(v.markdown,/Full reference/);assert.equal(v.links.length,4);assert.ok(!v.warnings.includes('permalink_controls_omitted'));
+ const based=await result('permalinkBase',{format:'both'});assert.match(based.text,/¶/);assert.equal(based.links[0].href,'https://other.example/page#rule');assert.ok(!based.warnings.includes('permalink_controls_omitted'));
+});
+test('permalink-looking markup inside literal code and prose symbols retain exact content',async()=>{
+ const v=await result('permalinkLiteral',{format:'both'});assert.equal(v.codeBlocks[0].text,'first  \n¶\n    last');assert.ok(v.markdown.includes(v.codeBlocks[0].text));assert.match(v.text,/Literal prose ¶ and # remain/);assert.ok(!v.warnings.includes('permalink_controls_omitted'));
+});
+test('scoped heading reads remove their own controls and do not inherit omissions from outside the scope',async()=>{
+ const heading=await result('permalinks',{section:'intro',format:'both'});assert.equal(heading.section.id,'intro');assert.equal(heading.section.title,'Guide');assert.doesNotMatch(heading.text,/¶/);assert.ok(heading.warnings.includes('permalink_controls_omitted'));
+ const plain=await result('permalinks',{section:'plain',format:'both'});assert.match(plain.text,/Selected scope/);assert.doesNotMatch(plain.text,/Keep the actual/);assert.ok(!plain.warnings.includes('permalink_controls_omitted'));
+});
+test('permalink controls in table cells are omitted with an explicit warning and clean cell values',async()=>{
+ const v=await result('permalinkTable',{format:'both'});assert.deepEqual(v.tables[0].rows,[['Limit'],['42']]);assert.doesNotMatch(v.text,/¶/);assert.ok(v.warnings.includes('permalink_controls_omitted'));
+});
+test('many permalink controls leave the structured code budget for literal code rather than navigation',async()=>{
+ const v=await result('permalinkBudget',{format:'both',maxChars:'100000'});assert.equal(v.codeBlocks[0].text.length,12000);assert.equal(v.codeBlocks[0].truncated,false);assert.equal(v.links.length,0);assert.equal(v.truncated,false);assert.ok(!v.warnings.includes('details_truncated'));assert.ok(v.warnings.includes('permalink_controls_omitted'));
+});

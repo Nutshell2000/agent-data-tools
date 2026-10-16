@@ -129,6 +129,12 @@ for(const [file,expected] of Object.entries(pinned160)) {
  const bytes=await readFile(from);if(hash(bytes)!==expected)throw Error("Immutable 1.6.0 artifact changed");
  await mkdir(new URL("../public/clients/reader/1.6.0/",import.meta.url),{recursive:true});await copyFile(from,to);
 }
+const pinned170 = {"reader-client.mjs": "4ff22236dd5114163b36b1680c6b0035249b159ae1256140905162f7d9aeee4d", "reader-mcp.mjs": "1ed7af5a08a9451846c0176745556ca2cce183bcfb61a4e0ef1f197f78c403f8", "command-builder.js": "5909385fb9455fb2ed16b9ee4580a534e7541ec668a3e650c8131ae08f53a446", "SHA256SUMS": "69bc9ede56f7005aee471dd512df2f045c331a57c10563938fd7242dff7d9435", "reader-client.mjs.sha256": "62c238cf4e6bb6c883ceb5b968b2fe9b3eaed5a0e4a0208fd70627ba97b883c3", "reader-mcp.mjs.sha256": "713624579a7f3e47de172286cf1f8e424091c099024b3754a0144fb5e0e00365"};
+for(const [file,expected] of Object.entries(pinned170)) {
+ const from=new URL("../clients/releases/1.7.0/"+file,import.meta.url),to=new URL("../public/clients/reader/1.7.0/"+file,import.meta.url);
+ const bytes=await readFile(from);if(hash(bytes)!==expected)throw Error("Immutable 1.7.0 artifact changed");
+ await mkdir(new URL("../public/clients/reader/1.7.0/",import.meta.url),{recursive:true});await copyFile(from,to);
+}
 const compiled = await build({
   entryPoints: ["src/routes/extract.ts"],
   bundle: true,
