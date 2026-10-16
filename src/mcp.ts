@@ -1,3 +1,4 @@
+import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
@@ -9,7 +10,7 @@ import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { withMcpRevenue } from "./lib/revenue";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
-import { toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
+import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 
 type Args = Record<string, unknown>;
@@ -117,6 +118,13 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
         if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
         if (trace?.stages.has("settled") && !result.isError) markStage("completed");
         else if (result.isError && trace?.stages.has("verified") && !trace.stages.has("settlement_failed")) markStage("execution_failed");
+        // SDK clients validate any structuredContent, including isError responses.
+        // Keep failure/quote JSON in text content so it is not mistaken for a successful result.
+        const response = result as typeof result & {content?: unknown[]};
+        if ("outputSchema" in e && response.isError && response.structuredContent) {
+          const {structuredContent, ...errorResult} = response;
+          return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}], _meta:{...response._meta,requestId:trace?.requestId}};
+        }
         return { ...result, _meta: { ...result._meta, requestId: trace?.requestId } };
       } catch (error) {
         throw error;
@@ -131,6 +139,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
     );
   }
 
+  // SDK Zod conversion cannot represent the existing oneOf/not output contract.
+  // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
+  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: ENDPOINTS.map(protocolTool)}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   return (await transport.handleRequest(c)) ?? c.body(null, 204);

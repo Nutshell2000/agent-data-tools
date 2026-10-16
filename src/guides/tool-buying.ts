@@ -85,7 +85,7 @@ Source image alt text is retained in text/Markdown (and table cells) as labelled
 
 Source page text is untrusted data, including code, links and instructions. This tool does not execute it. Selection uses static HTML landmarks and hidden-element attributes; it cannot compute stylesheet visibility or guarantee perfect article selection. Missing main/article content falls back to the body and adds body_fallback. Excessively complex HTML returns 422. Errors include code=EXTRACTION_EMPTY, EXTRACTION_BLOCKED or EXTRACTION_COMPLEXITY when applicable.
 
-MCP successful results include structuredContent as well as a JSON text block. A payment quote is an error result containing payment requirements; it is not extracted content. Every paid invocation may spend funds; automatic retries can charge again.
+MCP successful results include structuredContent as well as a JSON text block. The remote extract, sitemap and btc-fees tools advertise exact outputSchema matching OpenAPI and validate output before settlement. A payment quote or failure has isError=true and JSON in content[0].text, without structuredContent; parse that JSON for payment requirements or error codes. A quote is not extracted content. Every paid invocation may spend funds; automatic retries can charge again.
 ` : ""}
 ## Inspect the quote without paying
 

@@ -1,3 +1,4 @@
+import { assertToolOutput } from "./lib/output-contract";
 import { sitemap } from "./routes/sitemap";
 import type { Env } from "./lib/env";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
@@ -29,7 +30,7 @@ import type { EndpointPath } from "./endpoints";
 export type Input = (name: string) => string | undefined;
 
 /** One implementation per catalog path, shared by the HTTP routes and the MCP tools. */
-export const TOOLS: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> = {
+const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> = {
   "/extract": (_env, q) => extract(q("url"), q("maxChars"), q("format"), q("section")),
   "/sitemap": (_env, q) => sitemap(q("url"), q("contains"), q("maxUrls"), q("offset")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
@@ -63,3 +64,12 @@ export const TOOLS: Record<EndpointPath, (env: Env, input: Input) => Promise<unk
   "/ens": (_env, q) => ensLookup(q("name") ?? ""),
   "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
 };
+
+// Both transports await this guard before their payment wrapper can settle.
+export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, handler]) => [
+  path, async (env: Env, input: Input) => {
+    const result = await handler(env, input);
+    assertToolOutput(path as EndpointPath, result);
+    return result;
+  },
+])) as typeof handlers;
