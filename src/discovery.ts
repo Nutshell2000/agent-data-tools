@@ -30,7 +30,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { readerSingleChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256`, localMcpChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs.sha256`, localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
+    docs: { buyerSkill: `${origin}/skills/spellzcode-x402-reader/SKILL.md`, buyerSkillIndex: `${origin}/skills/index.json`, readerSingleChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256`, localMcpChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs.sha256`, localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -314,6 +314,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
     "",
+    `Portable buyer skill: ${origin}/skills/spellzcode-x402-reader/SKILL.md. Read ${origin}/skills/index.json for installation context; publishing it does not install or authorize spending.`,
+    "",
     `Read a specific HTML heading/container with optional section=<exact-id> on /extract, --section on the CLI, or section in local/remote MCP. Scope is explicit in result.section. URL fragments alone do not select. Missing/ambiguous targets fail before settlement. Cached proof: ${origin}/examples/extract/section-result.json.`,
     "",
     `Discover documentation URLs first: ${origin}/guides/sitemap.md. The current standalone client supports quote-sitemap and buy-sitemap with --contains, --max-urls and --offset; each explicit buy remains capped at $0.002.`,
@@ -368,6 +370,6 @@ export const robotsTxt = (origin: string) =>
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/examples/extract/"];
+  const paths = ["/", "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
 }

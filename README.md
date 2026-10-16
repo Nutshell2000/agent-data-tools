@@ -195,3 +195,7 @@ The [bundled local MCP adapter](https://agent-data-tools.revmesh2074.workers.dev
 ### Read the relevant section of a long document
 
 Optional `section` selects an exact visible heading/container ID within primary HTML. Use `--section` with the CLI or `section` with MCP. Missing/ambiguous selections fail uncharged; returned scope is explicit. [Actual cached late-section example](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/section-result.json) and [scope instructions](docs/web-reading.md). Price remains $0.002. URL fragments alone do not change scope.
+
+### Portable buyer skill
+
+The [single-file reader skill](skills/spellzcode-x402-reader/SKILL.md) gives a compatible agent the quote, authorized purchase, section-reading and failure-reconciliation workflow. [Owned download](https://agent-data-tools.revmesh2074.workers.dev/skills/spellzcode-x402-reader/SKILL.md) and [installation context](https://agent-data-tools.revmesh2074.workers.dev/skills/index.json). Place it in a folder named spellzcode-x402-reader in your host's configured skills location using that host's procedure. Inspect before installing; no automatic installation, wallet creation or spending authorization is supplied. Host activation and funded delivery are not established by publication.
