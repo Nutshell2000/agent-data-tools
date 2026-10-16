@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-Operated by **SpellzCode**. Start with [static documentation reading](docs/web-reading.md): clean text, Markdown, code and tables for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML and plain text only; no JavaScript rendering, authenticated pages or paywall access.
+Operated by **SpellzCode**. Start with [static documentation reading](docs/web-reading.md): clean text, Markdown, code and tables for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
