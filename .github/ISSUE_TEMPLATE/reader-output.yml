@@ -1,0 +1,46 @@
+name: Reader output or compatibility problem
+description: Show a reproducible missing code, table, list, section or text problem.
+title: "[Reader] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This report is public. Use a public page or a small authored example that you are allowed to share. Do not include keys, signatures, payment headers, private content or complete third-party documents. A reproduction does not require another paid purchase.
+
+        Static public HTML/plain text is supported. JavaScript rendering, logged-in pages and paywall access are not supported. Source image alt text is retained, but image bytes are not read or interpreted. If payment status is uncertain, stop purchases and use the purchase-problem form.
+  - type: input
+    id: version
+    attributes:
+      label: Client/tool version and interface
+      description: For example, reader 1.4.0, CLI or local MCP.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Optional public source URL
+      description: Remove credentials, tokens and private query values. An authored reproduction below can replace the URL.
+  - type: input
+    id: options
+    attributes:
+      label: Format, character limit and optional exact section ID
+      description: For example, markdown, 20000, section retry-policy. Do not paste wallet arguments.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Expected output and observed difference
+      description: Include only a short permitted excerpt or authored HTML showing the missing code, table, list or text. State how the difference affected your task.
+    validations:
+      required: true
+  - type: textarea
+    id: warnings
+    attributes:
+      label: Truncation, section scope and warnings
+      description: Copy only relevant truncation/warning fields. A section result is scoped to that section; truncated=false does not prove full-page coverage.
+  - type: input
+    id: request
+    attributes:
+      label: Optional request ID and approximate UTC time
+      description: Useful for an existing purchase; no new purchase is required. Do not include signatures or raw headers.
