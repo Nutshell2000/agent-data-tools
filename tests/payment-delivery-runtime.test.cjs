@@ -16,6 +16,8 @@ before(async()=>{
   }}]});
   mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
+    if(path==='/image-described')return new Response('<main><img alt="Source says retry at most three times" src="https://unfetched.invalid/image.png"></main>',{headers:{'content-type':'text/html'}});
+    if(path==='/image-undescribed')return new Response('<main><img src="https://unfetched.invalid/image.png"></main>',{headers:{'content-type':'text/html'}});
     if(path==='/sitemap.xml')return new Response('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://public.example/docs/start</loc></url></urlset>',{headers:{'content-type':'application/xml'}});
     if(path==='/bad-sitemap.xml')return new Response('<urlset><url>',{headers:{'content-type':'application/xml'}});
     return path==='/fail'?new Response('failure',{status:500}):new Response(path==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1 id="result">Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}});
@@ -103,4 +105,18 @@ test('explicit section HTTP/MCP output settles only after successful selection',
  const failure=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'missing'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab04','mcp://tool/extract')}});assert.equal(failure.isError,true);assert.equal(failure.structuredContent.code,'EXTRACTION_SECTION_NOT_FOUND');assert.ok(!failure._meta?.['x402/payment-response']?.success);
  }finally{await client.close();}
  assert.equal((await revenue()).settlements,before+2);
+});
+
+
+test('source-described image pages settle but image-only pages without text do not over HTTP or MCP',async()=>{
+ const before=(await revenue()).settlements;
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Fimage-described';const q=await mf.dispatchFetch(url);assert.equal(q.status,402);const terms=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];await q.body?.cancel();
+ const headers=n=>({'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(terms,'a'.repeat(60)+n))).toString('base64')});
+ const good=await mf.dispatchFetch(url,{headers:headers('bc01')});assert.equal(good.status,200);const data=await good.json();assert.match(data.text,/Image alt text: Source says retry/);assert.ok(data.warnings.includes('image_alt_text_only'));assert.equal(good.headers.has('PAYMENT-RESPONSE'),true);
+ const bad=await mf.dispatchFetch(url.replace('image-described','image-undescribed'),{headers:headers('bc02')});assert.equal(bad.status,422);assert.equal((await bad.json()).code,'EXTRACTION_EMPTY');assert.equal(bad.headers.has('PAYMENT-RESPONSE'),false);
+ const{Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'offline-alt-fixture',version:'1'});
+ try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(url,init)=>mf.dispatchFetch(url,init)}));
+ const successful=await client.callTool({name:'extract',arguments:{url:'https://public.example/image-described'},_meta:{'x402/payment':payload(terms,'a'.repeat(60)+'bc03','mcp://tool/extract')}});assert.ok(!successful.isError,JSON.stringify(successful));assert.match(successful.structuredContent.text,/Image alt text: Source says retry/);assert.equal(successful._meta['x402/payment-response'].success,true);
+ const failed=await client.callTool({name:'extract',arguments:{url:'https://public.example/image-undescribed'},_meta:{'x402/payment':payload(terms,'a'.repeat(60)+'bc04','mcp://tool/extract')}});assert.equal(failed.isError,true);assert.equal(failed.structuredContent.code,'EXTRACTION_EMPTY');assert.ok(!failed._meta?.['x402/payment-response']?.success);
+ }finally{await client.close();}assert.equal((await revenue()).settlements,before+2);
 });

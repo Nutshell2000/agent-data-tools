@@ -38,18 +38,20 @@ const block = new Set([
   "figcaption",
 ]);
 const squash = (s: string) => s.replace(/\s+/g, " ").trim();
-const hidden = (n: Node) =>
-  skip.has(n.tag) ||
+const concealed = (n: Node) =>
   "hidden" in n.attrs ||
   n.attrs["aria-hidden"] === "true" ||
   /(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(n.attrs.style ?? "") ||
   /(?:^|\s)cookie[-_](?:banner|notice|consent)(?:$|\s)/i.test(
     n.attrs.class ?? "",
   );
-const raw = (n: Node): string =>
-  n.children
-    .map((c) => (typeof c === "string" ? c : hidden(c) ? "" : raw(c)))
-    .join("");
+const hidden = (n: Node) => skip.has(n.tag) || concealed(n);
+const imageAlt = (n: Node) => n.attrs.alt === undefined ? null : squash(n.attrs.alt);
+const imageLabel = (n: Node) => { const alt=imageAlt(n); return alt ? `[Image alt text: ${alt}]` : ""; };
+const raw = (n: Node, includeImageAlt = false): string => {
+  if (includeImageAlt && n.tag === "img") return imageLabel(n);
+  return n.children.map(c=>typeof c === "string" ? c : hidden(c) ? "" : raw(c,includeImageAlt)).join("");
+};
 const longestTicks = (s: string) => {
   let longest = 0;
   for (const m of s.matchAll(/`+/g)) longest = Math.max(longest, m[0].length);
@@ -126,7 +128,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   // Bound repeated subtree reads on adversarially nested landmarks.
   const candidates = semantic
     .slice(0, 8)
-    .map((n) => ({ n, length: squash(raw(n)).length }))
+    .map((n) => ({ n, length: squash(raw(n,true)).length }))
     .filter((v) => v.length > 0);
   candidates.sort(
     (a, b) =>
@@ -155,7 +157,9 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       const level = +match.tag[1];
       let active = false, stopped = false;
       const slice = (n: Node): Node | null => {
-        if (stopped || hidden(n)) return null;
+        if (stopped || concealed(n) || (hidden(n) && n.tag !== "svg")) return null;
+        // Retain an inert marker so scoped output can report an uninterpreted diagram.
+        if (n.tag === "svg") return active ? { ...n, children: [] } : null;
         if (n === match) active = true;
         else if (active && /^h[1-6]$/.test(n.tag) && +n.tag[1] <= level) { stopped = true; return null; }
         const children: (Node | string)[] = [];
@@ -163,7 +167,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
           if (typeof child === "string") { if (active && !stopped) children.push(child); }
           else { const kept = slice(child); if (kept) children.push(kept); }
         }
-        return children.length || n === match || (active && !stopped && n.attrs.id) ? { ...n, children } : null;
+        return children.length || n === match || (active && !stopped) ? { ...n, children } : null;
       };
       renderRoot = slice(selected)!;
       section = { id: sectionId, title: squash(raw(match)).slice(0,1000) || null, kind: "heading", headingLevel: level };
@@ -179,7 +183,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     } else throw new HttpError(422, "Section ID must identify a heading, heading anchor, section, article, main or div", "EXTRACTION_SECTION_UNSUPPORTED");
   }
   // Protect literal blocks from prose cleanup. The prefix cannot occur in decoded source text.
-  const decodedSource = raw(root);
+  const decodedSource = raw(root,true);
   let prefix = "\uE000LITERAL";
   while (decodedSource.includes(prefix)) prefix += "X";
   const literals: string[] = [];
@@ -199,6 +203,19 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   const warnings = new Set<string>();
+  const inspectVisuals = (n: Node, inLiteralCode = false) => {
+    if (concealed(n)) return;
+    if (n.tag === "svg") { if(!["presentation","none"].includes(n.attrs.role)) warnings.add("visual_content_omitted"); return; }
+    if (hidden(n)) return;
+    if (n.tag === "canvas" && !["presentation","none"].includes(n.attrs.role)) warnings.add("visual_content_omitted");
+    if (n.tag === "img") {
+      if (inLiteralCode) warnings.add("images_in_literal_code_omitted");
+      else if (imageAlt(n) === null) warnings.add("images_without_alt");
+      else if (imageAlt(n)) warnings.add("image_alt_text_only");
+    }
+    for(const c of n.children) if(typeof c !== "string") inspectVisuals(c,inLiteralCode || n.tag === "pre");
+  };
+  inspectVisuals(renderRoot);
   if (semantic.length > 8) warnings.add("landmarks_limited");
   if (!candidates.length) warnings.add("body_fallback");
   const headings: { level: number; text: string; id: string | null }[] = [],
@@ -228,6 +245,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     inheritedLanguage: string | null = null,
   ): { text: string; md: string } => {
     if (hidden(n)) return { text: "", md: "" };
+    if (n.tag === "img") {
+      const label=imageLabel(n);
+      return label ? {text:` ${label} `,md:` ${escape(label)} `} : {text:"",md:""};
+    }
     const languageHint =
       /(?:language|lang|highlight)-([\w+-]+)/
         .exec(n.attrs.class ?? "")?.[1]
@@ -279,14 +300,14 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
             hasSpans = true;
           if (cells.some((c) => c.tag === "th"))
             bodyHeaders.push(bodyRows.length);
-          bodyRows.push(cells.map((c) => squash(raw(c))));
+          bodyRows.push(cells.map((c) => squash(raw(c,true))));
         } else for (const c of v.children) if (typeof c !== "string") visit(c);
       };
       visit(n);
       const cap = n.children.find(
         (c): c is Node => typeof c !== "string" && c.tag === "caption",
       );
-      const bodyCaption = cap ? squash(raw(cap)) : null;
+      const bodyCaption = cap ? squash(raw(cap,true)) : null;
       // Structured details cannot consume the primary-content budget.
       if (tables.length < 20) {
         let truncated =
@@ -441,7 +462,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   if (!text.trim())
     throw new HttpError(
       422,
-      "No readable static content; the page may require JavaScript",
+      "No readable static content; the page may require JavaScript or visual interpretation",
       "EXTRACTION_EMPTY",
     );
   const meta = (name: string) =>
