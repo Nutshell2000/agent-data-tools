@@ -61,6 +61,8 @@ The session cap must be positive and at most $0.020. It is in memory and resets 
 
 Results include JSON text and structuredContent: result, paymentStatus, requestId, available server-reported receipt and session status. Receipts require independent reconciliation. Funded production adapter delivery remains unverified until a genuine external purchase provides evidence. Support: https://github.com/Nutshell2000/agent-data-tools/issues . Never include keys, signatures or private content.
 
+The remote ${origin}/mcp server advertises successful-result outputSchema for extract, sitemap and btc-fees, matching OpenAPI. Both transports validate these results before settlement. Remote quotes and failures use isError=true with JSON in content[0].text, without structuredContent; only successful remote results use structuredContent. This differs from this local adapter’s outcome envelope described above.
+
 An ordinary remote ${origin}/mcp connection still does not pay automatically. This local adapter provides the separate capped purchasing implementation.
 `;
 }

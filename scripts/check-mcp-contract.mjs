@@ -41,6 +41,7 @@ export function buildContract(endpoints, version, helpers) {
           target: "draft-7",
           io: "input",
         }),
+        ...(endpoint.outputSchema ? { outputSchema: endpoint.outputSchema } : {}),
         price: endpoint.price,
       };
     }),
