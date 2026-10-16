@@ -1,4 +1,5 @@
 import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
+import { BITCOIN_FEES_OUTPUT_SCHEMA } from "./lib/bitcoin-fees-contract";
 import { SITEMAP_OUTPUT_EXAMPLE } from "./lib/sitemap-example";
 // What this service sells: its name, its tools and their prices.
 // Everything in discovery.ts, the HTTP routes and the MCP tools is generated from this file.
@@ -314,6 +315,7 @@ export const ENDPOINTS = [
     path: "/btc-fees",
     price: "$0.002",
     summary: "Bitcoin fee rates and mempool status",
+    outputSchema: BITCOIN_FEES_OUTPUT_SCHEMA,
     description:
       "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
     tags: ["bitcoin", "fees", "mempool", "btc", "onchain"],
@@ -323,8 +325,12 @@ export const ENDPOINTS = [
       unit: "sat/vB",
       fees: { nextBlock: 4, halfHour: 3, hour: 1, economy: 1, minimum: 1 },
       typicalPaymentSats: { nextBlock: 564, hour: 141 },
+      typicalPaymentVbytes: 141,
+      source: "https://mempool.space/api",
+      limitations: ["Estimates do not guarantee confirmation time", "141 vB is an illustrative one-input/two-output SegWit size; actual transaction size varies", "Source endpoints are fetched concurrently, not as an atomic snapshot"],
       mempool: { transactions: 83832, vsize: 42066150, totalFeesBtc: 0.1093664 },
       blockHeight: 970000,
+      checkedAt: "2026-10-01T00:00:00.000Z",
     },
   },
   {

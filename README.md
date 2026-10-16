@@ -199,3 +199,7 @@ Optional `section` selects an exact visible heading/container ID within primary 
 ### Portable buyer skill
 
 The [single-file reader skill](skills/spellzcode-x402-reader/SKILL.md) gives a compatible agent the quote, authorized purchase, section-reading and failure-reconciliation workflow. [Owned download](https://agent-data-tools.revmesh2074.workers.dev/skills/spellzcode-x402-reader/SKILL.md) and [installation context](https://agent-data-tools.revmesh2074.workers.dev/skills/index.json). Place it in a folder named spellzcode-x402-reader in your host's configured skills location using that host's procedure. Inspect before installing; no automatic installation, wallet creation or spending authorization is supplied. Host activation and funded delivery are not established by publication.
+
+### Secondary entry: Bitcoin fee data
+
+The same downloaded client now supports `node reader-client.mjs quote-btc-fees` and one authorized `node reader-client.mjs buy-btc-fees --max-usdc 0.002`. No URL, npm setup or Bitcoin key. Local MCP exposes btc_fees_quote/btc_fees_buy under the shared session allowance. This buys data for Base USDC and never sends Bitcoin. [Setup and limitations](docs/bitcoin-fees.md). The static reader remains the primary workflow.
