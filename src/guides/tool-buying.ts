@@ -1,4 +1,5 @@
 import { readerBuyingHtml, type ReaderDemo } from "./reader-buying";
+import { readerDownloadMarkdown } from "./reader-download";
 import { ENDPOINTS, MCP_SERVER_VERSION, paymentClientExample } from "../discovery";
 
 export type PromotedTool = "web-reading" | "bitcoin-fees";
@@ -39,9 +40,8 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
     `Open ${origin}/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
     "",
-    `Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .`,
-    "",
-    "Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:",
+    readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs"),
+    "Inspect an unsigned quote:",
     "",
     fence + "sh",
     "node reader-client.mjs quote https://example.com --format markdown",
