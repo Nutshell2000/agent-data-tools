@@ -11,7 +11,7 @@ Use this service only for the user's chosen task. Public static HTML/plain text 
 
 ## Choose the existing buying interface
 
-If local reader_quote/reader_buy tools are already configured, use them under the host's approval rules. Otherwise download reader-client.mjs and its one-file checksum from https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs.sha256. Verify before executing; shell-specific instructions: https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading.md. Requires Node 20.19+, no npm installation or TypeScript.
+If the SpellzCode local adapter is already configured, use its reader_quote/reader_buy tools under the host's approval rules. Otherwise download reader-client.mjs and its one-file checksum from https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs.sha256. Verify before executing; shell-specific instructions: https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading.md. Requires Node 20.19+, no npm installation or TypeScript.
 
 For local MCP setup, read https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp.md only if the user wants that interface. It is quotes-only by default; buying requires deliberate process opt-in, a session allowance and a per-call cap. Do not modify host settings or enable paid tools without authorization. Session reservations reset on restart and are not wallet-wide or monthly limits.
 
