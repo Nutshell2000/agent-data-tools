@@ -30,7 +30,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
+    docs: { readerSingleChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256`, localMcpChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs.sha256`, localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -323,7 +323,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "## Buy a static page with the standalone Node CLI",
     "",
     `Download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`,
-    `Verify SHA-256: ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`,
+    `Verify just the CLI download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256. Instructions: ${origin}/guides/web-reading.md. The complete SHA256SUMS list covers all artifacts and requires those files when checked in full.`,
     `Inspect real cached outputs first: ${origin}/examples/extract/manifest.json (demonstrations, not customer receipts).`,
     "Requires Node.js 20.19 or newer. No package installation or TypeScript required.",
     "```sh",

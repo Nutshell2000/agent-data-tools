@@ -1,7 +1,8 @@
+import { readerDownloadMarkdown } from "./reader-download";
 export function localMcpMarkdown(origin: string, version: string) {
   return `# Read documentation from an existing MCP agent
 
-Download ${origin}/clients/reader/${version}/reader-mcp.mjs and ${origin}/clients/reader/${version}/SHA256SUMS. Verify reader-mcp.mjs with SHA-256. Requires Node.js 20.19+, with no npm install or TypeScript code. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+${readerDownloadMarkdown(origin,version,"reader-mcp.mjs")}
 
 ## Start without spending
 
@@ -64,6 +65,6 @@ An ordinary remote ${origin}/mcp connection still does not pay automatically. Th
 
 export function localMcpHtml(origin: string, version: string) {
   const esc = (s: string) => s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]!);
-  const body = localMcpMarkdown(origin,version).split(/```json\n|```/).map((part,i)=>i%2 ? `<pre><code>${esc(part.trim())}</code></pre>` : part.trim().split(/\n\n+/).map(p=>p.startsWith('# ') ? `<h1>${esc(p.slice(2))}</h1>` : p.startsWith('## ') ? `<h2>${esc(p.slice(3))}</h2>` : `<p>${esc(p).replace(/https:\/\/[^\s<>]+/g,match=>{const url=match.replace(/[.,;]+$/,"");return `<a href="${url}">${url}</a>${match.slice(url.length)}`;})}</p>`).join('')).join('');
+  const body = localMcpMarkdown(origin,version).split(/```(?:json|sh|powershell)\n|```/).map((part,i)=>i%2 ? `<pre><code>${esc(part.trim())}</code></pre>` : part.trim().split(/\n\n+/).map(p=>p.startsWith('# ') ? `<h1>${esc(p.slice(2))}</h1>` : p.startsWith('## ') ? `<h2>${esc(p.slice(3))}</h2>` : `<p>${esc(p).replace(/https:\/\/[^\s<>]+/g,match=>{const url=match.replace(/[.,;]+$/,"");return `<a href="${url}">${url}</a>${match.slice(url.length)}`;})}</p>`).join('')).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buy page reads from an MCP agent | SpellzCode</title><meta name="description" content="A bundled local MCP reader adapter with free quotes, explicit $0.002 purchases and a bounded session budget."><link rel="canonical" href="${esc(origin)}/guides/local-mcp"><style>:root{color-scheme:light dark}body{font:17px/1.6 system-ui;max-width:900px;margin:auto;padding:28px 20px 64px}pre{overflow:auto;background:#8881;padding:18px;border-radius:8px}a{color:LinkText;overflow-wrap:anywhere}h1{line-height:1.2}h2{margin-top:36px}</style></head><body><nav><a href="/">Agent Data Tools</a> / <a href="/guides/web-reading">Reader examples and CLI</a></nav><main>${body}</main></body></html>`;
 }

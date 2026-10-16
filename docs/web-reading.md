@@ -8,9 +8,34 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS . The bundled client requires Node 20.19 or later and no npm install or TypeScript editing. Source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
-Verify the download with sha256sum -c SHA256SUMS. On Windows compare Get-FileHash reader-client.mjs -Algorithm SHA256 with SHA256SUMS; on macOS use shasum -a 256 reader-client.mjs. Then inspect an unsigned quote:
+Verify this one executable before running it. Stop on any failure. Linux:
+
+```sh
+sha256sum -c reader-client.mjs.sha256
+```
+
+macOS:
+
+```sh
+shasum -a 256 -c reader-client.mjs.sha256
+```
+
+PowerShell:
+
+```powershell
+$line = (Get-Content -LiteralPath 'reader-client.mjs.sha256' -Raw).Trim()
+$match = [regex]::Match($line, '^([a-f0-9]{64})  reader-client\.mjs$')
+if (-not $match.Success) { throw 'Invalid checksum file' }
+$actual = (Get-FileHash -LiteralPath 'reader-client.mjs' -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run the download' }
+Write-Output 'reader-client.mjs: OK'
+```
+
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+
+Inspect an unsigned quote:
 
 ```sh
 node reader-client.mjs quote https://example.com --format markdown
