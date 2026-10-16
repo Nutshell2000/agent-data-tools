@@ -3,7 +3,7 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.6.0";
+export const MCP_SERVER_VERSION = "1.7.0";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -43,7 +43,7 @@ export function mcpServerCard(origin: string) {
     capabilities: { tools: { listChanged: false } },
     authentication: { required: false },
     payment: { protocol: "x402", asset: "USDC", network: "base" },
-    tools: ENDPOINTS.map((e) => ({ name: e.path.slice(1), description: e.summary, price: e.price })),
+    tools: ENDPOINTS.map((e) => ({ name: e.path.slice(1), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
 }
 
