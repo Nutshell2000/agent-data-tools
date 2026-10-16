@@ -88,10 +88,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     },
     { decodeEntities: true },
   ).end(html);
-  const safeUrl = (v?: string) => {
-    if (!v || v.length > 4096) return null;
+  const resolveHttpUrl = (v: string | undefined, relativeTo: string) => {
+    if (v === undefined || v.length > 4096) return null;
     try {
-      const u = new URL(v, base);
+      const u = new URL(v, relativeTo);
       return /^https?:$/.test(u.protocol) && !u.username && !u.password
         ? u.href
         : null;
@@ -99,6 +99,20 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       return null;
     }
   };
+  // Template and foreign-content descendants do not define this document's base.
+  const findBase = (n: Node): Node | undefined => {
+    if (["template", "svg", "math", "iframe", "noscript"].includes(n.tag)) return;
+    if (n.tag === "base" && "href" in n.attrs) return n;
+    for (const child of n.children) if (typeof child !== "string") {
+      const found = findBase(child);
+      if (found) return found;
+    }
+  };
+  const declaredBase = findBase(root);
+  const resolvedBase = declaredBase ? resolveHttpUrl(declaredBase.attrs.href, base) : null;
+  const linkBaseUrl = resolvedBase ?? base;
+  const baseWarnings = declaredBase ? [resolvedBase ? "document_base_applied" : "document_base_ignored"] : [];
+  const safeUrl = (v?: string) => v ? resolveHttpUrl(v, linkBaseUrl) : null;
   const visible: Node[] = [];
   const parents = new Map<Node, Node>();
   const scan = (n: Node) => {
@@ -202,7 +216,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .replace(/ *\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-  const warnings = new Set<string>();
+  const warnings = new Set<string>(baseWarnings);
   const inspectVisuals = (n: Node, inLiteralCode = false) => {
     if (concealed(n)) return;
     if (n.tag === "svg") { if(!["presentation","none"].includes(n.attrs.role)) warnings.add("visual_content_omitted"); return; }
@@ -484,6 +498,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       )
       ?.attrs.content?.slice(0, 2000) ?? null;
   return {
+    linkBaseUrl,
     title: title ?? meta("og:title"),
     description: meta("description") ?? meta("og:description"),
     lang: all.find((n) => n.tag === "html")?.attrs.lang?.slice(0, 100) ?? null,
