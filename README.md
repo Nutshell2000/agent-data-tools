@@ -3,35 +3,19 @@
 Operated by **SpellzCode**. Start with [static documentation reading](docs/web-reading.md): clean text, Markdown, code and tables for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
+- [Use the local MCP adapter without writing a client](docs/local-mcp.md)
+- [Inspect the portable buyer skill](skills/spellzcode-x402-reader/SKILL.md) and [installation context](https://agent-data-tools.revmesh2074.workers.dev/skills/index.json)
 - [Research a technical question from three pages: maximum $0.006](docs/three-page-research.md)
 - [Discover documentation URLs from a sitemap: $0.002](docs/sitemap.md)
-- [Plain-text CLI, capped HTTP and x402 MCP instructions](docs/web-reading.md)
 - [Real cached examples and owned source HTML](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/)
 - [Extraction benchmark and limitations](docs/extraction-quality.md)
-- [Bitcoin fees: capped HTTP and x402 MCP examples](docs/bitcoin-fees.md)
-- [Live buying guide](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
+- Secondary: [Bitcoin fee data with capped CLI and local MCP commands](docs/bitcoin-fees.md)
+
+The downloadable client requires Node 20.19+ and no npm installation or TypeScript. An unsigned quote needs no key and never pays. An explicit authorized purchase needs an existing funded Base wallet and a per-call cap of at most $0.002. The local MCP adapter starts in quotes-only mode; deliberately enabled buying shares a process budget across reader, sitemap and Bitcoin-data calls. Keys stay on the buyer's device.
+
+The reader also supports an exact HTML section ID and retains labelled source image descriptions; it does not interpret image pixels. Check scope, output limits and warnings before claiming coverage. [Full buying instructions](docs/web-reading.md).
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
-
-Version 1.2.0 adds the bounded `/sitemap` tool and capped `quote-sitemap`/`buy-sitemap` commands. Version 1.1.2 adds a local command builder with POSIX/PowerShell quoting and a three-page research recipe, while preserving immutable 1.1.1 downloads. Reader 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
-
-## Current revenue operations
-
-The active catalog has 32 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
-`/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
-settlements observed since the ledger was deployed. Its amounts are integer native
-Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
-Receipts preserve transaction, payer, authorization nonce, endpoint and amount evidence
-privately in the existing Durable Object. Signatures and request content are not stored.
-Public responses expose aggregate totals only. A storage error is logged without turning
-an already-settled customer response into another payment request.
-
-These totals remain pending independent chain reconciliation. Fees, expenses and net
-income are not inferred. Historical paid counters cannot be backfilled using today's
-prices: the two indexed historical receipts are 2,000 atomic units each, while today's
-`/btc-fees` challenge is now 2,000 atomic units. Tests and self-payments are never customer income.
-
-The live catalog is authoritative for current tools, prices and trial availability.
 
 A Cloudflare Worker that sells 32 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
@@ -108,6 +92,25 @@ Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and im
 - Coinbase Bazaar: Bitcoin fees and package metadata have indexed entries. Other routes require a genuine settled payment; a readiness pass alone does not index them.
 
 An unpaid request gets HTTP 402 with a `PAYMENT-REQUIRED` header. Calls that fail (4xx/5xx) are not charged.
+
+## Current revenue operations
+
+The active catalog has 32 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
+`/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
+settlements observed since the ledger was deployed. Its amounts are integer native
+Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
+Receipts preserve transaction, payer, authorization nonce, endpoint and amount evidence
+privately in the existing Durable Object. Signatures and request content are not stored.
+Public responses expose aggregate totals only. A storage error is logged without turning
+an already-settled customer response into another payment request.
+
+These totals remain pending independent chain reconciliation. Fees, expenses and net
+income are not inferred. Historical paid counters cannot be backfilled using today's prices. The two indexed
+historical receipts were 2,000 atomic units each and remain separate from the current
+settlement ledger. Tests and self-payments are never customer income.
+
+The live catalog is authoritative for current tools, prices and trial availability.
+
 
 ## Configuration
 
@@ -203,3 +206,8 @@ The [single-file reader skill](skills/spellzcode-x402-reader/SKILL.md) gives a c
 ### Secondary entry: Bitcoin fee data
 
 The same downloaded client now supports `node reader-client.mjs quote-btc-fees` and one authorized `node reader-client.mjs buy-btc-fees --max-usdc 0.002`. No URL, npm setup or Bitcoin key. Local MCP exposes btc_fees_quote/btc_fees_buy under the shared session allowance. This buys data for Base USDC and never sends Bitcoin. [Setup and limitations](docs/bitcoin-fees.md). The static reader remains the primary workflow.
+
+
+### Earlier reader releases
+
+Version 1.2.0 adds the bounded `/sitemap` tool and capped `quote-sitemap`/`buy-sitemap` commands. Version 1.1.2 adds a local command builder with POSIX/PowerShell quoting and a three-page research recipe, while preserving immutable 1.1.1 downloads. Reader 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
