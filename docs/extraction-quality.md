@@ -1,8 +1,14 @@
-# Reader 1.7.0 quality evidence — 16 October 2026
+# Reader quality evidence — 16 October 2026
 
-The current reader passes the same **18-case benchmark**: 12 authored acceptance cases and six pinned public-document snapshots. All 16 successful results satisfy the current output schema; the two browser-shell/challenge fixtures correctly return HTTP 422 errors. This is local handler verification, not a funded production purchase or evidence of customer demand.
+## Reader 1.7.1: remove documentation permalink controls
 
-The [current aggregate results](reader-benchmark.json) record runtime source commit, source hashes and fetch times, output limits, warnings and processing times. The runtime, fixture and dependency inputs were unchanged from the recorded commit. Benchmark harness and documentation edits are recorded separately. The full release suite separately passed **164 tests** in [clean-install CI](https://github.com/Nutshell2000/agent-data-tools/actions/runs/38895604418).
+The 1.7.1 patch omits source-declared paragraph and heading permalink controls when their marker and same-document ancestor target match. Real references, literal code and ordinary symbols remain. On the same pinned snapshots, generated Markdown falls from 130,608 to 106,128 characters for RFC 9111 and from 739,470 to 603,532 for RFC 9110. These are generated character counts before clipping, not token, latency or revenue measurements. Both RFCs still exceed the 100,000-character Markdown limit. New regressions cover code, references, tables, section scope and structured-detail budgets.
+
+## Pinned 1.7.0 baseline
+
+The pinned 1.7.0 reader passes the same **18-case benchmark**: 12 authored acceptance cases and six pinned public-document snapshots. All 16 successful results satisfy the current output schema; the two browser-shell/challenge fixtures correctly return HTTP 422 errors. This is local handler verification, not a funded production purchase or evidence of customer demand.
+
+The [1.7.0 aggregate results](reader-benchmark.json) record runtime source commit, source hashes and fetch times, output limits, warnings and processing times. The runtime, fixture and dependency inputs were unchanged from the recorded commit. Benchmark harness and documentation edits are recorded separately. The full release suite separately passed **164 tests** in [clean-install CI](https://github.com/Nutshell2000/agent-data-tools/actions/runs/38895604418).
 
 ## What the benchmark establishes
 
