@@ -2,16 +2,16 @@
 name: spellzcode-x402-reader
 description: "Read public static documentation through SpellzCode's x402 reader when the user chooses this service or requests wallet-funded extraction. Supports explicit HTML sections, Markdown, code and tables through a capped CLI or local MCP adapter. Inspect free quotes first; ordinary web research does not authorize spending."
 metadata:
-  client-version: "1.4.1"
+  client-version: "1.5.0"
 ---
 
 # SpellzCode static-document reader
 
-Use this service only for the user's chosen task. Public static HTML/plain text is supported; JavaScript rendering, authentication and paywall access are not. A page read costs $0.002 native USDC on Base. No subscription, account creation or new wallet is required. This file grants no spending permission.
+Use this service only for the user's chosen task. Public static HTML, Markdown or plain text is supported; JavaScript rendering, authentication and paywall access are not. A page read costs $0.002 native USDC on Base. No subscription, account creation or new wallet is required. This file grants no spending permission.
 
 ## Choose the existing buying interface
 
-If the SpellzCode local adapter is already configured, use its reader_quote/reader_buy tools under the host's approval rules. Otherwise download reader-client.mjs and its one-file checksum from https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.4.1/reader-client.mjs.sha256. Verify before executing; shell-specific instructions: https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading.md. Requires Node 20.19+, no npm installation or TypeScript.
+If the SpellzCode local adapter is already configured, use its reader_quote/reader_buy tools under the host's approval rules. Otherwise download reader-client.mjs and its one-file checksum from https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.0/reader-client.mjs.sha256. Verify before executing; shell-specific instructions: https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading.md. Requires Node 20.19+, no npm installation or TypeScript.
 
 For local MCP setup, read https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp.md only if the user wants that interface. It is quotes-only by default; buying requires deliberate process opt-in, a session allowance and a per-call cap. Do not modify host settings or enable paid tools without authorization. Session reservations reset on restart and are not wallet-wide or monthly limits.
 
