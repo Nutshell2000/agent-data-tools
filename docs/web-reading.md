@@ -4,6 +4,8 @@ $0.002 native USDC on Base per successful call. No API account or subscription. 
 
 ## Inspect real results, then use the CLI
 
+Portable buyer skill: https://agent-data-tools.revmesh2074.workers.dev/skills/spellzcode-x402-reader/SKILL.md . Installation context: https://agent-data-tools.revmesh2074.workers.dev/skills/index.json . Inspect it and use your host's configured skills location; this does not install, activate or authorize spending by itself.
+
 For an existing MCP agent, use the bundled local adapter: https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.

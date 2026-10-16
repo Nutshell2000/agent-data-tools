@@ -36,6 +36,8 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
   const quickBuy = kind === "web-reading" ? [
     "## Inspect real results, then use the CLI",
     "",
+    `Portable buyer skill: ${origin}/skills/spellzcode-x402-reader/SKILL.md . Installation context: ${origin}/skills/index.json . Inspect it and use your host's configured skills location; this does not install, activate or authorize spending by itself.`,
+    "",
     `For an existing MCP agent, use the bundled local adapter: ${origin}/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.`,
     "",
     `Open ${origin}/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
