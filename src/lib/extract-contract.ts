@@ -8,6 +8,7 @@ export const EXTRACT_OUTPUT_SCHEMA = {
     "contentType",
     "sourceFormat",
     "linkBaseUrl",
+    "sourceMetadata",
     "title",
     "description",
     "lang",
@@ -31,6 +32,11 @@ export const EXTRACT_OUTPUT_SCHEMA = {
     finalUrl: { type: "string" },
     status: { type: "integer" },
     contentType: { type: "string" },
+    sourceMetadata: {
+      type:"object",required:["verification","authors","dates","truncated"],
+      description:"Page-level source declarations, not verified authorship or freshness. Head author/Open Graph date tags and bounded direct Schema.org JSON-LD Article/WebPage-like nodes only; exact-URL matches preferred, otherwise only one identity-free candidate. Author @id references resolve only to unambiguous local Person/Organization names, with both paths recorded. No external context/reference fetching or general JSON-LD expansion. Separate 2000-character value+provenance budget; 5 authors/10 dates. Original date strings are not normalized. Empty for Markdown/plain sources; unrelated entities and ambiguous nodes are omitted with warnings.",
+      properties:{verification:{const:"not_verified"},truncated:{type:"boolean"},authors:{type:"array",maxItems:5,items:{type:"object",required:["value","source"],properties:{value:{type:"string",maxLength:256},source:{type:"string",maxLength:256}}}},dates:{type:"array",maxItems:10,items:{type:"object",required:["value","source","kind"],properties:{value:{type:"string",maxLength:128},source:{type:"string",maxLength:256},kind:{enum:["published","modified"]}}}}}
+    },
     linkBaseUrl: { type: "string", description: "Effective source-derived HTTP(S) base for links: the first supported HTML base href outside inert/foreign subtrees, otherwise finalUrl. Credentials and non-HTTP(S) base values are ignored with a warning. HTML links/canonical use this base; raw Markdown keeps relative syntax and can be resolved using this field. No linked resource is fetched. This static interpretation does not evaluate scripts or Content Security Policy." },
     sourceFormat: { enum: ["html", "markdown", "plain"], description: "Source interpretation. Markdown is identified by text/markdown, or a .md/.markdown final path served as text/plain (warned). Markdown syntax is retained verbatim within the cap, not converted to HTML or parsed for structured details; text also retains that syntax. HTML section IDs are unsupported for Markdown/plain text." },
     title: nullableText,

@@ -17,7 +17,7 @@ Repository fallback downloads for **1.5.1**: [CLI executable](https://github.com
 
 Need help with an existing attempt? [Report a purchase problem](https://github.com/Nutshell2000/agent-data-tools/issues/new?template=purchase-problem.yml) using the request ID, approximate UTC time and reported payment status. Stop after an uncertain signed outcome; do not make a new purchase to reproduce it. For missing text, code or tables, [report an output problem](https://github.com/Nutshell2000/agent-data-tools/issues/new?template=reader-output.yml) with a short public or authored example. Reports are public: never include keys, signatures, raw payment headers or private content.
 
-The reader also supports an exact HTML section ID and retains labelled source image descriptions; it does not interpret image pixels. Check scope, output limits and warnings before claiming coverage. [Full buying instructions](docs/web-reading.md).
+The reader also supports an exact HTML section ID and retains labelled source image descriptions; it does not interpret image pixels. Source-declared authors and publication/update dates now include provenance and unverified/ambiguity warnings when available. Check scope, output limits and warnings before claiming coverage. [Full buying instructions](docs/web-reading.md).
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 

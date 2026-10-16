@@ -1,6 +1,7 @@
 import { Parser } from "htmlparser2";
 import { HttpError } from "./env";
 import { fencedCode } from "./markdown";
+import { readSourceMetadata } from "./page-metadata";
 type Node = {
   tag: string;
   attrs: Record<string, string>;
@@ -497,18 +498,16 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
           (n.attrs.name ?? n.attrs.property)?.toLowerCase() === name,
       )
       ?.attrs.content?.slice(0, 2000) ?? null;
+  const canonical = safeUrl(all.find(n => n.tag === "link" && n.attrs.rel?.toLowerCase().split(/\s+/).includes("canonical"))?.attrs.href);
+  const sourceFacts = readSourceMetadata(root,base,canonical,linkBaseUrl);
+  for(const warning of sourceFacts.warnings)warnings.add(warning);
   return {
     linkBaseUrl,
+    sourceMetadata: sourceFacts.metadata,
     title: title ?? meta("og:title"),
     description: meta("description") ?? meta("og:description"),
     lang: all.find((n) => n.tag === "html")?.attrs.lang?.slice(0, 100) ?? null,
-    canonical: safeUrl(
-      all.find(
-        (n) =>
-          n.tag === "link" &&
-          n.attrs.rel?.toLowerCase().split(/\s+/).includes("canonical"),
-      )?.attrs.href,
-    ),
+    canonical,
     headings,
     section,
     links,

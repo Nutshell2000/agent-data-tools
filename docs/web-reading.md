@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.5.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -106,7 +106,7 @@ Find public page URLs first with the optional $0.002 sitemap tool: https://agent
 
 Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
 
-For HTML, codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. HTML code whitespace and list hierarchy are preserved; generated code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+For HTML, codeBlocks and tables are bounded structured details. HTML body details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. HTML code whitespace and list hierarchy are preserved; generated code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
 
 Source image alt text is retained in text/Markdown (and table cells) as labelled source descriptions. This is not image interpretation: image bytes are never fetched, and Markdown does not embed remote images. Nonempty alt text adds image_alt_text_only; missing descriptions add images_without_alt. Uninterpreted nondecorative inline SVG/canvas adds visual_content_omitted. Hidden/decorative empty-alt images add no text. Images inside literal code are omitted with images_in_literal_code_omitted so code bytes are not invented. Visual-only pages without usable source text fail before settlement.
 
@@ -134,6 +134,12 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "contentType": "text/html;charset=utf-8",
   "sourceFormat": "html",
   "linkBaseUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
+  "sourceMetadata": {
+    "verification": "not_verified",
+    "authors": [],
+    "dates": [],
+    "truncated": false
+  },
   "title": "Owned sample: short article",
   "description": null,
   "lang": "en",
@@ -158,7 +164,7 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
   "hashFormat": "text",
-  "fetchedAt": "2026-10-16T06:36:17.164Z"
+  "fetchedAt": "2026-10-16T11:06:01.780Z"
 }
 ```
 
@@ -248,6 +254,16 @@ try {
 ```
 
 Both examples reject the wrong recipient, network, asset, scheme or a quote above $0.002. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
+
+## Author and date declarations for research
+
+sourceMetadata adds page-level authors and published/modified dates from head author/Open Graph tags and recognized Schema.org Article/WebPage-like JSON-LD. Each value has a source tag or JSON path. verification is always not_verified: these declarations do not establish authorship, truth, freshness or publication history. Date strings remain as declared; source_date_values_differ warns when values of the same kind differ, without choosing the newest or asserting which is correct. fetchedAt is our retrieval time, not the publication date.
+
+JSON-LD exact page/canonical URL matches are preferred; otherwise a single identity-free article/page is accepted. Unrelated URLs and ambiguous identity-free candidates are omitted. Local author @id references resolve only to unambiguous Person/Organization names in inspected inline graphs, with both paths recorded; external contexts, profiles and references are never fetched. Unsupported vocabularies and general JSON-LD expansion are outside this coverage.
+
+Limits: a separate 2,000-character value/provenance budget, at most 5 author declarations and 10 date declarations; at most 8 inline JSON-LD scripts, 64 KiB each, 100 JSON graph nodes and depth 8. Metadata omissions set sourceMetadata.truncated and source_metadata_truncated; they do not imply primary text was truncated. Malformed JSON, unresolved/conflicting local author references and ambiguous page records have explicit warnings. Empty arrays mean unknown within this limited coverage. Markdown/plain sources have empty metadata; selected HTML sections retain page-level metadata. No extra request or payment is performed.
+
+The owned technical-guide example includes illustrative author/date declarations and a local author reference. Its cached result demonstrates parsing, not real publication history or a purchase. Use those provenance fields when researching the existing three-page question; do not treat declared dates as independently verified.
 
 ## Source link resolution
 
