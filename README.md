@@ -13,6 +13,8 @@ Operated by **SpellzCode**. Start with [static documentation reading](docs/web-r
 
 The downloadable client requires Node 20.19+ and no npm installation or TypeScript. An unsigned quote needs no key and never pays. An explicit authorized purchase needs an existing funded Base wallet and a per-call cap of at most $0.002. The local MCP adapter starts in quotes-only mode; deliberately enabled buying shares a process budget across reader, sitemap and Bitcoin-data calls. Keys stay on the buyer's device.
 
+Need help with an existing attempt? [Report a purchase problem](https://github.com/Nutshell2000/agent-data-tools/issues/new?template=purchase-problem.yml) using the request ID, approximate UTC time and reported payment status. Stop after an uncertain signed outcome; do not make a new purchase to reproduce it. For missing text, code or tables, [report an output problem](https://github.com/Nutshell2000/agent-data-tools/issues/new?template=reader-output.yml) with a short public or authored example. Reports are public: never include keys, signatures, raw payment headers or private content.
+
 The reader also supports an exact HTML section ID and retains labelled source image descriptions; it does not interpret image pixels. Check scope, output limits and warnings before claiming coverage. [Full buying instructions](docs/web-reading.md).
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.

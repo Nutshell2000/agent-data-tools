@@ -1,0 +1,66 @@
+name: Purchase or quote problem
+description: Report a quote, payment or result-delivery problem without sharing secrets.
+title: "[Purchase] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This report is public. Never include private keys, payment signatures, authorization headers, wallet exports, private page content or full debug logs. Request IDs and transaction hashes can link public activity; include only what you are comfortable publishing.
+
+        If a purchase may have been signed, stop before buying again. A timeout or missing result does not prove nonpayment. Do not restart the adapter to bypass its uncertainty lock. We can investigate from the request ID and time; this form does not promise an automatic refund.
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Buying interface
+      options:
+        - Standalone CLI
+        - Local MCP adapter
+        - Remote MCP with a payment-capable client
+        - Other HTTP client
+        - Website or guide
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Client version and tool
+      description: For example, 1.4.0 reader-client.mjs /extract. No keys or command containing secrets.
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Reported payment status
+      description: Copy the status field, rather than inferring payment from a timeout or HTTP status.
+      options:
+        - not_signed
+        - unknown
+        - reported_not_settled
+        - settled
+        - No status available
+    validations:
+      required: true
+  - type: input
+    id: request
+    attributes:
+      label: Request ID and approximate UTC time
+      description: Include the requestId or X-Request-ID if available. No payment headers.
+    validations:
+      required: true
+  - type: input
+    id: error
+    attributes:
+      label: Error code and HTTP status
+      description: Only the short error code/status, not raw SDK exceptions or logs.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What happened and what did you expect?
+      description: Say whether a result was received and whether another purchase was attempted. Avoid private content. A public source URL is optional.
+    validations:
+      required: true
+  - type: input
+    id: transaction
+    attributes:
+      label: Optional transaction hash
+      description: Only a public transaction hash, never a signature or authorization payload. Leave blank if unavailable or you prefer not to publish it.
