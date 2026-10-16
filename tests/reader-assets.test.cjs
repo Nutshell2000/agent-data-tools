@@ -62,7 +62,7 @@ const call = (url, method = "GET", accept = "application/json") =>
   });
 test("owned cached examples match their sources, hashes and declared truncation", async () => {
   const manifest = await (await call("/examples/extract/manifest.json")).json();
-  assert.equal(manifest.toolVersion, "1.5.1");
+  assert.equal(manifest.toolVersion, "1.6.0");
   assert.equal(manifest.samples.length, 3);
   assert.equal(manifest.demonstration, true);
   const markdownSource=await(await call(new URL(manifest.markdownExample.sourceUrl).pathname)).text();
@@ -76,6 +76,10 @@ test("owned cached examples match their sources, hashes and declared truncation"
   assert.equal(technical.result.linkBaseUrl,'https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/');
   assert.ok(technical.result.links.some(link=>link.href==='https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html'));
   assert.ok(technical.result.warnings.includes('document_base_applied'));
+  assert.equal(technical.result.sourceMetadata.verification,'not_verified');
+  assert.ok(technical.result.sourceMetadata.authors.some(a=>a.value==='Owned example author'&&a.source.includes('->')));
+  assert.ok(technical.result.sourceMetadata.dates.some(d=>d.kind==='published'&&d.value==='2025-01-01'));
+  assert.ok(technical.result.warnings.includes('source_metadata_unverified'));
   assert.match(technical.result.text,/Image alt text: One job moves from the queue/);
   assert.ok(technical.result.warnings.includes('image_alt_text_only'));
   for (const sample of manifest.samples) {
@@ -128,10 +132,10 @@ test("static routes cannot expose arbitrary assets or private seller-kit files",
   }
 });
 test("standalone client checksum matches and the bundle runs outside the repository", async () => {
-  const binary = "public/clients/reader/1.5.1/reader-client.mjs";
+  const binary = "public/clients/reader/1.6.0/reader-client.mjs";
   const bytes = await fs.readFile(binary);
   const checksum = (
-    await fs.readFile("public/clients/reader/1.5.1/SHA256SUMS", "utf8")
+    await fs.readFile("public/clients/reader/1.6.0/SHA256SUMS", "utf8")
   ).split(/\s+/)[0];
   assert.equal(createHash("sha256").update(bytes).digest("hex"), checksum);
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "reader-client-check-"));
@@ -164,10 +168,10 @@ test("old immutable download remains exact and current artifacts match every che
   }
   const old = await (await call("/clients/reader/1.1.1/reader-client.mjs")).arrayBuffer();
   assert.equal(createHash("sha256").update(Buffer.from(old)).digest("hex"), "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c205e357a395");
-  const checksums = await (await call("/clients/reader/1.5.1/SHA256SUMS")).text();
+  const checksums = await (await call("/clients/reader/1.6.0/SHA256SUMS")).text();
   for (const line of checksums.trim().split("\n")) {
     const [hash, file] = line.trim().split(/\s+/);
-    const response = await call(`/clients/reader/1.5.1/${file}`);
+    const response = await call(`/clients/reader/1.6.0/${file}`);
     assert.equal(response.status, 200);
     assert.equal(createHash("sha256").update(Buffer.from(await response.arrayBuffer())).digest("hex"), hash);
   }
@@ -179,17 +183,17 @@ test('cached late-section proof matches its manifest and scope without claiming 
 });
 test('single-file checksum routes are explicit public assets and linked by the buying guides',async()=>{
  for(const file of ['reader-client.mjs','reader-mcp.mjs']){
- const r=await call('/clients/reader/1.5.1/'+file+'.sha256');assert.equal(r.status,200);const checksum=await r.text();assert.match(checksum,new RegExp('^[a-f0-9]{64}  '+file.replaceAll('.','\\.')+'\\n$'));
+ const r=await call('/clients/reader/1.6.0/'+file+'.sha256');assert.equal(r.status,200);const checksum=await r.text();assert.match(checksum,new RegExp('^[a-f0-9]{64}  '+file.replaceAll('.','\\.')+'\\n$'));
  }
  for(const route of ['/','/guides/web-reading','/guides/local-mcp','/guides/sitemap']){const html=await(await call(route,'GET','text/html')).text();assert.ok(html.includes('.mjs.sha256'),route);assert.ok(html.includes('Get-FileHash'),route);}
- assert.equal((await call('/clients/reader/1.5.1/anything.sha256')).status,404);
+ assert.equal((await call('/clients/reader/1.6.0/anything.sha256')).status,404);
 });
 test('buyer skill GET/HEAD is free, byte-consistent and discoverable without exposing arbitrary skills files',async()=>{
  const route='/skills/spellzcode-x402-reader/SKILL.md';
  const response=await call(route);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/markdown/);assert.equal(response.headers.has('PAYMENT-REQUIRED'),false);
  assert.equal(await response.text(),(await fs.readFile('skills/spellzcode-x402-reader/SKILL.md','utf8')).replaceAll('https://agent-data-tools.revmesh2074.workers.dev','https://api.test'));
  const head=await call(route,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
- const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.5.1');
+ const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.6.0');
  const card=await(await call('/')).json();assert.equal(card.docs.buyerSkill,'https://api.test'+route);
  for(const p of ['/','/guides/web-reading','/llms.txt']){const text=await(await call(p,'GET','text/html')).text();assert.ok(text.includes(route),p);}
  assert.equal((await call('/skills/spellzcode-x402-reader/private.json')).status,404);
@@ -202,8 +206,8 @@ test('local MCP guide and downloadable adapter are available without paid work',
   assert.ok(html.includes('quotes') || html.includes('Quotes'));
   for(const phrase of ['--enable-buy','--session-max-usdc','restart','reader_quote','reader_buy','structuredContent'])assert.ok(html.includes(phrase),phrase);
   const md=await(await call('/guides/local-mcp.md')).text();
-  assert.ok(md.includes('/clients/reader/1.5.1/reader-mcp.mjs'));
-  assert.equal((await call('/clients/reader/1.5.1/reader-mcp.mjs')).status,200);
+  assert.ok(md.includes('/clients/reader/1.6.0/reader-mcp.mjs'));
+  assert.equal((await call('/clients/reader/1.6.0/reader-mcp.mjs')).status,200);
   assert.equal((await call('/clients/reader/1.2.0/reader-mcp.mjs')).status,404);
   for(const route of ['/','/guides/web-reading','/llms.txt'])assert.ok((await(await call(route,'GET','text/html')).text()).includes('/guides/local-mcp'),route);
 });
@@ -220,7 +224,7 @@ test("homepage and guide show actual cached technical output before advanced mat
     const html = await response.text();
     assert.ok(html.includes(escaped));
     assert.match(html, /View a real result.*Inspect a free quote.*Buy one page/);
-    assert.match(html, /type="module" src="\/clients\/reader\/1.5.1\/command-builder.js"/);
+    assert.match(html, /type="module" src="\/clients\/reader\/1.6.0\/command-builder.js"/);
     assert.doesNotMatch(html, /<form|type="password"|href="\/store"/);
     assert.ok(html.indexOf('id="reader-builder"') < html.indexOf(path === "/" ? "Tools and prices" : "Buy one result over HTTP"));
   }
@@ -228,7 +232,7 @@ test("homepage and guide show actual cached technical output before advanced mat
 
 
 test("sitemap cached output matches source and both older published client versions remain available",async()=>{
-  const manifest=await(await call('/examples/sitemap/manifest.json')).json();assert.equal(manifest.toolVersion,'1.5.1');assert.equal(manifest.demonstration,true);
+  const manifest=await(await call('/examples/sitemap/manifest.json')).json();assert.equal(manifest.toolVersion,'1.6.0');assert.equal(manifest.demonstration,true);
   const source=await(await call('/examples/sitemap/source.xml')).text();assert.equal(createHash('sha256').update(source).digest('hex'),manifest.sourceSha256);
   const output=await(await call('/examples/sitemap/result.json')).text();assert.equal(createHash('sha256').update(output).digest('hex'),manifest.resultSha256);
   const v=JSON.parse(output);assert.equal(v.demonstration,true);assert.equal(v.result.kind,'urlset');assert.equal(v.result.entries.length,2);assert.equal(v.result.nextOffset,2);assert.ok(!('receipt' in v));
