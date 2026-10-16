@@ -80,3 +80,11 @@ test("detects tool contract drift and order changes", () => {
     "MCP tool order changed",
   ]);
 });
+
+test("pins exact output schemas and detects output-only drift",()=>{
+  const schema={type:"object",oneOf:[{required:["text"],not:{required:["markdown"]}},{required:["markdown"],not:{required:["text"]}}]};
+  const baseline=buildContract([{...endpoint,outputSchema:schema}],"2.3.4",helpers);
+  assert.deepEqual(baseline.tools[0].outputSchema,schema);
+  assert.deepEqual(helpers.protocolTool({...endpoint,outputSchema:schema}).outputSchema,schema);
+  assert.deepEqual(compareContracts(buildContract([{...endpoint,outputSchema:{type:"object"}}],"2.3.4",helpers),baseline),["MCP contract changed: lookup"]);
+});

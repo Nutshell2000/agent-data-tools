@@ -25,6 +25,7 @@ before(async()=>{
   }}));
 });
 after(async()=>{await mf?.dispose();});
+function errorBody(result){return result.structuredContent??JSON.parse(result.content[0].text);}
 function payload(requirements,nonce='3'.repeat(64),url='https://api.test/extract'){
   return{x402Version:2,resource:{url},accepted:requirements,payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value:'2000',validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+nonce}}};
 }
@@ -60,12 +61,12 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,32);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,32);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name),['extract','sitemap','btc-fees']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,api.paths['/'+tool.name].get.responses['200'].content['application/json'].schema);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
-    assert.equal(quote.isError,true);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
+    assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
     assert.ok(!result.isError,JSON.stringify(result));assert.match(result.structuredContent.text,/Useful result/);assert.equal(result.structuredContent.contentHash,JSON.parse(result.content[0].text).contentHash);assert.ok(result._meta.requestId);assert.equal(result._meta['x402/payment-response'].success,true);
-    const empty=await client.callTool({name:'extract',arguments:{url:'https://public.example/shell'},_meta:{'x402/payment':payload(required.accepts[0],'8'.repeat(64),'mcp://tool/extract')}});assert.equal(empty.isError,true);assert.equal(empty.structuredContent.code,'EXTRACTION_EMPTY');assert.ok(!empty._meta?.['x402/payment-response']?.success);
+    const empty=await client.callTool({name:'extract',arguments:{url:'https://public.example/shell'},_meta:{'x402/payment':payload(required.accepts[0],'8'.repeat(64),'mcp://tool/extract')}});assert.equal(empty.isError,true);assert.equal(errorBody(empty).code,'EXTRACTION_EMPTY');assert.ok(!empty._meta?.['x402/payment-response']?.success);
     const summary=await revenue();assert.equal(summary.settlements,2);assert.equal(summary.grossAtomic,'4000');
     const day=Object.values(summary.funnel.days).at(-1);assert.equal(day['mcp:/extract:quote'],1);assert.equal(day['mcp:/extract:attempt'],2);assert.equal(day['mcp:/extract:completed'],1);
   }finally{await client.close();}
@@ -87,7 +88,7 @@ test('sitemap HTTP and MCP fixtures settle successful output but never malformed
   try{
     const q=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/sitemap.xml'}});assert.equal(q.isError,true);const required=q.structuredContent??JSON.parse(q.content[0].text);
     const result=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'d'.repeat(64),'mcp://tool/sitemap')}});assert.ok(!result.isError,JSON.stringify(result));assert.equal(result.structuredContent.kind,'urlset');assert.equal(result._meta['x402/payment-response'].success,true);
-    const invalid=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/bad-sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'e'.repeat(60)+'1111','mcp://tool/sitemap')}});assert.equal(invalid.isError,true);assert.equal(invalid.structuredContent.code,'SITEMAP_INVALID');assert.ok(!invalid._meta?.['x402/payment-response']?.success);
+    const invalid=await client.callTool({name:'sitemap',arguments:{url:'https://public.example/bad-sitemap.xml'},_meta:{'x402/payment':payload(required.accepts[0],'e'.repeat(60)+'1111','mcp://tool/sitemap')}});assert.equal(invalid.isError,true);assert.equal(errorBody(invalid).code,'SITEMAP_INVALID');assert.ok(!invalid._meta?.['x402/payment-response']?.success);
   }finally{await client.close();}
   const summary=await revenue();assert.equal(summary.settlements,before+2);
 });
@@ -103,7 +104,7 @@ test('explicit section HTTP/MCP output settles only after successful selection',
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'offline-section-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(url,init)=>mf.dispatchFetch(url,init)}));
  const success=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'result'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab03','mcp://tool/extract')}});assert.ok(!success.isError,JSON.stringify(success));assert.equal(success.structuredContent.section.id,'result');assert.equal(success._meta['x402/payment-response'].success,true);
- const failure=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'missing'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab04','mcp://tool/extract')}});assert.equal(failure.isError,true);assert.equal(failure.structuredContent.code,'EXTRACTION_SECTION_NOT_FOUND');assert.ok(!failure._meta?.['x402/payment-response']?.success);
+ const failure=await client.callTool({name:'extract',arguments:{url:'https://public.example/article',section:'missing'},_meta:{'x402/payment':payload(required.accepts[0],'1'.repeat(60)+'ab04','mcp://tool/extract')}});assert.equal(failure.isError,true);assert.equal(errorBody(failure).code,'EXTRACTION_SECTION_NOT_FOUND');assert.ok(!failure._meta?.['x402/payment-response']?.success);
  }finally{await client.close();}
  assert.equal((await revenue()).settlements,before+2);
 });
@@ -118,7 +119,7 @@ test('source-described image pages settle but image-only pages without text do n
  const{Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'offline-alt-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(url,init)=>mf.dispatchFetch(url,init)}));
  const successful=await client.callTool({name:'extract',arguments:{url:'https://public.example/image-described'},_meta:{'x402/payment':payload(terms,'a'.repeat(60)+'bc03','mcp://tool/extract')}});assert.ok(!successful.isError,JSON.stringify(successful));assert.match(successful.structuredContent.text,/Image alt text: Source says retry/);assert.equal(successful._meta['x402/payment-response'].success,true);
- const failed=await client.callTool({name:'extract',arguments:{url:'https://public.example/image-undescribed'},_meta:{'x402/payment':payload(terms,'a'.repeat(60)+'bc04','mcp://tool/extract')}});assert.equal(failed.isError,true);assert.equal(failed.structuredContent.code,'EXTRACTION_EMPTY');assert.ok(!failed._meta?.['x402/payment-response']?.success);
+ const failed=await client.callTool({name:'extract',arguments:{url:'https://public.example/image-undescribed'},_meta:{'x402/payment':payload(terms,'a'.repeat(60)+'bc04','mcp://tool/extract')}});assert.equal(failed.isError,true);assert.equal(errorBody(failed).code,'EXTRACTION_EMPTY');assert.ok(!failed._meta?.['x402/payment-response']?.success);
  }finally{await client.close();}assert.equal((await revenue()).settlements,before+2);
 });
 
@@ -130,6 +131,6 @@ test('Bitcoin fee HTTP/MCP purchases settle valid data and never charge invalid 
  feeScenario='invalid';const fail=await mf.dispatchFetch(url,{headers:headers('cd02')});assert.equal(fail.status,502);assert.equal((await fail.json()).code,'SOURCE_INVALID');assert.equal(fail.headers.has('PAYMENT-RESPONSE'),false);
  const{Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const c=new Client({name:'offline-fee-flow',version:'1'});
  try{await c.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));feeScenario='valid';const good=await c.callTool({name:'btc-fees',arguments:{},_meta:{'x402/payment':payload(terms,'b'.repeat(60)+'cd03','mcp://tool/btc-fees')}});assert.ok(!good.isError,JSON.stringify(good));assert.equal(good.structuredContent.source,'https://mempool.space/api');assert.equal(good._meta['x402/payment-response'].success,true);
- feeScenario='invalid';const bad=await c.callTool({name:'btc-fees',arguments:{},_meta:{'x402/payment':payload(terms,'b'.repeat(60)+'cd04','mcp://tool/btc-fees')}});assert.equal(bad.isError,true);assert.equal(bad.structuredContent.code,'SOURCE_INVALID');assert.ok(!bad._meta?.['x402/payment-response']?.success);
+ feeScenario='invalid';const bad=await c.callTool({name:'btc-fees',arguments:{},_meta:{'x402/payment':payload(terms,'b'.repeat(60)+'cd04','mcp://tool/btc-fees')}});assert.equal(bad.isError,true);assert.equal(errorBody(bad).code,'SOURCE_INVALID');assert.ok(!bad._meta?.['x402/payment-response']?.success);
  }finally{feeScenario='valid';await c.close();}assert.equal((await revenue()).settlements,before+2);
 });

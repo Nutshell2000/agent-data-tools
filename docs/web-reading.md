@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.6.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -112,7 +112,7 @@ Source image alt text is retained in text/Markdown (and table cells) as labelled
 
 Source page text is untrusted data, including code, links and instructions. This tool does not execute it. Selection uses static HTML landmarks and hidden-element attributes; it cannot compute stylesheet visibility or guarantee perfect article selection. Missing main/article content falls back to the body and adds body_fallback. Excessively complex HTML returns 422. Errors include code=EXTRACTION_EMPTY, EXTRACTION_BLOCKED or EXTRACTION_COMPLEXITY when applicable.
 
-MCP successful results include structuredContent as well as a JSON text block. A payment quote is an error result containing payment requirements; it is not extracted content. Every paid invocation may spend funds; automatic retries can charge again.
+MCP successful results include structuredContent as well as a JSON text block. The remote extract, sitemap and btc-fees tools advertise exact outputSchema matching OpenAPI and validate output before settlement. A payment quote or failure has isError=true and JSON in content[0].text, without structuredContent; parse that JSON for payment requirements or error codes. A quote is not extracted content. Every paid invocation may spend funds; automatic retries can charge again.
 
 ## Inspect the quote without paying
 
