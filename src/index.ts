@@ -243,6 +243,7 @@ const readerAssets = new Set([
   "/clients/reader/1.3.0/reader-client.mjs.sha256", "/clients/reader/1.3.0/reader-mcp.mjs.sha256",
   ...["reader-client.mjs","reader-mcp.mjs","command-builder.js","SHA256SUMS","reader-client.mjs.sha256","reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.3.1/${file}`),
   ...["reader-client.mjs","reader-mcp.mjs","command-builder.js","SHA256SUMS","reader-client.mjs.sha256","reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.4.0/${file}`),
+  ...["reader-client.mjs", "reader-mcp.mjs", "command-builder.js", "SHA256SUMS", "reader-client.mjs.sha256", "reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.4.1/${file}`),
   "/examples/extract/section-result.json", "/examples/extract/sources/job-flow.svg",
   ...["source.xml", "index.xml", "result.json", "manifest.json", "index.html"].map(file => `/examples/sitemap/${file}`),
   "/examples/extract/manifest.json", "/examples/extract/index.html", "/examples/extract/benchmark.json",

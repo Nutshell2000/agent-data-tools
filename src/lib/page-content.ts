@@ -279,6 +279,16 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       const bodyRows: string[][] = [],
         bodyHeaders: number[] = [];
       let hasSpans = false;
+      // Cell markup carries word boundaries even when source HTML has no whitespace.
+      // Keep the established single-line cell contract while retaining those boundaries.
+      const cellContent = (cell: Node): string => {
+        if (hidden(cell)) return "";
+        if (cell.tag === "img") return ` ${imageLabel(cell)} `;
+        if (cell.tag === "br" || cell.tag === "hr") return " ";
+        const value = cell.children.map(c => typeof c === "string" ? c : cellContent(c)).join("");
+        return block.has(cell.tag) || /^h[1-6]$/.test(cell.tag) || ["tr", "td", "th", "li", "pre"].includes(cell.tag)
+          ? ` ${value} ` : value;
+      };
       const visit = (v: Node) => {
         if (hidden(v)) return;
         if (v.tag === "table" && v !== n) {
@@ -300,14 +310,14 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
             hasSpans = true;
           if (cells.some((c) => c.tag === "th"))
             bodyHeaders.push(bodyRows.length);
-          bodyRows.push(cells.map((c) => squash(raw(c,true))));
+          bodyRows.push(cells.map((c) => squash(cellContent(c))));
         } else for (const c of v.children) if (typeof c !== "string") visit(c);
       };
       visit(n);
       const cap = n.children.find(
         (c): c is Node => typeof c !== "string" && c.tag === "caption",
       );
-      const bodyCaption = cap ? squash(raw(cap,true)) : null;
+      const bodyCaption = cap ? squash(cellContent(cap)) : null;
       // Structured details cannot consume the primary-content budget.
       if (tables.length < 20) {
         let truncated =

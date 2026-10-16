@@ -4,6 +4,15 @@ const {build}=require('esbuild');
 const {Miniflare,convertV4MiniflareOptions}=require('miniflare');
 const pages=require('./fixtures/extract-pages.cjs');
 let mf,validateOutput,publishedExample;
+test('table cells retain breaks, paragraph and list boundaries without splitting inline words',async()=>{
+ const v=await result('tableBoundaries',{format:'both'});
+ assert.equal(v.tables[0].caption,'API permissions');
+ assert.deepEqual(v.tables[0].rows,[['Operations','Notes'],['Read Write','First rule Second rule'],['Open Close','readOnly visible [Image alt text: state diagram]']]);
+ assert.match(v.text,/Read Write\tFirst rule Second rule/);
+ assert.match(v.markdown,/\| Read Write \| First rule Second rule \|/);
+ assert.doesNotMatch(v.text,/ReadWrite|ruleSecond|OpenClose|SECRET/);
+ assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
 test('table count and row metadata limits do not remove late primary content',async()=>{
  const v=await result('manyTables',{format:'both',maxChars:'100000'});assert.equal(v.tables.length,20);assert.match(v.text,/table_20\tvalue_20/);assert.match(v.text,/row_109\tdata_109/);assert.ok(v.markdown.includes('data\\_109'));assert.equal(v.truncated,false);assert.ok(v.warnings.includes('details_truncated'));
 });

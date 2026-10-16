@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.4.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.4.1/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -28,3 +28,5 @@ Each executable has a matching .sha256 file. Verify only the downloaded executab
 Reader 1.3.1 preserves source image alt text in primary text/Markdown and table cells. It never fetches or interprets image bytes; output warnings disclose missing descriptions and uninterpreted SVG/canvas. All six published 1.3.0 artifacts, including both single-file checksums, remain immutable.
 
 Version 1.4.0 adds quote-btc-fees (no arguments) and buy-btc-fees --max-usdc 0.002. These buy JSON fee/mempool data using the same Base-USDC pins, not Bitcoin transactions. Fee results receive structural/unit/source/arithmetic checks, not reader content hashes or independent upstream verification. The local adapter adds btc_fees_quote/btc_fees_buy under the existing shared session budget/lock. All six published 1.3.1 artifacts remain byte-exact. See docs/bitcoin-fees.md.
+
+Version 1.4.1 preserves spaces between table-cell line breaks, paragraphs and list items, preventing concatenated API terms. Inline word markup stays contiguous. Published 1.4.0 downloads remain byte-exact; payment behavior and prices are unchanged.
