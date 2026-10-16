@@ -122,9 +122,13 @@ ${fence}
 
 Both examples reject the wrong recipient, network, asset, scheme or a quote above ${g.price}. Funded production HTTP and MCP delivery are tracked separately; publication of these examples is not evidence that a customer has paid through either transport.
 
-${kind === "web-reading" ? `## Direct Markdown documents
+${kind === "web-reading" ? `## Source link resolution
 
-The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use finalUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
+HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
+
+## Direct Markdown documents
+
+The same quote/buy commands accept text/markdown responses and final .md/.markdown paths served as text/plain. sourceFormat identifies html, markdown or plain; markdown_inferred_from_path discloses extension-based interpretation. Markdown sources retain their original syntax and code whitespace in both text and markdown fields. Relative links remain source-relative; use linkBaseUrl as their base. This is source retrieval, not a Markdown parser: title and other page metadata are null, structured headings/links/tables/codeBlocks are empty, and markdown_metadata_unparsed is warned. No embedded HTML, links or code are executed or fetched. Raw Markdown can be syntactically incomplete when clipped; check truncated and source_markdown_may_be_incomplete. HTML-only section selection is rejected before settlement.
 
 Real owned Markdown source and cached output: ${origin}/examples/extract/sources/markdown-guide.md and ${origin}/examples/extract/markdown-guide.json . Cached output is a demonstration, not a receipt.
 

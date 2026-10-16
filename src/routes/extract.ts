@@ -58,6 +58,7 @@ export async function extract(
   const content = html
     ? pageContent(source, finalUrl, maxChars, sectionParam)
     : {
+        linkBaseUrl: finalUrl,
         title: null,
         description: null,
         lang: null,

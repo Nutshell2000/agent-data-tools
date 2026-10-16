@@ -20,7 +20,7 @@ after(async()=>{await mf?.dispose();});
 async function call(path,extra={}){calls=[];return mf.dispatchFetch('https://worker.test/?'+new URLSearchParams({url:'https://public.example'+path,...extra}));}
 test('Markdown MIME preserves literal source/code/table syntax and hashes without executing or fetching links',async()=>{
  const r=await call('/typed');assert.equal(r.status,200);const v=await r.json();assert.equal(v.sourceFormat,'markdown');assert.equal(v.text,source);assert.equal(v.markdown,source);assert.equal(v.contentHash,'sha256:'+createHash('sha256').update(source).digest('hex'));assert.equal(v.truncated,false);
- assert.equal(v.contentSelection,'plain');assert.equal(v.section,null);for(const name of ['headings','links','tables','codeBlocks'])assert.deepEqual(v[name],[]);assert.ok(v.warnings.includes('markdown_metadata_unparsed'));assert.equal(calls.length,1);assert.equal(validate(v),true,JSON.stringify(validate.errors));
+ assert.equal(v.contentSelection,'plain');assert.equal(v.linkBaseUrl,v.finalUrl);assert.equal(v.section,null);for(const name of ['headings','links','tables','codeBlocks'])assert.deepEqual(v[name],[]);assert.ok(v.warnings.includes('markdown_metadata_unparsed'));assert.equal(calls.length,1);assert.equal(validate(v),true,JSON.stringify(validate.errors));
 });
 test('plain-text Markdown paths are explicitly disclosed, using the final redirected path',async()=>{
  for(const path of ['/README.md','/README.markdown','/redirect']){const r=await call(path);assert.equal(r.status,200);const v=await r.json();assert.equal(v.sourceFormat,'markdown');assert.equal(v.markdown,source);assert.ok(v.warnings.includes('markdown_inferred_from_path'));}
