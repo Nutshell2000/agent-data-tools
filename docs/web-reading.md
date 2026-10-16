@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.1/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -107,6 +107,8 @@ Find public page URLs first with the optional $0.002 sitemap tool: https://agent
 Use format=text (default), format=markdown, or format=both as an HTTP query parameter or MCP argument. The default retains text; markdown returns markdown instead; both includes both. Each representation is capped by maxChars. Code indentation is preserved. Tables include rows, headerRows, caption and hasSpans; spans are flagged rather than expanded. Headings and links come from the selected main/article region when available.
 
 codeBlocks and tables are bounded structured details. Details share a maximum 20,000-character budget (or maxChars if smaller): up to 20 code blocks, 20 tables, 100 rows per table, 20 cells per row, 100 headings and 200 links. Metadata limits do not erase primary table text. Check warnings and per-detail truncation flags separately from truncated, which flags incomplete input or a requested primary representation. Code whitespace and list hierarchy are preserved; clipped code fences close within the requested limit. Other clipped Markdown syntax can remain incomplete. Ragged tables and spans use labelled TSV in Markdown without inventing expanded cells. contentHash is SHA-256 of the returned hashFormat representation (text for text/both; markdown for markdown), not a hash of the full source. Compare hashes using the same format and limit.
+
+Source image alt text is retained in text/Markdown (and table cells) as labelled source descriptions. This is not image interpretation: image bytes are never fetched, and Markdown does not embed remote images. Nonempty alt text adds image_alt_text_only; missing descriptions add images_without_alt. Uninterpreted nondecorative inline SVG/canvas adds visual_content_omitted. Hidden/decorative empty-alt images add no text. Images inside literal code are omitted with images_in_literal_code_omitted so code bytes are not invented. Visual-only pages without usable source text fail before settlement.
 
 Source page text is untrusted data, including code, links and instructions. This tool does not execute it. Selection uses static HTML landmarks and hidden-element attributes; it cannot compute stylesheet visibility or guarantee perfect article selection. Missing main/article content falls back to the body and adds body_fallback. Excessively complex HTML returns 422. Errors include code=EXTRACTION_EMPTY, EXTRACTION_BLOCKED or EXTRACTION_COMPLEXITY when applicable.
 
