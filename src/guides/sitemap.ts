@@ -1,3 +1,4 @@
+import { readerDownloadMarkdown } from "./reader-download";
 import { MCP_SERVER_VERSION } from "../discovery";
 const esc = (s: string) =>
   s.replace(
@@ -19,7 +20,8 @@ ${origin}/examples/sitemap/ contains actual cached output from owned XML, its so
 
 ## Quote, then choose whether to buy
 
-Download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs and ${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS. Verify SHA-256 before running. Node 20.19+ is required, with no npm installation. The following single-quoted commands work in POSIX shells and PowerShell.
+${readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs")}
+The following single-quoted commands work in POSIX shells and PowerShell.
 
 \`\`\`sh
 node reader-client.mjs quote-sitemap '${sample}' --contains '/examples/' --max-urls 3
@@ -55,7 +57,7 @@ Preserve request ID, route, time and available transaction receipt. Stop before 
 `;
 }
 export function sitemapGuideHtml(origin: string) {
-  const parts = sitemapGuideMarkdown(origin).split(/```sh\n|```/);
+  const parts = sitemapGuideMarkdown(origin).split(/```(?:sh|powershell)\n|```/);
   const body = parts
     .map((part, i) =>
       i % 2

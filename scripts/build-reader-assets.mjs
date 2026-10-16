@@ -39,6 +39,9 @@ const mcpClient = mcpBundle.outputFiles[0].text;
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 await writeFile(new URL("reader-client.mjs", clientDir), client);
 await writeFile(new URL("reader-mcp.mjs", clientDir), mcpClient);
+// Buyers need verify only the executable they downloaded, without unrelated files.
+await writeFile(new URL("reader-client.mjs.sha256", clientDir), hash(client) + "  reader-client.mjs\n");
+await writeFile(new URL("reader-mcp.mjs.sha256", clientDir), hash(mcpClient) + "  reader-mcp.mjs\n");
 await writeFile(
   new URL("SHA256SUMS", clientDir),
   hash(client) + "  reader-client.mjs\n" + hash(browser) + "  command-builder.js\n" + hash(mcpClient) + "  reader-mcp.mjs\n",
