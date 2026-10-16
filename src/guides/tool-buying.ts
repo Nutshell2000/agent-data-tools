@@ -136,6 +136,12 @@ The owned technical-guide example includes illustrative author/date declarations
 
 HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
 
+## Understand a failed invocation
+
+CLI/local MCP 1.7.3 and later retain recognized service error codes as serviceError.code with concise local serviceError.guidance, plus httpStatus and requestId. For example, EXTRACTION_SECTION_NOT_FOUND means the requested exact ID was not found in visible primary HTML. Invalid local URLs return invalid_public_url with guidance before any network request or signing. The clients read at most 8 KiB of an error body and never echo arbitrary service messages or unknown codes. Unsupported or malformed errors use a bounded HTTP-status explanation when available.
+
+A service reason is not settlement proof. paymentStatus, available receipt and request ID remain separate. After a signed failure without a confirming receipt, paymentStatus remains unknown and retryAutomatically remains false; the MCP adapter still requires reconciliation before another buy. Inspect the source or report the existing request ID; do not start another purchase to reproduce an uncertain outcome. An unsigned input/quote error is not_signed. No retry or additional payment is performed by this diagnostic guidance.
+
 ## Superscript and subscript meaning
 
 HTML sup/sub annotations use explicit ^{...} and _{...} notation so an exponent such as 2 to the power 31 does not become the number 231. Markdown escapes the subscript underscore for literal display. The same notation is used in heading titles, section titles, table cells and captions. superscript_subscript_normalized records this interpretation. Literal pre/code content and raw Markdown stay unchanged. This preserves source markup distinctions; it does not evaluate formulas, recognize mathematical meaning, parse MathML or interpret image-based equations. The owned technical guide includes illustrative notation.
