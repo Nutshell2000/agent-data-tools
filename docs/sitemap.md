@@ -8,7 +8,34 @@ https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/ contains actu
 
 ## Quote, then choose whether to buy
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS. Verify SHA-256 before running. Node 20.19+ is required, with no npm installation. The following single-quoted commands work in POSIX shells and PowerShell.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+
+Verify this one executable before running it. Stop on any failure. Linux:
+
+```sh
+sha256sum -c reader-client.mjs.sha256
+```
+
+macOS:
+
+```sh
+shasum -a 256 -c reader-client.mjs.sha256
+```
+
+PowerShell:
+
+```powershell
+$line = (Get-Content -LiteralPath 'reader-client.mjs.sha256' -Raw).Trim()
+$match = [regex]::Match($line, '^([a-f0-9]{64})  reader-client\.mjs$')
+if (-not $match.Success) { throw 'Invalid checksum file' }
+$actual = (Get-FileHash -LiteralPath 'reader-client.mjs' -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run the download' }
+Write-Output 'reader-client.mjs: OK'
+```
+
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.3.0/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+
+The following single-quoted commands work in POSIX shells and PowerShell.
 
 ```sh
 node reader-client.mjs quote-sitemap 'https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/source.xml' --contains '/examples/' --max-urls 3

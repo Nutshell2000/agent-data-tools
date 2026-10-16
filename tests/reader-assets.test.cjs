@@ -158,6 +158,13 @@ test('cached late-section proof matches its manifest and scope without claiming 
  const bytes=Buffer.from(await response.arrayBuffer());assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.sectionExample.resultSha256);
  const sample=JSON.parse(bytes);assert.equal(sample.demonstration,true);assert.equal(sample.result.section.id,'example-section-30');assert.equal(sample.result.truncated,false);assert.match(sample.result.text,/Example section 30/);assert.doesNotMatch(sample.result.text,/Example section 29/);assert.equal(sample.result.section.kind,'heading');assert.ok(sample.result.text.length<=500);assert.ok(!('receipt' in sample));
 });
+test('single-file checksum routes are explicit public assets and linked by the buying guides',async()=>{
+ for(const file of ['reader-client.mjs','reader-mcp.mjs']){
+ const r=await call('/clients/reader/1.3.0/'+file+'.sha256');assert.equal(r.status,200);const checksum=await r.text();assert.match(checksum,new RegExp('^[a-f0-9]{64}  '+file.replaceAll('.','\\.')+'\\n$'));
+ }
+ for(const route of ['/','/guides/web-reading','/guides/local-mcp','/guides/sitemap']){const html=await(await call(route,'GET','text/html')).text();assert.ok(html.includes('.mjs.sha256'),route);assert.ok(html.includes('Get-FileHash'),route);}
+ assert.equal((await call('/clients/reader/1.3.0/anything.sha256')).status,404);
+});
 
 test('local MCP guide and downloadable adapter are available without paid work',async()=>{
   const html=await(await call('/guides/local-mcp','GET','text/html')).text();
