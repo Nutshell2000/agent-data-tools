@@ -3,13 +3,29 @@ import { build } from "esbuild";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { createRequire } from "node:module";
 import { Parser } from "htmlparser2";
 const require = createRequire(import.meta.url),
   fixtures = require("../tests/fixtures/extract-pages.cjs");
-const out = resolve(process.argv[2] ?? ".release-build/reader-benchmark");
+const args = process.argv.slice(2);
+const cacheDir = resolve(args[0] && !args[0].startsWith("--") ? args.shift() : ".release-build/reader-benchmark");
+let cachedOnly = false, out = cacheDir;
+while(args.length) {
+  const option=args.shift();
+  if(option === "--cached-only") cachedOnly=true;
+  else if(option === "--output" && args[0] && !args[0].startsWith("--")) out=resolve(args.shift());
+  else throw Error("Usage: node scripts/benchmark-reader.mjs [cache-dir] [--cached-only] [--output report-dir]");
+}
 await mkdir(out, { recursive: true });
+await mkdir(cacheDir, { recursive: true });
+const {version:toolVersion}=JSON.parse(await readFile("package.json","utf8"));
+const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
+const sourceDirty=Boolean(execFileSync("git",["status","--porcelain","--untracked-files=no"],{encoding:"utf8"}).trim());
+const runtimeSourceDirty=Boolean(execFileSync("git",["diff","HEAD","--","src","tests/fixtures/extract-pages.cjs","package.json","package-lock.json"],{encoding:"utf8"}).trim());
+const benchmarkScriptSha256=createHash("sha256").update(await readFile("scripts/benchmark-reader.mjs")).digest("hex");
+const snapshots=[];
+let sourceRequests=0, peerRequests=0;
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 const corpus = [
   "short",
@@ -54,17 +70,19 @@ const sources = new Map(
   ),
   peers = [];
 for (const [id, url] of publicPages) {
-  const filename = resolve(out, id + ".html");
+  const filename = resolve(cacheDir, id + ".html");
   let html;
   try {
     html = await readFile(filename, "utf8");
-  } catch {
+  } catch (error) {
+    if(cachedOnly) throw Error("Pinned source missing in cached-only mode: " + id, {cause:error});
+    sourceRequests++;
     const r = await fetch(url, { signal: AbortSignal.timeout(30000) });
     if (!r.ok) throw Error("Public source HTTP " + r.status);
     html = await r.text();
     await writeFile(filename, html);
     await writeFile(
-      resolve(out, id + "-source.json"),
+      resolve(cacheDir, id + "-source.json"),
       JSON.stringify(
         {
           url,
@@ -77,13 +95,18 @@ for (const [id, url] of publicPages) {
       ),
     );
   }
+  const sourceInfo=JSON.parse(await readFile(resolve(cacheDir,id+"-source.json"),"utf8"));
+  if(sourceInfo.url!==url || sourceInfo.sha256!==hash(html) || sourceInfo.bytes!==Buffer.byteLength(html)) throw Error("Pinned source integrity mismatch: "+id);
+  snapshots.push({id,...sourceInfo});
   sources.set(url, html);
   // Six requests maximum on a fresh run. Cached responses prevent repeated free-provider traffic.
-  const cache = resolve(out, id + "-jina.json");
+  const cache = resolve(cacheDir, id + "-jina.json");
   let peer;
   try {
     peer = JSON.parse(await readFile(cache, "utf8"));
-  } catch {
+  } catch (error) {
+    if(cachedOnly) throw Error("Cached comparison missing in cached-only mode: "+id,{cause:error});
+    peerRequests++;
     const started = performance.now();
     try {
       const r = await fetch("https://r.jina.ai/" + url, {
@@ -109,6 +132,7 @@ for (const [id, url] of publicPages) {
     }
     await writeFile(cache, JSON.stringify(peer, null, 2));
   }
+  if(peer.url !== url) throw Error("Cached comparison URL mismatch: "+id);
   peers.push({
     ...peer,
     content: undefined,
@@ -129,50 +153,13 @@ for (const [id, url] of publicPages) {
       "Free-provider rate limit reached; stop rather than retry or evade it",
     );
 }
-async function load(baseline) {
-  const baseFiles = new Set([
-    "src/routes/extract.ts",
-    "src/lib/page-content.ts",
-  ]);
-  const compiled = await build({
-    entryPoints: ["src/routes/extract.ts"],
-    bundle: true,
-    write: false,
-    platform: "node",
-    format: "esm",
-    plugins: baseline
-      ? [
-          {
-            name: "published-1.1.0-baseline",
-            setup(b) {
-              b.onLoad({ filter: /\.(ts)$/ }, (args) => {
-                const rel = args.path
-                  .replaceAll("\\", "/")
-                  .split("/x402-income-reliability/")[1];
-                if (!baseFiles.has(rel)) return;
-                return {
-                  contents: execFileSync("git", ["show", "6b3c660:" + rel], {
-                    encoding: "utf8",
-                  }),
-                  loader: "ts",
-                  resolveDir: dirname(args.path),
-                };
-              });
-            },
-          },
-        ]
-      : [],
-  });
-  return (
-    await import(
-      "data:text/javascript;base64," +
-        Buffer.from(compiled.outputFiles[0].text).toString("base64")
-    )
-  ).extract;
+async function load(path) {
+  const compiled=await build({entryPoints:[path],bundle:true,write:false,platform:"node",format:"esm"});
+  return import("data:text/javascript;base64,"+Buffer.from(compiled.outputFiles[0].text).toString("base64"));
 }
-const before = await load(true),
-  after = await load(false),
-  actualFetch = globalThis.fetch;
+const {extract:currentExtract}=await load("src/routes/extract.ts");
+const {assertToolOutput}=await load("src/lib/output-contract.ts");
+const actualFetch=globalThis.fetch;
 function authoredPass(id, r) {
   if (id === "shell" || id === "challenge")
     return (
@@ -245,8 +232,7 @@ try {
     });
   };
   for (const [label, extract] of [
-    ["before-1.1.0", before],
-    ["after-1.1.1", after],
+    ["current-"+toolVersion, currentExtract],
   ]) {
     for (const [url, html] of sources) {
       const id =
@@ -255,7 +241,9 @@ try {
       const started = performance.now();
       let r;
       try {
-        r = { status: 200, result: await extract(url, "100000", "both") };
+        const result=await extract(url,"100000","both");
+        assertToolOutput("/extract",result);
+        r = { status: 200, result, outputContractValid:true };
       } catch (e) {
         r = { status: e.status ?? 500, code: e.code, error: e.message };
       }
@@ -268,6 +256,7 @@ try {
         url,
         status: r.status,
         code: r.code,
+        outputContractValid: r.outputContractValid,
         sourceBytes: Buffer.byteLength(html),
         sourceSha256: hash(html),
         localProcessingMs:
@@ -307,16 +296,18 @@ try {
 }
 const report = {
   checkedAt: new Date().toISOString(),
+  toolVersion,
+  sourceCommit, sourceDirty, runtimeSourceDirty, benchmarkScriptSha256, cachedOnly, sourceRequests, peerRequests, snapshots,
   caseCount: sources.size,
   authoredCases: 12,
   publicDocuments: 6,
   primaryLimit: 100000,
   method:
-    "Actual local handler; fixed private input snapshots. Processing timings exclude source-network latency and are not production latency or cost. Jina is free direct mode; full output size and equal-budget size are distinct. Authored assertions do not establish universal or competitor superiority. No paid competitor output was purchased.",
+    "Actual local handler; fixed private input snapshots. Processing timings exclude source-network latency and are not production latency or cost. Comparison data is cached Jina free direct mode from the recorded fetch times, not a current provider check; full output size and equal-budget size are distinct. Complete-code matching checks membership in source pre blocks, not exhaustive content coverage. Current successful outputs also satisfy the exact published schema. Authored assertions do not establish universal or competitor superiority. No paid competitor output was purchased.",
   results,
   peers,
   authoredScores: Object.fromEntries(
-    ["before-1.1.0", "after-1.1.1"].map((version) => [
+    ["current-"+toolVersion].map((version) => [
       version,
       results.filter((r) => r.version === version && r.authoredPass === true)
         .length,
@@ -328,9 +319,9 @@ console.log(
   JSON.stringify({
     cases: report.caseCount,
     authoredScores: report.authoredScores,
-    afterPublicFailures: results.filter(
+    currentPublicFailures: results.filter(
       (r) =>
-        r.version === "after-1.1.1" &&
+        r.version === "current-"+toolVersion &&
         !corpus.includes(r.id) &&
         r.status !== 200,
     ).length,
@@ -339,10 +330,10 @@ console.log(
   }),
 );
 if (
-  report.authoredScores["after-1.1.1"] !== 12 ||
+  report.authoredScores["current-"+toolVersion] !== 12 ||
   results.some(
     (r) =>
-      r.version === "after-1.1.1" && !corpus.includes(r.id) && r.status !== 200,
+      r.version === "current-"+toolVersion && !corpus.includes(r.id) && r.status !== 200,
   )
 )
   process.exitCode = 1;

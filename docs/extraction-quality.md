@@ -1,31 +1,38 @@
-# Reader 1.1.1 quality and buying checks — 15 October 2026
+# Reader 1.7.0 quality evidence — 16 October 2026
 
-The current release passes 80 automated tests. It fixes metadata-dependent loss of table text, code whitespace normalization, nested list structure and clipped code fences. Output variants are checked against the published OpenAPI schema. CLI tests cover pinned terms, explicit caps, one authorization, redirects, uncertain outcomes and standalone execution. No production payment was made.
+The current reader passes the same **18-case benchmark**: 12 authored acceptance cases and six pinned public-document snapshots. All 16 successful results satisfy the current output schema; the two browser-shell/challenge fixtures correctly return HTTP 422 errors. This is local handler verification, not a funded production purchase or evidence of customer demand.
 
-The [18-case benchmark](reader-benchmark.json) uses 12 authored cases and six pinned public documentation snapshots. The authored checks improve from 9/12 on 1.1.0 to 12/12 on 1.1.1. All six public documents process successfully; all 109 complete returned structured code blocks match source whitespace. Declared metadata caps omit additional blocks, and long outputs remain truncated. Public-document anchors are spot checks, not exhaustive factual verification.
+The [current aggregate results](reader-benchmark.json) record runtime source commit, source hashes and fetch times, output limits, warnings and processing times. The runtime, fixture and dependency inputs were unchanged from the recorded commit. Benchmark harness and documentation edits are recorded separately. The full release suite separately passed **164 tests** in [clean-install CI](https://github.com/Nutshell2000/agent-data-tools/actions/runs/38895604418).
 
-Jina free direct mode also returns HTTP 200 for all six pages. Its full outputs and our bounded outputs have different coverage. Local processing times exclude network latency and do not establish production speed or operating cost. Paid competitors were not purchased or graded. There is no universal-superiority claim. Reproduce with node scripts/benchmark-reader.mjs; source snapshots and third-party results stay in the ignored private build directory.
+## What the benchmark establishes
 
-Inspect [real owned cached samples](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/) and the [bundled CLI buying guide](web-reading.md). Cached results have generation times, source/result hashes and clear truncation flags. They are build-time demonstrations, not paid receipts. The entry price remains $0.002; arbitrary live URLs remain paid and trials stay disabled.
+All 12 authored checks pass: primary-content selection, hidden text, code indentation, table cells, entity handling, malformed markup, browser-shell/challenge rejection, span warnings, table retention after metadata exhaustion, significant code whitespace and nested lists. These targeted checks do not grade every sentence or every possible document.
 
-## Earlier 1.1.0 compatibility evidence
+All six public snapshots process successfully and retain their selected spot-check anchor. Every complete returned structured code block matches at least one source `pre` text block after HTML decoding and newline normalization: **109 of 109 returned blocks**. That measures returned-code fidelity, not full source coverage. There are 313 source `pre` blocks across these raw pages; structured details have independent limits, and primary text can retain code omitted from structured metadata.
 
-# Extraction quality checks — 15 October 2026
+| Pinned document | Source bytes | Returned / source code blocks | Primary output truncated? | Important limit |
+|---|---:|---:|---|---|
+| [Rust functions](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) | 37,078 | 17 / 17 | No | No warnings on this snapshot |
+| [Python control flow](https://docs.python.org/3/tutorial/controlflow.html) | 140,178 | 20 / 57 | No | Structured details limited |
+| [Python data structures](https://docs.python.org/3/tutorial/datastructures.html) | 111,008 | 20 / 40 | No | Structured details limited |
+| [Python errors](https://docs.python.org/3/tutorial/errors.html) | 85,619 | 20 / 26 | No | Structured details limited |
+| [HTTP semantics RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) | 1,187,554 | 20 / 161 | Yes | Body fallback; primary text/Markdown, links, headings and structured details limited |
+| [HTTP caching RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html) | 232,630 | 12 / 12 | Yes | Body fallback; Markdown and links limited; primary text fits |
 
-The `/extract` upgrade keeps the $0.002 price and adds optional Markdown, bounded structured code/tables, semantic-region selection and content hashes. The default continues returning text. See [the buying guide](web-reading.md) for formats, limits and payment behavior.
+Both requested representations use a 100,000-character limit in this benchmark. A complete metadata list does not establish complete primary output, and a nontruncated primary output does not establish complete metadata. Check `truncated`, `warnings` and per-detail flags separately. For a known late HTML section, use the [explicit-section workflow](web-reading.md); selecting it is a separate intended call, never an automatic retry or crawl.
 
-Validation: 61 automated tests pass, including 11 extraction quality cases. These are authored acceptance cases, not a comparison with competing services or proof of customer demand. Tests run in the Workers runtime. Payment-flow fixtures use a fake facilitator with no signer, funds or on-chain transactions.
+## Competitor evidence and reproducibility
 
-Coverage includes short articles, hidden content, exactly-once entity decoding, safe scoped links, malformed closing tags, code indentation/language, table cells/captions/header rows, span warnings, ordered steps, deterministic hashes, input/format validation, empty pages, browser challenges, complexity rejection and output/detail budgets. Real HTTP and MCP payment wrappers return errors without settlement for an empty static page. MCP successful results provide structuredContent plus the compatible JSON text block. Every invocation is marked non-idempotent because it can incur another payment.
+The comparison rows reuse the **unchanged Jina free direct-mode responses fetched on 15 October 2026**. They recorded HTTP 200 for these six documents at that time. This run made **zero new source requests and zero new competitor requests**. It does not establish current provider availability or a quality victory over Jina. Full output sizes and equal-budget sizes are separate; their coverage differs. Paid competitors were not purchased or graded.
 
-Selected current primary documentation was fetched and processed locally without a production purchase:
+Reproduce against the private pinned cache without networking:
 
-| Page | Input bytes | Selected region | Code blocks returned | Tables returned | Limits reported |
-|---|---:|---|---:|---:|---|
-| [Python control flow](https://docs.python.org/3/tutorial/controlflow.html) | 140,178 | main | 20 | 0 | Structured detail limit |
-| [Rust functions](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) | 37,078 | main | 17 | 0 | None |
-| [HTTP semantics RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) | 1,187,554 | body fallback | 20 | 13 | Text/Markdown and structured detail limits |
+```sh
+node scripts/benchmark-reader.mjs .release-build/reader-benchmark --cached-only --output .release-build/reader-benchmark-current
+```
 
-This is a three-page compatibility check. It does not establish universal extraction quality, production latency, operating cost, or funded production delivery. Code indentation was inspected in the Rust result. Long documents require callers to check truncation and warnings. CSS-computed visibility, browser rendering, authenticated/paywalled access, full table-span expansion and perfect article selection are outside this tool's scope.
+Cached-only mode stops on missing snapshots, missing comparison responses or a source-integrity mismatch. A fresh run without that flag can fetch the six documented pages and six free-provider comparisons; it is a new observation, not reproduction of these exact snapshots. Source snapshots and full third-party results remain outside public Git. Public aggregate hashes support comparison but do not provide the private snapshots themselves. Local processing times exclude network latency and do not establish production speed, operating cost or competitor performance.
 
-Bitcoin fees also validate upstream JSON/required values and include the source, 141-vB transaction-size assumption and estimation limits. Invalid source data returns an execution error rather than a successful paid result. Fee estimates do not guarantee confirmation time.
+The [1.1.1 historical report](reader-benchmark-1.1.1.json) remains available separately. Its authored checks were 9/12 for the earlier 1.1.0 comparison and 12/12 for 1.1.1; those historical scores were not rerun or relabelled as current measurements here.
+
+Inspect [actual owned cached examples](https://agent-data-tools.revmesh2074.workers.dev/examples/extract/) and the [buying guide](web-reading.md). Cached demonstrations are not receipts. The price remains **$0.002 per successful call**; arbitrary live URLs remain paid and trials stay disabled. No JavaScript rendering, authenticated/paywalled access, image-pixel interpretation, computed CSS visibility or universal article-selection guarantee is offered. Funded HTTP, remote MCP and local-adapter delivery require their own customer evidence.
