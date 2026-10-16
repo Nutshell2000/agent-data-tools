@@ -2,6 +2,7 @@ import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { pageContent } from "../lib/page-content";
 import { clipMarkdown } from "../lib/markdown";
+import { emptySourceMetadata } from "../lib/page-metadata";
 export async function extract(
   rawUrl: string | undefined,
   maxCharsParam?: string,
@@ -59,6 +60,7 @@ export async function extract(
     ? pageContent(source, finalUrl, maxChars, sectionParam)
     : {
         linkBaseUrl: finalUrl,
+        sourceMetadata: emptySourceMetadata(),
         title: null,
         description: null,
         lang: null,

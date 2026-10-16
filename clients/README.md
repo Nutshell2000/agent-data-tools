@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.5.1/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.6.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -36,3 +36,5 @@ Version 1.4.1 preserves spaces between table-cell line breaks, paragraphs and li
 Version 1.5.0 also accepts source Markdown through the existing quote/buy commands. text/markdown and .md/.markdown served as text/plain retain source syntax and whitespace; sourceFormat and warnings identify this mode. Structured metadata is not parsed, relative links remain source-relative, and sections require HTML. No Markdown code, links or embedded HTML are executed. All six 1.4.1 downloads remain immutable.
 
 Version 1.5.1 resolves HTML links/canonical against the first supported declared document base and reports linkBaseUrl with applied/ignored warnings. No links are fetched automatically. Markdown source syntax stays unchanged; linkBaseUrl supplies its final-URL base. Static interpretation does not evaluate scripts or CSP. Exact 1.5.0 download bytes remain preserved in the pinned archive.
+
+Version 1.6.0 adds sourceMetadata: bounded unverified author and date declarations with provenance, page identity selection and local author-reference resolution. No external contexts or profiles are fetched; dates are not normalized or independently verified. Metadata limits do not erase readable body content. Prior 1.5.1 website and repository downloads stay unchanged.
