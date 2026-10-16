@@ -3,7 +3,7 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.3.1";
+export const MCP_SERVER_VERSION = "1.4.0";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -319,6 +319,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `Read a specific HTML heading/container with optional section=<exact-id> on /extract, --section on the CLI, or section in local/remote MCP. Scope is explicit in result.section. URL fragments alone do not select. Missing/ambiguous targets fail before settlement. Cached proof: ${origin}/examples/extract/section-result.json.`,
     "",
     `Discover documentation URLs first: ${origin}/guides/sitemap.md. The current standalone client supports quote-sitemap and buy-sitemap with --contains, --max-urls and --offset; each explicit buy remains capped at $0.002.`,
+    "",
+    `Secondary Bitcoin fee-data entry: node reader-client.mjs quote-btc-fees, then an authorized buy-btc-fees --max-usdc 0.002. No URL or Bitcoin key. Local MCP uses btc_fees_quote/btc_fees_buy under the same process cap as reader/sitemap calls. This buys data in Base USDC, never sends Bitcoin. Guide: ${origin}/guides/bitcoin-fees.md.`,
     "",
     `Dependency audit buying guide: ${origin}/guides/dependency-audit.md (up to 10 pinned package versions, ${catalogEndpoint("/package-audit").price} USDC per successful request; dedicated capped client included).`,
     "",

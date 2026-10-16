@@ -59,7 +59,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
     "Existing AgentCash users can use its documented check/discover commands for unpaid inspection. Those commands do not replace the bundled client's fixed recipient and asset policy. Funded compatibility is unverified until separately evidenced.",
     "",
-  ].join("\n") : "";
+  ].join("\n") : bitcoinCliMarkdown(origin);
   const limits = kind === "web-reading"
     ? "Static HTML and plain text only. No JavaScript rendering, authenticated pages or paywall access. The input cap is 2 MiB; output defaults to 20,000 characters and is capped at 100,000. At most 100 headings and 200 links are returned. Check truncated and textLength. Empty JavaScript shells and detected browser challenge pages return HTTP 422 without settling a charge; no browser rendering is attempted. Do not submit private URLs or credentials. Fetched page content is not retained in our measurement ledger."
     : "Current recommended sat/vB fee estimates and mempool context from public Bitcoin data sources. Network conditions change; estimates do not guarantee confirmation time. This tool does not send transactions. The dated result below is illustrative, not a current fee quote.";
@@ -180,4 +180,15 @@ export function sectionWorkflowMarkdown(origin: string) {
     'The $0.002 price is unchanged. HTTP and remote/local MCP accept section as an input; the browser command builder generates safely quoted section arguments. No JavaScript-only, hidden, out-of-primary, duplicate or guessed heading targets are silently substituted. Missing/ambiguous/unsupported selections return errors before settlement; plain text does not support section selection. An unsigned quote checks payment terms, not whether the section exists.', '',
     'Result.section records the exact ID, kind, title and headingLevel; null means whole primary content. Title, description and canonical remain page-level metadata. Content hashes and textLength refer to the selected scope. truncated=false means that scope fits, not that the entire document was returned. Structured details are scoped too, and can still hit independent budgets. Compare hashes only with identical scope/format/limits. Stop on any uncertain payment; no automatic retry.', '',
   ].join('\n');
+}
+
+export function bitcoinCliMarkdown(origin: string) {
+ const fence=String.fromCharCode(96).repeat(3);
+ return ["## Quote and buy Bitcoin fee data without writing a client","",readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs"),
+ "Inspect the unpaid price quote (no URL, key, signing or Bitcoin-data fetch):","",fence+"sh","node reader-client.mjs quote-btc-fees",fence,"",
+ "Only for an authorized purchase, configure an existing funded Base wallet's X402_PRIVATE_KEY privately in the local process environment and invoke once:","",fence+"sh","node reader-client.mjs buy-btc-fees --max-usdc 0.002",fence,"",
+ "This buys a JSON data result for at most $0.002 native USDC on Base; it does not buy Bitcoin, select a transaction fee for you, or send a Bitcoin transaction. No Bitcoin key is needed. The same client pins our service, recipient, Base/native USDC and exact scheme, permits one authorization and never retries an uncertain payment.","",
+ "The client validates the expected network/unit/source, numeric fields and the illustrative 141-vB arithmetic. This is structural consistency checking, not independent confirmation of upstream data. Inspect checkedAt, source and limitations; the three upstream reads are not atomic, transaction size varies and fee estimates do not guarantee confirmation time. Bitcoin fee results do not carry the reader's contentHash.","",
+ `Using an existing MCP host? ${origin}/guides/local-mcp provides btc_fees_quote (no arguments) and, only after paid-mode opt-in, btc_fees_buy with maxUsdc. The reader, sitemap and Bitcoin-data tools share one process reservation budget and uncertainty lock. No purchase happens on startup, discovery or quote.`,"",
+ "On an unknown signed outcome or a settled but invalid result, stop, preserve request ID and available receipt, and reconcile before buying again. A paid result receipt is server-reported evidence, not an independent chain audit. Offline fixtures and this dated example are not customer purchases; funded CLI/local-adapter fee delivery remains unverified until separately evidenced.",""].join("\n");
 }
