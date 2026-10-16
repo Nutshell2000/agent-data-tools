@@ -1,6 +1,6 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.3.1/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.4.0/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
@@ -26,3 +26,5 @@ Reader 1.3.0 adds optional --section <exact-html-id> to quote/buy. HTTP and MCP 
 Each executable has a matching .sha256 file. Verify only the downloaded executable: sha256sum -c reader-client.mjs.sha256 (Linux), shasum -a 256 -c reader-client.mjs.sha256 (macOS), or use the tested PowerShell instructions in docs/web-reading.md. MCP uses reader-mcp.mjs.sha256. The unchanged complete SHA256SUMS file also lists the other artifacts, so a whole-list check requires those downloads too. No executable or original checksum is changed by this setup repair.
 
 Reader 1.3.1 preserves source image alt text in primary text/Markdown and table cells. It never fetches or interprets image bytes; output warnings disclose missing descriptions and uninterpreted SVG/canvas. All six published 1.3.0 artifacts, including both single-file checksums, remain immutable.
+
+Version 1.4.0 adds quote-btc-fees (no arguments) and buy-btc-fees --max-usdc 0.002. These buy JSON fee/mempool data using the same Base-USDC pins, not Bitcoin transactions. Fee results receive structural/unit/source/arithmetic checks, not reader content hashes or independent upstream verification. The local adapter adds btc_fees_quote/btc_fees_buy under the existing shared session budget/lock. All six published 1.3.1 artifacts remain byte-exact. See docs/bitcoin-fees.md.

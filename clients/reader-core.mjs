@@ -19,18 +19,21 @@ const fail = (code) => {
 
 export function parseReaderArgs(args) {
   if (!args.length || args[0] === "--help") return { command: "help" };
-  const [rawCommand, target, ...rest] = args;
+  const [rawCommand, ...tail] = args;
+  const bitcoin = rawCommand === "quote-btc-fees" || rawCommand === "buy-btc-fees";
+  const target = bitcoin ? undefined : tail[0];
+  const rest = bitcoin ? tail : tail.slice(1);
   if (
-    !["quote", "buy", "quote-sitemap", "buy-sitemap"].includes(rawCommand) ||
-    !target
+    !["quote", "buy", "quote-sitemap", "buy-sitemap", "quote-btc-fees", "buy-btc-fees"].includes(rawCommand) ||
+    (!bitcoin && !target)
   )
     fail("usage_error");
   const sitemap = rawCommand.endsWith("-sitemap");
   const command = rawCommand.startsWith("quote") ? "quote" : "buy";
-  const permittedFlags = sitemap
+  const permittedFlags = bitcoin ? ["--max-usdc"] : sitemap
     ? ["--max-usdc", "--contains", "--max-urls", "--offset"]
     : ["--max-usdc", "--format", "--max-chars", "--section"];
-  const url = parseTarget(target).href;
+  const url = bitcoin ? undefined : parseTarget(target).href;
   const flags = new Map();
   for (let i = 0; i < rest.length; i += 2) {
     if (
@@ -60,6 +63,7 @@ export function parseReaderArgs(args) {
     if (capAtomic <= 0n || capAtomic > 2000n)
       fail("explicit_cap_required_at_most_0.002");
   }
+  if (bitcoin) return { command, path: "/btc-fees", query: {}, capAtomic, format: "json" };
   const query = { url, format, maxChars: String(Number(limit)) };
   const section = flags.get("--section");
   if (section !== undefined) {
@@ -116,6 +120,17 @@ export function allowedRequirement(r, cap) {
     (!r.extra?.name || r.extra.name === "USD Coin") &&
     (!r.extra?.version || r.extra.version === "2")
   );
+}
+
+export function validBitcoinFees(result) {
+  const number = v => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER;
+  const integer = v => number(v) && Number.isSafeInteger(v);
+  return result?.network === "bitcoin" && result.unit === "sat/vB" && result.source === "https://mempool.space/api" &&
+    ["nextBlock","halfHour","hour","economy","minimum"].every(k=>number(result.fees?.[k]) && result.fees[k] <= Number.MAX_SAFE_INTEGER/141) &&
+    result.typicalPaymentVbytes === 141 && result.typicalPaymentSats?.nextBlock === result.fees.nextBlock*141 && result.typicalPaymentSats?.hour === result.fees.hour*141 &&
+    integer(result.mempool?.transactions) && integer(result.mempool?.vsize) && number(result.mempool?.totalFeesBtc) && integer(result.blockHeight) &&
+    typeof result.checkedAt === "string" && /^\d{4}-\d\d-\d\dT/.test(result.checkedAt) && Number.isFinite(Date.parse(result.checkedAt)) &&
+    Array.isArray(result.limitations) && result.limitations.length > 0 && result.limitations.every(v=>typeof v === "string" && v.length>0);
 }
 
 async function authorize(required, key) {
@@ -195,7 +210,7 @@ export async function runReader(
     if (options.command === "help")
       return {
         ok: true,
-        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000] [--section exact-html-id]; buy <public-url> --max-usdc 0.002 [same options]. quote-sitemap <xml-url> [--contains value] [--max-urls 1..100] [--offset 0..1000]; buy-sitemap <xml-url> --max-usdc 0.002 [same sitemap options]. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
+        help: "Node >=20.19. quote <public-url> [--format text|markdown|both] [--max-chars 500..100000] [--section exact-html-id]; buy <public-url> --max-usdc 0.002 [same options]. quote-sitemap <xml-url> [--contains value] [--max-urls 1..100] [--offset 0..1000]; buy-sitemap <xml-url> --max-usdc 0.002 [same sitemap options]. quote-btc-fees (no URL/options); buy-btc-fees --max-usdc 0.002. These buy a data result, never send Bitcoin. Buy uses X402_PRIVATE_KEY locally. Each invocation may pay once. No automatic purchase retries. A cap is per invocation, not a monthly budget.",
       };
     const url = new URL(options.path, READER_ORIGIN);
     url.search = new URLSearchParams(options.query).toString();
@@ -283,7 +298,9 @@ export async function runReader(
         retryAutomatically: false,
       };
     const representation = options.format === "markdown" ? "markdown" : "text";
-    if (
+    if (options.path === "/btc-fees") {
+      if (!validBitcoinFees(result)) fail("invalid_result");
+    } else if (
       result?.format !== options.format ||
       (options.query.section !== undefined && result.section?.id !== options.query.section) ||
       result.hashFormat !== representation ||
