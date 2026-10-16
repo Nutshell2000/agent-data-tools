@@ -33,7 +33,10 @@ export function parseReaderArgs(args) {
   const permittedFlags = bitcoin ? ["--max-usdc"] : sitemap
     ? ["--max-usdc", "--contains", "--max-urls", "--offset"]
     : ["--max-usdc", "--format", "--max-chars", "--section"];
-  const url = bitcoin ? undefined : parseTarget(target).href;
+  let url;
+  if (!bitcoin) {
+    try { url = parseTarget(target).href; } catch { fail("invalid_public_url"); }
+  }
   const flags = new Map();
   for (let i = 0; i < rest.length; i += 2) {
     if (
@@ -165,7 +168,7 @@ function receiptFrom(response) {
   }
 }
 
-async function resultJson(response) {
+async function resultJson(response, maxBytes = 2 * 1024 * 1024) {
   if (!response.body) fail("missing_result_body");
   const reader = response.body.getReader(),
     chunks = [];
@@ -175,7 +178,7 @@ async function resultJson(response) {
       const { done, value } = await reader.read();
       if (done) break;
       length += value.length;
-      if (length > 2 * 1024 * 1024) {
+      if (length > maxBytes) {
         await reader.cancel();
         fail("result_too_large");
       }
@@ -191,6 +194,50 @@ async function resultJson(response) {
     offset += chunk.length;
   }
   return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+// Error bodies are untrusted source data. Return only recognized codes and our own
+// guidance; never echo server messages, signatures, keys or fetched page content.
+const serviceGuidance = new Map([
+  ["EXTRACTION_SECTION_NOT_FOUND", "The requested section ID was not found in visible primary HTML. Inspect the source for the exact ID."],
+  ["EXTRACTION_SECTION_AMBIGUOUS", "The requested section ID appears more than once. Choose a unique supported source ID."],
+  ["EXTRACTION_SECTION_UNSUPPORTED", "This section selection is unsupported. It requires static HTML and a heading or supported container ID."],
+  ["EXTRACTION_EMPTY", "The source or selected output contains no usable static content. Check the source format and output limit."],
+  ["EXTRACTION_BLOCKED", "The source returned a browser challenge. Choose public static content that does not require a browser challenge."],
+  ["EXTRACTION_COMPLEXITY", "The source exceeds the bounded HTML parser limits. Choose a smaller supported document; section selection does not bypass parsing limits."],
+  ["SOURCE_INVALID", "The upstream data is invalid or incomplete. Keep the request ID for support."],
+  ["OUTPUT_CONTRACT_INVALID", "The service rejected its result before settlement. Keep the request ID for support."],
+  ["SITEMAP_INVALID", "The source is not a supported XML sitemap."],
+  ["SITEMAP_DTD", "The XML contains a prohibited DTD declaration."],
+  ["SITEMAP_COMPLEXITY", "The XML exceeds the sitemap complexity limits."],
+  ["SITEMAP_ENTRY_LIMIT", "The sitemap exceeds the bounded entry count."],
+  ["SITEMAP_FIELD_LIMIT", "A sitemap field exceeds the supported size."],
+  ["SITEMAP_REQUIRED", "The source must be an XML sitemap or sitemap index."],
+  ["SITEMAP_TOO_LARGE", "The compressed or expanded sitemap exceeds the input size limit."],
+  ["SITEMAP_GZIP_INVALID", "The sitemap gzip content is invalid."],
+  ["SITEMAP_ENCODING", "The sitemap uses an unsupported encoding."],
+]);
+const httpGuidance = new Map([
+  [400, "The service rejected the input. Check the documented URL and options."],
+  [402, "The service returned payment requirements again. Do not authorize a fresh payment automatically."],
+  [404, "The requested resource was not found."],
+  [415, "The source content type or character encoding is unsupported."],
+  [422, "The service could not produce a supported result for this input."],
+  [429, "The service is rate limited. Keep the request ID; do not automatically repeat a signed purchase."],
+  [502, "The service or its source returned an invalid response. Keep the request ID for support."],
+  [503, "The service or its source is unavailable. Keep the request ID for support."],
+  [504, "The source did not respond within the service time limit."],
+]);
+async function serviceFailure(response) {
+  const fallback = response.status >= 400
+    ? { code: `HTTP_${response.status}`, guidance: httpGuidance.get(response.status) ?? "The service returned an error. Keep the request ID and payment status for support." } : null;
+  if (response.status < 400) { await response.body?.cancel(); return fallback; }
+  try {
+    const body = await resultJson(response, 8192);
+    if (typeof body?.code === "string" && serviceGuidance.has(body.code))
+      return { code: body.code, guidance: serviceGuidance.get(body.code) };
+  } catch { /* Bounded, malformed or failed error reads cannot change payment status. */ }
+  return fallback;
 }
 
 /** Dependency injection is for offline tests; CLI flags cannot override the origin or policy. */
@@ -221,8 +268,11 @@ export async function runReader(
       headers: { Accept: "application/json", "X402-Source": "reader_cli" },
     });
     requestId = response.headers.get("X-Request-ID");
+    if (response.status !== 402) {
+      const serviceError = await serviceFailure(response);
+      return { ok: false, error: "expected_unpaid_402_quote", httpStatus: response.status, serviceError, paymentStatus: "not_signed", requestId, retryAutomatically: false };
+    }
     await response.body?.cancel();
-    if (response.status !== 402) fail("expected_unpaid_402_quote");
     const header = response.headers.get("PAYMENT-REQUIRED");
     if (!header || header.length > 64000) fail("invalid_payment_quote");
     const required = decodePaymentRequiredHeader(header);
@@ -276,11 +326,12 @@ export async function runReader(
         ? "reported_not_settled"
         : "unknown";
     if (!paid.ok) {
-      await paid.body?.cancel();
+      const serviceError = await serviceFailure(paid);
       return {
         ok: false,
         error: "paid_request_failed",
         httpStatus: paid.status,
+        serviceError,
         paymentStatus,
         receipt,
         requestId,
@@ -316,6 +367,7 @@ export async function runReader(
     // Never echo arbitrary SDK/network exceptions: they may contain sensitive signing context.
     const safe = new Set([
       "usage_error",
+      "invalid_public_url",
       "invalid_format_or_limit",
       "invalid_sitemap_options",
       "invalid_section_id",
@@ -341,6 +393,7 @@ export async function runReader(
         : authorizationAttempted
           ? "unknown"
           : "not_signed",
+      ...(error?.message === "invalid_public_url" ? { guidance: "Use an absolute public HTTP(S) URL without embedded credentials or a nonstandard port." } : {}),
       receipt,
       requestId,
       retryAutomatically: false,

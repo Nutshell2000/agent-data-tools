@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.3/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.3/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.3/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -268,6 +268,12 @@ The owned technical-guide example includes illustrative author/date declarations
 ## Source link resolution
 
 HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
+
+## Understand a failed invocation
+
+CLI/local MCP 1.7.3 and later retain recognized service error codes as serviceError.code with concise local serviceError.guidance, plus httpStatus and requestId. For example, EXTRACTION_SECTION_NOT_FOUND means the requested exact ID was not found in visible primary HTML. Invalid local URLs return invalid_public_url with guidance before any network request or signing. The clients read at most 8 KiB of an error body and never echo arbitrary service messages or unknown codes. Unsupported or malformed errors use a bounded HTTP-status explanation when available.
+
+A service reason is not settlement proof. paymentStatus, available receipt and request ID remain separate. After a signed failure without a confirming receipt, paymentStatus remains unknown and retryAutomatically remains false; the MCP adapter still requires reconciliation before another buy. Inspect the source or report the existing request ID; do not start another purchase to reproduce an uncertain outcome. An unsigned input/quote error is not_signed. No retry or additional payment is performed by this diagnostic guidance.
 
 ## Superscript and subscript meaning
 
