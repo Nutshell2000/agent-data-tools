@@ -1,4 +1,8 @@
 module.exports = {
+  notation: '<main><h1 id="power">Limit 2<sup>31</sup></h1><p>Maximum 2<sup>31</sup>; water H<sub>2</sub>O; nested x<sup>a<sub>i</sub></sup>; cite<sup><a href="#power">1</a></sup>.</p><p>Inline <code>x<sup>2</sup> + y<sub>i</sub></code>.</p><pre><code>2<sup>31</sup>\nH<sub>2</sub>O</code></pre></main>',
+  notationTable: '<main><h2 id="limit">Capacity 2<sup>31</sup></h2><table><caption>H<sub>2</sub>O</caption><tr><th>Term</th><th>Value</th></tr><tr><td>Power</td><td>2<sup>31</sup></td></tr><tr><td>Index</td><td>x<sub>i</sub></td></tr><tr><td>Code</td><td><code>x<sup>2</sup></code></td></tr></table></main>',
+  notationLiteral: '<main><h1 id="plain">Literal</h1><pre>2<sup>31</sup>\nH<sub>2</sub>O</pre><p><code>x<sup>2</sup></code><span hidden>2<sup>99</sup></span>empty<sup></sup></p><h1 id="outside">Other 2<sup>8</sup></h1></main>',
+
   permalinks: '<main><h1 id="intro">Guide<a class="headerlink" href="#intro">¶</a></h1><p id="rule">Keep the actual rule.<a class="pilcrow" href="#rule">¶</a></p><p><a href="#rule">Read that rule</a></p><section id="plain"><h2 id="plain-title">No controls here</h2><p>Selected scope.</p></section></main>',
   permalinkReferences: '<main><h1 id="here">References</h1><p><a class="pilcrow" href="#elsewhere">¶</a> <a href="#here">#</a> <a class="pilcrow" href="https://other.example/page#here">¶</a> <a class="PILCROW" href="#here">¶</a> <a class="permalink" href="#here">Full reference</a> <a class="pilcrow" href="#bad%ZZ">¶</a></p><div id="elsewhere">Actual target.</div></main>',
   permalinkLiteral: '<main><pre id="literal"><code>first  \n<a class="pilcrow" href="#literal">¶</a>\n    last</code></pre><p>Literal prose ¶ and # remain.</p></main>',
