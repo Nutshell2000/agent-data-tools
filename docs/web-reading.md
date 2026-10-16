@@ -10,7 +10,7 @@ For an existing MCP agent, use the bundled local adapter: https://agent-data-too
 
 Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for three real cached results from owned sample HTML. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
 
-Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
+Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
 Verify this one executable before running it. Stop on any failure. Linux:
 
@@ -35,7 +35,7 @@ if ($actual -ne $match.Groups[1].Value) { throw 'Checksum mismatch; do not run t
 Write-Output 'reader-client.mjs: OK'
 ```
 
-The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.1/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
+The complete SHA256SUMS list remains at https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.2/SHA256SUMS for people downloading all artifacts. Do not check that whole list after downloading only one file. SHA-256 checks detect changed bytes against the published checksum; the checksum is served through the same website and is not an independent signature. Public source: https://github.com/Nutshell2000/agent-data-tools/tree/main/clients .
 
 Inspect an unsigned quote:
 
@@ -268,6 +268,10 @@ The owned technical-guide example includes illustrative author/date declarations
 ## Source link resolution
 
 HTML relative links and canonical metadata use linkBaseUrl: the first supported base href outside inert/foreign subtrees, otherwise finalUrl. document_base_applied identifies an accepted source declaration; document_base_ignored means an invalid, credentialed, oversized or non-HTTP(S) base fell back to finalUrl. Later declarations do not override the first. This is static source interpretation: scripts and Content Security Policy are not evaluated. Links remain untrusted source data; no destination is fetched or purchased automatically. The owned technical-guide example includes a declared base and a relative link for inspection.
+
+## Superscript and subscript meaning
+
+HTML sup/sub annotations use explicit ^{...} and _{...} notation so an exponent such as 2 to the power 31 does not become the number 231. Markdown escapes the subscript underscore for literal display. The same notation is used in heading titles, section titles, table cells and captions. superscript_subscript_normalized records this interpretation. Literal pre/code content and raw Markdown stay unchanged. This preserves source markup distinctions; it does not evaluate formulas, recognize mathematical meaning, parse MathML or interpret image-based equations. The owned technical guide includes illustrative notation.
 
 ## Documentation permalink controls
 
