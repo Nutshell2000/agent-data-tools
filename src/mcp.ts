@@ -41,11 +41,11 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
   }
 }
 
-// Payment terms per tool are plain data, so they are computed once per isolate.
-let accepts: Record<string, Accepts> | undefined;
+// Publish only completed state. A pending initialization must stay request-local.
+let payments: { server: ReturnType<typeof resourceServer>; terms: Record<string, Accepts> } | undefined;
 
-async function paymentTerms(env: Env) {
-  if (accepts) return accepts;
+async function paymentState(env: Env) {
+  if (payments) return payments;
   const server = resourceServer(env);
   await server.initialize();
   const built: Record<string, Accepts> = {};
@@ -57,14 +57,14 @@ async function paymentTerms(env: Env) {
       price: e.price,
     });
   }
-  return (accepts = built);
+  return (payments = { server, terms: built });
 }
 
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. */
 export async function handleMcp(c: Context<{ Bindings: Env }>) {
   const env = c.env;
   const paid = env.PAYWALL !== "off";
-  const terms = paid ? await paymentTerms(env) : undefined;
+  const payment = paid ? await paymentState(env) : undefined;
   const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
 
   for (const e of ENDPOINTS) {
@@ -72,10 +72,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
     const required = Object.entries(e.params)
       .filter(([, p]) => p.required)
       .map(([name]) => name);
-    const callback = terms
+    const callback = payment
       ? (() => {
-          const wrapped = createPaymentWrapper(resourceServer(env), {
-            accepts: terms[e.path],
+          const wrapped = createPaymentWrapper(payment.server, {
+            accepts: payment.terms[e.path],
             resource: {
               // The wrapper can't see the tool's name, so the default URL would be a placeholder.
               url: `mcp://tool/${toolName(e)}`,
