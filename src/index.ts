@@ -129,7 +129,8 @@ function buildPaywall(env: Env): MiddlewareHandler {
   return paymentMiddleware({ ...routes, ...purchases }, resourceServer(env));
 }
 
-// Built on first request: Workers expose env bindings per request, not at module load.
+// Cache only a gateway whose initialization finished in its own request.
+// Sharing the SDK's pending startup promise lets one interrupted request stall others.
 let paywall: MiddlewareHandler | undefined;
 
 const TRIALS_PER_CALLER = 10;
@@ -180,8 +181,10 @@ app.use(async (c, next) => {
   if (c.req.method === "HEAD") {
     return headPaymentProbe(c.req.raw, (probe) => app.fetch(probe, c.env, c.executionCtx));
   }
-  paywall ??= buildPaywall(c.env);
-  return paywall(c, next);
+  const candidate = paywall ?? buildPaywall(c.env);
+  const result = await candidate(c, next);
+  if (c.res.status < 500) paywall ??= candidate;
+  return result;
 });
 
 for (const e of ENDPOINTS) {
@@ -251,6 +254,7 @@ const readerAssets = new Set([
   ...["reader-client.mjs", "reader-mcp.mjs", "command-builder.js", "SHA256SUMS", "reader-client.mjs.sha256", "reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.7.1/${file}`),
   ...["reader-client.mjs", "reader-mcp.mjs", "command-builder.js", "SHA256SUMS", "reader-client.mjs.sha256", "reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.7.2/${file}`),
   ...["reader-client.mjs", "reader-mcp.mjs", "command-builder.js", "SHA256SUMS", "reader-client.mjs.sha256", "reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.7.3/${file}`),
+  ...["reader-client.mjs", "reader-mcp.mjs", "command-builder.js", "SHA256SUMS", "reader-client.mjs.sha256", "reader-mcp.mjs.sha256"].map(file=>`/clients/reader/1.7.4/${file}`),
   "/examples/extract/section-result.json", "/examples/extract/sources/job-flow.svg",
   "/examples/extract/markdown-guide.json", "/examples/extract/sources/markdown-guide.md",
   ...["source.xml", "index.xml", "result.json", "manifest.json", "index.html"].map(file => `/examples/sitemap/${file}`),

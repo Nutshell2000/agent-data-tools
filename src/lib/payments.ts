@@ -6,15 +6,12 @@ import { buildFacilitator } from "./facilitator";
 import { settlementRecord } from "./settlement-ledger";
 import { markStage } from "./funnel";
 
-let server: x402ResourceServer | undefined;
-
 /**
- * One payment server per isolate, shared by the HTTP paywall and the MCP tools.
- * Built on first use: Workers expose env bindings per request, not at module load.
+ * Cold initialization belongs to one request. HTTP and MCP cache their own
+ * fully initialized state; they must not share a server while its maps are loading.
  */
 export function resourceServer(env: Env): x402ResourceServer {
-  if (server) return server;
-  server = new x402ResourceServer(buildFacilitator(env))
+  const server = new x402ResourceServer(buildFacilitator(env))
     .register(env.NETWORK, new ExactEvmScheme())
     .registerExtension(bazaarResourceServerExtension);
   server.onAfterVerify(async context => { markStage(context.result.isValid ? "verified" : "verification_failed"); });
