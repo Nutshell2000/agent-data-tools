@@ -126,7 +126,7 @@ function clientGuidance() {
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo);
   const rows = ENDPOINTS.map(
-    (e) => `<tr><td class="path"><code>${esc(e.path)}</code></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
+    (e) => `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
   ).join("");
   const details = ENDPOINTS.map((e) => {
     const params = Object.entries(e.params)
@@ -137,7 +137,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -176,10 +176,10 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
-${readerBuyingHtml(origin, MCP_SERVER_VERSION, demo)}
+${readerBuyingHtml(origin, MCP_SERVER_VERSION, ENDPOINTS.length, demo)}
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
-<h2>Tools and prices</h2>
+<h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
 <div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
 
 <h2>How paying works</h2>

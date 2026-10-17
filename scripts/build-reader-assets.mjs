@@ -148,13 +148,13 @@ for(const [file,expected] of Object.entries(pinned172)) {
  await mkdir(new URL("../public/clients/reader/1.7.2/",import.meta.url),{recursive:true});await copyFile(from,to);
 }
 const compiled = await build({
-  entryPoints: ["src/routes/extract.ts"],
+  stdin: {contents: 'export {extract} from "./src/routes/extract"; export {ENDPOINTS} from "./src/endpoints";', resolveDir: process.cwd(), sourcefile: "reader-samples-build.ts"},
   bundle: true,
   write: false,
   format: "esm",
   platform: "node",
 });
-const { extract } = await import(
+const { extract, ENDPOINTS } = await import(
   "data:text/javascript;base64," +
     Buffer.from(compiled.outputFiles[0].text).toString("base64")
 );
@@ -260,7 +260,7 @@ const cards = await Promise.all(
 );
 await writeFile(
   new URL("index.html", samplesDir),
-  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Real cached reader examples | SpellzCode</title><style>body{font:17px/1.6 system-ui;max-width:960px;margin:40px auto;padding:0 20px;background:#101621;color:#e8eef8}a{color:#8fc7ff}section{border-top:1px solid #53647b;margin-top:32px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2839;padding:20px;border-radius:8px;font-size:14px}h1,h2{line-height:1.25}</style><h1>Real cached reader examples</h1><p>Actual extractor ${version}, generated ${generatedAt}. These owned samples were processed locally during the build. They are cached demonstrations, not production purchases or payment receipts.</p><p>Arbitrary live URLs cost $0.002 per successful call. No JavaScript rendering, authenticated or paywalled access. <a href="/guides/web-reading">Buying guide and capped CLI</a> · <a href="/examples/extract/manifest.json">Manifest and hashes</a></p>${cards.join("")}<section><h2>Direct Markdown source</h2><p><a href="/examples/extract/sources/markdown-guide.md">Owned Markdown document</a> and <a href="/examples/extract/markdown-guide.json">actual cached JSON result</a>. Original syntax, whitespace and relative links are preserved within the output cap. Structured metadata is not parsed; no source instructions, code or links are executed.</p></section><section><h2>Read a late section within a small output limit</h2><p><a href="/examples/extract/section-result.json">Actual cached section example</a>: section=example-section-30, maxChars=500, same owned long-document source. Full-page output at this limit truncates before it; explicit selection returns that section only, not complete document coverage. Live selected reads remain $0.002.</p></section><p>Inspect source and output before choosing a tool. No universal extraction-quality claim is made.</p></html>`,
+  `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Real cached reader examples | SpellzCode</title><style>body{font:17px/1.6 system-ui;max-width:960px;margin:40px auto;padding:0 20px;background:#101621;color:#e8eef8}a{color:#8fc7ff}section{border-top:1px solid #53647b;margin-top:32px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1c2839;padding:20px;border-radius:8px;font-size:14px}h1,h2{line-height:1.25}</style><nav><a href="/#tools">All ${ENDPOINTS.length} tools and prices</a> · <a href="/guides/web-reading">Reader guide</a></nav><h1>Reader sample documents</h1><p>These documents demonstrate the /extract reader. The full service has ${ENDPOINTS.length} tools; <a href="/#tools">browse the complete catalog</a>.</p><p>Actual extractor ${version}, generated ${generatedAt}. These owned samples were processed locally during the build. They are cached demonstrations, not production purchases or payment receipts.</p><p>Arbitrary live URLs cost $0.002 per successful call. No JavaScript rendering, authenticated or paywalled access. <a href="/guides/web-reading">Buying guide and capped CLI</a> · <a href="/examples/extract/manifest.json">Manifest and hashes</a></p>${cards.join("")}<section><h2>Direct Markdown source</h2><p><a href="/examples/extract/sources/markdown-guide.md">Owned Markdown document</a> and <a href="/examples/extract/markdown-guide.json">actual cached JSON result</a>. Original syntax, whitespace and relative links are preserved within the output cap. Structured metadata is not parsed; no source instructions, code or links are executed.</p></section><section><h2>Read a late section within a small output limit</h2><p><a href="/examples/extract/section-result.json">Actual cached section example</a>: section=example-section-30, maxChars=500, same owned long-document source. Full-page output at this limit truncates before it; explicit selection returns that section only, not complete document coverage. Live selected reads remain $0.002.</p></section><p>Inspect source and output before choosing a tool. No universal extraction-quality claim is made.</p></html>`,
 );
 console.log(
   JSON.stringify({
