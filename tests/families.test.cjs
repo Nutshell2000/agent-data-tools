@@ -513,3 +513,11 @@ test("extract/rendered: rendered HTML goes through the /extract builder; no brow
   await assert.rejects(EXTRACT_RENDERED[0].run({}, (n) => (n === "url" ? "https://app.example/" : undefined)), (e) => e.status === 503);
   await assert.rejects(EXTRACT_RENDERED[0].run({}, (n) => (n === "url" ? "http://127.0.0.1/" : undefined)), (e) => e.status === 400);
 });
+
+test("counterparty: chain is validated before any network call", async () => {
+  const { COUNTERPARTY } = await loadTypeScript(require.resolve("../src/routes/counterparty.ts"));
+  const run = (args) => COUNTERPARTY[0].run({}, (n) => args[n]);
+  await assert.rejects(run({ address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "solana" }), (e) => e.status === 400 && /base, eth, arb, op/.test(e.message));
+  await assert.rejects(run({ address: "not-an-address" }), (e) => e.status === 400);
+  assert.deepEqual(COUNTERPARTY[0].endpoint.params.chain.enum, ["base", "eth", "arb", "op"]);
+});
