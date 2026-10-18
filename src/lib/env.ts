@@ -9,6 +9,9 @@ export interface Env {
   CDP_API_KEY_SECRET?: string;
   // Set once the API is listed on RapidAPI: the secret its proxy sends with every call.
   RAPIDAPI_PROXY_SECRET?: string;
+  // Brave Search API key for /search, and the most upstream searches per UTC day (default 500).
+  SEARCH_API_KEY?: string;
+  SEARCH_DAILY_CAP?: string;
   AI: Ai;
   BROWSER: Fetcher;
   // Holds trial counters and store orders.

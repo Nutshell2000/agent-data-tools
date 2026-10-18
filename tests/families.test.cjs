@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 132);
+  assert.equal(families.length, 133);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -162,4 +162,31 @@ test("Uniswap v3 sqrtPriceX96 converts to quote units per token in both token or
   assert.ok(Math.abs(priceFromSqrt(sqrt, true, 18, 6) - 2000) < 1e-6);
   // Same pool seen from USDC: 1 USDC = 1/2000 WETH.
   assert.ok(Math.abs(priceFromSqrt(sqrt, false, 6, 18) - 1 / 2000) < 1e-12);
+});
+
+test("web search maps Brave results, stays within the daily cap and fails uncharged without a key", async () => {
+  const { SEARCH } = await loadTypeScript(require.resolve("../src/routes/search.ts"));
+  const run = SEARCH[0].run;
+  const store = new Map();
+  const kv = { get: async (k) => store.get(k) ?? null, put: async (k, v) => { store.set(k, v); } };
+  const q = (params) => (name) => params[name];
+  const realFetch = global.fetch;
+  const seen = [];
+  global.fetch = async (url, init) => {
+    seen.push({ url: String(url), token: init.headers["x-subscription-token"] });
+    return new Response(JSON.stringify({ web: { results: [{ title: "<strong>x402</strong> spec", url: "https://x402.org/", description: "Pay &amp; go", age: "1 day ago" }, { title: "no url" }] } }));
+  };
+  try {
+    await assert.rejects(run({ TRIALS: kv }, q({ q: "x402" })), (e) => e.status === 503 && e.code === "SEARCH_UNAVAILABLE");
+    assert.equal(seen.length, 0);
+    const env = { TRIALS: kv, SEARCH_API_KEY: "k", SEARCH_DAILY_CAP: "1" };
+    const out = await run(env, q({ q: "x402", count: "5" }));
+    assert.deepEqual(out, { query: "x402", provider: "Brave Search", count: 1, results: [{ title: "x402 spec", url: "https://x402.org/", snippet: "Pay & go", age: "1 day ago" }] });
+    assert.match(seen[0].url, /q=x402&count=5$/);
+    assert.equal(seen[0].token, "k");
+    await assert.rejects(run(env, q({ q: "again" })), (e) => e.status === 503 && e.code === "SEARCH_CAPACITY");
+    assert.equal(seen.length, 1);
+  } finally {
+    global.fetch = realFetch;
+  }
 });
