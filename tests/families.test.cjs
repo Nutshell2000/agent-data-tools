@@ -474,3 +474,18 @@ test("meta parser reads head tags, resolves URLs and stops at the body", async (
   assert.deepEqual(m.twitter, { "twitter:card": "summary" });
   assert.equal(parseMeta("<html><head></head></html>", "https://x.example/a").favicon, "https://x.example/favicon.ico");
 });
+
+test("OFAC compact index round-trips through JSON and matches what the CSV path finds", async () => {
+  const { compactFromCsv, fromCompact, buildIndex, screen } = await loadTypeScript(require.resolve("../src/routes/sanctions.ts"));
+  const sdn = '100,"EXAMPLE GROUP",-0- ,"CYBER2",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,"Digital Currency Address - ETH 0xAbC0000000000000000000000000000000000001;"\r\n200,"DOE, John",individual,"SDGT",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,"-0- "';
+  const alt = '200,1,"aka","SMITH, Johnny",-0- \r\n999,2,"aka","ORPHAN ALIAS",-0- ';
+  const compact = compactFromCsv(sdn, alt, "2026-10-18T00:00:00.000Z");
+  assert.deepEqual([compact.parties.length, compact.aliases.length, compact.addresses.length], [2, 1, 1]);
+  const viaJson = fromCompact(JSON.parse(JSON.stringify(compact)));
+  const direct = buildIndex(sdn, alt);
+  for (const [address, name] of [["0xabc0000000000000000000000000000000000001", undefined], [undefined, "johnny smith"], [undefined, "example"], [undefined, "nobody here"]]) {
+    assert.deepEqual(screen(viaJson, address, name), screen(direct, address, name));
+  }
+  assert.equal(screen(viaJson, undefined, "johnny smith")[0].sdnId, "200");
+  assert.equal(viaJson.listDate, "2026-10-18T00:00:00.000Z");
+});
