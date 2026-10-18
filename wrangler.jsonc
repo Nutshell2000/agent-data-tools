@@ -26,6 +26,8 @@
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.
     "NETWORK": "eip155:8453",
+    // Also accept USDC on Polygon, Arbitrum and Monad (same PAY_TO, same CDP facilitator).
+    "EXTRA_NETWORKS": "eip155:137,eip155:42161,eip155:143",
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.

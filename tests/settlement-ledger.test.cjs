@@ -126,3 +126,26 @@ test('actual resource-server settle hook records receipts and never requests ano
     assert.equal(result.success, true); assert.equal(settled, 2); assert.equal(stored.length, 1);
   } finally { global.__ledgerFacilitator = original; console.error = originalError; }
 });
+
+test('receipts on Polygon, Arbitrum and Monad count with their own USDC; a token from another network is refused', async () => {
+  const usdc = { 'eip155:137': '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', 'eip155:42161': '0xaf88d065e77c8cc2239327c5edb3a432268e5831', 'eip155:143': '0x754704bc059f8c67012fed69bc8a327a5aafb603' };
+  const fixture = storageFixture();
+  for (const [network, token] of Object.entries(usdc)) {
+    const c = context(); c.requirements.network = network; c.requirements.asset = token; c.result.network = network;
+    const record = await settlementRecord(c, recipient);
+    assert.equal(record.network, network); assert.equal(record.asset, token);
+    assert.equal(await saveSettlement(fixture.storage, record), true);
+    const wrong = context(); wrong.requirements.network = network; wrong.result.network = network; // still Base USDC
+    assert.equal(await settlementRecord(wrong, recipient), null, network);
+  }
+  const unknown = context(); unknown.requirements.network = 'eip155:1'; unknown.result.network = 'eip155:1';
+  assert.equal(await settlementRecord(unknown, recipient), null);
+  const base = await settlementRecord(context(), recipient);
+  assert.equal(base.network, 'eip155:8453');
+});
+
+test('payment networks: Base first, then each known extra network once; unknown ones are ignored', async () => {
+  const { paymentNetworks } = await load(require.resolve('../src/lib/networks.ts'));
+  assert.deepEqual(paymentNetworks({ NETWORK: 'eip155:8453' }), ['eip155:8453']);
+  assert.deepEqual(paymentNetworks({ NETWORK: 'eip155:8453', EXTRA_NETWORKS: 'eip155:137, eip155:42161,eip155:137,eip155:1,eip155:8453,eip155:143' }), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143']);
+});
