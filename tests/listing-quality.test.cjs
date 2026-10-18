@@ -65,3 +65,10 @@ test("catalog is grouped by category with every tool listed exactly once", () =>
   assert.deepEqual(["/base/balance", "/price/tokens", "/wallet/portfolio", "/wallet", "/base64/encode", "/sanctions/check", "/feed", "/ai/chat", "/holidays"].map(discovery.categoryOf),
     ["Chain data", "Prices and DeFi", "Prices and DeFi", "Chain data", "Utilities", "Company, compliance and checks", "Web, documents and search", "AI", "Everyday data"]);
 });
+
+test("Worker bundle replaces Ajv's runtime compiler with a stand-in that fails immediately", async () => {
+  const fs = require("node:fs");
+  assert.match(fs.readFileSync(require.resolve("../wrangler.jsonc"), "utf8"), /"alias":\s*\{\s*"ajv\/dist\/2020\.js":\s*"\.\/src\/lib\/ajv-unavailable\.ts"\s*\}/);
+  const { default: Ajv } = await loadTypeScript(require.resolve("../src/lib/ajv-unavailable.ts"));
+  assert.throws(() => new Ajv({ strict: false }).compile({ type: "object" }), /unavailable on Cloudflare Workers/);
+});

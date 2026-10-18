@@ -5,6 +5,9 @@
   "build": { "command": "npm run build:reader" },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
+  // fails at once instead of spending ~300 ms of CPU per cold start (see src/lib/ajv-unavailable.ts).
+  "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
   "observability": { "enabled": true },
   // Workers AI and Browser Rendering run on the account's free daily allowance.
   "ai": { "binding": "AI" },
