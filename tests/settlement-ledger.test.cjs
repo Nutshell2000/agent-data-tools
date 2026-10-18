@@ -154,3 +154,26 @@ test('payment networks: Base first, then each known extra network once; unknown 
   assert.equal(priceOn('eip155:480', '$0.20').amount, '200000');
   assert.equal(priceOn('eip155:480', '$1').amount, '1000000');
 });
+
+test('Solana: offered only with a valid SOLANA_PAY_TO; receipts must match Solana USDC and our Solana address', async () => {
+  const { paymentOptions, SOLANA_NETWORK, SOLANA_USDC } = await load(require.resolve('../src/lib/networks.ts'));
+  const sol = '82wfSCZhCmZA7zwqqt6Q3FG8nqYBwUvbThP6M97fa9Q6';
+  const base = { NETWORK: 'eip155:8453', PAY_TO: recipient };
+  assert.deepEqual(paymentOptions(base).map(o => o.network), ['eip155:8453']);
+  assert.deepEqual(paymentOptions({ ...base, SOLANA_PAY_TO: '0xnot-solana' }).map(o => o.network), ['eip155:8453']);
+  assert.deepEqual(paymentOptions({ ...base, SOLANA_PAY_TO: sol }).at(-1), { network: SOLANA_NETWORK, payTo: sol });
+
+  const signature = '5'.repeat(88), payerSol = '7'.repeat(44);
+  const c = context();
+  c.requirements = { ...c.requirements, network: SOLANA_NETWORK, asset: SOLANA_USDC, payTo: sol, amount: '1000' };
+  c.result = { success: true, transaction: signature, payer: payerSol, network: SOLANA_NETWORK, amount: '1000' };
+  c.paymentPayload = { ...c.paymentPayload, accepted: c.requirements, payload: { transaction: 'base64-fixture' } };
+  const record = await settlementRecord(c, recipient, sol);
+  assert.equal(record.network, SOLANA_NETWORK); assert.equal(record.payer, payerSol); assert.equal(record.authorizationNonce, signature);
+  const fixture = storageFixture(); assert.equal(await saveSettlement(fixture.storage, record), true);
+  assert.equal(await saveSettlement(fixture.storage, record), false, 'the same signature counts once');
+  assert.equal(await settlementRecord(c, recipient, undefined), null, 'no Solana address configured');
+  assert.equal(await settlementRecord(c, recipient, '9'.repeat(44)), null, 'paid to another Solana address');
+  const wrongMint = structuredClone(c); wrongMint.requirements.asset = 'So11111111111111111111111111111111111111112';
+  assert.equal(await settlementRecord(wrongMint, recipient, sol), null, 'not USDC');
+});

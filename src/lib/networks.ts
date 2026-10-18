@@ -21,6 +21,19 @@ export const NETWORK_NAMES: Readonly<Record<string, string>> = Object.freeze({
 
 type Network = `${string}:${string}`;
 
+/** Solana mainnet (CAIP-2) and its native USDC mint; settled by the same CDP facilitator. */
+export const SOLANA_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+export const SOLANA_USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+/** Every way a tool can be paid: each EVM network to PAY_TO, then Solana to SOLANA_PAY_TO when it is set. */
+export function paymentOptions(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "PAY_TO" | "SOLANA_PAY_TO">): { network: Network; payTo: string }[] {
+  const options = paymentNetworks(env).map((network) => ({ network, payTo: env.PAY_TO }));
+  const solana = env.SOLANA_PAY_TO?.trim();
+  if (solana && SOLANA_ADDRESS.test(solana)) options.push({ network: SOLANA_NETWORK as Network, payTo: solana });
+  return options;
+}
+
 /** env.NETWORK first, then each supported network in EXTRA_NETWORKS (comma-separated); unknown ones are ignored. */
 export function paymentNetworks(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS">): Network[] {
   const extra = (env.EXTRA_NETWORKS ?? "").split(",").map((n) => n.trim()).filter((n) => n && n in USDC_BY_NETWORK && n !== env.NETWORK);
