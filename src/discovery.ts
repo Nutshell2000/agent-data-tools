@@ -273,7 +273,11 @@ ${details}
  * origin as ownership_verified. Produce one with scripts/sign-ownership-proof.mjs; a test
  * rejects any entry that does not recover to PAY_TO. Signatures are public, not secrets.
  */
-export const OWNERSHIP_PROOFS: readonly string[] = [];
+export const OWNERSHIP_PROOFS: readonly string[] = [
+  // Coinbase Wallet (EIP-7702 account) signature of the bare origin by PAY_TO, 2026-10-18. It is an
+  // ERC-1271 wrapped signature, so CI verifies it on Base with scripts/check-ownership-proofs.mjs.
+  "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000413e5f9cac8f7c1dfe7f44c5b57ddf3618682fffeeed033d842128e30775141f38083802e95f2cda9eea4002ececa24d1bdbc5ec23c58d4e2320d081840d38bad91c00000000000000000000000000000000000000000000000000000000000000",
+];
 
 export function openApi(origin: string, trialsEnabled = false) {
   const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)}`;
