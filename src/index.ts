@@ -209,9 +209,17 @@ app.get("/", async (c) =>
     ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK)),
 );
+// Every agent that discovers us downloads this; it only changes with a deploy, so build it once per isolate.
+const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
-  const doc = openApi(origin(c.req.url), trialsEnabled(c.env));
-  return c.json({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths() } });
+  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}`;
+  let body = openApiDocs.get(key);
+  if (!body) {
+    const doc = openApi(origin(c.req.url), trialsEnabled(c.env));
+    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths() } });
+    openApiDocs.set(key, body);
+  }
+  return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
