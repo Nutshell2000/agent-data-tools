@@ -24,13 +24,14 @@ import { tokenInfo } from "./routes/token";
 import { tokenReport } from "./routes/token-report";
 import { walletInfo } from "./routes/wallet";
 import { walletAudit } from "./routes/wallet-audit";
-import type { EndpointPath } from "./endpoints";
+import type { CoreEndpointPath, EndpointPath } from "./endpoints";
+import { FAMILIES } from "./families";
 
 /** Reads one named input as a string, whether it came from a query string or MCP arguments. */
 export type Input = (name: string) => string | undefined;
 
 /** One implementation per catalog path, shared by the HTTP routes and the MCP tools. */
-const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> = {
+const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown>> & Record<CoreEndpointPath, unknown> = {
   "/extract": (_env, q) => extract(q("url"), q("maxChars"), q("format"), q("section")),
   "/sitemap": (_env, q) => sitemap(q("url"), q("contains"), q("maxUrls"), q("offset")),
   "/domain": (_env, q) => domainInfo(q("name") ?? ""),
@@ -64,6 +65,8 @@ const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown
   "/ens": (_env, q) => ensLookup(q("name") ?? ""),
   "/time": async (_env, q) => timeInZone(q("zone"), q("at"), q("to")),
 };
+
+for (const f of FAMILIES) handlers[f.endpoint.path] = async (env, q) => f.run(env, q);
 
 // Both transports await this guard before their payment wrapper can settle.
 export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, handler]) => [
