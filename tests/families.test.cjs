@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 135);
+  assert.equal(families.length, 136);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" || e.path === "/sanctions/check" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,156);
+  assert.equal(ENDPOINTS.length,157);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -277,4 +277,27 @@ test("company profile picks the first business among Wikidata hits and resolves 
   } finally {
     global.fetch = realFetch;
   }
+});
+
+test("OFAC screening matches listed addresses case-insensitively and names through aliases", async () => {
+  const { buildIndex, screen } = await loadTypeScript(require.resolve("../src/routes/sanctions.ts"));
+  // Rows in the shape of sdn.csv and alt.csv: no header, "-0-" for empty fields, remarks last.
+  const sdn = [
+    '100,"EXAMPLE GROUP",-0- ,"CYBER2] [DPRK3",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,"Digital Currency Address - ETH 0xAbC0000000000000000000000000000000000001; alt. Digital Currency Address - XBT 1ExampleBtcAddr;"',
+    '200,"DOE, John",individual,"SDGT",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,"DOB 01 Jan 1970."',
+    "\x1a",
+  ].join("\r\n");
+  const alt = '200,1,"aka","SMITH, Johnny",-0- \r\n';
+  const index = buildIndex(sdn, alt);
+  assert.equal(index.parties.size, 2);
+  const byAddr = screen(index, "0xabc0000000000000000000000000000000000001", undefined);
+  assert.equal(byAddr.length, 1);
+  assert.deepEqual([byAddr[0].sdnId, byAddr[0].currency, byAddr[0].programs], ["100", "ETH", ["CYBER2", "DPRK3"]]);
+  assert.equal(screen(index, "1ExampleBtcAddr", undefined)[0].currency, "XBT");
+  assert.equal(screen(index, "0x0000000000000000000000000000000000000002", undefined).length, 0);
+  const byAlias = screen(index, undefined, "johnny smith");
+  assert.deepEqual([byAlias[0].sdnId, byAlias[0].matchedName, byAlias[0].score], ["200", "SMITH, Johnny", 1]);
+  assert.equal(screen(index, undefined, "John Doe")[0].type, "individual");
+  assert.equal(screen(index, undefined, "Jane Doe").length, 0);
+  await assert.rejects(async () => screen(index, undefined, "!"), (e) => e.status === 400);
 });
