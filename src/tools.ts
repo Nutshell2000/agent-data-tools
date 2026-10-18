@@ -1,6 +1,7 @@
 import { assertToolOutput } from "./lib/output-contract";
 import { sitemap } from "./routes/sitemap";
-import type { Env } from "./lib/env";
+import { HttpError, type Env } from "./lib/env";
+import { PAUSED_FAMILY_TOOLS } from "./endpoints";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { baseAllowance, baseTransaction, ensLookup } from "./routes/chain";
@@ -71,6 +72,7 @@ for (const f of FAMILIES) handlers[f.endpoint.path] = async (env, q) => f.run(en
 // Both transports await this guard before their payment wrapper can settle.
 export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, handler]) => [
   path, async (env: Env, input: Input) => {
+    if (Object.hasOwn(PAUSED_FAMILY_TOOLS, path)) throw new HttpError(503, PAUSED_FAMILY_TOOLS[path], "TOOL_PAUSED");
     const result = await handler(env, input);
     assertToolOutput(path as EndpointPath, result);
     return result;

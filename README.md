@@ -4,7 +4,7 @@ Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Browse all 32 tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
+- [Browse all 145 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
 - [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
@@ -25,7 +25,7 @@ The reader also supports an exact HTML section ID and retains labelled source im
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-A Cloudflare Worker that sells 32 tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 145 active tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -225,3 +225,9 @@ The same downloaded client now supports `node reader-client.mjs quote-btc-fees` 
 Version 1.2.0 adds the bounded `/sitemap` tool and capped `quote-sitemap`/`buy-sitemap` commands. Version 1.1.2 adds a local command builder with POSIX/PowerShell quoting and a three-page research recipe, while preserving immutable 1.1.1 downloads. Reader 1.1.1 separates metadata limits from primary table text, preserves literal code whitespace and nested lists, and closes clipped code fences within the output limit. The bundled Node client supports an unsigned `quote` and one explicitly capped `buy`. Build it and the cached samples with `npm run build:reader`. Downloaded clients need Node 20.19+ and no project dependencies. Checksums and public source accompany the download; keys stay in the buyer's process environment.
 
 Remote MCP advertises successful-result JSON schemas for `extract`, `sitemap` and `btc-fees`, matching OpenAPI. Results are checked before settlement. Quotes and failures return `isError: true` with JSON in `content[0].text`; only successful results have `structuredContent`. This keeps free quotes usable by schema-validating clients.
+
+## Endpoint families
+
+MCP catalog 1.8.1 adds 113 active family tools to the 32 existing tools: blockchain reads across five networks, local data/text utilities, public-data lookups and crypto-random utilities. Active family calls cost $0.002. The live OpenAPI and catalog list the current routes. Reader downloads stay at 1.7.6 and the separate chain client stays at 1.0.0.
+
+Four implemented family tools are paused and excluded from paid discovery: `/regex/test` until execution can be bounded, and `/air-quality`, `/uv`, `/geocode` until a source permitted for this commercial service is configured. Direct requests return uncharged 503 without calling the upstream. No subscription or new spending was added. JSON repair preserves already-valid JSON and quoted text.

@@ -14,7 +14,7 @@ node clients/chain/build.mjs
 node --test --test-concurrency=1 tests/chain-client.test.cjs
 ```
 
-The build uses the existing root lockfile and dependencies without updating them. It writes `chain-client.mjs` and `chain-client.mjs.sha256` under the ignored `.release-build/chain-client/1.0.0/` folder. It does not rebuild or replace reader downloads or change Worker assets. The client has its own 1.0.0 version; the Worker remains 1.7.6.
+The build uses the existing root lockfile and dependencies without updating them. It writes `chain-client.mjs` and `chain-client.mjs.sha256` under the ignored `.release-build/chain-client/1.0.0/` folder. It does not rebuild or replace reader downloads or change Worker assets. The client has its own 1.0.0 version; this client release does not change the Worker version.
 
 `core.mjs` fixes the HTTPS origin, recipient, Base network, native USDC, exact scheme and operation-specific ceilings. `chain-client.mjs` exposes no origin overrides. Dependency injection is available to offline tests only. Results are validated against documented identities/required fields and projected to documented fields; unknown service/error fields and signatures are not printed. Server receipts are not independent chain verification.
 

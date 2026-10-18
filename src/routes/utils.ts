@@ -24,6 +24,7 @@ function parseJson(text: string) {
 
 /** Best-effort repair of JSON as LLMs write it: code fences, comments, trailing commas, single quotes, unquoted keys, Python literals. */
 export function repairJson(input: string): string {
+  try { JSON.parse(input); return input; } catch { /* Repair only invalid input. */ }
   let s = input.trim();
   const fence = /```(?:json|JSON)?\s*([\s\S]*?)```/.exec(s);
   if (fence) s = fence[1].trim();
@@ -37,7 +38,7 @@ export function repairJson(input: string): string {
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
     if (inStr) {
-      if (ch === "\\") { out += ch + (s[i + 1] ?? ""); i++; continue; }
+      if (ch === "\\") { out += inStr === "'" && s[i + 1] === "'" ? "'" : ch + (s[i + 1] ?? ""); i++; continue; }
       if (ch === inStr) { out += '"'; inStr = null; continue; }
       if (ch === '"' && inStr === "'") { out += '\\"'; continue; }
       if (ch === "\n") { out += "\\n"; continue; }
@@ -50,10 +51,20 @@ export function repairJson(input: string): string {
     out += ch;
   }
   if (inStr) out += '"';
-  out = out
+  // Syntax corrections must never rewrite literal data inside quoted strings.
+  const syntax = (v: string) => v
+    .replace(/\b(True|False|None)\b(?!\s*:)/g, word => word === "True" ? "true" : word === "False" ? "false" : "null")
     .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
-    .replace(/,\s*([}\]])/g, "$1")
-    .replace(/\bTrue\b/g, "true").replace(/\bFalse\b/g, "false").replace(/\bNone\b/g, "null");
+    .replace(/,\s*([}\]])/g, "$1");
+  let corrected = "", outside = "";
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] !== '"') { outside += out[i]; continue; }
+    corrected += syntax(outside); outside = "";
+    const start = i++;
+    while (i < out.length && out[i] !== '"') { if (out[i] === "\\") i++; i++; }
+    corrected += out.slice(start, i + 1);
+  }
+  out = corrected + syntax(outside);
   // Close brackets left open.
   const stack: string[] = [];
   let q = false;
