@@ -76,7 +76,7 @@ test("detects tool contract drift and order changes", () => {
   ]);
   assert.deepEqual(compareContracts(buildContract([{ ...endpoint, path: "/lookup-new" }], "2.3.4", helpers), baseline), [
     "Pinned MCP tool removed: lookup",
-    "Unpinned MCP tool added: lookup-new",
+    "Unpinned MCP tool added: lookup_new",
     "MCP tool order changed",
   ]);
 });
