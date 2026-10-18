@@ -90,7 +90,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { word: first.word, phonetic: first.phonetic ?? first.phonetics?.find((p) => p.text)?.text ?? null, meanings: r.flatMap((e) => e.meanings).slice(0, 8).map((m) => ({ partOfSpeech: m.partOfSpeech, definitions: m.definitions.slice(0, 4).map((d) => ({ definition: d.definition, example: d.example ?? null })), synonyms: m.synonyms.slice(0, 10), antonyms: m.antonyms.slice(0, 10) })) };
     }),
 
-  entry("/earthquakes", "Recent earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant).",
+  entry("/earthquakes", "Recent earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
     ["earthquakes", "geo", "science", ...P], { period: { type: "string", description: "day (default) or week", example: "day" }, minMagnitude: { type: "string", description: "2.5 (default), 4.5 or significant", example: "4.5" } },
     { period: "day", minMagnitude: "4.5", count: 8, earthquakes: [{ magnitude: 5.1, place: "100 km S of …", time: "2026-10-18T03:12:00.000Z", depthKm: 10, lat: -6.1, lon: 130.2, tsunami: false, url: "https://earthquake.usgs.gov/…" }] },
     async (_e, q) => {
@@ -136,17 +136,17 @@ export const PUBLIC_DATA: Entry[] = [
       return { lat: la, lon: lo, elevationM: r.elevation?.[0] ?? null };
     }),
 
-  entry("/sun", "Sunrise, sunset and day length", "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service.",
+  entry("/sun", "Sunrise, sunset and day length", "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning.",
     ["sun", "astronomy", "date", ...P], { ...LATLON, date: { type: "string", description: "Date (default today)", example: "2026-12-21" } },
     { date: "2026-12-21", sunrise: "2026-12-21T07:43:00.000Z", sunset: "2026-12-21T13:48:00.000Z", solarNoon: "2026-12-21T10:45:00.000Z", civilDawn: "2026-12-21T06:58:00.000Z", civilDusk: "2026-12-21T14:33:00.000Z", dayLengthMinutes: 365, polar: null },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...sunTimes(d, lat(q), lon(q)) }; }),
 
-  entry("/moon", "Moon phase", "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month.",
+  entry("/moon", "Moon phase", "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Use for calendars and night-sky planning.",
     ["moon", "astronomy", "date", ...P], { date: { type: "string", description: "Date or ISO time (default now)", example: "2026-10-18" } },
     { date: "2026-10-18", phase: "Waning Crescent", illuminationPercent: 12.4, ageDays: 26.3, nextNewMoon: "2026-10-21T…", nextFullMoon: "2026-11-05T…" },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...moonPhase(d) }; }),
 
-  entry("/country", "Country facts", "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data).",
+  entry("/country", "Country facts", "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data.",
     ["country", "geo", "reference", ...P], { country: { type: "string", description: "ISO 3166 alpha-2 or alpha-3 code", required: true, example: "SE" } },
     { name: "Sweden", iso2: "SE", iso3: "SWE", region: "Europe & Central Asia", incomeLevel: "High income", capital: "Stockholm", capitalLat: 59.3327, capitalLon: 18.0645, population: 10596620, populationYear: 2025, source: "World Bank" },
     async (_e, q) => {

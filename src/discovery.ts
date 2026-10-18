@@ -1,11 +1,12 @@
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { AI_PATHS } from "./routes/ai-text";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
+import { schemaFromExample } from "./lib/output-schema";
 
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.9.0";
+export const MCP_SERVER_VERSION = "1.10.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -141,14 +142,14 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Static documentation to Markdown for $0.002 | SpellzCode</title>
+<title>${ENDPOINTS.length} pay-per-call tools for AI agents, from $0.001 | SpellzCode</title>
 <link rel="canonical" href="${esc(origin)}/">
 <meta name="description" content="${esc(SERVICE_SUMMARY)}">
 <style>
@@ -253,15 +254,7 @@ export function openApi(origin: string, trialsEnabled = false) {
                 description: "Result",
                 content: {
                   "application/json": {
-                    schema: (e as Endpoint).outputSchema ?? {
-                      type: "object",
-                      properties: Object.fromEntries(
-                        Object.entries(e.outputExample).map(([k, v]) => [
-                          k,
-                          { type: v === null ? ["string", "null"] : Array.isArray(v) ? "array" : typeof v },
-                        ]),
-                      ),
-                    },
+                    schema: (e as Endpoint).outputSchema ?? schemaFromExample(e.outputExample),
                     example: e.outputExample,
                   },
                 },
@@ -355,7 +348,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "## Endpoints",
     "",
     ...ENDPOINTS.flatMap((e) => [
-      `### GET ${e.path} â€” ${e.price}`,
+      `### GET ${e.path} — ${e.price}`,
       (e as Endpoint).details ?? e.description,
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,

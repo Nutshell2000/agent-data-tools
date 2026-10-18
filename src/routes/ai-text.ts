@@ -112,7 +112,7 @@ export const AI_TEXT: Entry[] = [
     ["outline", "writing", "planning"], { text: { type: "string", description: "Text to outline, or a topic, up to 12,000 characters", required: true, example: "How small businesses can accept stablecoin payments" }, depth: { type: "integer", description: "Heading levels, 1-3 (default 2)", example: 2 } },
     { outline: "## Why stablecoins\n- Low fees\n## Setting up\n- Choose a wallet", model: MODELS.text },
     async (env, q) => ({ outline: await chat(env, `You write Markdown outlines with at most ${num(q, "depth", { min: 1, max: 3, fallback: 2, integer: true })} heading levels and short bullets. ${DATA_RULE}\nIf the message is a topic, outline it; if it is a text, outline its content. Reply with the outline only.`, text(q), 800, 0.3), model: MODELS.text })),
-  ai("/ai/translate", "Translate text (100 languages)", "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional.",
+  ai("/ai/translate", "Translate text (100 languages)", "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents.",
     ["translation", "language", "i18n"], { text: { type: "string", description: "Text, up to 4,000 characters", required: true, example: "Payment received, thank you!" }, to: { type: "string", description: "Target language code, e.g. sv", required: true, example: "sv" }, from: { type: "string", description: "Source language code (default en)", example: "en" } },
     { translatedText: "Betalning mottagen, tack!", from: "en", to: "sv", model: AI_MODELS.translate },
     async (env, q) => {
@@ -151,11 +151,11 @@ export const BASICS: Entry[] = [
     (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.001"),
   entry("/ping", "Ping", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
     ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.001"),
-  entry("/keccak", "Keccak-256 hash", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots.",
+  entry("/keccak", "Keccak-256 hash", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
     { input: "transfer(address,uint256)", inputType: "text", keccak256: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b", selector: "0xa9059cbb" },
     (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.001"),
-  entry("/network", "Base network and USDC facts", "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier.",
+  entry("/network", "Base network and USDC facts", "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client.",
     ["base", "usdc", "network", ...B], {}, { chain: "Base", chainId: 8453, caip2: "eip155:8453", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 } },
     () => ({ chain: "Base", chainId: 8453, caip2: "eip155:8453", nativeCurrency: "ETH", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6, symbol: "USDC" }, explorer: "https://basescan.org", publicRpc: ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], x402Network: "eip155:8453" }), "$0.001"),
 ];
