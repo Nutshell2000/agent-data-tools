@@ -62,7 +62,7 @@ async function paymentState(env: Env) {
 }
 
 // Each tool's payment wrapper depends only on the per-isolate payment server and the tool's fixed
-// terms, so build it once per isolate instead of on every MCP request (165 tools).
+// terms, so build it once per isolate instead of on every MCP request (166 tools).
 const wrappers = new Map<string, ReturnType<typeof createPaymentWrapper>>();
 function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
   let factory = wrappers.get(e.path);
