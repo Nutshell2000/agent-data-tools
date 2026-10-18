@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,160);
+  assert.equal(ENDPOINTS.length,161);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -377,4 +377,30 @@ test("x402 check decodes v2 headers and v1 bodies and scores listing quality", a
   assert.equal(analyze("https://free.example", 200, null, "{}").paywalled, false);
   assert.equal(analyze("https://odd.example", 402, null, "pay me").score, 0);
   assert.throws(() => analyze("https://bad.example", 402, "%%%", ""), (e) => e.status === 422);
+});
+
+test("geocode keeps Wikidata hits with coordinates and resolves country and region names", async () => {
+  const realFetch = global.fetch;
+  const item = (id) => ({ mainsnak: { datavalue: { value: { id } } } });
+  global.fetch = async (url) => {
+    const u = new URL(String(url));
+    if (u.searchParams.get("action") === "wbsearchentities") return Response.json({ search: [{ id: "Q1" }, { id: "Q2" }] });
+    if (u.searchParams.get("props") === "labels") return Response.json({ entities: { Q34: { labels: { en: { value: "Sweden" } } }, Q500: { labels: { en: { value: "Uppsala Municipality" } } } } });
+    return Response.json({ entities: {
+      Q1: { id: "Q1", labels: { en: { value: "Uppsala (disambiguation)" } }, claims: { P31: [item("Q4167410")] } },
+      Q2: { id: "Q2", labels: { en: { value: "Uppsala" } }, descriptions: { en: { value: "city in Sweden" } }, claims: {
+        P625: [{ mainsnak: { datavalue: { value: { latitude: 59.858056, longitude: 17.644722 } } } }],
+        P17: [item("Q34")], P131: [item("Q500")],
+        P1082: [{ rank: "normal", mainsnak: { datavalue: { value: { amount: "+100000" } } } }, { rank: "preferred", mainsnak: { datavalue: { value: { amount: "+177074" } } } }],
+      } },
+    } });
+  };
+  try {
+    const run = data.PUBLIC_DATA.find((f) => f.endpoint.path === "/geocode").run;
+    const out = await run({}, (n) => ({ name: "Uppsala" })[n]);
+    assert.equal(out.count, 1);
+    assert.deepEqual(out.results[0], { name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.8581, lon: 17.6447, population: 177074, elevation: null, wikidataId: "Q2" });
+  } finally {
+    global.fetch = realFetch;
+  }
 });

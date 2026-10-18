@@ -3,6 +3,7 @@
 import { entry, getJson, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { COUNTRIES, holidaysFor } from "./holidays";
+import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
 const lat = (q: Parameters<Entry["run"]>[1]) => num(q, "lat", { min: -90, max: 90 });
 const lon = (q: Parameters<Entry["run"]>[1]) => num(q, "lon", { min: -180, max: 180 });
@@ -128,13 +129,29 @@ export const PUBLIC_DATA: Entry[] = [
       return { uvIndex: r.current.uv_index, category: cat(r.current.uv_index), todayMax: max, todayMaxCategory: cat(max), advice: max < 3 ? "No protection needed for most people." : max < 6 ? "Protection is advisable around midday." : "Seek shade at midday; use sunscreen, a hat and sunglasses." };
     }),
 
-  entry("/geocode", "Place name to coordinates", "Find places by name and get their coordinates, country, region, population, elevation and time zone (Open-Meteo geocoding, GeoNames data). Use before weather, sun or air-quality lookups.",
+  entry("/geocode", "Place name to coordinates", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
     ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Uppsala" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
-    { count: 1, results: [{ name: "Uppsala", country: "Sweden", countryCode: "SE", region: "Uppsala", lat: 59.858, lon: 17.645, population: 133117, elevation: 18, timezone: "Europe/Stockholm" }] },
+    { count: 1, results: [{ name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.858, lon: 17.645, population: 170000, elevation: 15, wikidataId: "Q…" }], source: "Wikidata (CC0 public domain)" },
     async (_e, q) => {
-      const r = await getJson<{ results?: Array<{ name: string; country: string; country_code: string; admin1?: string; latitude: number; longitude: number; population?: number; elevation?: number; timezone: string }> }>(`https://geocoding-api.open-meteo.com/v1/search?name=${enc(need(q, "name", 100))}&count=${num(q, "count", { min: 1, max: 10, fallback: 5, integer: true })}&language=en&format=json`);
-      const list = r.results ?? [];
-      return { count: list.length, results: list.map((p) => ({ name: p.name, country: p.country, countryCode: p.country_code, region: p.admin1 ?? null, lat: p.latitude, lon: p.longitude, population: p.population ?? null, elevation: p.elevation ?? null, timezone: p.timezone })) };
+      const name = need(q, "name", 100);
+      const count = num(q, "count", { min: 1, max: 10, fallback: 5, integer: true });
+      const ids = await searchItems(name, Math.min(20, count * 3));
+      const entities = ids.length ? await getEntities(ids) : {};
+      const places = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e) && statements(e, "P625").length > 0).slice(0, count);
+      const labels = await labelsOf(places.flatMap((e) => [...itemIds(e, "P17").slice(0, 1), ...itemIds(e, "P131").slice(0, 1)]));
+      return {
+        count: places.length,
+        results: places.map((e) => {
+          const at = statements(e, "P625")[0].mainsnak.datavalue!.value as { latitude: number; longitude: number };
+          return {
+            name: e.labels?.en?.value ?? e.id, description: e.descriptions?.en?.value ?? null,
+            country: labels[itemIds(e, "P17")[0]] ?? null, region: labels[itemIds(e, "P131")[0]] ?? null,
+            lat: Math.round(at.latitude * 1e4) / 1e4, lon: Math.round(at.longitude * 1e4) / 1e4,
+            population: firstQuantity(e, "P1082"), elevation: firstQuantity(e, "P2044"), wikidataId: e.id,
+          };
+        }),
+        source: "Wikidata (CC0 public domain)",
+      };
     }),
 
   entry("/elevation", "Elevation of a point", "Ground elevation in metres above sea level for a latitude and longitude (Copernicus 90 m digital elevation model via Open-Meteo).",
