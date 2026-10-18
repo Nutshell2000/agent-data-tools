@@ -1,10 +1,10 @@
 # Reader client
 
-Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.4/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
+Run `npm ci` and `npm run build:reader` in the source checkout. The generated standalone executable and checksum are under `public/clients/reader/1.7.5/`; cached samples are generated from owned source in `examples/reader-samples.mjs`. Wrangler builds these artifacts automatically before deployment.
 
 Buyers download `reader-client.mjs` and `reader-client.mjs.sha256` from the website, verify that one file, and run the file with Node 20.19 or later. No npm install, TypeScript editing or new wallet is needed on the buyer's device.
 
-The [1.7.4 repository release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.4) provides the same six published files as a fallback download. Choose the CLI executable and its one-file checksum, or the MCP adapter and its one-file checksum. Keep their filenames unchanged and verify before running; the release notes link to shell-specific verification and setup instructions. The release is pinned to source commit `dbd3894366b46273996f4a93e0d874adf868a915`. No wallet or payment is needed to download or inspect it. The earlier [1.7.0 release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.0) and [1.5.1 release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.5.1) stay immutable.
+The [1.7.5 repository release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.5) provides the same six published files as a fallback download. Choose the CLI executable and its one-file checksum, or the MCP adapter and its one-file checksum. Keep their filenames unchanged and verify before running; the release notes link to shell-specific verification and setup instructions. The release tag identifies the tested source commit. No wallet or payment is needed to download or inspect it. The earlier [1.7.0 release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.0) and [1.5.1 release](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.5.1) stay immutable.
 
 ```sh
 node reader-client.mjs quote https://example.com --format both
@@ -46,3 +46,5 @@ Reader 1.7.1 omits clearly identified same-document permalink controls from HTML
 Reader 1.7.2 preserves HTML superscript/subscript distinctions using ^{...}/_{...} notation and superscript_subscript_normalized, including table values and heading/section titles. Literal code and raw Markdown retain their existing interpretation. Prior published client downloads remain unchanged.
 
 Clients 1.7.3 retain recognized service error codes with static actionable guidance and HTTP status, without echoing arbitrary error messages or content. Error reads are capped at 8 KiB. Invalid public URLs receive local guidance before requests. A signed error without receipt remains unknown, with no automatic fresh authorization and the same MCP reconciliation lock. All prior downloads remain unchanged.
+
+Reader 1.7.5 preserves significant spaces in HTML inline code, including syntax-highlighting spans. Multiline inline code is returned as a fenced Markdown block so its newlines survive rendering. Published 1.7.4 downloads remain immutable.
