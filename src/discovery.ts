@@ -127,12 +127,32 @@ function clientGuidance() {
   return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
 }
 
+/** Catalog sections for people browsing: first matching rule wins, everything else is a utility. */
+const CATEGORY_RULES: [string, (path: string) => boolean][] = [
+  ["Prices and DeFi", (p) => /^\/(price\/|wallet\/portfolio|token|trade-insight|liquidity-pool-audit|mev-simulator|contract-risk|wallet-audit|btc-price|fx$)/.test(p)],
+  ["Chain data", (p) => /^\/(base|eth|arb|op|polygon)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
+  ["Web, documents and search", (p) => /^\/(extract|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|search|wikipedia|dictionary|papers)$/.test(p)],
+  ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|domain|domain-report|email|package|package-audit|x402\/check)$/.test(p)],
+  ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
+  ["Everyday data", (p) => /^\/(weather|time|holidays|geocode|earthquakes|sun|moon|country|npm\/downloads|pypi)$/.test(p)],
+];
+export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
+export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities";
+/** Tools shown first on the homepage. */
+const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/company", "/sanctions/check", "/pdf/text"];
+const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
+
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo);
-  const rows = ENDPOINTS.map(
-    (e) => `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
-  ).join("");
+  const row = (e: (typeof ENDPOINTS)[number]) =>
+    `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`;
+  const starters = START_HERE.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is (typeof ENDPOINTS)[number] => Boolean(e));
+  const head = "<tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>";
+  const rows = [
+    `<h3 class="cat">Start here</h3><div class="wrap"><table>${head}${starters.map(row).join("")}</table></div>`,
+    ...byCategory().map((g) => `<h3 class="cat">${esc(g.name)} (${g.tools.length})</h3><div class="wrap"><table>${head}${g.tools.map(row).join("")}</table></div>`),
+  ].join("");
   const details = ENDPOINTS.map((e) => {
     const params = Object.entries(e.params)
       .map(([k, p]) => `<li><code>${esc(k)}</code>${p.required ? " (required)" : ""}: ${esc(p.description)}</li>`)
@@ -161,6 +181,7 @@ main { max-width:860px; margin:0 auto; padding:40px 16px 64px; }
 h1 { font-size:2rem; margin:0 0 8px; letter-spacing:-0.01em; }
 h2 { font-size:1.15rem; margin:40px 0 12px; }
 h3 { font-size:1rem; margin:0 0 6px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+h3.cat { display:block; margin:24px 0 8px; }
 p { margin:0 0 12px; }
 .lead { color:var(--muted); font-size:1.05rem; }
 code { background:var(--code); padding:2px 6px; border-radius:4px; font:0.9em ui-monospace,Consolas,monospace; overflow-wrap:anywhere; }
@@ -185,7 +206,7 @@ ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
 <h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
-<div class="wrap"><table><tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>${rows}</table></div>
+${rows}
 
 <h2>How paying works</h2>
 <p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header. Calls that fail are not charged.</p>
@@ -349,13 +370,13 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     "## Endpoints",
     "",
-    ...ENDPOINTS.flatMap((e) => [
-      `### GET ${e.path} — ${e.price}`,
+    ...byCategory().flatMap((g) => [`### ${g.name}`, "", ...g.tools.flatMap((e) => [
+      `#### GET ${e.path} — ${e.price}`,
       (e as Endpoint).details ?? e.description,
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,
       "",
-    ]),
+    ])]),
     "## Machine-readable",
     "",
     `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp`,
