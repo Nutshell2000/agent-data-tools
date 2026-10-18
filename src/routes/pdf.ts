@@ -1,7 +1,6 @@
 // PDF to text. Few x402 sellers offer it and buyers pay for it (Bazaar payment data, Oct 2026).
 // Parsing runs inside the Worker with unpdf (PDF.js build for serverless runtimes), so there is
 // no upstream service and no per-call cost beyond CPU.
-import { extractText, getDocumentProxy, getMeta } from "unpdf";
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { fetchFile } from "../lib/fetch";
@@ -17,6 +16,8 @@ export async function readPdf(bytes: Uint8Array, firstPage: number, want: number
   if (!(bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)) {
     throw new HttpError(415, "url did not return a PDF file");
   }
+  // PDF.js is large: load it on the first PDF call rather than on every isolate start.
+  const { extractText, getDocumentProxy, getMeta } = await import("unpdf");
   let doc: Awaited<ReturnType<typeof getDocumentProxy>>;
   try {
     doc = await getDocumentProxy(bytes);
