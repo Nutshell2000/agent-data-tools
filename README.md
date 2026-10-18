@@ -4,7 +4,7 @@ Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Browse all 161 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
+- [Browse all 163 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
 - [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
@@ -25,7 +25,7 @@ The reader also supports an exact HTML section ID and retains labelled source im
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-A Cloudflare Worker that sells 161 active tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 163 active tools to AI agents. Each call is paid in USDC on Base through the x402 protocol, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
