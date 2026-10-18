@@ -1,7 +1,7 @@
 # Directory listing copy
 
 One block to paste into MCP and x402 directory forms (PulseMCP, mcp.so, MCP Market, Smithery,
-Glama, x402.org ecosystem). Keep it in step with `SERVICE_SUMMARY` in `src/endpoints.ts` and the
+Glama, and the x402 service directories named in the x402 README). Keep it in step with `SERVICE_SUMMARY` in `src/endpoints.ts` and the
 bundle list in `MCP_BUNDLES` (`src/discovery.ts`). Never claim usage, customers or uptime we
 cannot show; `/status` is the public reliability source.
 
@@ -19,7 +19,7 @@ Token prices, wallet portfolios, OFAC sanctions checks, chain reads and web/PDF 
 
 ## Long description (under 500 characters)
 
-Agent Data Tools sells single tool calls to AI agents over HTTP or MCP, paid per call in USDC on Base via x402: no account, no API key, and failed calls are never charged. Main jobs: value tokens and wallets (Uniswap v3 prices, portfolios), screen counterparties (OFAC SDN, contract and token checks), and read the web (pages, PDFs and RSS as clean text, link previews). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.001.
+Agent Data Tools sells single tool calls to AI agents over HTTP or MCP, paid per call in USDC on Base via x402: no account, no API key, and failed calls are never charged. Main jobs: value tokens and wallets (Uniswap v3 prices, portfolios), vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, with a verdict), and read the web (pages, JavaScript apps, PDFs and RSS as clean text). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.001.
 
 ## Categories / tags
 
@@ -53,5 +53,5 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 | Smithery | "Add server" at smithery.ai with the remote URL `https://agent-data-tools.revmesh2074.workers.dev/mcp` | Remote streamable HTTP, no auth |
 | PulseMCP | Submit form at pulsemcp.com | Paste the long description |
 | mcp.so | Submit form | Paste the long description |
-| x402.org ecosystem | Pull request to the site's ecosystem list | Logo: /og.png |
+| Agentic.Market, Pay.sh, ampersend discover, x402-list.com | The x402 README's recommended service directories; submit the origin where a form exists | Some index from Bazaar or x402scan after real paid calls |
 | awesome-x402 (xpaysh) | Pull request from the fork branch `add-agent-data-tools` | Already prepared |
