@@ -40,6 +40,9 @@
     "viem": "^2.57.4",
     "zod": "^4.6.5"
   },
+  "overrides": {
+    "typescript": "$typescript"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261008.1",
     "@x402/fetch": "^2.28.0",
