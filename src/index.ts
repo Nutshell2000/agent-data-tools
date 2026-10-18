@@ -25,6 +25,7 @@ import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/ro
 import { TOOLS } from "./tools";
 import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
+import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -238,6 +239,8 @@ app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Con
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
+const OG_IMAGE = Uint8Array.from(atob(OG_IMAGE_PNG_BASE64), (ch) => ch.charCodeAt(0));
+app.get("/og.png", (c) => c.body(OG_IMAGE, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
 app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),READER_VERSION)));

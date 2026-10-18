@@ -184,7 +184,12 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
 <meta property="og:title" content="${esc(PAGE_TITLE)}">
 <meta property="og:description" content="${esc(SERVICE_SUMMARY)}">
 <meta property="og:url" content="${esc(origin)}/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${esc(origin)}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(SERVICE_NAME)}: pay-per-call data tools for AI agents over x402">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${esc(origin)}/og.png">
 <style>
 :root { --bg:#fbfaf7; --fg:#1d1b16; --muted:#6b665c; --line:#e3ded3; --accent:#0b6e4f; --code:#f1ede4; }
 @media (prefers-color-scheme: dark) { :root { --bg:#15140f; --fg:#ece8dd; --muted:#a39d8f; --line:#2e2b23; --accent:#5fd0a5; --code:#221f18; } }
