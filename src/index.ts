@@ -199,7 +199,8 @@ for (const path of DEFERRED_PATHS) {
 }
 
 // The same tools over MCP. Listing tools is free; calling one requires payment.
-app.all("/mcp", handleMcp);
+app.all("/mcp", (c) => handleMcp(c));
+app.all("/mcp/:bundle", (c) => handleMcp(c, c.req.param("bundle")));
 
 // Store for people: product pages, orders paid by plain USDC transfer, downloads.
 app.route("/", store);
