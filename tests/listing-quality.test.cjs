@@ -72,3 +72,8 @@ test("Worker bundle replaces Ajv's runtime compiler with a stand-in that fails i
   const { default: Ajv } = await loadTypeScript(require.resolve("../src/lib/ajv-unavailable.ts"));
   assert.throws(() => new Ajv({ strict: false }).compile({ type: "object" }), /unavailable on Cloudflare Workers/);
 });
+
+test("service summary states the current tool count and the buyer terms", () => {
+  assert.match(discovery.SERVICE_SUMMARY, new RegExp(`^${discovery.ENDPOINTS.length} pay-per-call tools`));
+  for (const phrase of ["No account or API key", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
+});
