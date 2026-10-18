@@ -1,5 +1,5 @@
 {
-  "version": "1.8.3",
+  "version": "1.9.0",
   "tools": [
     {
       "name": "extract",
@@ -4253,6 +4253,390 @@
         "properties": {}
       },
       "price": "$0.001"
+    },
+    {
+      "name": "echo",
+      "description": "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message, up to 2,000 characters"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "ping",
+      "description": "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "keccak",
+      "description": "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, or 0x-prefixed hex bytes, up to 10,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "network",
+      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "ai_chat",
+      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "User prompt, up to 8,000 characters"
+          },
+          "system": {
+            "type": "string",
+            "description": "Optional system prompt, up to 2,000 characters"
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum output tokens, 1-1024 (default 400)"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "0-1.5 (default 0.6)"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_summarize-text",
+      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to summarize, up to 12,000 characters"
+          },
+          "sentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Summary length in sentences, 1-8 (default 3)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_sentiment",
+      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "English text, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_classify",
+      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to classify, up to 8,000 characters"
+          },
+          "labels": {
+            "type": "string",
+            "description": "Comma-separated candidate labels (2-20)"
+          }
+        },
+        "required": [
+          "text",
+          "labels"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_keywords",
+      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, up to 12,000 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many, 3-30 (default 10)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_rewrite",
+      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, up to 8,000 characters"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "formal",
+              "casual",
+              "simpler",
+              "shorter",
+              "friendly",
+              "professional",
+              "persuasive"
+            ],
+            "description": "formal, casual, simpler, shorter, friendly, professional or persuasive (default professional)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_outline",
+      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to outline, or a topic, up to 12,000 characters"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Heading levels, 1-3 (default 2)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_translate",
+      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, up to 4,000 characters"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target language code, e.g. sv"
+          },
+          "from": {
+            "type": "string",
+            "description": "Source language code (default en)"
+          }
+        },
+        "required": [
+          "text",
+          "to"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_embed",
+      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to embed, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_extract-json",
+      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Source text, up to 12,000 characters"
+          },
+          "fields": {
+            "type": "string",
+            "description": "Comma-separated field names to extract (1-30)"
+          }
+        },
+        "required": [
+          "text",
+          "fields"
+        ]
+      },
+      "price": "$0.002"
     }
   ]
 }
