@@ -6,13 +6,13 @@ import { createRequire } from "node:module";
 import { writeFile, rm } from "node:fs/promises";
 
 const out = new URL("../.smoke-families.cjs", import.meta.url);
-const bundled = await build({ entryPoints: ["src/families.ts"], bundle: true, platform: "node", format: "cjs", write: false });
+const bundled = await build({ stdin: { contents: 'export { FAMILIES } from "./src/families"; export { PAUSED_FAMILY_TOOLS } from "./src/endpoints";', resolveDir: process.cwd(), sourcefile: "smoke-families-entry.ts" }, bundle: true, platform: "node", format: "cjs", write: false });
 await writeFile(out, bundled.outputFiles[0].text);
-const { FAMILIES } = createRequire(import.meta.url)(out.pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+const { FAMILIES, PAUSED_FAMILY_TOOLS } = createRequire(import.meta.url)(out.pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 await rm(out);
 
 const filter = process.argv[2];
-const list = FAMILIES.filter((f) => !filter || f.endpoint.path.includes(filter));
+const list = FAMILIES.filter((f) => !Object.hasOwn(PAUSED_FAMILY_TOOLS, f.endpoint.path) && (!filter || f.endpoint.path.includes(filter)));
 const env = { BASE_RPC_URL: "https://mainnet.base.org" };
 let failed = 0;
 const slow = [];

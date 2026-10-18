@@ -1,5 +1,5 @@
 {
-  "version": "1.8.0",
+  "version": "1.8.1",
   "tools": [
     {
       "name": "extract",
@@ -3249,39 +3249,6 @@
       "price": "$0.002"
     },
     {
-      "name": "regex_test",
-      "description": "Run a JavaScript regular expression against a text and return every match with its index and capture groups (named groups included). Inputs are size-limited. Use to check a pattern before using it in code. Costs $0.002 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "pattern": {
-            "type": "string",
-            "description": "The pattern without slashes"
-          },
-          "text": {
-            "type": "string",
-            "description": "The text to search"
-          },
-          "flags": {
-            "type": "string",
-            "description": "Flags such as g, i, m, s, u (g is always added)"
-          }
-        },
-        "required": [
-          "pattern",
-          "text"
-        ]
-      },
-      "price": "$0.002"
-    },
-    {
       "name": "cron_next",
       "description": "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
@@ -3948,94 +3915,6 @@
             "description": "2.5 (default), 4.5 or significant"
           }
         }
-      },
-      "price": "$0.002"
-    },
-    {
-      "name": "air-quality",
-      "description": "Current air quality at a point: European and US air-quality index, PM2.5, PM10, ozone, nitrogen dioxide, sulphur dioxide and carbon monoxide (Open-Meteo, CAMS model data). Use for health, outdoor-activity and travel decisions. Costs $0.002 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "lat": {
-            "type": "number",
-            "description": "Latitude (-90 to 90)"
-          },
-          "lon": {
-            "type": "number",
-            "description": "Longitude (-180 to 180)"
-          }
-        },
-        "required": [
-          "lat",
-          "lon"
-        ]
-      },
-      "price": "$0.002"
-    },
-    {
-      "name": "uv",
-      "description": "Current UV index and today's maximum at a point, with the WHO exposure category and sun-protection advice (Open-Meteo). Use for outdoor planning and health reminders. Costs $0.002 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "lat": {
-            "type": "number",
-            "description": "Latitude (-90 to 90)"
-          },
-          "lon": {
-            "type": "number",
-            "description": "Longitude (-180 to 180)"
-          }
-        },
-        "required": [
-          "lat",
-          "lon"
-        ]
-      },
-      "price": "$0.002"
-    },
-    {
-      "name": "geocode",
-      "description": "Find places by name and get their coordinates, country, region, population, elevation and time zone (Open-Meteo geocoding, GeoNames data). Use before weather, sun or air-quality lookups. Costs $0.002 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Place name"
-          },
-          "count": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Max results (1-10, default 5)"
-          }
-        },
-        "required": [
-          "name"
-        ]
       },
       "price": "$0.002"
     },

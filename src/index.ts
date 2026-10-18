@@ -7,7 +7,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { CAPACITY_LIMITED, ENDPOINTS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -189,6 +189,10 @@ app.use(async (c, next) => {
 
 for (const e of ENDPOINTS) {
   app.get(e.path, async (c) => c.json(await TOOLS[e.path](c.env, (name) => c.req.query(name))));
+}
+
+for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
+  app.all(path, c => c.json({ code: "TOOL_PAUSED", error: reason + " This request was not charged." }, 503));
 }
 
 for (const path of DEFERRED_PATHS) {

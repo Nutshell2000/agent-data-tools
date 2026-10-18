@@ -47,6 +47,24 @@ test("JSON repair handles typical model output", () => {
   assert.deepEqual(JSON.parse(utils.repairJson("{'say': \"it's\"}")), { say: "it's" });
 });
 
+test("JSON repair leaves valid input unchanged and only corrects syntax outside quoted data", () => {
+  for (const source of ['{"message":"True story,}","label":"None","enabled":true}', '  {"text":"{bare: True,}","escaped":"a\\\"True"}  ', '"False"'])
+    assert.equal(utils.repairJson(source), source);
+  assert.deepEqual(JSON.parse(utils.repairJson("{message: 'True story,}', label: 'None', enabled: True,}")), {message:'True story,}',label:'None',enabled:true});
+  assert.deepEqual(JSON.parse(utils.repairJson("{text: 'it\\'s True', ok: False, value: None,}")), {text:"it's True",ok:false,value:null});
+});
+
+test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
+  const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
+  const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
+  assert.equal(ENDPOINTS.length,145);
+  for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
+    assert.ok(families.some(f=>f.endpoint.path===path));
+    assert.ok(!ENDPOINTS.some(e=>e.path===path));
+    await assert.rejects(TOOLS[path]({},()=>{throw Error('Paused tools must not read inputs or call upstreams');}),e=>e.status===503&&e.code==='TOOL_PAUSED');
+  }
+});
+
 test("CSV, case, slug, HTML and Markdown helpers", () => {
   assert.deepEqual(utils.parseCsv('a;b\n"x;1";2'), [["a", "b"], ["x;1", "2"]]);
   assert.deepEqual(utils.parseCsv('n,q\n1,"say ""hi"""'), [["n", "q"], ["1", 'say "hi"']]);
