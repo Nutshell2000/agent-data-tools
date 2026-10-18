@@ -33,5 +33,5 @@ test('extraction reports final URL and rejects private redirects, unsupported fi
 test('text output and oversized input expose truncation and JavaScript shells are not rendered',async()=>{
   const plain=await (await call('/plain',500)).json();assert.equal(plain.text.length,500);assert.equal(plain.textLength,600);assert.equal(plain.truncated,true);
   const big=await (await call('/big',100000)).json();assert.equal(big.text.length,100000);assert.equal(big.truncated,true);
-  const shell=await call('/shell');assert.equal(shell.status,422);assert.match((await shell.json()).error,/No readable static content/);
+  const shell=await call('/shell');assert.equal(shell.status,422);const shellError=(await shell.json()).error;assert.match(shellError,/No readable static content/);assert.match(shellError,/\/extract\/rendered/);
 });

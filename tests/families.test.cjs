@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 142);
+  assert.equal(families.length, 143);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" || e.path === "/extract/rendered" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,166);
+  assert.equal(ENDPOINTS.length,167);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -499,4 +499,17 @@ test("counterparty verdict: SDN match blocks, high heuristics review, otherwise 
   assert.equal(verdict([], { riskLevel: "high", riskFlags: ["a", "b"] }, null).verdict, "review");
   assert.equal(verdict([], low, { riskLevel: "critical", riskFlags: ["proxy-impl-unset"] }).verdict, "review");
   assert.equal(verdict([], { riskLevel: "medium", riskFlags: ["a"] }, { riskLevel: "medium", riskFlags: [] }).verdict, "pass");
+});
+
+test("extract/rendered: rendered HTML goes through the /extract builder; no browser is an uncharged 503", async () => {
+  const { buildExtraction, extractOptions } = await loadTypeScript(require.resolve("../src/routes/extract.ts"));
+  const opts = extractOptions("https://app.example/", undefined, "markdown", undefined);
+  const out = await buildExtraction({ ...opts, finalUrl: "https://app.example/", status: 200, contentType: "text/html; rendered",
+    source: "<html><head><title>App</title></head><body><main><h1>Built by JS</h1><p>Rendered paragraph text that a static fetch would miss.</p></main></body></html>",
+    html: true, markdownSource: false, markdownPath: false, inputTruncated: false });
+  assert.match(out.markdown, /Built by JS/);
+  assert.equal(out.sourceFormat, "html");
+  const { EXTRACT_RENDERED } = await loadTypeScript(require.resolve("../src/routes/extract-rendered.ts"));
+  await assert.rejects(EXTRACT_RENDERED[0].run({}, (n) => (n === "url" ? "https://app.example/" : undefined)), (e) => e.status === 503);
+  await assert.rejects(EXTRACT_RENDERED[0].run({}, (n) => (n === "url" ? "http://127.0.0.1/" : undefined)), (e) => e.status === 400);
 });
