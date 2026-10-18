@@ -2,8 +2,11 @@
 
 ## Where things stand (2026-10-18)
 
-- main carries catalog 1.23.0 (167 tools); production still runs c6d231cb (161 tools). Deploy and
-  checks: follow docs/release-1.23.0.md step by step.
+- Production runs 1.23.0 (167 tools, commit 413ae01), deployed 2026-10-18 ~19:00 UTC by the local
+  Claude Code session through the guard. check:live 167/167, AgentCash discovery 1.7.5 all checks true,
+  x402scan lists 167/167, tag v1.23.0 published to the MCP Registry. Baseline: docs/sales-baseline.md.
+- Deploys need Cloudflare access, which only Peter's PC has: prepare PRs and a runbook here, and the
+  local session deploys with `npm run deploy:production -- --expected-version <live uuid>`.
 - Sales plan: flagship tools /check/counterparty and /extract/rendered, free ?sample=1 previews,
   readable 402 bodies, MCP bundles at /mcp/<section>. Directory copy: docs/listings.md.
 - OFAC mirror release `ofac-latest` is published by .github/workflows/ofac-mirror.yml.
