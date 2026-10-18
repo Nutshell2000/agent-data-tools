@@ -96,3 +96,15 @@ test("every published ownership proof is a PAY_TO signature of the production or
   const api = discovery.openApi("https://agent-data-tools.revmesh2074.workers.dev");
   assert.equal("x-agentcash-provenance" in api, discovery.OWNERSHIP_PROOFS.length > 0);
 });
+
+test("directory scrapers get the HTML homepage with OpenGraph tags; programs keep the JSON card", async () => {
+  const { prefersHtml } = await loadTypeScript(require.resolve("../src/lib/negotiate.ts"));
+  assert.equal(prefersHtml(undefined, "Mozilla/5.0 (compatible; x402scan/1.0; +https://x402.org)"), true);
+  assert.equal(prefersHtml("*/*", "Mozilla/5.0 (Macintosh)"), true);
+  assert.equal(prefersHtml("text/html,application/xhtml+xml", "curl/8"), true);
+  assert.equal(prefersHtml("application/json", "Mozilla/5.0"), false);
+  assert.equal(prefersHtml(undefined, "node"), false);
+  assert.equal(prefersHtml("*/*", undefined), false);
+  const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
+  for (const tag of ["og:title", "og:description", "og:site_name", "og:url"]) assert.match(html, new RegExp(`<meta property="${tag}" content="[^"]+">`), tag);
+});
