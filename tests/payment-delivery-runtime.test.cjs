@@ -50,7 +50,9 @@ test('actual HTTP paywall links successful payment to completed output and never
   const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
   const q=await mf.dispatchFetch(url);assert.equal(q.status,402);
   const requirements=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
-  assert.equal(requirements.amount,'2000');await q.body?.cancel();
+  assert.equal(requirements.amount,'2000');
+  // Plain-HTTP agents only see the body: it must repeat the header's challenge.
+  const body=await q.json();assert.equal(body.x402Version,2);assert.deepEqual(body.accepts[0],requirements);assert.match(body.hint,/llms\.txt/);
   const headers={'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(requirements))).toString('base64')};
   const h=await mf.dispatchFetch(url,{method:'HEAD',headers});assert.equal(h.status,402);await h.body?.cancel();
   assert.equal((await revenue()).settlements,0);
