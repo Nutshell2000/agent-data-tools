@@ -1,6 +1,6 @@
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./reader-buying";
 import { readerDownloadMarkdown } from "./reader-download";
-import { ENDPOINTS, MCP_SERVER_VERSION, paymentClientExample } from "../discovery";
+import { ENDPOINTS, READER_VERSION, paymentClientExample } from "../discovery";
 
 export type PromotedTool = "web-reading" | "bitcoin-fees";
 const esc = (s: string) => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
@@ -44,7 +44,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
     `Open ${origin}/examples/extract/ for reader demonstrations from owned sample documents. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
     "",
-    readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs"),
+    readerDownloadMarkdown(origin,READER_VERSION,"reader-client.mjs"),
     "Inspect an unsigned quote:",
     "",
     fence + "sh",
@@ -183,7 +183,7 @@ export function toolGuideHtml(kind: PromotedTool, origin: string, payTo: string,
       return `<a href="${url}">${url}</a>${match.slice(url.length)}`;
     })}</p>`;
   }).join("")).join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${kind === "web-reading" ? "Documentation to Markdown: free quote and $0.002 reader" : esc(g.title)} | SpellzCode</title><meta name="description" content="${esc(g.title)} for ${esc(g.price)} USDC on Base. Real examples, a local command builder and a capped Node CLI."><link rel="canonical" href="${esc(origin)}/guides/${kind}"><style>:root{color-scheme:light dark}body{font:16px/1.6 system-ui;max-width:900px;margin:auto;padding:28px 20px 64px}h1{line-height:1.15}h2{margin-top:36px}a{color:#087455;overflow-wrap:anywhere}@media(prefers-color-scheme:dark){a{color:#70d9b2}#reader-builder-error{color:#ffad9b}}pre{overflow:auto;background:#8881;border:1px solid #8885;border-radius:8px;padding:18px;font-size:13px}p{overflow-wrap:anywhere}input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}${readerBuyingCss}</style></head><body><nav aria-label="Service navigation"><a href="/">Agent Data Tools</a> · <a href="/#tools">All ${ENDPOINTS.length} tools and prices</a> / SpellzCode</nav><main>${kind === "web-reading" ? `<h1>Read a public documentation page</h1>${readerBuyingHtml(origin, MCP_SERVER_VERSION, ENDPOINTS.length, demo)}` : ""}${kind === "web-reading" ? `<details class="reader-reference" id="reader-reference"><summary>Research workflows, output fields and advanced HTTP/MCP clients</summary>${body}</details>` : body}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${kind === "web-reading" ? "Documentation to Markdown: free quote and $0.002 reader" : esc(g.title)} | SpellzCode</title><meta name="description" content="${esc(g.title)} for ${esc(g.price)} USDC on Base. Real examples, a local command builder and a capped Node CLI."><link rel="canonical" href="${esc(origin)}/guides/${kind}"><style>:root{color-scheme:light dark}body{font:16px/1.6 system-ui;max-width:900px;margin:auto;padding:28px 20px 64px}h1{line-height:1.15}h2{margin-top:36px}a{color:#087455;overflow-wrap:anywhere}@media(prefers-color-scheme:dark){a{color:#70d9b2}#reader-builder-error{color:#ffad9b}}pre{overflow:auto;background:#8881;border:1px solid #8885;border-radius:8px;padding:18px;font-size:13px}p{overflow-wrap:anywhere}input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}${readerBuyingCss}</style></head><body><nav aria-label="Service navigation"><a href="/">Agent Data Tools</a> · <a href="/#tools">All ${ENDPOINTS.length} tools and prices</a> / SpellzCode</nav><main>${kind === "web-reading" ? `<h1>Read a public documentation page</h1>${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}` : ""}${kind === "web-reading" ? `<details class="reader-reference" id="reader-reference"><summary>Research workflows, output fields and advanced HTTP/MCP clients</summary>${body}</details>` : body}</main></body></html>`;
 }
 
 /** Three explicit purchases, never an unattended batch or retry loop. */
@@ -222,7 +222,7 @@ export function sectionWorkflowMarkdown(origin: string) {
 
 export function bitcoinCliMarkdown(origin: string) {
  const fence=String.fromCharCode(96).repeat(3);
- return ["## Quote and buy Bitcoin fee data without writing a client","",readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs"),
+ return ["## Quote and buy Bitcoin fee data without writing a client","",readerDownloadMarkdown(origin,READER_VERSION,"reader-client.mjs"),
  "Inspect the unpaid price quote (no URL, key, signing or Bitcoin-data fetch):","",fence+"sh","node reader-client.mjs quote-btc-fees",fence,"",
  "Only for an authorized purchase, configure an existing funded Base wallet's X402_PRIVATE_KEY privately in the local process environment and invoke once:","",fence+"sh","node reader-client.mjs buy-btc-fees --max-usdc 0.002",fence,"",
  "This buys a JSON data result for at most $0.002 native USDC on Base; it does not buy Bitcoin, select a transaction fee for you, or send a Bitcoin transaction. No Bitcoin key is needed. The same client pins our service, recipient, Base/native USDC and exact scheme, permits one authorization and never retries an uncertain payment.","",

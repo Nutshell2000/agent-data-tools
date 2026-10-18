@@ -1,5 +1,5 @@
 {
-  "version": "1.7.6",
+  "version": "1.8.1",
   "tools": [
     {
       "name": "extract",
@@ -1527,6 +1527,2880 @@
         "required": [
           "zone"
         ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_balance",
+      "description": "Native ETH balance of any address on Base, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_token-balance",
+      "description": "ERC-20 token balance of a wallet on Base: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_token-info",
+      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Base, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_block",
+      "description": "A block on Base by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_gas",
+      "description": "Current gas on Base: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_tx",
+      "description": "A transaction on Base by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_receipt",
+      "description": "Receipt of a Base transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_nonce",
+      "description": "Transaction count (nonce) of an address on Base, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_is-contract",
+      "description": "Whether an address on Base is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base_logs",
+      "description": "Recent event logs emitted by a contract on Base over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-1000, default 50)"
+          },
+          "topic0": {
+            "type": "string",
+            "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_balance",
+      "description": "Native ETH balance of any address on Ethereum, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_token-balance",
+      "description": "ERC-20 token balance of a wallet on Ethereum: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_token-info",
+      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Ethereum, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_block",
+      "description": "A block on Ethereum by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_gas",
+      "description": "Current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_tx",
+      "description": "A transaction on Ethereum by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_receipt",
+      "description": "Receipt of a Ethereum transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_nonce",
+      "description": "Transaction count (nonce) of an address on Ethereum, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_is-contract",
+      "description": "Whether an address on Ethereum is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "eth_logs",
+      "description": "Recent event logs emitted by a contract on Ethereum over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-1000, default 50)"
+          },
+          "topic0": {
+            "type": "string",
+            "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_balance",
+      "description": "Native ETH balance of any address on Arbitrum One, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_token-balance",
+      "description": "ERC-20 token balance of a wallet on Arbitrum One: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_token-info",
+      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Arbitrum One, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_block",
+      "description": "A block on Arbitrum One by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_gas",
+      "description": "Current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_tx",
+      "description": "A transaction on Arbitrum One by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_receipt",
+      "description": "Receipt of a Arbitrum One transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_nonce",
+      "description": "Transaction count (nonce) of an address on Arbitrum One, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_is-contract",
+      "description": "Whether an address on Arbitrum One is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "arb_logs",
+      "description": "Recent event logs emitted by a contract on Arbitrum One over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-1000, default 50)"
+          },
+          "topic0": {
+            "type": "string",
+            "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_balance",
+      "description": "Native ETH balance of any address on Optimism, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_token-balance",
+      "description": "ERC-20 token balance of a wallet on Optimism: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_token-info",
+      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Optimism, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_block",
+      "description": "A block on Optimism by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_gas",
+      "description": "Current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_tx",
+      "description": "A transaction on Optimism by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_receipt",
+      "description": "Receipt of a Optimism transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_nonce",
+      "description": "Transaction count (nonce) of an address on Optimism, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_is-contract",
+      "description": "Whether an address on Optimism is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "op_logs",
+      "description": "Recent event logs emitted by a contract on Optimism over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-1000, default 50)"
+          },
+          "topic0": {
+            "type": "string",
+            "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_balance",
+      "description": "Native POL balance of any address on Polygon PoS, in wei and in POL, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_token-balance",
+      "description": "ERC-20 token balance of a wallet on Polygon PoS: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_token-info",
+      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Polygon PoS, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_block",
+      "description": "A block on Polygon PoS by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_gas",
+      "description": "Current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_tx",
+      "description": "A transaction on Polygon PoS by hash: sender, recipient, value in POL, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_receipt",
+      "description": "Receipt of a Polygon PoS transaction: success or reverted, gas used, effective gas price, fee paid in POL, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_nonce",
+      "description": "Transaction count (nonce) of an address on Polygon PoS, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_is-contract",
+      "description": "Whether an address on Polygon PoS is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "polygon_logs",
+      "description": "Recent event logs emitted by a contract on Polygon PoS over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-1000, default 50)"
+          },
+          "topic0": {
+            "type": "string",
+            "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "json_validate",
+      "description": "Check whether text is valid JSON. Returns valid true/false, the parsed value's type and size, and for invalid input the error message with line and column. Use before parsing an LLM's or an API's output. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The JSON text to check (up to 20,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "json_format",
+      "description": "Format JSON with indentation (2 or 4 spaces, or tabs) and optionally sorted keys. Returns the formatted text. Use to make machine JSON readable or to normalise it for diffs. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The JSON text"
+          },
+          "indent": {
+            "type": "string",
+            "description": "2 (default), 4 or tab"
+          },
+          "sortKeys": {
+            "type": "string",
+            "description": "true to sort object keys"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "json_minify",
+      "description": "Remove all unnecessary whitespace from JSON and report the size before and after. Use to shrink payloads or prompts. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The JSON text"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "json_repair",
+      "description": "Fix JSON as LLMs often write it: removes ```json fences and surrounding prose, comments and trailing commas, converts single quotes, quotes bare keys, maps True/False/None, and closes unclosed brackets. Returns the repaired JSON and whether it now parses. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The broken JSON text"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "json_to-csv",
+      "description": "Convert a JSON array of objects to CSV with a header row built from all keys. Nested values are written as JSON. Use to export API results to a spreadsheet. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "A JSON array of objects"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "csv_to-json",
+      "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The CSV text, first row is the header"
+          },
+          "numbers": {
+            "type": "string",
+            "description": "true to turn numeric cells into numbers"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base64_encode",
+      "description": "Encode UTF-8 text as standard base64, and also return the URL-safe variant. Use for data URLs, headers and basic auth strings. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to encode"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "base64_decode",
+      "description": "Decode standard or URL-safe base64 to UTF-8 text. Missing padding is tolerated. Use to read encoded headers, tokens and data URLs. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The base64 text"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "url_encode",
+      "description": "Percent-encode text for use in a URL query value (encodeURIComponent) and as a full URL (encodeURI). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to encode"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "url_decode",
+      "description": "Decode percent-encoded text, treating + as a space when plus=true (form encoding). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The encoded text"
+          },
+          "plus": {
+            "type": "string",
+            "description": "true to read + as space"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "url_parse",
+      "description": "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to parse"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "hash",
+      "description": "Hash UTF-8 text with SHA-256 (default), SHA-1, SHA-384 or SHA-512 and return the digest in hex and base64. Use for checksums, cache keys and deduplication. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to hash"
+          },
+          "algorithm": {
+            "type": "string",
+            "description": "sha256 (default), sha1, sha384 or sha512"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "hmac",
+      "description": "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message"
+          },
+          "key": {
+            "type": "string",
+            "description": "The key"
+          },
+          "algorithm": {
+            "type": "string",
+            "description": "sha256 (default), sha1, sha384 or sha512"
+          }
+        },
+        "required": [
+          "message",
+          "key"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "uuid",
+      "description": "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-100, default 1)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "slug",
+      "description": "Turn any text into a URL-friendly slug: accents removed (é→e, ß→ss), lower case, non-alphanumerics replaced by a separator (- by default). Use for file names, URLs and IDs. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text"
+          },
+          "separator": {
+            "type": "string",
+            "description": "- (default) or _"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "case",
+      "description": "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text"
+          },
+          "to": {
+            "type": "string",
+            "description": "camel, pascal, snake, kebab, constant, title, sentence, upper or lower"
+          }
+        },
+        "required": [
+          "text",
+          "to"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "text_stats",
+      "description": "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "text_extract",
+      "description": "Find all email addresses, URLs, phone-number-like strings, hashtags, @mentions and numbers in a text, each list de-duplicated. Use to pull contacts and links out of scraped pages or messages. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "text_diff",
+      "description": "Line-by-line difference between two texts: each line marked as unchanged, removed or added, with counts. Use to see what changed between two versions of a document, config or prompt. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "string",
+            "description": "The original text"
+          },
+          "b": {
+            "type": "string",
+            "description": "The new text"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "cron_next",
+      "description": "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "expr": {
+            "type": "string",
+            "description": "The cron expression"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many runs (1-50, default 5)"
+          },
+          "from": {
+            "type": "string",
+            "description": "Start time, ISO (default now)"
+          }
+        },
+        "required": [
+          "expr"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "date_diff",
+      "description": "Time between two dates or timestamps: total days, weeks, hours, minutes and seconds, a years-months-days breakdown, and the number of weekdays (Monday-Friday) in between. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start date or ISO timestamp"
+          },
+          "to": {
+            "type": "string",
+            "description": "End date or ISO timestamp"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "date_add",
+      "description": "Add (or subtract, with negative numbers) years, months, weeks, days, hours and minutes to a date, or add business days (skipping Saturdays and Sundays). Month ends are clamped (31 Jan + 1 month = 28/29 Feb). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Start date or ISO timestamp"
+          },
+          "months": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Months to add"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days to add"
+          },
+          "businessDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Weekdays to add (skips weekends)"
+          }
+        },
+        "required": [
+          "date"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "date_info",
+      "description": "Weekday, ISO week number and week-year, day of the year, quarter, days in the month, leap year, Unix timestamp and whether it is a weekend, for any date. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date or ISO timestamp (default today)"
+          }
+        },
+        "required": [
+          "date"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "unix",
+      "description": "Convert a Unix timestamp (seconds or milliseconds, detected automatically) to ISO date and time, or an ISO date to a Unix timestamp. Without input, returns the current time in both forms. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Unix seconds/milliseconds or an ISO date (default now)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "units_convert",
+      "description": "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "The amount"
+          },
+          "from": {
+            "type": "string",
+            "description": "Unit to convert from"
+          },
+          "to": {
+            "type": "string",
+            "description": "Unit to convert to"
+          }
+        },
+        "required": [
+          "value",
+          "from",
+          "to"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "number_words",
+      "description": "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "The number, decimals allowed"
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "number_roman",
+      "description": "Convert a number (1-3999) to Roman numerals, or Roman numerals back to a number. Give either number or roman. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "1 to 3999"
+          },
+          "roman": {
+            "type": "string",
+            "description": "Roman numerals to read"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "validate_iban",
+      "description": "Check an IBAN's format, its country-specific length and its mod-97 check digits, and return it formatted in groups of four. Use before saving bank details or paying out. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "iban": {
+            "type": "string",
+            "description": "The IBAN, spaces allowed"
+          }
+        },
+        "required": [
+          "iban"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "validate_isbn",
+      "description": "Check an ISBN-10 or ISBN-13 check digit and convert valid ISBN-10s to ISBN-13. Hyphens and spaces are ignored. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "isbn": {
+            "type": "string",
+            "description": "The ISBN"
+          }
+        },
+        "required": [
+          "isbn"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "validate_luhn",
+      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Digits, spaces and hyphens allowed"
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "color",
+      "description": "Convert a colour between hex, RGB and HSL, and give its relative luminance and whether black or white text reads better on it. Accepts #rgb, #rrggbb, rgb(r,g,b) and hsl(h,s%,l%). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "The colour"
+          }
+        },
+        "required": [
+          "color"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "color_contrast",
+      "description": "WCAG 2 contrast ratio between a text colour and a background colour, with pass/fail for AA and AAA at normal and large text sizes. Use to check that a design is readable. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "fg": {
+            "type": "string",
+            "description": "Text colour"
+          },
+          "bg": {
+            "type": "string",
+            "description": "Background colour"
+          }
+        },
+        "required": [
+          "fg",
+          "bg"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ip_cidr",
+      "description": "Details of an IPv4 network in CIDR notation: network and broadcast address, first and last usable host, netmask, number of addresses, and whether a given IP falls inside. Use for firewall rules and allowlists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "cidr": {
+            "type": "string",
+            "description": "IPv4 network in CIDR notation"
+          },
+          "ip": {
+            "type": "string",
+            "description": "Optional IPv4 address to test for membership"
+          }
+        },
+        "required": [
+          "cidr"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ip_info",
+      "description": "Classify an IPv4 or IPv6 address without any lookup: version, whether it is private, loopback, link-local, carrier-grade NAT or public, and its integer and reverse-DNS forms (IPv4). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "The IP address"
+          }
+        },
+        "required": [
+          "ip"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "semver",
+      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "string",
+            "description": "First version"
+          },
+          "b": {
+            "type": "string",
+            "description": "Second version"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "jwt_decode",
+      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The JWT"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "markdown_to-html",
+      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "description": "The Markdown"
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "html_to-text",
+      "description": "Strip HTML to readable plain text: scripts and styles removed, block elements become line breaks, list items get bullets, entities decoded. Use to feed web content or emails to an LLM. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "The HTML"
+          }
+        },
+        "required": [
+          "html"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "http_status",
+      "description": "Name and plain-language meaning of an HTTP status code (1xx-5xx, including 402 Payment Required and 429 Too Many Requests), and whether to retry. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Status code"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "mime",
+      "description": "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "File name or extension"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "holidays",
+      "description": "Official public holidays for a country and year: date, local and English name, whether nationwide or regional, and holiday type. 100+ countries by ISO code (Nager.Date). Use for scheduling, delivery dates and business-day maths. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 code, e.g. SE, US, DE"
+          },
+          "year": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Year (default this year)"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "wikipedia",
+      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Article title"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code (default en)"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "dictionary",
+      "description": "Definitions of an English word grouped by part of speech, with phonetic spelling, example sentences, synonyms and antonyms (Free Dictionary API). Use for writing help, vocabulary and word games. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "description": "An English word"
+          }
+        },
+        "required": [
+          "word"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "earthquakes",
+      "description": "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "description": "day (default) or week"
+          },
+          "minMagnitude": {
+            "type": "string",
+            "description": "2.5 (default), 4.5 or significant"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "elevation",
+      "description": "Ground elevation in metres above sea level for a latitude and longitude (Copernicus 90 m digital elevation model via Open-Meteo). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "sun",
+      "description": "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date (default today)"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "moon",
+      "description": "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date or ISO time (default now)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "country",
+      "description": "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 alpha-2 or alpha-3 code"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "crypto_price",
+      "description": "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string",
+            "description": "Comma-separated CoinGecko ids"
+          },
+          "vs": {
+            "type": "string",
+            "description": "Comma-separated currencies (default usd)"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "npm_downloads",
+      "description": "Download counts of an npm package for the last day, week and month, from the official npm registry API. Use to judge how widely a dependency is used. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "string",
+            "description": "Package name, e.g. react or @scope/name"
+          }
+        },
+        "required": [
+          "package"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "pypi",
+      "description": "Latest version, summary, licence, required Python version, home page, release date and number of releases of a Python package on PyPI. Use to check a dependency before installing it. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "string",
+            "description": "PyPI package name"
+          }
+        },
+        "required": [
+          "package"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "hackernews_top",
+      "description": "Current top stories on Hacker News: title, link, points, comment count, author, age and discussion URL (official HN API). Use to follow what developers are discussing right now. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-20, default 10)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "iss",
+      "description": "Current position of the International Space Station: latitude, longitude, altitude, speed and whether it is in daylight (wheretheiss.at). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "coin",
+      "description": "Flip one or more fair coins using a cryptographic random source. Returns each result and the totals. Use for fair decisions and games. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many coins (1-100, default 1)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "dice",
+      "description": "Roll dice in standard notation such as 2d6+3 or 1d20, up to 100 dice of up to 1000 sides, with a cryptographic random source. Returns every roll, the modifier and the total. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "roll": {
+            "type": "string",
+            "description": "Dice notation, e.g. 2d6+3 (default 1d6)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_number",
+      "description": "One or more random whole numbers in a range (inclusive), optionally all different, from a cryptographic random source. Use for draws, sampling and games. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lowest value (default 1)"
+          },
+          "max": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Highest value (default 100)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-1000, default 1)"
+          },
+          "unique": {
+            "type": "string",
+            "description": "true for no repeats"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_pick",
+      "description": "Pick one or more items at random (without repeats) from a comma- or line-separated list. Use for raffles, choosing who goes first, or breaking ties fairly. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "Comma-separated items"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many to pick (default 1)"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_shuffle",
+      "description": "Shuffle a comma- or line-separated list into a random order (Fisher-Yates with a cryptographic random source). Use for draw orders, seating and playlists. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "Comma-separated items"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_teams",
+      "description": "Split a list of names into a given number of random, evenly sized teams. Use for games, workshops and classrooms. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "Comma-separated names"
+          },
+          "teams": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of teams (default 2)"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "magic-8-ball",
+      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Your question (optional, not stored)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_password",
+      "description": "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "8-128 characters (default 20)"
+          },
+          "symbols": {
+            "type": "string",
+            "description": "false to leave out symbols"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-20, default 1)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "random_color",
+      "description": "One or more random colours in hex, RGB and HSL, optionally limited to pastel or dark tones. Use for placeholders, avatars and design ideas. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-50, default 1)"
+          },
+          "tone": {
+            "type": "string",
+            "description": "any (default), pastel or dark"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "yes-no",
+      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {}
       },
       "price": "$0.002"
     }

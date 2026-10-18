@@ -2,7 +2,8 @@ import { z } from "zod";
 import * as z4mini from "zod/v4-mini";
 import type { Endpoint } from "./endpoints";
 
-export const toolName = (endpoint: Endpoint) => endpoint.path.slice(1);
+/** MCP names allow only [A-Za-z0-9_-]: "/eth/gas" becomes "eth_gas"; core names are unchanged. */
+export const toolName = (endpoint: Endpoint) => endpoint.path.slice(1).replaceAll("/", "_");
 // Every invocation can spend money, even when the underlying data is read-only.
 export const toolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 

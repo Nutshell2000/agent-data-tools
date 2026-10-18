@@ -1,3 +1,4 @@
+import { FAMILIES } from "./families";
 import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
 import { BITCOIN_FEES_OUTPUT_SCHEMA } from "./lib/bitcoin-fees-contract";
 import { SITEMAP_OUTPUT_EXAMPLE } from "./lib/sitemap-example";
@@ -34,7 +35,8 @@ export interface Endpoint {
   outputSchema?: Record<string, unknown>;
 }
 
-export const ENDPOINTS = [
+/** Hand-written tools. The table-generated families (src/families.ts) are appended in ENDPOINTS below. */
+export const CORE_ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
@@ -906,12 +908,23 @@ export const ENDPOINTS = [
   },
 ] as const satisfies readonly Endpoint[];
 
-export type EndpointPath = (typeof ENDPOINTS)[number]["path"];
+export type CoreEndpointPath = (typeof CORE_ENDPOINTS)[number]["path"];
+/** Every paid tool path: the core tools plus the families. */
+export type EndpointPath = CoreEndpointPath | (string & {});
+
+/** Everything this service sells per call. Discovery, the paywall and MCP are generated from this list. */
+export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.freeze({
+  "/regex/test": "Bounded regex execution is not yet available.",
+  "/air-quality": "A source permitted for this commercial service is not yet configured.",
+  "/uv": "A source permitted for this commercial service is not yet configured.",
+  "/geocode": "A source permitted for this commercial service is not yet configured.",
+});
+export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives Base balances and account nonce (not full transaction history). Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package reports package metadata and bounded dependency-risk signals, not a safety guarantee; /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name, /weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight returns separate token and wallet risk indicators without a trade recommendation; /wallet-audit returns balance/holding facts and nonce-based heuristic indicators, not activity history; /contract-risk reports limited bytecode, EIP-1967 slot and zero-supply heuristics; /liquidity-pool-audit returns Base DEX pair and market data; /mev-simulator estimates Base gas costs from typical fixed gas-unit assumptions, not a transaction quote or MEV analysis; /package-audit costs $0.20 per call and supports exact-version advisory checks with source timestamps, remediation ranges and dated FIRST EPSS exploitation-probability estimates for CVE aliases (up to 50 unique CVEs per request).";
+  "All operations are GET with query parameters and return JSON. Web: /extract reads a page as clean text, /summarize returns a short summary with key points, /screenshot returns a JPEG of the rendered page. AI: /image generates an image from a prompt, /transcribe turns an audio file URL into text, /describe describes or answers a question about an image URL. Images come back as base64 in the imageBase64 field. Data: /domain covers DNS, registration age and email authentication, /token gives facts and risk flags for an ERC-20 token on Base, /wallet gives Base balances and account nonce (not full transaction history). Each call costs a fixed price in USDC on Base via x402; failed calls (4xx/5xx) are not charged. AI and screenshot endpoints return 503 when the daily capacity is used up. Bitcoin: /btc-fees gives current fee rates, /btc-address gives an address balance, /ln-invoice decodes a Lightning invoice. Checks: /package reports package metadata and bounded dependency-risk signals, not a safety guarantee; /email validates an email address without sending mail, /papers searches academic literature. Everyday facts: /fx gives currency exchange rates and converts amounts, /btc-price gives the Bitcoin price, /base-gas gives current gas prices on Base, /base-tx gives the status and details of a Base transaction, /base-allowance checks an ERC-20 approval on Base, /ens resolves an ENS name to an address or an address to its name, /weather gives current weather and an hourly forecast for a latitude and longitude, /time gives the current time in a time zone and converts between time zones. DeFi: /trade-insight returns separate token and wallet risk indicators without a trade recommendation; /wallet-audit returns balance/holding facts and nonce-based heuristic indicators, not activity history; /contract-risk reports limited bytecode, EIP-1967 slot and zero-supply heuristics; /liquidity-pool-audit returns Base DEX pair and market data; /mev-simulator estimates Base gas costs from typical fixed gas-unit assumptions, not a transaction quote or MEV analysis; /package-audit costs $0.20 per call and supports exact-version advisory checks with source timestamps, remediation ranges and dated FIRST EPSS exploitation-probability estimates for CVE aliases (up to 50 unique CVEs per request). Everyday families at $0.002 each: chain reads (balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs) on Base, Ethereum, Arbitrum, Optimism and Polygon under /base/, /eth/, /arb/, /op/ and /polygon/; local utilities for JSON, CSV, encodings, hashes, text, dates, cron, units, validators, colours, IP and semver; public data (holidays, Wikipedia, dictionary, earthquakes, sun and moon, World Bank country facts, crypto prices, npm, PyPI, Hacker News, ISS); and crypto-random coin, dice, picks and passwords. Temporarily paused and not charged: /regex/test (bounded execution pending), /air-quality, /uv and /geocode (permitted commercial source pending).";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/guides/web-reading", label: "Read documentation: real examples, free quote and capped CLI" }];

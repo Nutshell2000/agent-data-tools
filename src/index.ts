@@ -7,7 +7,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { CAPACITY_LIMITED, ENDPOINTS, MCP_SERVER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -191,6 +191,10 @@ for (const e of ENDPOINTS) {
   app.get(e.path, async (c) => c.json(await TOOLS[e.path](c.env, (name) => c.req.query(name))));
 }
 
+for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
+  app.all(path, c => c.json({ code: "TOOL_PAUSED", error: reason + " This request was not charged." }, 503));
+}
+
 for (const path of DEFERRED_PATHS) {
   app.get(path, (c) =>
     c.json(
@@ -219,8 +223,8 @@ app.get("/openapi.json", (c) => {
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
-app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), MCP_SERVER_VERSION)));
-app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), MCP_SERVER_VERSION)));
+app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), READER_VERSION)));
+app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), READER_VERSION)));
 app.get("/guides/sitemap", c => c.html(sitemapGuideHtml(origin(c.req.url))));
 app.get("/guides/sitemap.md", c => c.text(sitemapGuideMarkdown(origin(c.req.url))));
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
@@ -233,8 +237,8 @@ app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Con
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
-app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),MCP_SERVER_VERSION)));
-app.on(["GET","HEAD"],"/skills/spellzcode-x402-reader/SKILL.md",c=>c.body(readerSkillMarkdown(origin(c.req.url),MCP_SERVER_VERSION),200,{"Content-Type":"text/markdown; charset=utf-8"}));
+app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),READER_VERSION)));
+app.on(["GET","HEAD"],"/skills/spellzcode-x402-reader/SKILL.md",c=>c.body(readerSkillMarkdown(origin(c.req.url),READER_VERSION),200,{"Content-Type":"text/markdown; charset=utf-8"}));
 
 // Static, generated public examples and client artifacts. No arbitrary-URL proxy or paid work.
 const readerAssets = new Set([
