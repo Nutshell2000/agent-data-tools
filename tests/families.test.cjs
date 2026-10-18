@@ -27,7 +27,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   assert.equal(new Set(paths).size, paths.length);
   assert.equal(families.length, 117);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, "$0.002", e.path);
+    assert.equal(e.price, "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);

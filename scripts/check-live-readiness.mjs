@@ -23,7 +23,7 @@ async function worker() {
       const failed = (detail.preflight ?? []).filter(check => check.severity === "required" && !check.passed);
       const quote = detail.paymentRequirements?.accepts?.[0];
       const expectedAtomic = Math.round(Number(endpoint.price.slice(1)) * 1e6).toString();
-      const priceConsistent = quote?.amount === expectedAtomic && BigInt(expectedAtomic) >= 2000n;
+      const priceConsistent = quote?.amount === expectedAtomic && BigInt(expectedAtomic) >= 1000n;
       const accepted = detail.simulation?.outcome === "accepted";
       const ok = response.ok && detail.valid === true && accepted && failed.length === 0 && priceConsistent;
       results.push({ path, example: endpoint.example, ok, status: response.status, valid: detail.valid,
