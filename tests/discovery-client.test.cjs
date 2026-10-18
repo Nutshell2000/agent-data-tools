@@ -101,7 +101,7 @@ test("agent discovery leads to a free quote and downloadable capped client", asy
   assert.match(document, /quote https:\/\/example.com --format both/);
   assert.match(document, /buy https:\/\/example.com --max-usdc 0\.002/);
   const card = discovery.serviceCard(origin, "recipient", "eip155:8453");
-  assert.ok(card.docs.readerClient.endsWith(`/clients/reader/${discovery.MCP_SERVER_VERSION}/reader-client.mjs`));
+  assert.ok(card.docs.readerClient.endsWith(`/clients/reader/${discovery.READER_VERSION}/reader-client.mjs`));
   assert.ok(card.docs.readerExamples.endsWith("/examples/extract/manifest.json"));
   assert.match(discovery.robotsTxt(origin), /Sitemap: https:\/\/api.example.test\/sitemap.xml/);
   const sitemap = discovery.sitemapXml(origin);

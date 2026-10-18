@@ -3,7 +3,10 @@ import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUM
 
 export * from "./endpoints";
 
-export const MCP_SERVER_VERSION = "1.7.6";
+/** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
+export const MCP_SERVER_VERSION = "1.8.0";
+/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const READER_VERSION = "1.7.6";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
@@ -30,7 +33,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
       params: e.params,
       example: `${origin}${e.path}?${exampleQuery(e)}`,
     })),
-    docs: { buyerSkill: `${origin}/skills/spellzcode-x402-reader/SKILL.md`, buyerSkillIndex: `${origin}/skills/index.json`, readerSingleChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256`, localMcpChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs.sha256`, localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${MCP_SERVER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
+    docs: { buyerSkill: `${origin}/skills/spellzcode-x402-reader/SKILL.md`, buyerSkillIndex: `${origin}/skills/index.json`, readerSingleChecksum: `${origin}/clients/reader/${READER_VERSION}/reader-client.mjs.sha256`, localMcpChecksum: `${origin}/clients/reader/${READER_VERSION}/reader-mcp.mjs.sha256`, localMcpGuide: `${origin}/guides/local-mcp`, localMcpClient: `${origin}/clients/reader/${READER_VERSION}/reader-mcp.mjs`, readerClient: `${origin}/clients/reader/${READER_VERSION}/reader-client.mjs`, readerChecksum: `${origin}/clients/reader/${READER_VERSION}/SHA256SUMS`, readerExamples: `${origin}/examples/extract/manifest.json`, webReading: `${origin}/guides/web-reading`, bitcoinFees: `${origin}/guides/bitcoin-fees`, sitemap: `${origin}/guides/sitemap`, openapi: `${origin}/openapi.json`, llms: `${origin}/llms.txt`, mcp: `${origin}/mcp`, dependencyAudit: `${origin}/guides/dependency-audit` },
   };
 }
 
@@ -43,7 +46,7 @@ export function mcpServerCard(origin: string) {
     capabilities: { tools: { listChanged: false } },
     authentication: { required: false },
     payment: { protocol: "x402", asset: "USDC", network: "base" },
-    tools: ENDPOINTS.map((e) => ({ name: e.path.slice(1), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
+    tools: ENDPOINTS.map((e) => ({ name: e.path.slice(1).replaceAll("/", "_"), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
 }
 
@@ -119,14 +122,14 @@ export function paymentClientExample(origin: string, payTo: string, path = "/ext
 function clientGuidance() {
   const entryPrice = exampleSpendCap().price;
   const packageAuditPrice = catalogEndpoint("/package-audit").price;
-  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
+  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
 }
 
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo);
   const rows = ENDPOINTS.map(
-    (e) => `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
+    (e) => `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`,
   ).join("");
   const details = ENDPOINTS.map((e) => {
     const params = Object.entries(e.params)
@@ -137,7 +140,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> â€” <code>${esc(example)}</code></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -176,7 +179,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
-${readerBuyingHtml(origin, MCP_SERVER_VERSION, ENDPOINTS.length, demo)}
+${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
 <h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
@@ -223,7 +226,7 @@ export function openApi(origin: string, trialsEnabled = false) {
         e.path,
         {
           get: {
-            operationId: e.path.slice(1),
+            operationId: e.path.slice(1).replaceAll("/", "_"),
             summary: e.summary,
             description: (e as Endpoint).details ?? e.description,
             ...(e.path === "/sitemap" ? { externalDocs: { description: "Discover documentation URLs before choosing pages to read", url: `${origin}/guides/sitemap` } } : {}),
@@ -312,7 +315,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
-    `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
+    `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${READER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
     "",
     `Portable buyer skill: ${origin}/skills/spellzcode-x402-reader/SKILL.md. Read ${origin}/skills/index.json for installation context; publishing it does not install or authorize spending.`,
     "",
@@ -326,8 +329,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     "## Buy a static page with the standalone Node CLI",
     "",
-    `Download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs`,
-    `Verify just the CLI download: ${origin}/clients/reader/${MCP_SERVER_VERSION}/reader-client.mjs.sha256. Instructions: ${origin}/guides/web-reading.md. The complete SHA256SUMS list covers all artifacts and requires those files when checked in full.`,
+    `Download: ${origin}/clients/reader/${READER_VERSION}/reader-client.mjs`,
+    `Verify just the CLI download: ${origin}/clients/reader/${READER_VERSION}/reader-client.mjs.sha256. Instructions: ${origin}/guides/web-reading.md. The complete SHA256SUMS list covers all artifacts and requires those files when checked in full.`,
     `Inspect real cached outputs first: ${origin}/examples/extract/manifest.json (demonstrations, not customer receipts).`,
     "Requires Node.js 20.19 or newer. No package installation or TypeScript required.",
     "```sh",

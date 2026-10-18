@@ -1,5 +1,5 @@
 import { readerDownloadMarkdown } from "./reader-download";
-import { MCP_SERVER_VERSION } from "../discovery";
+import { READER_VERSION } from "../discovery";
 const esc = (s: string) =>
   s.replace(
     /[&<>"']/g,
@@ -20,7 +20,7 @@ ${origin}/examples/sitemap/ contains actual cached output from owned XML, its so
 
 ## Quote, then choose whether to buy
 
-${readerDownloadMarkdown(origin,MCP_SERVER_VERSION,"reader-client.mjs")}
+${readerDownloadMarkdown(origin,READER_VERSION,"reader-client.mjs")}
 The following single-quoted commands work in POSIX shells and PowerShell.
 
 \`\`\`sh

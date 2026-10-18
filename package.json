@@ -12,7 +12,8 @@
     "check:live": "node scripts/check-live-readiness.mjs",
     "build:contracts": "node scripts/build-output-validators.mjs",
     "check:output-validators": "node scripts/build-output-validators.mjs --check",
-    "deploy:production": "node scripts/deploy-production.mjs"
+    "deploy:production": "node scripts/deploy-production.mjs",
+    "smoke:families": "node scripts/smoke-families.mjs"
   },
   "keywords": [],
   "author": "",
