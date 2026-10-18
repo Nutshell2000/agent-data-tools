@@ -49,7 +49,8 @@ test("openapi describes each family result field by field", () => {
 
 test("home page and llms.txt present the full catalog without mis-encoded dashes", () => {
   const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
-  assert.match(html, new RegExp(`<title>${discovery.ENDPOINTS.length} pay-per-call tools for AI agents`));
+  assert.ok(html.includes(`<title>${discovery.PAGE_TITLE}</title>`));
+  assert.match(discovery.PAGE_TITLE, new RegExp(`${discovery.ENDPOINTS.length} x402 tools`));
   assert.doesNotMatch(html, /â€”/);
   assert.doesNotMatch(discovery.llmsTxt("https://example.test", false, "0x0000000000000000000000000000000000000001"), /â€”/);
 });
