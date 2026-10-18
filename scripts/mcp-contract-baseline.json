@@ -1,5 +1,5 @@
 {
-  "version": "1.24.0",
+  "version": "1.25.0",
   "tools": [
     {
       "name": "extract",
@@ -5034,6 +5034,42 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "ai_speech",
+      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 1,000 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "zh",
+              "ja",
+              "ko"
+            ],
+            "description": "Language: en, es, fr, zh, ja or ko (default en)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.003"
     }
   ]
 }

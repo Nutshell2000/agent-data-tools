@@ -25,7 +25,7 @@ await status.arrayBuffer();
 const endpoint = discovery.endpoints?.find(e => e.path === "/extract" && e.method === "GET");
 const advisory = reader.advisories?.find(e => e.method === "GET");
 const checks = {
-  catalog: discovery.found && discovery.endpoints.length === 165,
+  catalog: discovery.found && discovery.endpoints.length === 166,
   paidReader: endpoint?.authMode === "paid" && endpoint.protocols?.includes("x402"),
   price: endpoint?.price === "0.002 USD",
   guidance: discovery.guidance?.includes("reader-client.mjs") === true,
