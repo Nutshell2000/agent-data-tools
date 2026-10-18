@@ -20,6 +20,8 @@ import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { TOOLS } from "./tools";
+import { viaMarketplace } from "./lib/marketplace";
+import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -55,18 +57,6 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
 // Counts requests after their response is decided; telemetry never delays or fails it.
 app.use(requestMetricsMiddleware(PAID_PATHS, viaMarketplace));
 
-/**
- * True for a call that came through RapidAPI's proxy. Those callers pay RapidAPI, which
- * pays us, so they skip the x402 paywall. Off until the secret is configured.
- */
-function viaMarketplace(env: Env, sent: string | undefined): boolean {
-  const secret = env.RAPIDAPI_PROXY_SECRET;
-  if (!secret || secret.length < 16 || !sent || sent.length !== secret.length) return false;
-  // Compare every character so the time taken does not reveal how much matched.
-  let diff = 0;
-  for (let i = 0; i < secret.length; i++) diff |= secret.charCodeAt(i) ^ sent.charCodeAt(i);
-  return diff === 0;
-}
 
 function buildPaywall(env: Env): MiddlewareHandler {
   const routes = Object.fromEntries(
@@ -235,6 +225,8 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
 }
 app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
+const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
+app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
 app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),READER_VERSION)));
