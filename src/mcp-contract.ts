@@ -2,8 +2,9 @@ import { z } from "zod";
 import * as z4mini from "zod/v4-mini";
 import type { Endpoint } from "./endpoints";
 
-/** MCP names allow only [A-Za-z0-9_-]: "/eth/gas" becomes "eth_gas"; core names are unchanged. */
-export const toolName = (endpoint: Endpoint) => endpoint.path.slice(1).replaceAll("/", "_");
+/** One snake_case name per tool: "/eth/gas" becomes "eth_gas" and "/base-gas" becomes "base_gas". */
+export const mcpName = (path: string) => path.slice(1).replace(/[/-]/g, "_");
+export const toolName = (endpoint: Endpoint) => mcpName(endpoint.path);
 // Every invocation can spend money, even when the underlying data is read-only.
 export const toolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 

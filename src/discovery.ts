@@ -1,3 +1,4 @@
+import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { AI_PATHS } from "./routes/ai-text";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
@@ -6,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.23.0";
+export const MCP_SERVER_VERSION = "1.24.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -49,7 +50,7 @@ export function mcpServerCard(origin: string) {
     capabilities: { tools: { listChanged: false } },
     authentication: { required: false },
     payment: { protocol: "x402", asset: "USDC", network: "base" },
-    tools: ENDPOINTS.map((e) => ({ name: e.path.slice(1).replaceAll("/", "_"), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
+    tools: ENDPOINTS.map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
 }
 
@@ -302,7 +303,7 @@ export function openApi(origin: string, trialsEnabled = false) {
         e.path,
         {
           get: {
-            operationId: e.path.slice(1).replaceAll("/", "_"),
+            operationId: mcpName(e.path),
             summary: e.summary,
             description: (e as Endpoint).details ?? e.description,
             ...(e.path === "/sitemap" ? { externalDocs: { description: "Discover documentation URLs before choosing pages to read", url: `${origin}/guides/sitemap` } } : {}),

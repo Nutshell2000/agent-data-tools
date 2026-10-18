@@ -13,7 +13,7 @@ export const SERVICE_NAME = "Agent Data Tools";
 /** Public support address (also on the RapidAPI, Atlassian and store listings). */
 export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_SUMMARY =
-  "167 pay-per-call tools for AI agents over HTTP or MCP, paid per call in USDC on Base via x402, most at $0.001. No account or API key; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "165 pay-per-call tools for AI agents over HTTP or MCP, paid per call in USDC on Base via x402, most at $0.001. No account or API key; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -917,6 +917,9 @@ export type EndpointPath = CoreEndpointPath | (string & {});
 /** Everything this service sells per call. Discovery, the paywall and MCP are generated from this list. */
 export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.freeze({
   "/regex/test": "Bounded regex execution is not yet available.",
+  // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
+  "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
+  "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",
   "/air-quality": "A source permitted for this commercial service is not yet configured.",
   "/uv": "A source permitted for this commercial service is not yet configured.",
   // Source terms checked 2026-10-18: Open-Meteo free tier, CoinGecko keyless/Demo and Nager.Date forbid commercial resale;
