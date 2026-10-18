@@ -6,7 +6,7 @@ import { schemaFromExample } from "./lib/output-schema";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
-import { ENDPOINTS, MCP_SERVER_VERSION, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
+import { ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { withMcpRevenue } from "./lib/revenue";
@@ -96,16 +96,18 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
   return factory;
 }
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
-let listedTools: ReturnType<typeof protocolTool>[] | undefined;
+const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
-/** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. */
-export async function handleMcp(c: Context<{ Bindings: Env }>) {
+/** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
+export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
+  const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
+  if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   const env = c.env;
   const paid = env.PAYWALL !== "off";
   const payment = paid ? await paymentState(env) : undefined;
   const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
 
-  for (const e of ENDPOINTS) {
+  for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = payment
       ? (() => {
@@ -154,7 +156,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
 
   // SDK Zod conversion cannot represent the existing oneOf/not output contract.
   // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
-  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: (listedTools ??= ENDPOINTS.map(protocolTool))}));
+  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(bundle) ?? (listedTools.set(bundle, endpoints.map(protocolTool)), listedTools.get(bundle)!)}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   return (await transport.handleRequest(c)) ?? c.body(null, 204);
