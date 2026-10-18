@@ -91,8 +91,16 @@ test("every published ownership proof is a PAY_TO signature of the production or
   const fs = require("node:fs");
   const payTo = fs.readFileSync(require.resolve("../wrangler.jsonc"), "utf8").match(/"PAY_TO":\s*"(0x[0-9a-fA-F]{40})"/)[1];
   for (const proof of discovery.OWNERSHIP_PROOFS) {
-    const signer = await recoverMessageAddress({ message: "https://agent-data-tools.revmesh2074.workers.dev", signature: proof });
-    assert.equal(signer.toLowerCase(), payTo.toLowerCase(), proof);
+    if (proof.length === 132) {
+      // Plain EOA signature: must recover to PAY_TO offline.
+      const signer = await recoverMessageAddress({ message: "https://agent-data-tools.revmesh2074.workers.dev", signature: proof });
+      assert.equal(signer.toLowerCase(), payTo.toLowerCase(), proof);
+    } else {
+      // Smart-wallet (ERC-1271) signature: must be an ABI-wrapped 65-byte owner signature; CI then
+      // verifies it against PAY_TO on Base with `npm run check:ownership`.
+      assert.match(proof, /^0x([0-9a-f]{64}){4}[0-9a-f]{130}0{62}$/, proof);
+      assert.equal(parseInt(proof.slice(2 + 64 * 3, 2 + 64 * 4), 16), 65, proof);
+    }
   }
   const api = discovery.openApi("https://agent-data-tools.revmesh2074.workers.dev");
   assert.equal("x-agentcash-provenance" in api, discovery.OWNERSHIP_PROOFS.length > 0);
