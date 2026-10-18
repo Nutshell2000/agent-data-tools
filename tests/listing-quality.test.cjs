@@ -108,4 +108,11 @@ test("directory scrapers get the HTML homepage with OpenGraph tags; programs kee
   assert.equal(prefersHtml("*/*", undefined), false);
   const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
   for (const tag of ["og:title", "og:description", "og:site_name", "og:url"]) assert.match(html, new RegExp(`<meta property="${tag}" content="[^"]+">`), tag);
+  // x402scan shows the og:image beside the listing; it must be a real 1200x630 PNG.
+  assert.match(html, /<meta property="og:image" content="https:\/\/example\.test\/og\.png">/);
+  const { OG_IMAGE_PNG_BASE64 } = await loadTypeScript(require.resolve("../src/lib/og-image.ts"));
+  const png = Buffer.from(OG_IMAGE_PNG_BASE64, "base64");
+  assert.equal(png.subarray(1, 4).toString(), "PNG");
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
+  assert.ok(png.length < 64 * 1024, `og.png is ${png.length} bytes`);
 });
