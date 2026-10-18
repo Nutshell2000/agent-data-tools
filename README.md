@@ -201,7 +201,7 @@ Reproduce the read-only check with an independently installed discovery library:
 node scripts/check-agent-discovery.mjs /path/to/@agentcash/discovery/dist/index.js /private/path/evidence.json
 ```
 
-The script does not install packages, initialize wallets, sign payments or execute paid extraction. It checks the current production catalog, price, guidance and structured output schema; funded HTTP, CLI and MCP delivery require separate evidence.
+The script does not install packages, initialize wallets, sign payments or execute paid extraction. It checks the current production catalog, price, guidance and structured output schema, plus what x402scan sees: a live 402 probe, the readable 402 body, the HTML homepage with `og:image`, `/og.png` and `/status`. Set `CHECK_ORIGIN` to check another deployment. Funded HTTP, CLI and MCP delivery require separate evidence.
 
 ### Use a local MCP agent without writing a client
 
