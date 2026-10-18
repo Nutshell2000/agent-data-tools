@@ -63,7 +63,7 @@ async function paymentState(env: Env) {
 }
 
 // Each tool's payment wrapper depends only on the per-isolate payment server and the tool's fixed
-// terms, so build it once per isolate instead of on every MCP request (167 tools).
+// terms, so build it once per isolate instead of on every MCP request (the whole catalog).
 const wrappers = new Map<string, ReturnType<typeof createPaymentWrapper>>();
 function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
   let factory = wrappers.get(e.path);
@@ -73,7 +73,8 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
       accepts: payment.terms[e.path as EndpointPath],
       resource: {
         // The wrapper can't see the tool's name, so the default URL would be a placeholder.
-        url: `mcp://tool/${toolName(e)}`,
+        // The receipt ledger reads the catalog path back from this URL, so keep the real path.
+        url: `mcp://tool${e.path}`,
         description: e.description,
         mimeType: "application/json",
         serviceName: SERVICE_NAME,

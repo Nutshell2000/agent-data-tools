@@ -36,8 +36,8 @@ test('malformed paid outputs cannot settle through HTTP or schema-aware MCP clie
    const args=tool==='btc-fees'?{}:{url:'https://public.example/test'},url='https://api.test/'+tool+'?'+new URLSearchParams(args);
    const q=await mf.dispatchFetch(url);assert.equal(q.status,402);const terms=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];await q.body?.cancel();
    const fail=await mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payment(terms,url))).toString('base64')}});assert.equal(fail.status,502);assert.equal((await fail.json()).code,'OUTPUT_CONTRACT_INVALID');assert.equal(fail.headers.has('PAYMENT-RESPONSE'),false);
-   const quote=await client.callTool({name:tool,arguments:args});assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount,'2000');
-   const error=await client.callTool({name:tool,arguments:args,_meta:{'x402/payment':payment(terms,'mcp://tool/'+tool)}});assert.equal(error.isError,true);assert.equal(error.structuredContent,undefined);assert.equal(JSON.parse(error.content[0].text).code,'OUTPUT_CONTRACT_INVALID');assert.ok(!error._meta?.['x402/payment-response']?.success);
+   const quote=await client.callTool({name:tool.replace(/-/g,'_'),arguments:args});assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount,'2000');
+   const error=await client.callTool({name:tool.replace(/-/g,'_'),arguments:args,_meta:{'x402/payment':payment(terms,'mcp://tool/'+tool)}});assert.equal(error.isError,true);assert.equal(error.structuredContent,undefined);assert.equal(JSON.parse(error.content[0].text).code,'OUTPUT_CONTRACT_INVALID');assert.ok(!error._meta?.['x402/payment-response']?.success);
   }
   const ledger=await(await mf.dispatchFetch('https://api.test/revenue')).json();assert.equal(ledger.settlements,0);assert.equal(ledger.grossAtomic,'0');
  }finally{await client.close();await mf.dispose();}
