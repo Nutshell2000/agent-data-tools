@@ -311,6 +311,8 @@ app.get("/.well-known/x402", (c) =>
 );
 // Proves to the 402 Index directory that we run this domain. A hash, not a secret.
 app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
+// Glama connector ownership claim (public token bound to our Glama account; keep it published).
+app.get("/.well-known/glama.json", (c) => c.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_n6dyHp-kpVDnsj1SvyWEhoeenwlxpGQj" }));
 app.get("/.well-known/mcp/server-card.json", (c) => c.json(mcpServerCard(origin(c.req.url))));
 app.get("/.well-known/api-catalog", (c) =>
   c.body(JSON.stringify(apiCatalog(origin(c.req.url))), 200, { "content-type": "application/linkset+json" }),
