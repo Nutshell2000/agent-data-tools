@@ -1,4 +1,6 @@
 module.exports = {
+  inlineLiteral: '<main><p>Run <code>printf &quot;a  b&quot;</code> exactly.</p><p>Keep <code> a </code> and <code>   </code>.</p><p>Ticks <code>`x`</code>.</p><p>Highlighted <code><span>a  b</span><span hidden>HIDDEN</span></code>.</p></main>',
+  inlineMultiline: '<main><p>Example <code><span>first  </span>\n    second</code> ends.</p></main>',
   notation: '<main><h1 id="power">Limit 2<sup>31</sup></h1><p>Maximum 2<sup>31</sup>; water H<sub>2</sub>O; nested x<sup>a<sub>i</sub></sup>; cite<sup><a href="#power">1</a></sup>.</p><p>Inline <code>x<sup>2</sup> + y<sub>i</sub></code>.</p><pre><code>2<sup>31</sup>\nH<sub>2</sub>O</code></pre></main>',
   notationTable: '<main><h2 id="limit">Capacity 2<sup>31</sup></h2><table><caption>H<sub>2</sub>O</caption><tr><th>Term</th><th>Value</th></tr><tr><td>Power</td><td>2<sup>31</sup></td></tr><tr><td>Index</td><td>x<sub>i</sub></td></tr><tr><td>Code</td><td><code>x<sup>2</sup></code></td></tr></table></main>',
   notationLiteral: '<main><h1 id="plain">Literal</h1><pre>2<sup>31</sup>\nH<sub>2</sub>O</pre><p><code>x<sup>2</sup></code><span hidden>2<sup>99</sup></span>empty<sup></sup></p><h1 id="outside">Other 2<sup>8</sup></h1></main>',
