@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 134);
+  assert.equal(families.length, 135);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" ? "$0.005" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,155);
+  assert.equal(ENDPOINTS.length,156);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -229,4 +229,52 @@ test("PDF text extraction reads chosen pages, caps characters and refuses non-PD
   assert.equal(capped.truncated, true);
   await assert.rejects(readPdf(new TextEncoder().encode("<html>"), 1, 1, 1000), (e) => e.status === 415);
   await assert.rejects(readPdf(pdf.slice(), 9, 1, 1000), (e) => e.status === 400);
+});
+
+test("company profile picks the first business among Wikidata hits and resolves linked labels", async () => {
+  const { COMPANY, companyFacts } = await loadTypeScript(require.resolve("../src/routes/company.ts"));
+  const item = (id) => ({ datavalue: { value: { id } } });
+  const band = { id: "Q2", labels: { en: { value: "Spotify (band)" } }, claims: { P31: [{ mainsnak: item("Q215380") }] } };
+  const firm = {
+    id: "Q689141", labels: { en: { value: "Spotify" } }, descriptions: { en: { value: "audio streaming service" } },
+    sitelinks: { enwiki: { title: "Spotify" } },
+    claims: {
+      P856: [{ rank: "normal", mainsnak: { datavalue: { value: "https://www.spotify.com/" } } }],
+      P571: [{ mainsnak: { datavalue: { value: { time: "+2006-04-23T00:00:00Z", precision: 11 } } } }],
+      P17: [{ mainsnak: item("Q34") }], P159: [{ mainsnak: item("Q1754") }], P452: [{ mainsnak: item("Q100") }],
+      P169: [{ rank: "deprecated", mainsnak: item("Q900") }, { rank: "preferred", mainsnak: item("Q901") }, { rank: "normal", mainsnak: item("Q902") }],
+      P1128: [{ mainsnak: { datavalue: { value: { amount: "+7000", unit: "1" } } } }],
+      P414: [{ mainsnak: item("Q13677"), qualifiers: { P249: [{ datavalue: { value: "SPOT" } }] } }],
+    },
+  };
+  const labels = { Q34: "Sweden", Q1754: "Stockholm", Q100: "music streaming", Q901: "Current CEO", Q900: "Old CEO", Q13677: "New York Stock Exchange" };
+  const out = companyFacts([band, firm], labels);
+  assert.equal(out.name, "Spotify");
+  assert.equal(out.founded, "2006-04-23");
+  assert.equal(out.ceo, "Current CEO");
+  assert.equal(out.employees, 7000);
+  assert.deepEqual(out.stockListings, [{ exchange: "New York Stock Exchange", ticker: "SPOT" }]);
+  assert.equal(out.headquarters, "Stockholm");
+  assert.equal(out.wikipediaUrl, "https://en.wikipedia.org/wiki/Spotify");
+  assert.equal(companyFacts([band], {}), null);
+
+  const realFetch = global.fetch;
+  const urls = [];
+  global.fetch = async (url) => {
+    urls.push(String(url));
+    const u = new URL(String(url));
+    if (u.searchParams.get("action") === "wbsearchentities") return Response.json({ search: [{ id: "Q2" }, { id: "Q689141" }] });
+    if (u.searchParams.get("props") === "labels") return Response.json({ entities: Object.fromEntries(Object.entries(labels).map(([id, v]) => [id, { labels: { en: { value: v } } }])) });
+    return Response.json({ entities: { Q2: band, Q689141: firm } });
+  };
+  try {
+    const live = await COMPANY[0].run({}, (n) => ({ name: "Spotify" })[n]);
+    assert.equal(live.wikidataId, "Q689141");
+    assert.equal(live.country, "Sweden");
+    assert.equal(urls.length, 3);
+    await assert.rejects(COMPANY[0].run({}, (n) => ({ id: "nope" })[n]), (e) => e.status === 400);
+    await assert.rejects(COMPANY[0].run({}, () => undefined), (e) => e.status === 400);
+  } finally {
+    global.fetch = realFetch;
+  }
 });
