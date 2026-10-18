@@ -11,8 +11,8 @@ export interface Entry {
   run: (env: Env, q: Input) => Promise<unknown> | unknown;
 }
 
-/** Price for the families: the service-wide floor (Coinbase's readiness check rejected lower quotes). */
-export const PRICE = "$0.002";
+/** Price for the families: Coinbase's facilitator minimum, the band with the most distinct payers (Peter approved 2026-10-18). */
+export const PRICE = "$0.001";
 
 export function entry(
   path: string,
