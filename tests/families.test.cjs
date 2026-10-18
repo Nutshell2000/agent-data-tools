@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 131);
+  assert.equal(families.length, 132);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path.startsWith("/ai/") ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,153);
+  assert.equal(ENDPOINTS.length,154);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -153,4 +153,13 @@ test("AI tools parse model output, keep labels and fields within what was asked,
   await assert.rejects(call("/ai/chat", () => { throw new Error("4006: you have used up your daily free allocation of 10,000 neurons"); }, { prompt: "hi" }), (err) => err.status === 503);
   await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "sv" }), (err) => err.status === 502);
   await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "swedish" }), (err) => err.status === 400);
+});
+
+test("Uniswap v3 sqrtPriceX96 converts to quote units per token in both token orders", async () => {
+  const { priceFromSqrt } = await loadTypeScript(require.resolve("../src/routes/prices.ts"));
+  // 1 WETH (token0, 18 decimals) = 2000 USDC (token1, 6 decimals): raw ratio 2000e6/1e18.
+  const sqrt = BigInt(Math.round(Math.sqrt(2000e6 / 1e18) * 2 ** 96));
+  assert.ok(Math.abs(priceFromSqrt(sqrt, true, 18, 6) - 2000) < 1e-6);
+  // Same pool seen from USDC: 1 USDC = 1/2000 WETH.
+  assert.ok(Math.abs(priceFromSqrt(sqrt, false, 6, 18) - 1 / 2000) < 1e-12);
 });
