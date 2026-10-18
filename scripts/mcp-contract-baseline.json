@@ -1,5 +1,5 @@
 {
-  "version": "1.18.0",
+  "version": "1.19.0",
   "tools": [
     {
       "name": "extract",
@@ -2783,6 +2783,78 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "price_tokens",
+      "description": "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "string",
+            "description": "Comma-separated 0x ERC-20 token addresses (1-20)"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
+          }
+        },
+        "required": [
+          "addresses"
+        ]
+      },
+      "price": "$0.005"
+    },
+    {
+      "name": "wallet_portfolio",
+      "description": "USD value of a wallet on Base, Ethereum, Arbitrum or Optimism: native ETH plus major tokens (USDC and WETH everywhere, the common Base tokens on Base) and up to 20 tokens you add, each priced from its deepest Uniswap v3 pool, read live from the chain. Returns holdings, total and anything that could not be priced. Not a full token inventory. Use to check what a wallet is worth before trading, lending or paying. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
+          },
+          "tokens": {
+            "type": "string",
+            "description": "Optional extra comma-separated 0x token addresses (up to 20)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.005"
     },
     {
       "name": "pdf_text",
