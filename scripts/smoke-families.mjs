@@ -35,4 +35,6 @@ async function runOne(f) {
 // A few at a time, so public sources are not hammered.
 for (let i = 0; i < list.length; i += 4) for (const line of await Promise.all(list.slice(i, i + 4).map(runOne))) console.log(line);
 console.log(`\n${list.length - failed}/${list.length} passed${slow.length ? `; slow: ${slow.join(", ")}` : ""}`);
-process.exit(failed ? 1 : 0);
+// Let open sockets close on their own: process.exit() while undici is closing them can abort Node on Windows
+// (libuv "!(handle->flags & UV_HANDLE_CLOSING)" assertion, seen with Node 24).
+process.exitCode = failed ? 1 : 0;
