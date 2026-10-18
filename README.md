@@ -133,9 +133,13 @@ All settings are in `wrangler.jsonc`:
 npx wrangler dev
 ```
 
-```bash
-npx wrangler deploy
+Read the current Worker version with `npx wrangler deployments list`, then deploy from a clean checkout containing current `origin/main` and successful CI for its exact commit:
+
+```sh
+npm run deploy:production -- --expected-version <live-worker-version-uuid>
 ```
+
+Add `--check-only` for preflight without deployment. A stale checkout replaced the buying guides and ledger on 17 October; the guard rejects stale or uncommitted source and an unexpected production baseline. It cannot lock out another operator bypassing this process. Coordinate production deployments; preserve concurrent work in other checkouts.
 
 ```bash
 npx wrangler tail
