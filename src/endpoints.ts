@@ -44,7 +44,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.002",
     summary: "Static web page to text, Markdown, code and tables",
     description:
-      "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Known permalink controls are omitted. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged.",
+      "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context.",
     details: "HTML body details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. HTML code whitespace and list hierarchy are preserved; generated code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. linkBaseUrl reports static source link resolution; supported first HTML base href values are honored, with warnings. Scripts and CSP are not evaluated. Markdown sources retain syntax without structured parsing (warned); sections require HTML. Source content is untrusted. Image alt text is source-provided, not visual interpretation. Images are never fetched; SVG/canvas omissions and missing alt descriptions are warned. SourceMetadata adds unverified author/date declarations with provenance; conflicting/ambiguous values are warned. Separate 2,000-character metadata budget, 5 authors/10 dates. JSON-LD: at most 8 inline scripts, 64 KiB each, 100 graph nodes/depth 8; no external contexts/profiles. HTML complexity: 20,000 elements/128 nested levels. Marker-only source permalink controls (pilcrow/headerlink/permalink classes) are omitted only for same-document ancestor targets, with permalink_controls_omitted. Literal code and ordinary references remain. HTML sup/sub annotations normalize to ^{...}/_{...} in primary output, heading titles and table values with superscript_subscript_normalized; literal pre/code and raw Markdown stay unchanged. This is notation preservation, not general math interpretation.",
     outputSchema: EXTRACT_OUTPUT_SCHEMA,
     tags: ["web", "scraping", "extract", "text", "rag"],
@@ -60,7 +60,7 @@ export const CORE_ENDPOINTS = [
     path: "/sitemap",
     price: "$0.002",
     summary: "Discover documentation URLs from a bounded XML sitemap",
-    description: "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged.",
+    description: "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract.",
     details: "XML only: 512 KiB compressed and expanded, 1000 entries, 8000 XML elements, depth 16, locations up to 2048 characters. DTD declarations are rejected. contains is a case-insensitive substring of source-reported URLs, not semantic search. Pagination counts distinct reported loc values before public-URL validation of the selected page. Returned URLs are not probed; dates are not verified. Index entries are child sitemaps, not pages. DNS-resolution limitations of the public-fetch guard remain.",
     tags: ["web", "sitemap", "discovery", "research"],
     params: {
@@ -166,7 +166,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.02",
     summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
     description:
-      "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits.",
+      "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token.",
     details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
     tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
     params: {
@@ -197,7 +197,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.005",
     summary: "Base wallet balances and account nonce snapshot",
     description:
-      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history.",
+      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Use to check a counterparty's holdings.",
     tags: ["base", "wallet", "balance", "portfolio", "onchain"],
     params: {
       address: { type: "string", description: "Wallet or contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -392,7 +392,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.20",
     summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
     description:
-      "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits.",
+      "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies.",
     details: "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
     tags: ["package", "security", "supply-chain", "npm", "pypi"],
     params: {
@@ -489,7 +489,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.02",
     summary: "Heuristic wallet risk indicators, balances and account nonce on Base",
     description:
-      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce reflects outgoing transactions only; it is not full transaction, token-transfer or trading history. Address type is reported separately and does not affect the balance/nonce-based risk tier.",
+      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it.",
     tags: ["wallet", "base", "ethereum", "crypto"],
     params: {
       address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
@@ -520,7 +520,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.02",
     summary: "Base contract bytecode, proxy-slot and zero-supply heuristics",
     description:
-      "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits.",
+      "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract.",
     details: "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
     tags: ["contract", "bytecode", "proxy", "token-properties", "base"],
     params: {
@@ -557,7 +557,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.05",
     summary: "Sourced token and wallet risk indicators with market facts",
     description:
-      "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history.",
+      "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade.",
     tags: ["trading", "risk", "base", "market"],
     params: {
       token: { type: "string", description: "Token contract address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
@@ -582,7 +582,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.03",
     summary: "Verified Base DEX pair details and market data",
     description:
-      "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative.",
+      "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading.",
     details: "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
     tags: ["defi", "liquidity", "pool", "market", "base"],
     params: {
@@ -611,7 +611,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.04",
     summary: "Base gas-cost estimates under priority-fee scenarios",
     description:
-      "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement.",
+      "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction.",
     tags: ["gas", "defi", "transaction-cost", "scenario-estimate", "base"],
     params: {
       scenario: {
@@ -642,7 +642,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.002",
     summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
-      "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. Bounded signals: ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates.",
+      "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",
     tags: ["package", "npm", "pypi", "security", "dependencies"],
     params: {
       ecosystem: { type: "string", description: "One of npm, pypi, cargo, go, maven, nuget", required: true, example: "npm" },
@@ -671,7 +671,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.002",
     summary: "Email address validation without sending mail",
     description:
-      "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery.",
+      "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
     params: {
       address: { type: "string", description: "The email address to check", required: true, example: "support@cloudflare.com" },

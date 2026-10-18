@@ -1,9 +1,9 @@
 {
-  "version": "1.9.0",
+  "version": "1.10.0",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Known permalink controls are omitted. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -461,7 +461,7 @@
     },
     {
       "name": "sitemap",
-      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -709,7 +709,7 @@
     },
     {
       "name": "token-report",
-      "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -733,7 +733,7 @@
     },
     {
       "name": "wallet",
-      "description": "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Use to check a counterparty's holdings. Costs $0.005 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1075,7 +1075,7 @@
     },
     {
       "name": "package-audit",
-      "description": "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Costs $0.20 in USDC on Base per successful call, paid with x402.",
+      "description": "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies. Costs $0.20 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1099,7 +1099,7 @@
     },
     {
       "name": "wallet-audit",
-      "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce reflects outgoing transactions only; it is not full transaction, token-transfer or trading history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1123,7 +1123,7 @@
     },
     {
       "name": "contract-risk",
-      "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1147,7 +1147,7 @@
     },
     {
       "name": "trade-insight",
-      "description": "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Costs $0.05 in USDC on Base per successful call, paid with x402.",
+      "description": "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade. Costs $0.05 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1176,7 +1176,7 @@
     },
     {
       "name": "liquidity-pool-audit",
-      "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading. Costs $0.03 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1200,7 +1200,7 @@
     },
     {
       "name": "mev-simulator",
-      "description": "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Costs $0.04 in USDC on Base per successful call, paid with x402.",
+      "description": "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction. Costs $0.04 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1226,7 +1226,7 @@
     },
     {
       "name": "package",
-      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. Bounded signals: ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1259,7 +1259,7 @@
     },
     {
       "name": "email",
-      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2832,7 +2832,7 @@
     },
     {
       "name": "json_repair",
-      "description": "Fix JSON as LLMs often write it: removes ```json fences and surrounding prose, comments and trailing commas, converts single quotes, quotes bare keys, maps True/False/None, and closes unclosed brackets. Returns the repaired JSON and whether it now parses. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fix JSON as LLMs often write it: removes ```json fences and surrounding prose, comments and trailing commas, converts single quotes, quotes bare keys, maps True/False/None, and closes unclosed brackets. Returns the repaired JSON and whether it now parses. Use when an LLM's JSON output fails to parse. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2880,7 +2880,7 @@
     },
     {
       "name": "csv_to-json",
-      "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Use to load spreadsheet exports into an agent. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2956,7 +2956,7 @@
     },
     {
       "name": "url_encode",
-      "description": "Percent-encode text for use in a URL query value (encodeURIComponent) and as a full URL (encodeURI). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Percent-encode text for use in a URL query value (encodeURIComponent) and as a full URL (encodeURI). Use when building query strings. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2980,7 +2980,7 @@
     },
     {
       "name": "url_decode",
-      "description": "Decode percent-encoded text, treating + as a space when plus=true (form encoding). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode percent-encoded text, treating + as a space when plus=true (form encoding). Use to read encoded links and form data. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3008,7 +3008,7 @@
     },
     {
       "name": "url_parse",
-      "description": "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Use to read query parameters or check a link's host. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3144,7 +3144,7 @@
     },
     {
       "name": "case",
-      "description": "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Use when renaming fields or generating code identifiers. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3173,7 +3173,7 @@
     },
     {
       "name": "text_stats",
-      "description": "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Use to check the length and readability of a draft. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3284,7 +3284,7 @@
     },
     {
       "name": "date_diff",
-      "description": "Time between two dates or timestamps: total days, weeks, hours, minutes and seconds, a years-months-days breakdown, and the number of weekdays (Monday-Friday) in between. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Time between two dates or timestamps: total days, weeks, hours, minutes and seconds, a years-months-days breakdown, and the number of weekdays (Monday-Friday) in between. Use for deadlines, ages and durations. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3313,7 +3313,7 @@
     },
     {
       "name": "date_add",
-      "description": "Add (or subtract, with negative numbers) years, months, weeks, days, hours and minutes to a date, or add business days (skipping Saturdays and Sundays). Month ends are clamped (31 Jan + 1 month = 28/29 Feb). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Add (or subtract, with negative numbers) years, months, weeks, days, hours and minutes to a date, or add business days (skipping Saturdays and Sundays). Month ends are clamped (31 Jan + 1 month = 28/29 Feb). Use to compute due dates and expiries. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3355,7 +3355,7 @@
     },
     {
       "name": "date_info",
-      "description": "Weekday, ISO week number and week-year, day of the year, quarter, days in the month, leap year, Unix timestamp and whether it is a weekend, for any date. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Weekday, ISO week number and week-year, day of the year, quarter, days in the month, leap year, Unix timestamp and whether it is a weekend, for any date. Use for calendar and reporting logic. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3379,7 +3379,7 @@
     },
     {
       "name": "unix",
-      "description": "Convert a Unix timestamp (seconds or milliseconds, detected automatically) to ISO date and time, or an ISO date to a Unix timestamp. Without input, returns the current time in both forms. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a Unix timestamp (seconds or milliseconds, detected automatically) to ISO date and time, or an ISO date to a Unix timestamp. Without input, returns the current time in both forms. Use to read timestamps in logs and APIs. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3400,7 +3400,7 @@
     },
     {
       "name": "units_convert",
-      "description": "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Use when exact conversions matter. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3434,7 +3434,7 @@
     },
     {
       "name": "number_words",
-      "description": "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Use when amounts must be written out in full. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3458,7 +3458,7 @@
     },
     {
       "name": "number_roman",
-      "description": "Convert a number (1-3999) to Roman numerals, or Roman numerals back to a number. Give either number or roman. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a number (1-3999) to Roman numerals, or Roman numerals back to a number. Give either number or roman. Use for dates, outlines and puzzles. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3509,7 +3509,7 @@
     },
     {
       "name": "validate_isbn",
-      "description": "Check an ISBN-10 or ISBN-13 check digit and convert valid ISBN-10s to ISBN-13. Hyphens and spaces are ignored. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check an ISBN-10 or ISBN-13 check digit and convert valid ISBN-10s to ISBN-13. Hyphens and spaces are ignored. Use before cataloguing or ordering books. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3533,7 +3533,7 @@
     },
     {
       "name": "validate_luhn",
-      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3557,7 +3557,7 @@
     },
     {
       "name": "color",
-      "description": "Convert a colour between hex, RGB and HSL, and give its relative luminance and whether black or white text reads better on it. Accepts #rgb, #rrggbb, rgb(r,g,b) and hsl(h,s%,l%). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a colour between hex, RGB and HSL, and give its relative luminance and whether black or white text reads better on it. Accepts #rgb, #rrggbb, rgb(r,g,b) and hsl(h,s%,l%). Use for theming and design checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3638,7 +3638,7 @@
     },
     {
       "name": "ip_info",
-      "description": "Classify an IPv4 or IPv6 address without any lookup: version, whether it is private, loopback, link-local, carrier-grade NAT or public, and its integer and reverse-DNS forms (IPv4). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Classify an IPv4 or IPv6 address without any lookup: version, whether it is private, loopback, link-local, carrier-grade NAT or public, and its integer and reverse-DNS forms (IPv4). Use to triage IPs in logs or allowlists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3662,7 +3662,7 @@
     },
     {
       "name": "semver",
-      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Use to decide whether an upgrade is a major change. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3691,7 +3691,7 @@
     },
     {
       "name": "jwt_decode",
-      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3715,7 +3715,7 @@
     },
     {
       "name": "markdown_to-html",
-      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3763,7 +3763,7 @@
     },
     {
       "name": "http_status",
-      "description": "Name and plain-language meaning of an HTTP status code (1xx-5xx, including 402 Payment Required and 429 Too Many Requests), and whether to retry. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Name and plain-language meaning of an HTTP status code (1xx-5xx, including 402 Payment Required and 429 Too Many Requests), and whether to retry. Use when handling API errors. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3841,7 +3841,7 @@
     },
     {
       "name": "earthquakes",
-      "description": "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3866,7 +3866,7 @@
     },
     {
       "name": "sun",
-      "description": "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3899,7 +3899,7 @@
     },
     {
       "name": "moon",
-      "description": "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Use for calendars and night-sky planning. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3920,7 +3920,7 @@
     },
     {
       "name": "country",
-      "description": "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4015,7 +4015,7 @@
     },
     {
       "name": "dice",
-      "description": "Roll dice in standard notation such as 2d6+3 or 1d20, up to 100 dice of up to 1000 sides, with a cryptographic random source. Returns every roll, the modifier and the total. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Roll dice in standard notation such as 2d6+3 or 1d20, up to 100 dice of up to 1000 sides, with a cryptographic random source. Returns every roll, the modifier and the total. Use for tabletop games and simulations. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4159,7 +4159,7 @@
     },
     {
       "name": "magic-8-ball",
-      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4180,7 +4180,7 @@
     },
     {
       "name": "random_password",
-      "description": "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Use when creating accounts or secrets. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4240,7 +4240,7 @@
     },
     {
       "name": "yes-no",
-      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4296,7 +4296,7 @@
     },
     {
       "name": "keccak",
-      "description": "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4320,7 +4320,7 @@
     },
     {
       "name": "network",
-      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4554,7 +4554,7 @@
     },
     {
       "name": "ai_translate",
-      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
