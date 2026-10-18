@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 139);
+  assert.equal(families.length, 141);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,163);
+  assert.equal(ENDPOINTS.length,165);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -442,4 +442,35 @@ test("pricer values tokens through USDC or WETH pools and reads ETH/USD once", a
   assert.equal((await p.price(USDC, 6)).priceUsd, 1);
   assert.equal(await p.price(NOPOOL, 18), null);
   assert.equal(refReads, 1);
+});
+
+test("feed parser reads RSS and Atom items and ignores nested channel elements", async () => {
+  const { parseFeed } = await loadTypeScript(require.resolve("../src/routes/feeds.ts"));
+  const rss = `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>News &amp; Notes</title><link>https://a.example/</link><description>All the news</description>
+    <image><title>Logo title</title><link>https://a.example/logo</link></image>
+    <item><title><![CDATA[First <b>post</b>]]></title><link>/p/1</link><pubDate>Sat, 17 Oct 2026 10:00:00 GMT</pubDate><description>&lt;p&gt;Hello &amp; welcome&lt;/p&gt;</description><dc:creator>Ada</dc:creator><guid>p1</guid></item>
+    <item><title>Second</title><link>https://a.example/p/2</link></item></channel></rss>`;
+  const r = parseFeed(rss, "https://a.example/feed.xml", 1);
+  assert.equal(r.format, "rss");
+  assert.deepEqual(r.feed, { title: "News & Notes", link: "https://a.example/", description: "All the news" });
+  assert.equal(r.items.length, 1);
+  assert.deepEqual(r.items[0], { title: "First post", link: "https://a.example/p/1", date: "2026-10-17T10:00:00.000Z", summary: "Hello & welcome", author: "Ada", id: "p1" });
+  const atom = `<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom site</title><link rel="self" href="/atom.xml"/><link href="https://b.example/"/>
+    <entry><title>Entry</title><link rel="alternate" href="/e/1"/><updated>2026-10-18T08:00:00Z</updated><summary>Short</summary><author><name>Bo</name></author><id>urn:e1</id></entry></feed>`;
+  const a = parseFeed(atom, "https://b.example/atom.xml", 20);
+  assert.equal(a.format, "atom");
+  assert.equal(a.feed.link, "https://b.example/");
+  assert.deepEqual(a.items[0], { title: "Entry", link: "https://b.example/e/1", date: "2026-10-18T08:00:00.000Z", summary: "Short", author: "Bo", id: "urn:e1" });
+  assert.equal(parseFeed("<html><body>not a feed</body></html>", "https://c.example/", 5).format, null);
+});
+
+test("meta parser reads head tags, resolves URLs and stops at the body", async () => {
+  const { parseMeta } = await loadTypeScript(require.resolve("../src/routes/feeds.ts"));
+  const html = `<html lang="sv"><head><title>Plain &amp; simple</title><meta name="description" content="Desc">
+    <meta property="og:title" content="OG title"><meta property="og:image" content="/img.png"><meta name="twitter:card" content="summary">
+    <link rel="canonical" href="/canon"><link rel="shortcut icon" href="/fav.ico"></head><body><meta name="description" content="late"></body></html>`;
+  const m = parseMeta(html, "https://site.example/page");
+  assert.deepEqual([m.title, m.description, m.image, m.canonical, m.favicon, m.lang], ["OG title", "Desc", "https://site.example/img.png", "https://site.example/canon", "https://site.example/fav.ico", "sv"]);
+  assert.deepEqual(m.twitter, { "twitter:card": "summary" });
+  assert.equal(parseMeta("<html><head></head></html>", "https://x.example/a").favicon, "https://x.example/favicon.ico");
 });
