@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 133);
+  assert.equal(families.length, 134);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" ? "$0.005" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,154);
+  assert.equal(ENDPOINTS.length,155);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -189,4 +189,44 @@ test("web search maps Brave results, stays within the daily cap and fails unchar
   } finally {
     global.fetch = realFetch;
   }
+});
+
+/** Minimal valid PDF with one line of Helvetica text per page. */
+function makePdf(pageTexts, title) {
+  const objs = [];
+  const kids = pageTexts.map((_, i) => `${4 + i * 2} 0 R`).join(" ");
+  objs.push("<< /Type /Catalog /Pages 2 0 R >>");
+  objs.push(`<< /Type /Pages /Kids [${kids}] /Count ${pageTexts.length} >>`);
+  objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  for (const [i, t] of pageTexts.entries()) {
+    const stream = `BT /F1 12 Tf 72 720 Td (${t}) Tj ET`;
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + i * 2} 0 R >>`);
+    objs.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+  }
+  objs.push(`<< /Title (${title}) >>`);
+  let out = "%PDF-1.4\n";
+  const offsets = objs.map((body, i) => { const at = out.length; out += `${i + 1} 0 obj\n${body}\nendobj\n`; return at; });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`;
+  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Info ${objs.length} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return new TextEncoder().encode(out);
+}
+
+test("PDF text extraction reads chosen pages, caps characters and refuses non-PDF bytes", async () => {
+  const { readPdf } = await loadTypeScript(require.resolve("../src/routes/pdf.ts"));
+  // PDF.js detaches the buffer it parses, so each call gets its own copy.
+  const pdf = makePdf(["Hello page one", "Second page text", "Third"], "Test doc");
+  const all = await readPdf(pdf.slice(), 1, 50, 50000);
+  assert.equal(all.totalPages, 3);
+  assert.equal(all.title, "Test doc");
+  assert.deepEqual(all.pages.map((p) => p.text), ["Hello page one", "Second page text", "Third"]);
+  assert.equal(all.truncated, false);
+  const part = await readPdf(pdf.slice(), 2, 1, 50000);
+  assert.deepEqual(part.pages.map((p) => p.page), [2]);
+  assert.equal(part.truncated, true);
+  const capped = await readPdf(pdf.slice(), 1, 50, 20);
+  assert.equal(capped.chars, 20);
+  assert.equal(capped.truncated, true);
+  await assert.rejects(readPdf(new TextEncoder().encode("<html>"), 1, 1, 1000), (e) => e.status === 415);
+  await assert.rejects(readPdf(pdf.slice(), 9, 1, 1000), (e) => e.status === 400);
 });
