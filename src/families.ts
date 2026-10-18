@@ -7,7 +7,8 @@ import { FUN } from "./routes/fun";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
+import { SANCTIONS } from "./routes/sanctions";
 import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...COMPANY, ...UTILS, ...PUBLIC_DATA, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...COMPANY, ...SANCTIONS, ...UTILS, ...PUBLIC_DATA, ...FUN, ...BASICS, ...AI_TEXT];
