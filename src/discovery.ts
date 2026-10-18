@@ -6,7 +6,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.20.0";
+export const MCP_SERVER_VERSION = "1.21.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -133,7 +133,7 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Prices and DeFi", (p) => /^\/(price\/|wallet\/portfolio|token|trade-insight|liquidity-pool-audit|mev-simulator|contract-risk|wallet-audit|btc-price|fx$)/.test(p)],
   ["Chain data", (p) => /^\/(base|eth|arb|op|polygon)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
   ["Web, documents and search", (p) => /^\/(extract|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|search|wikipedia|dictionary|papers)$/.test(p)],
-  ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|domain|domain-report|email|package|package-audit|x402\/check)$/.test(p)],
+  ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|check\/counterparty|domain|domain-report|email|package|package-audit|x402\/check)$/.test(p)],
   ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
   ["Everyday data", (p) => /^\/(weather|time|holidays|geocode|earthquakes|sun|moon|country|npm\/downloads|pypi)$/.test(p)],
 ];
@@ -155,7 +155,7 @@ export const MCP_BUNDLES: Readonly<Record<string, string>> = Object.freeze({
 export const mcpBundleTools = (slug: string) =>
   Object.hasOwn(MCP_BUNDLES, slug) ? ENDPOINTS.filter((e) => categoryOf(e.path) === MCP_BUNDLES[slug]) : undefined;
 /** Tools shown first on the homepage. */
-const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/company", "/sanctions/check", "/pdf/text"];
+const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/check/counterparty", "/company", "/pdf/text"];
 const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
 
 /**
