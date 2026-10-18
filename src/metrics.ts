@@ -3,8 +3,11 @@ import { reserveAmount, claimTransfer, type AmountReservation, type TransferClai
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
 
-/** What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream). */
-export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace";
+/**
+ * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
+ * "sample" a free ?sample=1 preview of the static example (the tool did not run).
+ */
+export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample";
 /** Outcomes where the tool ran and answered 2xx. */
 const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace"];
 const STATUS_DAYS = 7;

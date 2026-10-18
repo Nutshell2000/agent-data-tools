@@ -15,6 +15,7 @@ export function requestMetricsMiddleware(
     if (c.res.status === 402) outcome = "challenged";
     else if (c.res.status >= 500) outcome = "errored";
     else if (c.res.status >= 400) outcome = "failed";
+    else if (c.res.headers.get("X-Sample") === "1") outcome = "sample";
     else if (c.res.headers.has("X-Free-Trial-Remaining")) outcome = "trial";
     else if (isMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret"))) outcome = "marketplace";
     else {
