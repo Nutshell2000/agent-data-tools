@@ -288,6 +288,15 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     if (v.length < s.length) warnings.add("details_truncated");
     return v;
   };
+  const rememberLink = (href: string, text: string) => {
+    if (!seen.has(href) && links.length < 200 && budget > 0) {
+      seen.add(href);
+      if (detail(href, 4096) === href)
+        links.push({ href, text: detail(text, 200) });
+    } else if (!seen.has(href)) warnings.add("links_limited");
+  };
+  const linkedMarkdown = (label: string, href: string) =>
+    `[${label.trim()}](${href.replace(/\|/g, "%7C").replace(/[()\\]/g, c => "\\" + c)})`;
   const render = (
     n: Node,
     inheritedLanguage: string | null = null,
@@ -327,17 +336,32 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     }
     if (n.tag === "table") {
       const bodyRows: string[][] = [],
+        markdownRows: string[][] = [],
         bodyHeaders: number[] = [];
       let hasSpans = false;
       // Cell markup carries word boundaries even when source HTML has no whitespace.
       // Keep the established single-line cell contract while retaining those boundaries.
-      const cellContent = (cell: Node, literal = inLiteralCode): string => {
-        if (hidden(cell)) return "";
-        if (cell.tag === "img") return ` ${imageLabel(cell)} `;
-        if (cell.tag === "br" || cell.tag === "hr") return " ";
-        const value = normalizeNotation(cell,cell.children.map(c => typeof c === "string" ? c : cellContent(c,literal || cell.tag === "code" || cell.tag === "pre")).join(""),false,literal);
-        return block.has(cell.tag) || /^h[1-6]$/.test(cell.tag) || ["tr", "td", "th", "li", "pre"].includes(cell.tag)
-          ? ` ${value} ` : value;
+      const cellContent = (cell: Node, literal = inLiteralCode): { text: string; md: string } => {
+        if (hidden(cell)) return { text: "", md: "" };
+        if (cell.tag === "img") {
+          const label = imageLabel(cell);
+          return { text: ` ${label} `, md: ` ${escape(label)} ` };
+        }
+        if (cell.tag === "br" || cell.tag === "hr") return { text: " ", md: " " };
+        const inCode = literal || cell.tag === "code" || cell.tag === "pre";
+        const parts = cell.children.map(c => typeof c === "string"
+          ? { text: c, md: escape(c) } : cellContent(c, inCode));
+        const text = normalizeNotation(cell, parts.map(c => c.text).join(""), false, literal);
+        let md = normalizeNotation(cell, parts.map(c => c.md).join(""), true, literal);
+        if (cell.tag === "a" && !inCode) {
+          const href = safeUrl(cell.attrs.href);
+          if (href) {
+            rememberLink(href, squash(text));
+            md = linkedMarkdown(md, href);
+          }
+        }
+        const boundary = block.has(cell.tag) || /^h[1-6]$/.test(cell.tag) || ["tr", "td", "th", "li", "pre"].includes(cell.tag);
+        return boundary ? { text: ` ${text} `, md: ` ${md} ` } : { text, md };
       };
       const visit = (v: Node) => {
         if (hidden(v)) return;
@@ -360,14 +384,18 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
             hasSpans = true;
           if (cells.some((c) => c.tag === "th"))
             bodyHeaders.push(bodyRows.length);
-          bodyRows.push(cells.map((c) => squash(cellContent(c))));
+          const content = cells.map(c => cellContent(c));
+          bodyRows.push(content.map(c => squash(c.text)));
+          markdownRows.push(content.map(c => squash(c.md)));
         } else for (const c of v.children) if (typeof c !== "string") visit(c);
       };
       visit(n);
       const cap = n.children.find(
         (c): c is Node => typeof c !== "string" && c.tag === "caption",
       );
-      const bodyCaption = cap ? squash(cellContent(cap)) : null;
+      const captionContent = cap ? cellContent(cap) : null;
+      const bodyCaption = captionContent ? squash(captionContent.text) : null;
+      const markdownCaption = captionContent ? squash(captionContent.md) : null;
       // Structured details cannot consume the primary-content budget.
       if (tables.length < 20) {
         let truncated =
@@ -399,10 +427,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       } else warnings.add("details_truncated");
       if (hasSpans) warnings.add("table_spans_present");
       const width = bodyRows[0]?.length ?? 0;
-      const line = (r: string[]) => "| " + r.map(escape).join(" | ") + " |";
+      const line = (r: string[]) => "| " + r.join(" | ") + " |";
       const mdRows = bodyHeaders.includes(0)
-        ? bodyRows
-        : [Array(width).fill(""), ...bodyRows];
+        ? markdownRows
+        : [Array(width).fill(""), ...markdownRows];
       const tsv = bodyRows.map((r) => r.join("\t")).join("\n");
       let md = "";
       if (width && !hasSpans && bodyRows.every((r) => r.length === width)) {
@@ -417,7 +445,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       }
       return {
         text: `\n\n${bodyCaption ? bodyCaption + "\n" : ""}${protect(tsv)}\n\n`,
-        md: `\n\n${bodyCaption ? escape(bodyCaption) + "\n\n" : ""}${protect(md)}\n\n`,
+        md: `\n\n${markdownCaption ? markdownCaption + "\n\n" : ""}${protect(md)}\n\n`,
       };
     }
     if (n.tag === "ul" || n.tag === "ol") {
@@ -503,13 +531,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
     }
     if (n.tag === "a") {
       const href = safeUrl(n.attrs.href);
-      if (href && !seen.has(href) && links.length < 200 && budget > 0) {
-        seen.add(href);
-        if (detail(href, 4096) === href)
-          links.push({ href, text: detail(squash(restore(text)), 200) });
-      } else if (href && !seen.has(href)) warnings.add("links_limited");
-      if (href)
-        md = `[${md.trim()}](${href.replace(/[()\\]/g, (c) => "\\" + c)})`;
+      if (href) {
+        rememberLink(href, squash(restore(text)));
+        md = linkedMarkdown(md, href);
+      }
     }
     if (n.tag === "sup" || n.tag === "sub") {
       text = normalizeNotation(n,text,false,inLiteralCode);
