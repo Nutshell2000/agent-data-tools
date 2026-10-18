@@ -1,5 +1,5 @@
 {
-  "version": "1.13.0",
+  "version": "1.14.0",
   "tools": [
     {
       "name": "extract",
@@ -2850,6 +2850,31 @@
         }
       },
       "price": "$0.003"
+    },
+    {
+      "name": "sanctions_check",
+      "description": "Screen a crypto wallet address or a person or company name against the US Treasury OFAC SDN list, including aliases and the listed digital currency addresses (BTC, ETH, USDT, TRX and more). Returns each match with SDN ID, programs and match strength, plus the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Crypto address to check (give address, name or both)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Person or company name; matches when every word appears in a listed name or alias"
+          }
+        }
+      },
+      "price": "$0.005"
     },
     {
       "name": "json_validate",
