@@ -98,7 +98,7 @@ test('MCP quotes initialize independently while a cold HTTP gateway is stalled',
     assert.equal(quote.isError, true);
     assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount, '2000');
     f.release(); const initial = await first; assert.equal(initial.status, 402); await initial.body?.cancel();
-    assert.equal((await client.listTools()).tools.length, 163);
+    assert.equal((await client.listTools()).tools.length, 165);
     assert.equal(f.calls(), 2, 'each transport reuses only its own completed state');
   } finally { f.release(); await client.close(); await f.mf.dispose(); }
 });
