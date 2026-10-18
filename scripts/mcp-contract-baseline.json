@@ -1,5 +1,5 @@
 {
-  "version": "1.12.0",
+  "version": "1.13.0",
   "tools": [
     {
       "name": "extract",
@@ -2825,6 +2825,31 @@
         ]
       },
       "price": "$0.005"
+    },
+    {
+      "name": "company",
+      "description": "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 404, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name to search for (give name or id)"
+          },
+          "id": {
+            "type": "string",
+            "description": "Wikidata item ID such as Q689141, instead of name"
+          }
+        }
+      },
+      "price": "$0.003"
     },
     {
       "name": "json_validate",
