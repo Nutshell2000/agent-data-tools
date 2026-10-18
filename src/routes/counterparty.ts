@@ -1,9 +1,11 @@
-// One-call counterparty check on Base: OFAC SDN address match, wallet or contract heuristics
-// and USD holdings, with a single verdict. Composes existing tools, so no new data source.
+// One-call counterparty check on Base, Ethereum, Arbitrum or Optimism: OFAC SDN address match,
+// wallet or contract heuristics (Base only) and USD holdings, with a single verdict. Composes existing tools, so no new data source.
 // All parts must answer: a partial check would read as a clean one, so any failure fails
 // the call (uncharged) rather than returning a verdict with a gap.
-import { entry, type Entry } from "../family";
+import { getAddress } from "viem";
+import { entry, pick, type Entry } from "../family";
 import { HttpError, isAddress } from "../lib/env";
+import { CHAINS, client, rpc } from "./chain-reads";
 import { contractRisk } from "./contract-risk";
 import { PRICES } from "./prices";
 import { screen, sdnIndex } from "./sanctions";
@@ -20,13 +22,15 @@ export function verdict(matches: Record<string, unknown>[], account: Risk, contr
   return { verdict: matches.length ? "block" : reasons.length ? "review" : "pass", reasons };
 }
 
+const CHAIN_SLUGS = ["base", "eth", "arb", "op"] as [string, ...string[]];
 const portfolio = PRICES.find((e) => e.endpoint.path === "/wallet/portfolio")!;
 
 export const COUNTERPARTY: Entry[] = [
-  entry("/check/counterparty", "Counterparty check before paying a Base address",
-    "One call to vet a Base address before paying, trading or onboarding: OFAC SDN address match, wallet risk heuristics (or contract bytecode and proxy checks if it is a contract) and USD holdings, combined into a verdict of block, review or pass with the reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address.",
-    ["compliance", "sanctions", "ofac", "wallet", "risk", "base"], {
-      address: { type: "string", description: "0x address on Base to check", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+  entry("/check/counterparty", "Counterparty check before paying an EVM address",
+    "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address.",
+    ["compliance", "sanctions", "ofac", "wallet", "risk", "base", "ethereum"], {
+      address: { type: "string", description: "0x address to check", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+      chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: CHAIN_SLUGS, example: "base" },
     },
     {
       address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "base", verdict: "pass", reasons: [],
@@ -34,16 +38,36 @@ export const COUNTERPARTY: Entry[] = [
       account: { type: "eoa", riskLevel: "low", riskFlags: [], accountNonce: 1234 },
       contract: null,
       holdings: { totalUsd: 1234.56, tokensChecked: 9 },
+      limitations: [],
       note: "Screening aid only: confirm any sanctions match against the official OFAC record; heuristics are not a security audit.",
     },
     async (env, q) => {
       const address = q("address")?.trim() ?? "";
       if (!isAddress(address)) throw new HttpError(400, "address must be a 0x-prefixed 20-byte hex address, e.g. 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
-      const [index, audit, value] = await Promise.all([
-        sdnIndex(),
-        walletAudit(env, address),
-        portfolio.run(env, (name) => (name === "address" ? address : name === "chain" ? "base" : undefined)) as Promise<{ totalUsd: number; tokensChecked: number }>,
-      ]);
+      const slug = pick(q, "chain", CHAIN_SLUGS, "base");
+      const holdingsOf = () => portfolio.run(env, (name) => (name === "address" ? address : name === "chain" ? slug : undefined)) as Promise<{ totalUsd: number; tokensChecked: number }>;
+      const note = "Screening aid only: confirm any sanctions match against the official OFAC record; heuristics are not a security audit.";
+      if (slug !== "base") {
+        // Wallet and contract heuristics exist for Base only; elsewhere report type and activity.
+        const cl = client(env, CHAINS.find((c) => c.slug === slug)!);
+        const owner = getAddress(address);
+        const [index, value, code, nonce] = await Promise.all([
+          sdnIndex(), holdingsOf(), rpc(() => cl.getCode({ address: owner })), rpc(() => cl.getTransactionCount({ address: owner })),
+        ]);
+        const matches = screen(index, address, undefined);
+        const type = !code || code === "0x" ? "eoa" : code.startsWith("0xef0100") ? "eoa-delegated" : "contract";
+        return {
+          address: getAddress(address), chain: slug,
+          ...verdict(matches, { riskLevel: "not-assessed", riskFlags: [] }, null),
+          sanctions: { listed: matches.length > 0, matches, listDate: index.listDate },
+          account: { type, riskLevel: null, riskFlags: [], accountNonce: nonce },
+          contract: null,
+          holdings: { totalUsd: value.totalUsd, tokensChecked: value.tokensChecked },
+          limitations: ["wallet and contract risk heuristics run on Base only; this chain gets sanctions, account type, nonce and holdings"],
+          note,
+        };
+      }
+      const [index, audit, value] = await Promise.all([sdnIndex(), walletAudit(env, address), holdingsOf()]);
       const contract = audit.type === "contract" ? await contractRisk(env, address) : null;
       const matches = screen(index, address, undefined);
       return {
@@ -53,7 +77,8 @@ export const COUNTERPARTY: Entry[] = [
         account: { type: audit.type, riskLevel: audit.riskLevel, riskFlags: audit.riskFlags, accountNonce: audit.accountNonce },
         contract: contract && { riskLevel: contract.riskLevel, riskFlags: contract.riskFlags },
         holdings: { totalUsd: value.totalUsd, tokensChecked: value.tokensChecked },
-        note: "Screening aid only: confirm any sanctions match against the official OFAC record; heuristics are not a security audit.",
+        limitations: [],
+        note,
       };
     }, "$0.03"),
 ];

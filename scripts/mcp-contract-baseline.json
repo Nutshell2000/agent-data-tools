@@ -1,5 +1,5 @@
 {
-  "version": "1.22.0",
+  "version": "1.23.0",
   "tools": [
     {
       "name": "extract",
@@ -3047,7 +3047,7 @@
     },
     {
       "name": "check_counterparty",
-      "description": "One call to vet a Base address before paying, trading or onboarding: OFAC SDN address match, wallet risk heuristics (or contract bytecode and proxy checks if it is a contract) and USD holdings, combined into a verdict of block, review or pass with the reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "description": "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Costs $0.03 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3060,7 +3060,17 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x address on Base to check"
+            "description": "0x address to check"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
           }
         },
         "required": [
