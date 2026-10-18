@@ -1,0 +1,131 @@
+// Company enrichment from Wikidata. Enrichment is the third-largest category agents pay for
+// over x402, and Wikidata's structured data is CC0, so it can be resold without conditions.
+// Two requests: search plus the candidates' claims, then labels for the linked items.
+import { entry, getJson, opt, type Entry } from "../family";
+import { HttpError } from "../lib/env";
+
+const API = "https://www.wikidata.org/w/api.php";
+
+/** Wikidata items that mark an entity as a business. */
+const COMPANY_SIGNALS = ["P452", "P1128", "P414", "P1278", "P159", "P169", "P2139"];
+
+interface Snak { datavalue?: { value: unknown } }
+interface Claim { rank?: string; mainsnak: Snak; qualifiers?: Record<string, Snak[]> }
+interface Entity {
+  id: string;
+  labels?: Record<string, { value: string }>;
+  descriptions?: Record<string, { value: string }>;
+  claims?: Record<string, Claim[]>;
+  sitelinks?: Record<string, { title: string }>;
+}
+
+/** Statements of a property, preferred rank first, deprecated ones dropped. */
+function statements(e: Entity, prop: string): Claim[] {
+  const all = (e.claims?.[prop] ?? []).filter((c) => c.rank !== "deprecated" && c.mainsnak.datavalue);
+  const preferred = all.filter((c) => c.rank === "preferred");
+  return preferred.length ? preferred : all;
+}
+const itemIds = (e: Entity, prop: string) => statements(e, prop).map((c) => (c.mainsnak.datavalue!.value as { id: string }).id);
+const firstString = (e: Entity, prop: string) => {
+  const v = statements(e, prop)[0]?.mainsnak.datavalue?.value;
+  return typeof v === "string" ? v : null;
+};
+/** Year, year-month or full date, as precise as the statement is. */
+function firstDate(e: Entity, prop: string): string | null {
+  const v = statements(e, prop)[0]?.mainsnak.datavalue?.value as { time?: string; precision?: number } | undefined;
+  const m = v?.time?.match(/^\+?(-?\d{1,6})-(\d\d)-(\d\d)/);
+  if (!m) return null;
+  return (v!.precision ?? 11) >= 11 ? `${m[1]}-${m[2]}-${m[3]}` : v!.precision === 10 ? `${m[1]}-${m[2]}` : m[1];
+}
+function firstQuantity(e: Entity, prop: string): number | null {
+  const amount = (statements(e, prop)[0]?.mainsnak.datavalue?.value as { amount?: string } | undefined)?.amount;
+  const n = amount === undefined ? NaN : Number(amount);
+  return Number.isFinite(n) ? n : null;
+}
+
+const isCompany = (e: Entity) => COMPANY_SIGNALS.some((p) => statements(e, p).length > 0);
+
+/** Picks the first search hit that looks like a business and shapes its facts. */
+export function companyFacts(candidates: Entity[], labels: Record<string, string>) {
+  const e = candidates.find(isCompany);
+  if (!e) return null;
+  const names = (ids: string[]) => ids.map((id) => labels[id]).filter(Boolean);
+  const listings = statements(e, "P414").map((c) => ({
+    exchange: labels[(c.mainsnak.datavalue!.value as { id: string }).id] ?? null,
+    ticker: (c.qualifiers?.P249?.[0]?.datavalue?.value as string | undefined) ?? null,
+  }));
+  const wiki = e.sitelinks?.enwiki?.title;
+  return {
+    name: e.labels?.en?.value ?? e.id,
+    description: e.descriptions?.en?.value ?? null,
+    website: firstString(e, "P856"),
+    founded: firstDate(e, "P571"),
+    dissolved: firstDate(e, "P576"),
+    country: names(itemIds(e, "P17"))[0] ?? null,
+    headquarters: names(itemIds(e, "P159"))[0] ?? null,
+    industries: names(itemIds(e, "P452")),
+    ceo: names(itemIds(e, "P169"))[0] ?? null,
+    founders: names(itemIds(e, "P112")),
+    parent: names(itemIds(e, "P749"))[0] ?? null,
+    employees: firstQuantity(e, "P1128"),
+    stockListings: listings,
+    lei: firstString(e, "P1278"),
+    wikidataId: e.id,
+    wikidataUrl: `https://www.wikidata.org/wiki/${e.id}`,
+    wikipediaUrl: wiki ? `https://en.wikipedia.org/wiki/${encodeURIComponent(wiki.replaceAll(" ", "_"))}` : null,
+    source: "Wikidata (CC0 public domain)",
+  };
+}
+
+/** Linked items whose labels the answer needs. */
+function linkedIds(e: Entity): string[] {
+  const ids = ["P17", "P159", "P452", "P169", "P112", "P749", "P414"].flatMap((p) => itemIds(e, p));
+  return [...new Set(ids)].slice(0, 50);
+}
+
+export const COMPANY: Entry[] = [
+  entry("/company", "Company profile from Wikidata",
+    "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 404, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company.",
+    ["company", "enrichment", "business", "kyb", "wikidata"], {
+      name: { type: "string", description: "Company name to search for (give name or id)", example: "Spotify" },
+      id: { type: "string", description: "Wikidata item ID such as Q689141, instead of name", example: "Q689141" },
+    },
+    {
+      name: "Spotify", description: "Swedish audio streaming service", website: "https://www.spotify.com/",
+      founded: "2006-04-23", dissolved: null, country: "Sweden", headquarters: "Stockholm", industries: ["music streaming"],
+      ceo: null, founders: ["Daniel Ek", "Martin Lorentzon"], parent: null, employees: 7000,
+      stockListings: [{ exchange: "New York Stock Exchange", ticker: "SPOT" }], lei: null,
+      wikidataId: "Q689141", wikidataUrl: "https://www.wikidata.org/wiki/Q689141", wikipediaUrl: "https://en.wikipedia.org/wiki/Spotify",
+      source: "Wikidata (CC0 public domain)",
+    },
+    async (_env, q) => {
+      const rawId = opt(q, "id", 20)?.trim().toUpperCase();
+      const name = opt(q, "name", 200)?.trim();
+      if (!rawId && !name) throw new HttpError(400, "name or id is required");
+      if (rawId && !/^Q\d{1,12}$/.test(rawId)) throw new HttpError(400, "id must be a Wikidata item ID such as Q689141");
+      let ids: string[];
+      if (rawId) ids = [rawId];
+      else {
+        const found = await getJson<{ search?: { id: string }[] }>(
+          `${API}?action=wbsearchentities&format=json&language=en&uselang=en&type=item&limit=7&search=${encodeURIComponent(name!)}`,
+        );
+        ids = (found.search ?? []).map((s) => s.id);
+        if (!ids.length) throw new HttpError(404, "no Wikidata item matches this name");
+      }
+      const got = await getJson<{ entities?: Record<string, Entity> }>(
+        `${API}?action=wbgetentities&format=json&languages=en&props=labels|descriptions|claims|sitelinks&sitefilter=enwiki&ids=${ids.join("|")}`,
+      );
+      const candidates = ids.map((id) => got.entities?.[id]).filter((e): e is Entity => Boolean(e?.claims));
+      const best = candidates.find(isCompany);
+      if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : "no company found under this name");
+      const linked = linkedIds(best);
+      const labels: Record<string, string> = {};
+      if (linked.length) {
+        const lab = await getJson<{ entities?: Record<string, Entity> }>(
+          `${API}?action=wbgetentities&format=json&languages=en&props=labels&ids=${linked.join("|")}`,
+        );
+        for (const [id, e] of Object.entries(lab.entities ?? {})) if (e.labels?.en) labels[id] = e.labels.en.value;
+      }
+      return companyFacts([best], labels)!;
+    }, "$0.003"),
+];

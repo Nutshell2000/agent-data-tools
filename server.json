@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Nutshell2000/agent-data-tools",
   "title": "Agent Data Tools",
-  "description": "155 x402 tools for agents: chain reads, token prices, web and PDF reading, utilities. From $0.001.",
-  "version": "1.12.0",
+  "description": "156 x402 agent tools: chain data, token prices, company data, web and PDF reading. From $0.001.",
+  "version": "1.13.0",
   "repository": {
     "url": "https://github.com/Nutshell2000/agent-data-tools",
     "source": "github"
