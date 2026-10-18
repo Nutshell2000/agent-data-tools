@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,158);
+  assert.equal(ENDPOINTS.length,159);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -319,5 +319,29 @@ test("public holidays follow each country's rules, including weekend substitutes
   for (const code of Object.keys(h.COUNTRIES)) {
     const dates = h.holidaysFor(code, 2026).holidays.map((x) => x.date);
     assert.deepEqual(dates, [...dates].sort(), code);
+  }
+});
+
+test("dictionary reads English senses from Wiktionary as plain text with attribution", async () => {
+  const realFetch = global.fetch;
+  let asked;
+  global.fetch = async (url) => {
+    asked = String(url);
+    return Response.json({
+      en: [
+        { partOfSpeech: "Noun", definitions: [{ definition: "", examples: [] }, { definition: 'An <a href="/wiki/x">unexpected</a> &amp; fortunate discovery.', examples: ["<i>Pure</i> serendipity."] }] },
+        { partOfSpeech: "Verb", definitions: [{ definition: "" }] },
+      ],
+      fr: [{ partOfSpeech: "Nom", definitions: [{ definition: "sérendipité" }] }],
+    });
+  };
+  try {
+    const run = data.PUBLIC_DATA.find((f) => f.endpoint.path === "/dictionary").run;
+    const out = await run({}, (n) => ({ word: "serendipity" })[n]);
+    assert.match(asked, /en\.wiktionary\.org\/api\/rest_v1\/page\/definition\/serendipity$/);
+    assert.deepEqual(out.meanings, [{ partOfSpeech: "Noun", definitions: [{ definition: "An unexpected & fortunate discovery.", example: "Pure serendipity." }] }]);
+    assert.match(out.attribution, /CC BY-SA 4\.0/);
+  } finally {
+    global.fetch = realFetch;
   }
 });
