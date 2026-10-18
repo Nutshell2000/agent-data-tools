@@ -6,8 +6,9 @@ import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { parseCsv } from "./utils";
 
-const SDN_URL = "https://www.treasury.gov/ofac/downloads/sdn.csv";
-const ALT_URL = "https://www.treasury.gov/ofac/downloads/alt.csv";
+// OFAC's Sanctions List Service first; the legacy treasury.gov paths answered HTTP 525 from Workers.
+const SDN_URLS = ["https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV", "https://www.treasury.gov/ofac/downloads/sdn.csv"];
+const ALT_URLS = ["https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ALT.CSV", "https://www.treasury.gov/ofac/downloads/alt.csv"];
 const SIX_HOURS = 6 * 3600;
 
 interface Party { id: string; name: string; type: string; programs: string[] }
@@ -46,20 +47,27 @@ export function buildIndex(sdnCsv: string, altCsv: string, listDate: string | nu
 let cached: SdnIndex | undefined;
 async function sdnIndex(): Promise<SdnIndex> {
   if (cached && Date.now() - cached.loadedAt < SIX_HOURS * 1000) return cached;
-  const get = async (url: string) => {
-    let res: Response;
-    try {
-      res = await fetch(url, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS, cacheEverything: true } } as RequestInit);
-    } catch {
-      throw new HttpError(502, "the OFAC list could not be downloaded; try again");
+  /** First source that answers 200; the last failure is reported. */
+  const get = async (urls: string[]) => {
+    let failure = "the OFAC list could not be downloaded; try again";
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS } } as RequestInit);
+        if (res.ok) return { text: await res.text(), modified: res.headers.get("last-modified") };
+        await res.body?.cancel().catch(() => {});
+        failure = `the OFAC list download answered HTTP ${res.status}; try again`;
+      } catch {
+        failure = "the OFAC list could not be downloaded; try again";
+      }
     }
-    if (!res.ok) throw new HttpError(502, `the OFAC list download answered HTTP ${res.status}; try again`);
-    return { text: await res.text(), modified: res.headers.get("last-modified") };
+    throw new HttpError(502, failure);
   };
-  const [sdn, alt] = await Promise.all([get(SDN_URL), get(ALT_URL)]);
+  const [sdn, alt] = await Promise.all([get(SDN_URLS), get(ALT_URLS)]);
   const listDate = sdn.modified ? new Date(sdn.modified).toISOString() : null;
-  cached = buildIndex(sdn.text, alt.text, listDate);
-  if (cached.parties.size < 1000) throw new HttpError(502, "the OFAC list download looks incomplete; try again");
+  const index = buildIndex(sdn.text, alt.text, listDate);
+  // Checked before caching, so a truncated or HTML answer is retried on the next call.
+  if (index.parties.size < 1000) throw new HttpError(502, "the OFAC list download looks incomplete; try again");
+  cached = index;
   return cached;
 }
 

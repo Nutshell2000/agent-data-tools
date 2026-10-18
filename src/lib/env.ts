@@ -18,6 +18,8 @@ export interface Env {
   TRIALS?: KVNamespace;
   // Product files under public/. The Worker runs first, so they are never served directly.
   ASSETS: Fetcher;
+  // This same Worker, for requests to its own public URL (a Worker cannot fetch its workers.dev host).
+  SELF?: Fetcher;
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }

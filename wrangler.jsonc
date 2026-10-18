@@ -14,6 +14,8 @@
   // Trial counters are opt-in via TRIALS_ENABLED=on; this KV binding also holds store orders.
   "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
   // Request counters per paid path (see src/metrics.ts).
+  // The Worker cannot fetch its own workers.dev URL, so /x402/check reaches this service through itself.
+  "services": [{ "binding": "SELF", "service": "agent-data-tools" }],
   "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
   "vars": {
