@@ -271,7 +271,7 @@ export function openApi(origin: string, trialsEnabled = false) {
 
 // Left out of marketplace listings: these run on a limited daily allowance, which a
 // subscription plan with a monthly quota could exhaust.
-export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe", ...AI_PATHS]);
+export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe", "/search", ...AI_PATHS]);
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
 export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
