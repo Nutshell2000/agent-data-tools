@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 117);
+  assert.equal(families.length, 131);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, "$0.001", e.path);
+    assert.equal(e.price, e.path.startsWith("/ai/") ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,139);
+  assert.equal(ENDPOINTS.length,153);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -112,4 +112,45 @@ test("random integers stay in range and cover it", () => {
   const seen = new Set();
   for (let i = 0; i < 2000; i++) { const v = fun.randInt(6); assert.ok(v >= 0 && v < 6); seen.add(v); }
   assert.equal(seen.size, 6);
+});
+
+test("basic helpers: echo, ping, keccak and network", async () => {
+  const { BASICS } = await loadTypeScript(require.resolve("../src/routes/ai-text.ts"));
+  const run = (path, input = {}) => BASICS.find((f) => f.endpoint.path === path).run({}, (n) => input[n]);
+  assert.equal((await run("/echo", { message: "hi" })).length, 2);
+  assert.equal((await run("/ping")).pong, true);
+  const k = await run("/keccak", { text: "transfer(address,uint256)" });
+  assert.equal(k.selector, "0xa9059cbb");
+  assert.equal((await run("/keccak", { text: "0x" })).keccak256, "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
+  assert.equal((await run("/network")).usdc.decimals, 6);
+});
+
+test("AI tools parse model output, keep labels and fields within what was asked, and report failures", async () => {
+  const { AI_TEXT } = await loadTypeScript(require.resolve("../src/routes/ai-text.ts"));
+  const tool = (path) => AI_TEXT.find((f) => f.endpoint.path === path);
+  const env = (reply) => ({ AI: { run: async (model, input) => (typeof reply === "function" ? reply(model, input) : reply) } });
+  const call = (path, reply, input) => tool(path).run(env(reply), (n) => input[n]);
+
+  const c = await call("/ai/classify", { response: 'Sure: {"label":"Billing","reason":"double charge","ranking":["billing","other","nonsense"]}' }, { text: "charged twice", labels: "billing, shipping, other" });
+  assert.equal(c.label, "billing");
+  assert.deepEqual(c.ranking, ["billing", "other", "shipping"]);
+  await assert.rejects(call("/ai/classify", { response: '{"label":"refund"}' }, { text: "x", labels: "billing,shipping" }), (e) => e.status === 502);
+  await assert.rejects(call("/ai/classify", { response: "{}" }, { text: "x", labels: "only" }), (e) => e.status === 400);
+
+  const x = await call("/ai/extract-json", { response: '```json\n{"company":"Acme AB","total":2450,"extra":"ignored"}\n```' }, { text: "Acme AB 2450", fields: "company,total,due_date" });
+  assert.deepEqual(x.data, { company: "Acme AB", total: 2450, due_date: null });
+  assert.deepEqual(x.missing, ["due_date"]);
+
+  const kw = await call("/ai/keywords", { response: '["a","b","a","c"]' }, { text: "t", count: "3" });
+  assert.deepEqual(kw.keywords, ["a", "b", "c"]);
+
+  const s = await call("/ai/sentiment", [{ label: "NEGATIVE", score: 0.1 }, { label: "POSITIVE", score: 0.9 }], { text: "great" });
+  assert.equal(s.label, "POSITIVE");
+
+  const e = await call("/ai/embed", { data: [[0.1234567, -0.5]] }, { text: "hello" });
+  assert.equal(e.dimensions, 2);
+
+  await assert.rejects(call("/ai/chat", () => { throw new Error("4006: you have used up your daily free allocation of 10,000 neurons"); }, { prompt: "hi" }), (err) => err.status === 503);
+  await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "sv" }), (err) => err.status === 502);
+  await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "swedish" }), (err) => err.status === 400);
 });
