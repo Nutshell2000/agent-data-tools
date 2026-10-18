@@ -6,9 +6,12 @@ import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { parseCsv } from "./utils";
 
-// OFAC's Sanctions List Service first; the legacy treasury.gov paths answered HTTP 525 from Workers.
-const SDN_URLS = ["https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV", "https://www.treasury.gov/ofac/downloads/sdn.csv"];
-const ALT_URLS = ["https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ALT.CSV", "https://www.treasury.gov/ofac/downloads/alt.csv"];
+// Both OFAC hosts fail the TLS handshake with Workers (HTTP 525), so the first source is the
+// unmodified copy that .github/workflows/ofac-mirror.yml publishes every 6 hours; OFAC's own
+// URLs stay as fallbacks. listDate is the copy's Last-Modified time.
+const MIRROR = "https://github.com/Nutshell2000/agent-data-tools/releases/download/ofac-latest";
+const SDN_URLS = [`${MIRROR}/SDN.CSV`, "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV", "https://www.treasury.gov/ofac/downloads/sdn.csv"];
+const ALT_URLS = [`${MIRROR}/ALT.CSV`, "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ALT.CSV", "https://www.treasury.gov/ofac/downloads/alt.csv"];
 const SIX_HOURS = 6 * 3600;
 
 interface Party { id: string; name: string; type: string; programs: string[] }

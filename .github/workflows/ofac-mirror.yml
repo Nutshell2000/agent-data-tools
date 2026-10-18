@@ -1,0 +1,40 @@
+name: Mirror OFAC SDN list
+
+# OFAC's download hosts fail the TLS handshake with Cloudflare Workers (HTTP 525), so
+# /sanctions/check reads a copy published here as release assets. Runs on GitHub's
+# servers daily and on demand; the files are OFAC's own, unmodified.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Create and update the ofac-latest release
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download SDN.CSV and ALT.CSV from OFAC
+        run: |
+          set -euo pipefail
+          for f in SDN ALT; do
+            lower=$(echo "$f" | tr '[:upper:]' '[:lower:]')
+            curl -fsSL --retry 3 -o "$f.CSV" "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/$f.CSV" \
+              || curl -fsSL --retry 3 -o "$f.CSV" "https://www.treasury.gov/ofac/downloads/$lower.csv"
+          done
+          # Refuse to publish a truncated or HTML answer.
+          sdn=$(wc -l < SDN.CSV); alt=$(wc -l < ALT.CSV)
+          echo "SDN.CSV $sdn lines, ALT.CSV $alt lines"
+          test "$sdn" -gt 1000 && test "$alt" -gt 1000
+          grep -q "Digital Currency Address" SDN.CSV
+
+      - name: Publish as the ofac-latest release
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          gh release view ofac-latest --repo "$repo" >/dev/null 2>&1 || gh release create ofac-latest --repo "$repo" \
+            --title "OFAC SDN list mirror" --prerelease \
+            --notes "Unmodified copies of OFAC's SDN.CSV and ALT.CSV, refreshed every 6 hours for /sanctions/check. Source: https://ofac.treasury.gov/"
+          gh release upload ofac-latest SDN.CSV ALT.CSV --repo "$repo" --clobber
