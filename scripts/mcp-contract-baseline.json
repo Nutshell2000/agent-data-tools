@@ -1,5 +1,5 @@
 {
-  "version": "1.11.0",
+  "version": "1.12.0",
   "tools": [
     {
       "name": "extract",
@@ -2783,6 +2783,48 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "pdf_text",
+      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the PDF"
+          },
+          "firstPage": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "First page to read (default 1)"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many pages to read (1-200, default 50)"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum characters of text returned across all pages (1000-200000, default 50000)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.005"
     },
     {
       "name": "json_validate",
