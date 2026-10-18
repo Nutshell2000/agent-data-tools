@@ -1,5 +1,5 @@
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
 
 export * from "./endpoints";
 
@@ -217,6 +217,7 @@ export function openApi(origin: string, trialsEnabled = false) {
       title: SERVICE_NAME,
       version: MCP_SERVER_VERSION,
       description: SERVICE_SUMMARY,
+      contact: { name: "SpellzCode support", email: SUPPORT_EMAIL },
       "x-guidance": guidance,
     },
     externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },

@@ -117,7 +117,9 @@ test("reader documentation is canonical across owned discovery metadata", async 
   const api = d.openApi(origin);
   assert.equal(api.externalDocs.url, origin + "/guides/web-reading");
   assert.equal(api.paths["/extract"].get.externalDocs.url, api.externalDocs.url);
-  assert.match(api.info.description, /^Read public static documentation/);
+  assert.match(api.info.description, /^\d+ pay-per-call tools for AI agents/);
+  assert.match(api.info.description, /Read public static documentation/);
+  assert.equal(api.info.contact.email, "spellz111122@gmail.com");
   assert.ok(d.EXTRA_LINKS.every(link => link.href !== "/store"));
   const html = d.homePage(origin, "0x1111111111111111111111111111111111111111");
   assert.match(html, /rel="canonical" href="https:\/\/api.example.test\/"/);

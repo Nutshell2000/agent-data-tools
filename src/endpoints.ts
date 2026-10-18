@@ -10,8 +10,10 @@ import { EXTRACT_OUTPUT_EXAMPLE } from "./lib/extract-example";
 /** Machine name: used for the MCP server and its registry entry. */
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
+/** Public support address (also on the RapidAPI, Atlassian and store listings). */
+export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_SUMMARY =
-  "Read public static documentation as text or Markdown with code, tables, headings and links for $0.002 USDC on Base via x402. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI or local MCP adapter. No account or API key. No JavaScript rendering, authenticated or paywalled access. Discover page URLs first with the optional $0.002 XML sitemap tool. Other paid utilities remain available.";
+  "139 pay-per-call tools for AI agents, most at $0.001 USDC on Base via x402: blockchain reads on Base, Ethereum, Arbitrum, Optimism and Polygon; JSON, CSV, hash, date, cron and validation utilities; Bitcoin, FX, weather, domain and email checks. Read public static documentation as text or Markdown with code, tables, headings and links for $0.002. Inspect real cached examples and an unsigned quote, then buy with a capped Node CLI or local MCP adapter. No account or API key. No JavaScript rendering, authenticated or paywalled access. Discover page URLs first with the optional $0.002 XML sitemap tool. Other paid utilities remain available.";
 
 export interface Param {
   type: "string" | "integer" | "number";
