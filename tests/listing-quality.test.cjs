@@ -53,3 +53,15 @@ test("home page and llms.txt present the full catalog without mis-encoded dashes
   assert.doesNotMatch(html, /â€”/);
   assert.doesNotMatch(discovery.llmsTxt("https://example.test", false, "0x0000000000000000000000000000000000000001"), /â€”/);
 });
+
+test("catalog is grouped by category with every tool listed exactly once", () => {
+  const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
+  const links = html.match(/href="#tool-/g).length;
+  assert.equal(links, discovery.ENDPOINTS.length + 6, "each tool once per category table plus six Start here rows");
+  for (const e of discovery.ENDPOINTS) assert.ok(html.includes(`id="tool-${e.path.slice(1).replaceAll("/", "_")}"`), e.path);
+  for (const name of discovery.CATEGORY_ORDER) assert.match(html, new RegExp(`<h3 class="cat">${name} \\(\\d+\\)</h3>`));
+  const llms = discovery.llmsTxt("https://example.test", false, "0x0000000000000000000000000000000000000001");
+  assert.equal(llms.match(/^#### GET /gm).length, discovery.ENDPOINTS.length);
+  assert.deepEqual(["/base/balance", "/price/tokens", "/wallet/portfolio", "/wallet", "/base64/encode", "/sanctions/check", "/feed", "/ai/chat", "/holidays"].map(discovery.categoryOf),
+    ["Chain data", "Prices and DeFi", "Prices and DeFi", "Chain data", "Utilities", "Company, compliance and checks", "Web, documents and search", "AI", "Everyday data"]);
+});
