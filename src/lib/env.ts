@@ -3,6 +3,8 @@ export interface Env {
   NETWORK: `${string}:${string}`;
   /** Further networks where tools accept payment, comma-separated (see lib/networks.ts). */
   EXTRA_NETWORKS?: string;
+  /** Solana address that receives USDC on Solana; when unset, Solana is not offered. */
+  SOLANA_PAY_TO?: string;
   FACILITATOR_URL: string;
   PAYWALL: string;
   TRIALS_ENABLED?: string;
