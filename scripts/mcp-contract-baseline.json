@@ -1,5 +1,5 @@
 {
-  "version": "1.10.0",
+  "version": "1.11.0",
   "tools": [
     {
       "name": "extract",
@@ -2749,6 +2749,40 @@
         ]
       },
       "price": "$0.001"
+    },
+    {
+      "name": "price_token",
+      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
     },
     {
       "name": "json_validate",
