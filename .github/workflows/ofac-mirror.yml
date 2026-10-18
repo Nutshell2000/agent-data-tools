@@ -30,11 +30,25 @@ jobs:
           test "$sdn" -gt 1000 && test "$alt" -gt 1000
           grep -q "Digital Currency Address" SDN.CSV
 
+      - uses: actions/checkout@v5
+        with:
+          path: repo
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Build the pre-parsed index the Worker loads
+        run: |
+          set -euo pipefail
+          cd repo && npm ci --no-audit --no-fund
+          node scripts/build-ofac-index.mjs ../SDN.CSV ../ALT.CSV ../ofac-index.json
+
       - name: Publish as the ofac-latest release
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
           gh release view ofac-latest --repo "$repo" >/dev/null 2>&1 || gh release create ofac-latest --repo "$repo" \
             --title "OFAC SDN list mirror" --prerelease \
-            --notes "Unmodified copies of OFAC's SDN.CSV and ALT.CSV, refreshed every 6 hours for /sanctions/check. Source: https://ofac.treasury.gov/"
-          gh release upload ofac-latest SDN.CSV ALT.CSV --repo "$repo" --clobber
+            --notes "Unmodified copies of OFAC's SDN.CSV and ALT.CSV plus ofac-index.json (the same data pre-parsed), refreshed every 6 hours for /sanctions/check. Source: https://ofac.treasury.gov/"
+          gh release upload ofac-latest SDN.CSV ALT.CSV ofac-index.json --repo "$repo" --clobber

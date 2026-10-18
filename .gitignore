@@ -23,3 +23,4 @@ public/examples/extract/
 
 # Generated owned sitemap demonstration assets
 public/examples/sitemap/
+.ofac-index-build.cjs
