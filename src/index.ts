@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { schemaFromExample } from "./lib/output-schema";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
@@ -83,7 +84,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
                 .filter(([, p]) => p.required)
                 .map(([k]) => k),
             },
-            output: { example: e.outputExample },
+            output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
           }),
         },
       },
