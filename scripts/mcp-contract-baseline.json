@@ -1,5 +1,5 @@
 {
-  "version": "1.23.0",
+  "version": "1.24.0",
   "tools": [
     {
       "name": "extract",
@@ -660,7 +660,7 @@
       "price": "$0.005"
     },
     {
-      "name": "domain-report",
+      "name": "domain_report",
       "description": "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Costs $0.01 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -708,7 +708,7 @@
       "price": "$0.01"
     },
     {
-      "name": "token-report",
+      "name": "token_report",
       "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -894,7 +894,7 @@
       "price": "$0.01"
     },
     {
-      "name": "btc-fees",
+      "name": "btc_fees",
       "description": "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1026,7 +1026,7 @@
       "price": "$0.002"
     },
     {
-      "name": "btc-address",
+      "name": "btc_address",
       "description": "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring. Costs $0.003 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1050,7 +1050,7 @@
       "price": "$0.003"
     },
     {
-      "name": "ln-invoice",
+      "name": "ln_invoice",
       "description": "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1074,7 +1074,7 @@
       "price": "$0.002"
     },
     {
-      "name": "package-audit",
+      "name": "package_audit",
       "description": "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies. Costs $0.20 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1098,7 +1098,7 @@
       "price": "$0.20"
     },
     {
-      "name": "wallet-audit",
+      "name": "wallet_audit",
       "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1122,7 +1122,7 @@
       "price": "$0.02"
     },
     {
-      "name": "contract-risk",
+      "name": "contract_risk",
       "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract. Costs $0.02 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1146,7 +1146,7 @@
       "price": "$0.02"
     },
     {
-      "name": "trade-insight",
+      "name": "trade_insight",
       "description": "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade. Costs $0.05 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1175,7 +1175,7 @@
       "price": "$0.05"
     },
     {
-      "name": "liquidity-pool-audit",
+      "name": "liquidity_pool_audit",
       "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading. Costs $0.03 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1199,7 +1199,7 @@
       "price": "$0.03"
     },
     {
-      "name": "mev-simulator",
+      "name": "mev_simulator",
       "description": "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction. Costs $0.04 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1350,7 +1350,7 @@
       "price": "$0.002"
     },
     {
-      "name": "btc-price",
+      "name": "btc_price",
       "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1366,7 +1366,7 @@
       "price": "$0.002"
     },
     {
-      "name": "base-gas",
+      "name": "base_gas",
       "description": "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1382,7 +1382,7 @@
       "price": "$0.002"
     },
     {
-      "name": "base-tx",
+      "name": "base_tx",
       "description": "Look up any transaction on Base by hash: whether it succeeded, reverted or is still pending, sender and receiver, ETH value, called method id, block number and time, number of confirmations, gas used, gas price and the execution fee paid, and whether it created a contract. Use to confirm that a payment or contract call went through before acting on it. Costs $0.003 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1406,7 +1406,7 @@
       "price": "$0.003"
     },
     {
-      "name": "base-allowance",
+      "name": "base_allowance",
       "description": "Check how much of a wallet's ERC-20 token a spender contract is approved to move on Base: the raw and formatted allowance, the token symbol and decimals, and whether the approval is unlimited. Use before a swap or deposit to see if an approve transaction is needed, and to audit a wallet for risky unlimited approvals. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1555,7 +1555,7 @@
       "price": "$0.001"
     },
     {
-      "name": "base_token-balance",
+      "name": "base_token_balance",
       "description": "ERC-20 token balance of a wallet on Base: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1584,7 +1584,7 @@
       "price": "$0.001"
     },
     {
-      "name": "base_token-info",
+      "name": "base_token_info",
       "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Base, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1625,46 +1625,6 @@
             "description": "Block number, or 'latest' (default)"
           }
         }
-      },
-      "price": "$0.001"
-    },
-    {
-      "name": "base_gas",
-      "description": "Current gas on Base: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.001 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {}
-      },
-      "price": "$0.001"
-    },
-    {
-      "name": "base_tx",
-      "description": "A transaction on Base by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "hash": {
-            "type": "string",
-            "description": "0x transaction hash"
-          }
-        },
-        "required": [
-          "hash"
-        ]
       },
       "price": "$0.001"
     },
@@ -1717,7 +1677,7 @@
       "price": "$0.001"
     },
     {
-      "name": "base_is-contract",
+      "name": "base_is_contract",
       "description": "Whether an address on Base is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1799,7 +1759,7 @@
       "price": "$0.001"
     },
     {
-      "name": "eth_token-balance",
+      "name": "eth_token_balance",
       "description": "ERC-20 token balance of a wallet on Ethereum: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1828,7 +1788,7 @@
       "price": "$0.001"
     },
     {
-      "name": "eth_token-info",
+      "name": "eth_token_info",
       "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Ethereum, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -1961,7 +1921,7 @@
       "price": "$0.001"
     },
     {
-      "name": "eth_is-contract",
+      "name": "eth_is_contract",
       "description": "Whether an address on Ethereum is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2043,7 +2003,7 @@
       "price": "$0.001"
     },
     {
-      "name": "arb_token-balance",
+      "name": "arb_token_balance",
       "description": "ERC-20 token balance of a wallet on Arbitrum One: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2072,7 +2032,7 @@
       "price": "$0.001"
     },
     {
-      "name": "arb_token-info",
+      "name": "arb_token_info",
       "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Arbitrum One, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2205,7 +2165,7 @@
       "price": "$0.001"
     },
     {
-      "name": "arb_is-contract",
+      "name": "arb_is_contract",
       "description": "Whether an address on Arbitrum One is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2287,7 +2247,7 @@
       "price": "$0.001"
     },
     {
-      "name": "op_token-balance",
+      "name": "op_token_balance",
       "description": "ERC-20 token balance of a wallet on Optimism: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2316,7 +2276,7 @@
       "price": "$0.001"
     },
     {
-      "name": "op_token-info",
+      "name": "op_token_info",
       "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Optimism, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2449,7 +2409,7 @@
       "price": "$0.001"
     },
     {
-      "name": "op_is-contract",
+      "name": "op_is_contract",
       "description": "Whether an address on Optimism is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2531,7 +2491,7 @@
       "price": "$0.001"
     },
     {
-      "name": "polygon_token-balance",
+      "name": "polygon_token_balance",
       "description": "ERC-20 token balance of a wallet on Polygon PoS: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2560,7 +2520,7 @@
       "price": "$0.001"
     },
     {
-      "name": "polygon_token-info",
+      "name": "polygon_token_info",
       "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Polygon PoS, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -2693,7 +2653,7 @@
       "price": "$0.001"
     },
     {
-      "name": "polygon_is-contract",
+      "name": "polygon_is_contract",
       "description": "Whether an address on Polygon PoS is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -3208,7 +3168,7 @@
       "price": "$0.001"
     },
     {
-      "name": "json_to-csv",
+      "name": "json_to_csv",
       "description": "Convert a JSON array of objects to CSV with a header row built from all keys. Nested values are written as JSON. Use to export API results to a spreadsheet. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -3232,7 +3192,7 @@
       "price": "$0.001"
     },
     {
-      "name": "csv_to-json",
+      "name": "csv_to_json",
       "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Use to load spreadsheet exports into an agent. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -4067,7 +4027,7 @@
       "price": "$0.001"
     },
     {
-      "name": "markdown_to-html",
+      "name": "markdown_to_html",
       "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -4091,7 +4051,7 @@
       "price": "$0.001"
     },
     {
-      "name": "html_to-text",
+      "name": "html_to_text",
       "description": "Strip HTML to readable plain text: scripts and styles removed, block elements become line breaks, list items get bullets, entities decoded. Use to feed web content or emails to an LLM. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -4595,7 +4555,7 @@
       "price": "$0.001"
     },
     {
-      "name": "magic-8-ball",
+      "name": "magic_8_ball",
       "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -4676,7 +4636,7 @@
       "price": "$0.001"
     },
     {
-      "name": "yes-no",
+      "name": "yes_no",
       "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Costs $0.001 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -4810,7 +4770,7 @@
       "price": "$0.002"
     },
     {
-      "name": "ai_summarize-text",
+      "name": "ai_summarize_text",
       "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
@@ -5047,7 +5007,7 @@
       "price": "$0.002"
     },
     {
-      "name": "ai_extract-json",
+      "name": "ai_extract_json",
       "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Costs $0.002 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
