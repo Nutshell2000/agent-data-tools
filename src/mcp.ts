@@ -2,6 +2,7 @@ import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { schemaFromExample } from "./lib/output-schema";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -94,7 +95,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
                 ),
                 required,
               },
-              output: { example: e.outputExample },
+              output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
             }),
           })(handler as never) as (args: Args, extra: unknown) => Promise<{
             isError?: boolean;
