@@ -102,3 +102,32 @@ test('MCP quotes initialize independently while a cold HTTP gateway is stalled',
     assert.equal(f.calls(), 2, 'each transport reuses only its own completed state');
   } finally { f.release(); await client.close(); await f.mf.dispose(); }
 });
+
+test('MCP bundles serve one catalog section each and quote like /mcp', async () => {
+  const f = await fixture();
+  f.release();
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const fetch = async (input, init) => { const r = new Request(input, init); return f.mf.dispatchFetch(r.url, {
+    method: r.method, headers: r.headers, ...(r.method === 'POST' ? { body: await r.text() } : {}),
+  }); };
+  const counts = {};
+  try {
+    for (const slug of ['prices', 'chain', 'web', 'compliance', 'ai', 'everyday', 'utilities']) {
+      const client = new Client({ name: `bundle-${slug}`, version: '1' });
+      await client.connect(new StreamableHTTPClientTransport(new URL(`https://api.test/mcp/${slug}`), { fetch }));
+      counts[slug] = (await client.listTools()).tools.map((t) => t.name);
+      if (slug === 'web') {
+        assert.ok(counts.web.includes('extract') && !counts.web.includes('base_balance'));
+        const quote = await client.callTool({ name: 'extract', arguments: { url: 'https://public.example' } });
+        assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount, '2000');
+      }
+      await client.close();
+    }
+    const all = Object.values(counts).flat();
+    assert.equal(all.length, 165, 'every tool is in exactly one bundle');
+    assert.equal(new Set(all).size, 165);
+    const unknown = await f.mf.dispatchFetch('https://api.test/mcp/nope', { method: 'POST' });
+    assert.equal(unknown.status, 404); await unknown.body?.cancel();
+  } finally { await f.mf.dispose(); }
+});

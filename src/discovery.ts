@@ -45,6 +45,7 @@ export function mcpServerCard(origin: string) {
     serverInfo: { name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION },
     description: SERVICE_SUMMARY,
     transport: { type: "streamable-http", endpoint: `${origin}/mcp` },
+    bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpBundleTools(slug)!.length })),
     capabilities: { tools: { listChanged: false } },
     authentication: { required: false },
     payment: { protocol: "x402", asset: "USDC", network: "base" },
@@ -138,6 +139,21 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
 ];
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities";
+/**
+ * Smaller MCP servers, one per catalog section, at /mcp/<slug>. Many MCP clients cap or slow
+ * down past a few dozen tools, and every listed tool costs the agent context.
+ */
+export const MCP_BUNDLES: Readonly<Record<string, string>> = Object.freeze({
+  prices: "Prices and DeFi",
+  chain: "Chain data",
+  web: "Web, documents and search",
+  compliance: "Company, compliance and checks",
+  ai: "AI",
+  everyday: "Everyday data",
+  utilities: "Utilities",
+});
+export const mcpBundleTools = (slug: string) =>
+  Object.hasOwn(MCP_BUNDLES, slug) ? ENDPOINTS.filter((e) => categoryOf(e.path) === MCP_BUNDLES[slug]) : undefined;
 /** Tools shown first on the homepage. */
 const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/company", "/sanctions/check", "/pdf/text"];
 const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
@@ -237,7 +253,7 @@ ${rows}
 
 <h2>For agents and developers</h2>
 <ul>
-<li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code></li>
+<li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code>. Smaller servers, one per section: ${Object.keys(MCP_BUNDLES).map((slug) => `<code>/mcp/${slug}</code>`).join(", ")}</li>
 <li><a href="/openapi.json">OpenAPI 3.1 description</a></li>
 <li><a href="/status">Reliability: success rate and last success per tool over 7 days</a></li>
 <li><a href="/llms.txt">llms.txt</a></li>
@@ -410,6 +426,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "## Machine-readable",
     "",
     `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp`,
+    `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpBundleTools(slug)!.length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
     `- [Service card](${origin}/)`,
