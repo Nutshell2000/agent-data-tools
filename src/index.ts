@@ -160,6 +160,14 @@ app.use(async (c, next) => {
       }
     }
   }
+  // Free preview of what a tool returns: its static documented example, never a live run.
+  if (endpoint && c.req.method === "GET" && c.req.query("sample") === "1") {
+    return c.json({
+      sample: true,
+      note: `Static example of what ${endpoint.path} returns; not live data and not charged. Call without sample=1 and pay ${endpoint.price} with any x402 client for a live result.`,
+      tool: endpoint.path, price: endpoint.price, example: endpoint.outputExample,
+    }, 200, { "X-Sample": "1", "Cache-Control": "public, max-age=3600" });
+  }
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
   if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
