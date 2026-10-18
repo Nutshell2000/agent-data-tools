@@ -9,6 +9,7 @@ import { z } from "zod";
 import { ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
+import { paymentNetworks } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
@@ -51,12 +52,12 @@ async function paymentState(env: Env) {
   await server.initialize();
   const built: Record<string, Accepts> = {};
   for (const e of ENDPOINTS) {
-    built[e.path] = await server.buildPaymentRequirements({
-      scheme: "exact",
-      network: env.NETWORK,
-      payTo: env.PAY_TO,
-      price: e.price,
-    });
+    // One requirement per accepted network; Base stays first so existing clients see the same default.
+    const options = [];
+    for (const network of paymentNetworks(env)) {
+      options.push(...await server.buildPaymentRequirements({ scheme: "exact", network, payTo: env.PAY_TO, price: e.price }));
+    }
+    built[e.path] = options as Accepts;
   }
   return (payments = { server, terms: built });
 }

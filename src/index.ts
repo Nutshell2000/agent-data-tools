@@ -26,6 +26,7 @@ import { TOOLS } from "./tools";
 import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
+import { paymentNetworks } from "./lib/networks";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -67,7 +68,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
     ENDPOINTS.map((e): [string, RouteConfig] => [
       `GET ${e.path}`,
       {
-        accepts: [{ scheme: "exact", price: e.price, network: env.NETWORK, payTo: env.PAY_TO }],
+        accepts: paymentNetworks(env).map((network) => ({ scheme: "exact" as const, price: e.price, network, payTo: env.PAY_TO })),
         description: e.description,
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
