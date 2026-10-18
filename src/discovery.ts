@@ -142,6 +142,13 @@ export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => m
 const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/company", "/sanctions/check", "/pdf/text"];
 const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
 
+/**
+ * Page title. x402scan scrapes it as the origin title and puts it in the search text of every one of
+ * our resources (origin title | resource description | origin description | tags), so it names what
+ * buyers search for, not just a tool count.
+ */
+export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} x402 tools from $0.001`;
+
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo);
@@ -169,12 +176,12 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${ENDPOINTS.length} pay-per-call tools for AI agents, from $0.001 | SpellzCode</title>
+<title>${esc(PAGE_TITLE)}</title>
 <link rel="canonical" href="${esc(origin)}/">
 <meta name="description" content="${esc(SERVICE_SUMMARY)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(SERVICE_NAME)}">
-<meta property="og:title" content="${ENDPOINTS.length} pay-per-call tools for AI agents, from $0.001">
+<meta property="og:title" content="${esc(PAGE_TITLE)}">
 <meta property="og:description" content="${esc(SERVICE_SUMMARY)}">
 <meta property="og:url" content="${esc(origin)}/">
 <meta name="twitter:card" content="summary">
