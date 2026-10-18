@@ -1,5 +1,5 @@
 {
-  "version": "1.16.0",
+  "version": "1.17.0",
   "tools": [
     {
       "name": "extract",
@@ -2875,6 +2875,30 @@
         }
       },
       "price": "$0.005"
+    },
+    {
+      "name": "x402_check",
+      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
     },
     {
       "name": "json_validate",

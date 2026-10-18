@@ -53,7 +53,8 @@ export function capBytes(body: ReadableStream<Uint8Array>, limit: number, onTrun
 }
 
 /** Fetches a public URL with the same guards as /extract. Throws HttpError on any failure. */
-export async function fetchPublic(target: URL, accept: string): Promise<Response> {
+/** `allowStatus` lists non-2xx answers to return instead of failing (e.g. 402 for /x402/check). */
+export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = []): Promise<Response> {
   let current = parseTarget(target.href);
   const signal = AbortSignal.timeout(8_000);
   for (let redirects = 0; redirects <= 5; redirects++) {
@@ -79,8 +80,9 @@ export async function fetchPublic(target: URL, accept: string): Promise<Response
       current = parseTarget(next.href);
       continue;
     }
-    if (!res.ok) { await res.body?.cancel().catch(() => {}); throw new HttpError(502, `target responded with HTTP ${res.status}`); }
-    if (!res.body) throw new HttpError(502, "target returned an empty body");
+    const allowed = allowStatus.includes(res.status);
+    if (!res.ok && !allowed) { await res.body?.cancel().catch(() => {}); throw new HttpError(502, `target responded with HTTP ${res.status}`); }
+    if (!res.body && !allowed) throw new HttpError(502, "target returned an empty body");
     // A response from a manual redirect chain otherwise loses its effective URL.
     Object.defineProperty(res, "url", { value: current.href });
     return res;

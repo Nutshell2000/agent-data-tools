@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Nutshell2000/agent-data-tools",
   "title": "Agent Data Tools",
-  "description": "159 x402 agent tools: chain data, prices, sanctions, company data, web and PDF. From $0.001.",
-  "version": "1.16.0",
+  "description": "160 x402 agent tools: chain data, prices, sanctions, company data, web and PDF. From $0.001.",
+  "version": "1.17.0",
   "repository": {
     "url": "https://github.com/Nutshell2000/agent-data-tools",
     "source": "github"
