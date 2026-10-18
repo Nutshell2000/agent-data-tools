@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 137);
+  assert.equal(families.length, 139);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" || e.path === "/sanctions/check" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,161);
+  assert.equal(ENDPOINTS.length,163);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -403,4 +403,43 @@ test("geocode keeps Wikidata hits with coordinates and resolves country and regi
   } finally {
     global.fetch = realFetch;
   }
+});
+
+test("pricer values tokens through USDC or WETH pools and reads ETH/USD once", async () => {
+  const { pricer } = await loadTypeScript(require.resolve("../src/routes/prices.ts"));
+  const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", WETH = "0x4200000000000000000000000000000000000006";
+  const T = "0x1111111111111111111111111111111111111111", NOPOOL = "0x2222222222222222222222222222222222222222";
+  const dec = { [USDC]: 6, [WETH]: 18, [T]: 18 };
+  // sqrtPriceX96 for "1 base = price quote" in the pool's own token order.
+  const sqrtFor = (base, quote, price) => {
+    const raw = price * 10 ** (dec[quote] - dec[base]);
+    const raw1per0 = base.toLowerCase() < quote.toLowerCase() ? raw : 1 / raw;
+    return BigInt(Math.round(Math.sqrt(raw1per0) * 2 ** 96));
+  };
+  const pools = {
+    [`${WETH}|${USDC}|500`]: { addr: "0x000000000000000000000000000000000000a001", sqrt: sqrtFor(WETH, USDC, 2000), reserve: 5_000_000n * 10n ** 6n },
+    [`${T}|${WETH}|3000`]: { addr: "0x000000000000000000000000000000000000a002", sqrt: sqrtFor(T, WETH, 0.5), reserve: 100n * 10n ** 18n },
+  };
+  const byAddr = Object.fromEntries(Object.values(pools).map((p) => [p.addr, p]));
+  let refReads = 0;
+  const cl = {
+    async readContract({ address, functionName, args }) {
+      if (functionName === "getPool") {
+        const hit = pools[`${args[0]}|${args[1]}|${args[2]}`];
+        if (args[0] === WETH && args[1] === USDC && args[2] === 500) refReads++;
+        return hit ? hit.addr : "0x0000000000000000000000000000000000000000";
+      }
+      if (functionName === "slot0") return [byAddr[address].sqrt, 0, 0, 0, 0, 0, true];
+      if (functionName === "balanceOf") return byAddr[args[0]].reserve;
+      throw new Error(functionName);
+    },
+  };
+  const p = pricer(cl, "base");
+  assert.ok(Math.abs((await p.ethUsd()) - 2000) < 1e-6);
+  const t = await p.price(T, 18);
+  assert.equal(t.quotedIn, "WETH");
+  assert.ok(Math.abs(t.priceUsd - 1000) < 1e-6);
+  assert.equal((await p.price(USDC, 6)).priceUsd, 1);
+  assert.equal(await p.price(NOPOOL, 18), null);
+  assert.equal(refReads, 1);
 });

@@ -3,7 +3,7 @@ import { HttpError, isAddress, type Env } from "../lib/env";
 import { baseClient, erc20Abi } from "../lib/rpc";
 
 // Widely held Base tokens checked on every call. Symbol and decimals are read from chain.
-const DEFAULT_TOKENS = [
+export const DEFAULT_TOKENS = [
   "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
   "0x4200000000000000000000000000000000000006", // WETH
   "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", // cbBTC
