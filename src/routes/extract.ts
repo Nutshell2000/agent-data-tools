@@ -3,7 +3,9 @@ import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { pageContent } from "../lib/page-content";
 import { clipMarkdown } from "../lib/markdown";
 import { emptySourceMetadata } from "../lib/page-metadata";
-export async function extract(
+
+/** Validated /extract options, shared with /extract/rendered. */
+export function extractOptions(
   rawUrl: string | undefined,
   maxCharsParam?: string,
   formatParam = "text",
@@ -17,6 +19,16 @@ export async function extract(
     throw new HttpError(400, "format must be text, markdown or both");
   if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
     throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
+  return { target, maxChars, formatParam, sectionParam };
+}
+
+export async function extract(
+  rawUrl: string | undefined,
+  maxCharsParam?: string,
+  formatParam = "text",
+  sectionParam?: string,
+) {
+  const { target, maxChars } = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
   const res = await fetchPublic(
     target,
     "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8",
@@ -56,6 +68,23 @@ export async function extract(
     throw new HttpError(415, "unsupported source character encoding");
   }
   const source = decoder.decode(bytes);
+  try {
+    return await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam });
+  } catch (e) {
+    // An empty static HTML page is usually built by JavaScript: point to the rendered route.
+    if (html && e instanceof HttpError && e.code === "EXTRACTION_EMPTY" && !e.message.includes("maxChars"))
+      throw new HttpError(422, `${e.message}. For pages built with JavaScript, use /extract/rendered ($0.01).`, "EXTRACTION_EMPTY");
+    throw e;
+  }
+}
+
+/** Turns fetched or browser-rendered source into the /extract result. */
+export async function buildExtraction(input: {
+  target: URL; finalUrl: string; status: number; contentType: string; source: string;
+  html: boolean; markdownSource: boolean; markdownPath: boolean; inputTruncated: boolean;
+  maxChars: number; formatParam: string; sectionParam?: string;
+}) {
+  const { target, finalUrl, status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam } = input;
   const content = html
     ? pageContent(source, finalUrl, maxChars, sectionParam)
     : {
@@ -104,7 +133,7 @@ export async function extract(
   return {
     url: target.href,
     finalUrl,
-    status: res.status,
+    status,
     contentType,
     sourceFormat: html ? "html" : markdownSource ? "markdown" : "plain",
     ...metadata,
