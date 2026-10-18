@@ -1,7 +1,7 @@
 // OFAC sanctions screening against the US Treasury's Specially Designated Nationals list.
 // The list is a US government work in the public domain. Agents that move money check
 // counterparties and wallet addresses against it, and few x402 sellers offer it.
-// The two CSV files are cached at the edge and parsed once per isolate for SIX_HOURS.
+// The list is loaded once per isolate for SIX_HOURS, preferably as the mirror's pre-parsed index.
 import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { parseCsv } from "./utils";
@@ -15,41 +15,88 @@ const ALT_URLS = [`${MIRROR}/ALT.CSV`, "https://sanctionslistservice.ofac.treas.
 const SIX_HOURS = 6 * 3600;
 
 interface Party { id: string; name: string; type: string; programs: string[] }
-interface SdnIndex { parties: Map<string, Party>; addresses: Map<string, { id: string; currency: string; address: string }[]>; names: { id: string; name: string; tokens: Set<string> }[]; listDate: string | null; loadedAt: number }
+interface SdnIndex {
+  parties: Map<string, Party>;
+  addresses: Map<string, { id: string; currency: string; address: string }[]>;
+  names: { id: string; name: string; tokens: Set<string> }[];
+  /** Name word → indexes into names, so a name query only scores names sharing its words. */
+  byToken: Map<string, number[]>;
+  listDate: string | null;
+  loadedAt: number;
+}
+/** The parsed list in plain JSON, published by .github/workflows/ofac-mirror.yml as ofac-index.json. */
+export interface CompactIndex {
+  v: 1;
+  listDate: string | null;
+  parties: [id: string, name: string, type: string, programs: string[]][];
+  aliases: [id: string, name: string][];
+  addresses: [address: string, id: string, currency: string][];
+}
 
 /** OFAC writes "-0-" for an empty field. */
 const cell = (v: string | undefined) => (v === undefined || v.trim() === "-0-" ? "" : v.trim());
-export const normalize = (s: string) => s.toUpperCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+export const normalize = (s: string) => s.toUpperCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 const tokens = (s: string) => new Set(normalize(s).split(" ").filter((t) => t.length > 1));
 
-/** Builds the lookup tables from sdn.csv and alt.csv text. */
-export function buildIndex(sdnCsv: string, altCsv: string, listDate: string | null = null): SdnIndex {
-  const parties = new Map<string, Party>();
-  const addresses: SdnIndex["addresses"] = new Map();
-  const names: SdnIndex["names"] = [];
+/** Parses sdn.csv and alt.csv text into the compact form (slow: run where CPU is cheap). */
+export function compactFromCsv(sdnCsv: string, altCsv: string, listDate: string | null = null): CompactIndex {
+  const parties: CompactIndex["parties"] = [];
+  const known = new Set<string>();
+  const addresses: CompactIndex["addresses"] = [];
   for (const row of parseCsv(sdnCsv, ",")) {
     const id = cell(row[0]);
     if (!/^\d+$/.test(id)) continue;
-    const name = cell(row[1]);
-    const party = { id, name, type: cell(row[2]) || "entity", programs: cell(row[3]).split(/\]\s*\[|[[\]]/).map((p) => p.trim()).filter(Boolean) };
-    parties.set(id, party);
-    names.push({ id, name, tokens: tokens(name) });
-    for (const m of cell(row[11]).matchAll(/Digital Currency Address - ([A-Z0-9]+)\s+([A-Za-z0-9]+)/g)) {
-      const key = m[2].toLowerCase();
-      addresses.set(key, [...(addresses.get(key) ?? []), { id, currency: m[1], address: m[2] }]);
-    }
+    known.add(id);
+    parties.push([id, cell(row[1]), cell(row[2]) || "entity", cell(row[3]).split(/\]\s*\[|[[\]]/).map((p) => p.trim()).filter(Boolean)]);
+    for (const m of cell(row[11]).matchAll(/Digital Currency Address - ([A-Z0-9]+)\s+([A-Za-z0-9]+)/g)) addresses.push([m[2], id, m[1]]);
   }
+  const aliases: CompactIndex["aliases"] = [];
   for (const row of parseCsv(altCsv, ",")) {
     const id = cell(row[0]);
     const alias = cell(row[3]);
-    if (parties.has(id) && alias) names.push({ id, name: alias, tokens: tokens(alias) });
+    if (known.has(id) && alias) aliases.push([id, alias]);
   }
-  return { parties, addresses, names, listDate, loadedAt: Date.now() };
+  return { v: 1, listDate, parties, aliases, addresses };
+}
+
+/** Builds the in-memory lookup tables from the compact form. */
+export function fromCompact(c: CompactIndex): SdnIndex {
+  const parties = new Map<string, Party>();
+  const names: SdnIndex["names"] = [];
+  for (const [id, name, type, programs] of c.parties) {
+    parties.set(id, { id, name, type, programs });
+    names.push({ id, name, tokens: tokens(name) });
+  }
+  for (const [id, name] of c.aliases) if (parties.has(id)) names.push({ id, name, tokens: tokens(name) });
+  const addresses: SdnIndex["addresses"] = new Map();
+  for (const [address, id, currency] of c.addresses) {
+    const key = address.toLowerCase();
+    addresses.set(key, [...(addresses.get(key) ?? []), { id, currency, address }]);
+  }
+  const byToken = new Map<string, number[]>();
+  names.forEach((n, i) => { for (const t of n.tokens) (byToken.get(t) ?? byToken.set(t, []).get(t)!).push(i); });
+  return { parties, addresses, names, byToken, listDate: c.listDate, loadedAt: Date.now() };
+}
+
+/** Builds the lookup tables straight from sdn.csv and alt.csv text. */
+export function buildIndex(sdnCsv: string, altCsv: string, listDate: string | null = null): SdnIndex {
+  return fromCompact(compactFromCsv(sdnCsv, altCsv, listDate));
 }
 
 let cached: SdnIndex | undefined;
 async function sdnIndex(): Promise<SdnIndex> {
   if (cached && Date.now() - cached.loadedAt < SIX_HOURS * 1000) return cached;
+  /** The mirror's pre-parsed index: parsing the CSVs here costs most of a second of CPU. */
+  const prebuilt = async (): Promise<SdnIndex | null> => {
+    try {
+      const res = await fetch(`${MIRROR}/ofac-index.json`, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS } } as RequestInit);
+      if (!res.ok) { await res.body?.cancel().catch(() => {}); return null; }
+      const compact = (await res.json()) as CompactIndex;
+      return compact?.v === 1 && Array.isArray(compact.parties) ? fromCompact(compact) : null;
+    } catch {
+      return null;
+    }
+  };
   /** First source that answers 200; the last failure is reported. */
   const get = async (urls: string[]) => {
     let failure = "the OFAC list could not be downloaded; try again";
@@ -65,9 +112,10 @@ async function sdnIndex(): Promise<SdnIndex> {
     }
     throw new HttpError(502, failure);
   };
-  const [sdn, alt] = await Promise.all([get(SDN_URLS), get(ALT_URLS)]);
-  const listDate = sdn.modified ? new Date(sdn.modified).toISOString() : null;
-  const index = buildIndex(sdn.text, alt.text, listDate);
+  const index = await prebuilt() ?? await (async () => {
+    const [sdn, alt] = await Promise.all([get(SDN_URLS), get(ALT_URLS)]);
+    return buildIndex(sdn.text, alt.text, sdn.modified ? new Date(sdn.modified).toISOString() : null);
+  })();
   // Checked before caching, so a truncated or HTML answer is retried on the next call.
   if (index.parties.size < 1000) throw new HttpError(502, "the OFAC list download looks incomplete; try again");
   cached = index;
@@ -87,7 +135,10 @@ export function screen(index: SdnIndex, address: string | undefined, name: strin
     const want = tokens(name);
     if (want.size === 0) throw new HttpError(400, "name needs at least one word of two or more letters");
     const best = new Map<string, { score: number; matchedName: string }>();
-    for (const n of index.names) {
+    // Only names containing the query's rarest word can contain all of its words.
+    const postings = [...want].map((t) => index.byToken.get(t) ?? []).sort((x, y) => x.length - y.length);
+    for (const i of postings[0] ?? []) {
+      const n = index.names[i];
       if (![...want].every((t) => n.tokens.has(t))) continue;
       const score = Math.round((want.size / n.tokens.size) * 100) / 100;
       if ((best.get(n.id)?.score ?? -1) < score) best.set(n.id, { score, matchedName: n.name });
