@@ -1,6 +1,8 @@
 export interface Env {
   PAY_TO: string;
   NETWORK: `${string}:${string}`;
+  /** Further networks where tools accept payment, comma-separated (see lib/networks.ts). */
+  EXTRA_NETWORKS?: string;
   FACILITATOR_URL: string;
   PAYWALL: string;
   TRIALS_ENABLED?: string;

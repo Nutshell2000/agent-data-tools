@@ -3,6 +3,7 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
 import type { Env } from "./env";
 import { buildFacilitator } from "./facilitator";
+import { paymentNetworks } from "./networks";
 import { settlementRecord } from "./settlement-ledger";
 import { markStage } from "./funnel";
 
@@ -11,9 +12,9 @@ import { markStage } from "./funnel";
  * fully initialized state; they must not share a server while its maps are loading.
  */
 export function resourceServer(env: Env): x402ResourceServer {
-  const server = new x402ResourceServer(buildFacilitator(env))
-    .register(env.NETWORK, new ExactEvmScheme())
-    .registerExtension(bazaarResourceServerExtension);
+  const server = new x402ResourceServer(buildFacilitator(env));
+  for (const network of paymentNetworks(env)) server.register(network, new ExactEvmScheme());
+  server.registerExtension(bazaarResourceServerExtension);
   server.onAfterVerify(async context => { markStage(context.result.isValid ? "verified" : "verification_failed"); });
   server.onVerifyFailure(async () => { markStage("verification_failed"); });
   server.onSettleFailure(async () => { markStage("settlement_failed"); });

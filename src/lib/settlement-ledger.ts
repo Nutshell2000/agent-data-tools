@@ -2,10 +2,11 @@ import type { SettleResultContext } from "@x402/core/server";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
 import { activeTrace } from "./funnel";
+import { USDC_BY_NETWORK } from "./networks";
 
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const HASH = /^0x[0-9a-f]{64}$/;
-const USDC = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+// Native USDC per accepted network (lib/networks.ts); a receipt must match its own network's token.
 const OWNED_WALLETS = new Set([
   "0x60c51dd9c16fdad84165474279c70cc91eb7b15f", // Existing Taskmarket agent.
   "0x279bdcc64cee279dcd2ca0e4cc45ec2d8950ae66", // Existing test-wallet public address.
@@ -18,7 +19,7 @@ export interface SettlementRecord {
   requestId?: string;
   id: string;
   transaction: string;
-  network: "eip155:8453";
+  network: string;
   asset: string;
   recipient: string;
   payer: string;
@@ -39,12 +40,13 @@ export async function settlementRecord(context: SettleResultContext, recipient: 
   const transaction = String(result.transaction ?? "").toLowerCase();
   const payer = String(result.payer ?? "").toLowerCase();
   const to = String(requirements.payTo ?? "").toLowerCase();
-  if (result.network !== "eip155:8453" || requirements.network !== result.network ||
-      String(requirements.asset).toLowerCase() !== USDC || to !== recipient.toLowerCase() ||
+  const usdc = USDC_BY_NETWORK[String(result.network)];
+  if (!usdc || requirements.network !== result.network ||
+      String(requirements.asset).toLowerCase() !== usdc || to !== recipient.toLowerCase() ||
       !ADDRESS.test(to) || !ADDRESS.test(payer) || !HASH.test(transaction)) return null;
   const authorization = object(context.paymentPayload.payload.authorization);
   const nonce = String(authorization?.nonce ?? "").toLowerCase();
-  // This deployment uses native Base USDC with EIP-3009. Unsupported schemes are not guessed.
+  // Accepted networks use native USDC with EIP-3009. Unsupported schemes are not guessed.
   if (!HASH.test(nonce) || String(authorization?.from).toLowerCase() !== payer ||
       String(authorization?.to).toLowerCase() !== to || authorization?.value !== requirements.amount) return null;
   const amount = result.amount ?? requirements.amount;
@@ -57,9 +59,9 @@ export async function settlementRecord(context: SettleResultContext, recipient: 
     try { path = new URL(resource).pathname; } catch { return null; }
   }
   if (!PATHS.has(path)) return null;
-  const bytes = new TextEncoder().encode(`${result.network}:${USDC}:${payer}:${nonce}`);
+  const bytes = new TextEncoder().encode(`${result.network}:${usdc}:${payer}:${nonce}`);
   const id = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(b => b.toString(16).padStart(2, "0")).join("");
-  return { id, requestId: activeTrace()?.requestId, transaction, network: "eip155:8453", asset: USDC, recipient: to, payer,
+  return { id, requestId: activeTrace()?.requestId, transaction, network: String(result.network), asset: usdc, recipient: to, payer,
     authorizationNonce: nonce, amountAtomic: amount,
     amountEvidence: result.amount === undefined ? "accepted-requirements" : "facilitator-result",
     path, transport, recordedAt: new Date().toISOString(),
@@ -77,8 +79,8 @@ const emptyDay = (): LedgerDay => ({ settlements: 0, grossAtomic: "0", selfPayme
 /** Atomic deduplication survives retries, concurrent hooks, and isolate restarts. */
 export async function saveSettlement(storage: DurableObjectStorage, record: SettlementRecord): Promise<boolean> {
   if (!/^[0-9a-f]{64}$/.test(record.id) || !HASH.test(record.transaction) || !ADDRESS.test(record.payer) ||
-      !ADDRESS.test(record.recipient) || !HASH.test(record.authorizationNonce) || record.asset !== USDC ||
-      record.network !== "eip155:8453" || !PATHS.has(record.path) ||
+      !ADDRESS.test(record.recipient) || !HASH.test(record.authorizationNonce) || record.asset !== USDC_BY_NETWORK[record.network] ||
+      !(record.network in USDC_BY_NETWORK) || !PATHS.has(record.path) ||
       !/^[1-9]\d{0,29}$/.test(record.amountAtomic) || record.reconciliation !== "pending" ||
       !Number.isFinite(Date.parse(record.recordedAt))) throw new Error("invalid settlement record");
   record = { ...record, selfPayment: record.payer === record.recipient || OWNED_WALLETS.has(record.payer) };
