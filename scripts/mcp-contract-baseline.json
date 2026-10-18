@@ -1,5 +1,5 @@
 {
-  "version": "1.17.0",
+  "version": "1.18.0",
   "tools": [
     {
       "name": "extract",
@@ -4065,6 +4065,36 @@
             "description": "2.5 (default), 4.5 or significant"
           }
         }
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "geocode",
+      "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Place name"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Max results (1-10, default 5)"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "price": "$0.001"
     },
