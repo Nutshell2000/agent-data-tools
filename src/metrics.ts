@@ -3,8 +3,11 @@ import { reserveAmount, claimTransfer, type AmountReservation, type TransferClai
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
 
-/** What happened to a request for a paid path. */
-export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "marketplace";
+/** What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream). */
+export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace";
+/** Outcomes where the tool ran and answered 2xx. */
+const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace"];
+const STATUS_DAYS = 7;
 interface PathMetrics extends Partial<Record<Outcome, number>> {
   /** USD multiplied by 1,000,000, tracked only for settled x402 API calls. */
   revenueUsdMicros?: number;
@@ -53,7 +56,27 @@ export class Metrics extends DurableObject {
         row.trackedPaidCalls++;
       }
       await txn.put(key, day);
+      if (SERVED.includes(outcome)) await txn.put(`last:${path}`, new Date().toISOString());
     });
+  }
+
+  /** Per-path reliability over the last STATUS_DAYS days: executed calls only, never unpaid quotes. */
+  async status(paths: readonly string[]) {
+    const days = [...(await this.ctx.storage.list<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
+    const last = await this.ctx.storage.list<string>({ prefix: "last:" });
+    const rows = paths.map((path) => {
+      let served = 0, serverErrors = 0, buyerErrors = 0;
+      for (const day of days) {
+        const row = day[path] ?? {};
+        served += SERVED.reduce((n, o) => n + (row[o] ?? 0), 0);
+        serverErrors += row.errored ?? 0;
+        buyerErrors += row.failed ?? 0;
+      }
+      const ran = served + serverErrors;
+      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: last.get(`last:${path}`) ?? null };
+    });
+    const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
+    return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
   }
 
   async report(): Promise<Record<string, Day>> {

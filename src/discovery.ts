@@ -200,6 +200,7 @@ ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 <ul>
 <li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code></li>
 <li><a href="/openapi.json">OpenAPI 3.1 description</a></li>
+<li><a href="/status">Reliability: success rate and last success per tool over 7 days</a></li>
 <li><a href="/llms.txt">llms.txt</a></li>
 <li><a href="/.well-known/x402">x402 resource list</a></li>${EXTRA_LINKS.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}
 </ul>
@@ -220,6 +221,7 @@ export function openApi(origin: string, trialsEnabled = false) {
       version: MCP_SERVER_VERSION,
       description: SERVICE_SUMMARY,
       contact: { name: "SpellzCode support", email: SUPPORT_EMAIL },
+      "x-status": `${origin}/status`,
       "x-guidance": guidance,
     },
     externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },
@@ -358,6 +360,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
+    `- [Reliability per tool, last 7 days](${origin}/status)`,
     `- [Service card](${origin}/)`,
     `- [x402 resource list](${origin}/.well-known/x402)`,
     ...EXTRA_LINKS.map((l) => `- [${l.label}](${origin}${l.href})`),
