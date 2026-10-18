@@ -1,5 +1,5 @@
 {
-  "version": "1.20.0",
+  "version": "1.21.0",
   "tools": [
     {
       "name": "extract",
@@ -3001,6 +3001,30 @@
         }
       },
       "price": "$0.005"
+    },
+    {
+      "name": "check_counterparty",
+      "description": "One call to vet a Base address before paying, trading or onboarding: OFAC SDN address match, wallet risk heuristics (or contract bytecode and proxy checks if it is a contract) and USD holdings, combined into a verdict of block, review or pass with the reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use in payment and compliance agents. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address on Base to check"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.03"
     },
     {
       "name": "x402_check",

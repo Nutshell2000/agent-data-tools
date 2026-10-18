@@ -84,7 +84,7 @@ export function buildIndex(sdnCsv: string, altCsv: string, listDate: string | nu
 }
 
 let cached: SdnIndex | undefined;
-async function sdnIndex(): Promise<SdnIndex> {
+export async function sdnIndex(): Promise<SdnIndex> {
   if (cached && Date.now() - cached.loadedAt < SIX_HOURS * 1000) return cached;
   /** The mirror's pre-parsed index: parsing the CSVs here costs most of a second of CPU. */
   const prebuilt = async (): Promise<SdnIndex | null> => {
