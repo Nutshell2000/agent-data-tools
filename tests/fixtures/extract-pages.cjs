@@ -1,4 +1,9 @@
 module.exports = {
+  tableReferences: '<main><table><caption>See <a href="./overview">Overview</a></caption><tr><th>Method</th><th>Reference</th></tr><tr><td>read</td><td><a href="/reference/read">Read <strong>API</strong></a><br><a href="/reference/read">Same reference</a></td></tr><tr><td>unsafe</td><td><a href="javascript:alert(1)">Unsafe label</a><span hidden><a href="/hidden">HIDDEN</a></span><a href="https://user:password@docs.example/private">Credentialed label</a></td></tr><tr><td>pipe</td><td><a href="/a|b_(c)">Pipe | brackets [x]</a></td></tr></table><p><a href="/reference/read">Repeated outside</a></p></main>',
+  tableReferenceBudget: '<main>'+Array.from({length:210},(_,i)=>'<a href="/r/'+i+'">link</a>').join('')+'<table><tr><th>Method</th><th>Reference</th></tr><tr><td>read</td><td><a href="/late-reference">Late reference</a></td></tr></table></main>',
+  tableReferenceCharacters: '<main>'+Array.from({length:60},(_,i)=>'<a href="/r/'+i+'/'+('x'.repeat(500))+'">link</a>').join('')+'<table><tr><th>Method</th><th>Reference</th></tr><tr><td>read</td><td><a href="/late-reference">Late reference</a></td></tr></table></main>',
+  tableReferenceSpans: '<main><table><tr><th>Reference</th></tr><tr><td colspan="2"><a href="/spanned">Spanned API</a></td></tr></table></main>',
+
   inlineLiteral: '<main><p>Run <code>printf &quot;a  b&quot;</code> exactly.</p><p>Keep <code> a </code> and <code>   </code>.</p><p>Ticks <code>`x`</code>.</p><p>Highlighted <code><span>a  b</span><span hidden>HIDDEN</span></code>.</p></main>',
   inlineMultiline: '<main><p>Example <code><span>first  </span>\n    second</code> ends.</p></main>',
   notation: '<main><h1 id="power">Limit 2<sup>31</sup></h1><p>Maximum 2<sup>31</sup>; water H<sub>2</sub>O; nested x<sup>a<sub>i</sub></sup>; cite<sup><a href="#power">1</a></sup>.</p><p>Inline <code>x<sup>2</sup> + y<sub>i</sub></code>.</p><pre><code>2<sup>31</sup>\nH<sub>2</sub>O</code></pre></main>',
