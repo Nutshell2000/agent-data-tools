@@ -13,7 +13,7 @@ const reader = await checkEndpointSchema({ url: `${origin}/extract?url=https%3A%
 const endpoint = discovery.endpoints?.find(e => e.path === "/extract" && e.method === "GET");
 const advisory = reader.advisories?.find(e => e.method === "GET");
 const checks = {
-  catalog: discovery.found && discovery.endpoints.length === 154,
+  catalog: discovery.found && discovery.endpoints.length === 155,
   paidReader: endpoint?.authMode === "paid" && endpoint.protocols?.includes("x402"),
   price: endpoint?.price === "0.002 USD",
   guidance: discovery.guidance?.includes("reader-client.mjs") === true,
