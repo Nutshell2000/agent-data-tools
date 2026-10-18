@@ -1,5 +1,5 @@
 {
-  "version": "1.14.0",
+  "version": "1.15.0",
   "tools": [
     {
       "name": "extract",
@@ -3933,6 +3933,36 @@
         },
         "required": [
           "file"
+        ]
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "holidays",
+      "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 code: US, GB, SE, DE, FR, NO, DK or FI"
+          },
+          "year": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Year, 2024-2100 (default this year)"
+          }
+        },
+        "required": [
+          "country"
         ]
       },
       "price": "$0.001"
