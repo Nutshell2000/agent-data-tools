@@ -2,11 +2,18 @@ name: Mirror OFAC SDN list
 
 # OFAC's download hosts fail the TLS handshake with Cloudflare Workers (HTTP 525), so
 # /sanctions/check reads a copy published here as release assets. Runs on GitHub's
-# servers daily and on demand; the files are OFAC's own, unmodified.
+# servers every 6 hours, on demand, and whenever the index builder or this workflow
+# changes on main (so a change is published without waiting for the schedule).
+# The files are OFAC's own, unmodified.
 on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/build-ofac-index.mjs
+      - .github/workflows/ofac-mirror.yml
 
 jobs:
   mirror:
