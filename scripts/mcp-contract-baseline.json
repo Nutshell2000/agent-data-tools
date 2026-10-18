@@ -3004,7 +3004,7 @@
     },
     {
       "name": "check_counterparty",
-      "description": "One call to vet a Base address before paying, trading or onboarding: OFAC SDN address match, wallet risk heuristics (or contract bytecode and proxy checks if it is a contract) and USD holdings, combined into a verdict of block, review or pass with the reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use in payment and compliance agents. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "description": "One call to vet a Base address before paying, trading or onboarding: OFAC SDN address match, wallet risk heuristics (or contract bytecode and proxy checks if it is a contract) and USD holdings, combined into a verdict of block, review or pass with the reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Costs $0.03 in USDC on Base per successful call, paid with x402.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
