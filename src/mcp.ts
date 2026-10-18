@@ -61,6 +61,43 @@ async function paymentState(env: Env) {
   return (payments = { server, terms: built });
 }
 
+// Each tool's payment wrapper depends only on the per-isolate payment server and the tool's fixed
+// terms, so build it once per isolate instead of on every MCP request (165 tools).
+const wrappers = new Map<string, ReturnType<typeof createPaymentWrapper>>();
+function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
+  let factory = wrappers.get(e.path);
+  if (!factory) {
+    const required = Object.entries(e.params).filter(([, p]) => p.required).map(([name]) => name);
+    factory = createPaymentWrapper(payment.server, {
+      accepts: payment.terms[e.path as EndpointPath],
+      resource: {
+        // The wrapper can't see the tool's name, so the default URL would be a placeholder.
+        url: `mcp://tool/${toolName(e)}`,
+        description: e.description,
+        mimeType: "application/json",
+        serviceName: SERVICE_NAME,
+        tags: [...e.tags],
+      },
+      extensions: declareDiscoveryExtension({
+        toolName: toolName(e),
+        description: e.description,
+        inputSchema: {
+          type: "object",
+          properties: Object.fromEntries(
+            Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
+          ),
+          required,
+        },
+        output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
+      }),
+    });
+    wrappers.set(e.path, factory);
+  }
+  return factory;
+}
+const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
+let listedTools: ReturnType<typeof protocolTool>[] | undefined;
+
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. */
 export async function handleMcp(c: Context<{ Bindings: Env }>) {
   const env = c.env;
@@ -70,34 +107,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
 
   for (const e of ENDPOINTS) {
     const handler = (args: Args) => runTool(env, e, args);
-    const required = Object.entries(e.params)
-      .filter(([, p]) => p.required)
-      .map(([name]) => name);
     const callback = payment
       ? (() => {
-          const wrapped = createPaymentWrapper(payment.server, {
-            accepts: payment.terms[e.path],
-            resource: {
-              // The wrapper can't see the tool's name, so the default URL would be a placeholder.
-              url: `mcp://tool/${toolName(e)}`,
-              description: e.description,
-              mimeType: "application/json",
-              serviceName: SERVICE_NAME,
-              tags: [...e.tags],
-            },
-            extensions: declareDiscoveryExtension({
-              toolName: toolName(e),
-              description: e.description,
-              inputSchema: {
-                type: "object",
-                properties: Object.fromEntries(
-                  Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
-                ),
-                required,
-              },
-              output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
-            }),
-          })(handler as never) as (args: Args, extra: unknown) => Promise<{
+          const wrapped = paymentWrapperFor(e, payment)(handler as never) as (args: Args, extra: unknown) => Promise<{
             isError?: boolean;
             _meta?: Record<string, unknown>;
           }>;
@@ -134,7 +146,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
     mcp.tool(
       toolName(e),
       toolDescription(e),
-      toolInputShape(e, z),
+      inputShapes.get(e.path) ?? (inputShapes.set(e.path, toolInputShape(e, z)), inputShapes.get(e.path)!),
       toolAnnotations,
       tracked as never,
     );
@@ -142,7 +154,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>) {
 
   // SDK Zod conversion cannot represent the existing oneOf/not output contract.
   // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
-  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: ENDPOINTS.map(protocolTool)}));
+  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: (listedTools ??= ENDPOINTS.map(protocolTool))}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   return (await transport.handleRequest(c)) ?? c.body(null, 204);
