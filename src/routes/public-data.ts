@@ -11,6 +11,8 @@ const LATLON = {
   lon: { type: "number" as const, description: "Longitude (-180 to 180)", required: true, example: 18.07 },
 };
 const enc = encodeURIComponent;
+/** Plain text of a Wiktionary HTML fragment. */
+export const stripHtml = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
 // ---------- Sun and moon (standard NOAA/Meeus approximations, accurate to about a minute) ----------
 const rad = Math.PI / 180;
@@ -82,14 +84,19 @@ export const PUBLIC_DATA: Entry[] = [
       return { title: r.title, description: r.description ?? null, extract: r.extract, type: r.type, url: r.content_urls?.desktop?.page ?? null, thumbnail: r.thumbnail?.source ?? null, licence: "CC BY-SA 4.0", attribution: `Text from the Wikipedia article "${r.title}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
-  entry("/dictionary", "English dictionary lookup", "Definitions of an English word grouped by part of speech, with phonetic spelling, example sentences, synonyms and antonyms (Free Dictionary API). Use for writing help, vocabulary and word games.",
+  entry("/dictionary", "English dictionary lookup", "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games.",
     ["dictionary", "language", "english", ...P], { word: { type: "string", description: "An English word", required: true, example: "serendipity" } },
-    { word: "serendipity", phonetic: "/ˌsɛɹ.ənˈdɪp.ɪ.ti/", meanings: [{ partOfSpeech: "noun", definitions: [{ definition: "An unsought, unintended, and/or unexpected, but fortunate, discovery.", example: null }], synonyms: ["chance"] }] },
+    { word: "serendipity", meanings: [{ partOfSpeech: "Noun", definitions: [{ definition: "An unsought, unintended, and/or unexpected, but fortunate, discovery.", example: null }] }], url: "https://en.wiktionary.org/wiki/serendipity", licence: "CC BY-SA 4.0", attribution: "Definitions from the Wiktionary entry \"serendipity\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
-      const word = need(q, "word", 60).trim().toLowerCase();
-      const r = await getJson<Array<{ word: string; phonetic?: string; phonetics?: Array<{ text?: string }>; meanings: Array<{ partOfSpeech: string; definitions: Array<{ definition: string; example?: string }>; synonyms: string[]; antonyms: string[] }> }>>(`https://api.dictionaryapi.dev/api/v2/entries/en/${enc(word)}`, { notFound: "word not found" });
-      const first = r[0];
-      return { word: first.word, phonetic: first.phonetic ?? first.phonetics?.find((p) => p.text)?.text ?? null, meanings: r.flatMap((e) => e.meanings).slice(0, 8).map((m) => ({ partOfSpeech: m.partOfSpeech, definitions: m.definitions.slice(0, 4).map((d) => ({ definition: d.definition, example: d.example ?? null })), synonyms: m.synonyms.slice(0, 10), antonyms: m.antonyms.slice(0, 10) })) };
+      const word = need(q, "word", 60).trim();
+      type Sense = { definition?: string; examples?: string[] };
+      const r = await getJson<Record<string, Array<{ partOfSpeech: string; definitions: Sense[] }>>>(`https://en.wiktionary.org/api/rest_v1/page/definition/${enc(word.replaceAll(" ", "_"))}`, { notFound: "word not found" });
+      const meanings = (r.en ?? []).slice(0, 8).map((m) => ({
+        partOfSpeech: m.partOfSpeech,
+        definitions: m.definitions.map((d) => ({ definition: stripHtml(d.definition ?? ""), example: d.examples?.[0] ? stripHtml(d.examples[0]) : null })).filter((d) => d.definition).slice(0, 4),
+      })).filter((m) => m.definitions.length);
+      if (!meanings.length) throw new HttpError(404, "no English definitions for this word");
+      return { word, meanings, url: `https://en.wiktionary.org/wiki/${enc(word.replaceAll(" ", "_"))}`, licence: "CC BY-SA 4.0", attribution: `Definitions from the Wiktionary entry "${word}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
   entry("/earthquakes", "Recent earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
