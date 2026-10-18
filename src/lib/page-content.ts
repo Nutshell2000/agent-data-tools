@@ -466,6 +466,19 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         md: "\n\n" + protect(md.join("\n")) + "\n\n",
       };
     }
+    if (n.tag === "code") {
+      // Syntax-highlighting descendants are literal source, not prose. Protect
+      // them before whitespace cleanup (including cleanup by enclosing lists).
+      const value = raw(n).replace(/\r\n?/g, "\n");
+      if (value.includes("\n"))
+        return { text: protect(value), md: "\n\n" + protect(fencedCode(value)) + "\n\n" };
+      const fence = "`".repeat(Math.max(1, longestTicks(value) + 1));
+      // CommonMark removes one surrounding space when both edges have spaces.
+      // Pad nonblank edge-spaced content as well as edge backticks to preserve it.
+      const pad = value.startsWith("`") || value.endsWith("`") ||
+        (value.startsWith(" ") && value.endsWith(" ") && /[^ ]/.test(value));
+      return { text: protect(value), md: protect(`${fence}${pad ? " " : ""}${value}${pad ? " " : ""}${fence}`) };
+    }
     const children = n.children.map((c) =>
       typeof c === "string"
         ? { text: c.replace(/\s+/g, " "), md: escape(c.replace(/\s+/g, " ")) }
@@ -497,10 +510,6 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       } else if (href && !seen.has(href)) warnings.add("links_limited");
       if (href)
         md = `[${md.trim()}](${href.replace(/[()\\]/g, (c) => "\\" + c)})`;
-    }
-    if (n.tag === "code") {
-      const fence = "`".repeat(Math.max(1, longestTicks(text) + 1));
-      md = text.includes("`") ? `${fence} ${text} ${fence}` : "`" + text + "`";
     }
     if (n.tag === "sup" || n.tag === "sub") {
       text = normalizeNotation(n,text,false,inLiteralCode);
