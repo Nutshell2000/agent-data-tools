@@ -233,6 +233,14 @@ ${details}
 </html>`;
 }
 
+/**
+ * EIP-191 signatures of the bare public origin ("https://agent-data-tools.revmesh2074.workers.dev")
+ * by the PAY_TO wallet. x402scan and AgentCash read them from openapi.json and then list the
+ * origin as ownership_verified. Produce one with scripts/sign-ownership-proof.mjs; a test
+ * rejects any entry that does not recover to PAY_TO. Signatures are public, not secrets.
+ */
+export const OWNERSHIP_PROOFS: readonly string[] = [];
+
 export function openApi(origin: string, trialsEnabled = false) {
   const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)}`;
   return {
@@ -246,6 +254,10 @@ export function openApi(origin: string, trialsEnabled = false) {
       "x-guidance": guidance,
     },
     externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },
+    // x-agentcash-provenance is the current field; x-discovery is the older one some indexers still read.
+    ...(OWNERSHIP_PROOFS.length
+      ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
+      : {}),
     servers: [{ url: origin }],
     paths: Object.fromEntries(
       ENDPOINTS.map((e) => [
