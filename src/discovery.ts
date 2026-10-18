@@ -172,6 +172,12 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
 <title>${ENDPOINTS.length} pay-per-call tools for AI agents, from $0.001 | SpellzCode</title>
 <link rel="canonical" href="${esc(origin)}/">
 <meta name="description" content="${esc(SERVICE_SUMMARY)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${esc(SERVICE_NAME)}">
+<meta property="og:title" content="${ENDPOINTS.length} pay-per-call tools for AI agents, from $0.001">
+<meta property="og:description" content="${esc(SERVICE_SUMMARY)}">
+<meta property="og:url" content="${esc(origin)}/">
+<meta name="twitter:card" content="summary">
 <style>
 :root { --bg:#fbfaf7; --fg:#1d1b16; --muted:#6b665c; --line:#e3ded3; --accent:#0b6e4f; --code:#f1ede4; }
 @media (prefers-color-scheme: dark) { :root { --bg:#15140f; --fg:#ece8dd; --muted:#a39d8f; --line:#2e2b23; --accent:#5fd0a5; --code:#221f18; } }

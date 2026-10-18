@@ -14,6 +14,7 @@ import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { headPaymentProbe } from "./lib/payment-probe";
+import { prefersHtml } from "./lib/negotiate";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
 import { activeTrace, isDiscoveryVisit, markStage, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
@@ -203,8 +204,8 @@ app.route("/", store);
 
 const origin = (url: string) => new URL(url).origin;
 app.get("/", async (c) =>
-  // Browsers get a readable page, programs get the JSON service card.
-  (c.req.header("accept") ?? "").includes("text/html")
+  // Browsers and directory scrapers get a readable page, programs get the JSON service card.
+  prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK)),
 );
