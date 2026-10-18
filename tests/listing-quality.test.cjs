@@ -77,3 +77,22 @@ test("service summary states the current tool count and the buyer terms", () => 
   assert.match(discovery.SERVICE_SUMMARY, new RegExp(`^${discovery.ENDPOINTS.length} pay-per-call tools`));
   for (const phrase of ["No account or API key", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
 });
+
+test("OpenAPI x-guidance stays short enough for AgentCash to include it automatically", () => {
+  // @agentcash/discovery auto-includes guidance up to 1,000 estimated tokens (length / 4) and flags anything over 4,000 characters.
+  const guidance = discovery.openApi("https://agent-data-tools.revmesh2074.workers.dev").info["x-guidance"];
+  assert.ok(guidance.length <= 4000, `x-guidance is ${guidance.length} characters`);
+  for (const path of ["/status", "/price/token", "/sanctions/check", "/extract", "/mcp"]) assert.ok(guidance.includes(path), path);
+});
+
+test("every published ownership proof is a PAY_TO signature of the production origin", async () => {
+  const { recoverMessageAddress } = require("viem");
+  const fs = require("node:fs");
+  const payTo = fs.readFileSync(require.resolve("../wrangler.jsonc"), "utf8").match(/"PAY_TO":\s*"(0x[0-9a-fA-F]{40})"/)[1];
+  for (const proof of discovery.OWNERSHIP_PROOFS) {
+    const signer = await recoverMessageAddress({ message: "https://agent-data-tools.revmesh2074.workers.dev", signature: proof });
+    assert.equal(signer.toLowerCase(), payTo.toLowerCase(), proof);
+  }
+  const api = discovery.openApi("https://agent-data-tools.revmesh2074.workers.dev");
+  assert.equal("x-agentcash-provenance" in api, discovery.OWNERSHIP_PROOFS.length > 0);
+});
