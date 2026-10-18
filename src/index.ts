@@ -20,6 +20,7 @@ import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { TOOLS } from "./tools";
+import { viaMarketplace } from "./lib/marketplace";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -55,18 +56,6 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
 // Counts requests after their response is decided; telemetry never delays or fails it.
 app.use(requestMetricsMiddleware(PAID_PATHS, viaMarketplace));
 
-/**
- * True for a call that came through RapidAPI's proxy. Those callers pay RapidAPI, which
- * pays us, so they skip the x402 paywall. Off until the secret is configured.
- */
-function viaMarketplace(env: Env, sent: string | undefined): boolean {
-  const secret = env.RAPIDAPI_PROXY_SECRET;
-  if (!secret || secret.length < 16 || !sent || sent.length !== secret.length) return false;
-  // Compare every character so the time taken does not reveal how much matched.
-  let diff = 0;
-  for (let i = 0; i < secret.length; i++) diff |= secret.charCodeAt(i) ^ sent.charCodeAt(i);
-  return diff === 0;
-}
 
 function buildPaywall(env: Env): MiddlewareHandler {
   const routes = Object.fromEntries(
