@@ -1,5 +1,5 @@
 {
-  "version": "1.15.0",
+  "version": "1.16.0",
   "tools": [
     {
       "name": "extract",
@@ -3991,6 +3991,30 @@
         },
         "required": [
           "title"
+        ]
+      },
+      "price": "$0.001"
+    },
+    {
+      "name": "dictionary",
+      "description": "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "description": "An English word"
+          }
+        },
+        "required": [
+          "word"
         ]
       },
       "price": "$0.001"
