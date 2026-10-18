@@ -12,8 +12,8 @@ const { FAMILIES, PAUSED_FAMILY_TOOLS } = createRequire(import.meta.url)(out.pat
 await rm(out);
 
 const filter = process.argv[2];
-// AI tools need the Workers AI binding; check them against a deployed Worker instead.
-const list = FAMILIES.filter((f) => !Object.hasOwn(PAUSED_FAMILY_TOOLS, f.endpoint.path) && !f.endpoint.path.startsWith("/ai/") && (!filter || f.endpoint.path.includes(filter)));
+// AI tools and /extract/rendered need Workers bindings (AI, BROWSER); check them against a deployed Worker instead.
+const list = FAMILIES.filter((f) => !Object.hasOwn(PAUSED_FAMILY_TOOLS, f.endpoint.path) && !f.endpoint.path.startsWith("/ai/") && f.endpoint.path !== "/extract/rendered" && (!filter || f.endpoint.path.includes(filter)));
 const env = { BASE_RPC_URL: "https://mainnet.base.org" };
 let failed = 0;
 const slow = [];

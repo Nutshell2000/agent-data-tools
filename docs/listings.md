@@ -31,7 +31,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 - MCP server (streamable HTTP, no auth; tools ask for x402 payment): https://agent-data-tools.revmesh2074.workers.dev/mcp
 - Smaller MCP servers, one per section:
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 12 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 10 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 11 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 9 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 60 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/ai (AI text, 13 tools)
