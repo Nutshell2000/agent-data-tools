@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 136);
+  assert.equal(families.length, 137);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" || e.path === "/sanctions/check" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/pdf/text" || e.path === "/sanctions/check" ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,159);
+  assert.equal(ENDPOINTS.length,160);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -344,4 +344,37 @@ test("dictionary reads English senses from Wiktionary as plain text with attribu
   } finally {
     global.fetch = realFetch;
   }
+});
+
+test("x402 check decodes v2 headers and v1 bodies and scores listing quality", async () => {
+  const { analyze } = await loadTypeScript(require.resolve("../src/routes/x402-check.ts"));
+  const { encodePaymentRequiredHeader } = require("@x402/core/http");
+  const { declareDiscoveryExtension } = require("@x402/extensions/bazaar");
+  const { schemaFromExample } = await loadTypeScript(require.resolve("../src/lib/output-schema.ts"));
+  const example = { fee: 3 };
+  const good = encodePaymentRequiredHeader({
+    x402Version: 2,
+    resource: { url: "https://seller.example/fees", description: "Bitcoin fee rates in sat/vB. Use before sending a transaction.", mimeType: "application/json" },
+    accepts: [{ scheme: "exact", network: "eip155:8453", amount: "2000", asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo: "0x0000000000000000000000000000000000000001", maxTimeoutSeconds: 300, extra: {} }],
+    extensions: declareDiscoveryExtension({ input: {}, inputSchema: { properties: {} }, output: { example, schema: schemaFromExample(example) } }),
+  });
+  const v2 = analyze("https://seller.example/fees", 402, good, "");
+  assert.equal(v2.x402Version, 2);
+  assert.equal(v2.accepts[0].priceUsd, 0.002);
+  assert.equal(v2.score, 1, JSON.stringify(v2.checks.filter((c) => !c.pass)));
+
+  const weak = encodePaymentRequiredHeader({
+    x402Version: 2, resource: { url: "http://seller.example/x" },
+    accepts: [{ scheme: "exact", network: "eip155:8453", amount: "500", asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo: "0x0000000000000000000000000000000000000001", maxTimeoutSeconds: 60, extra: {} }],
+  });
+  const low = analyze("http://seller.example/x", 402, weak, "");
+  const failed = low.checks.filter((c) => !c.pass).map((c) => c.check);
+  for (const expected of ["resource URL is absolute https", "USDC amount meets the Coinbase facilitator minimum (0.001)", "description present", "Bazaar discovery metadata present"]) assert.ok(failed.includes(expected), expected);
+
+  const v1 = analyze("https://old.example/a", 402, null, JSON.stringify({ x402Version: 1, accepts: [{ scheme: "exact", network: "base", maxAmountRequired: "10000", asset: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", payTo: "0x1", resource: "https://old.example/a", description: "Old style listing. Use for testing." }] }));
+  assert.deepEqual([v1.x402Version, v1.accepts[0].network, v1.accepts[0].priceUsd, v1.resource.url], [1, "eip155:8453", 0.01, "https://old.example/a"]);
+
+  assert.equal(analyze("https://free.example", 200, null, "{}").paywalled, false);
+  assert.equal(analyze("https://odd.example", 402, null, "pay me").score, 0);
+  assert.throws(() => analyze("https://bad.example", 402, "%%%", ""), (e) => e.status === 422);
 });
