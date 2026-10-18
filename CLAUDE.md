@@ -10,8 +10,9 @@
 - Sales plan: flagship tools /check/counterparty and /extract/rendered, free ?sample=1 previews,
   readable 402 bodies, MCP bundles at /mcp/<section>. Directory copy: docs/listings.md.
 - OFAC mirror release `ofac-latest` is published by .github/workflows/ofac-mirror.yml.
-- Pending on Peter: ownership proof signature (scripts/sign-ownership-proof.mjs; share only the
-  signature, then add it to OWNERSHIP_PROOFS in src/discovery.ts), directory submissions, revoking
-  the Cloudflare token pasted in chat.
+- Ownership proof is live (PR #84, deployed 2026-10-18): Coinbase Wallet ERC-1271 signature in
+  OWNERSHIP_PROOFS, verified on Base by `npm run check:ownership` in CI. AgentCash discovery reports
+  trustTier ownership_verified; x402scan re-registered 167/167.
+- Pending on Peter: directory submissions, revoking the Cloudflare token pasted in chat.
 - After a tool change: bump server.json and MCP_SERVER_VERSION, run `npm run update:mcp-contract`
   last (after any description edit), then `npm test` and `npm run check:mcp-contract`.
