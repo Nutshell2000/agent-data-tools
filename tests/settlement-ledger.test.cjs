@@ -128,7 +128,7 @@ test('actual resource-server settle hook records receipts and never requests ano
 });
 
 test('receipts on Polygon, Arbitrum and Monad count with their own USDC; a token from another network is refused', async () => {
-  const usdc = { 'eip155:137': '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', 'eip155:42161': '0xaf88d065e77c8cc2239327c5edb3a432268e5831', 'eip155:143': '0x754704bc059f8c67012fed69bc8a327a5aafb603' };
+  const usdc = { 'eip155:137': '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', 'eip155:42161': '0xaf88d065e77c8cc2239327c5edb3a432268e5831', 'eip155:143': '0x754704bc059f8c67012fed69bc8a327a5aafb603', 'eip155:480': '0x79a02482a880bce3f13e09da970dc34db4cd24d1' };
   const fixture = storageFixture();
   for (const [network, token] of Object.entries(usdc)) {
     const c = context(); c.requirements.network = network; c.requirements.asset = token; c.result.network = network;
@@ -148,4 +148,9 @@ test('payment networks: Base first, then each known extra network once; unknown 
   const { paymentNetworks } = await load(require.resolve('../src/lib/networks.ts'));
   assert.deepEqual(paymentNetworks({ NETWORK: 'eip155:8453' }), ['eip155:8453']);
   assert.deepEqual(paymentNetworks({ NETWORK: 'eip155:8453', EXTRA_NETWORKS: 'eip155:137, eip155:42161,eip155:137,eip155:1,eip155:8453,eip155:143' }), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143']);
+  const { priceOn } = await load(require.resolve('../src/lib/networks.ts'));
+  assert.equal(priceOn('eip155:8453', '$0.001'), '$0.001');
+  assert.deepEqual(priceOn('eip155:480', '$0.001'), { asset: '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1', amount: '1000', extra: { name: 'USDC', version: '2' } });
+  assert.equal(priceOn('eip155:480', '$0.20').amount, '200000');
+  assert.equal(priceOn('eip155:480', '$1').amount, '1000000');
 });
