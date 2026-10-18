@@ -26,7 +26,7 @@ export const CHAINS: ChainDef[] = [
 ];
 
 const clients = new Map<string, PublicClient>();
-function client(env: Env, c: ChainDef): PublicClient {
+export function client(env: Env, c: ChainDef): PublicClient {
   const urls = c.slug === "base" && env.BASE_RPC_URL ? [env.BASE_RPC_URL, ...c.rpcs.filter((u) => u !== env.BASE_RPC_URL)] : c.rpcs;
   const key = `${c.slug}|${urls[0]}`;
   let cl = clients.get(key);
@@ -39,7 +39,7 @@ function client(env: Env, c: ChainDef): PublicClient {
 }
 
 /** Runs an RPC call; node failures become 502 so the caller is not charged. */
-async function rpc<T>(fn: () => Promise<T>): Promise<T> {
+export async function rpc<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (e) {
@@ -62,7 +62,7 @@ const txHash = (v: string | undefined) => {
 };
 const iso = (seconds: bigint | number) => new Date(Number(seconds) * 1000).toISOString();
 const EX_ADDR = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
-const USDC: Record<string, `0x${string}`> = {
+export const USDC: Record<string, `0x${string}`> = {
   base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   eth: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   arb: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
