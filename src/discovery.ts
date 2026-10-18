@@ -1,10 +1,11 @@
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
+import { AI_PATHS } from "./routes/ai-text";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
 
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.8.3";
+export const MCP_SERVER_VERSION = "1.9.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -277,7 +278,7 @@ export function openApi(origin: string, trialsEnabled = false) {
 
 // Left out of marketplace listings: these run on a limited daily allowance, which a
 // subscription plan with a monthly quota could exhaust.
-export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe"]);
+export const CAPACITY_LIMITED =new Set(["/summarize", "/screenshot", "/image", "/transcribe", "/describe", ...AI_PATHS]);
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
 export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
