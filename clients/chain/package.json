@@ -1,0 +1,8 @@
+{
+  "name": "spellzcode-chain-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20.19" },
+  "scripts": { "build": "node build.mjs" }
+}

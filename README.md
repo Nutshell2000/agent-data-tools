@@ -1,8 +1,11 @@
 # Agent Data Tools
 
-Operated by **SpellzCode**. Start with [static documentation reading](docs/web-reading.md): clean text, Markdown, code and tables for **$0.002 USDC on Base**, using an existing funded x402 wallet. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
+Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped, account-free client](docs/chain-checks.md): one transaction-status result costs **$0.003**, a wallet snapshot **$0.005**. Inspect a free quote before an explicitly authorized purchase. Optional gas and allowance checks cost **$0.002 each**; the client never buys them automatically. Uses an existing funded Base x402 wallet and never sends the transaction being checked.
+
+For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
 - [Browse all 32 tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
+- [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
 - [Inspect the portable buyer skill](skills/spellzcode-x402-reader/SKILL.md) and [installation context](https://agent-data-tools.revmesh2074.workers.dev/skills/index.json)
@@ -12,7 +15,7 @@ Operated by **SpellzCode**. Start with [static documentation reading](docs/web-r
 - [Extraction benchmark and limitations](docs/extraction-quality.md)
 - Secondary: [Bitcoin fee data with capped CLI and local MCP commands](docs/bitcoin-fees.md)
 
-The downloadable client requires Node 20.19+ and no npm installation or TypeScript. An unsigned quote needs no key and never pays. An explicit authorized purchase needs an existing funded Base wallet and a per-call cap of at most $0.002. The local MCP adapter starts in quotes-only mode; deliberately enabled buying shares a process budget across reader, sitemap and Bitcoin-data calls. Keys stay on the buyer's device.
+The reader client requires Node 20.19+ and no npm installation or TypeScript. An unsigned quote needs no key and never pays. An explicit authorized reader purchase needs an existing funded Base wallet and a per-call cap of at most $0.002. The local MCP adapter starts in quotes-only mode; deliberately enabled buying shares a process budget across reader, sitemap and Bitcoin-data calls. Keys stay on the buyer's device. The separate chain client has the operation-specific caps above and grants no session or monthly spending allowance.
 
 Repository fallback downloads for **1.7.6**: [CLI executable](https://github.com/Nutshell2000/agent-data-tools/releases/download/reader-1.7.6/reader-client.mjs) and [its checksum](https://github.com/Nutshell2000/agent-data-tools/releases/download/reader-1.7.6/reader-client.mjs.sha256), or [local MCP adapter](https://github.com/Nutshell2000/agent-data-tools/releases/download/reader-1.7.6/reader-mcp.mjs) and [its checksum](https://github.com/Nutshell2000/agent-data-tools/releases/download/reader-1.7.6/reader-mcp.mjs.sha256). Save the executable and matching checksum in one folder, then follow the [verification instructions](docs/web-reading.md) before running it. [Release notes and all six files](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.6). These match the website's published bytes; checksums are not independent security signatures. Older [1.7.0 downloads](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.7.0) and [1.5.1 downloads](https://github.com/Nutshell2000/agent-data-tools/releases/tag/reader-1.5.1) remain available unchanged.
 
