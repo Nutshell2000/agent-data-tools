@@ -116,3 +116,12 @@ test("directory scrapers get the HTML homepage with OpenGraph tags; programs kee
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
   assert.ok(png.length < 64 * 1024, `og.png is ${png.length} bytes`);
 });
+
+test("directory listing copy names every MCP bundle with its current tool count", () => {
+  const copy = require("node:fs").readFileSync(require.resolve("../docs/listings.md"), "utf8");
+  for (const slug of Object.keys(discovery.MCP_BUNDLES)) {
+    assert.match(copy, new RegExp(`/mcp/${slug} \\([^)]*, ${discovery.mcpBundleTools(slug).length} tools\\)`), slug);
+  }
+  const short = copy.split("## Short description (under 160 characters)\n\n")[1].split("\n")[0];
+  assert.ok(short.length <= 160, `short description is ${short.length}`);
+});
