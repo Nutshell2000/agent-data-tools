@@ -18,3 +18,5 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run check:mcp-contract
+      - run: npm run check:ownership
+      - run: npm run check:ownership
