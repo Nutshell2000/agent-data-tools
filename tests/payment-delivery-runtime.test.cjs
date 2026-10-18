@@ -26,6 +26,21 @@ before(async()=>{
   }}));
 });
 after(async()=>{await mf?.dispose();});
+
+test('paused tools reject GET, HEAD and signed requests without payment or an upstream call',async()=>{
+ const before=(await revenue()).settlements;
+ for(const path of ['/regex/test','/air-quality','/uv','/geocode'])for(const method of ['GET','HEAD']){
+  const r=await mf.dispatchFetch('https://api.test'+path,{method,headers:{'PAYMENT-SIGNATURE':'untrusted-not-a-payment'}});
+  assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);
+  if(method==='GET')assert.equal((await r.json()).code,'TOOL_PAUSED');else assert.equal(await r.text(),'');
+ }
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'paused-tools-fixture',version:'1'});
+ try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));
+  const names=(await client.listTools()).tools.map(t=>t.name);
+  for(const name of ['regex_test','air-quality','uv','geocode']){assert.ok(!names.includes(name));const r=await client.callTool({name,arguments:{}});assert.equal(r.isError,true);assert.ok(!r._meta?.['x402/payment-response']?.success);}
+ }finally{await client.close();}
+ assert.equal((await revenue()).settlements,before);
+});
 function errorBody(result){return result.structuredContent??JSON.parse(result.content[0].text);}
 function payload(requirements,nonce='3'.repeat(64),url='https://api.test/extract'){
   return{x402Version:2,resource:{url},accepted:requirements,payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value:'2000',validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+nonce}}};
@@ -62,7 +77,7 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,32);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name),['extract','sitemap','btc-fees']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,api.paths['/'+tool.name].get.responses['200'].content['application/json'].schema);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,145);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name),['extract','sitemap','btc-fees']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,api.paths['/'+tool.name].get.responses['200'].content['application/json'].schema);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
