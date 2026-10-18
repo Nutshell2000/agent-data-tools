@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 141);
+  assert.equal(families.length, 142);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" ? "$0.01" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
+    assert.equal(e.price, e.path === "/search" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio"].includes(e.path) ? "$0.005" : e.path === "/company" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.002" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.002" : "$0.001", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replaceAll("/", "_"), /^[A-Za-z0-9_-]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,165);
+  assert.equal(ENDPOINTS.length,166);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -488,4 +488,15 @@ test("OFAC compact index round-trips through JSON and matches what the CSV path 
   }
   assert.equal(screen(viaJson, undefined, "johnny smith")[0].sdnId, "200");
   assert.equal(viaJson.listDate, "2026-10-18T00:00:00.000Z");
+});
+
+test("counterparty verdict: SDN match blocks, high heuristics review, otherwise pass", async () => {
+  const { verdict } = await loadTypeScript(require.resolve("../src/routes/counterparty.ts"));
+  const low = { riskLevel: "low", riskFlags: [] };
+  assert.deepEqual(verdict([], low, null), { verdict: "pass", reasons: [] });
+  const hit = [{ name: "LAZARUS GROUP" }, { name: "LAZARUS GROUP" }];
+  assert.deepEqual(verdict(hit, low, null), { verdict: "block", reasons: ["address is on the OFAC SDN list (LAZARUS GROUP)"] });
+  assert.equal(verdict([], { riskLevel: "high", riskFlags: ["a", "b"] }, null).verdict, "review");
+  assert.equal(verdict([], low, { riskLevel: "critical", riskFlags: ["proxy-impl-unset"] }).verdict, "review");
+  assert.equal(verdict([], { riskLevel: "medium", riskFlags: ["a"] }, { riskLevel: "medium", riskFlags: [] }).verdict, "pass");
 });
