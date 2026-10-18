@@ -272,6 +272,13 @@ app.get("/metrics", async (c) => {
   if (!c.env.METRICS) return c.json({});
   return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).report());
 });
+// Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
+app.get("/status", async (c) => {
+  const generatedAt = new Date().toISOString();
+  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx), which are never charged; server errors (5xx) are never charged either.";
+  if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
+  return c.json({ generatedAt, note, ...await c.env.METRICS.get(c.env.METRICS.idFromName("global")).status(ENDPOINTS.map((e) => e.path)) });
+});
 app.get("/revenue", async (c) => {
   if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
   return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).revenueSummary());

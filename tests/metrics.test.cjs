@@ -162,7 +162,8 @@ test("HTTP middleware records settled product revenue and excludes missing or fa
   assert.equal(row.marketplace, 1);
   assert.equal(row.challenged, 1);
   assert.equal(row.trial, 1);
-  assert.equal(row.failed, 1);
+  assert.equal(row.failed, undefined);
+  assert.equal(row.errored, 1);
 });
 
 test("persists revenue and tracked-call count only for paid outcomes", async () => {
@@ -267,4 +268,15 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   assert.equal(row.unsettled, 1);
   assert.equal(row.revenueUsdMicros, 400_000);
   assert.equal(row.trackedPaidCalls, 2);
+});
+
+test("status reports success rate and last success from executed calls only", async () => {
+  const { metrics } = createMetrics();
+  for (const outcome of ["paid", "marketplace", "errored", "failed", "challenged", "challenged"]) await metrics.bump("/base/balance", outcome);
+  const status = await metrics.status(["/base/balance", "/never-called"]);
+  const [called, idle] = status.tools;
+  assert.deepEqual([called.served, called.serverErrors, called.buyerErrors, called.successRate], [2, 1, 1, 0.667]);
+  assert.match(called.lastSuccessAt, /^\d{4}-\d\d-\d\dT/);
+  assert.deepEqual([idle.served, idle.successRate, idle.lastSuccessAt], [0, null, null]);
+  assert.deepEqual([status.windowDays, status.served, status.serverErrors], [7, 2, 1]);
 });
