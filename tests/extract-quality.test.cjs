@@ -110,3 +110,22 @@ test('table values and selected heading titles preserve superscript and subscrip
 test('literal code, empty and hidden annotations add no invented notation or out-of-scope warning',async()=>{
  const v=await result('notationLiteral',{format:'both',section:'plain'});assert.equal(v.codeBlocks[0].text,'231\nH2O');assert.ok(!v.warnings.includes('superscript_subscript_normalized'));assert.ok(!v.text.includes('99'));assert.ok(!v.text.includes('^{}'));assert.ok(!v.text.includes('Other'));
 });
+
+
+test('inline code keeps significant spaces, padded delimiters and highlighted literal text',async()=>{
+ const v=await result('inlineLiteral',{format:'both'});
+ assert.ok(v.text.includes('printf "a  b"'));
+ assert.ok(v.markdown.includes('`printf "a  b"`'));
+ assert.ok(v.text.includes('Keep  a  and    .'));
+ assert.ok(v.markdown.includes('Keep `  a  ` and `   `.'));
+ assert.ok(v.markdown.includes('`` `x` ``'));
+ assert.ok(v.markdown.includes('Highlighted `a  b`.'));
+ assert.ok(!v.text.includes('HIDDEN'));
+ assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+
+test('multiline inline code uses a fenced representation that preserves literal newlines',async()=>{
+ const v=await result('inlineMultiline',{format:'both'});
+ assert.ok(v.text.includes('first  \n    second'));
+ assert.ok(v.markdown.includes('```\nfirst  \n    second\n```'));
+});
