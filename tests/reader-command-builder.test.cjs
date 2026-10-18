@@ -57,7 +57,7 @@ test('actual browser bundle updates text locally, clears invalid commands and ne
   const panel = { dataset: { origin }, querySelectorAll: () => [] }; elements.set('reader-builder', panel);
   for (const el of elements.values()) Object.defineProperty(el, 'innerHTML', { set() { throw Error('HTML injection sink'); } });
   const context = { URL, URLSearchParams, document: { getElementById: id => elements.get(id) }, navigator: {}, fetch() { throw Error('Unexpected request'); } };
-  const code = await readFile('public/clients/reader/1.7.5/command-builder.js', 'utf8');
+  const code = await readFile('public/clients/reader/1.7.6/command-builder.js', 'utf8');
   vm.runInNewContext((await transform(code, { format: "iife" })).code, context);
   assert.equal(elements.get('reader-builder-output').hidden, false);
   elements.get('reader-url').value = 'https://example.com/?q=<img src=x onerror=alert(1)>';

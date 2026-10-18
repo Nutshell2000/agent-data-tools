@@ -129,3 +129,33 @@ test('multiline inline code uses a fenced representation that preserves literal 
  assert.ok(v.text.includes('first  \n    second'));
  assert.ok(v.markdown.includes('```\nfirst  \n    second\n```'));
 });
+
+
+test('table references retain safe resolved destinations and deduplicate structured links',async()=>{
+ const v=await result('tableReferences',{format:'both'});
+ assert.deepEqual(v.tables[0].rows[1],['read','Read API Same reference']);
+ assert.ok(v.markdown.includes('[Read API](https://public.example/reference/read)'));
+ assert.ok(v.markdown.includes('[Overview](https://public.example/overview)'));
+ assert.ok(v.markdown.includes(String.raw`[Pipe \| brackets \[x\]](https://public.example/a%7Cb_\(c\))`));
+ assert.equal(v.links.filter(x=>x.href==='https://public.example/reference/read').length,1);
+ assert.equal(v.links.find(x=>x.href==='https://public.example/reference/read').text,'Read API');
+ assert.ok(v.links.some(x=>x.href==='https://public.example/overview'));
+ assert.ok(!v.links.some(x=>x.href.includes('hidden')||x.href.includes('password')||x.href.startsWith('javascript:')));
+ assert.ok(!v.markdown.includes('javascript:')&&!v.markdown.includes('password')&&!v.text.includes('HIDDEN'));
+ assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+
+test('table destinations survive link metadata exhaustion and irregular tables retain structured references',async()=>{
+ const v=await result('tableReferenceBudget',{format:'both',maxChars:'100000'});
+ assert.equal(v.links.length,200);assert.ok(v.warnings.includes('links_limited'));
+ assert.ok(v.markdown.includes('[Late reference](https://public.example/late-reference)'));
+ assert.match(v.text,/read\tLate reference/);assert.equal(v.truncated,false);
+ const exhausted=await result('tableReferenceCharacters',{format:'both',maxChars:'100000'});
+ assert.ok(exhausted.warnings.includes('details_truncated'));
+ assert.ok(exhausted.markdown.includes('[Late reference](https://public.example/late-reference)'));
+ assert.match(exhausted.text,/read\tLate reference/);assert.equal(exhausted.truncated,false);
+
+ const spans=await result('tableReferenceSpans',{format:'both'});
+ assert.ok(spans.warnings.includes('table_shape_preserved_as_tsv'));
+ assert.ok(spans.links.some(x=>x.href==='https://public.example/spanned'));
+});
