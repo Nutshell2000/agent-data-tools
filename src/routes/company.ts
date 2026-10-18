@@ -1,47 +1,12 @@
 // Company enrichment from Wikidata. Enrichment is the third-largest category agents pay for
 // over x402, and Wikidata's structured data is CC0, so it can be resold without conditions.
 // Two requests: search plus the candidates' claims, then labels for the linked items.
-import { entry, getJson, opt, type Entry } from "../family";
+import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-
-const API = "https://www.wikidata.org/w/api.php";
+import { type Entity, firstDate, firstQuantity, firstString, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
 /** Wikidata items that mark an entity as a business. */
 const COMPANY_SIGNALS = ["P452", "P1128", "P414", "P1278", "P159", "P169", "P2139"];
-
-interface Snak { datavalue?: { value: unknown } }
-interface Claim { rank?: string; mainsnak: Snak; qualifiers?: Record<string, Snak[]> }
-interface Entity {
-  id: string;
-  labels?: Record<string, { value: string }>;
-  descriptions?: Record<string, { value: string }>;
-  claims?: Record<string, Claim[]>;
-  sitelinks?: Record<string, { title: string }>;
-}
-
-/** Statements of a property, preferred rank first, deprecated ones dropped. */
-function statements(e: Entity, prop: string): Claim[] {
-  const all = (e.claims?.[prop] ?? []).filter((c) => c.rank !== "deprecated" && c.mainsnak.datavalue);
-  const preferred = all.filter((c) => c.rank === "preferred");
-  return preferred.length ? preferred : all;
-}
-const itemIds = (e: Entity, prop: string) => statements(e, prop).map((c) => (c.mainsnak.datavalue!.value as { id: string }).id);
-const firstString = (e: Entity, prop: string) => {
-  const v = statements(e, prop)[0]?.mainsnak.datavalue?.value;
-  return typeof v === "string" ? v : null;
-};
-/** Year, year-month or full date, as precise as the statement is. */
-function firstDate(e: Entity, prop: string): string | null {
-  const v = statements(e, prop)[0]?.mainsnak.datavalue?.value as { time?: string; precision?: number } | undefined;
-  const m = v?.time?.match(/^\+?(-?\d{1,6})-(\d\d)-(\d\d)/);
-  if (!m) return null;
-  return (v!.precision ?? 11) >= 11 ? `${m[1]}-${m[2]}-${m[3]}` : v!.precision === 10 ? `${m[1]}-${m[2]}` : m[1];
-}
-function firstQuantity(e: Entity, prop: string): number | null {
-  const amount = (statements(e, prop)[0]?.mainsnak.datavalue?.value as { amount?: string } | undefined)?.amount;
-  const n = amount === undefined ? NaN : Number(amount);
-  return Number.isFinite(n) ? n : null;
-}
 
 const isCompany = (e: Entity) => COMPANY_SIGNALS.some((p) => statements(e, p).length > 0);
 
@@ -103,29 +68,13 @@ export const COMPANY: Entry[] = [
       const name = opt(q, "name", 200)?.trim();
       if (!rawId && !name) throw new HttpError(400, "name or id is required");
       if (rawId && !/^Q\d{1,12}$/.test(rawId)) throw new HttpError(400, "id must be a Wikidata item ID such as Q689141");
-      let ids: string[];
-      if (rawId) ids = [rawId];
-      else {
-        const found = await getJson<{ search?: { id: string }[] }>(
-          `${API}?action=wbsearchentities&format=json&language=en&uselang=en&type=item&limit=7&search=${encodeURIComponent(name!)}`,
-        );
-        ids = (found.search ?? []).map((s) => s.id);
-        if (!ids.length) throw new HttpError(404, "no Wikidata item matches this name");
-      }
-      const got = await getJson<{ entities?: Record<string, Entity> }>(
-        `${API}?action=wbgetentities&format=json&languages=en&props=labels|descriptions|claims|sitelinks&sitefilter=enwiki&ids=${ids.join("|")}`,
-      );
-      const candidates = ids.map((id) => got.entities?.[id]).filter((e): e is Entity => Boolean(e?.claims));
+      const ids = rawId ? [rawId] : await searchItems(name!, 7);
+      if (!ids.length) throw new HttpError(404, "no Wikidata item matches this name");
+      const entities = await getEntities(ids);
+      const candidates = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e?.claims));
       const best = candidates.find(isCompany);
       if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : "no company found under this name");
-      const linked = linkedIds(best);
-      const labels: Record<string, string> = {};
-      if (linked.length) {
-        const lab = await getJson<{ entities?: Record<string, Entity> }>(
-          `${API}?action=wbgetentities&format=json&languages=en&props=labels&ids=${linked.join("|")}`,
-        );
-        for (const [id, e] of Object.entries(lab.entities ?? {})) if (e.labels?.en) labels[id] = e.labels.en.value;
-      }
+      const labels = await labelsOf(linkedIds(best));
       return companyFacts([best], labels)!;
     }, "$0.003"),
 ];
