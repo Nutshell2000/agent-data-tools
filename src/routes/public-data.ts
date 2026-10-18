@@ -2,6 +2,7 @@
 // Outside failures are 502 (not charged); "not found" answers are 404 (not charged).
 import { entry, getJson, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { COUNTRIES, holidaysFor } from "./holidays";
 
 const lat = (q: Parameters<Entry["run"]>[1]) => num(q, "lat", { min: -90, max: 90 });
 const lon = (q: Parameters<Entry["run"]>[1]) => num(q, "lon", { min: -180, max: 180 });
@@ -59,15 +60,16 @@ function dateParam(q: Parameters<Entry["run"]>[1]) {
 const P = ["data"];
 
 export const PUBLIC_DATA: Entry[] = [
-  entry("/holidays", "Public holidays by country", "Official public holidays for a country and year: date, local and English name, whether nationwide or regional, and holiday type. 100+ countries by ISO code (Nager.Date). Use for scheduling, delivery dates and business-day maths.",
-    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code, e.g. SE, US, DE", required: true, example: "SE" }, year: { type: "integer", description: "Year (default this year)", example: 2026 } },
-    { country: "SE", year: 2026, count: 16, holidays: [{ date: "2026-01-01", localName: "Nyårsdagen", name: "New Year's Day", nationwide: true, types: ["Public"] }] },
+  entry("/holidays", "Public holidays by country", "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths.",
+    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code: US, GB, SE, DE, FR, NO, DK or FI", required: true, example: "SE" }, year: { type: "integer", description: "Year, 2024-2100 (default this year)", example: 2026 } },
+    { country: "SE", countryName: "Sweden", year: 2026, count: 13, holidays: [{ date: "2026-01-01", localName: "Nyårsdagen", name: "New Year's Day", nationwide: true, types: ["Public"], observed: null }], note: "Computed from statutory rules; nationwide holidays only. Regional holidays and one-off proclamations are not included." },
     async (_e, q) => {
       const country = need(q, "country", 2).toUpperCase();
       if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, "country must be a 2-letter ISO code");
-      const year = num(q, "year", { min: 1975, max: 2075, fallback: new Date().getUTCFullYear(), integer: true });
-      const list = await getJson<Array<{ date: string; localName: string; name: string; global: boolean; counties: string[] | null; types: string[] }>>(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { notFound: `no holiday data for ${country}` });
-      return { country, year, count: list.length, holidays: list.map((h) => ({ date: h.date, localName: h.localName, name: h.name, nationwide: h.global, regions: h.counties, types: h.types })) };
+      const year = num(q, "year", { min: 2024, max: 2100, fallback: new Date().getUTCFullYear(), integer: true });
+      const out = holidaysFor(country, year);
+      if (!out) throw new HttpError(404, `no holiday rules for ${country}; supported: ${Object.keys(COUNTRIES).join(", ")}`);
+      return out;
     }),
 
   entry("/wikipedia", "Wikipedia summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",

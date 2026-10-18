@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,157);
+  assert.equal(ENDPOINTS.length,158);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -300,4 +300,24 @@ test("OFAC screening matches listed addresses case-insensitively and names throu
   assert.equal(screen(index, undefined, "John Doe")[0].type, "individual");
   assert.equal(screen(index, undefined, "Jane Doe").length, 0);
   await assert.rejects(async () => screen(index, undefined, "!"), (e) => e.status === 400);
+});
+
+test("public holidays follow each country's rules, including weekend substitutes", async () => {
+  const h = await loadTypeScript(require.resolve("../src/routes/holidays.ts"));
+  assert.deepEqual([2024, 2025, 2026].map((y) => h.easter(y).toISOString().slice(0, 10)), ["2024-03-31", "2025-04-20", "2026-04-05"]);
+  const one = (c, y, name) => h.holidaysFor(c, y).holidays.find((x) => x.name === name);
+  assert.equal(one("US", 2026, "Thanksgiving Day").date, "2026-11-26");
+  assert.equal(one("US", 2026, "Independence Day").observed, "2026-07-03");
+  assert.equal(one("SE", 2026, "Midsummer Day").date, "2026-06-20");
+  assert.equal(one("SE", 2026, "All Saints' Day").date, "2026-10-31");
+  // England and Wales: Christmas on Sunday moves to Tuesday because Boxing Day already holds Monday.
+  assert.deepEqual([one("GB", 2022, "Christmas Day").observed, one("GB", 2022, "Boxing Day").observed], ["2022-12-27", null]);
+  assert.deepEqual([one("GB", 2027, "Christmas Day").observed, one("GB", 2027, "Boxing Day").observed], ["2027-12-27", "2027-12-28"]);
+  assert.equal(one("DE", 2026, "Whit Monday").date, "2026-05-25");
+  assert.equal(h.holidaysFor("SE", 2026).count, 13);
+  assert.equal(h.holidaysFor("XX", 2026), null);
+  for (const code of Object.keys(h.COUNTRIES)) {
+    const dates = h.holidaysFor(code, 2026).holidays.map((x) => x.date);
+    assert.deepEqual(dates, [...dates].sort(), code);
+  }
 });
