@@ -3,6 +3,7 @@ import { reserveAmount, claimTransfer, type AmountReservation, type TransferClai
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
 import { issueCredits, spendCredits, refundCredits, creditBalance } from "./lib/credits";
+import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
@@ -44,6 +45,8 @@ export class Metrics extends DurableObject {
   async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
   async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
   async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }
+  async takeFreeCall(caller: string, day: string) { return takeFreeCall(this.ctx.storage, caller, day); }
+  async refundFreeCall(caller: string, day: string) { return refundFreeCall(this.ctx.storage, caller, day); }
 
   async reserveCheckoutAmount(reservation: AmountReservation): Promise<boolean> {
     return reserveAmount(this.ctx.storage, reservation);

@@ -169,3 +169,20 @@ test('/credits/claim waits for the Stripe key instead of issuing anything', asyn
   assert.equal(res.headers.get('Cache-Control'), 'no-store');
   assert.equal(s.records.size, 0);
 });
+
+test('free calls: 25 per caller, a daily total cap, refunds restore the allowance', async () => {
+  const free = await load(require.resolve('../src/lib/free-calls.ts'));
+  const s = storage();
+  const left = [];
+  for (let i = 0; i < 26; i++) left.push(await free.takeFreeCall(s, 'a', '2026-10-19'));
+  assert.equal(left[0], 24);
+  assert.equal(left[24], 0);
+  assert.equal(left[25], null);
+  await free.refundFreeCall(s, 'a', '2026-10-19');
+  assert.equal(await free.takeFreeCall(s, 'a', '2026-10-19'), 0);
+  s.records.set('free:day:2026-10-20', free.FREE_CALLS_PER_DAY);
+  assert.equal(await free.takeFreeCall(s, 'b', '2026-10-20'), null);
+  assert.equal(await free.takeFreeCall(s, 'b', '2026-10-21'), 24);
+  assert.notEqual(await free.callerHash('1.2.3.4'), '1.2.3.4');
+  assert.match(await free.callerHash('1.2.3.4'), /^[0-9a-f]{64}$/);
+});
