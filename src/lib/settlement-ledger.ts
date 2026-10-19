@@ -7,6 +7,8 @@ import { SOLANA_NETWORK, SOLANA_USDC, USDC_BY_NETWORK } from "./networks";
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const HASH = /^0x[0-9a-f]{64}$/;
 // Native USDC per accepted network (lib/networks.ts); a receipt must match its own network's token.
+// Owner wallets: their payments are recorded but never counted as revenue or demand. The Bazaar seeding
+// buyer wallet (docs/bazaar-seeding.md) is added here, deployed, and only then used.
 const OWNED_WALLETS = new Set([
   "0x60c51dd9c16fdad84165474279c70cc91eb7b15f", // Existing Taskmarket agent.
   "0x279bdcc64cee279dcd2ca0e4cc45ec2d8950ae66", // Existing test-wallet public address.
