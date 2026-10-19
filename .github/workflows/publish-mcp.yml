@@ -25,5 +25,23 @@ jobs:
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
 
-      - name: Publish server to MCP Registry
-        run: ./mcp-publisher publish
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build section manifests
+        run: |
+          npm ci
+          node scripts/build-registry-manifests.mjs
+
+      # The main server, then one entry per MCP section server (/mcp/<section>). A version that is
+      # already published is reported and skipped, so re-running the workflow is safe.
+      - name: Publish servers to MCP Registry
+        run: |
+          failed=0
+          for manifest in server.json registry/*.json; do
+            if ./mcp-publisher publish "$manifest"; then echo "published $manifest"
+            else echo "::warning::publish failed for $manifest"; failed=$((failed + 1)); fi
+          done
+          echo "$failed manifest(s) not published"
