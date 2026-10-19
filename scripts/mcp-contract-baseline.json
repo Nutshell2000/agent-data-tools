@@ -1,5 +1,5 @@
 {
-  "version": "1.35.2",
+  "version": "1.35.3",
   "tools": [
     {
       "name": "extract",
@@ -3012,7 +3012,7 @@
     },
     {
       "name": "pdf_text",
-      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf, firstPage=1, pages=1, maxChars=1000. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
