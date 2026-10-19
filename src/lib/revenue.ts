@@ -5,7 +5,7 @@ import { PRODUCTS } from "../store/catalog";
 import type { Outcome } from "../metrics";
 
 type RevenueMetrics = {
-  bump(path: string, outcome: Outcome, revenueUsdMicros?: number): Promise<void>;
+  bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void>;
 };
 
 /** Converts a catalog USD price to exact integer micro-dollars without floating point. */
@@ -46,9 +46,10 @@ export function queueMetricBump(
   path: string,
   outcome: Outcome,
   revenueUsdMicros?: number,
+  caller?: string,
 ): void {
   if (!metrics) return;
-  waitUntil(metrics.bump(path, outcome, revenueUsdMicros).catch(() => {}));
+  waitUntil(metrics.bump(path, outcome, revenueUsdMicros, caller).catch(() => {}));
 }
 
 /** Wraps a paid MCP callback and records only its successful structured settlement. */
