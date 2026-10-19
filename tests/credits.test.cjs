@@ -19,7 +19,7 @@ function storage(records = new Map()) {
   return { records, transaction(callback) {
     const next = pending.then(async () => {
       const draft = new Map([...records].map(([k, v]) => [k, structuredClone(v)]));
-      const result = await callback({ get: async (k) => structuredClone(draft.get(k)), put: async (k, v) => draft.set(k, structuredClone(v)) });
+      const result = await callback({ get: async (k) => structuredClone(draft.get(k)), put: async (k, v) => draft.set(k, structuredClone(v)), delete: async (k) => draft.delete(k) });
       records.clear(); for (const [k, v] of draft) records.set(k, v); return result;
     });
     pending = next.catch(() => {}); return next;
@@ -32,6 +32,7 @@ function metricsFor(store) {
     spendCredits: (h, m) => credits.spendCredits(store, h, m),
     refundCredits: (h, m) => credits.refundCredits(store, h, m),
     creditBalance: (h) => credits.creditBalance(store, h),
+    rotateKey: (o, k, n) => credits.rotateKey(store, o, k, n),
   };
   return { idFromName: (name) => { assert.equal(name, 'credits'); return name; }, get: () => stub };
 }
@@ -161,9 +162,19 @@ test('paywall charges a key per successful call and refunds failed calls', async
   assert.equal((await fetch('/tool')).status, 402);
 });
 
+test('/credits offers no pack while claims cannot issue keys (STRIPE_READ_KEY unset)', async () => {
+  const body = await (await app({}).fetch('/credits', { accept: 'application/json' })).json();
+  assert.equal(body.cardReady, false);
+  assert.deepEqual(body.packs, []);
+  assert.match(body.what, /not available yet/);
+  const html = await (await app({}).fetch('/credits', { accept: 'text/html' })).text();
+  assert.doesNotMatch(html, /buy\.stripe\.com/);
+});
+
 test('/credits lists the three packs as JSON for agents', async () => {
-  const res = await app({}).fetch('/credits', { accept: 'application/json' });
+  const res = await app({ STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits', { accept: 'application/json' });
   const body = await res.json();
+  assert.equal(body.cardReady, true);
   assert.deepEqual(body.packs.map((p) => [p.price, p.credits]), [['$5', 5000], ['$20', 22000], ['$100', 125000]]);
   for (const p of body.packs) assert.match(p.buy, /^https:\/\/buy\.stripe\.com\//);
 });
@@ -283,4 +294,34 @@ test('low balance over MCP: the crossing call appends one note for the user', as
   assert.match(first.content[1].text, /^Credits running low: 199 left/);
   const second = await charge(async () => ok);
   assert.equal(second.content.length, 1);
+});
+
+test('rotate: the balance moves to a new key, the old key stops working, purchase pages stop showing it', async () => {
+  const s = storage();
+  const env = { METRICS: metricsFor(s), STRIPE_READ_KEY: 'rk_test_key' };
+  const old = credits.newCreditKey();
+  await credits.issueCredits(s, { sessionId: 'cs_live_RotateMe0001', credits: 5000, key: old, keyHash: await credits.hashCreditKey(old) });
+  const a = new Hono(); a.route('/', routes.credits);
+  const call = (path, init = {}) => a.fetch(new Request(`https://x.test${path}`, init), env, { waitUntil() {} });
+
+  assert.equal((await call('/credits/rotate', { method: 'POST' })).status, 401);
+  assert.equal((await call('/credits/rotate', { method: 'POST', headers: { authorization: `Bearer ${credits.newCreditKey()}` } })).status, 401);
+  const res = await call('/credits/rotate', { method: 'POST', headers: { authorization: `Bearer ${old}` } });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.match(body.apiKey, /^adt_/);
+  assert.notEqual(body.apiKey, old);
+  assert.equal(body.balanceCredits, 5000);
+
+  assert.equal((await call('/credits/balance', { headers: { authorization: `Bearer ${old}` } })).status, 401, 'old key is dead');
+  assert.equal((await (await call('/credits/balance', { headers: { authorization: `Bearer ${body.apiKey}` } })).json()).balanceCredits, 5000);
+
+  const realFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 500, metadata: { adt_credits: '5000' } }));
+    const reload = await call('/credits/claim?session_id=cs_live_RotateMe0001', { headers: { accept: 'application/json' } });
+    const text = JSON.stringify(await reload.json());
+    assert.ok(!text.includes(old) && !text.includes(body.apiKey), 'the purchase page shows neither key after rotation');
+    assert.match(text, /replaced/);
+  } finally { globalThis.fetch = realFetch; }
 });

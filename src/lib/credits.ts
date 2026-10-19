@@ -54,7 +54,7 @@ export async function hashCreditKey(key: string): Promise<string> {
 interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[] }
 /** key is null for a top-up: the buyer already holds it and it is never seen here. */
 interface SessionRecord { key: string | null; keyHash: string; credits: number; at: string }
-interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void> }
+interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void>; delete(key: string): Promise<boolean> }
 export interface CreditStorage { transaction<T>(callback: (txn: Txn) => Promise<T>): Promise<T> }
 
 const accountKey = (hash: string) => `credit:acct:${hash}`;
@@ -113,6 +113,25 @@ export async function creditSummary(storage: { list<T>(options: { prefix: string
     activeBuyers: accounts.filter((a) => a.calls > 0).length,
     perDay,
   };
+}
+
+/**
+ * Replaces a key: the balance and history move to the new key and the old one stops working at once.
+ * Purchase records stop showing the old key (a claim page reload then says the key was replaced), so a
+ * leaked claim URL does not leak the new key either. Returns null for an unknown key.
+ */
+export async function rotateKey(storage: CreditStorage, oldHash: string, newKey: string, newHash: string) {
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(oldHash));
+    if (!account || oldHash === newHash) return null;
+    await txn.put(accountKey(newHash), account);
+    await txn.delete(accountKey(oldHash));
+    for (const id of account.sessions) {
+      const record = await txn.get<SessionRecord>(sessionKey(id));
+      if (record) await txn.put(sessionKey(id), { ...record, key: null, keyHash: newHash });
+    }
+    return { key: newKey, balanceMicros: account.balanceMicros };
+  });
 }
 
 export type SpendResult = { ok: true; balanceMicros: number } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number };

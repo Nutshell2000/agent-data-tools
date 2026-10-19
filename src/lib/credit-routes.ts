@@ -16,15 +16,23 @@ type C = Context<{ Bindings: Env }>;
 const ledger = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
-export function creditsInfo(origin: string, agentPurchase = false): Record<string, unknown> & { use: string; what: string; afterPayment: string; charging: string; refunds: string; agentPurchase?: string; packs: { price: string; credits: number; buy: string }[] } {
+/**
+ * cardReady is false while STRIPE_READ_KEY is unset: /credits/claim cannot issue keys then, so no pack
+ * is offered at all rather than taking a card payment we cannot fulfil yet.
+ */
+export function creditsInfo(origin: string, agentPurchase = false, cardReady = true): Record<string, unknown> & { use: string; what: string; afterPayment: string; charging: string; refunds: string; agentPurchase?: string; packs: { price: string; credits: number; buy: string }[] } {
   return {
     ...(agentPurchase ? { agentPurchase: `Agents with an MPP client and a Link agent wallet can buy a pack themselves, with no checkout page: GET ${origin}/credits/buy/5, /credits/buy/20 or /credits/buy/100 answers 402 with a Stripe card challenge; pay it and the response carries the API key. To top up a key you already have, send it as X-API-Key on the same request.` } : {}),
-    what: "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402.",
-    packs: CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })),
+    what: cardReady
+      ? "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402."
+      : "Card payments are being set up and are not available yet, so no pack can be bought here today. Pay per call with x402 (USDC) in the meantime.",
+    cardReady,
+    packs: cardReady ? CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
     use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp). In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then.",
     charging: "The tool's price is taken before it runs and given back if the call fails (any 4xx or 5xx, or an MCP error). Responses carry X-Credits-Charged and X-Credits-Remaining.",
     balance: `${origin}/credits/balance with the same header.`,
+    rotate: `Key leaked or shared by mistake? POST ${origin}/credits/rotate with the key: the balance moves to a new key and the old one stops working.`,
     refunds: "Unused credits do not expire. For a refund of unused credits, write to the support address in /openapi.json.",
   };
 }
@@ -37,7 +45,7 @@ export const credits = new Hono<{ Bindings: Env }>();
 
 credits.get("/credits", (c) => {
   const origin = new URL(c.req.url).origin;
-  const info = creditsInfo(origin, mppEnabled(c.env));
+  const info = creditsInfo(origin, mppEnabled(c.env), Boolean(c.env.STRIPE_READ_KEY));
   if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) return c.json(info);
   const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits</a>`).join("");
   return c.html(page("Pay by card: Agent Data Tools credits", `<h1>Pay by card</h1><p>${esc(info.what)}</p><p>${packs}</p>
@@ -67,7 +75,7 @@ credits.get("/credits/claim", async (c) => {
     // A repeat claim returns the key stored for this session. Only a top-up session stores none,
     // and those are answered above, so this cannot show a key that was never issued.
     const key = issued.key;
-    if (!key) throw new CheckoutError(400, "this payment topped up an existing key; keep using that key");
+    if (!key) throw new CheckoutError(400, "the key from this purchase was replaced, or the purchase topped up an existing key: use your current key (check it at /credits/balance)");
     const refill = topUpLinks(await hashCreditKey(key)).map((l) => `<a class="buy" href="${esc(l.buy)}">${l.price}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
     const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use };
     if (!html) return c.json(result);
@@ -82,6 +90,23 @@ credits.get("/credits/claim", async (c) => {
 // Agents with a Link wallet buy a pack themselves over MPP (lib/mpp-credits.ts).
 credits.get("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
 credits.post("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
+
+// Replace a leaked key: POST with the current key; the balance moves to a new key and the old one stops working.
+credits.post("/credits/rotate", async (c) => {
+  c.header("Cache-Control", "no-store");
+  const key = apiKeyFrom((n) => c.req.header(n));
+  if (!key) return c.json({ error: "send the key to replace as Authorization: Bearer adt_… or X-API-Key" }, 401);
+  const store = ledger(c.env);
+  if (!store) return c.json({ error: "credits are unavailable right now; try again later" }, 503);
+  const fresh = newCreditKey();
+  const rotated = await store.rotateKey(await hashCreditKey(key), fresh, await hashCreditKey(fresh));
+  if (!rotated) return c.json({ error: "unknown API key" }, 401);
+  const origin = new URL(c.req.url).origin;
+  return c.json({
+    apiKey: rotated.key, mcpUrl: `${origin}/mcp/k/${rotated.key}`, balanceCredits: creditsFromMicros(rotated.balanceMicros),
+    note: "The old key no longer works. Update your apps: sign in again on /mcp/account connectors, and replace the header or /mcp/k/ URL elsewhere. Save this key now; it is shown only here.",
+  });
+});
 
 credits.get("/credits/balance", async (c) => {
   const key = apiKeyFrom((n) => c.req.header(n));
