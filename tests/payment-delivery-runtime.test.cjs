@@ -14,7 +14,7 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture'},outboundService:async r=>{
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture',REVENUE_TOKEN:'owner-fixture-token'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
     if(new URL(r.url).hostname==='api.stripe.com'){assert.equal(r.headers.get('authorization'),'Bearer rk_test_fixture');return path.endsWith('cs_test_unpaidSession01')?Response.json({mode:'payment',status:'open',payment_status:'unpaid'}):Response.json({mode:'payment',status:'complete',payment_status:'paid',currency:'usd',amount_total:500,metadata:{adt_credits:'5000'}});}
     if(new URL(r.url).hostname==='mempool.space'){const value=path.endsWith('recommended')?(feeScenario==='invalid'?{fastestFee:3}:{fastestFee:3,halfHourFee:2,hourFee:1,economyFee:1,minimumFee:1}):path.endsWith('height')?950000:{count:20,vsize:10000,total_fee:20000};return Response.json(value);}
@@ -224,4 +224,10 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  }finally{await client.close();}
  const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
  const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],1);assert.equal(day['mcp:/extract:free_call'],2);
+});
+test('/revenue shows card-credit sales only to the owner token',async()=>{
+  const anon=await revenue();assert.equal(anon.cardCredits,undefined);assert.ok('settlements' in anon);
+  const wrong=await(await mf.dispatchFetch('https://api.test/revenue',{headers:{authorization:'Bearer owner-fixture-tokeX'}})).json();assert.equal(wrong.cardCredits,undefined);
+  const owner=await(await mf.dispatchFetch('https://api.test/revenue',{headers:{authorization:'Bearer owner-fixture-token'}})).json();
+  assert.equal(typeof owner.cardCredits.purchases,'number');assert.equal(typeof owner.cardCredits.purchasedUsd,'number');assert.ok('settlements' in owner);
 });

@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
-import { issueCredits, spendCredits, refundCredits, creditBalance } from "./lib/credits";
+import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary } from "./lib/credits";
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 
 /**
@@ -45,6 +45,7 @@ export class Metrics extends DurableObject {
   async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
   async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
   async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }
+  async creditSummary() { return creditSummary(this.ctx.storage); }
   // OAuth sign-in records (clients, codes, hashed tokens); see lib/oauth.ts. Expiry is checked by the caller.
   async oauthGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`oauth:${key}`)) ?? null; }
   async oauthPut(key: string, value: unknown) { await this.ctx.storage.put(`oauth:${key}`, value); }
