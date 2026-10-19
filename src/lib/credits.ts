@@ -1,0 +1,135 @@
+// Prepaid card credits: the second way to pay for tools, for agents and people without a USDC wallet.
+// A Stripe payment link sells a pack; /credits/claim checks the Checkout Session with Stripe and issues
+// an API key; each tool call then spends credits instead of an x402 payment. 1 credit = $0.001.
+// The ledger lives in the Metrics Durable Object under the name "credits", so every spend is atomic.
+
+export const CREDIT_KEY_PREFIX = "adt_";
+export const MICROS_PER_CREDIT = 1000;
+
+/** What each pack costs and gives. The Stripe payment links carry metadata adt_credits with the same number. */
+export const CREDIT_PACKS = [
+  { usdCents: 500, credits: 5_000, url: "https://buy.stripe.com/bJe4gz5ma1v99xMa33bII02" },
+  { usdCents: 2_000, credits: 22_000, url: "https://buy.stripe.com/eVq3cv01Q3Dh4dsdffbII03" },
+  { usdCents: 10_000, credits: 125_000, url: "https://buy.stripe.com/cNi8wP5ma6Pt8tI1wxbII04" },
+] as const;
+
+/** "$0.001" -> 1000 (USD micros). Throws on anything that is not a plain dollar price. */
+export function priceMicros(price: string): number {
+  const m = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(price);
+  if (!m) throw new Error(`not a dollar price: ${price}`);
+  return Number(m[1]) * 1_000_000 + Number((m[2] ?? "").padEnd(6, "0"));
+}
+
+export const creditsFromMicros = (micros: number) => Math.round(micros / MICROS_PER_CREDIT * 1000) / 1000;
+
+/** The API key from `Authorization: Bearer adt_…` or `X-API-Key: adt_…`, when it has our shape. */
+export function apiKeyFrom(header: (name: string) => string | undefined): string | undefined {
+  const bearer = /^Bearer\s+(\S+)$/i.exec(header("authorization") ?? "")?.[1];
+  const key = bearer ?? header("x-api-key")?.trim();
+  return key && isCreditKey(key) ? key : undefined;
+}
+
+export const isCreditKey = (key: string) => /^adt_[A-Za-z0-9_-]{32,64}$/.test(key);
+
+export function newCreditKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return CREDIT_KEY_PREFIX + btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export async function hashCreditKey(key: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key)));
+  return [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[] }
+interface SessionRecord { key: string; keyHash: string; credits: number; at: string }
+interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void> }
+export interface CreditStorage { transaction<T>(callback: (txn: Txn) => Promise<T>): Promise<T> }
+
+const accountKey = (hash: string) => `credit:acct:${hash}`;
+const sessionKey = (id: string) => `credit:session:${id}`;
+
+/**
+ * Credits a paid Checkout Session exactly once. A repeat claim of the same session returns the
+ * key issued the first time, so a buyer who reloads the claim page sees the same key, never a second grant.
+ * The raw key is kept with its session record for that reason; storage is private to this Worker.
+ */
+export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string; keyHash: string }) {
+  if (!Number.isSafeInteger(grant.credits) || grant.credits <= 0) throw new Error("invalid credit grant");
+  return storage.transaction(async (txn) => {
+    const existing = await txn.get<SessionRecord>(sessionKey(grant.sessionId));
+    if (existing) {
+      const account = await txn.get<Account>(accountKey(existing.keyHash));
+      return { key: existing.key, credits: existing.credits, balanceMicros: account?.balanceMicros ?? 0, repeated: true };
+    }
+    const at = new Date().toISOString();
+    const micros = grant.credits * MICROS_PER_CREDIT;
+    const account: Account = (await txn.get<Account>(accountKey(grant.keyHash)))
+      ?? { balanceMicros: 0, purchasedMicros: 0, spentMicros: 0, calls: 0, createdAt: at, sessions: [] };
+    account.balanceMicros += micros;
+    account.purchasedMicros += micros;
+    account.sessions.push(grant.sessionId);
+    await txn.put(accountKey(grant.keyHash), account);
+    await txn.put(sessionKey(grant.sessionId), { key: grant.key, keyHash: grant.keyHash, credits: grant.credits, at } satisfies SessionRecord);
+    return { key: grant.key, credits: grant.credits, balanceMicros: account.balanceMicros, repeated: false };
+  });
+}
+
+export type SpendResult = { ok: true; balanceMicros: number } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number };
+
+/** Takes the price before the tool runs; refundCredits gives it back if the call fails. */
+export async function spendCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<SpendResult> {
+  if (!Number.isSafeInteger(micros) || micros <= 0) throw new Error("invalid spend");
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(keyHash));
+    if (!account) return { ok: false, reason: "unknown_key", balanceMicros: 0 };
+    if (account.balanceMicros < micros) return { ok: false, reason: "insufficient", balanceMicros: account.balanceMicros };
+    account.balanceMicros -= micros;
+    account.spentMicros += micros;
+    account.calls++;
+    await txn.put(accountKey(keyHash), account);
+    return { ok: true, balanceMicros: account.balanceMicros };
+  });
+}
+
+export async function refundCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<number> {
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(keyHash));
+    if (!account) return 0;
+    account.balanceMicros += micros;
+    account.spentMicros -= micros;
+    account.calls--;
+    await txn.put(accountKey(keyHash), account);
+    return account.balanceMicros;
+  });
+}
+
+export async function creditBalance(storage: CreditStorage, keyHash: string) {
+  return storage.transaction(async (txn) => {
+    const a = await txn.get<Account>(accountKey(keyHash));
+    return a ? { balanceMicros: a.balanceMicros, purchasedMicros: a.purchasedMicros, spentMicros: a.spentMicros, calls: a.calls, createdAt: a.createdAt } : null;
+  });
+}
+
+/** Checks a Checkout Session with Stripe and returns the credits it paid for. Throws CheckoutError otherwise. */
+export class CheckoutError extends Error {
+  constructor(public status: 400 | 402 | 404 | 502 | 503, message: string) { super(message); }
+}
+
+export async function verifyCheckout(stripeKey: string | undefined, sessionId: string, fetchImpl: typeof fetch = fetch) {
+  if (!stripeKey) throw new CheckoutError(503, "card payments are being set up; your payment is safe and this link will work once they are. Keep this page's address.");
+  if (!/^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(sessionId)) throw new CheckoutError(400, "session_id is not a Stripe Checkout Session id");
+  let res: Response;
+  try {
+    res = await fetchImpl(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, { headers: { authorization: `Bearer ${stripeKey}` } });
+  } catch {
+    throw new CheckoutError(502, "could not reach Stripe; reload this page in a minute");
+  }
+  if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
+  if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
+  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string> };
+  if (s.mode !== "payment" || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
+  const pack = CREDIT_PACKS.find((p) => p.usdCents === s.amount_total && String(p.credits) === s.metadata?.adt_credits);
+  if (s.currency !== "usd" || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
+  return pack;
+}

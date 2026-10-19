@@ -1,5 +1,7 @@
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
+import { apiKeyFrom } from "./lib/credits";
+import { creditCharger } from "./lib/credit-routes";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
@@ -106,12 +108,17 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
   if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   const env = c.env;
   const paid = env.PAYWALL !== "off";
-  const payment = paid ? await paymentState(env) : undefined;
+  // An API key from /credits pays every call in this request with card credits instead of x402,
+  // so the x402 facilitator is not needed (or contacted) for it.
+  const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) : undefined;
+  const payment = paid && !creditKey ? await paymentState(env) : undefined;
   const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
-    const callback = payment
+    const callback = creditKey
+      ? (args: Args) => creditCharger(env, creditKey, e.price)(() => handler(args))
+      : payment
       ? (() => {
           const wrapped = paymentWrapperFor(e, payment)(handler as never) as (args: Args, extra: unknown) => Promise<{
             isError?: boolean;

@@ -2,14 +2,15 @@ import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
+import { issueCredits, spendCredits, refundCredits, creditBalance } from "./lib/credits";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
  * "sample" a free ?sample=1 preview of the static example (the tool did not run).
  */
-export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample";
+export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample" | "credits";
 /** Outcomes where the tool ran and answered 2xx. */
-const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace"];
+const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace", "credits"];
 const STATUS_DAYS = 7;
 interface PathMetrics extends Partial<Record<Outcome, number>> {
   /** USD multiplied by 1,000,000, tracked only for settled x402 API calls. */
@@ -37,6 +38,12 @@ export class Metrics extends DurableObject {
   }
 
   async recordFunnel(event: FunnelEvent) { await saveFunnel(this.ctx.storage, event); }
+
+  // Card credits. Called only on the instance named "credits" (see lib/credit-routes.ts).
+  async issueCredits(grant: Parameters<typeof issueCredits>[1]) { return issueCredits(this.ctx.storage, grant); }
+  async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
+  async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
+  async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }
 
   async reserveCheckoutAmount(reservation: AmountReservation): Promise<boolean> {
     return reserveAmount(this.ctx.storage, reservation);

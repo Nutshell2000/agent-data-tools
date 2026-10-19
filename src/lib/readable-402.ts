@@ -16,7 +16,7 @@ export async function readable402(res: Response, origin: string): Promise<Respon
   }
   const body = {
     ...challenge,
-    hint: `Paid x402 tool. Retry with a PAYMENT-SIGNATURE header from any x402 client (for example @x402/fetch or AgentCash). Free example output: add sample=1. Free docs: ${origin}/llms.txt`,
+    hint: `Paid x402 tool. Retry with a PAYMENT-SIGNATURE header from any x402 client (for example @x402/fetch or AgentCash). No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_…. Free example output: add sample=1. Free docs: ${origin}/llms.txt`,
   };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
