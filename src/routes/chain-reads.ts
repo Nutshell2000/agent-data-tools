@@ -242,7 +242,57 @@ function chainEntries(c: ChainDef): Entry[] {
           logs: list.slice(0, 100).map((l) => ({ block: Number(l.blockNumber), tx: l.transactionHash, logIndex: Number(l.logIndex), topics: l.topics, data: l.data.length > 514 ? `${l.data.slice(0, 514)}…` : l.data })),
         });
       }),
+
+    entry(p("token-transfers"), `${c.name} wallet token transfers`,
+      `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
+      tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
+        address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
+        token: { type: "string", description: "0x ERC-20 token contract (default: USDC on this network)", example: USDC[c.slug] },
+        blocks: { type: "integer", description: "How many recent blocks to scan (1-2000, default 1000)", example: 1000 },
+      },
+      head({ address: EX_ADDR, fromBlock: 123456290, toBlock: 123456789, count: 1, truncated: false, transfers: [{ block: 123456780, tx: "0x…", token: USDC[c.slug], symbol: "USDC", direction: "in", counterparty: "0x…", amount: "2.5", raw: "2500000" }] }),
+      async (env, q) => {
+        const a = address(q("address"));
+        const token = q("token") ? address(q("token"), "token") : USDC[c.slug];
+        const span = BigInt(num(q, "blocks", { min: 1, max: 2000, fallback: 1000, integer: true }));
+        const cl = client(env, c);
+        const latest = await rpc(() => cl.getBlockNumber());
+        const fromBlock = latest - span + 1n;
+        const padded = `0x${a.slice(2).toLowerCase().padStart(64, "0")}`;
+        const range = { fromBlock: `0x${fromBlock.toString(16)}` as `0x${string}`, toBlock: `0x${latest.toString(16)}` as `0x${string}` };
+        type Log = { address: string; blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string };
+        // Sent and received Transfer events of this one token (public nodes only scan wide ranges with a contract filter).
+        const [sent, received] = await rpc(() => Promise.all([
+          cl.request({ method: "eth_getLogs", params: [{ ...range, address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }] }),
+          cl.request({ method: "eth_getLogs", params: [{ ...range, address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }] }),
+        ])).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
+        const all = [...(sent as Log[]).map((l) => ({ l, direction: "out" as const })), ...(received as Log[]).map((l) => ({ l, direction: "in" as const }))]
+          .filter(({ l }) => l.topics.length === 3)
+          .sort((x, y) => Number(y.l.blockNumber) - Number(x.l.blockNumber) || Number(y.l.logIndex) - Number(x.l.logIndex));
+        const shown = all.slice(0, 50);
+        // Symbol and decimals for up to 10 distinct tokens (batched into one multicall); others show raw amounts.
+        const tokens = [...new Set(shown.map(({ l }) => l.address.toLowerCase()))].slice(0, 10) as `0x${string}`[];
+        const meta = new Map(await Promise.all(tokens.map(async (t) => {
+          const [symbol, decimals] = await Promise.all([
+            cl.readContract({ address: t, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
+            cl.readContract({ address: t, abi: erc20Abi, functionName: "decimals" }).catch(() => null),
+          ]);
+          return [t, { symbol: symbol as string | null, decimals: decimals === null ? null : Number(decimals) }] as const;
+        })));
+        return head({
+          address: a, fromBlock: Number(fromBlock), toBlock: Number(latest), count: all.length, truncated: all.length > 50,
+          transfers: shown.map(({ l, direction }) => {
+            const raw = BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66));
+            const m = meta.get(l.address.toLowerCase() as `0x${string}`);
+            const other = `0x${(direction === "out" ? l.topics[2] : l.topics[1]).slice(26)}`;
+            return { block: Number(l.blockNumber), tx: l.transactionHash, token: l.address, symbol: m?.symbol ?? null, direction, counterparty: other,
+              amount: m?.decimals != null ? formatUnits(raw, m.decimals) : null, raw: raw.toString() };
+          }),
+        });
+      }),
   ];
 }
+
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
 
 export const CHAIN_READS: Entry[] = CHAINS.flatMap(chainEntries);

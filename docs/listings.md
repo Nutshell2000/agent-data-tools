@@ -33,7 +33,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 12 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 11 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 9 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 58 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 63 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/ai (AI text, 14 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/everyday (everyday data, 10 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/utilities (utilities, 52 tools)
