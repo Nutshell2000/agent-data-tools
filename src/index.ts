@@ -26,6 +26,8 @@ import { TOOLS } from "./tools";
 import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
+import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
+import { SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
@@ -240,6 +242,13 @@ app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Con
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
+const LOGO = Uint8Array.from(atob(LOGO_PNG_BASE64), (ch) => ch.charCodeAt(0));
+for (const path of ["/logo.png", "/favicon.png", "/apple-touch-icon.png"]) app.get(path, (c) => c.body(LOGO, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
+// VerifyMCP ownership claim (https://verifymcp.io/docs/build/owners-json): host-wide and for /mcp.
+for (const path of ["/.well-known/owners.json", "/mcp/.well-known/owners.json"]) {
+  app.get(path, (c) => c.json({ $schema: "https://verifymcp.io/schemas/owners.json", owners: [SUPPORT_EMAIL] }, 200, { "Cache-Control": "public, max-age=3600" }));
+}
+app.get("/favicon.svg", (c) => c.body(FAVICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" }));
 const OG_IMAGE = Uint8Array.from(atob(OG_IMAGE_PNG_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/og.png", (c) => c.body(OG_IMAGE, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
 app.get("/health", (c) => c.json({ ok: true }));
