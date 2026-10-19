@@ -63,6 +63,21 @@ test('an agent pays a $5 pack over MPP with a card token and gets a working key'
 
   const balance = await (await mf.dispatchFetch('https://api.test/credits/balance', { headers: { authorization: `Bearer ${body.apiKey}` } })).json();
   assert.equal(balance.balanceCredits, 5000);
+
+  // Topping up: the agent names its key in X-API-Key; the pack lands on that key, no new key.
+  const topUp = await client.fetch('https://api.test/credits/buy/5', { headers: { 'x-api-key': body.apiKey } });
+  assert.equal(topUp.status, 200);
+  const topped = await topUp.json();
+  assert.equal(topped.toppedUp, true);
+  assert.equal(topped.apiKey, undefined);
+  assert.equal(topped.balanceCredits, 10000);
+  assert.equal(intents.length, 2);
+
+  // An unknown key is refused before any charge.
+  const unknown = await mf.dispatchFetch('https://api.test/credits/buy/5', { headers: { 'x-api-key': 'adt_' + 'z'.repeat(43) } });
+  assert.equal(unknown.status, 401);
+  await unknown.arrayBuffer();
+  assert.equal(intents.length, 2);
 });
 
 test('/credits tells agents about MPP purchase only when it is switched on', async () => {
