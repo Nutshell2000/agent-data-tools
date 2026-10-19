@@ -108,3 +108,8 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 - Peter decides the receiving address (reuse PAY_TO after a wallet check, or a new Tempo address):
   `docs/mpp-per-call.md`. Do not set `TEMPO_PAY_TO` without his answer in chat.
 - Credit packs `/credits/buy/*` answer GET only, and their Stripe challenge names a recipient (the MPPScan warnings).
+
+## Discovery files (1.36.1)
+
+- `/discovery/resources` (src/lib/discovery-index.ts) is our own Bazaar-shaped index of every tool with exact USDC terms per network, paged (`limit` up to 500, `offset`); `/.well-known/x402.json` aliases `/.well-known/x402`. Directories that crawl sellers directly read these; the Coinbase Bazaar still needs a first settled payment per tool.
+- Directory PRs opened 2026-10-20: tempoxyz/mpp#1095 (mpp.dev services, 38 routes, evm/charge) and Pazificateur69/gold-402#1. Circle Agent Marketplace form (forms.gle/7YFzvdmMcn1JH5tF6) is Peter's to send (indemnification clause).
