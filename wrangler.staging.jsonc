@@ -31,6 +31,8 @@
     "PAYWALL": "on",
     // Off, so an MCP tool call gets a payment quote instead of a free call and the payment path is what gets tested.
     "TRIALS_ENABLED": "off",
+    // Staging has no CDP secret, so the MPP challenge-signing key is a plain var here. Not a secret: testnet only.
+    "MPP_SECRET_KEY": "agent-data-tools-staging-mpp-challenge-key-2026-10-20-not-a-secret",
     "BASE_RPC_URL": "https://mainnet.base.org"
   }
 }

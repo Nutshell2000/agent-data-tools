@@ -100,9 +100,11 @@ credits.get("/credits/claim", async (c) => {
   }
 });
 
-// Agents with a Link wallet buy a pack themselves over MPP (lib/mpp-credits.ts).
-credits.get("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
-credits.post("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
+// Agents with a Link wallet buy a pack themselves over MPP (lib/mpp-credits.ts). GET only, as OpenAPI declares it:
+// directory probes (MPPScan) flag a paid POST or HEAD answer that has no input schema of its own.
+const getOnly = (c: C) => c.json({ error: "use GET to buy a pack; not charged" }, 405, { Allow: "GET" });
+credits.get("/credits/buy/:usd", async (c) => c.req.method === "HEAD" ? getOnly(c) : buyCreditsWithMpp(c));
+credits.on(["POST", "PUT", "PATCH", "DELETE"], "/credits/buy/:usd", (c) => getOnly(c));
 
 // Replace a leaked key: POST with the current key; the balance moves to a new key and the old one stops working.
 credits.post("/credits/rotate", async (c) => {

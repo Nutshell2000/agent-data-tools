@@ -74,6 +74,8 @@ export async function buyCreditsWithMpp(c: C) {
     realm: new URL(c.req.url).host,
   });
   const result = await mppx.stripe.charge({
+    // The Stripe profile that receives the card payment; MPP directories expect a recipient in every challenge.
+    recipient: c.env.STRIPE_PROFILE_ID!,
     amount: (pack.usdCents / 100).toFixed(2),
     description: `${pack.credits.toLocaleString("en-US")} Agent Data Tools credits (1 credit = $0.001)`,
     metadata: { adt_credits: String(pack.credits) },

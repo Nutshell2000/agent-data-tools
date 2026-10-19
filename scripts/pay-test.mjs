@@ -7,6 +7,8 @@
 //   node scripts/pay-test.mjs <url> --v1                    HTTP, x402 v1: pay from the 402 body with X-PAYMENT
 //   node scripts/pay-test.mjs <origin> --mcp <tool> [--args '{"url":"https://example.com"}']
 //                                                           MCP: the @x402/mcp client wrapper pays the tool call
+//   node scripts/pay-test.mjs <url> --mpp-evm               HTTP, MPP evm/charge: the mppx client answers the WWW-Authenticate
+//                                                           challenge with a USDC authorization (Authorization: Payment)
 //
 // The test wallet's key lives in .test-wallet.json (git-ignored) and is never printed. Fund it with Base Sepolia
 // USDC from https://faucet.circle.com (and a little Sepolia ETH is not needed: the facilitator pays gas).
@@ -44,7 +46,7 @@ function testnetClient() {
 
 const describe = (receipt) => (receipt ? JSON.stringify(receipt) : "none");
 
-if (flag("--mcp")) await mcp(target, option("--mcp"), JSON.parse(option("--args") ?? "{}"));
+if (flag("--mcp")) await mcp(target, option("--mcp"), JSON.parse(option("--args") ?? "{}")); if (flag("--mpp-evm")) await mppEvm(target);
 else if (flag("--v1")) await httpV1(target);
 else await httpV2(target);
 
@@ -127,4 +129,25 @@ async function mcp(origin, tool, args) {
   } finally {
     await client.close();
   }
+}
+
+/** MPP evm/charge: the mppx client reads the WWW-Authenticate challenge, signs a USDC authorization for the testnet only and retries. */
+async function mppEvm(url) {
+  const plain = await fetch(url);
+  console.log(`unpaid: HTTP ${plain.status}`);
+  await plain.arrayBuffer();
+  const { Challenge } = await import("mppx");
+  const { Mppx, evm } = await import("mppx/client");
+  const challenge = plain.status === 402 ? Challenge.fromResponseList(plain).find((ch) => ch.method === "evm") : undefined;
+  if (!challenge) { console.log("REFUSING: no evm/charge challenge in WWW-Authenticate"); process.exit(1); }
+  if (challenge.request.methodDetails.chainId !== 84532) { console.log(`REFUSING: the challenge is for chain ${challenge.request.methodDetails.chainId}, not the Base Sepolia testnet.`); process.exit(1); }
+  console.log(`asks:   ${challenge.request.amount} units of ${challenge.request.currency} on eip155:${challenge.request.methodDetails.chainId}, recipient ${challenge.request.recipient}`);
+  const client = Mppx.create({ polyfill: false, methods: [evm.charge({ account, currencies: [evm.assets.baseSepolia.USDC], networks: [84532] })] });
+  const res = await client.fetch(url);
+  const body = await res.text();
+  console.log(`paid:   HTTP ${res.status}`);
+  const receipt = res.headers.get("payment-receipt");
+  console.log(`settle: ${receipt ? receipt : "no Payment-Receipt header"}`);
+  console.log(`body:   ${body.slice(0, 300)}`);
+  process.exitCode = res.ok && receipt ? 0 : 1;
 }

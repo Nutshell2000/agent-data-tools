@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.35.3";
+export const MCP_SERVER_VERSION = "1.36.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -305,7 +305,9 @@ export const OWNERSHIP_PROOFS: readonly string[] = [
   "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000413e5f9cac8f7c1dfe7f44c5b57ddf3618682fffeeed033d842128e30775141f38083802e95f2cda9eea4002ececa24d1bdbc5ec23c58d4e2320d081840d38bad91c00000000000000000000000000000000000000000000000000000000000000",
 ];
 
-export function openApi(origin: string, trialsEnabled = false) {
+type MppOffer = { mpp: { method: string; intent: string; currency: string } };
+/** `mpp`: the MPP offers each tool also accepts (lib/mpp-evm.ts, lib/mpp-tempo.ts), declared next to x402 while on. */
+export function openApi(origin: string, trialsEnabled = false, mpp: readonly MppOffer[] = []) {
   const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)} No USDC wallet: buy card credits at ${origin}/credits and send the key as Authorization: Bearer adt_….`;
   return {
     openapi: "3.1.0",
@@ -339,10 +341,11 @@ export function openApi(origin: string, trialsEnabled = false) {
             ...(e.path === "/extract" ? { externalDocs: { description: "Read a public documentation page for $0.002", url: `${origin}/guides/web-reading` } } : {}),
             ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
-            // Shape required by x402scan's discovery spec. Amount is decimal USD.
+            // Shape required by x402scan's discovery spec. Amount is decimal USD. x402 tooling keeps reading the
+            // x402 entry; MPP directories (MPPScan) read the mpp one.
             "x-payment-info": {
               price: { mode: "fixed", currency: "USD", amount: e.price.replace("$", "") },
-              protocols: [{ x402: {} }],
+              protocols: [{ x402: {} }, ...mpp],
             },
             parameters: Object.entries(e.params).map(([name, p]) => ({
               name,
