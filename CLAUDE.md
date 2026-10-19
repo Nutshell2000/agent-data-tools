@@ -95,3 +95,12 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   facilitator; the ledger marks self-payments, Peter's rule currently forbids it), app-directory submissions
   (`docs/app-directory-submission.md`), and whether the 19 Oct browser payment attempts on `/eth/gas` were
   his own tests.
+
+## Per-call MPP on Tempo (1.36.0, off)
+
+- `src/lib/mpp-tempo.ts`: each tool's 402 also offers `WWW-Authenticate: Payment` (tempo/charge, USDC.e on Tempo, pull
+  mode), broadcast only after the tool succeeded, receipts in the settlement ledger. It exists so MPPScan can list the
+  175 tools without a first settled payment. It stays off while `TEMPO_PAY_TO` in `wrangler.jsonc` is empty.
+- Peter decides the receiving address (reuse PAY_TO after a wallet check, or a new Tempo address):
+  `docs/mpp-per-call.md`. Do not set `TEMPO_PAY_TO` without his answer in chat.
+- Credit packs `/credits/buy/*` answer GET only, and their Stripe challenge names a recipient (the MPPScan warnings).

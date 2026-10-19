@@ -32,6 +32,9 @@
     // wallet has a USDC token account: x402 SPL transfers do not create the recipient's account, so
     // offering Solana earlier would make every Solana payment fail.
     "SOLANA_PAY_TO": "",
+    // Tempo address that receives per-call MPP payments in USDC.e (src/lib/mpp-tempo.ts). Empty = MPP on the
+    // tools is off. Peter decides which address first: docs/mpp-per-call.md.
+    "TEMPO_PAY_TO": "",
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.

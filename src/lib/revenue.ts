@@ -1,5 +1,6 @@
 import { decodePaymentResponseHeader } from "@x402/core/http";
 import { MCP_PAYMENT_RESPONSE_META_KEY } from "@x402/mcp";
+import { Receipt } from "mppx";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
 import type { Outcome } from "../metrics";
@@ -22,13 +23,18 @@ export function productUsdMicros(priceUsd: number): number | null {
   return Number.isFinite(priceUsd) && Number.isSafeInteger(micros) ? micros : null;
 }
 
-/** Revenue is recorded only when a paid catalog path returned a successful x402 settlement. */
+/** Revenue is recorded only when a paid catalog path returned a successful x402 or MPP settlement. */
 export function settledApiRevenueMicros(path: string, outcome: Outcome, headers: Headers): number | undefined {
   if (outcome !== "paid") return undefined;
   const endpoint = ENDPOINTS.find((item) => item.path === path);
   const product = endpoint ? undefined : PRODUCTS.find((item) => path === `/buy/${item.slug}`);
   const priceMicros = endpoint ? usdMicros(endpoint.price) : product ? productUsdMicros(product.priceUsd) : null;
   if (priceMicros === null) return undefined;
+  // MPP (lib/mpp-tempo.ts) answers a broadcast payment with Payment-Receipt instead of PAYMENT-RESPONSE.
+  const mppReceipt = headers.get("Payment-Receipt");
+  if (mppReceipt) {
+    try { return Receipt.deserialize(mppReceipt).status === "success" ? priceMicros : undefined; } catch { return undefined; }
+  }
   const paymentResponse = headers.get("PAYMENT-RESPONSE") ?? headers.get("X-PAYMENT-RESPONSE");
   if (!paymentResponse) return undefined;
   try {

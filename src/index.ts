@@ -35,6 +35,7 @@ import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
+import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -50,7 +51,7 @@ const DEFERRED_PATHS = [
 app.use(
   cors({
     origin: "*",
-    exposeHeaders: ["WWW-Authenticate", "PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id", "X-Request-ID"],
+    exposeHeaders: ["WWW-Authenticate", "PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Payment-Receipt", "Mcp-Session-Id", "X-Request-ID"],
   }),
 );
 
@@ -75,7 +76,7 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
     if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path)) {
       if (c.res.status === 402 && !c.req.header("payment-signature")) markStage("quote");
       if (c.res.status >= 400 && activeTrace()?.stages.has("verified") && !activeTrace()?.stages.has("settlement_failed")) markStage("execution_failed");
-      if (c.res.ok && c.res.headers.has("PAYMENT-RESPONSE")) markStage("completed");
+      if (c.res.ok && (c.res.headers.has("PAYMENT-RESPONSE") || c.res.headers.has("Payment-Receipt"))) markStage("completed");
     }
   }));
 
@@ -176,6 +177,9 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key replaces the x402 payment for this call.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name)) : undefined;
   if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
+  // MPP clients pay one call on Tempo with Authorization: Payment (lib/mpp-tempo.ts), only while TEMPO_PAY_TO is set.
+  const mppCredential = endpoint && c.req.method === "GET" && tempoEnabled(c.env) ? c.req.header("authorization") : undefined;
+  if (endpoint && mppCredential && /(^|,)\s*Payment\s/i.test(mppCredential)) return payTempo(c, endpoint, mppCredential, next);
   // x402 version 1 clients pay with X-PAYMENT (lib/x402-v1.ts); v2 clients use PAYMENT-SIGNATURE below.
   const v1Payment = endpoint && c.req.method === "GET" && !c.req.header("payment-signature") ? c.req.header("x-payment") : undefined;
   if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
@@ -212,7 +216,16 @@ app.use(async (c, next) => {
       console.warn(`x402 v2 ${stage} ${c.req.path}: ${reason}`);
     }
   }
-  return result instanceof Response ? readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []) : result;
+  if (!(result instanceof Response)) return result;
+  const answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []);
+  // The same call offered over MPP (tempo/charge) next to the x402 terms, while TEMPO_PAY_TO is set.
+  if (answer.status !== 402 || !endpoint || !tempoEnabled(c.env)) return answer;
+  // A broken MPP setup must never take the x402 quote down with it: the x402 terms go out alone then.
+  const offer = await tempoChallenge(c, endpoint).catch((e) => { console.error("mpp tempo challenge failed", e); return undefined; });
+  if (!offer) return answer;
+  const withMpp = new Response(answer.body, answer);
+  withMpp.headers.set("WWW-Authenticate", offer);
+  return withMpp;
 });
 
 /** The `error` the v2 library put in a 402's PAYMENT-REQUIRED header, for logs; never the request's payment data. */
@@ -275,10 +288,11 @@ app.get("/", async (c) =>
 const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
   const mpp = mppEnabled(c.env);
-  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}`;
+  const tempoOffer = tempoEnabled(c.env) ? tempoProtocol(c.env) : undefined;
+  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}|${tempoOffer?.mpp.currency ?? ""}`;
   let body = openApiDocs.get(key);
   if (!body) {
-    const doc = openApi(origin(c.req.url), trialsEnabled(c.env));
+    const doc = openApi(origin(c.req.url), trialsEnabled(c.env), tempoOffer);
     // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
     body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
     openApiDocs.set(key, body);
