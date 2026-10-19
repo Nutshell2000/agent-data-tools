@@ -164,6 +164,11 @@ test("HTTP middleware records settled product revenue and excludes missing or fa
   assert.equal(row.trial, 1);
   assert.equal(row.failed, undefined);
   assert.equal(row.errored, 1);
+  // Callers are recorded by software family only: these requests send no User-Agent.
+  const callers = (await metrics.callers())[today];
+  assert.equal(callers.rapidapi.marketplace, 1);
+  assert.equal(callers.none.challenged, 1);
+  assert.equal(callers.none.paid, 1);
 });
 
 test("persists revenue and tracked-call count only for paid outcomes", async () => {
@@ -279,4 +284,51 @@ test("status reports success rate and last success from executed calls only", as
   assert.match(called.lastSuccessAt, /^\d{4}-\d\d-\d\dT/);
   assert.deepEqual([idle.served, idle.successRate, idle.lastSuccessAt], [0, null, null]);
   assert.deepEqual([status.windowDays, status.served, status.serverErrors], [7, 2, 1]);
+});
+
+test("caller family names the software, never the full User-Agent", async () => {
+  const { callerFamily } = await loadTypeScript(require.resolve("../src/lib/caller.ts"));
+  assert.equal(callerFamily("Mozilla/5.0 (compatible; x402scan/1.0; +https://x402.org)"), "x402scan");
+  assert.equal(callerFamily("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0"), "browser");
+  assert.equal(callerFamily("python-requests/2.32.3"), "python-requests");
+  assert.equal(callerFamily("Go-http-client/2.0"), "go-http-client");
+  assert.equal(callerFamily("agentcash/0.17.1 (+https://agentcash.dev)"), "agentcash");
+  assert.equal(callerFamily("node"), "node");
+  assert.equal(callerFamily(undefined), "none");
+  assert.equal(callerFamily("  "), "none");
+  assert.equal(callerFamily("123 weird"), "other");
+  assert.equal(callerFamily("curl/8.7.1", true), "rapidapi");
+  assert.ok(callerFamily("x".repeat(500)).length <= 32);
+});
+
+test("caller counts are per day and family, capped at 60 families with the rest as other", async () => {
+  const { metrics } = createMetrics();
+  for (let i = 0; i < 65; i++) await metrics.bump("/extract", "challenged", undefined, `bot${i}`);
+  await metrics.bump("/extract", "challenged", undefined, "bot0");
+  await metrics.bump("/extract", "paid", 2000);
+  const day = (await metrics.callers())[today];
+  assert.equal(Object.keys(day).length, 61);
+  assert.equal(day.bot0.challenged, 2);
+  assert.equal(day.other.challenged, 5);
+  assert.equal(day.bot64, undefined);
+});
+
+test("MCP client name comes from initialize only, sanitized", async () => {
+  const { mcpClientName } = await loadTypeScript(require.resolve("../src/lib/caller.ts"));
+  const init = (name) => JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", clientInfo: { name, version: "1" } } });
+  assert.equal(mcpClientName(init("claude-ai")), "claude-ai");
+  assert.equal(mcpClientName(init("Cursor (VS Code) <script>")), "cursorvscodescript");
+  assert.equal(mcpClientName(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} })), "unnamed");
+  assert.equal(mcpClientName(JSON.stringify([{ jsonrpc: "2.0", method: "notifications/initialized" }, JSON.parse(init("openai-mcp"))])), "openai-mcp");
+  assert.equal(mcpClientName(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: {} })), undefined);
+  assert.equal(mcpClientName("not json"), undefined);
+});
+
+test("MCP connections are counted per client and mode, capped like callers", async () => {
+  const { metrics } = createMetrics();
+  await metrics.bumpMcpClient("claude-ai", "account");
+  await metrics.bumpMcpClient("claude-ai", "account");
+  await metrics.bumpMcpClient("cursor", "key");
+  const day = (await metrics.mcpClients())[today];
+  assert.deepEqual(day, { "claude-ai": { account: 2 }, cursor: { key: 1 } });
 });

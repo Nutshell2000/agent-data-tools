@@ -48,7 +48,9 @@ export function mcpServerCard(origin: string) {
     transport: { type: "streamable-http", endpoint: `${origin}/mcp` },
     bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpBundleTools(slug)!.length })),
     capabilities: { tools: { listChanged: false } },
-    authentication: { required: false },
+    // /mcp needs no sign-in; /mcp/account is the same tools behind OAuth for app directories.
+    authentication: { required: false, optional: { type: "oauth2", endpoint: `${origin}/mcp/account`, metadata: `${origin}/.well-known/oauth-authorization-server` } },
+    freeCalls: { perCaller: FREE_CALLS_PER_CALLER },
     payment: {
       protocol: "x402", asset: "USDC", network: "base",
       // Card alternative: a prepaid key from /credits sent on the MCP request replaces x402 for every call.

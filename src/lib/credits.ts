@@ -13,6 +13,15 @@ export const CREDIT_PACKS = [
   { usdCents: 10_000, credits: 125_000, url: "https://buy.stripe.com/cNi8wP5ma6Pt8tI1wxbII04" },
 ] as const;
 
+/**
+ * Top-ups: a pack bought through a link carrying client_reference_id=topup_<key hash> adds its credits
+ * to that existing key, so a buyer never has to reconfigure their apps with a new key. Only the
+ * SHA-256 of the key travels through Stripe; anyone may pay into a key, nobody can spend from one.
+ */
+export const topUpReference = (keyHash: string) => `topup_${keyHash}`;
+export const keyHashFromReference = (ref: unknown) => typeof ref === "string" && /^topup_[0-9a-f]{64}$/.test(ref) ? ref.slice(6) : undefined;
+export const topUpLinks = (keyHash: string) => CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${p.url}?client_reference_id=${topUpReference(keyHash)}` }));
+
 /** "$0.001" -> 1000 (USD micros). Throws on anything that is not a plain dollar price. */
 export function priceMicros(price: string): number {
   const m = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(price);
@@ -43,8 +52,9 @@ export async function hashCreditKey(key: string): Promise<string> {
 }
 
 interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[] }
-interface SessionRecord { key: string; keyHash: string; credits: number; at: string }
-interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void> }
+/** key is null for a top-up: the buyer already holds it and it is never seen here. */
+interface SessionRecord { key: string | null; keyHash: string; credits: number; at: string }
+interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void>; delete(key: string): Promise<boolean> }
 export interface CreditStorage { transaction<T>(callback: (txn: Txn) => Promise<T>): Promise<T> }
 
 const accountKey = (hash: string) => `credit:acct:${hash}`;
@@ -55,7 +65,7 @@ const sessionKey = (id: string) => `credit:session:${id}`;
  * key issued the first time, so a buyer who reloads the claim page sees the same key, never a second grant.
  * The raw key is kept with its session record for that reason; storage is private to this Worker.
  */
-export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string; keyHash: string }) {
+export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string | null; keyHash: string }) {
   if (!Number.isSafeInteger(grant.credits) || grant.credits <= 0) throw new Error("invalid credit grant");
   return storage.transaction(async (txn) => {
     const existing = await txn.get<SessionRecord>(sessionKey(grant.sessionId));
@@ -73,6 +83,54 @@ export async function issueCredits(storage: CreditStorage, grant: { sessionId: s
     await txn.put(accountKey(grant.keyHash), account);
     await txn.put(sessionKey(grant.sessionId), { key: grant.key, keyHash: grant.keyHash, credits: grant.credits, at } satisfies SessionRecord);
     return { key: grant.key, credits: grant.credits, balanceMicros: account.balanceMicros, repeated: false };
+  });
+}
+
+/**
+ * Card-credit sales and use, for the revenue scorecard: totals over every key plus purchases per
+ * day. Aggregates only; no key, hash or session id leaves this function. Owner test purchases, if
+ * any were made, are included and must be subtracted by hand.
+ */
+export async function creditSummary(storage: { list<T>(options: { prefix: string }): Promise<Map<string, T>> }) {
+  const accounts = [...(await storage.list<Account>({ prefix: "credit:acct:" })).values()];
+  const sessions = [...(await storage.list<SessionRecord>({ prefix: "credit:session:" })).values()];
+  const perDay: Record<string, { purchases: number; credits: number }> = {};
+  for (const s of sessions) {
+    const day = (perDay[s.at.slice(0, 10)] ??= { purchases: 0, credits: 0 });
+    day.purchases++;
+    day.credits += s.credits;
+  }
+  const sum = (pick: (a: Account) => number) => accounts.reduce((n, a) => n + pick(a), 0);
+  return {
+    purchases: sessions.length,
+    // Repeat purchases into an existing key (top-up links): the clearest sign buyers keep paying.
+    topUps: sessions.filter((s) => s.key === null).length,
+    buyers: accounts.filter((a) => a.purchasedMicros > 0).length,
+    purchasedUsd: sum((a) => a.purchasedMicros) / 1e6,
+    spentUsd: sum((a) => a.spentMicros) / 1e6,
+    balanceUsd: sum((a) => a.balanceMicros) / 1e6,
+    creditCalls: sum((a) => a.calls),
+    activeBuyers: accounts.filter((a) => a.calls > 0).length,
+    perDay,
+  };
+}
+
+/**
+ * Replaces a key: the balance and history move to the new key and the old one stops working at once.
+ * Purchase records stop showing the old key (a claim page reload then says the key was replaced), so a
+ * leaked claim URL does not leak the new key either. Returns null for an unknown key.
+ */
+export async function rotateKey(storage: CreditStorage, oldHash: string, newKey: string, newHash: string) {
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(oldHash));
+    if (!account || oldHash === newHash) return null;
+    await txn.put(accountKey(newHash), account);
+    await txn.delete(accountKey(oldHash));
+    for (const id of account.sessions) {
+      const record = await txn.get<SessionRecord>(sessionKey(id));
+      if (record) await txn.put(sessionKey(id), { ...record, key: null, keyHash: newHash });
+    }
+    return { key: newKey, balanceMicros: account.balanceMicros };
   });
 }
 
@@ -128,9 +186,9 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
   }
   if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
   if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
-  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string> };
+  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null };
   if (s.mode !== "payment" || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
   const pack = CREDIT_PACKS.find((p) => p.usdCents === s.amount_total && String(p.credits) === s.metadata?.adt_credits);
   if (s.currency !== "usd" || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
-  return pack;
+  return { ...pack, topUpKeyHash: keyHashFromReference(s.client_reference_id) };
 }
