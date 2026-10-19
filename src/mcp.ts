@@ -1,3 +1,4 @@
+import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom, isCreditKey } from "./lib/credits";
@@ -112,6 +113,14 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
   if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   const env = c.env;
+  if (c.req.method === "POST" && env.METRICS) {
+    // Which apps connect: counted on initialize only, by the client's self-reported name.
+    const client = mcpClientName(await c.req.raw.clone().text());
+    if (client) {
+      const mode = account ? "account" : urlKey || apiKeyFrom((name) => c.req.header(name)) ? "key" : "open";
+      c.executionCtx.waitUntil(env.METRICS.get(env.METRICS.idFromName("global")).bumpMcpClient(client, mode).catch(() => {}));
+    }
+  }
   const paid = env.PAYWALL !== "off";
   // An API key from /credits pays every call in this request with card credits instead of x402,
   // so the x402 facilitator is not needed (or contacted) for it.
