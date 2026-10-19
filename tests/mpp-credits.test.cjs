@@ -64,3 +64,10 @@ test('an agent pays a $5 pack over MPP with a card token and gets a working key'
   const balance = await (await mf.dispatchFetch('https://api.test/credits/balance', { headers: { authorization: `Bearer ${body.apiKey}` } })).json();
   assert.equal(balance.balanceCredits, 5000);
 });
+
+test('/credits tells agents about MPP purchase only when it is switched on', async () => {
+  const on = await (await mf.dispatchFetch('https://api.test/credits', { headers: { accept: 'application/json' } })).json();
+  assert.match(on.agentPurchase, /\/credits\/buy\/5/);
+  const off = await (await mfOff.dispatchFetch('https://api.test/credits', { headers: { accept: 'application/json' } })).json();
+  assert.equal(off.agentPurchase, undefined);
+});
