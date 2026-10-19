@@ -295,4 +295,30 @@ function chainEntries(c: ChainDef): Entry[] {
 
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
 
-export const CHAIN_READS: Entry[] = CHAINS.flatMap(chainEntries);
+/** Native coin and USDC on every supported network in one call: the "where are this wallet's funds?" question. */
+const WALLET_BALANCES: Entry = entry("/wallet/balances", "Native and USDC balances on 5 networks",
+  `Read a wallet's native coin and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, live from each network, plus the USDC total. Use to find where a wallet's funds are before a payment or bridge; for one token on one network use <chain>_token_balance, for all tokens on Base use wallet_portfolio. A network whose nodes do not answer is listed with an error instead of failing the call.`,
+  ["wallet", "balance", "multichain", "usdc", "evm", "blockchain"],
+  { address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR } },
+  { address: EX_ADDR, usdcTotal: "12.5", networks: [{ chain: "Base", chainId: 8453, native: "0.0123", nativeSymbol: "ETH", usdc: "12.5", error: null }] },
+  async (env, q) => {
+    const a = address(q("address"));
+    const networks = await Promise.all(CHAINS.map(async (c) => {
+      const cl = client(env, c);
+      try {
+        const [wei, usdc] = await Promise.all([
+          cl.getBalance({ address: a }),
+          cl.readContract({ address: USDC[c.slug], abi: erc20Abi, functionName: "balanceOf", args: [a] }),
+        ]);
+        return { chain: c.name, chainId: c.chain.id, native: formatEther(wei), nativeSymbol: c.symbol, usdc: formatUnits(usdc as bigint, 6), usdcRaw: (usdc as bigint).toString(), error: null as string | null };
+      } catch {
+        return { chain: c.name, chainId: c.chain.id, native: null, nativeSymbol: c.symbol, usdc: null, usdcRaw: null, error: "the network's public nodes did not answer" };
+      }
+    }));
+    if (networks.every((n) => n.error)) throw new HttpError(502, "no network answered; try again");
+    const total = networks.reduce((s, n) => s + (n.usdcRaw ? BigInt(n.usdcRaw) : 0n), 0n);
+    return { address: a, usdcTotal: formatUnits(total, 6), networks: networks.map(({ usdcRaw: _r, ...n }) => n) };
+  },
+  "$0.005");
+
+export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries), WALLET_BALANCES];
