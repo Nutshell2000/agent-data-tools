@@ -1,7 +1,7 @@
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom } from "./lib/credits";
-import { creditCharger, paymentHint, useFreeCall } from "./lib/credit-routes";
+import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { freeCallNote } from "./lib/free-calls";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
@@ -114,7 +114,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
   const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) : undefined;
   const payment = paid && !creditKey ? await paymentState(env) : undefined;
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length) });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);

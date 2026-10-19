@@ -1,7 +1,10 @@
 // Card credits over HTTP: the /credits pages, the API-key charge used by the paywall, and the MCP charge.
 import { Hono, type Context, type Next } from "hono";
 import { trialsEnabled, type Env } from "./env";
-import { callerHash, utcDay } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
+
+
+
 import {
   CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
 } from "./credits";
@@ -108,6 +111,15 @@ export async function useFreeCall(env: Env, ip: string | undefined) {
   const day = utcDay();
   const left = await store.takeFreeCall(caller, day);
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
+}
+
+/** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */
+export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number) {
+  const pay = hasKey
+    ? "This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
+    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. `
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001) and add the header "Authorization: Bearer <key>" to this server's connection settings.`;
+  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.001 per successful call. ${pay} Every tool's result shape is in its output schema.`;
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
