@@ -168,7 +168,7 @@ const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.
  * our resources (origin title | resource description | origin description | tags), so it names what
  * buyers search for, not just a tool count.
  */
-export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} x402 tools from $0.001`;
+export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} tools, 25 free calls, then from $0.001`;
 
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
