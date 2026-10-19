@@ -213,6 +213,7 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
  const client=new Client({name:'free-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
+  assert.match(client.getInstructions(),/25 free successful calls.*\/credits/);
   const r=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
   assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(23 of 25/);
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
