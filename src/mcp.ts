@@ -107,7 +107,7 @@ const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
-export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string) {
+export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string, account?: { key: string | null; sub: string }) {
   if (urlKey !== undefined && !isCreditKey(urlKey)) return c.json({ error: "the key in this URL is not a valid API key; copy the connector URL again from your /credits/claim page" }, 401);
   const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
   if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
@@ -115,13 +115,15 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const paid = env.PAYWALL !== "off";
   // An API key from /credits pays every call in this request with card credits instead of x402,
   // so the x402 facilitator is not needed (or contacted) for it.
-  const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) ?? urlKey : undefined;
+  const creditKey = paid ? (account ? account.key ?? undefined : apiKeyFrom((name) => c.req.header(name)) ?? urlKey) : undefined;
+  // Free calls follow a signed-in person; anonymous callers are told apart by network address.
+  const caller = account ? `sub:${account.sub}` : c.req.header("cf-connecting-ip");
   // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
   const x402 = paid && !creditKey;
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env)) });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
@@ -147,7 +149,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       if (paidAttempt) markStage("attempt");
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
-        const free = x402 && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, c.req.header("cf-connecting-ip")) : null;
+        const free = x402 && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller) : null;
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
@@ -163,7 +165,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price) }]
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price, Boolean(account)) }]
           : free && !result.isError ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;
