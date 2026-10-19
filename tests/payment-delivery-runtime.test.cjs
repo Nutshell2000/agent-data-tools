@@ -91,7 +91,7 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,172);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name),['extract','sitemap','btc_fees']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,175);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name),['extract','sitemap','btc_fees']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
@@ -201,6 +201,7 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  const viaUrl=new Client({name:'credits-url-fixture',version:'1'});
  try{await viaUrl.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/k/'+first.apiKey),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));const r=await viaUrl.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.notEqual(r.isError,true);}finally{await viaUrl.close();}
  assert.equal((await mf.dispatchFetch('https://api.test/mcp/k/not-a-key',{method:'POST'})).status,401);
+ for(const p of ['/mcp','/mcp/chain']){const g=await mf.dispatchFetch('https://api.test'+p);assert.equal(g.status,405);assert.equal(g.headers.get('allow'),'POST');await g.arrayBuffer();}
  const fakeMcp=await call(fake,{url:'https://public.example/article'});
  assert.equal(fakeMcp.isError,true);assert.match(fakeMcp.content[0].text,/unknown API key/);
  const balance=await (await mf.dispatchFetch('https://api.test/credits/balance',{headers:auth})).json();
