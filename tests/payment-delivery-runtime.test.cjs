@@ -60,8 +60,8 @@ test('actual HTTP paywall links successful payment to completed output and never
   const q=await mf.dispatchFetch(url);assert.equal(q.status,402);
   const requirements=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
   assert.equal(requirements.amount,'2000');
-  // Plain-HTTP agents only see the body: it must repeat the header's challenge.
-  const body=await q.json();assert.equal(body.x402Version,2);assert.deepEqual(body.accepts[0],requirements);assert.match(body.hint,/llms\.txt/);
+  // The body carries the same terms in x402 v1 shape for v1 clients (v2 clients read the header).
+  const body=await q.json();assert.equal(body.x402Version,1);const v1base=body.accepts.find(a=>a.network==='base');assert.equal(v1base.maxAmountRequired,requirements.amount);assert.equal(v1base.payTo.toLowerCase(),requirements.payTo.toLowerCase());assert.equal(v1base.asset.toLowerCase(),requirements.asset.toLowerCase());assert.match(body.hint,/llms\.txt/);
   // A free sample shows the documented example without running the tool or settling.
   const sample=await mf.dispatchFetch('https://api.test/extract?sample=1');assert.equal(sample.status,200);assert.equal(sample.headers.get('X-Sample'),'1');
   const preview=await sample.json();assert.equal(preview.sample,true);assert.equal(preview.price,'$0.002');assert.ok(preview.example.contentHash);
@@ -238,4 +238,30 @@ test('MCP connections are counted by client name on /metrics/callers',async()=>{
   try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));}finally{await client.close();}
   let seen;for(let i=0;i<20&&!seen;i++){const body=await(await mf.dispatchFetch('https://api.test/metrics/callers')).json();seen=Object.values(body.mcpConnections)[0]?.attributionfixture;if(!seen)await new Promise(r=>setTimeout(r,50));}
   assert.ok(seen&&seen.open>=1,'initialize from an open /mcp connection is counted');
+});
+
+test('x402 v1: v1 terms in the 402 body beside the v2 header, X-PAYMENT settles only successful calls and is recorded',async()=>{
+ const before=(await revenue()).settlements;
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const quote=await mf.dispatchFetch(url);assert.equal(quote.status,402);
+ assert.ok(quote.headers.get('payment-required'),'v2 header kept');
+ const body=await quote.json();
+ assert.equal(body.x402Version,1);
+ const base=body.accepts.find(a=>a.network==='base');
+ assert.equal(base.maxAmountRequired,'2000');assert.equal(base.payTo,recipient);assert.equal(base.asset.toLowerCase(),'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
+ assert.equal(base.resource,url);assert.deepEqual(base.extra,{name:'USD Coin',version:'2'});
+ const v1=(nonce,value='2000')=>Buffer.from(JSON.stringify({x402Version:1,scheme:'exact',network:'base',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value,validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+nonce}}})).toString('base64');
+ const paid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa01')}});
+ assert.equal(paid.status,200);
+ const receipt=JSON.parse(Buffer.from(paid.headers.get('x-payment-response'),'base64').toString());
+ assert.equal(receipt.success,true);assert.equal(receipt.network,'base');assert.match(receipt.transaction,/^0x2{64}$/);
+ await paid.arrayBuffer();
+ const failed=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa02')}});
+ assert.ok(failed.status>=400&&failed.status!==402);assert.equal(failed.headers.has('x-payment-response'),false);await failed.arrayBuffer();
+ const wrong=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa03','1')}});
+ assert.equal(wrong.status,402);assert.match((await wrong.json()).error,/exactly 2000/);
+ const invalid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'eeee')}});
+ assert.equal(invalid.status,402);assert.match((await invalid.json()).error,/payment invalid/);
+ await new Promise(r=>setTimeout(r,200));
+ assert.equal((await revenue()).settlements,before+1);
 });

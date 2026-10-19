@@ -104,5 +104,5 @@ export const X402_CHECK: Entry[] = [
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
       return analyze(target.href, res.status, res.headers.get("payment-required"), body);
-    }, "$0.002"),
+    }, "$0.003"),
 ];
