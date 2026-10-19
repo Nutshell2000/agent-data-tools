@@ -1,5 +1,5 @@
 {
-  "version": "1.33.1",
+  "version": "1.34.0",
   "tools": [
     {
       "name": "extract",
@@ -1051,7 +1051,7 @@
     },
     {
       "name": "ln_invoice",
-      "description": "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1071,7 +1071,7 @@
           "invoice"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "package_audit",
@@ -1226,7 +1226,7 @@
     },
     {
       "name": "package",
-      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Example: ecosystem=npm, name=lodash, version=4.17.20. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Example: ecosystem=npm, name=lodash, version=4.17.20. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1255,11 +1255,11 @@
           "name"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "email",
-      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup. Example: address=support@cloudflare.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup. Example: address=support@cloudflare.com. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1279,7 +1279,7 @@
           "address"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "papers",
@@ -1319,7 +1319,7 @@
     },
     {
       "name": "fx",
-      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Example: from=USD, to=EUR,GBP,SEK, amount=100. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Example: from=USD, to=EUR,GBP,SEK, amount=100. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1347,11 +1347,11 @@
           "from"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "btc_price",
-      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1363,7 +1363,7 @@
         "type": "object",
         "properties": {}
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "base_gas",
@@ -1441,7 +1441,7 @@
     },
     {
       "name": "ens",
-      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Example: name=vitalik.eth. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Example: name=vitalik.eth. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1461,11 +1461,11 @@
           "name"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "weather",
-      "description": "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: lat=59.33, lon=18.07, hours=12. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: lat=59.33, lon=18.07, hours=12. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1496,11 +1496,11 @@
           "lon"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "time",
-      "description": "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time. Example: zone=Europe/Stockholm, at=2026-03-01T09:00:00+01:00, to=America/New_York,Asia/Tokyo. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time. Example: zone=Europe/Stockholm, at=2026-03-01T09:00:00+01:00, to=America/New_York,Asia/Tokyo. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1528,7 +1528,7 @@
           "zone"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "base_balance",
@@ -2906,7 +2906,7 @@
     },
     {
       "name": "price_token",
-      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: address=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf, chain=base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: address=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf, chain=base. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2936,7 +2936,7 @@
           "address"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "price_tokens",
@@ -3097,7 +3097,7 @@
     },
     {
       "name": "feed",
-      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Example: url=https://github.blog/feed/, limit=10. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Example: url=https://github.blog/feed/, limit=10. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3123,7 +3123,7 @@
           "url"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "url_meta",
@@ -3307,7 +3307,7 @@
     },
     {
       "name": "x402_check",
-      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3327,7 +3327,7 @@
           "url"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "json_validate",
@@ -4999,7 +4999,7 @@
     },
     {
       "name": "ai_chat",
-      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5033,11 +5033,11 @@
           "prompt"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_summarize_text",
-      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5063,11 +5063,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_sentiment",
-      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Example: text=The checkout was fast and support answered within minutes.. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Example: text=The checkout was fast and support answered within minutes.. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5087,11 +5087,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_classify",
-      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5116,11 +5116,11 @@
           "labels"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_keywords",
-      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5146,11 +5146,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_rewrite",
-      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Example: text=hey, cant make it tmrw, can we move to thu?, style=professional. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Example: text=hey, cant make it tmrw, can we move to thu?, style=professional. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5183,11 +5183,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_outline",
-      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Example: text=How small businesses can accept stablecoin payments, depth=2. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Example: text=How small businesses can accept stablecoin payments, depth=2. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5213,11 +5213,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_translate",
-      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv, from=en. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv, from=en. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5246,11 +5246,11 @@
           "to"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_embed",
-      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Example: text=pay-per-call APIs for AI agents. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Example: text=pay-per-call APIs for AI agents. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5270,11 +5270,11 @@
           "text"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_extract_json",
-      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Price $0.003/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5299,7 +5299,7 @@
           "fields"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "ai_speech",

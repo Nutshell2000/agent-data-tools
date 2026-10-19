@@ -152,7 +152,7 @@ export const FEEDS: Entry[] = [
       const { format, feed, items } = parseFeed(page.text, page.finalUrl, limit);
       if (!format || (!items.length && !feed.title)) throw new HttpError(422, `url is not an RSS or Atom feed (content type ${page.contentType || "unknown"})`);
       return { url: page.finalUrl, format, title: feed.title, link: feed.link, description: feed.description, count: items.length, items };
-    }, "$0.002"),
+    }, "$0.003"),
 
   entry("/url/meta", "Link preview metadata for a page",
     "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it.",

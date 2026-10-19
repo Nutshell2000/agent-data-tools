@@ -141,7 +141,7 @@ export const PRICES: Entry[] = [
         ...head, token: tokenInfo, priceUsd: sig(best.priceUsd), quotedIn: best.quotedIn, pool: poolOut(best.pool),
         ethUsd: sig(await p.ethUsd()), thinLiquidity: (best.pool?.quoteReserveUsd ?? 0) < THIN_USD, block, method: METHOD,
       };
-    }, "$0.002"),
+    }, "$0.003"),
 
   entry("/price/tokens", "USD prices for up to 20 tokens in one call",
     "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call.",

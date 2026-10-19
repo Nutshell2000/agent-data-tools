@@ -8,7 +8,7 @@ import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 
-export const AI_PRICE = "$0.002";
+export const AI_PRICE = "$0.003";
 const T = ["ai", "llm", "text"];
 const TEXT_MAX = 12_000;
 
