@@ -265,3 +265,32 @@ test('new-key claim page offers top-up links for that same key', async () => {
     assert.ok(html.includes(`client_reference_id=topup_${await credits.hashCreditKey(key)}`));
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('low balance: the call that drops a key below 200 credits says so once, with a top-up link', async () => {
+  assert.equal(routes.crossedLow(200_000, 199_999), true);
+  assert.equal(routes.crossedLow(199_999, 197_999), false);
+  assert.equal(routes.crossedLow(300_000, 250_000), false);
+  const s = storage();
+  const key = credits.newCreditKey();
+  await credits.issueCredits(s, { sessionId: 'cs_live_low', credits: 201, key, keyHash: await credits.hashCreditKey(key) });
+  const { fetch } = app({ METRICS: metricsFor(s) });
+  const auth = { authorization: `Bearer ${key}` };
+  let res = await fetch('/tool', auth);
+  assert.equal(res.headers.get('X-Credits-Remaining'), '199');
+  assert.match(res.headers.get('X-Credits-Low'), /^199 credits left; top up this key: https:\/\/buy\.stripe\.com\/.+client_reference_id=topup_/);
+  res = await fetch('/tool', auth);
+  assert.equal(res.headers.get('X-Credits-Low'), null, 'only the crossing call carries the warning');
+});
+
+test('low balance over MCP: the crossing call appends one note for the user', async () => {
+  const s = storage();
+  const key = credits.newCreditKey();
+  await credits.issueCredits(s, { sessionId: 'cs_live_lowmcp', credits: 201, key, keyHash: await credits.hashCreditKey(key) });
+  const charge = routes.creditCharger({ METRICS: metricsFor(s) }, key, '$0.002', 'https://x.test');
+  const ok = { content: [{ type: 'text', text: '{}' }] };
+  const first = await charge(async () => ok);
+  assert.equal(first.content.length, 2);
+  assert.match(first.content[1].text, /^Credits running low: 199 left/);
+  const second = await charge(async () => ok);
+  assert.equal(second.content.length, 1);
+});
