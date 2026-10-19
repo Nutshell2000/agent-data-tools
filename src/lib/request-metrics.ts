@@ -13,9 +13,10 @@ export function requestMetricsMiddleware(
     if (!paidPaths.has(c.req.path) || !c.env.METRICS || c.req.method !== "GET") return;
     let outcome: Outcome;
     let revenueUsdMicros: number | undefined;
-    // An x402 v1 client pays with X-PAYMENT, which this v2 server does not read: it gets 402 again.
-    // Counted apart so refused payment attempts are visible rather than lost among quotes.
-    if (c.res.status === 402 && c.req.header("x-payment") && !c.req.header("payment-signature")) outcome = "v1_payment";
+    // A payment attempt answered 402 is a refused payment, not a quote: counted apart by protocol version
+    // (v2 clients send PAYMENT-SIGNATURE, v1 clients X-PAYMENT) so refusals are visible among the quotes.
+    if (c.res.status === 402 && c.req.header("payment-signature")) outcome = "v2_payment";
+    else if (c.res.status === 402 && c.req.header("x-payment")) outcome = "v1_payment";
     else if (c.res.status === 402) outcome = "challenged";
     else if (c.res.status >= 500) outcome = "errored";
     else if (c.res.status >= 400) outcome = "failed";

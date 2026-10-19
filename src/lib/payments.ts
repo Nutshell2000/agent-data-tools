@@ -16,9 +16,25 @@ export function resourceServer(env: Env): x402ResourceServer {
   const server = new x402ResourceServer(buildFacilitator(env));
   for (const { network } of paymentOptions(env)) server.register(network, network === SOLANA_NETWORK ? new ExactSvmScheme() : new ExactEvmScheme());
   server.registerExtension(bazaarResourceServerExtension);
-  server.onAfterVerify(async context => { markStage(context.result.isValid ? "verified" : "verification_failed"); });
-  server.onVerifyFailure(async () => { markStage("verification_failed"); });
-  server.onSettleFailure(async () => { markStage("settlement_failed"); });
+  // Each failure is logged with its reason (never the signature, payload or payer) so refused buyers show up in
+  // `wrangler tail` and the funnel, not only as a count of 402s.
+  const where = (requirements: { network?: string } | undefined, payload: { resource?: { url?: string } } | undefined) =>
+    `${payload?.resource?.url ?? "unknown resource"} on ${requirements?.network ?? "unknown network"}`;
+  server.onAfterVerify(async context => {
+    markStage(context.result.isValid ? "verified" : "verification_failed");
+    if (!context.result.isValid) console.warn(`x402 v2 verification_failed ${where(context.requirements, context.paymentPayload)}: ${context.result.invalidReason ?? "rejected by the facilitator"}`);
+  });
+  server.onVerifyFailure(async context => {
+    const message = String(context.error?.message ?? context.error).slice(0, 160);
+    // The client library throws for a facilitator rejection too; an edge block or timeout is an outage instead.
+    const outage = !(context.error?.name === "VerifyError" || /^invalid_|insufficient_funds/.test(message));
+    markStage(outage ? "facilitator_unavailable" : "verification_failed");
+    console.warn(`x402 v2 ${outage ? "facilitator_unavailable" : "verification_failed"} ${where(context.requirements, context.paymentPayload)}: ${message}`);
+  });
+  server.onSettleFailure(async context => {
+    markStage("settlement_failed");
+    console.warn(`x402 v2 settlement_failed ${where(context.requirements, context.paymentPayload)}: ${String(context.error?.message ?? context.error).slice(0, 160)}`);
+  });
   server.onAfterSettle(async context => {
     if (context.phase !== "after-handler" || context.result.success !== true) return;
     markStage("settled");

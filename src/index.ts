@@ -8,6 +8,7 @@ import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { readable402 } from "./lib/readable-402";
+import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { schemaFromExample } from "./lib/output-schema";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
@@ -76,6 +77,10 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
       if (c.res.ok && c.res.headers.has("PAYMENT-RESPONSE")) markStage("completed");
     }
   }));
+
+// Paused store purchases answer 503 here, before the paywall and before the counters: a crawler retrying
+// /buy/* is neither a sale nor a server error worth counting against the tools' reliability.
+app.use(buyAssetPreflight());
 
 // Counts requests after their response is decided; telemetry never delays or fails it.
 app.use(requestMetricsMiddleware(PAID_PATHS, viaMarketplace));
@@ -148,8 +153,6 @@ function buildPaywall(env: Env): MiddlewareHandler {
 // Sharing the SDK's pending startup promise lets one interrupted request stall others.
 let paywall: MiddlewareHandler | undefined;
 
-app.use(buyAssetPreflight());
-
 app.use(async (c, next) => {
   if (!PAID_PATHS.has(c.req.path) || c.env.PAYWALL === "off") return next();
   const endpoint = ENDPOINTS.find((e) => e.path === c.req.path);
@@ -196,8 +199,26 @@ app.use(async (c, next) => {
   const candidate = paywall ?? buildPaywall(c.env);
   const result = await candidate(c, next);
   if (c.res.status < 500) paywall ??= candidate;
+  const response = result instanceof Response ? result : c.res;
+  // A signed v2 request answered 402 is a refused payment. The hooks in lib/payments.ts cover facilitator
+  // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.
+  if (response.status === 402 && c.req.header("payment-signature")) {
+    const trace = activeTrace();
+    if (!trace?.stages.has("verification_failed") && !trace?.stages.has("facilitator_unavailable")) {
+      const reason = decodedChallengeError(response.headers.get("payment-required"));
+      const stage = /network|chain|unsupported/i.test(reason) ? "refused_network" : /amount|price|value/i.test(reason) ? "refused_amount" : "refused_format";
+      markStage(stage);
+      console.warn(`x402 v2 ${stage} ${c.req.path}: ${reason}`);
+    }
+  }
   return result instanceof Response ? readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []) : result;
 });
+
+/** The `error` the v2 library put in a 402's PAYMENT-REQUIRED header, for logs; never the request's payment data. */
+function decodedChallengeError(header: string | null): string {
+  if (!header) return "no PAYMENT-REQUIRED header";
+  try { return String(decodePaymentRequiredHeader(header).error ?? "payment refused").slice(0, 160); } catch { return "unreadable PAYMENT-REQUIRED header"; }
+}
 
 for (const e of ENDPOINTS) {
   app.get(e.path, async (c) => c.json(await TOOLS[e.path](c.env, (name) => c.req.query(name))));
