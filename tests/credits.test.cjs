@@ -144,13 +144,19 @@ test('paywall charges a key per successful call and refunds failed calls', async
   assert.equal((await fetch('/tool', auth)).status, 200);
   res = await fetch('/tool', auth);
   assert.equal(res.status, 402);
-  assert.match((await res.json()).error, /not enough credits/);
+  const short = await res.json();
+  assert.match(short.error, /not enough credits.*Top up this key/);
+  assert.match(short.topUp[0].buy, /^https:\/\/buy\.stripe\.com\/.+\?client_reference_id=topup_[0-9a-f]{64}$/);
 
   res = await fetch('/tool', { authorization: `Bearer ${credits.newCreditKey()}` });
   assert.equal(res.status, 401);
 
   res = await fetch('/credits/balance', auth);
-  assert.deepEqual(await res.json().then(({ since, ...rest }) => rest), { balanceCredits: 1, purchasedCredits: 5, spentCredits: 4, calls: 2 });
+  const balance = await res.json();
+  const { since, topUp, ...rest } = balance;
+  assert.deepEqual(rest, { balanceCredits: 1, purchasedCredits: 5, spentCredits: 4, calls: 2 });
+  assert.equal(topUp.length, 3);
+  for (const l of topUp) assert.ok(l.buy.endsWith(`?client_reference_id=topup_${await credits.hashCreditKey(key)}`));
 
   assert.equal((await fetch('/tool')).status, 402);
 });
@@ -198,6 +204,7 @@ test('credit summary totals sales and use without exposing keys', async () => {
   await credits.spendCredits(store, hashA, 3000);
   const summary = await credits.creditSummary({ list });
   assert.equal(summary.purchases, 2);
+  assert.equal(summary.topUps, 0);
   assert.equal(summary.buyers, 2);
   assert.equal(summary.purchasedUsd, 27);
   assert.equal(summary.spentUsd, 0.003);
@@ -205,4 +212,46 @@ test('credit summary totals sales and use without exposing keys', async () => {
   assert.equal(summary.activeBuyers, 1);
   assert.equal(Object.values(summary.perDay)[0].credits, 27000);
   assert.ok(!JSON.stringify(summary).includes('adt_') && !JSON.stringify(summary).includes(hashA));
+});
+
+test('top-up: a checkout naming an existing key adds credits to it, once; an unknown key gets a new key', async () => {
+  const s = storage();
+  const env = { METRICS: metricsFor(s), STRIPE_READ_KEY: 'rk_test_key' };
+  const key = credits.newCreditKey();
+  const keyHash = await credits.hashCreditKey(key);
+  await credits.issueCredits(s, { sessionId: 'cs_live_first', credits: 5000, key, keyHash });
+  const { fetch } = app(env);
+  const realFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ ...paid, client_reference_id: `topup_${keyHash}` }));
+    let res = await fetch('/credits/claim?session_id=cs_live_TopupOne0001', { accept: 'application/json' });
+    let body = await res.json();
+    assert.equal(body.toppedUp, true);
+    assert.equal(body.apiKey, undefined, 'the key is never shown or re-issued on a top-up');
+    assert.equal(body.balanceCredits, 27000);
+    res = await fetch('/credits/claim?session_id=cs_live_TopupOne0001', { accept: 'application/json' });
+    assert.equal((await res.json()).balanceCredits, 27000, 'reloading does not add twice');
+    res = await fetch('/credits/claim?session_id=cs_live_TopupOne0001', { accept: 'text/html' });
+    assert.match(await res.text(), /added to your existing key/);
+    assert.equal((await fetch('/credits/balance', { authorization: `Bearer ${key}` }).then((r) => r.json())).balanceCredits, 27000);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({ ...paid, client_reference_id: `topup_${'0'.repeat(64)}` }));
+    body = await (await fetch('/credits/claim?session_id=cs_live_TopupTwo0002', { accept: 'application/json' })).json();
+    assert.match(body.apiKey, /^adt_/, 'an unknown top-up target falls back to a new key, so the payment is not lost');
+    assert.equal(body.balanceCredits, 22000);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({ ...paid, client_reference_id: 'something-else' }));
+    assert.equal((await credits.verifyCheckout('rk_test_key', 'cs_live_a1B2c3D4e5F6g7')).topUpKeyHash, undefined);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('new-key claim page offers top-up links for that same key', async () => {
+  const s = storage();
+  const realFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify(paid));
+    const html = await (await app({ METRICS: metricsFor(s), STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits/claim?session_id=cs_live_NewKey000001', { accept: 'text/html' })).text();
+    const key = /<pre>(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(html)[1];
+    assert.ok(html.includes(`client_reference_id=topup_${await credits.hashCreditKey(key)}`));
+  } finally { globalThis.fetch = realFetch; }
 });
