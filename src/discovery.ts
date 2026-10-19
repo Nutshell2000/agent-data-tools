@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.34.0";
+export const MCP_SERVER_VERSION = "1.35.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -89,10 +89,27 @@ function endpointSpendCap(path: string) {
   return { price: endpoint.price, atomic: atomic.toString() };
 }
 
-const exampleSpendCap = () => endpointSpendCap("/extract");
+/**
+ * The per-payment cap in the published client example: the ordinary per-call price, which most tools charge.
+ * An example capped at the cheapest tool's price would make an agent that copies it refuse almost every tool.
+ */
+export const ORDINARY_PRICE = "$0.003";
+const atomicOf = (price: string) => {
+  const match = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(price);
+  if (!match) throw new Error(`Cannot express ${price} as six-decimal USDC`);
+  return (BigInt(match[1]) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0") || "0")).toString();
+};
+const exampleSpendCap = () => ({ price: ORDINARY_PRICE, atomic: atomicOf(ORDINARY_PRICE) });
 
-export function paymentClientExample(origin: string, payTo: string, path = "/extract", query = "url=https%3A%2F%2Fexample.com") {
-  const cap = endpointSpendCap(path);
+/**
+ * capMode "exact" (tool guides) pins the one tool's price; "ordinary" (homepage, llms.txt, OpenAPI guidance)
+ * caps at ORDINARY_PRICE so the copied client can pay for every ordinary tool, unless the tool costs more.
+ */
+export function paymentClientExample(origin: string, payTo: string, path = "/extract", query = "url=https%3A%2F%2Fexample.com", capMode: "exact" | "ordinary" = "exact") {
+  const own = endpointSpendCap(path);
+  const ordinary = exampleSpendCap();
+  const cap = capMode === "ordinary" && BigInt(own.atomic) <= BigInt(ordinary.atomic) ? ordinary : own;
+  const capNote = cap === own ? `the current ${path} price` : `the ordinary per-call price (${path} costs ${own.price})`;
   const requestPath = `${path}?${query}`;
   return [
     "// Save as client.ts; set X402_PRIVATE_KEY in your environment, never in source.",
@@ -108,7 +125,7 @@ export function paymentClientExample(origin: string, payTo: string, path = "/ext
     `const serviceOrigin = ${JSON.stringify(origin)};`,
     `const expectedPayTo = ${JSON.stringify(payTo.toLowerCase())};`,
     'const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";',
-    `const maxUsdcAtomic = ${cap.atomic}n; // ${cap.price} USDC, the current ${path} price`,
+    `const maxUsdcAtomic = ${cap.atomic}n; // ${cap.price} USDC, ${capNote}`,
     "",
     'const client = new x402Client()',
     '  .register("eip155:8453", new ExactEvmScheme(account))',
@@ -130,9 +147,9 @@ export function paymentClientExample(origin: string, payTo: string, path = "/ext
 }
 
 function clientGuidance() {
-  const entryPrice = exampleSpendCap().price;
+  const cap = exampleSpendCap().price;
   const packageAuditPrice = catalogEndpoint("/package-audit").price;
-  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at the current /extract price (${entryPrice}); /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
+  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at ${cap}, the ordinary per-call price, so it pays for every tool priced at ${cap} or less; /package-audit costs ${packageAuditPrice} and is intentionally rejected by that example.`;
 }
 
 /** Catalog sections for people browsing: first matching rule wins, everything else is a utility. */
@@ -174,7 +191,7 @@ export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data,
 
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
-  const clientExample = paymentClientExample(origin, payTo);
+  const clientExample = paymentClientExample(origin, payTo, "/extract", "url=https%3A%2F%2Fexample.com", "ordinary");
   const row = (e: (typeof ENDPOINTS)[number]) =>
     `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`;
   const starters = START_HERE.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is (typeof ENDPOINTS)[number] => Boolean(e));
@@ -386,7 +403,7 @@ export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
 }
 
 export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
-  const clientExample = paymentClientExample(origin, payTo);
+  const clientExample = paymentClientExample(origin, payTo, "/extract", "url=https%3A%2F%2Fexample.com", "ordinary");
   const lines = [
     `# ${SERVICE_NAME}`,
     "",
@@ -427,7 +444,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     "## Advanced TypeScript x402 client",
     "",
-    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at the current /extract price (${exampleSpendCap().price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
+    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at ${exampleSpendCap().price}, the ordinary per-call price, so it pays for every tool priced at ${exampleSpendCap().price} or less (/extract costs ${catalogEndpoint("/extract").price}). /package-audit costs ${catalogEndpoint("/package-audit").price}; this example intentionally refuses that higher price. It never sends trial=1.`,
     "",
     "Install with `npm install @x402/fetch @x402/evm viem` and `npm install --save-dev typescript tsx @types/node`. Save as `client.ts` and run `npx tsx client.ts`. Set `X402_PRIVATE_KEY` in a secret manager or process environment; never paste it into source or commit it.",
     "",
