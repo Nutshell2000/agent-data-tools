@@ -6,7 +6,7 @@ import type { Context } from "hono";
 import { Mppx, stripe } from "mppx/server";
 import { Receipt } from "mppx";
 import type { Env } from "./env";
-import { CREDIT_PACKS, creditsFromMicros, hashCreditKey, newCreditKey } from "./credits";
+import { CREDIT_PACKS, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey } from "./credits";
 
 type C = Context<{ Bindings: Env }>;
 
@@ -28,6 +28,12 @@ export async function buyCreditsWithMpp(c: C) {
   if (!mppEnabled(c.env) || !store) {
     return c.json({ error: `Agent card payments (MPP) are not switched on yet. Buy this pack by card at ${new URL(c.req.url).origin}/credits instead. Not charged.` }, 503);
   }
+  // An agent that already holds a key names it in X-API-Key (Authorization carries the MPP credential):
+  // the pack then tops up that key, so its connections keep working. Unknown keys are refused before
+  // any charge rather than silently creating a second key.
+  const existing = apiKeyFrom((n) => c.req.header(n));
+  const topUpHash = existing ? await hashCreditKey(existing) : undefined;
+  if (topUpHash && !(await store.creditBalance(topUpHash))) return c.json({ error: "unknown API key in X-API-Key; remove it to buy a new key. Not charged." }, 401);
   const secretKey = c.env.STRIPE_MPP_KEY!;
   const mppx = Mppx.create({
     methods: [stripe.charge({ secretKey, networkId: c.env.STRIPE_PROFILE_ID!, currency: "usd", decimals: 2, paymentMethodTypes: ["card"] })],
@@ -42,6 +48,13 @@ export async function buyCreditsWithMpp(c: C) {
   if (result.status === 402) return result.challenge as Response;
   // The PaymentIntent id makes the grant idempotent: a replayed credential returns the same key.
   const reference = Receipt.fromResponse(result.withReceipt(new Response(null)) as Response).reference;
+  if (topUpHash) {
+    const added = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key: null, keyHash: topUpHash });
+    return result.withReceipt(Response.json({
+      toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros),
+      use: "Added to the key you sent in X-API-Key; keep using it.",
+    }, { headers: { "Cache-Control": "no-store" } })) as Response;
+  }
   const key = newCreditKey();
   const issued = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key, keyHash: await hashCreditKey(key) });
   return result.withReceipt(Response.json({
