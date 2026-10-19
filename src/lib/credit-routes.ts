@@ -9,6 +9,7 @@ import {
   CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
+import { buyCreditsWithMpp } from "./mpp-credits";
 import { markStage } from "./funnel";
 
 type C = Context<{ Bindings: Env }>;
@@ -62,6 +63,10 @@ credits.get("/credits/claim", async (c) => {
     return c.html(page("Credits", `<h1>Not ready</h1><p>${esc(err.message)}</p>`), err.status);
   }
 });
+
+// Agents with a Link wallet buy a pack themselves over MPP (lib/mpp-credits.ts).
+credits.get("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
+credits.post("/credits/buy/:usd", (c) => buyCreditsWithMpp(c));
 
 credits.get("/credits/balance", async (c) => {
   const key = apiKeyFrom((n) => c.req.header(n));
