@@ -1,14 +1,15 @@
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom } from "./lib/credits";
-import { creditCharger, paymentHint } from "./lib/credit-routes";
+import { creditCharger, paymentHint, useFreeCall } from "./lib/credit-routes";
+import { freeCallNote } from "./lib/free-calls";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
-import { ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { paymentOptions, priceOn } from "./lib/networks";
@@ -138,7 +139,12 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
       const paidAttempt = Boolean(meta?.["x402/payment"]);
       if (paidAttempt) markStage("attempt");
       try {
-        const result = await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
+        // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
+        const free = payment && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, c.req.header("cf-connecting-ip")) : null;
+        const result = free
+          ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
+          : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
+        if (free && result.isError) await free.refund();
         const trace = activeTrace();
         if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
         if (trace?.stages.has("settled") && !result.isError) markStage("completed");
@@ -148,7 +154,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price) }] : [];
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price) }]
+          : free && !result.isError ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;
           return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}, ...hint], _meta:{...response._meta,requestId:trace?.requestId}};
