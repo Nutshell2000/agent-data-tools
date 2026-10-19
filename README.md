@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-166 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
+171 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
 
 ## Quick start
 
@@ -18,7 +18,7 @@ Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Browse all 166 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
+- [Browse all 171 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
 - [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
@@ -39,7 +39,7 @@ The reader also supports an exact HTML section ID and retains labelled source im
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-A Cloudflare Worker that sells 166 active tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum, Monad or World Chain) or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 171 active tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum, Monad or World Chain) or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
