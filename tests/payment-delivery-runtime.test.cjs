@@ -14,8 +14,9 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>{
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
+    if(new URL(r.url).hostname==='api.stripe.com'){assert.equal(r.headers.get('authorization'),'Bearer rk_test_fixture');return path.endsWith('cs_test_unpaidSession01')?Response.json({mode:'payment',status:'open',payment_status:'unpaid'}):Response.json({mode:'payment',status:'complete',payment_status:'paid',currency:'usd',amount_total:500,metadata:{adt_credits:'5000'}});}
     if(new URL(r.url).hostname==='mempool.space'){const value=path.endsWith('recommended')?(feeScenario==='invalid'?{fastestFee:3}:{fastestFee:3,halfHourFee:2,hourFee:1,economyFee:1,minimumFee:1}):path.endsWith('height')?950000:{count:20,vsize:10000,total_fee:20000};return Response.json(value);}
     if(path==='/permalink-only')return new Response('<main><p id=empty><a class=pilcrow href="#empty">¶</a></p></main>',{headers:{'content-type':'text/html'}});
     if(path==='/image-described')return new Response('<main><img alt="Source says retry at most three times" src="https://unfetched.invalid/image.png"></main>',{headers:{'content-type':'text/html'}});
@@ -162,4 +163,33 @@ test('permalink-only pages fail as empty over paid HTTP/MCP fixtures without set
  const{Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const c=new Client({name:'offline-permalink-flow',version:'1'});
  try{await c.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));await c.listTools();const bad=await c.callTool({name:'extract',arguments:{url:'https://public.example/permalink-only'},_meta:{'x402/payment':payload(terms,'d'.repeat(60)+'de02','mcp://tool/extract')}});assert.equal(bad.isError,true);assert.equal(errorBody(bad).code,'EXTRACTION_EMPTY');assert.ok(!bad._meta?.['x402/payment-response']?.success);
  }finally{await c.close();}assert.equal((await revenue()).settlements,before);
+});
+
+test('card credits: a paid checkout issues one key that pays HTTP and MCP calls; fake keys and unpaid checkouts get nothing',async()=>{
+ const settled=(await revenue()).settlements;
+ const claim=s=>mf.dispatchFetch('https://api.test/credits/claim?session_id='+s,{headers:{accept:'application/json'}});
+ assert.equal((await claim('cs_test_unpaidSession01')).status,402);
+ const first=await (await claim('cs_test_paidSession0001')).json();
+ assert.match(first.apiKey,/^adt_/);assert.equal(first.creditsAdded,5000);assert.equal(first.balanceCredits,5000);
+ const again=await (await claim('cs_test_paidSession0001')).json();
+ assert.equal(again.apiKey,first.apiKey);assert.equal(again.balanceCredits,5000);
+ const auth={authorization:'Bearer '+first.apiKey};
+ const ok=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle',{headers:auth});
+ assert.equal(ok.status,200);assert.equal(ok.headers.get('X-Credits-Charged'),'2');assert.equal(ok.headers.get('X-Credits-Remaining'),'4998');assert.equal(ok.headers.has('PAYMENT-RESPONSE'),false);
+ const bad=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'x-api-key':first.apiKey}});
+ assert.ok(bad.status>=400);assert.equal(bad.headers.get('X-Credits-Remaining'),'4998');
+ const fake='adt_'+'z'.repeat(43);
+ assert.equal((await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle',{headers:{authorization:'Bearer '+fake}})).status,401);
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+ const call=async(key,args)=>{const client=new Client({name:'credits-fixture',version:'1'});
+  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:{authorization:'Bearer '+key}},fetch:(u,i)=>mf.dispatchFetch(u,i)}));return await client.callTool({name:'extract',arguments:args});}finally{await client.close();}};
+ const paidMcp=await call(first.apiKey,{url:'https://public.example/article'});
+ assert.notEqual(paidMcp.isError,true);
+ const failedMcp=await call(first.apiKey,{url:'https://public.example/fail'});
+ assert.equal(failedMcp.isError,true);
+ const fakeMcp=await call(fake,{url:'https://public.example/article'});
+ assert.equal(fakeMcp.isError,true);assert.match(fakeMcp.content[0].text,/unknown API key/);
+ const balance=await (await mf.dispatchFetch('https://api.test/credits/balance',{headers:auth})).json();
+ assert.equal(balance.balanceCredits,4996);assert.equal(balance.calls,2);
+ assert.equal((await revenue()).settlements,settled);
 });
