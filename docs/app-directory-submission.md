@@ -37,6 +37,14 @@ Update docs/listings.md when submitted. Facts only: no usage, customer or uptime
   openWorldHint=true; the charge is stated in every description. The directory form's "Read only"
   capability matches these annotations since 1.35.1.
 
+## Directory policy fit
+
+The directory policy excludes servers that use AI models to generate images, video or audio, so the
+signed-in server `/mcp/account` (and `/mcp/account/<bundle>`) omits `/image` and `/ai/speech` (173 tools);
+they stay on the open `/mcp` and over HTTP. Tool descriptions carry no instructions about model
+behaviour; a mention of a sibling tool ("for the fee a past transaction paid use eth_receipt") is routing
+help, not an instruction.
+
 ## Reviewer test instructions
 
 1. Add the connector with the URL above and sign in with "Continue with free calls".
