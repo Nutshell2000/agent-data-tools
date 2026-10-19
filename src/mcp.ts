@@ -1,6 +1,6 @@
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { apiKeyFrom } from "./lib/credits";
+import { apiKeyFrom, isCreditKey } from "./lib/credits";
 import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { freeCallNote } from "./lib/free-calls";
 import { mppEnabled } from "./lib/mpp-credits";
@@ -107,14 +107,15 @@ const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
-export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
+export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string) {
+  if (urlKey !== undefined && !isCreditKey(urlKey)) return c.json({ error: "the key in this URL is not a valid API key; copy the connector URL again from your /credits/claim page" }, 401);
   const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
   if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   const env = c.env;
   const paid = env.PAYWALL !== "off";
   // An API key from /credits pays every call in this request with card credits instead of x402,
   // so the x402 facilitator is not needed (or contacted) for it.
-  const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) : undefined;
+  const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) ?? urlKey : undefined;
   // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
   const x402 = paid && !creditKey;
   let paymentReady: ReturnType<typeof paymentState> | undefined;

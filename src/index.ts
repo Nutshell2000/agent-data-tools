@@ -213,6 +213,9 @@ for (const path of DEFERRED_PATHS) {
 // The same tools over MCP. Listing tools is free; calling one requires payment.
 app.all("/mcp", (c) => handleMcp(c));
 app.all("/mcp/:bundle", (c) => handleMcp(c, c.req.param("bundle")));
+// Card-credit key in the connector URL, for MCP clients that cannot send headers (Claude.ai, ChatGPT and others).
+app.all("/mcp/k/:key", (c) => handleMcp(c, "", c.req.param("key")));
+app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.param("key")));
 
 // Card payments: prepaid credits and their API keys.
 app.route("/", credits);

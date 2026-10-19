@@ -198,10 +198,13 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  const quote=await call('none',{url:'https://public.example/article'});
  assert.equal(quote.isError,true);assert.ok(JSON.parse(quote.content[0].text).accepts.length>0);
  assert.match(quote.content.at(-1).text,/^PAYMENT NEEDED \(\$0\.002 .*https:\/\/api\.test\/credits/);
+ const viaUrl=new Client({name:'credits-url-fixture',version:'1'});
+ try{await viaUrl.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/k/'+first.apiKey),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));const r=await viaUrl.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.notEqual(r.isError,true);}finally{await viaUrl.close();}
+ assert.equal((await mf.dispatchFetch('https://api.test/mcp/k/not-a-key',{method:'POST'})).status,401);
  const fakeMcp=await call(fake,{url:'https://public.example/article'});
  assert.equal(fakeMcp.isError,true);assert.match(fakeMcp.content[0].text,/unknown API key/);
  const balance=await (await mf.dispatchFetch('https://api.test/credits/balance',{headers:auth})).json();
- assert.equal(balance.balanceCredits,4996);assert.equal(balance.calls,2);
+ assert.equal(balance.balanceCredits,4994);assert.equal(balance.calls,3);
  assert.equal((await revenue()).settlements,settled);
 });
 test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures are not counted, and paid tools are never settled',async()=>{
