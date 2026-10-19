@@ -339,9 +339,20 @@ app.get("/status", async (c) => {
   if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
   return c.json({ generatedAt, note, ...await c.env.METRICS.get(c.env.METRICS.idFromName("global")).status(ENDPOINTS.map((e) => e.path)) });
 });
+/** True when `header` is "Bearer <token>" for the configured token; digests compared, so no early exit on a prefix. */
+async function ownerToken(token: string | undefined, header: string | undefined): Promise<boolean> {
+  if (!token || !header?.startsWith("Bearer ")) return false;
+  const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  const [a, b] = await Promise.all([digest(token), digest(header.slice(7))]);
+  return a.every((byte, i) => byte === b[i]);
+}
 app.get("/revenue", async (c) => {
   if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
-  return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).revenueSummary());
+  const x402 = await c.env.METRICS.get(c.env.METRICS.idFromName("global")).revenueSummary();
+  // Card-credit sales are private business figures: shown only with the owner's REVENUE_TOKEN.
+  if (!(await ownerToken(c.env.REVENUE_TOKEN, c.req.header("authorization")))) return c.json(x402);
+  const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
+  return c.json({ ...x402, cardCredits });
 });
 app.get("/.well-known/x402", (c) =>
   c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path) }),

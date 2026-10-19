@@ -186,3 +186,23 @@ test('free calls: 25 per caller, a daily total cap, refunds restore the allowanc
   assert.notEqual(await free.callerHash('1.2.3.4'), '1.2.3.4');
   assert.match(await free.callerHash('1.2.3.4'), /^[0-9a-f]{64}$/);
 });
+
+test('credit summary totals sales and use without exposing keys', async () => {
+  const store = storage();
+  const list = async ({ prefix }) => new Map([...store.records].filter(([k]) => k.startsWith(prefix)));
+  const keyA = 'adt_' + 'a'.repeat(40), keyB = 'adt_' + 'b'.repeat(40);
+  const hashA = await credits.hashCreditKey(keyA), hashB = await credits.hashCreditKey(keyB);
+  await credits.issueCredits(store, { sessionId: 'cs_1', credits: 5000, key: keyA, keyHash: hashA });
+  await credits.issueCredits(store, { sessionId: 'cs_1', credits: 5000, key: keyA, keyHash: hashA }); // repeat claim
+  await credits.issueCredits(store, { sessionId: 'cs_2', credits: 22000, key: keyB, keyHash: hashB });
+  await credits.spendCredits(store, hashA, 3000);
+  const summary = await credits.creditSummary({ list });
+  assert.equal(summary.purchases, 2);
+  assert.equal(summary.buyers, 2);
+  assert.equal(summary.purchasedUsd, 27);
+  assert.equal(summary.spentUsd, 0.003);
+  assert.equal(summary.creditCalls, 1);
+  assert.equal(summary.activeBuyers, 1);
+  assert.equal(Object.values(summary.perDay)[0].credits, 27000);
+  assert.ok(!JSON.stringify(summary).includes('adt_') && !JSON.stringify(summary).includes(hashA));
+});
