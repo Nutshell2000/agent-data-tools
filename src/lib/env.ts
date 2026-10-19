@@ -18,6 +18,9 @@ export interface Env {
   SEARCH_DAILY_CAP?: string;
   // Restricted Stripe key that can only read Checkout Sessions; /credits/claim uses it to confirm card payments.
   STRIPE_READ_KEY?: string;
+  // MPP (agent card payments for credit packs): restricted key with PaymentIntents write, and the Stripe profile id.
+  STRIPE_MPP_KEY?: string;
+  STRIPE_PROFILE_ID?: string;
   AI: Ai;
   BROWSER: Fetcher;
   // Holds trial counters and store orders.
