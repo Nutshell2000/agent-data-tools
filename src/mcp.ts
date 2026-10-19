@@ -3,6 +3,7 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom } from "./lib/credits";
 import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { freeCallNote } from "./lib/free-calls";
+import { mppEnabled } from "./lib/mpp-credits";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
@@ -117,7 +118,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length) });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env)) });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
