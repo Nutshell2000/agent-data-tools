@@ -6,11 +6,9 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
-import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { readable402 } from "./lib/readable-402";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
-import { schemaFromExample } from "./lib/output-schema";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
@@ -29,13 +27,16 @@ import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
-import { SERVICE_ICON_URL, SUPPORT_EMAIL, exampleParams } from "./endpoints";
+import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
+import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
+import { bazaarExtensionFor } from "./lib/bazaar-extension";
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -99,20 +100,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         serviceName: SERVICE_NAME,
         iconUrl: SERVICE_ICON_URL,
         tags: [...e.tags],
-        extensions: {
-          ...declareDiscoveryExtension({
-            input: Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example])),
-            inputSchema: {
-              properties: Object.fromEntries(
-                Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
-              ),
-              required: Object.entries(e.params)
-                .filter(([, p]) => p.required)
-                .map(([k]) => k),
-            },
-            output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
-          }),
-        },
+        extensions: { ...bazaarExtensionFor(e) },
       },
     ]),
   );
@@ -173,9 +161,16 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key replaces the x402 payment for this call.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name)) : undefined;
   if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
-  // MPP clients pay one call on Tempo with Authorization: Payment (lib/mpp-tempo.ts), only while TEMPO_PAY_TO is set.
-  const mppCredential = endpoint && c.req.method === "GET" && tempoEnabled(c.env) ? c.req.header("authorization") : undefined;
-  if (endpoint && mppCredential && /(^|,)\s*Payment\s/i.test(mppCredential)) return payTempo(c, endpoint, mppCredential, next);
+  // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
+  // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
+  const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
+  if (endpoint && mppCredential && /(^|,)\s*Payment\s/i.test(mppCredential)) {
+    const method = credentialMethod(mppCredential);
+    if (method === "evm" && evmEnabled(c.env)) return payEvm(c, endpoint, mppCredential, next);
+    if (method === "tempo" && tempoEnabled(c.env)) return payTempo(c, endpoint, mppCredential, next);
+    markStage("attempt"); markStage("refused_format");
+    console.warn(`mpp refused_format ${c.req.path}: credential method ${method ?? "unreadable"} is not offered`);
+  }
   // x402 version 1 clients pay with X-PAYMENT (lib/x402-v1.ts); v2 clients use PAYMENT-SIGNATURE below.
   const v1Payment = endpoint && c.req.method === "GET" && !c.req.header("payment-signature") ? c.req.header("x-payment") : undefined;
   if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
@@ -214,13 +209,18 @@ app.use(async (c, next) => {
   }
   if (!(result instanceof Response)) return result;
   const answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []);
-  // The same call offered over MPP (tempo/charge) next to the x402 terms, while TEMPO_PAY_TO is set.
-  if (answer.status !== 402 || !endpoint || !tempoEnabled(c.env)) return answer;
+  // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
+  // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
+  if (answer.status !== 402 || !endpoint) return answer;
+  const offers: string[] = [];
   // A broken MPP setup must never take the x402 quote down with it: the x402 terms go out alone then.
-  const offer = await tempoChallenge(c, endpoint).catch((e) => { console.error("mpp tempo challenge failed", e); return undefined; });
-  if (!offer) return answer;
+  if (evmEnabled(c.env)) offers.push(await evmChallenge(c, endpoint).catch((e) => { console.error("mpp evm challenge failed", e); return ""; }));
+  if (tempoEnabled(c.env)) offers.push(await tempoChallenge(c, endpoint).catch((e) => { console.error("mpp tempo challenge failed", e); return ""; }));
+  const live = offers.filter(Boolean);
+  if (!live.length) return answer;
   const withMpp = new Response(answer.body, answer);
-  withMpp.headers.set("WWW-Authenticate", offer);
+  withMpp.headers.delete("WWW-Authenticate");
+  for (const offer of live) withMpp.headers.append("WWW-Authenticate", offer);
   return withMpp;
 });
 
@@ -284,11 +284,11 @@ app.get("/", async (c) =>
 const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
   const mpp = mppEnabled(c.env);
-  const tempoOffer = tempoEnabled(c.env) ? tempoProtocol(c.env) : undefined;
-  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}|${tempoOffer?.mpp.currency ?? ""}`;
+  const offers = [...(evmEnabled(c.env) ? [evmProtocol(c.env)] : []), ...(tempoEnabled(c.env) ? [tempoProtocol(c.env)] : [])];
+  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}|${offers.map((o) => `${o.mpp.method}:${o.mpp.currency}`).join(",")}`;
   let body = openApiDocs.get(key);
   if (!body) {
-    const doc = openApi(origin(c.req.url), trialsEnabled(c.env), tempoOffer);
+    const doc = openApi(origin(c.req.url), trialsEnabled(c.env), offers);
     // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
     body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
     openApiDocs.set(key, body);

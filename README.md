@@ -115,7 +115,7 @@ Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and im
 - x402scan: existing listings cover the catalog. Reconcile current prices after each release; no new duplicate registration is needed.
 - Coinbase Bazaar: Bitcoin fees and package metadata have indexed entries. Other routes require a genuine settled payment; a readiness pass alone does not index them.
 
-An unpaid request gets HTTP 402 with a `PAYMENT-REQUIRED` header. Calls that fail (4xx/5xx) are not charged.
+An unpaid request gets HTTP 402 with a `PAYMENT-REQUIRED` header (x402) and a `WWW-Authenticate: Payment` challenge (MPP, method evm: a USDC authorization on Base, settled only after the tool succeeded). Calls that fail (4xx/5xx) are not charged.
 
 ## Current revenue operations
 

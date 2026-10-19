@@ -28,6 +28,8 @@ export interface Env {
    * no tool offers MPP. TEMPO_NETWORK=testnet uses Moderato and pathUSD (staging only); TEMPO_RPC_URL
    * overrides the public RPC; MPP_SECRET_KEY signs challenges (default: derived from CDP_API_KEY_SECRET).
    */
+  /** "off" switches off per-call MPP with USDC on NETWORK (lib/mpp-evm.ts), which is otherwise on. */
+  MPP_EVM?: string;
   TEMPO_PAY_TO?: string;
   TEMPO_NETWORK?: string;
   TEMPO_RPC_URL?: string;

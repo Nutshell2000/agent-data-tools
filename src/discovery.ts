@@ -305,8 +305,9 @@ export const OWNERSHIP_PROOFS: readonly string[] = [
   "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000413e5f9cac8f7c1dfe7f44c5b57ddf3618682fffeeed033d842128e30775141f38083802e95f2cda9eea4002ececa24d1bdbc5ec23c58d4e2320d081840d38bad91c00000000000000000000000000000000000000000000000000000000000000",
 ];
 
-/** `mpp`: the MPP offer each tool also accepts (lib/mpp-tempo.ts), declared next to x402 while it is switched on. */
-export function openApi(origin: string, trialsEnabled = false, mpp?: { mpp: { method: string; intent: string; currency: string } }) {
+type MppOffer = { mpp: { method: string; intent: string; currency: string } };
+/** `mpp`: the MPP offers each tool also accepts (lib/mpp-evm.ts, lib/mpp-tempo.ts), declared next to x402 while on. */
+export function openApi(origin: string, trialsEnabled = false, mpp: readonly MppOffer[] = []) {
   const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)} No USDC wallet: buy card credits at ${origin}/credits and send the key as Authorization: Bearer adt_….`;
   return {
     openapi: "3.1.0",
@@ -344,7 +345,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp?: { mpp: { me
             // x402 entry; MPP directories (MPPScan) read the mpp one.
             "x-payment-info": {
               price: { mode: "fixed", currency: "USD", amount: e.price.replace("$", "") },
-              protocols: [{ x402: {} }, ...(mpp ? [mpp] : [])],
+              protocols: [{ x402: {} }, ...mpp],
             },
             parameters: Object.entries(e.params).map(([name, p]) => ({
               name,
