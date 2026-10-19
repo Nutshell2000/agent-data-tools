@@ -162,6 +162,16 @@ test('/credits lists the three packs as JSON for agents', async () => {
   for (const p of body.packs) assert.match(p.buy, /^https:\/\/buy\.stripe\.com\//);
 });
 
+test('/credits page for people: packs with calls per pack, app setup, free previews, indexable', async () => {
+  const res = await app({}).fetch('/credits', { accept: 'text/html' });
+  const html = await res.text();
+  assert.match(html, /about 1,666 calls at \$0\.003/);
+  assert.match(html, /\/mcp\/account/);
+  assert.match(html, /\/check\/counterparty\?sample=1/);
+  assert.match(html, /25 calls free/);
+  assert.doesNotMatch(html, /noindex/);
+});
+
 test('/credits/claim waits for the Stripe key instead of issuing anything', async () => {
   const s = storage();
   const res = await app({ METRICS: metricsFor(s) }).fetch('/credits/claim?session_id=cs_live_a1B2c3D4e5F6g7', { accept: 'application/json' });
