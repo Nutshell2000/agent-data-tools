@@ -1,5 +1,5 @@
 {
-  "version": "1.30.1",
+  "version": "1.31.0",
   "tools": [
     {
       "name": "extract",
@@ -1735,6 +1735,40 @@
       "price": "$0.003"
     },
     {
+      "name": "base_token_transfers",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Base, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use base_token_balance. Malformed addresses are rejected with 400, uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract (default: USDC on this network)"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-2000, default 1000)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
       "name": "eth_balance",
       "description": "Read the native ETH balance of any 0x address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
@@ -1970,6 +2004,40 @@
           "topic0": {
             "type": "string",
             "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "eth_token_transfers",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Ethereum, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use eth_token_balance. Malformed addresses are rejected with 400, uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract (default: USDC on this network)"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-2000, default 1000)"
           }
         },
         "required": [
@@ -2223,6 +2291,40 @@
       "price": "$0.003"
     },
     {
+      "name": "arb_token_transfers",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Arbitrum One, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use arb_token_balance. Malformed addresses are rejected with 400, uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract (default: USDC on this network)"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-2000, default 1000)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
       "name": "op_balance",
       "description": "Read the native ETH balance of any 0x address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
@@ -2467,6 +2569,40 @@
       "price": "$0.003"
     },
     {
+      "name": "op_token_transfers",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Optimism, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use op_token_balance. Malformed addresses are rejected with 400, uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract (default: USDC on this network)"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-2000, default 1000)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
       "name": "polygon_balance",
       "description": "Read the native POL balance of any 0x address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
       "annotations": {
@@ -2702,6 +2838,40 @@
           "topic0": {
             "type": "string",
             "description": "Optional 0x event signature hash to filter by"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "polygon_token_transfers",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Polygon PoS, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use polygon_token_balance. Malformed addresses are rejected with 400, uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          },
+          "token": {
+            "type": "string",
+            "description": "0x ERC-20 token contract (default: USDC on this network)"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (1-2000, default 1000)"
           }
         },
         "required": [
