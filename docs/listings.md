@@ -15,11 +15,11 @@ Pay-per-call data tools for AI agents: prices, sanctions, web and PDF reading
 
 ## Short description (under 160 characters)
 
-Token prices, wallet portfolios, OFAC sanctions checks, chain reads and web/PDF reading for AI agents. Pay per call in USDC on Base via x402. No API key.
+Token prices, OFAC sanctions checks, chain reads and web/PDF reading for AI agents. 25 free calls, then card credits or x402 per call.
 
 ## Long description (under 500 characters)
 
-Agent Data Tools sells single tool calls to AI agents over HTTP or MCP, paid per call in USDC on Base via x402: no account, no API key, and failed calls are never charged. Main jobs: value tokens and wallets (Uniswap v3 prices, portfolios), vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, with a verdict), and read the web (pages, JavaScript apps, PDFs and RSS as clean text). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.001.
+Agent Data Tools sells single tool calls to AI agents over MCP or HTTP. Try 25 calls free, then pay by card with prepaid credits or per call with x402 (USDC); failed calls are never charged. Main jobs: value tokens and wallets, vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, verdict), and read the web (pages, JavaScript apps, PDFs, RSS). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.003.
 
 ## Categories / tags
 
@@ -28,7 +28,10 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 ## Links
 
 - Website: https://agent-data-tools.revmesh2074.workers.dev/
-- MCP server (streamable HTTP, no auth; tools ask for x402 payment): https://agent-data-tools.revmesh2074.workers.dev/mcp
+- MCP server with sign-in (OAuth; for app directories such as Claude and ChatGPT): https://agent-data-tools.revmesh2074.workers.dev/mcp/account
+- MCP server, open (streamable HTTP, no sign-in; free calls, then a credit key header or x402): https://agent-data-tools.revmesh2074.workers.dev/mcp
+- Buy credits by card: https://agent-data-tools.revmesh2074.workers.dev/credits
+- Privacy, terms, support: https://agent-data-tools.revmesh2074.workers.dev/privacy, /terms, /support
 - Smaller MCP servers, one per section:
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 12 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 11 tools)
@@ -46,12 +49,19 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 
 ## Where to submit
 
-| Directory | How | Notes |
-|---|---|---|
-| Official MCP Registry | Automatic: `.github/workflows/publish-mcp.yml` on each `v*` tag | Many directories mirror it |
-| Glama | Claim the server at glama.ai with the Nutshell2000 GitHub account | `glama.json` in the repo root names the maintainer |
-| Smithery | "Add server" at smithery.ai with the remote URL `https://agent-data-tools.revmesh2074.workers.dev/mcp` | Remote streamable HTTP, no auth |
-| PulseMCP | Submit form at pulsemcp.com | Paste the long description |
-| mcp.so | Submit form | Paste the long description |
-| Agentic.Market, Pay.sh, ampersend discover, x402-list.com | The x402 README's recommended service directories; submit the origin where a form exists | Some index from Bazaar or x402scan after real paid calls |
-| awesome-x402 (xpaysh) | Pull request from the fork branch `add-agent-data-tools` | Already prepared |
+Status is updated by whoever submits (date, result). Peter submits; nothing here is automated except the
+MCP Registry.
+
+| Directory | URL to submit | How | Status |
+|---|---|---|---|
+| Claude directory | `/mcp/account` | claude.ai/directory/manage (paid Claude plan); needs privacy, terms, support, tool titles and annotations (all live) | not submitted |
+| ChatGPT apps | `/mcp/account` | OpenAI platform, after business or individual verification; credits are bought on our site, never inside ChatGPT | not submitted |
+| Official MCP Registry | `/mcp` and each `/mcp/<section>` | Automatic on each `v*` tag (`.github/workflows/publish-mcp.yml`) | published |
+| Glama | `/mcp` | Claim at glama.ai with the Nutshell2000 GitHub account; claim file at `/.well-known/glama.json` | check |
+| Smithery | `/mcp/account` (or `/mcp`) | "Add server" at smithery.ai, remote streamable HTTP | not submitted |
+| PulseMCP | `/mcp` | Submit form at pulsemcp.com; paste the long description | not submitted |
+| mcp.so | `/mcp` | Submit form; paste the long description | not submitted |
+| Cursor directory | `/mcp` | cursor.directory submission | not submitted |
+| Agentic.Market, Pay.sh, ampersend discover, x402-list.com | origin | The x402 README's service directories; some index only after real paid calls | not submitted |
+| awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` (compare link in docs/release-1.23.0.md) | not opened |
+| RapidAPI | marketplace OpenAPI | Listing exists (Everyday Data API); refresh copy and prices from this file | live |
