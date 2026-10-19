@@ -642,7 +642,8 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/package",
-    price: "$0.003",
+    // Must equal its Coinbase Bazaar listing (tests/bazaar-listed-prices.test.cjs): buyers that read the listing pay that amount.
+    price: "$0.002",
     summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",

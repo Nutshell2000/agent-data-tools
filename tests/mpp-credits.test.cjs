@@ -80,6 +80,27 @@ test('an agent pays a $5 pack over MPP with a card token and gets a working key'
   assert.equal(intents.length, 2);
 });
 
+test('OpenAPI lists the MPP credit packs for MPP directories only while MPP is on, and never as x402', async () => {
+  const on = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
+  for (const usd of [5, 20, 100]) {
+    const op = on.paths[`/credits/buy/${usd}`]?.get;
+    assert.ok(op, `/credits/buy/${usd} listed`);
+    assert.deepEqual(op['x-payment-info'].price, { mode: 'fixed', currency: 'USD', amount: usd.toFixed(2) });
+    assert.deepEqual(op['x-payment-info'].protocols, [{ mpp: { method: 'stripe', intent: 'charge', currency: 'usd' } }]);
+    assert.ok(op.responses['402'] && op.responses['200']);
+    // The listed route really answers an MPP challenge, as MPPScan's probe requires.
+    const probe = await mf.dispatchFetch(`https://api.test/credits/buy/${usd}`);
+    assert.equal(probe.status, 402);
+    assert.match(probe.headers.get('www-authenticate') ?? '', /^Payment .*method="stripe".*intent="charge"/);
+    await probe.arrayBuffer();
+  }
+  // Every x402 tool keeps declaring x402 only; no MPP pack carries x402.
+  const x402Paths = Object.entries(on.paths).filter(([, item]) => item.get?.['x-payment-info']?.protocols?.some((p) => 'x402' in p)).map(([p]) => p);
+  assert.ok(!x402Paths.some((p) => p.startsWith('/credits/')));
+  const off = await (await mfOff.dispatchFetch('https://api.test/openapi.json')).json();
+  assert.equal(Object.keys(off.paths).filter((p) => p.startsWith('/credits/')).length, 0);
+});
+
 test('/credits tells agents about MPP purchase only when it is switched on', async () => {
   const on = await (await mf.dispatchFetch('https://api.test/credits', { headers: { accept: 'application/json' } })).json();
   assert.match(on.agentPurchase, /\/credits\/buy\/5/);
