@@ -50,7 +50,7 @@ test("openapi describes each family result field by field", () => {
 test("home page and llms.txt present the full catalog without mis-encoded dashes", () => {
   const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
   assert.ok(html.includes(`<title>${discovery.PAGE_TITLE}</title>`));
-  assert.match(discovery.PAGE_TITLE, new RegExp(`${discovery.ENDPOINTS.length} x402 tools`));
+  assert.match(discovery.PAGE_TITLE, new RegExp(`${discovery.ENDPOINTS.length} tools, 25 free calls`));
   assert.doesNotMatch(html, /â€”/);
   assert.doesNotMatch(discovery.llmsTxt("https://example.test", false, "0x0000000000000000000000000000000000000001"), /â€”/);
 });
@@ -76,7 +76,7 @@ test("Worker bundle replaces Ajv's runtime compiler with a stand-in that fails i
 
 test("service summary states the current tool count and the buyer terms", () => {
   assert.match(discovery.SERVICE_SUMMARY, new RegExp(`^${discovery.ENDPOINTS.length} pay-per-call tools`));
-  for (const phrase of ["No account or API key", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
+  for (const phrase of ["No account needed", "25 free calls", "/credits", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
 });
 
 test("OpenAPI x-guidance stays short enough for AgentCash to include it automatically", () => {
