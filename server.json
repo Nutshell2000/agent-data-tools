@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Nutshell2000/agent-data-tools",
   "title": "Agent Data Tools",
-  "description": "166 x402 agent tools: chain data, prices, sanctions, company data, web and PDF. From $0.001.",
-  "version": "1.27.0",
+  "description": "166 agent tools: chain data, prices, sanctions, company data, web, PDF. x402 or card, from $0.001.",
+  "version": "1.27.1",
   "repository": {
     "url": "https://github.com/Nutshell2000/agent-data-tools",
     "source": "github"
@@ -11,7 +11,15 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp"
+      "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp",
+      "headers": [
+        {
+          "isRequired": false,
+          "description": "Optional. 'Bearer adt_...' API key from https://agent-data-tools.revmesh2074.workers.dev/credits to pay by card. Leave empty to pay each call with x402 (USDC).",
+          "name": "Authorization",
+          "isSecret": true
+        }
+      ]
     }
   ]
 }

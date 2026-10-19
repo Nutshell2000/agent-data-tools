@@ -40,7 +40,7 @@ for (const [slug, title] of Object.entries(MCP_BUNDLES)) {
     description,
     version: server.version,
     repository: server.repository,
-    remotes: [{ type: "streamable-http", url: `${origin}/mcp/${slug}` }],
+    remotes: [{ ...server.remotes[0], url: `${origin}/mcp/${slug}` }],
   };
   await writeFile(new URL(`registry/${slug}.json`, root), JSON.stringify(manifest, null, 2) + "\n");
   console.log(`${manifest.name} (${count} tools, ${description.length} chars)`);
