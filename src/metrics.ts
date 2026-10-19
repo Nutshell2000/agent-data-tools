@@ -20,6 +20,10 @@ interface PathMetrics extends Partial<Record<Outcome, number>> {
   trackedPaidCalls?: number;
 }
 type Day = Record<string, PathMetrics>;
+/** Per calling-software family: requests by outcome. */
+type Callers = Record<string, Partial<Record<Outcome, number>>>;
+/** Distinct software families kept per day; the rest count as "other". */
+const MAX_CALLERS = 60;
 
 const KEEP_DAYS = 30;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -66,7 +70,7 @@ export class Metrics extends DurableObject {
     return claimTransfer(this.ctx.storage, claim);
   }
 
-  async bump(path: string, outcome: Outcome, revenueUsdMicros?: number): Promise<void> {
+  async bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void> {
     const key = `day:${today()}`;
     await this.ctx.storage.transaction(async (txn) => {
       const day = (await txn.get<Day>(key)) ?? {};
@@ -79,6 +83,14 @@ export class Metrics extends DurableObject {
         row.trackedPaidCalls++;
       }
       await txn.put(key, day);
+      if (caller) {
+        const callersKey = `callers:${today()}`;
+        const callers = (await txn.get<Callers>(callersKey)) ?? {};
+        const name = callers[caller] || Object.keys(callers).length < MAX_CALLERS ? caller : "other";
+        const counts = (callers[name] ??= {});
+        counts[outcome] = (counts[outcome] ?? 0) + 1;
+        await txn.put(callersKey, callers);
+      }
       if (SERVED.includes(outcome)) await txn.put(`last:${path}`, new Date().toISOString());
     });
   }
@@ -100,6 +112,12 @@ export class Metrics extends DurableObject {
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
+  }
+
+  /** Requests per day by calling software (see callerFamily) and outcome, newest first. */
+  async callers(): Promise<Record<string, Callers>> {
+    const days = await this.ctx.storage.list<Callers>({ prefix: "callers:", reverse: true, limit: KEEP_DAYS });
+    return Object.fromEntries([...days].map(([k, v]) => [k.slice(8), v]));
   }
 
   async report(): Promise<Record<string, Day>> {
