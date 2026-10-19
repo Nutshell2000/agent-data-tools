@@ -364,7 +364,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/ln-invoice",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Decode a Lightning invoice",
     description:
       "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it.",
@@ -642,7 +642,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/package",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",
@@ -671,7 +671,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/email",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Email address validation without sending mail",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
@@ -717,7 +717,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/fx",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Currency exchange rates and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
@@ -739,7 +739,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/btc-price",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Bitcoin price in major currencies",
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
@@ -833,7 +833,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/ens",
-    price: "$0.002",
+    price: "$0.003",
     summary: "ENS name to address and address to ENS name",
     description:
       "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
@@ -852,7 +852,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/weather",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Current weather and hourly forecast for any coordinates",
     description:
       "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
@@ -887,7 +887,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/time",
-    price: "$0.002",
+    price: "$0.003",
     summary: "Current time in a time zone and time zone conversion",
     description:
       "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time.",
