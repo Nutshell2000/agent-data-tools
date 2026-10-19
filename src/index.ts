@@ -28,7 +28,7 @@ import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
-import { chargeCredits, credits } from "./lib/credit-routes";
+import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -130,26 +130,6 @@ function buildPaywall(env: Env): MiddlewareHandler {
 // Sharing the SDK's pending startup promise lets one interrupted request stall others.
 let paywall: MiddlewareHandler | undefined;
 
-const TRIALS_PER_CALLER = 10;
-const TRIALS_PER_DAY = 1000;
-
-/**
- * Free trial calls require TRIALS_ENABLED=on and ?trial=1 so ordinary unpaid requests get
- * the 402 challenge directories and validators probe for. Counts are per caller IP
- * and per UTC day; KV is eventually consistent, so the limits are approximate.
- */
-async function takeTrial(env: Env, ip: string): Promise<number | null> {
-  if (!trialsEnabled(env) || !env.TRIALS) return null;
-  const day = new Date().toISOString().slice(0, 10);
-  const [mine, all] = await Promise.all([env.TRIALS.get(`${day}:${ip}`), env.TRIALS.get(`${day}:all`)]);
-  const used = Number(mine) || 0;
-  const total = Number(all) || 0;
-  if (used >= TRIALS_PER_CALLER || total >= TRIALS_PER_DAY) return null;
-  const ttl = { expirationTtl: 172_800 };
-  await Promise.all([env.TRIALS.put(`${day}:${ip}`, String(used + 1), ttl), env.TRIALS.put(`${day}:all`, String(total + 1), ttl)]);
-  return TRIALS_PER_CALLER - used - 1;
-}
-
 app.use(buyAssetPreflight());
 
 app.use(async (c, next) => {
@@ -177,11 +157,13 @@ app.use(async (c, next) => {
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
   if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
-  if (trialable && trialsEnabled(c.env) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    const left = await takeTrial(c.env, c.req.header("cf-connecting-ip") ?? "unknown");
-    if (left !== null) {
+  // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
+  if (endpoint && trialable && !CAPACITY_LIMITED.has(c.req.path) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
+    const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"));
+    if (free) {
       await next();
-      c.res.headers.set("X-Free-Trial-Remaining", String(left));
+      if (c.res.status >= 400) await free.refund();
+      c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
       return;
     }
   }

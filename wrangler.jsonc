@@ -38,8 +38,9 @@
     "FACILITATOR_URL": "https://api.cdp.coinbase.com/platform/v2/x402",
     // "off" disables the paywall (local testing only).
     "PAYWALL": "on",
-    // Reversible opt-in. Without the exact value "on", trial=1 receives the normal 402 challenge.
-    "TRIALS_ENABLED": "off",
+    // Free calls (src/lib/free-calls.ts): 25 per caller, automatic over MCP, trial=1 over HTTP.
+    // Without the exact value "on", every unpaid call receives the normal payment challenge.
+    "TRIALS_ENABLED": "on",
     "BASE_RPC_URL": "https://mainnet.base.org"
   }
 }
