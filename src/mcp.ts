@@ -110,6 +110,12 @@ const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
 export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string, account?: { key: string | null; sub: string }) {
   if (urlKey !== undefined && !isCreditKey(urlKey)) return c.json({ error: "the key in this URL is not a valid API key; copy the connector URL again from your /credits/claim page" }, 401);
+  // Stateless server: no server-to-client event stream. A GET would open an SSE stream that never
+  // carries anything and hangs until the client gives up (monitors logged these as errors), so answer
+  // 405 as the Streamable HTTP spec allows. DELETE (session end) has nothing to end.
+  if (c.req.method === "GET" || c.req.method === "DELETE") {
+    return c.json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed: this stateless MCP server has no event stream; send JSON-RPC requests with POST." }, id: null }, 405, { Allow: "POST" });
+  }
   const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
   if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   const env = c.env;

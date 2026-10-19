@@ -35,7 +35,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 - Smaller MCP servers, one per section:
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 12 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 11 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 9 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 12 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 64 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/ai (AI text, 14 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/everyday (everyday data, 10 tools)
