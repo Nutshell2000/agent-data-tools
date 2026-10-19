@@ -76,6 +76,33 @@ export async function issueCredits(storage: CreditStorage, grant: { sessionId: s
   });
 }
 
+/**
+ * Card-credit sales and use, for the revenue scorecard: totals over every key plus purchases per
+ * day. Aggregates only; no key, hash or session id leaves this function. Owner test purchases, if
+ * any were made, are included and must be subtracted by hand.
+ */
+export async function creditSummary(storage: { list<T>(options: { prefix: string }): Promise<Map<string, T>> }) {
+  const accounts = [...(await storage.list<Account>({ prefix: "credit:acct:" })).values()];
+  const sessions = [...(await storage.list<SessionRecord>({ prefix: "credit:session:" })).values()];
+  const perDay: Record<string, { purchases: number; credits: number }> = {};
+  for (const s of sessions) {
+    const day = (perDay[s.at.slice(0, 10)] ??= { purchases: 0, credits: 0 });
+    day.purchases++;
+    day.credits += s.credits;
+  }
+  const sum = (pick: (a: Account) => number) => accounts.reduce((n, a) => n + pick(a), 0);
+  return {
+    purchases: sessions.length,
+    buyers: accounts.filter((a) => a.purchasedMicros > 0).length,
+    purchasedUsd: sum((a) => a.purchasedMicros) / 1e6,
+    spentUsd: sum((a) => a.spentMicros) / 1e6,
+    balanceUsd: sum((a) => a.balanceMicros) / 1e6,
+    creditCalls: sum((a) => a.calls),
+    activeBuyers: accounts.filter((a) => a.calls > 0).length,
+    perDay,
+  };
+}
+
 export type SpendResult = { ok: true; balanceMicros: number } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number };
 
 /** Takes the price before the tool runs; refundCredits gives it back if the call fails. */
