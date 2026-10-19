@@ -49,6 +49,17 @@ app.use(
   }),
 );
 
+// HSTS on every response: the Worker is HTTPS-only, and MCP directories score this header.
+app.use(async (c, next) => {
+  await next();
+  try {
+    c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+  } catch {
+    c.res = new Response(c.res.body, c.res); // immutable headers (e.g. asset responses): copy first
+    c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+  }
+});
+
 app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X402-Source") ?? null,
   p => c.executionCtx.waitUntil(p), async () => {
     const id = activeTrace()!.requestId;
