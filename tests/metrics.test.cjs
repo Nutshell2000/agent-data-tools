@@ -312,3 +312,23 @@ test("caller counts are per day and family, capped at 60 families with the rest 
   assert.equal(day.other.challenged, 5);
   assert.equal(day.bot64, undefined);
 });
+
+test("MCP client name comes from initialize only, sanitized", async () => {
+  const { mcpClientName } = await loadTypeScript(require.resolve("../src/lib/caller.ts"));
+  const init = (name) => JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", clientInfo: { name, version: "1" } } });
+  assert.equal(mcpClientName(init("claude-ai")), "claude-ai");
+  assert.equal(mcpClientName(init("Cursor (VS Code) <script>")), "cursorvscodescript");
+  assert.equal(mcpClientName(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} })), "unnamed");
+  assert.equal(mcpClientName(JSON.stringify([{ jsonrpc: "2.0", method: "notifications/initialized" }, JSON.parse(init("openai-mcp"))])), "openai-mcp");
+  assert.equal(mcpClientName(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: {} })), undefined);
+  assert.equal(mcpClientName("not json"), undefined);
+});
+
+test("MCP connections are counted per client and mode, capped like callers", async () => {
+  const { metrics } = createMetrics();
+  await metrics.bumpMcpClient("claude-ai", "account");
+  await metrics.bumpMcpClient("claude-ai", "account");
+  await metrics.bumpMcpClient("cursor", "key");
+  const day = (await metrics.mcpClients())[today];
+  assert.deepEqual(day, { "claude-ai": { account: 2 }, cursor: { key: 1 } });
+});
