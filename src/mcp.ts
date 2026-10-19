@@ -119,7 +119,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // Free calls follow a signed-in person; anonymous callers are told apart by network address.
   const caller = account ? `sub:${account.sub}` : c.req.header("cf-connecting-ip");
   // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
-  const x402 = paid && !creditKey;
+  // Signed-in connectors (app directories) never see crypto payment requests: free calls, then a credit key.
+  const x402 = paid && !creditKey && !account;
+  const freeOnly = paid && !creditKey && Boolean(account);
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
@@ -142,6 +144,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
             (promise) => c.executionCtx.waitUntil(promise),
           )(args, extra);
         }
+      : freeOnly
+      ? async () => ({ isError: true, content: [{ type: "text", text: CAPACITY_LIMITED.has(e.path)
+          ? `This tool is not included in the free calls. To use it, buy credits at ${origin}/credits, then reconnect and sign in with your key.`
+          : `The free calls for this account are used up. To continue, buy credits at ${origin}/credits, then reconnect and sign in with your key.` }] })
       : handler;
     const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
       const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
@@ -149,7 +155,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       if (paidAttempt) markStage("attempt");
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
-        const free = x402 && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller) : null;
+        const free = (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller) : null;
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);

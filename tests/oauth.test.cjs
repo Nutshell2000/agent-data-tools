@@ -117,3 +117,21 @@ test('rejects wrong PKCE verifiers, unknown keys, unregistered redirects and bad
   assert.equal(reg.status, 400);
   assert.equal((await mf.dispatchFetch(`${O}/mcp/account`, { method: 'POST', headers: { authorization: 'Bearer adtok_' + 'z'.repeat(43) } })).status, 401);
 });
+
+test('signed-in without a key: no crypto payment request, a neutral message once free calls are not available', async () => {
+  const clientId = await register();
+  const { post, verifier } = await signIn(clientId, { mode: 'free' });
+  const tokens = await (await exchange(clientId, post, verifier)).r.json();
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const client = new Client({ name: 'oauth-fixture', version: '1' });
+  try {
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${O}/mcp/account`), { requestInit: { headers: { authorization: `Bearer ${tokens.access_token}` } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
+    assert.doesNotMatch(client.getInstructions(), /x402|USDC|payment request/);
+    const ai = await client.callTool({ name: 'ai_chat', arguments: { prompt: 'hi' } });
+    assert.equal(ai.isError, true);
+    const text = ai.content.map((c) => c.text).join(' ');
+    assert.match(text, /not included in the free calls/);
+    assert.doesNotMatch(text, /x402Version|accepts|USDC/);
+  } finally { await client.close(); }
+});
