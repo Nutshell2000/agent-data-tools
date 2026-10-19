@@ -3,6 +3,7 @@
 // (docs/bazaar-seeding.md). The money goes from the owner's buyer wallet to the owner's PAY_TO; the ledger
 // marks the buyer wallet as owned, so these settlements never count as revenue or demand.
 //
+//   node scripts/seed-bazaar.mjs wallet                       create the buyer wallet if needed, print its address
 //   node scripts/seed-bazaar.mjs                              dry run: plan for --set prices,compliance
 //   node scripts/seed-bazaar.mjs --set prices,compliance,chain dry run for other MCP sections
 //   node scripts/seed-bazaar.mjs --only /btc-address,/ens     dry run for named paths
@@ -10,12 +11,21 @@
 //   --max-total 1.00   refuse to spend more than this many USD in one run (default 1.00)
 //   --force            include tools that are already listed in the Bazaar
 //
-// BUYER_KEY: the buyer wallet's private key, 0x + 64 hex, set in the shell for one run and never written
-// anywhere by this script. The wallet must hold USDC on Base; the facilitator pays the gas. Base mainnet only.
-import { writeFileSync } from "node:fs";
+// The buyer wallet: `wallet` creates .seed-bazaar-wallet.json (git-ignored, Base mainnet, holds about 1 USDC that the
+// owner sends to it) and prints the address; --pay reads the key from that file, or from BUYER_KEY in the
+// environment when set. The key is never printed. The facilitator pays the gas.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { wrapFetchWithPayment, x402Client, decodePaymentResponseHeader } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { privateKeyToAccount } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+
+// Named to match the .gitignore pattern for seeding files, so the key can never be committed.
+const WALLET_FILE = new URL("../.seed-bazaar-wallet.json", import.meta.url);
+if (process.argv[2] === "wallet") {
+  if (!existsSync(WALLET_FILE)) writeFileSync(WALLET_FILE, JSON.stringify({ note: "Bazaar seeding buyer wallet (Base mainnet). Fund with about 1 USDC; never commit.", key: generatePrivateKey() }));
+  console.log(privateKeyToAccount(JSON.parse(readFileSync(WALLET_FILE, "utf8")).key).address);
+  process.exit(0);
+}
 
 // SEED_ORIGIN / SEED_NETWORK / SEED_USDC exist only to rehearse this script against the Base Sepolia staging
 // Worker (wrangler.staging.jsonc) with the faucet test wallet; production needs none of them.
@@ -100,8 +110,8 @@ if (totalAtomic > BigInt(Math.round(maxTotalUsd * 1e6))) throw new Error("total 
 
 if (!pay) { console.log("Dry run: nothing was signed or paid. Add --pay --ledger-excluded to seed."); process.exit(0); }
 if (!flag("--ledger-excluded")) throw new Error("--pay needs --ledger-excluded: confirm the buyer wallet is in OWNED_WALLETS (src/lib/settlement-ledger.ts) on the live Worker, so these settlements are never counted as revenue");
-const rawKey = process.env.BUYER_KEY;
-if (!rawKey || !/^0x[0-9a-fA-F]{64}$/.test(rawKey)) throw new Error("set BUYER_KEY (0x + 64 hex) in the environment for this run only");
+const rawKey = process.env.BUYER_KEY ?? (existsSync(WALLET_FILE) ? JSON.parse(readFileSync(WALLET_FILE, "utf8")).key : undefined);
+if (!rawKey || !/^0x[0-9a-fA-F]{64}$/.test(rawKey)) throw new Error("no buyer wallet: run `node scripts/seed-bazaar.mjs wallet` first, or set BUYER_KEY (0x + 64 hex) for this run");
 const account = privateKeyToAccount(rawKey);
 console.log(`Buyer wallet ${account.address} (must be listed in OWNED_WALLETS). Paying ${todo.length} tools on ${NETWORK}...`);
 

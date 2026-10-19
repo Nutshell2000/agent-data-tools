@@ -12,11 +12,12 @@ them from `grossAtomic`; the weekly review and the daily report ignore self-paym
 
 ## Steps (Peter, once per batch)
 
-1. Create a fresh buyer wallet (any EOA; never the payout wallet's key) and send it about 1 USDC on Base.
-   Give the local session its **address** only.
+1. `node scripts/seed-bazaar.mjs wallet` creates the buyer wallet (`.seed-bazaar-wallet.json`, git-ignored, never the
+   payout wallet's key) and prints its address. Send that address about 1 USDC on Base from Coinbase Wallet.
 2. The local session adds the address to `OWNED_WALLETS`, deploys through the guard, and confirms with
    `/revenue` that it is live.
-3. In a terminal in `C:\MoneyWallet\x402-canonical`, with the key set for this shell only:
+3. In a terminal in `C:\MoneyWallet\x402-canonical` (the key is read from `.seed-bazaar-wallet.json`; `BUYER_KEY` in
+   the environment overrides it):
 
    ```sh
    node scripts/seed-bazaar.mjs
