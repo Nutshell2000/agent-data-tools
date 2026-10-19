@@ -1,0 +1,36 @@
+{
+  // Staging copy of the service on the Base Sepolia TESTNET, so a real end-to-end payment (HTTP v2, HTTP v1
+  // and MCP) can be proven after every release with faucet USDC: no real money, no self-payment on mainnet,
+  // nothing counted as income. Deploy with `npx wrangler deploy -c wrangler.staging.jsonc` (no production guard;
+  // the Worker name differs). Pay it with `node scripts/pay-test.mjs <url> [--v1 | --mcp <tool>]`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-data-tools-staging",
+  "main": "src/index.ts",
+  "build": { "command": "npm run build:reader" },
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
+  "observability": { "enabled": true },
+  "ai": { "binding": "AI" },
+  "browser": { "binding": "BROWSER" },
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
+  // Separate KV namespace (created 2026-10-19), so staging trials and orders never touch production data.
+  "kv_namespaces": [{ "binding": "TRIALS", "id": "1b0c434f243c4be6bb0acb43feffc871" }],
+  "services": [{ "binding": "SELF", "service": "agent-data-tools-staging" }],
+  "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
+  "vars": {
+    // Same recipient as production; on Sepolia it receives faucet USDC only.
+    "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+    // Base Sepolia only: no mainnet network is offered here, so nothing real can ever be paid to staging.
+    "NETWORK": "eip155:84532",
+    "EXTRA_NETWORKS": "",
+    "SOLANA_PAY_TO": "",
+    // Coinbase's keyless testnet facilitator: verifies and settles Base Sepolia without CDP secrets.
+    "FACILITATOR_URL": "https://x402.org/facilitator",
+    "PAYWALL": "on",
+    // Off, so an MCP tool call gets a payment quote instead of a free call and the payment path is what gets tested.
+    "TRIALS_ENABLED": "off",
+    "BASE_RPC_URL": "https://mainnet.base.org"
+  }
+}

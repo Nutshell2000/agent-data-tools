@@ -13,10 +13,11 @@ export const USDC_BY_NETWORK: Readonly<Record<string, string>> = Object.freeze({
   "eip155:42161": "0xaf88d065e77c8cc2239327c5edb3a432268e5831", // Arbitrum One
   "eip155:143": "0x754704bc059f8c67012fed69bc8a327a5aafb603", // Monad
   "eip155:480": "0x79a02482a880bce3f13e09da970dc34db4cd24d1", // World Chain (native Circle USDC)
+  "eip155:84532": "0x036cbd53842c5426634e7929541ec2318f3dcf7e", // Base Sepolia testnet (staging only, faucet USDC)
 });
 
 export const NETWORK_NAMES: Readonly<Record<string, string>> = Object.freeze({
-  "eip155:8453": "Base", "eip155:137": "Polygon", "eip155:42161": "Arbitrum", "eip155:143": "Monad", "eip155:480": "World Chain",
+  "eip155:8453": "Base", "eip155:137": "Polygon", "eip155:42161": "Arbitrum", "eip155:143": "Monad", "eip155:480": "World Chain", "eip155:84532": "Base Sepolia",
 });
 
 type Network = `${string}:${string}`;
