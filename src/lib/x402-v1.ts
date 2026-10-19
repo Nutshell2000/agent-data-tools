@@ -73,13 +73,25 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
     settle(p: unknown, r: unknown): Promise<{ success: boolean; transaction?: string; network?: string; payer?: string; errorReason?: string }>;
   };
   let verified;
-  try { verified = await fac.verify(payment, requirements); } catch (e) { console.error("x402 v1 verify failed", e); return c.json(v1Body(accepts, "payment verification is temporarily unavailable; you were not charged"), 402); }
+  try {
+    verified = await fac.verify(payment, requirements);
+  } catch (e) {
+    // The client library throws VerifyError when the facilitator rejects the payment itself (bad
+    // signature, insufficient funds, expired authorization): that is an answer, not an outage.
+    const message = String((e as Error)?.message ?? e);
+    if ((e as Error)?.name === "VerifyError" || /^invalid_|insufficient_funds/.test(message)) {
+      markStage("verification_failed");
+      return refuse(`payment invalid: ${message.slice(0, 200)}`);
+    }
+    console.error("x402 v1 verify failed", e);
+    return c.json(v1Body(accepts, "payment verification is temporarily unavailable; you were not charged"), 402);
+  }
   if (!verified.isValid) { markStage("verification_failed"); return refuse(`payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`); }
   markStage("verified");
   await next();
   if (c.res.status >= 400) return; // failed calls are never settled, so never charged
   let settled;
-  try { settled = await fac.settle(payment, requirements); } catch (e) { console.error("x402 v1 settle failed", e); settled = { success: false, errorReason: "settlement unavailable" }; }
+  try { settled = await fac.settle(payment, requirements); } catch (e) { console.error("x402 v1 settle failed", e); settled = { success: false, errorReason: String((e as Error)?.message ?? "settlement unavailable").slice(0, 200) }; }
   if (!settled.success || !settled.transaction) {
     markStage("settlement_failed");
     c.res = c.json(v1Body(accepts, `settlement failed: ${settled.errorReason ?? "unknown"}; you were not charged`), 402);
