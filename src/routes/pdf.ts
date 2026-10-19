@@ -57,15 +57,16 @@ export const PDF: Entry[] = [
   entry("/pdf/text", "PDF to text, page by page",
     "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context.",
     ["pdf", "documents", "text", "extract", "rag"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the PDF", required: true, example: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+      // The example must load from Cloudflare's network: w3.org's dummy PDF answers Workers with 403.
+      url: { type: "string", description: "Absolute public http(s) URL of the PDF", required: true, example: "https://bitcoin.org/bitcoin.pdf" },
       firstPage: { type: "integer", description: "First page to read (default 1)", example: 1 },
-      pages: { type: "integer", description: "How many pages to read (1-200, default 50)", example: 50 },
-      maxChars: { type: "integer", description: "Maximum characters of text returned across all pages (1000-200000, default 50000)", example: 50000 },
+      pages: { type: "integer", description: "How many pages to read (1-200, default 50)", example: 1 },
+      maxChars: { type: "integer", description: "Maximum characters of text returned across all pages (1000-200000, default 50000)", example: 1000 },
     },
     {
-      url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      title: null, author: null, totalPages: 1, firstPage: 1, pagesRead: 1, chars: 14, truncated: false,
-      pages: [{ page: 1, chars: 14, text: "Dummy PDF file" }],
+      url: "https://bitcoin.org/bitcoin.pdf",
+      title: null, author: null, totalPages: 9, firstPage: 1, pagesRead: 1, chars: 46, truncated: true,
+      pages: [{ page: 1, chars: 46, text: "Bitcoin: A Peer-to-Peer Electronic Cash System" }],
     },
     async (_env, q) => {
       const firstPage = num(q, "firstPage", { min: 1, max: 100_000, fallback: 1, integer: true });
