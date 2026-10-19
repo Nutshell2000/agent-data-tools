@@ -180,7 +180,7 @@ test('/credits lists the three packs as JSON for agents', async () => {
 });
 
 test('/credits page for people: packs with calls per pack, app setup, free previews, indexable', async () => {
-  const res = await app({}).fetch('/credits', { accept: 'text/html' });
+  const res = await app({ STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits', { accept: 'text/html' });
   const html = await res.text();
   assert.match(html, /about 1,666 calls at \$0\.003/);
   assert.match(html, /\/mcp\/account/);

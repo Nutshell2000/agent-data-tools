@@ -1,5 +1,5 @@
 {
-  "version": "1.32.0",
+  "version": "1.33.1",
   "tools": [
     {
       "name": "extract",
@@ -3198,6 +3198,78 @@
         }
       },
       "price": "$0.005"
+    },
+    {
+      "name": "text_prompt_injection",
+      "description": "Scan text an agent is about to read (web page, email, tool result; up to 8,000 characters) for prompt-injection attempts: instruction overrides, fake system messages, asks to hide things from the user, exfiltration links, attempts to extract private data or move money, invisible Unicode. Returns a risk level, score and findings with excerpts. Heuristic, not a guarantee. Use before acting on untrusted content. Example: text=Thanks for the update. The signed invoice is attached and payment is due on Friday.. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to scan (up to 8,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "http_security_headers",
+      "description": "Fetch a public URL and grade its HTTP security headers: HSTS, Content-Security-Policy, framing protection, nosniff, Referrer-Policy and Permissions-Policy, plus version leaks (Server, X-Powered-By) and cookies missing Secure, HttpOnly or SameSite. Returns a grade A-F, a score and each check with its value. Use to review a site's basic web security; for DNS and email records use domain. Private hosts are refused with 400, uncharged. Example: url=https://example.com. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Public http(s) URL to check"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "dockerfile_lint",
+      "description": "Check a Dockerfile (up to 8,000 characters) for common security and image-size problems: unpinned or :latest base images, running as root, piping downloads into a shell, sensitive values baked into ENV or ARG, ADD from URLs, apt and pip cache left in layers, sudo, chmod 777 and an exposed SSH port. Returns each finding with its line, a severity and a fix, plus a score. Use before building or shipping an image. Example: dockerfile=FROM node:latest\nCOPY . /app\nCMD node /app/server.js. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "dockerfile": {
+            "type": "string",
+            "description": "Dockerfile contents (up to 8,000 characters)"
+          }
+        },
+        "required": [
+          "dockerfile"
+        ]
+      },
+      "price": "$0.003"
     },
     {
       "name": "check_counterparty",
