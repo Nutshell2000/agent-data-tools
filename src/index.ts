@@ -8,6 +8,7 @@ import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { readable402 } from "./lib/readable-402";
+import { payV1, v1Requirements } from "./lib/x402-v1";
 import { schemaFromExample } from "./lib/output-schema";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
@@ -171,6 +172,9 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key replaces the x402 payment for this call.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name)) : undefined;
   if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
+  // x402 version 1 clients pay with X-PAYMENT (lib/x402-v1.ts); v2 clients use PAYMENT-SIGNATURE below.
+  const v1Payment = endpoint && c.req.method === "GET" && !c.req.header("payment-signature") ? c.req.header("x-payment") : undefined;
+  if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
   if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
@@ -192,7 +196,7 @@ app.use(async (c, next) => {
   const candidate = paywall ?? buildPaywall(c.env);
   const result = await candidate(c, next);
   if (c.res.status < 500) paywall ??= candidate;
-  return result instanceof Response ? readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path)) : result;
+  return result instanceof Response ? readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []) : result;
 });
 
 for (const e of ENDPOINTS) {

@@ -57,24 +57,24 @@ A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid 
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
 | `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
-| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.002 |
+| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | | $0.002 |.003 |
 | `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.20 |
 | `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.02 |
 | `GET /contract-risk?address=` | Limited bytecode, EIP-1967 slot and zero-supply heuristics | $0.02 |
 | `GET /trade-insight?token=&wallet=` | Separate token and wallet risk indicators; no trade recommendation | $0.05 |
 | `GET /liquidity-pool-audit?address=` | Verified Base DEX pair details and reported market data | $0.03 |
 | `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.04 |
-| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | $0.002 |
-| `GET /email?address=` | Email validation without sending mail | $0.002 |
+| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | | $0.002 |.003 |
+| `GET /email?address=` | Email validation without sending mail | | $0.002 |.003 |
 | `GET /papers?query=` | Academic paper search | $0.003 |
-| `GET /fx?from=&to=` | Currency exchange rates and conversion | $0.002 |
-| `GET /btc-price` | Bitcoin price in major currencies | $0.002 |
+| `GET /fx?from=&to=` | Currency exchange rates and conversion | | $0.002 |.003 |
+| `GET /btc-price` | Bitcoin price in major currencies | | $0.002 |.003 |
 | `GET /base-gas` | Base network gas price and fee estimate | $0.002 |
 | `GET /base-tx?hash=` | Base transaction status and details | $0.003 |
 | `GET /base-allowance?token=&owner=&spender=` | ERC-20 approval check on Base | $0.002 |
-| `GET /ens?name=` | ENS name/address resolution | $0.002 |
-| `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
-| `GET /time?zone=` | Current time and time zone conversion | $0.002 |
+| `GET /ens?name=` | ENS name/address resolution | | $0.002 |.003 |
+| `GET /weather?lat=&lon=` | Current weather and hourly forecast | | $0.002 |.003 |
+| `GET /time?zone=` | Current time and time zone conversion | | $0.002 |.003 |
 
 Free calls are on: 25 successful calls per caller and 2,000 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP. Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
 
