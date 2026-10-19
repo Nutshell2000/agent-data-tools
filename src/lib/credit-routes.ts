@@ -97,6 +97,13 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   c.res.headers.set("X-Credits-Remaining", String(creditsFromMicros(remaining)));
 }
 
+/** What an agent should relay to its user when its MCP client cannot pay with x402. */
+export function paymentHint(origin: string, price: string) {
+  return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
+    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001), then add the header "Authorization: Bearer <key>" `
+    + `to this MCP server's connection settings and retry. The key works for every tool on this server.`;
+}
+
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
 export function creditCharger(env: Env, key: string, price: string) {
   return async <R extends { isError?: boolean; content?: unknown[] }>(run: () => Promise<R>): Promise<R | { isError: true; content: { type: "text"; text: string }[] }> => {

@@ -1,7 +1,7 @@
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom } from "./lib/credits";
-import { creditCharger } from "./lib/credit-routes";
+import { creditCharger, paymentHint } from "./lib/credit-routes";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
@@ -112,6 +112,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
   // so the x402 facilitator is not needed (or contacted) for it.
   const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) : undefined;
   const payment = paid && !creditKey ? await paymentState(env) : undefined;
+  const origin = new URL(c.req.url).origin;
   const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION });
 
   for (const e of endpoints) {
@@ -145,11 +146,14 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
         // SDK clients validate any structuredContent, including isError responses.
         // Keep failure/quote JSON in text content so it is not mistaken for a successful result.
         const response = result as typeof result & {content?: unknown[]};
+        // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
+        // agents whose client cannot pay, so they can tell their user how to unlock the tool.
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price) }] : [];
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;
-          return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}], _meta:{...response._meta,requestId:trace?.requestId}};
+          return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}, ...hint], _meta:{...response._meta,requestId:trace?.requestId}};
         }
-        return { ...result, _meta: { ...result._meta, requestId: trace?.requestId } };
+        return { ...result, ...(hint.length ? { content: [...(response.content ?? []), ...hint] } : {}), _meta: { ...result._meta, requestId: trace?.requestId } };
       } catch (error) {
         throw error;
       }
