@@ -31,6 +31,7 @@ import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
+import { legal } from "./lib/legal";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -219,6 +220,8 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 
 // Card payments: prepaid credits and their API keys.
 app.route("/", credits);
+// Privacy policy, terms and support.
+app.route("/", legal);
 
 // Store for people: product pages, orders paid by plain USDC transfer, downloads.
 app.route("/", store);

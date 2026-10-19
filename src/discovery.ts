@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.30.0";
+export const MCP_SERVER_VERSION = "1.30.1";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -257,6 +257,8 @@ ${rows}
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
+<p class="note"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></p>
+
 <h2>For agents and developers</h2>
 <ul>
 <li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code>. Smaller servers, one per section: ${Object.keys(MCP_BUNDLES).map((slug) => `<code>/mcp/${slug}</code>`).join(", ")}</li>
@@ -293,7 +295,8 @@ export function openApi(origin: string, trialsEnabled = false) {
       title: SERVICE_NAME,
       version: MCP_SERVER_VERSION,
       description: SERVICE_SUMMARY,
-      contact: { name: "SpellzCode support", email: SUPPORT_EMAIL },
+      contact: { name: "SpellzCode support", email: SUPPORT_EMAIL, url: `${origin}/support` },
+      termsOfService: `${origin}/terms`,
       "x-status": `${origin}/status`,
       "x-guidance": guidance,
       "x-card-credits": `${origin}/credits`,
