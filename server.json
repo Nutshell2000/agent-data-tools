@@ -3,7 +3,7 @@
   "name": "io.github.Nutshell2000/agent-data-tools",
   "title": "Agent Data Tools",
   "description": "166 agent tools: chain data, prices, sanctions, web, PDF. 25 free calls, then from $0.001.",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "repository": {
     "url": "https://github.com/Nutshell2000/agent-data-tools",
     "source": "github"
@@ -20,6 +20,16 @@
           "isSecret": true
         }
       ]
+    }
+  ],
+  "websiteUrl": "https://agent-data-tools.revmesh2074.workers.dev/",
+  "icons": [
+    {
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ],
+      "src": "https://agent-data-tools.revmesh2074.workers.dev/logo.png"
     }
   ]
 }

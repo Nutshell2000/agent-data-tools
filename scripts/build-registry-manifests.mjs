@@ -43,6 +43,8 @@ for (const [slug, title] of Object.entries(MCP_BUNDLES)) {
     description,
     version: server.version,
     repository: server.repository,
+    ...(server.websiteUrl ? { websiteUrl: server.websiteUrl } : {}),
+    ...(server.icons ? { icons: server.icons } : {}),
     remotes: [{ ...server.remotes[0], url: `${origin}/mcp/${slug}` }],
   };
   await writeFile(new URL(`registry/${slug}.json`, root), JSON.stringify(manifest, null, 2) + "\n");
