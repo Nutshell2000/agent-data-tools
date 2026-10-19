@@ -2,8 +2,9 @@
 // Agents that fetch a tool with plain HTTP only see the body, so repeat the decoded
 // challenge there with a short hint. Official clients read the header first, so this is additive.
 import { decodePaymentRequiredHeader } from "@x402/core/http";
+import { FREE_CALLS_PER_CALLER } from "./free-calls";
 
-export async function readable402(res: Response, origin: string): Promise<Response> {
+export async function readable402(res: Response, origin: string, freeCalls = false): Promise<Response> {
   const header = res.headers.get("payment-required");
   if (res.status !== 402 || !header || !(res.headers.get("content-type") ?? "").includes("application/json")) return res;
   const text = await res.clone().text();
@@ -16,7 +17,7 @@ export async function readable402(res: Response, origin: string): Promise<Respon
   }
   const body = {
     ...challenge,
-    hint: `Paid x402 tool. Retry with a PAYMENT-SIGNATURE header from any x402 client (for example @x402/fetch or AgentCash). No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_…. Free example output: add sample=1. Free docs: ${origin}/llms.txt`,
+    hint: `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. Retry with a PAYMENT-SIGNATURE header from any x402 client (for example @x402/fetch or AgentCash). No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_…. Free example output: add sample=1. Free docs: ${origin}/llms.txt`,
   };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
