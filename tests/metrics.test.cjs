@@ -333,7 +333,7 @@ test("MCP connections are counted per client and mode, capped like callers", asy
   assert.deepEqual(day, { "claude-ai": { account: 2 }, cursor: { key: 1 } });
 });
 
-test("an x402 v1 payment attempt (X-PAYMENT) answered 402 is counted as v1_payment, not as a quote", async () => {
+test("payment attempts answered 402 are counted as v1_payment (X-PAYMENT) or v2_payment (PAYMENT-SIGNATURE), not as quotes", async () => {
   const { metrics } = createMetrics();
   const app = new Hono();
   app.use(requestMetricsMiddleware(new Set(["/tool"]), () => false));
@@ -347,5 +347,6 @@ test("an x402 v1 payment attempt (X-PAYMENT) answered 402 is counted as v1_payme
   await Promise.all(pending);
   const row = (await metrics.report())[today]["/tool"];
   assert.equal(row.v1_payment, 1);
-  assert.equal(row.challenged, 2);
+  assert.equal(row.v2_payment, 1);
+  assert.equal(row.challenged, 1);
 });

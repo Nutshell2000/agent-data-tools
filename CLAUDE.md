@@ -52,3 +52,46 @@ Deploy these together after they merge, then follow "After deploying" below.
   4. Fill in the first scorecard row in docs/sales-baseline.md.
 - Waiting on Peter: should the 26 tools still at $0.002 (`/extract`, AI text, fx, weather…) move to
   $0.003? Keep `/extract` at $0.002 as the entry price if so.
+
+## Payment visibility and the staging proof (1.35.0, 2026-10-19)
+
+Audit result of 19 Oct: the paywall, facilitator round-trip, card credits and MCP all work, but no buyer
+client has called since 14 Oct; the traffic is directory crawlers. The only paying bots read the Coinbase
+Bazaar, which lists a tool only after its first settled payment (2 of 175 are listed). What changed:
+
+- Every refused or failed payment is logged (`wrangler tail`) with its reason and marked in the funnel:
+  `refused_amount`, `refused_network`, `refused_format`, `facilitator_unavailable`, plus the existing
+  `verification_failed` / `settlement_failed`. `/metrics/callers` counts refused v2 attempts as `v2_payment`
+  (v1 as `v1_payment`). Read these on Monday before judging conversion: an attempt that dies in `refused_*`
+  is our bug or a stale directory price, not a buyer who changed their mind. The v1 path accepts the
+  variations real clients send (version as a string, network as a CAIP-2 id, value as a number at or above
+  the quote). On 19 Oct a real, unidentified browser-based v1 buyer failed four times on `/eth/gas` before
+  any of this was deployed (Peter confirmed it was not him); watch `wrangler tail` for the next one.
+- The published client example (homepage, llms.txt, OpenAPI x-guidance) caps payments at `ORDINARY_PRICE`
+  ($0.003, `src/discovery.ts`), so an agent that copies it can pay for every ordinary tool. Keep that
+  constant equal to the catalog's common price.
+- Paused `/buy/*` paths answer 503 before the paywall and the counters.
+- **Staging on Base Sepolia**: `wrangler.staging.jsonc` deploys `agent-data-tools-staging` with the keyless
+  testnet facilitator and faucet USDC (`.test-wallet.json`, git-ignored; address from
+  `node scripts/pay-test.mjs address`; refill at https://faucet.circle.com). After every release, deploy it
+  and prove all three payment paths; none of this touches mainnet or counts as income:
+
+  ```sh
+  npx wrangler deploy -c wrangler.staging.jsonc
+  node scripts/pay-test.mjs https://agent-data-tools-staging.revmesh2074.workers.dev/btc-fees
+  node scripts/pay-test.mjs https://agent-data-tools-staging.revmesh2074.workers.dev/btc-fees --v1
+  node scripts/pay-test.mjs https://agent-data-tools-staging.revmesh2074.workers.dev --mcp btc_fees
+  ```
+
+  Each prints `settle:` with `success: true` and a transaction; `curl <staging>/revenue` then shows the
+  settlements. The script refuses any mainnet network.
+- **After any price change** (and after adding tools): run `node scripts/update-402index-prices.mjs --dry`
+  then without `--dry` (token in `.402index-token`, git-ignored; copy it from `C:\MoneyWallet\x402-api`),
+  `node scripts/register-402index.mjs` for new paths (10 per hour), and re-register the server on x402scan
+  so its cached copy and prices match. Directories that still show an old price cause `refused_amount`
+  attempts from v1 clients. Prices are frozen at the current catalog until 8 Nov 2026 (the x402 stop-rule
+  check) unless Peter decides otherwise.
+- Decisions that stay with Peter (not code): Bazaar seeding (one self-settled call per tool through the CDP
+  facilitator; the ledger marks self-payments, Peter's rule currently forbids it), app-directory submissions
+  (`docs/app-directory-submission.md`), and whether the 19 Oct browser payment attempts on `/eth/gas` were
+  his own tests.

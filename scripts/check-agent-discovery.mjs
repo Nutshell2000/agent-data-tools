@@ -25,12 +25,15 @@ await status.arrayBuffer();
 const endpoint = discovery.endpoints?.find(e => e.path === "/extract" && e.method === "GET");
 const advisory = reader.advisories?.find(e => e.method === "GET");
 const checks = {
-  catalog: discovery.found && discovery.endpoints.length === 166,
+  catalog: discovery.found && discovery.endpoints.length >= 175,
   paidReader: endpoint?.authMode === "paid" && endpoint.protocols?.includes("x402"),
   price: endpoint?.price === "0.002 USD",
   guidance: discovery.guidance?.includes("reader-client.mjs") === true,
   probe: probe.found === true && probe.advisories?.some(a => a.method === "GET" && a.inputSchema) === true,
-  readable402: unpaid.status === 402 && unpaidBody?.x402Version === 2 && unpaidBody.accepts?.[0]?.amount === "2000",
+  // Since 1.34.0 the body carries the terms in x402 v1 shape (maxAmountRequired) for v1 clients; the v2 header is unchanged.
+  readable402: unpaid.status === 402 && unpaid.headers.has("payment-required") &&
+    ((unpaidBody?.x402Version === 2 && unpaidBody.accepts?.[0]?.amount === "2000") ||
+     (unpaidBody?.x402Version === 1 && unpaidBody.accepts?.[0]?.maxAmountRequired === "2000")),
   ogImage: og.ok && og.headers.get("content-type") === "image/png" && String.fromCharCode(...ogBytes.subarray(1, 4)) === "PNG",
   scraperHtml: (page.headers.get("content-type") ?? "").includes("text/html") && pageHtml.includes('property="og:image"'),
   status: status.ok,
