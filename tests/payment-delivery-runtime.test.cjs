@@ -201,6 +201,7 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  const viaUrl=new Client({name:'credits-url-fixture',version:'1'});
  try{await viaUrl.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/k/'+first.apiKey),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));const r=await viaUrl.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.notEqual(r.isError,true);}finally{await viaUrl.close();}
  assert.equal((await mf.dispatchFetch('https://api.test/mcp/k/not-a-key',{method:'POST'})).status,401);
+ for(const p of ['/mcp','/mcp/chain']){const g=await mf.dispatchFetch('https://api.test'+p);assert.equal(g.status,405);assert.equal(g.headers.get('allow'),'POST');await g.arrayBuffer();}
  const fakeMcp=await call(fake,{url:'https://public.example/article'});
  assert.equal(fakeMcp.isError,true);assert.match(fakeMcp.content[0].text,/unknown API key/);
  const balance=await (await mf.dispatchFetch('https://api.test/credits/balance',{headers:auth})).json();
