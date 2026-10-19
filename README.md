@@ -1,6 +1,6 @@
 # Agent Data Tools
 
-166 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.001** per successful call.
+166 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
 
 ## Quick start
 

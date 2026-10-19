@@ -27,7 +27,7 @@ import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
-import { SUPPORT_EMAIL } from "./endpoints";
+import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
@@ -87,6 +87,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         description: e.description,
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
+        iconUrl: SERVICE_ICON_URL,
         tags: [...e.tags],
         extensions: {
           ...declareDiscoveryExtension({
@@ -118,6 +119,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         description: `${p.title}: ${p.tagline} Returns a download link for the product file.`,
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
+        iconUrl: SERVICE_ICON_URL,
         tags: ["template", "x402", "starter", "guide"],
         extensions: {
           ...declareDiscoveryExtension({

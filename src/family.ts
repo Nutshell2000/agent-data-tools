@@ -12,7 +12,7 @@ export interface Entry {
 }
 
 /** Price for the families: Coinbase's facilitator minimum, the band with the most distinct payers (Peter approved 2026-10-18). */
-export const PRICE = "$0.001";
+export const PRICE = "$0.003";
 
 export function entry(
   path: string,

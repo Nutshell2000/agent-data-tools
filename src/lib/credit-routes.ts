@@ -124,14 +124,14 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
   const pay = hasKey
     ? "This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001) and add the header "Authorization: Bearer <key>" to this server's connection settings.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key.` : ""}`;
-  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.001 per successful call. ${pay} Every tool's result shape is in its output schema.`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) and add the header "Authorization: Bearer <key>" to this server's connection settings.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key.` : ""}`;
+  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.003 per successful call. ${pay} Every tool's result shape is in its output schema.`;
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
 export function paymentHint(origin: string, price: string) {
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
-    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001), then add the header "Authorization: Bearer <key>" `
+    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003), then add the header "Authorization: Bearer <key>" `
     + `to this MCP server's connection settings and retry. The key works for every tool on this server.`;
 }
 
