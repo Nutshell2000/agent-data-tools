@@ -1,5 +1,5 @@
 {
-  "version": "1.35.1",
+  "version": "1.35.2",
   "tools": [
     {
       "name": "extract",
@@ -1226,7 +1226,7 @@
     },
     {
       "name": "package",
-      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Example: ecosystem=npm, name=lodash, version=4.17.20. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Example: ecosystem=npm, name=lodash, version=4.17.20. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1255,7 +1255,7 @@
           "name"
         ]
       },
-      "price": "$0.003"
+      "price": "$0.002"
     },
     {
       "name": "email",
