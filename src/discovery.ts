@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.27.0";
+export const MCP_SERVER_VERSION = "1.27.1";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -49,7 +49,11 @@ export function mcpServerCard(origin: string) {
     bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpBundleTools(slug)!.length })),
     capabilities: { tools: { listChanged: false } },
     authentication: { required: false },
-    payment: { protocol: "x402", asset: "USDC", network: "base" },
+    payment: {
+      protocol: "x402", asset: "USDC", network: "base",
+      // Card alternative: a prepaid key from /credits sent on the MCP request replaces x402 for every call.
+      alternatives: [{ method: "card-credits", buy: `${origin}/credits`, header: "Authorization: Bearer adt_…", balance: `${origin}/credits/balance` }],
+    },
     tools: ENDPOINTS.map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
 }
@@ -295,6 +299,8 @@ export function openApi(origin: string, trialsEnabled = false) {
       "x-card-credits": `${origin}/credits`,
     },
     externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },
+    // Optional alternative to x402, so not applied as a requirement on any operation.
+    components: { securitySchemes: { cardCredits: { type: "http", scheme: "bearer", description: `Optional: an adt_ API key bought by card at ${origin}/credits pays any call instead of x402.` } } },
     // x-agentcash-provenance is the current field; x-discovery is the older one some indexers still read.
     ...(OWNERSHIP_PROOFS.length
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
