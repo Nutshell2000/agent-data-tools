@@ -29,7 +29,10 @@ console.log(`${listed.size} paths already listed, ${todo.length} to register${DR
 for (const [i, [path, item]] of todo.entries()) {
   const op = item.get;
   const query = new URLSearchParams();
-  for (const p of op.parameters ?? []) if (p.required && p.example !== undefined) query.set(p.name, String(p.example));
+  // Same rule as exampleParams() in src/endpoints.ts: required inputs, or the first documented one for "X or Y" tools.
+  const params = (op.parameters ?? []).filter((p) => p.in !== "header");
+  const chosen = params.some((p) => p.required) ? params.filter((p) => p.required) : params.filter((p) => p.example !== undefined).slice(0, 1);
+  for (const p of chosen) if (p.example !== undefined) query.set(p.name, String(p.example));
   const price = Number(op["x-payment-info"]?.price?.amount);
   if (!price) { console.log(`${path}: no price in OpenAPI, skipped`); continue; }
   const body = {

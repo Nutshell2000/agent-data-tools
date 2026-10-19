@@ -2,7 +2,7 @@ import { createPublicClient, fallback, formatEther, formatGwei, formatUnits, htt
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import { HttpError, isAddress, type Env } from "../lib/env";
-import { baseClient, erc20Abi } from "../lib/rpc";
+import { baseClient, erc20Abi, rpcUrls } from "../lib/rpc";
 
 const allowanceAbi = [
   {
@@ -97,7 +97,7 @@ function ethereumClient(): PublicClient {
   const options = { timeout: 8_000, retryCount: 0 };
   return (ethereum ??= createPublicClient({
     chain: mainnet,
-    transport: fallback([http("https://ethereum-rpc.publicnode.com", options), http("https://eth.llamarpc.com", options)], { rank: false }),
+    transport: fallback(rpcUrls("eth").map((u) => http(u, options)), { rank: false }),
   }) as PublicClient);
 }
 

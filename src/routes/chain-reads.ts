@@ -6,7 +6,7 @@ import { entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
-import { erc20Abi } from "../lib/rpc";
+import { EDGE_RPCS, erc20Abi, rpcUrls } from "../lib/rpc";
 
 interface ChainDef {
   slug: string;
@@ -16,19 +16,19 @@ interface ChainDef {
   rpcs: string[];
 }
 
-// Keyless public RPCs, first answer wins with fallback on failure. Base uses BASE_RPC_URL first.
+// Keyless public RPCs, first answer wins with fallback on failure; order measured from Cloudflare (lib/rpc.ts).
 export const CHAINS: ChainDef[] = [
-  { slug: "base", name: "Base", chain: base, symbol: "ETH", rpcs: ["https://mainnet.base.org", "https://base.drpc.org", "https://base-rpc.publicnode.com"] },
-  { slug: "eth", name: "Ethereum", chain: mainnet, symbol: "ETH", rpcs: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth.llamarpc.com"] },
-  { slug: "arb", name: "Arbitrum One", chain: arbitrum, symbol: "ETH", rpcs: ["https://arb1.arbitrum.io/rpc", "https://arbitrum.drpc.org", "https://arbitrum-one-rpc.publicnode.com"] },
-  { slug: "op", name: "Optimism", chain: optimism, symbol: "ETH", rpcs: ["https://mainnet.optimism.io", "https://optimism.drpc.org", "https://optimism-rpc.publicnode.com"] },
-  { slug: "polygon", name: "Polygon PoS", chain: polygon, symbol: "POL", rpcs: ["https://polygon-rpc.com", "https://polygon.drpc.org", "https://polygon-bor-rpc.publicnode.com"] },
+  { slug: "base", name: "Base", chain: base, symbol: "ETH", rpcs: [...EDGE_RPCS.base] },
+  { slug: "eth", name: "Ethereum", chain: mainnet, symbol: "ETH", rpcs: [...EDGE_RPCS.eth] },
+  { slug: "arb", name: "Arbitrum One", chain: arbitrum, symbol: "ETH", rpcs: [...EDGE_RPCS.arb] },
+  { slug: "op", name: "Optimism", chain: optimism, symbol: "ETH", rpcs: [...EDGE_RPCS.op] },
+  { slug: "polygon", name: "Polygon PoS", chain: polygon, symbol: "POL", rpcs: [...EDGE_RPCS.polygon] },
 ];
 
 const clients = new Map<string, PublicClient>();
 export function client(env: Env, c: ChainDef): PublicClient {
-  const urls = c.slug === "base" && env.BASE_RPC_URL ? [env.BASE_RPC_URL, ...c.rpcs.filter((u) => u !== env.BASE_RPC_URL)] : c.rpcs;
-  const key = `${c.slug}|${urls[0]}`;
+  const urls = c.slug in EDGE_RPCS ? rpcUrls(c.slug as keyof typeof EDGE_RPCS, env) : c.rpcs;
+  const key = `${c.slug}|${urls.join("|")}`;
   let cl = clients.get(key);
   if (!cl) {
     const options = { timeout: 8_000, retryCount: 0 };
