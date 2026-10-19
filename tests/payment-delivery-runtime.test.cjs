@@ -26,7 +26,15 @@ before(async()=>{
     return path==='/fail'?new Response('failure',{status:500}):new Response(path==='/shell'?'<html><div id=app></div><script>run()</script></html>':'<html><title>Paid fixture</title><main><h1 id="result">Useful result</h1><p>Static page for payment flow verification.</p></main></html>',{headers:{'content-type':'text/html'}});
   }}));
 });
-after(async()=>{await mf?.dispose();});
+let mfFree;
+before(async()=>{
+  const b=await build({entryPoints:['src/index.ts'],bundle:true,format:'esm',platform:'browser',write:false,external:['cloudflare:workers','node:*'],plugins:[{name:'url',setup(b){b.onResolve({filter:/^url$/},()=>({path:'node:url',external:true}));}}]});
+  mfFree=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'on',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid'},outboundService:async r=>{
+    if(new URL(r.url).hostname==='fixture.invalid')return Response.json({kinds:[{x402Version:2,scheme:'exact',network:'eip155:8453',extra:{name:'USD Coin',version:'2'}}],extensions:[]});
+    return new URL(r.url).pathname==='/fail'?new Response('failure',{status:500}):new Response('<html><title>Free fixture</title><main><h1>Free result</h1><p>Static page for the free-call check.</p></main></html>',{headers:{'content-type':'text/html'}});
+  }}));
+});
+after(async()=>{await mf?.dispose();await mfFree?.dispose();});
 
 test('paused tools reject GET, HEAD and signed requests without payment or an upstream call',async()=>{
  const before=(await revenue()).settlements;
@@ -195,4 +203,20 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  const balance=await (await mf.dispatchFetch('https://api.test/credits/balance',{headers:auth})).json();
  assert.equal(balance.balanceCredits,4996);assert.equal(balance.calls,2);
  assert.equal((await revenue()).settlements,settled);
+});
+test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures are not counted, and paid tools are never settled',async()=>{
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const plain=await mfFree.dispatchFetch(url);assert.equal(plain.status,402);await plain.arrayBuffer();
+ const ip={'cf-connecting-ip':'198.51.100.7'};
+ const first=await mfFree.dispatchFetch(url+'&trial=1',{headers:ip});assert.equal(first.status,200);assert.equal(first.headers.get('X-Free-Trial-Remaining'),'24');await first.arrayBuffer();
+ const failed=await mfFree.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail&trial=1',{headers:ip});assert.ok(failed.status>=400);assert.equal(failed.headers.get('X-Free-Trial-Remaining'),'24');await failed.arrayBuffer();
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+ const client=new Client({name:'free-fixture',version:'1'});
+ try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
+  const r=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
+  assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(23 of 25/);
+  const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
+  const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);
+ }finally{await client.close();}
+ assert.equal((await (await mfFree.dispatchFetch('https://api.test/revenue')).json()).settlements,0);
 });

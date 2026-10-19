@@ -1,6 +1,7 @@
 // Card credits over HTTP: the /credits pages, the API-key charge used by the paywall, and the MCP charge.
 import { Hono, type Context, type Next } from "hono";
-import type { Env } from "./env";
+import { trialsEnabled, type Env } from "./env";
+import { callerHash, utcDay } from "./free-calls";
 import {
   CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
 } from "./credits";
@@ -95,6 +96,16 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
     c.res.headers.set("X-Credits-Charged", String(creditsFromMicros(micros)));
   }
   c.res.headers.set("X-Credits-Remaining", String(creditsFromMicros(remaining)));
+}
+
+/** One free call for this caller, or null. The returned refund gives it back when the tool fails. */
+export async function useFreeCall(env: Env, ip: string | undefined) {
+  const store = ledger(env);
+  if (!store || !trialsEnabled(env)) return null;
+  const caller = await callerHash(ip ?? "unknown");
+  const day = utcDay();
+  const left = await store.takeFreeCall(caller, day);
+  return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */

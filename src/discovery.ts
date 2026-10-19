@@ -1,3 +1,4 @@
+import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { AI_PATHS } from "./routes/ai-text";
@@ -20,7 +21,7 @@ const exampleQuery = (e: Endpoint) =>
 
 const trialNote = (enabled: boolean) =>
   enabled
-    ? "Free trial: add trial=1 to a GET request for a free call, up to 10 per caller per day and 1,000 total per day. This opt-in can be disabled by the service operator."
+    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls (failed calls do not count). Over MCP they are used automatically before any payment; over HTTP add trial=1 to a GET request. Not for the AI, rendering, screenshot, transcription and search tools, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. The operator can switch this off.`
     : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
 export function serviceCard(origin: string, payTo: string, network: string) {
