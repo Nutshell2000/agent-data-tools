@@ -6,7 +6,7 @@
 import { Hono, type Context } from "hono";
 import type { Env } from "./env";
 import { hashCreditKey, isCreditKey } from "./credits";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, callerHash } from "./free-calls";
 
 type C = Context<{ Bindings: Env }>;
 const store = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
@@ -186,7 +186,9 @@ oauth.post("/oauth/authorize", async (c) => {
     key = typed;
   }
   // One stable subject per key, so free-call counting and tokens follow the person, not the network address.
-  const sub = key ? `key:${await hashCreditKey(key)}` : `anon:${random(16)}`;
+  // Without a key, the subject is the hashed address of the browser that signs in: a random one per
+  // sign-in would hand out a fresh set of free calls every time the person reconnects.
+  const sub = key ? `key:${await hashCreditKey(key)}` : `anon:${await callerHash(c.req.header("cf-connecting-ip") ?? "unknown")}`;
   const code = "adtcode_" + random(24);
   await s.oauthPut(`code:${await sha256url(code)}`, { key, sub, clientId: p.client_id, redirectUri: p.redirect_uri, challenge: p.code_challenge, expiresAt: Date.now() + CODE_TTL } satisfies Code);
   return c.redirect(redirectWith(p.redirect_uri, { code, state: p.state }), 302);

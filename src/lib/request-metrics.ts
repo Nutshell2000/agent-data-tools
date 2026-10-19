@@ -2,6 +2,7 @@ import type { MiddlewareHandler } from "hono";
 import type { Env } from "./env";
 import { queueMetricBump, settledApiRevenueMicros } from "./revenue";
 import type { Outcome } from "../metrics";
+import { callerFamily } from "./caller";
 
 export function requestMetricsMiddleware(
   paidPaths: ReadonlySet<string>,
@@ -24,6 +25,7 @@ export function requestMetricsMiddleware(
       outcome = revenueUsdMicros === undefined ? "unsettled" : "paid";
     }
     const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-    queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros);
+    const caller = callerFamily(c.req.header("user-agent"), outcome === "marketplace");
+    queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros, caller);
   };
 }

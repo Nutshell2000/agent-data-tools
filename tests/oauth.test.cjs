@@ -31,13 +31,13 @@ async function register() {
   assert.equal(r.status, 201);
   return (await r.json()).client_id;
 }
-async function signIn(clientId, fields) {
+async function signIn(clientId, fields, headers = {}) {
   const { verifier, challenge } = pkce();
   const q = { client_id: clientId, redirect_uri: REDIRECT, state: 'st4te', code_challenge: challenge, code_challenge_method: 'S256', response_type: 'code' };
   const form = await mf.dispatchFetch(`${O}/oauth/authorize?${new URLSearchParams(q)}`);
   assert.equal(form.status, 200);
   assert.match(await form.text(), /Sign in to Agent Data Tools/);
-  const post = await mf.dispatchFetch(`${O}/oauth/authorize`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ ...q, ...fields }) });
+  const post = await mf.dispatchFetch(`${O}/oauth/authorize`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', ...headers }, body: new URLSearchParams({ ...q, ...fields }) });
   return { post, verifier };
 }
 async function exchange(clientId, post, verifier) {
@@ -134,4 +134,16 @@ test('signed-in without a key: no crypto payment request, a neutral message once
     assert.match(text, /not included in the free calls/);
     assert.doesNotMatch(text, /x402Version|accepts|USDC/);
   } finally { await client.close(); }
+});
+test('signing in again without a key does not refill the free calls', async () => {
+  const freeCall = async (ip) => {
+    const clientId = await register();
+    const { post, verifier } = await signIn(clientId, { mode: 'free' }, { 'cf-connecting-ip': ip });
+    const tokens = await (await exchange(clientId, post, verifier)).r.json();
+    const result = await mcpCall(tokens.access_token, 'extract', { url: 'https://public.example/article' });
+    return result.content.at(-1).text;
+  };
+  assert.match(await freeCall('203.0.113.7'), /^Free call \(24 of 25/);
+  assert.match(await freeCall('203.0.113.7'), /^Free call \(23 of 25/, 'a second sign-in from the same place continues the same allowance');
+  assert.match(await freeCall('198.51.100.9'), /^Free call \(24 of 25/, 'another person gets their own allowance');
 });

@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
-import { issueCredits, spendCredits, refundCredits, creditBalance } from "./lib/credits";
+import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 
 /**
@@ -20,6 +20,12 @@ interface PathMetrics extends Partial<Record<Outcome, number>> {
   trackedPaidCalls?: number;
 }
 type Day = Record<string, PathMetrics>;
+/** Per calling-software family: requests by outcome. */
+type Callers = Record<string, Partial<Record<Outcome, number>>>;
+/** MCP connections (initialize requests) per client name and connection mode. */
+type McpClients = Record<string, Partial<Record<"open" | "key" | "account", number>>>;
+/** Distinct software families kept per day; the rest count as "other". */
+const MAX_CALLERS = 60;
 
 const KEEP_DAYS = 30;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -45,6 +51,8 @@ export class Metrics extends DurableObject {
   async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
   async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
   async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }
+  async creditSummary() { return creditSummary(this.ctx.storage); }
+  async rotateKey(oldHash: string, newKey: string, newHash: string) { return rotateKey(this.ctx.storage, oldHash, newKey, newHash); }
   // OAuth sign-in records (clients, codes, hashed tokens); see lib/oauth.ts. Expiry is checked by the caller.
   async oauthGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`oauth:${key}`)) ?? null; }
   async oauthPut(key: string, value: unknown) { await this.ctx.storage.put(`oauth:${key}`, value); }
@@ -66,7 +74,7 @@ export class Metrics extends DurableObject {
     return claimTransfer(this.ctx.storage, claim);
   }
 
-  async bump(path: string, outcome: Outcome, revenueUsdMicros?: number): Promise<void> {
+  async bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void> {
     const key = `day:${today()}`;
     await this.ctx.storage.transaction(async (txn) => {
       const day = (await txn.get<Day>(key)) ?? {};
@@ -79,6 +87,14 @@ export class Metrics extends DurableObject {
         row.trackedPaidCalls++;
       }
       await txn.put(key, day);
+      if (caller) {
+        const callersKey = `callers:${today()}`;
+        const callers = (await txn.get<Callers>(callersKey)) ?? {};
+        const name = callers[caller] || Object.keys(callers).length < MAX_CALLERS ? caller : "other";
+        const counts = (callers[name] ??= {});
+        counts[outcome] = (counts[outcome] ?? 0) + 1;
+        await txn.put(callersKey, callers);
+      }
       if (SERVED.includes(outcome)) await txn.put(`last:${path}`, new Date().toISOString());
     });
   }
@@ -100,6 +116,29 @@ export class Metrics extends DurableObject {
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
+  }
+
+  /** One MCP connection (initialize) by client name and how it connected: open, key or account. */
+  async bumpMcpClient(client: string, mode: "open" | "key" | "account"): Promise<void> {
+    const key = `mcpclients:${today()}`;
+    await this.ctx.storage.transaction(async (txn) => {
+      const clients = (await txn.get<McpClients>(key)) ?? {};
+      const name = clients[client] || Object.keys(clients).length < MAX_CALLERS ? client : "other";
+      const counts = (clients[name] ??= {});
+      counts[mode] = (counts[mode] ?? 0) + 1;
+      await txn.put(key, clients);
+    });
+  }
+
+  async mcpClients(): Promise<Record<string, McpClients>> {
+    const days = await this.ctx.storage.list<McpClients>({ prefix: "mcpclients:", reverse: true, limit: KEEP_DAYS });
+    return Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v]));
+  }
+
+  /** Requests per day by calling software (see callerFamily) and outcome, newest first. */
+  async callers(): Promise<Record<string, Callers>> {
+    const days = await this.ctx.storage.list<Callers>({ prefix: "callers:", reverse: true, limit: KEEP_DAYS });
+    return Object.fromEntries([...days].map(([k, v]) => [k.slice(8), v]));
   }
 
   async report(): Promise<Record<string, Day>> {
