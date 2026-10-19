@@ -14,9 +14,11 @@ export function requestMetricsMiddleware(
     let outcome: Outcome;
     let revenueUsdMicros: number | undefined;
     // A payment attempt answered 402 is a refused payment, not a quote: counted apart by protocol version
-    // (v2 clients send PAYMENT-SIGNATURE, v1 clients X-PAYMENT) so refusals are visible among the quotes.
+    // (v2 clients send PAYMENT-SIGNATURE, v1 clients X-PAYMENT, MPP clients Authorization: Payment) so refusals
+    // are visible among the quotes.
     if (c.res.status === 402 && c.req.header("payment-signature")) outcome = "v2_payment";
     else if (c.res.status === 402 && c.req.header("x-payment")) outcome = "v1_payment";
+    else if (c.res.status === 402 && /(^|,)\s*Payment\s/i.test(c.req.header("authorization") ?? "")) outcome = "mpp_payment";
     else if (c.res.status === 402) outcome = "challenged";
     else if (c.res.status >= 500) outcome = "errored";
     else if (c.res.status >= 400) outcome = "failed";

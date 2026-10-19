@@ -23,6 +23,17 @@ export interface Env {
   // MPP (agent card payments for credit packs): restricted key with PaymentIntents write, and the Stripe profile id.
   STRIPE_MPP_KEY?: string;
   STRIPE_PROFILE_ID?: string;
+  /**
+   * Per-call MPP on the tools (lib/mpp-tempo.ts): the Tempo address that receives USDC.e. While unset,
+   * no tool offers MPP. TEMPO_NETWORK=testnet uses Moderato and pathUSD (staging only); TEMPO_RPC_URL
+   * overrides the public RPC; MPP_SECRET_KEY signs challenges (default: derived from CDP_API_KEY_SECRET).
+   */
+  /** "off" switches off per-call MPP with USDC on NETWORK (lib/mpp-evm.ts), which is otherwise on. */
+  MPP_EVM?: string;
+  TEMPO_PAY_TO?: string;
+  TEMPO_NETWORK?: string;
+  TEMPO_RPC_URL?: string;
+  MPP_SECRET_KEY?: string;
   AI: Ai;
   BROWSER: Fetcher;
   // Holds trial counters and store orders.

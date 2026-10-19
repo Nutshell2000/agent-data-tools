@@ -95,3 +95,16 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   facilitator; the ledger marks self-payments, Peter's rule currently forbids it), app-directory submissions
   (`docs/app-directory-submission.md`), and whether the 19 Oct browser payment attempts on `/eth/gas` were
   his own tests.
+
+## Per-call MPP on the tools (1.36.0): evm on Base ON, Tempo off
+
+- `src/lib/mpp-evm.ts` (on by default, `MPP_EVM` in `wrangler.jsonc`): each tool's 402 also offers `WWW-Authenticate: Payment`
+  evm/charge, an EIP-3009 USDC authorization on our x402 network to PAY_TO, verified and settled through the same facilitator
+  as x402 (settle only after the tool succeeded, Bazaar extension sent with the settlement, receipt in the ledger). It exists
+  so MPPScan lists the 175 tools without a first settled payment, at no cost. Staging proof after every release:
+  `node scripts/pay-test.mjs <staging>/time?zone=UTC --mpp-evm`. After deploying, re-register the origin at mppscan.com/register.
+- `src/lib/mpp-tempo.ts`: a second challenge, tempo/charge (USDC.e on Tempo, pull mode), broadcast only after the tool
+  succeeded. It stays off while `TEMPO_PAY_TO` in `wrangler.jsonc` is empty.
+- Peter decides the receiving address (reuse PAY_TO after a wallet check, or a new Tempo address):
+  `docs/mpp-per-call.md`. Do not set `TEMPO_PAY_TO` without his answer in chat.
+- Credit packs `/credits/buy/*` answer GET only, and their Stripe challenge names a recipient (the MPPScan warnings).
