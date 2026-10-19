@@ -1,9 +1,9 @@
 {
-  "version": "1.25.0",
+  "version": "1.26.1",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -461,7 +461,7 @@
     },
     {
       "name": "sitemap",
-      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -637,7 +637,7 @@
     },
     {
       "name": "domain",
-      "description": "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -661,7 +661,7 @@
     },
     {
       "name": "domain_report",
-      "description": "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Costs $0.01 in USDC on Base per successful call, paid with x402.",
+      "description": "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.01 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -685,7 +685,7 @@
     },
     {
       "name": "token",
-      "description": "Live on-chain facts for any ERC-20 token on Base: name, symbol, decimals, total supply, owner address and whether ownership is renounced, paused state, proxy detection (EIP-1967 and minimal proxy) with implementation and admin addresses, and bytecode heuristics for mint, pause, blacklist and fee-setter functions. Use for token due diligence and rug-pull or honeypot screening before a swap. Costs $0.01 in USDC on Base per successful call, paid with x402.",
+      "description": "Live on-chain facts for any ERC-20 token on Base: name, symbol, decimals, total supply, owner address and whether ownership is renounced, paused state, proxy detection (EIP-1967 and minimal proxy) with implementation and admin addresses, and bytecode heuristics for mint, pause, blacklist and fee-setter functions. Use for token due diligence and rug-pull or honeypot screening before a swap. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.01 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -709,7 +709,7 @@
     },
     {
       "name": "token_report",
-      "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -733,7 +733,7 @@
     },
     {
       "name": "wallet",
-      "description": "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Use to check a counterparty's holdings. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Use to check a counterparty's holdings. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -761,7 +761,7 @@
     },
     {
       "name": "summarize",
-      "description": "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. Use for research, news triage, link previews and deciding whether a page is worth reading in full. Costs $0.01 in USDC on Base per successful call, paid with x402.",
+      "description": "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. Use for research, news triage, link previews and deciding whether a page is worth reading in full. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.01 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -785,7 +785,7 @@
     },
     {
       "name": "screenshot",
-      "description": "Render any public web page in a real headless Chrome browser, with JavaScript executed, and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and page title. Set fullPage=true to capture up to 4000 px of page height. Use for visual checks, page previews, monitoring and feeding pages to vision models. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Render any public web page in a real headless Chrome browser, with JavaScript executed, and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and page title. Set fullPage=true to capture up to 4000 px of page height. Use for visual checks, page previews, monitoring and feeding pages to vision models. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -813,7 +813,7 @@
     },
     {
       "name": "image",
-      "description": "Text-to-image generation with FLUX.1 schnell. Send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds. Use for illustrations, thumbnails, mockups, avatars and social media images. Optional steps parameter (1-8, default 4) trades speed for detail. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Text-to-image generation with FLUX.1 schnell. Send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds. Use for illustrations, thumbnails, mockups, avatars and social media images. Optional steps parameter (1-8, default 4) trades speed for detail. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -843,7 +843,7 @@
     },
     {
       "name": "transcribe",
-      "description": "Transcribe speech from an audio file at a public URL using Whisper large-v3-turbo. Returns the transcript text, detected language, duration and word count. Accepts common formats such as MP3, WAV, M4A and OGG up to 5 MB. Use for voice notes, podcast clips, meeting snippets and voice messages. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Transcribe speech from an audio file at a public URL using Whisper large-v3-turbo. Returns the transcript text, detected language, duration and word count. Accepts common formats such as MP3, WAV, M4A and OGG up to 5 MB. Use for voice notes, podcast clips, meeting snippets and voice messages. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -867,7 +867,7 @@
     },
     {
       "name": "describe",
-      "description": "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB. Use for alt text, OCR-style reading of screenshots, chart reading and content checks. Costs $0.01 in USDC on Base per successful call, paid with x402.",
+      "description": "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB. Use for alt text, OCR-style reading of screenshots, chart reading and content checks. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.01 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -895,7 +895,7 @@
     },
     {
       "name": "btc_fees",
-      "description": "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1027,7 +1027,7 @@
     },
     {
       "name": "btc_address",
-      "description": "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "description": "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.003 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1051,7 +1051,7 @@
     },
     {
       "name": "ln_invoice",
-      "description": "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1075,7 +1075,7 @@
     },
     {
       "name": "package_audit",
-      "description": "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies. Costs $0.20 in USDC on Base per successful call, paid with x402.",
+      "description": "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.20 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1099,7 +1099,7 @@
     },
     {
       "name": "wallet_audit",
-      "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1123,7 +1123,7 @@
     },
     {
       "name": "contract_risk",
-      "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract. Costs $0.02 in USDC on Base per successful call, paid with x402.",
+      "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.02 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1147,7 +1147,7 @@
     },
     {
       "name": "trade_insight",
-      "description": "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade. Costs $0.05 in USDC on Base per successful call, paid with x402.",
+      "description": "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.05 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1176,7 +1176,7 @@
     },
     {
       "name": "liquidity_pool_audit",
-      "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.03 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1200,7 +1200,7 @@
     },
     {
       "name": "mev_simulator",
-      "description": "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction. Costs $0.04 in USDC on Base per successful call, paid with x402.",
+      "description": "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.04 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1226,7 +1226,7 @@
     },
     {
       "name": "package",
-      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1259,7 +1259,7 @@
     },
     {
       "name": "email",
-      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1283,7 +1283,7 @@
     },
     {
       "name": "papers",
-      "description": "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "description": "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.003 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1319,7 +1319,7 @@
     },
     {
       "name": "fx",
-      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1351,7 +1351,7 @@
     },
     {
       "name": "btc_price",
-      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1367,7 +1367,7 @@
     },
     {
       "name": "base_gas",
-      "description": "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1383,7 +1383,7 @@
     },
     {
       "name": "base_tx",
-      "description": "Look up any transaction on Base by hash: whether it succeeded, reverted or is still pending, sender and receiver, ETH value, called method id, block number and time, number of confirmations, gas used, gas price and the execution fee paid, and whether it created a contract. Use to confirm that a payment or contract call went through before acting on it. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up any transaction on Base by hash: whether it succeeded, reverted or is still pending, sender and receiver, ETH value, called method id, block number and time, number of confirmations, gas used, gas price and the execution fee paid, and whether it created a contract. Use to confirm that a payment or contract call went through before acting on it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.003 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1407,7 +1407,7 @@
     },
     {
       "name": "base_allowance",
-      "description": "Check how much of a wallet's ERC-20 token a spender contract is approved to move on Base: the raw and formatted allowance, the token symbol and decimals, and whether the approval is unlimited. Use before a swap or deposit to see if an approve transaction is needed, and to audit a wallet for risky unlimited approvals. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Check how much of a wallet's ERC-20 token a spender contract is approved to move on Base: the raw and formatted allowance, the token symbol and decimals, and whether the approval is unlimited. Use before a swap or deposit to see if an approve transaction is needed, and to audit a wallet for risky unlimited approvals. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1441,7 +1441,7 @@
     },
     {
       "name": "ens",
-      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1465,7 +1465,7 @@
     },
     {
       "name": "weather",
-      "description": "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1500,7 +1500,7 @@
     },
     {
       "name": "time",
-      "description": "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1532,7 +1532,7 @@
     },
     {
       "name": "base_balance",
-      "description": "Native ETH balance of any address on Base, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the native ETH balance of any 0x address on Base at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use base_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1556,7 +1556,7 @@
     },
     {
       "name": "base_token_balance",
-      "description": "ERC-20 token balance of a wallet on Base: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one wallet's balance of one ERC-20 token on Base: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use base_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1585,7 +1585,7 @@
     },
     {
       "name": "base_token_info",
-      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Base, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up the name, symbol, decimals and total supply of an ERC-20 token contract on Base, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use base_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1609,7 +1609,7 @@
     },
     {
       "name": "base_block",
-      "description": "A block on Base by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a block on Base by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use base_gas. A block that does not exist yet returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1630,7 +1630,7 @@
     },
     {
       "name": "base_receipt",
-      "description": "Receipt of a Base transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get the receipt of a mined Base transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use base_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1643,7 +1643,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -1654,7 +1654,7 @@
     },
     {
       "name": "base_nonce",
-      "description": "Transaction count (nonce) of an address on Base, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the transaction count (nonce) of a 0x address on Base, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use base_balance. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1678,7 +1678,7 @@
     },
     {
       "name": "base_is_contract",
-      "description": "Whether an address on Base is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a 0x address on Base is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1702,7 +1702,7 @@
     },
     {
       "name": "base_logs",
-      "description": "Recent event logs emitted by a contract on Base over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "List recent event logs a contract emitted on Base over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use base_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1736,7 +1736,7 @@
     },
     {
       "name": "eth_balance",
-      "description": "Native ETH balance of any address on Ethereum, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the native ETH balance of any 0x address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1760,7 +1760,7 @@
     },
     {
       "name": "eth_token_balance",
-      "description": "ERC-20 token balance of a wallet on Ethereum: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one wallet's balance of one ERC-20 token on Ethereum: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use eth_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1789,7 +1789,7 @@
     },
     {
       "name": "eth_token_info",
-      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Ethereum, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up the name, symbol, decimals and total supply of an ERC-20 token contract on Ethereum, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use eth_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1813,7 +1813,7 @@
     },
     {
       "name": "eth_block",
-      "description": "A block on Ethereum by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a block on Ethereum by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use eth_gas. A block that does not exist yet returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1834,7 +1834,7 @@
     },
     {
       "name": "eth_gas",
-      "description": "Current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1850,7 +1850,7 @@
     },
     {
       "name": "eth_tx",
-      "description": "A transaction on Ethereum by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up a Ethereum transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use eth_receipt, for emitted events eth_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1863,7 +1863,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -1874,7 +1874,7 @@
     },
     {
       "name": "eth_receipt",
-      "description": "Receipt of a Ethereum transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get the receipt of a mined Ethereum transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use eth_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1887,7 +1887,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -1898,7 +1898,7 @@
     },
     {
       "name": "eth_nonce",
-      "description": "Transaction count (nonce) of an address on Ethereum, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the transaction count (nonce) of a 0x address on Ethereum, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use eth_balance. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1922,7 +1922,7 @@
     },
     {
       "name": "eth_is_contract",
-      "description": "Whether an address on Ethereum is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a 0x address on Ethereum is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1946,7 +1946,7 @@
     },
     {
       "name": "eth_logs",
-      "description": "Recent event logs emitted by a contract on Ethereum over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "List recent event logs a contract emitted on Ethereum over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use eth_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1980,7 +1980,7 @@
     },
     {
       "name": "arb_balance",
-      "description": "Native ETH balance of any address on Arbitrum One, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the native ETH balance of any 0x address on Arbitrum One at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use arb_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2004,7 +2004,7 @@
     },
     {
       "name": "arb_token_balance",
-      "description": "ERC-20 token balance of a wallet on Arbitrum One: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one wallet's balance of one ERC-20 token on Arbitrum One: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use arb_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2033,7 +2033,7 @@
     },
     {
       "name": "arb_token_info",
-      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Arbitrum One, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up the name, symbol, decimals and total supply of an ERC-20 token contract on Arbitrum One, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use arb_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2057,7 +2057,7 @@
     },
     {
       "name": "arb_block",
-      "description": "A block on Arbitrum One by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a block on Arbitrum One by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use arb_gas. A block that does not exist yet returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2078,7 +2078,7 @@
     },
     {
       "name": "arb_gas",
-      "description": "Current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2094,7 +2094,7 @@
     },
     {
       "name": "arb_tx",
-      "description": "A transaction on Arbitrum One by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up a Arbitrum One transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use arb_receipt, for emitted events arb_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2107,7 +2107,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2118,7 +2118,7 @@
     },
     {
       "name": "arb_receipt",
-      "description": "Receipt of a Arbitrum One transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get the receipt of a mined Arbitrum One transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use arb_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2131,7 +2131,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2142,7 +2142,7 @@
     },
     {
       "name": "arb_nonce",
-      "description": "Transaction count (nonce) of an address on Arbitrum One, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the transaction count (nonce) of a 0x address on Arbitrum One, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use arb_balance. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2166,7 +2166,7 @@
     },
     {
       "name": "arb_is_contract",
-      "description": "Whether an address on Arbitrum One is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a 0x address on Arbitrum One is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2190,7 +2190,7 @@
     },
     {
       "name": "arb_logs",
-      "description": "Recent event logs emitted by a contract on Arbitrum One over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "List recent event logs a contract emitted on Arbitrum One over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use arb_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2224,7 +2224,7 @@
     },
     {
       "name": "op_balance",
-      "description": "Native ETH balance of any address on Optimism, in wei and in ETH, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the native ETH balance of any 0x address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2248,7 +2248,7 @@
     },
     {
       "name": "op_token_balance",
-      "description": "ERC-20 token balance of a wallet on Optimism: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one wallet's balance of one ERC-20 token on Optimism: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use op_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2277,7 +2277,7 @@
     },
     {
       "name": "op_token_info",
-      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Optimism, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up the name, symbol, decimals and total supply of an ERC-20 token contract on Optimism, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use op_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2301,7 +2301,7 @@
     },
     {
       "name": "op_block",
-      "description": "A block on Optimism by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a block on Optimism by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use op_gas. A block that does not exist yet returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2322,7 +2322,7 @@
     },
     {
       "name": "op_gas",
-      "description": "Current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2338,7 +2338,7 @@
     },
     {
       "name": "op_tx",
-      "description": "A transaction on Optimism by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up a Optimism transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use op_receipt, for emitted events op_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2351,7 +2351,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2362,7 +2362,7 @@
     },
     {
       "name": "op_receipt",
-      "description": "Receipt of a Optimism transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get the receipt of a mined Optimism transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use op_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2375,7 +2375,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2386,7 +2386,7 @@
     },
     {
       "name": "op_nonce",
-      "description": "Transaction count (nonce) of an address on Optimism, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the transaction count (nonce) of a 0x address on Optimism, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use op_balance. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2410,7 +2410,7 @@
     },
     {
       "name": "op_is_contract",
-      "description": "Whether an address on Optimism is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a 0x address on Optimism is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2434,7 +2434,7 @@
     },
     {
       "name": "op_logs",
-      "description": "Recent event logs emitted by a contract on Optimism over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "List recent event logs a contract emitted on Optimism over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use op_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2468,7 +2468,7 @@
     },
     {
       "name": "polygon_balance",
-      "description": "Native POL balance of any address on Polygon PoS, in wei and in POL, read live from the chain at the latest block. Use to check whether a wallet is funded before sending, paying gas or settling. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the native POL balance of any 0x address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2492,7 +2492,7 @@
     },
     {
       "name": "polygon_token_balance",
-      "description": "ERC-20 token balance of a wallet on Polygon PoS: raw amount, decimals, token symbol and the human-readable amount, read live from the token contract. Use to check stablecoin or token holdings before a transfer, payment or trade. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read one wallet's balance of one ERC-20 token on Polygon PoS: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use polygon_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2521,7 +2521,7 @@
     },
     {
       "name": "polygon_token_info",
-      "description": "Name, symbol, decimals and total supply of any ERC-20 token contract on Polygon PoS, read live from the contract. Use to identify an unknown token address or to format raw token amounts correctly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up the name, symbol, decimals and total supply of an ERC-20 token contract on Polygon PoS, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use polygon_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2545,7 +2545,7 @@
     },
     {
       "name": "polygon_block",
-      "description": "A block on Polygon PoS by number, or the latest one: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer address. Use for timestamps, confirmations and chain-activity checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a block on Polygon PoS by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use polygon_gas. A block that does not exist yet returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2566,7 +2566,7 @@
     },
     {
       "name": "polygon_gas",
-      "description": "Current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Use before sending a transaction or to decide whether to wait. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2582,7 +2582,7 @@
     },
     {
       "name": "polygon_tx",
-      "description": "A transaction on Polygon PoS by hash: sender, recipient, value in POL, nonce, gas limit, the 4-byte function selector of the call data, and its block. Use to check what a transaction did or whether it exists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Look up a Polygon PoS transaction by hash: sender, recipient, value in POL, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use polygon_receipt, for emitted events polygon_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2595,7 +2595,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2606,7 +2606,7 @@
     },
     {
       "name": "polygon_receipt",
-      "description": "Receipt of a Polygon PoS transaction: success or reverted, gas used, effective gas price, fee paid in POL, number of event logs and any contract created. Use to confirm a payment or call went through. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Get the receipt of a mined Polygon PoS transaction: success or reverted, gas used, effective gas price, fee paid in POL, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use polygon_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2619,7 +2619,7 @@
         "properties": {
           "hash": {
             "type": "string",
-            "description": "0x transaction hash"
+            "description": "0x-prefixed transaction hash (64 hex characters)"
           }
         },
         "required": [
@@ -2630,7 +2630,7 @@
     },
     {
       "name": "polygon_nonce",
-      "description": "Transaction count (nonce) of an address on Polygon PoS, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Read the transaction count (nonce) of a 0x address on Polygon PoS, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use polygon_balance. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2654,7 +2654,7 @@
     },
     {
       "name": "polygon_is_contract",
-      "description": "Whether an address on Polygon PoS is a smart contract or a plain wallet, with the size of its bytecode and whether it is a minimal proxy (EIP-1167) and which implementation it points to. Use before sending funds or approving a spender. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a 0x address on Polygon PoS is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2678,7 +2678,7 @@
     },
     {
       "name": "polygon_logs",
-      "description": "Recent event logs emitted by a contract on Polygon PoS over the last N blocks (up to 1,000), optionally filtered by topic0 (event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "List recent event logs a contract emitted on Polygon PoS over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use polygon_receipt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2712,7 +2712,7 @@
     },
     {
       "name": "price_token",
-      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2746,7 +2746,7 @@
     },
     {
       "name": "price_tokens",
-      "description": "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2780,7 +2780,7 @@
     },
     {
       "name": "wallet_portfolio",
-      "description": "USD value of a wallet on Base, Ethereum, Arbitrum or Optimism: native ETH plus major tokens (USDC and WETH everywhere, the common Base tokens on Base) and up to 20 tokens you add, each priced from its deepest Uniswap v3 pool, read live from the chain. Returns holdings, total and anything that could not be priced. Not a full token inventory. Use to check what a wallet is worth before trading, lending or paying. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "USD value of a wallet on Base, Ethereum, Arbitrum or Optimism: native ETH plus major tokens (USDC and WETH everywhere, the common Base tokens on Base) and up to 20 tokens you add, each priced from its deepest Uniswap v3 pool, read live from the chain. Returns holdings, total and anything that could not be priced. Not a full token inventory. Use to check what a wallet is worth before trading, lending or paying. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2818,7 +2818,7 @@
     },
     {
       "name": "pdf_text",
-      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2860,7 +2860,7 @@
     },
     {
       "name": "extract_rendered",
-      "description": "Same output as /extract, but the page is first rendered in a real browser, so single-page apps and pages that build their content with JavaScript come back with their text instead of an empty shell. Waits for the network to settle (up to 15 seconds). Public pages only; no login. Use when /extract returns EXTRACTION_EMPTY or too little text for a page you can read in a browser. Costs $0.01 in USDC on Base per successful call, paid with x402.",
+      "description": "Same output as /extract, but the page is first rendered in a real browser, so single-page apps and pages that build their content with JavaScript come back with their text instead of an empty shell. Waits for the network to settle (up to 15 seconds). Public pages only; no login. Use when /extract returns EXTRACTION_EMPTY or too little text for a page you can read in a browser. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.01 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2903,7 +2903,7 @@
     },
     {
       "name": "feed",
-      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2933,7 +2933,7 @@
     },
     {
       "name": "url_meta",
-      "description": "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2957,7 +2957,7 @@
     },
     {
       "name": "company",
-      "description": "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 404, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "description": "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 404, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.003 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -2982,7 +2982,7 @@
     },
     {
       "name": "sanctions_check",
-      "description": "Screen a crypto wallet address or a person or company name against the US Treasury OFAC SDN list, including aliases and the listed digital currency addresses (BTC, ETH, USDT, TRX and more). Returns each match with SDN ID, programs and match strength, plus the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty. Costs $0.005 in USDC on Base per successful call, paid with x402.",
+      "description": "Screen a crypto wallet address or a person or company name against the US Treasury OFAC SDN list, including aliases and the listed digital currency addresses (BTC, ETH, USDT, TRX and more). Returns each match with SDN ID, programs and match strength, plus the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3007,7 +3007,7 @@
     },
     {
       "name": "check_counterparty",
-      "description": "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Costs $0.03 in USDC on Base per successful call, paid with x402.",
+      "description": "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.03 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3041,7 +3041,7 @@
     },
     {
       "name": "x402_check",
-      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3065,7 +3065,7 @@
     },
     {
       "name": "json_validate",
-      "description": "Check whether text is valid JSON. Returns valid true/false, the parsed value's type and size, and for invalid input the error message with line and column. Use before parsing an LLM's or an API's output. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether text is valid JSON. Returns valid true/false, the parsed value's type and size, and for invalid input the error message with line and column. Use before parsing an LLM's or an API's output. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3089,7 +3089,7 @@
     },
     {
       "name": "json_format",
-      "description": "Format JSON with indentation (2 or 4 spaces, or tabs) and optionally sorted keys. Returns the formatted text. Use to make machine JSON readable or to normalise it for diffs. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Format JSON with indentation (2 or 4 spaces, or tabs) and optionally sorted keys. Returns the formatted text. Use to make machine JSON readable or to normalise it for diffs. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3121,7 +3121,7 @@
     },
     {
       "name": "json_minify",
-      "description": "Remove all unnecessary whitespace from JSON and report the size before and after. Use to shrink payloads or prompts. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Remove all unnecessary whitespace from JSON and report the size before and after. Use to shrink payloads or prompts. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3145,7 +3145,7 @@
     },
     {
       "name": "json_repair",
-      "description": "Fix JSON as LLMs often write it: removes ```json fences and surrounding prose, comments and trailing commas, converts single quotes, quotes bare keys, maps True/False/None, and closes unclosed brackets. Returns the repaired JSON and whether it now parses. Use when an LLM's JSON output fails to parse. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Fix JSON as LLMs often write it: removes ```json fences and surrounding prose, comments and trailing commas, converts single quotes, quotes bare keys, maps True/False/None, and closes unclosed brackets. Returns the repaired JSON and whether it now parses. Use when an LLM's JSON output fails to parse. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3169,7 +3169,7 @@
     },
     {
       "name": "json_to_csv",
-      "description": "Convert a JSON array of objects to CSV with a header row built from all keys. Nested values are written as JSON. Use to export API results to a spreadsheet. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a JSON array of objects to CSV with a header row built from all keys. Nested values are written as JSON. Use to export API results to a spreadsheet. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3193,7 +3193,7 @@
     },
     {
       "name": "csv_to_json",
-      "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Use to load spreadsheet exports into an agent. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Use to load spreadsheet exports into an agent. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3221,7 +3221,7 @@
     },
     {
       "name": "base64_encode",
-      "description": "Encode UTF-8 text as standard base64, and also return the URL-safe variant. Use for data URLs, headers and basic auth strings. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Encode UTF-8 text as standard base64, and also return the URL-safe variant. Use for data URLs, headers and basic auth strings. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3245,7 +3245,7 @@
     },
     {
       "name": "base64_decode",
-      "description": "Decode standard or URL-safe base64 to UTF-8 text. Missing padding is tolerated. Use to read encoded headers, tokens and data URLs. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode standard or URL-safe base64 to UTF-8 text. Missing padding is tolerated. Use to read encoded headers, tokens and data URLs. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3269,7 +3269,7 @@
     },
     {
       "name": "url_encode",
-      "description": "Percent-encode text for use in a URL query value (encodeURIComponent) and as a full URL (encodeURI). Use when building query strings. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Percent-encode text for use in a URL query value (encodeURIComponent) and as a full URL (encodeURI). Use when building query strings. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3293,7 +3293,7 @@
     },
     {
       "name": "url_decode",
-      "description": "Decode percent-encoded text, treating + as a space when plus=true (form encoding). Use to read encoded links and form data. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode percent-encoded text, treating + as a space when plus=true (form encoding). Use to read encoded links and form data. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3321,7 +3321,7 @@
     },
     {
       "name": "url_parse",
-      "description": "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Use to read query parameters or check a link's host. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Use to read query parameters or check a link's host. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3345,7 +3345,7 @@
     },
     {
       "name": "hash",
-      "description": "Hash UTF-8 text with SHA-256 (default), SHA-1, SHA-384 or SHA-512 and return the digest in hex and base64. Use for checksums, cache keys and deduplication. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Hash UTF-8 text with SHA-256 (default), SHA-1, SHA-384 or SHA-512 and return the digest in hex and base64. Use for checksums, cache keys and deduplication. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3373,7 +3373,7 @@
     },
     {
       "name": "hmac",
-      "description": "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3406,7 +3406,7 @@
     },
     {
       "name": "uuid",
-      "description": "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3429,7 +3429,7 @@
     },
     {
       "name": "slug",
-      "description": "Turn any text into a URL-friendly slug: accents removed (é→e, ß→ss), lower case, non-alphanumerics replaced by a separator (- by default). Use for file names, URLs and IDs. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Turn any text into a URL-friendly slug: accents removed (é→e, ß→ss), lower case, non-alphanumerics replaced by a separator (- by default). Use for file names, URLs and IDs. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3457,7 +3457,7 @@
     },
     {
       "name": "case",
-      "description": "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Use when renaming fields or generating code identifiers. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Use when renaming fields or generating code identifiers. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3486,7 +3486,7 @@
     },
     {
       "name": "text_stats",
-      "description": "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Use to check the length and readability of a draft. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Use to check the length and readability of a draft. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3510,7 +3510,7 @@
     },
     {
       "name": "text_extract",
-      "description": "Find all email addresses, URLs, phone-number-like strings, hashtags, @mentions and numbers in a text, each list de-duplicated. Use to pull contacts and links out of scraped pages or messages. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Find all email addresses, URLs, phone-number-like strings, hashtags, @mentions and numbers in a text, each list de-duplicated. Use to pull contacts and links out of scraped pages or messages. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3534,7 +3534,7 @@
     },
     {
       "name": "text_diff",
-      "description": "Line-by-line difference between two texts: each line marked as unchanged, removed or added, with counts. Use to see what changed between two versions of a document, config or prompt. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Line-by-line difference between two texts: each line marked as unchanged, removed or added, with counts. Use to see what changed between two versions of a document, config or prompt. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3563,7 +3563,7 @@
     },
     {
       "name": "cron_next",
-      "description": "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3597,7 +3597,7 @@
     },
     {
       "name": "date_diff",
-      "description": "Time between two dates or timestamps: total days, weeks, hours, minutes and seconds, a years-months-days breakdown, and the number of weekdays (Monday-Friday) in between. Use for deadlines, ages and durations. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Time between two dates or timestamps: total days, weeks, hours, minutes and seconds, a years-months-days breakdown, and the number of weekdays (Monday-Friday) in between. Use for deadlines, ages and durations. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3626,7 +3626,7 @@
     },
     {
       "name": "date_add",
-      "description": "Add (or subtract, with negative numbers) years, months, weeks, days, hours and minutes to a date, or add business days (skipping Saturdays and Sundays). Month ends are clamped (31 Jan + 1 month = 28/29 Feb). Use to compute due dates and expiries. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Add (or subtract, with negative numbers) years, months, weeks, days, hours and minutes to a date, or add business days (skipping Saturdays and Sundays). Month ends are clamped (31 Jan + 1 month = 28/29 Feb). Use to compute due dates and expiries. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3668,7 +3668,7 @@
     },
     {
       "name": "date_info",
-      "description": "Weekday, ISO week number and week-year, day of the year, quarter, days in the month, leap year, Unix timestamp and whether it is a weekend, for any date. Use for calendar and reporting logic. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Weekday, ISO week number and week-year, day of the year, quarter, days in the month, leap year, Unix timestamp and whether it is a weekend, for any date. Use for calendar and reporting logic. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3692,7 +3692,7 @@
     },
     {
       "name": "unix",
-      "description": "Convert a Unix timestamp (seconds or milliseconds, detected automatically) to ISO date and time, or an ISO date to a Unix timestamp. Without input, returns the current time in both forms. Use to read timestamps in logs and APIs. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a Unix timestamp (seconds or milliseconds, detected automatically) to ISO date and time, or an ISO date to a Unix timestamp. Without input, returns the current time in both forms. Use to read timestamps in logs and APIs. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3713,7 +3713,7 @@
     },
     {
       "name": "units_convert",
-      "description": "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Use when exact conversions matter. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Use when exact conversions matter. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3747,7 +3747,7 @@
     },
     {
       "name": "number_words",
-      "description": "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Use when amounts must be written out in full. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Use when amounts must be written out in full. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3771,7 +3771,7 @@
     },
     {
       "name": "number_roman",
-      "description": "Convert a number (1-3999) to Roman numerals, or Roman numerals back to a number. Give either number or roman. Use for dates, outlines and puzzles. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a number (1-3999) to Roman numerals, or Roman numerals back to a number. Give either number or roman. Use for dates, outlines and puzzles. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3798,7 +3798,7 @@
     },
     {
       "name": "validate_iban",
-      "description": "Check an IBAN's format, its country-specific length and its mod-97 check digits, and return it formatted in groups of four. Use before saving bank details or paying out. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check an IBAN's format, its country-specific length and its mod-97 check digits, and return it formatted in groups of four. Use before saving bank details or paying out. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3822,7 +3822,7 @@
     },
     {
       "name": "validate_isbn",
-      "description": "Check an ISBN-10 or ISBN-13 check digit and convert valid ISBN-10s to ISBN-13. Hyphens and spaces are ignored. Use before cataloguing or ordering books. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check an ISBN-10 or ISBN-13 check digit and convert valid ISBN-10s to ISBN-13. Hyphens and spaces are ignored. Use before cataloguing or ordering books. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3846,7 +3846,7 @@
     },
     {
       "name": "validate_luhn",
-      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3870,7 +3870,7 @@
     },
     {
       "name": "color",
-      "description": "Convert a colour between hex, RGB and HSL, and give its relative luminance and whether black or white text reads better on it. Accepts #rgb, #rrggbb, rgb(r,g,b) and hsl(h,s%,l%). Use for theming and design checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert a colour between hex, RGB and HSL, and give its relative luminance and whether black or white text reads better on it. Accepts #rgb, #rrggbb, rgb(r,g,b) and hsl(h,s%,l%). Use for theming and design checks. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3894,7 +3894,7 @@
     },
     {
       "name": "color_contrast",
-      "description": "WCAG 2 contrast ratio between a text colour and a background colour, with pass/fail for AA and AAA at normal and large text sizes. Use to check that a design is readable. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "WCAG 2 contrast ratio between a text colour and a background colour, with pass/fail for AA and AAA at normal and large text sizes. Use to check that a design is readable. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3923,7 +3923,7 @@
     },
     {
       "name": "ip_cidr",
-      "description": "Details of an IPv4 network in CIDR notation: network and broadcast address, first and last usable host, netmask, number of addresses, and whether a given IP falls inside. Use for firewall rules and allowlists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Details of an IPv4 network in CIDR notation: network and broadcast address, first and last usable host, netmask, number of addresses, and whether a given IP falls inside. Use for firewall rules and allowlists. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3951,7 +3951,7 @@
     },
     {
       "name": "ip_info",
-      "description": "Classify an IPv4 or IPv6 address without any lookup: version, whether it is private, loopback, link-local, carrier-grade NAT or public, and its integer and reverse-DNS forms (IPv4). Use to triage IPs in logs or allowlists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Classify an IPv4 or IPv6 address without any lookup: version, whether it is private, loopback, link-local, carrier-grade NAT or public, and its integer and reverse-DNS forms (IPv4). Use to triage IPs in logs or allowlists. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3975,7 +3975,7 @@
     },
     {
       "name": "semver",
-      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Use to decide whether an upgrade is a major change. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Use to decide whether an upgrade is a major change. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4004,7 +4004,7 @@
     },
     {
       "name": "jwt_decode",
-      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4028,7 +4028,7 @@
     },
     {
       "name": "markdown_to_html",
-      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4052,7 +4052,7 @@
     },
     {
       "name": "html_to_text",
-      "description": "Strip HTML to readable plain text: scripts and styles removed, block elements become line breaks, list items get bullets, entities decoded. Use to feed web content or emails to an LLM. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Strip HTML to readable plain text: scripts and styles removed, block elements become line breaks, list items get bullets, entities decoded. Use to feed web content or emails to an LLM. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4076,7 +4076,7 @@
     },
     {
       "name": "http_status",
-      "description": "Name and plain-language meaning of an HTTP status code (1xx-5xx, including 402 Payment Required and 429 Too Many Requests), and whether to retry. Use when handling API errors. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Name and plain-language meaning of an HTTP status code (1xx-5xx, including 402 Payment Required and 429 Too Many Requests), and whether to retry. Use when handling API errors. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4102,7 +4102,7 @@
     },
     {
       "name": "mime",
-      "description": "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4126,7 +4126,7 @@
     },
     {
       "name": "holidays",
-      "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4156,7 +4156,7 @@
     },
     {
       "name": "wikipedia",
-      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4184,7 +4184,7 @@
     },
     {
       "name": "dictionary",
-      "description": "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4208,7 +4208,7 @@
     },
     {
       "name": "earthquakes",
-      "description": "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4233,7 +4233,7 @@
     },
     {
       "name": "geocode",
-      "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4263,7 +4263,7 @@
     },
     {
       "name": "sun",
-      "description": "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4296,7 +4296,7 @@
     },
     {
       "name": "moon",
-      "description": "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Use for calendars and night-sky planning. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Use for calendars and night-sky planning. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4317,7 +4317,7 @@
     },
     {
       "name": "country",
-      "description": "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4341,7 +4341,7 @@
     },
     {
       "name": "npm_downloads",
-      "description": "Download counts of an npm package for the last day, week and month, from the official npm registry API. Use to judge how widely a dependency is used. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Download counts of an npm package for the last day, week and month, from the official npm registry API. Use to judge how widely a dependency is used. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4365,7 +4365,7 @@
     },
     {
       "name": "pypi",
-      "description": "Latest version, summary, licence, required Python version, home page, release date and number of releases of a Python package on PyPI. Use to check a dependency before installing it. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Latest version, summary, licence, required Python version, home page, release date and number of releases of a Python package on PyPI. Use to check a dependency before installing it. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4389,7 +4389,7 @@
     },
     {
       "name": "coin",
-      "description": "Flip one or more fair coins using a cryptographic random source. Returns each result and the totals. Use for fair decisions and games. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Flip one or more fair coins using a cryptographic random source. Returns each result and the totals. Use for fair decisions and games. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4412,7 +4412,7 @@
     },
     {
       "name": "dice",
-      "description": "Roll dice in standard notation such as 2d6+3 or 1d20, up to 100 dice of up to 1000 sides, with a cryptographic random source. Returns every roll, the modifier and the total. Use for tabletop games and simulations. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Roll dice in standard notation such as 2d6+3 or 1d20, up to 100 dice of up to 1000 sides, with a cryptographic random source. Returns every roll, the modifier and the total. Use for tabletop games and simulations. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4433,7 +4433,7 @@
     },
     {
       "name": "random_number",
-      "description": "One or more random whole numbers in a range (inclusive), optionally all different, from a cryptographic random source. Use for draws, sampling and games. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "One or more random whole numbers in a range (inclusive), optionally all different, from a cryptographic random source. Use for draws, sampling and games. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4472,7 +4472,7 @@
     },
     {
       "name": "random_pick",
-      "description": "Pick one or more items at random (without repeats) from a comma- or line-separated list. Use for raffles, choosing who goes first, or breaking ties fairly. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Pick one or more items at random (without repeats) from a comma- or line-separated list. Use for raffles, choosing who goes first, or breaking ties fairly. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4502,7 +4502,7 @@
     },
     {
       "name": "random_shuffle",
-      "description": "Shuffle a comma- or line-separated list into a random order (Fisher-Yates with a cryptographic random source). Use for draw orders, seating and playlists. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Shuffle a comma- or line-separated list into a random order (Fisher-Yates with a cryptographic random source). Use for draw orders, seating and playlists. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4526,7 +4526,7 @@
     },
     {
       "name": "random_teams",
-      "description": "Split a list of names into a given number of random, evenly sized teams. Use for games, workshops and classrooms. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Split a list of names into a given number of random, evenly sized teams. Use for games, workshops and classrooms. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4556,7 +4556,7 @@
     },
     {
       "name": "magic_8_ball",
-      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4577,7 +4577,7 @@
     },
     {
       "name": "random_password",
-      "description": "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Use when creating accounts or secrets. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Use when creating accounts or secrets. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4610,7 +4610,7 @@
     },
     {
       "name": "random_color",
-      "description": "One or more random colours in hex, RGB and HSL, optionally limited to pastel or dark tones. Use for placeholders, avatars and design ideas. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "One or more random colours in hex, RGB and HSL, optionally limited to pastel or dark tones. Use for placeholders, avatars and design ideas. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4637,7 +4637,7 @@
     },
     {
       "name": "yes_no",
-      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4653,7 +4653,7 @@
     },
     {
       "name": "echo",
-      "description": "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4677,7 +4677,7 @@
     },
     {
       "name": "ping",
-      "description": "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4693,7 +4693,7 @@
     },
     {
       "name": "keccak",
-      "description": "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4717,7 +4717,7 @@
     },
     {
       "name": "network",
-      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client. Costs $0.001 in USDC on Base per successful call, paid with x402.",
+      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.001 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4733,7 +4733,7 @@
     },
     {
       "name": "ai_chat",
-      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4771,7 +4771,7 @@
     },
     {
       "name": "ai_summarize_text",
-      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4801,7 +4801,7 @@
     },
     {
       "name": "ai_sentiment",
-      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4825,7 +4825,7 @@
     },
     {
       "name": "ai_classify",
-      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4854,7 +4854,7 @@
     },
     {
       "name": "ai_keywords",
-      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4884,7 +4884,7 @@
     },
     {
       "name": "ai_rewrite",
-      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4921,7 +4921,7 @@
     },
     {
       "name": "ai_outline",
-      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4951,7 +4951,7 @@
     },
     {
       "name": "ai_translate",
-      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4984,7 +4984,7 @@
     },
     {
       "name": "ai_embed",
-      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5008,7 +5008,7 @@
     },
     {
       "name": "ai_extract_json",
-      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Costs $0.002 in USDC on Base per successful call, paid with x402.",
+      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.002 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5037,7 +5037,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Costs $0.003 in USDC on Base per successful call, paid with x402.",
+      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.003 in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
