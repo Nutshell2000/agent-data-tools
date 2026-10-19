@@ -6,7 +6,7 @@ import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 import {
-  CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
+  CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
@@ -53,11 +53,25 @@ credits.get("/credits/claim", async (c) => {
   try {
     if (!store) throw new CheckoutError(503, "credits are unavailable right now");
     const pack = await verifyCheckout(c.env.STRIPE_READ_KEY, c.req.query("session_id") ?? "");
-    const key = newCreditKey();
-    const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key, keyHash: await hashCreditKey(key) });
-    const result = { apiKey: issued.key, mcpUrl: `${origin}/mcp/k/${issued.key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use };
+    // A top-up link names an existing key by its hash; credits go to it and no new key is issued.
+    // An unknown hash (mistyped link) falls back to a new key, so a payment is never lost.
+    const topUp = pack.topUpKeyHash && await store.creditBalance(pack.topUpKeyHash) ? pack.topUpKeyHash : undefined;
+    const added = topUp ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: topUp }) : undefined;
+    if (added) {
+      const result = { toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros), note: "Added to your existing key; keep using it as before." };
+      if (!html) return c.json(result);
+      return c.html(page("Credits added", `<h1>Payment received</h1><p>${added.credits.toLocaleString("en-US")} credits were added to your existing key. Balance: ${result.balanceCredits.toLocaleString("en-US")} credits.</p><p>Nothing to change: keep using the same key in your apps.</p>`));
+    }
+    const fresh = newCreditKey();
+    const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: fresh, keyHash: await hashCreditKey(fresh) });
+    // A repeat claim returns the key stored for this session. Only a top-up session stores none,
+    // and those are answered above, so this cannot show a key that was never issued.
+    const key = issued.key;
+    if (!key) throw new CheckoutError(400, "this payment topped up an existing key; keep using that key");
+    const refill = topUpLinks(await hashCreditKey(key)).map((l) => `<a class="buy" href="${esc(l.buy)}">${l.price}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
+    const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use };
     if (!html) return c.json(result);
-    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(issued.key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(issued.key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>`));
+    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p><h2>Add credits to this key later</h2><p>These links top up this same key, so nothing in your apps changes. Bookmark this page; it keeps working.</p><p>${refill}</p>`));
   } catch (err) {
     if (!(err instanceof CheckoutError)) throw err;
     if (!html) return c.json({ error: err.message }, err.status);
@@ -74,9 +88,10 @@ credits.get("/credits/balance", async (c) => {
   if (!key) return c.json({ error: "send your key as Authorization: Bearer adt_… or X-API-Key" }, 401);
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now" }, 503);
-  const account = await store.creditBalance(await hashCreditKey(key));
+  const keyHash = await hashCreditKey(key);
+  const account = await store.creditBalance(keyHash);
   if (!account) return c.json({ error: "unknown API key" }, 401);
-  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt });
+  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash) });
 });
 
 /** Paywall branch for a request that carries an API key: spend, run, refund on failure. */
@@ -90,7 +105,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
     const origin = new URL(c.req.url).origin;
     return spent.reason === "unknown_key"
       ? c.json({ error: "unknown API key. Not charged.", buy: `${origin}/credits` }, 401)
-      : c.json({ error: `not enough credits: this call costs ${creditsFromMicros(micros)}, the key has ${creditsFromMicros(spent.balanceMicros)}. Not charged.`, buy: `${origin}/credits` }, 402);
+      : c.json({ error: `not enough credits: this call costs ${creditsFromMicros(micros)}, the key has ${creditsFromMicros(spent.balanceMicros)}. Not charged. Top up this key by card (no new key needed):`, topUp: topUpLinks(keyHash) }, 402);
   }
   let remaining = spent.balanceMicros;
   try {
@@ -144,7 +159,7 @@ export function paymentHint(origin: string, price: string, signedIn = false) {
 }
 
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
-export function creditCharger(env: Env, key: string, price: string) {
+export function creditCharger(env: Env, key: string, price: string, origin: string) {
   return async <R extends { isError?: boolean; content?: unknown[] }>(run: () => Promise<R>): Promise<R | { isError: true; content: { type: "text"; text: string }[] }> => {
     const store = ledger(env);
     const fail = (text: string) => ({ isError: true as const, content: [{ type: "text" as const, text }] });
@@ -152,7 +167,9 @@ export function creditCharger(env: Env, key: string, price: string) {
     const keyHash = await hashCreditKey(key);
     const micros = priceMicros(price);
     const spent = await store.spendCredits(keyHash, micros);
-    if (!spent.ok) return fail(spent.reason === "unknown_key" ? "unknown API key; not charged. Buy credits at /credits" : `not enough credits (${creditsFromMicros(spent.balanceMicros)} left, this call costs ${creditsFromMicros(micros)}); not charged. Buy more at /credits`);
+    if (!spent.ok) return fail(spent.reason === "unknown_key"
+      ? `unknown API key; not charged. Buy credits at ${origin}/credits`
+      : `not enough credits (${creditsFromMicros(spent.balanceMicros)} left, this call costs ${creditsFromMicros(micros)}); not charged. Tell your user to top up this same key by card, with nothing to reconfigure: ${topUpLinks(keyHash).map((l) => `${l.price} (${l.credits.toLocaleString("en-US")} credits): ${l.buy}`).join(" · ")}`);
     let result: R;
     try { result = await run(); } catch (err) { await store.refundCredits(keyHash, micros); throw err; }
     if (result.isError) await store.refundCredits(keyHash, micros);
