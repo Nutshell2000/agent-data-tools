@@ -63,7 +63,10 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   `refused_amount`, `refused_network`, `refused_format`, `facilitator_unavailable`, plus the existing
   `verification_failed` / `settlement_failed`. `/metrics/callers` counts refused v2 attempts as `v2_payment`
   (v1 as `v1_payment`). Read these on Monday before judging conversion: an attempt that dies in `refused_*`
-  is our bug or a stale directory price, not a buyer who changed their mind.
+  is our bug or a stale directory price, not a buyer who changed their mind. The v1 path accepts the
+  variations real clients send (version as a string, network as a CAIP-2 id, value as a number at or above
+  the quote). On 19 Oct a real, unidentified browser-based v1 buyer failed four times on `/eth/gas` before
+  any of this was deployed (Peter confirmed it was not him); watch `wrangler tail` for the next one.
 - The published client example (homepage, llms.txt, OpenAPI x-guidance) caps payments at `ORDINARY_PRICE`
   ($0.003, `src/discovery.ts`), so an agent that copies it can pay for every ordinary tool. Keep that
   constant equal to the catalog's common price.
