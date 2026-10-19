@@ -45,6 +45,16 @@ export class Metrics extends DurableObject {
   async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
   async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
   async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }
+  // OAuth sign-in records (clients, codes, hashed tokens); see lib/oauth.ts. Expiry is checked by the caller.
+  async oauthGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`oauth:${key}`)) ?? null; }
+  async oauthPut(key: string, value: unknown) { await this.ctx.storage.put(`oauth:${key}`, value); }
+  async oauthTake(key: string): Promise<unknown> {
+    return this.ctx.storage.transaction(async (txn) => {
+      const value = await txn.get(`oauth:${key}`);
+      if (value !== undefined) await txn.delete(`oauth:${key}`);
+      return value ?? null;
+    });
+  }
   async takeFreeCall(caller: string, day: string) { return takeFreeCall(this.ctx.storage, caller, day); }
   async refundFreeCall(caller: string, day: string) { return refundFreeCall(this.ctx.storage, caller, day); }
 

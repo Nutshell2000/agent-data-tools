@@ -32,6 +32,7 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
+import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -46,7 +47,7 @@ const DEFERRED_PATHS = [
 app.use(
   cors({
     origin: "*",
-    exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id", "X-Request-ID"],
+    exposeHeaders: ["WWW-Authenticate", "PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "EXTENSION-RESPONSES", "X-PAYMENT-RESPONSE", "Mcp-Session-Id", "X-Request-ID"],
   }),
 );
 
@@ -213,6 +214,15 @@ for (const path of DEFERRED_PATHS) {
 
 // The same tools over MCP. Listing tools is free; calling one requires payment.
 app.all("/mcp", (c) => handleMcp(c));
+// Signed-in MCP (OAuth, lib/oauth.ts): what app directories list. Registered before /mcp/:bundle.
+app.all("/mcp/account", async (c) => {
+  const grant = await grantFromRequest(c.env, c.req.header("authorization"));
+  return grant ? handleMcp(c, "", undefined, grant) : unauthorized(c);
+});
+app.all("/mcp/account/:bundle", async (c) => {
+  const grant = await grantFromRequest(c.env, c.req.header("authorization"));
+  return grant ? handleMcp(c, c.req.param("bundle"), undefined, grant) : unauthorized(c);
+});
 app.all("/mcp/:bundle", (c) => handleMcp(c, c.req.param("bundle")));
 // Card-credit key in the connector URL, for MCP clients that cannot send headers (Claude.ai, ChatGPT and others).
 app.all("/mcp/k/:key", (c) => handleMcp(c, "", c.req.param("key")));
@@ -222,6 +232,8 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 app.route("/", credits);
 // Privacy policy, terms and support.
 app.route("/", legal);
+// OAuth sign-in for MCP apps.
+app.route("/", oauth);
 
 // Store for people: product pages, orders paid by plain USDC transfer, downloads.
 app.route("/", store);
