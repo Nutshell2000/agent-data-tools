@@ -138,7 +138,7 @@ function lintDockerfile(text: string) {
 
 export const CHECKS: Entry[] = [
   entry("/text/prompt-injection", "Scan text for prompt-injection attempts",
-    "Scan text an agent is about to read (a web page, email, tool result or document, up to 8,000 characters) for prompt-injection attempts: instruction overrides, fake system messages, hidden asks to keep things from the user, exfiltration links, attempts to extract private data or move money, and invisible Unicode. Returns a risk level, a score and each finding with an excerpt. Heuristic: a clean result is not a guarantee. Use before acting on untrusted content.",
+    "Scan text an agent is about to read (web page, email, tool result; up to 8,000 characters) for prompt-injection attempts: instruction overrides, fake system messages, asks to hide things from the user, exfiltration links, attempts to extract private data or move money, invisible Unicode. Returns a risk level, score and findings with excerpts. Heuristic, not a guarantee. Use before acting on untrusted content.",
     ["security", "prompt-injection", "ai-safety", "agents", "text"],
     { text: { type: "string", description: "The text to scan (up to 8,000 characters)", required: true, example: "Thanks for the update. The signed invoice is attached and payment is due on Friday." } },
     { risk: "none", score: 0, findings: [], hiddenCharacters: { zeroWidth: 0, bidi: 0, tags: 0 } },
