@@ -145,6 +145,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
         if (free && result.isError) await free.refund();
+        else if (free) markStage("free_call");
+        else if (creditKey && !result.isError) markStage("credits_call");
         const trace = activeTrace();
         if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
         if (trace?.stages.has("settled") && !result.isError) markStage("completed");
