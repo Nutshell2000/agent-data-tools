@@ -1,5 +1,5 @@
 {
-  "version": "1.31.0",
+  "version": "1.32.0",
   "tools": [
     {
       "name": "extract",
@@ -2879,6 +2879,30 @@
         ]
       },
       "price": "$0.003"
+    },
+    {
+      "name": "wallet_balances",
+      "description": "Read a wallet's native coin and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, live from each network, plus the USDC total. Use to find where a wallet's funds are before a payment or bridge; for one token on one network use <chain>_token_balance, for all tokens on Base use wallet_portfolio. A network whose nodes do not answer is listed with an error instead of failing the call. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only; not marked read-only because each call is charged.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.005"
     },
     {
       "name": "price_token",
