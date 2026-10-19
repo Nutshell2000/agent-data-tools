@@ -38,7 +38,8 @@ export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
 /** Exact public output schema, shared with OpenAPI. Payment errors are MCP isError results. */
 export function protocolTool(endpoint: Endpoint) {
   return {
-    name: toolName(endpoint), description: toolDescription(endpoint), annotations: toolAnnotations,
+    // Directories (Claude, ChatGPT) require a human-readable title on every tool and in its annotations.
+    name: toolName(endpoint), title: endpoint.summary, description: toolDescription(endpoint), annotations: { title: endpoint.summary, ...toolAnnotations },
     inputSchema: z4mini.toJSONSchema(z.object(toolInputShape(endpoint, z)), {target:"draft-7",io:"input"}) as {type:"object";[key:string]:unknown},
     ...(endpoint.outputSchema ? {outputSchema: endpoint.outputSchema as {type:"object";[key:string]:unknown}} : {}),
     execution: {taskSupport:"forbidden" as const},
