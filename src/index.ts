@@ -326,6 +326,12 @@ app.get("/metrics", async (c) => {
   if (!c.env.METRICS) return c.json({});
   return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).report());
 });
+// Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
+// Only the software name is stored, never the full User-Agent or any caller address.
+app.get("/metrics/callers", async (c) => {
+  if (!c.env.METRICS) return c.json({});
+  return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).callers());
+});
 // Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
 app.get("/status", async (c) => {
   const generatedAt = new Date().toISOString();
