@@ -30,7 +30,7 @@ test("builds a priced contract with required, numeric, and enum parameter schema
       {
         name: "lookup",
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-        description: "Look up a value. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402, or the same amount in prepaid card credits when the request carries an API key from /credits. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.",
+        description: "Look up a value. Side effects: none on any outside system (it only reads or computes), but each successful call costs $0.005 in USDC on Base or another supported network, paid with x402, or the same amount in prepaid card credits when the request carries an API key from /credits. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged. Each caller gets 25 free successful calls first (over MCP they are used automatically).",
         inputSchema: {
           $schema: "http://json-schema.org/draft-07/schema#",
           type: "object",

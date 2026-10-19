@@ -206,7 +206,7 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
 });
 test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures are not counted, and paid tools are never settled',async()=>{
  const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
- const plain=await mfFree.dispatchFetch(url);assert.equal(plain.status,402);await plain.arrayBuffer();
+ const plain=await mfFree.dispatchFetch(url);assert.equal(plain.status,402);assert.match((await plain.json()).hint,/^Try it free: add trial=1/);
  const ip={'cf-connecting-ip':'198.51.100.7'};
  const first=await mfFree.dispatchFetch(url+'&trial=1',{headers:ip});assert.equal(first.status,200);assert.equal(first.headers.get('X-Free-Trial-Remaining'),'24');await first.arrayBuffer();
  const failed=await mfFree.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail&trial=1',{headers:ip});assert.ok(failed.status>=400);assert.equal(failed.headers.get('X-Free-Trial-Remaining'),'24');await failed.arrayBuffer();

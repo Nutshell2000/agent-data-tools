@@ -174,7 +174,7 @@ app.use(async (c, next) => {
   const candidate = paywall ?? buildPaywall(c.env);
   const result = await candidate(c, next);
   if (c.res.status < 500) paywall ??= candidate;
-  return result instanceof Response ? readable402(result, origin(c.req.url)) : result;
+  return result instanceof Response ? readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path)) : result;
 });
 
 for (const e of ENDPOINTS) {
