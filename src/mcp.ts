@@ -112,17 +112,20 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
   // An API key from /credits pays every call in this request with card credits instead of x402,
   // so the x402 facilitator is not needed (or contacted) for it.
   const creditKey = paid ? apiKeyFrom((name) => c.req.header(name)) : undefined;
-  const payment = paid && !creditKey ? await paymentState(env) : undefined;
+  // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
+  const x402 = paid && !creditKey;
+  let paymentReady: ReturnType<typeof paymentState> | undefined;
+  const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length) });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length) });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
       ? (args: Args) => creditCharger(env, creditKey, e.price)(() => handler(args))
-      : payment
-      ? (() => {
-          const wrapped = paymentWrapperFor(e, payment)(handler as never) as (args: Args, extra: unknown) => Promise<{
+      : x402
+      ? async (args: Args, extra: unknown) => {
+          const wrapped = paymentWrapperFor(e, await payment())(handler as never) as (args: Args, extra: unknown) => Promise<{
             isError?: boolean;
             _meta?: Record<string, unknown>;
           }>;
@@ -131,8 +134,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
             wrapped,
             () => env.METRICS?.get(env.METRICS.idFromName("global")),
             (promise) => c.executionCtx.waitUntil(promise),
-          );
-        })()
+          )(args, extra);
+        }
       : handler;
     const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
       const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
@@ -140,7 +143,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "") {
       if (paidAttempt) markStage("attempt");
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
-        const free = payment && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, c.req.header("cf-connecting-ip")) : null;
+        const free = x402 && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, c.req.header("cf-connecting-ip")) : null;
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
