@@ -16,6 +16,8 @@ export interface Env {
   // Brave Search API key for /search, and the most upstream searches per UTC day (default 500).
   SEARCH_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
+  // Restricted Stripe key that can only read Checkout Sessions; /credits/claim uses it to confirm card payments.
+  STRIPE_READ_KEY?: string;
   AI: Ai;
   BROWSER: Fetcher;
   // Holds trial counters and store orders.

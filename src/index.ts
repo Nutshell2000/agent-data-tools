@@ -27,6 +27,8 @@ import { viaMarketplace } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { paymentOptions, priceOn } from "./lib/networks";
+import { apiKeyFrom } from "./lib/credits";
+import { chargeCredits, credits } from "./lib/credit-routes";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -169,6 +171,9 @@ app.use(async (c, next) => {
       tool: endpoint.path, price: endpoint.price, example: endpoint.outputExample,
     }, 200, { "X-Sample": "1", "Cache-Control": "public, max-age=3600" });
   }
+  // Prepaid card credits: a valid-looking API key replaces the x402 payment for this call.
+  const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name)) : undefined;
+  if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
   if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
@@ -210,6 +215,9 @@ for (const path of DEFERRED_PATHS) {
 // The same tools over MCP. Listing tools is free; calling one requires payment.
 app.all("/mcp", (c) => handleMcp(c));
 app.all("/mcp/:bundle", (c) => handleMcp(c, c.req.param("bundle")));
+
+// Card payments: prepaid credits and their API keys.
+app.route("/", credits);
 
 // Store for people: product pages, orders paid by plain USDC transfer, downloads.
 app.route("/", store);

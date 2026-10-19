@@ -9,7 +9,7 @@ export const toolName = (endpoint: Endpoint) => mcpName(endpoint.path);
 export const toolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 
 export const toolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description} Side effects: none on any outside system (it only reads or computes), but each successful call costs ${endpoint.price} in USDC on Base or another supported network, paid with x402. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.`;
+  `${endpoint.description} Side effects: none on any outside system (it only reads or computes), but each successful call costs ${endpoint.price} in USDC on Base or another supported network, paid with x402, or the same amount in prepaid card credits when the request carries an API key from /credits. That payment is why the tool is not marked read-only or idempotent: repeating a call charges again. Failed calls are never charged.`;
 
 export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
   Object.fromEntries(
