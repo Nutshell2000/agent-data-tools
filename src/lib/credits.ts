@@ -22,10 +22,11 @@ export function priceMicros(price: string): number {
 
 export const creditsFromMicros = (micros: number) => Math.round(micros / MICROS_PER_CREDIT * 1000) / 1000;
 
-/** The API key from `Authorization: Bearer adt_…` or `X-API-Key: adt_…`, when it has our shape. */
+/** The API key from `Authorization: Bearer adt_…` (or a bare `adt_…`) or `X-API-Key: adt_…`, when it has our shape. */
 export function apiKeyFrom(header: (name: string) => string | undefined): string | undefined {
-  const bearer = /^Bearer\s+(\S+)$/i.exec(header("authorization") ?? "")?.[1];
-  const key = bearer ?? header("x-api-key")?.trim();
+  // MCP clients pass the Authorization value as typed, so accept the key with or without "Bearer ".
+  const auth = /^(?:Bearer\s+)?(adt_\S+)$/i.exec((header("authorization") ?? "").trim())?.[1];
+  const key = auth ?? header("x-api-key")?.trim();
   return key && isCreditKey(key) ? key : undefined;
 }
 

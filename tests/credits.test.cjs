@@ -50,6 +50,7 @@ test('keys are read from Bearer or X-API-Key and must have our shape', () => {
   assert.match(key, /^adt_[A-Za-z0-9_-]{43}$/);
   assert.equal(credits.apiKeyFrom((n) => ({ authorization: `Bearer ${key}` })[n]), key);
   assert.equal(credits.apiKeyFrom((n) => ({ 'x-api-key': key })[n]), key);
+  assert.equal(credits.apiKeyFrom((n) => ({ authorization: key })[n]), key);
   assert.equal(credits.apiKeyFrom((n) => ({ authorization: 'Bearer sk_live_x' })[n]), undefined);
   assert.equal(credits.apiKeyFrom(() => undefined), undefined);
 });
