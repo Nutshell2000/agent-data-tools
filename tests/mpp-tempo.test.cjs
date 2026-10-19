@@ -117,8 +117,8 @@ test('each tool offers tempo/charge next to x402, with recipient, expiry and pul
   const body = await quote.json();
   assert.equal(body.x402Version, 1, 'x402 v1 body stays');
   const { Challenge } = await import('mppx');
-  const challenge = Challenge.fromResponse(new Response(null, { status: 402, headers: quote.headers }));
-  assert.equal(challenge.method, 'tempo');
+  const challenge = Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers })).find((ch) => ch.method === 'tempo');
+  assert.ok(challenge, 'a tempo challenge is offered next to the evm one');
   assert.equal(challenge.intent, 'charge');
   assert.equal(challenge.realm, 'api.test');
   assert.ok(challenge.id && challenge.expires);
@@ -129,11 +129,12 @@ test('each tool offers tempo/charge next to x402, with recipient, expiry and pul
   assert.deepEqual(challenge.request.methodDetails.supportedModes, ['pull']);
   assert.equal(challenge.request.methodDetails.feePayer, undefined, 'the server sponsors no fees');
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
-  assert.deepEqual(api.paths['/time'].get['x-payment-info'].protocols, [{ x402: {} }, { mpp: { method: 'tempo', intent: 'charge', currency: USDC_E } }]);
+  // evm/charge (lib/mpp-evm.ts) is on by default in this fixture too (PAY_TO, Base, MPP_SECRET_KEY): both are declared.
+  assert.deepEqual(api.paths['/time'].get['x-payment-info'].protocols, [{ x402: {} }, { mpp: { method: 'evm', intent: 'charge', currency: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' } }, { mpp: { method: 'tempo', intent: 'charge', currency: USDC_E } }]);
   // HEAD probes see the same offer.
   const head = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { method: 'HEAD' });
   assert.equal(head.status, 402);
-  assert.match(head.headers.get('www-authenticate') ?? '', /^Payment .*method="tempo"/);
+  assert.match(head.headers.get('www-authenticate') ?? '', /method="tempo"/);
 });
 
 test('an MPP agent pays one call on Tempo: broadcast after success, receipt header, ledger and revenue', async () => {
@@ -171,7 +172,7 @@ test('a failed call is never broadcast, and a credential works once, for its own
   const credentialFor = async (url) => {
     const quote = await mf.dispatchFetch(url);
     await quote.arrayBuffer();
-    return method.createCredential({ challenge: Challenge.fromResponse(new Response(null, { status: 402, headers: quote.headers })), context: {} });
+    return method.createCredential({ challenge: Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers })).find((ch) => ch.method === 'tempo'), context: {} });
   };
 
   // Invalid input: the tool answers 400 and the signed transfer is never sent.
@@ -200,7 +201,7 @@ test('a failed call is never broadcast, and a credential works once, for its own
   const replay = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { headers: { authorization: good } });
   assert.equal(replay.status, 402);
   assert.match((await replay.json()).error, /already used/);
-  assert.match(replay.headers.get('www-authenticate') ?? '', /^Payment .*method="tempo"/, 'a fresh challenge comes with the refusal');
+  assert.match(replay.headers.get('www-authenticate') ?? '', /method="tempo"/, 'a fresh challenge comes with the refusal');
   assert.equal(broadcasts.length, sent + 1);
   await new Promise((r) => setTimeout(r, 200));
   const revenue = await (await mf.dispatchFetch('https://api.test/revenue')).json();
