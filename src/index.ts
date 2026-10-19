@@ -34,6 +34,7 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
+import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -273,11 +274,13 @@ app.get("/", async (c) =>
 // Every agent that discovers us downloads this; it only changes with a deploy, so build it once per isolate.
 const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
-  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}`;
+  const mpp = mppEnabled(c.env);
+  const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}`;
   let body = openApiDocs.get(key);
   if (!body) {
     const doc = openApi(origin(c.req.url), trialsEnabled(c.env));
-    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths() } });
+    // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
+    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
     openApiDocs.set(key, body);
   }
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });

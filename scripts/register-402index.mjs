@@ -21,7 +21,9 @@ const category = (path) =>
 
 // --skip=/a,/b leaves out paths that are about to be paused.
 const skip = new Set((process.argv.find((a) => a.startsWith("--skip="))?.slice(7) ?? "").split(",").filter(Boolean));
-const todo = Object.entries(spec.paths).filter(([path]) => !listed.has(path) && !path.startsWith("/buy/") && !skip.has(path));
+// Only x402 routes: 402 Index probes for an x402 challenge, and the MPP credit packs answer MPP instead.
+const isX402 = (item) => (item.get?.["x-payment-info"]?.protocols ?? [{ x402: {} }]).some((p) => "x402" in p);
+const todo = Object.entries(spec.paths).filter(([path, item]) => !listed.has(path) && !path.startsWith("/buy/") && !skip.has(path) && isX402(item));
 console.log(`${listed.size} paths already listed, ${todo.length} to register${DRY ? " (dry run)" : ""}`);
 
 for (const [i, [path, item]] of todo.entries()) {
