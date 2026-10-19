@@ -16,7 +16,7 @@ import type { SettlementRecord } from "./settlement-ledger";
 type C = Context<{ Bindings: Env }>;
 
 /** v1 used network names, not CAIP-2 ids. Only networks that existed in v1 and that we accept. */
-export const V1_NETWORK: Record<string, string> = { "eip155:8453": "base", "eip155:137": "polygon" };
+export const V1_NETWORK: Record<string, string> = { "eip155:8453": "base", "eip155:137": "polygon", "eip155:84532": "base-sepolia" };
 const CAIP_OF_V1 = Object.fromEntries(Object.entries(V1_NETWORK).map(([caip, v1]) => [v1, caip]));
 
 export interface RequirementsV1 {
@@ -39,7 +39,8 @@ export function v1Requirements(env: Env, endpoint: Endpoint, resourceUrl: string
     payTo,
     maxTimeoutSeconds: 300,
     asset: USDC_BY_NETWORK[network as keyof typeof USDC_BY_NETWORK],
-    extra: { name: "USD Coin", version: "2" },
+    // EIP-712 domain of the USDC contract: "USD Coin" on Base and Polygon mainnet, "USDC" on Base Sepolia.
+    extra: { name: network === "eip155:84532" ? "USDC" : "USD Coin", version: "2" },
   }));
 }
 
@@ -57,16 +58,28 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   markStage("attempt");
   const url = new URL(c.req.url);
   const accepts = v1Requirements(c.env, endpoint, url.href);
-  const refuse = (error: string) => c.json(v1Body(accepts, error), 402);
+  // Every refusal is logged (reason only: no signature, payload or caller address) and marked in the funnel,
+  // so /revenue shows why payment attempts die instead of only that they did.
+  const refuse = (stage: "refused_format" | "refused_network" | "refused_amount", error: string) => {
+    markStage(stage);
+    console.warn(`x402 v1 ${stage} ${endpoint.path}: ${error.slice(0, 160)}`);
+    return c.json(v1Body(accepts, error), 402);
+  };
   let payment: PayloadV1;
-  try { payment = decodePaymentSignatureHeader(header) as unknown as PayloadV1; } catch { return refuse("X-PAYMENT is not valid base64 JSON"); }
-  if (payment?.x402Version !== 1 || payment.scheme !== "exact") return refuse("only x402 version 1 'exact' payments are accepted in X-PAYMENT; version 2 clients use PAYMENT-SIGNATURE");
-  const requirements = accepts.find((r) => r.network === payment.network);
-  if (!requirements) return refuse(`network ${String(payment.network)} is not accepted; use one of: ${accepts.map((r) => r.network).join(", ")}`);
+  try { payment = decodePaymentSignatureHeader(header) as unknown as PayloadV1; } catch { return refuse("refused_format", "X-PAYMENT is not valid base64 JSON"); }
+  // v1 clients vary: the version may arrive as a string, the network as a CAIP-2 id, the value as a number.
+  // Normalize what the facilitator is strict about instead of refusing a buyer over a representation.
+  if (Number(payment?.x402Version) !== 1 || payment?.scheme !== "exact") return refuse("refused_format", `only x402 version 1 'exact' payments are accepted in X-PAYMENT (got version ${String(payment?.x402Version)}, scheme ${String(payment?.scheme)}); version 2 clients use PAYMENT-SIGNATURE`);
+  const network = v1NetworkName(payment.network);
+  const requirements = accepts.find((r) => r.network === network);
+  if (!requirements) return refuse("refused_network", `network ${String(payment.network)} is not accepted; use one of: ${accepts.map((r) => r.network).join(", ")}`);
   const auth = payment.payload?.authorization;
-  if (!auth || auth.to?.toLowerCase() !== requirements.payTo.toLowerCase() || auth.value !== requirements.maxAmountRequired) {
-    return refuse(`the authorization must pay exactly ${requirements.maxAmountRequired} atomic USDC to ${requirements.payTo}`);
+  const value = atomicValue(auth?.value);
+  // Like the reference facilitator, at least the quoted amount; the authorization's own value is what settles.
+  if (!auth || auth.to?.toLowerCase() !== requirements.payTo.toLowerCase() || value === null || value < BigInt(requirements.maxAmountRequired)) {
+    return refuse("refused_amount", `the authorization must pay at least ${requirements.maxAmountRequired} atomic USDC to ${requirements.payTo} (got ${String(auth?.value)} to ${String(auth?.to)})`);
   }
+  payment = { ...payment, x402Version: 1, network, payload: { ...payment.payload, authorization: { ...auth, value: value.toString() } } };
   facilitator ??= buildFacilitator(c.env);
   const fac = facilitator as unknown as {
     verify(p: unknown, r: unknown): Promise<{ isValid: boolean; invalidReason?: string; payer?: string }>;
@@ -81,12 +94,18 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
     const message = String((e as Error)?.message ?? e);
     if ((e as Error)?.name === "VerifyError" || /^invalid_|insufficient_funds/.test(message)) {
       markStage("verification_failed");
-      return refuse(`payment invalid: ${message.slice(0, 200)}`);
+      console.warn(`x402 v1 verification_failed ${endpoint.path} on ${payment.network}: ${message.slice(0, 160)}`);
+      return c.json(v1Body(accepts, `payment invalid: ${message.slice(0, 200)}`), 402);
     }
-    console.error("x402 v1 verify failed", e);
+    markStage("facilitator_unavailable");
+    console.error(`x402 v1 facilitator_unavailable ${endpoint.path}: ${message.slice(0, 160)}`);
     return c.json(v1Body(accepts, "payment verification is temporarily unavailable; you were not charged"), 402);
   }
-  if (!verified.isValid) { markStage("verification_failed"); return refuse(`payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`); }
+  if (!verified.isValid) {
+    markStage("verification_failed");
+    console.warn(`x402 v1 verification_failed ${endpoint.path} on ${payment.network}: ${verified.invalidReason ?? "rejected by the facilitator"}`);
+    return c.json(v1Body(accepts, `payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`), 402);
+  }
   markStage("verified");
   await next();
   if (c.res.status >= 400) return; // failed calls are never settled, so never charged
@@ -94,25 +113,38 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   try { settled = await fac.settle(payment, requirements); } catch (e) { console.error("x402 v1 settle failed", e); settled = { success: false, errorReason: String((e as Error)?.message ?? "settlement unavailable").slice(0, 200) }; }
   if (!settled.success || !settled.transaction) {
     markStage("settlement_failed");
+    console.warn(`x402 v1 settlement_failed ${endpoint.path} on ${payment.network}: ${settled.errorReason ?? "unknown"}`);
     c.res = c.json(v1Body(accepts, `settlement failed: ${settled.errorReason ?? "unknown"}; you were not charged`), 402);
     return;
   }
   markStage("settled");
-  const network = CAIP_OF_V1[payment.network];
-  const response = { success: true, transaction: settled.transaction, network: payment.network, payer: settled.payer ?? auth.from ?? "" };
+  const response = { success: true, transaction: settled.transaction, network, payer: settled.payer ?? auth.from ?? "" };
   c.res.headers.set("X-PAYMENT-RESPONSE", encodePaymentResponseHeader(response as never));
   c.res.headers.set("Access-Control-Expose-Headers", "X-PAYMENT-RESPONSE, X-Request-ID");
-  c.executionCtx.waitUntil(recordV1(c.env, endpoint.path, network, requirements, settled.transaction, (settled.payer ?? auth.from ?? "").toLowerCase(), auth.nonce ?? ""));
+  c.executionCtx.waitUntil(recordV1(c.env, endpoint.path, CAIP_OF_V1[network], requirements, settled.transaction, (settled.payer ?? auth.from ?? "").toLowerCase(), auth.nonce ?? "", value.toString()));
 }
 
-async function recordV1(env: Env, path: string, network: string, req: RequirementsV1, transaction: string, payer: string, nonce: string) {
+/** The v1 network name for what a client sent: "base", or its CAIP-2 id "eip155:8453"; unknown names pass through. */
+function v1NetworkName(sent: unknown): string {
+  const name = String(sent ?? "").trim().toLowerCase();
+  return CAIP_OF_V1[name] ? name : V1_NETWORK[name] ?? name;
+}
+
+/** An authorization value as sent (decimal string or number) in atomic units, or null when it is not a whole number. */
+function atomicValue(sent: unknown): bigint | null {
+  if (typeof sent === "number") return Number.isSafeInteger(sent) && sent >= 0 ? BigInt(sent) : null;
+  if (typeof sent === "string" && /^\d+$/.test(sent.trim())) return BigInt(sent.trim());
+  return null;
+}
+
+async function recordV1(env: Env, path: string, network: string, req: RequirementsV1, transaction: string, payer: string, nonce: string, amountAtomic: string) {
   if (!env.METRICS) return;
   try {
     const bytes = new TextEncoder().encode(`${network}:${req.asset}:${payer}:${nonce}`);
     const id = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
     const record: SettlementRecord = {
       id, requestId: activeTrace()?.requestId, transaction, network, asset: req.asset, recipient: req.payTo.toLowerCase(), payer,
-      authorizationNonce: nonce, amountAtomic: req.maxAmountRequired, amountEvidence: "accepted-requirements",
+      authorizationNonce: nonce, amountAtomic, amountEvidence: "accepted-requirements",
       path, transport: "http", recordedAt: new Date().toISOString(), selfPayment: false, reconciliation: "pending",
     };
     await env.METRICS.get(env.METRICS.idFromName("global")).recordSettlement(record);

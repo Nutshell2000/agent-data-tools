@@ -259,9 +259,21 @@ test('x402 v1: v1 terms in the 402 body beside the v2 header, X-PAYMENT settles 
  const failed=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa02')}});
  assert.ok(failed.status>=400&&failed.status!==402);assert.equal(failed.headers.has('x-payment-response'),false);await failed.arrayBuffer();
  const wrong=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa03','1')}});
- assert.equal(wrong.status,402);assert.match((await wrong.json()).error,/exactly 2000/);
+ assert.equal(wrong.status,402);assert.match((await wrong.json()).error,/at least 2000/);
  const invalid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'eeee')}});
  assert.equal(invalid.status,402);assert.match((await invalid.json()).error,/payment invalid/);
+ // Client variations that must not be refused: version as a string, the network as its CAIP-2 id, the value as a
+ // number above the quote (the authorization's own value is what settles and is recorded).
+ const loose=Buffer.from(JSON.stringify({x402Version:'1',scheme:'exact',network:'eip155:8453',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient.toUpperCase().replace('0X','0x'),value:2500,validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+'7'.repeat(60)+'aa05'}}})).toString('base64');
+ const loosePaid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':loose}});
+ assert.equal(loosePaid.status,200,await loosePaid.clone().text());
+ assert.equal(JSON.parse(Buffer.from(loosePaid.headers.get('x-payment-response'),'base64').toString()).network,'base');
+ await loosePaid.arrayBuffer();
+ for(const bad of [{network:'eip155:1'},{network:'solana'}]){
+  const r=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':Buffer.from(JSON.stringify({x402Version:1,scheme:'exact',...bad,payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value:'2000',validAfter:'0',validBefore:'9999999999',nonce:'0x'+'7'.repeat(60)+'aa06'}}})).toString('base64')}});
+  assert.equal(r.status,402);assert.match((await r.json()).error,/not accepted/);
+ }
  await new Promise(r=>setTimeout(r,200));
- assert.equal((await revenue()).settlements,before+1);
+ const after=await revenue();assert.equal(after.settlements,before+2);
+ const day=Object.values(after.funnel.days).at(-1);assert.ok(day['http:/extract:refused_amount']>=1);assert.ok(day['http:/extract:refused_network']>=2);assert.ok(day['http:/extract:verification_failed']>=1);
 });

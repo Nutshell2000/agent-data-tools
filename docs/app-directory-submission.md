@@ -32,9 +32,18 @@ Update docs/listings.md when submitted. Facts only: no usage, customer or uptime
   the user signs in with the resulting key. Directory users can use 25 free calls without paying.
 - Tools never move funds, sign transactions or place orders. They read public data and return JSON.
 - Each successful call spends credits from the signed-in user's own prepaid balance; failed calls refund
-  automatically. That is why tools are annotated readOnlyHint=false (a call can spend credits) while
-  destructiveHint=false and openWorldHint=true. If the reviewer prefers readOnlyHint=true for data tools
-  that only spend prepaid credits, it is a one-line change in `src/mcp-contract.ts`.
+  automatically. Tools are annotated readOnlyHint=true (they read or compute and change nothing in the
+  user's environment), destructiveHint=false, idempotentHint=false (a repeat is charged again) and
+  openWorldHint=true; the charge is stated in every description. The directory form's "Read only"
+  capability matches these annotations since 1.35.1.
+
+## Directory policy fit
+
+The directory policy excludes servers that use AI models to generate images, video or audio, so the
+signed-in server `/mcp/account` (and `/mcp/account/<bundle>`) omits `/image` and `/ai/speech` (173 tools);
+they stay on the open `/mcp` and over HTTP. Tool descriptions carry no instructions about model
+behaviour; a mention of a sibling tool ("for the fee a past transaction paid use eth_receipt") is routing
+help, not an instruction.
 
 ## Reviewer test instructions
 

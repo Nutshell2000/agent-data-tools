@@ -126,7 +126,8 @@ test("directory scrapers get the HTML homepage with OpenGraph tags; programs kee
 });
 
 test("directory listing copy names every MCP bundle with its current tool count", () => {
-  const copy = require("node:fs").readFileSync(require.resolve("../docs/listings.md"), "utf8");
+  // Normalized so a Windows checkout with CRLF line endings reads the same as CI.
+  const copy = require("node:fs").readFileSync(require.resolve("../docs/listings.md"), "utf8").replace(/\r\n/g, "\n");
   for (const slug of Object.keys(discovery.MCP_BUNDLES)) {
     assert.match(copy, new RegExp(`/mcp/${slug} \\([^)]*, ${discovery.mcpBundleTools(slug).length} tools\\)`), slug);
   }

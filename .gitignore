@@ -14,7 +14,7 @@ public/_files/
 # Credential for editing our 402 Index listings
 .402index-token
 
-# Private logs of owner-run Bazaar seeding (scripts/seed-bazaar.mjs)
+# Owner-run Bazaar seeding (scripts/seed-bazaar.mjs, PR #133): the buyer wallet key and the private run logs
 .seed-bazaar-*.json
 
 # Local release verification bundle
