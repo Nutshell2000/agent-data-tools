@@ -1,7 +1,7 @@
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 
 export * from "./endpoints";
@@ -13,8 +13,7 @@ export const READER_VERSION = "1.7.6";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
-  Object.entries(e.params)
-    .filter(([, p]) => p.required)
+  exampleParams(e)
     .map(([k, p]) => `${k}=${encodeURIComponent(String(p.example))}`)
     .join("&") || "format=json";
 
