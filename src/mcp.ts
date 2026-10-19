@@ -139,7 +139,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
-      ? (args: Args) => creditCharger(env, creditKey, e.price)(() => handler(args))
+      ? (args: Args) => creditCharger(env, creditKey, e.price, origin)(() => handler(args))
       : x402
       ? async (args: Args, extra: unknown) => {
           const wrapped = paymentWrapperFor(e, await payment())(handler as never) as (args: Args, extra: unknown) => Promise<{
