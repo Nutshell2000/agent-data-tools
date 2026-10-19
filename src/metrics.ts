@@ -22,6 +22,8 @@ interface PathMetrics extends Partial<Record<Outcome, number>> {
 type Day = Record<string, PathMetrics>;
 /** Per calling-software family: requests by outcome. */
 type Callers = Record<string, Partial<Record<Outcome, number>>>;
+/** MCP connections (initialize requests) per client name and connection mode. */
+type McpClients = Record<string, Partial<Record<"open" | "key" | "account", number>>>;
 /** Distinct software families kept per day; the rest count as "other". */
 const MAX_CALLERS = 60;
 
@@ -113,6 +115,23 @@ export class Metrics extends DurableObject {
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
+  }
+
+  /** One MCP connection (initialize) by client name and how it connected: open, key or account. */
+  async bumpMcpClient(client: string, mode: "open" | "key" | "account"): Promise<void> {
+    const key = `mcpclients:${today()}`;
+    await this.ctx.storage.transaction(async (txn) => {
+      const clients = (await txn.get<McpClients>(key)) ?? {};
+      const name = clients[client] || Object.keys(clients).length < MAX_CALLERS ? client : "other";
+      const counts = (clients[name] ??= {});
+      counts[mode] = (counts[mode] ?? 0) + 1;
+      await txn.put(key, clients);
+    });
+  }
+
+  async mcpClients(): Promise<Record<string, McpClients>> {
+    const days = await this.ctx.storage.list<McpClients>({ prefix: "mcpclients:", reverse: true, limit: KEEP_DAYS });
+    return Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v]));
   }
 
   /** Requests per day by calling software (see callerFamily) and outcome, newest first. */

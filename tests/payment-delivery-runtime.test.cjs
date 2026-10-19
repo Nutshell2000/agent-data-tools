@@ -231,3 +231,10 @@ test('/revenue shows card-credit sales only to the owner token',async()=>{
   const owner=await(await mf.dispatchFetch('https://api.test/revenue',{headers:{authorization:'Bearer owner-fixture-token'}})).json();
   assert.equal(typeof owner.cardCredits.purchases,'number');assert.equal(typeof owner.cardCredits.purchasedUsd,'number');assert.ok('settlements' in owner);
 });
+test('MCP connections are counted by client name on /metrics/callers',async()=>{
+  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const client=new Client({name:'Attribution Fixture',version:'1'});
+  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));}finally{await client.close();}
+  let seen;for(let i=0;i<20&&!seen;i++){const body=await(await mf.dispatchFetch('https://api.test/metrics/callers')).json();seen=Object.values(body.mcpConnections)[0]?.attributionfixture;if(!seen)await new Promise(r=>setTimeout(r,50));}
+  assert.ok(seen&&seen.open>=1,'initialize from an open /mcp connection is counted');
+});
