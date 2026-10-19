@@ -1,7 +1,10 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Env } from "./env";
 
-export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "credits_call"] as const;
+// A payment attempt that never reached the facilitator ends in one of the refused_* stages: wrong amount or
+// recipient, a network we do not accept, or a header we could not read. facilitator_unavailable means the
+// facilitator itself could not be reached, so the buyer was told to retry and was not charged.
+export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable"] as const;
 export type FunnelStage = typeof STAGES[number];
 export interface FunnelEvent {
   requestId: string; path: string; transport: "http" | "mcp";

@@ -31,3 +31,4 @@ Run these after each deploy and every Monday; add a dated row per reading below.
 | Date | x402 settlements | Card purchases (USD) | Paying customers | Free calls used | Top 402 callers |
 |---|---|---|---|---|---|
 | 2026-10-18 | 0 | n/a (not measured) | 0 | n/a | n/a (not measured) |
+| 2026-10-19 | 0 (funnel: /eth/gas 4 v1 attempts from a browser UA, 1 verification_failed, rest refused before the facilitator; 2 attempts and 1 failure were the operator's diagnostic probes) | 0 (owner token not set on the live Worker; /credits shows 3 packs) | 0 | 10 (9 MCP /country, 1 /text/prompt-injection) | go-http-client 528, carbonmonitor 34, none 11, x402-observer 7, mako-pulse-prober 6, agentrankprobe 4, agent402 3; MCP: proofbench-probe 14, glama 8, mcpcost 8, mcp-health 8. No buyer client seen. Base chain: last USDC transfer in 14 Oct. |
