@@ -104,6 +104,8 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
   }
   return factory;
 }
+/** Tools that generate images or audio with AI models: not offered on the signed-in directory server. */
+const GENERATIVE_MEDIA: ReadonlySet<string> = new Set(["/image", "/ai/speech"]);
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
@@ -116,8 +118,12 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   if (c.req.method === "GET" || c.req.method === "DELETE") {
     return c.json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed: this stateless MCP server has no event stream; send JSON-RPC requests with POST." }, id: null }, 405, { Allow: "POST" });
   }
-  const endpoints = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
-  if (!endpoints) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
+  const catalog = bundle ? mcpBundleTools(bundle) : ENDPOINTS;
+  if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
+  // The signed-in server is what app directories list; their policy excludes AI generation of images,
+  // video and audio, so those two tools stay on the open /mcp and HTTP only.
+  const endpoints = account ? catalog.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : catalog;
+  const listKey = account ? `${bundle}#account` : bundle;
   const env = c.env;
   if (c.req.method === "POST" && env.METRICS) {
     // Which apps connect: counted on initialize only, by the client's self-reported name.
@@ -208,7 +214,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
 
   // SDK Zod conversion cannot represent the existing oneOf/not output contract.
   // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
-  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(bundle) ?? (listedTools.set(bundle, endpoints.map(protocolTool)), listedTools.get(bundle)!)}));
+  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(listKey) ?? (listedTools.set(listKey, endpoints.map(protocolTool)), listedTools.get(listKey)!)}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   return (await transport.handleRequest(c)) ?? c.body(null, 204);
