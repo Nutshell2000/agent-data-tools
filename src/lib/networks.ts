@@ -51,6 +51,19 @@ export const TEMPO_STABLECOIN: Readonly<Record<string, string>> = Object.freeze(
   "eip155:42431": "0x20c0000000000000000000000000000000000000", // Moderato testnet pathUSD (staging only)
 });
 
+/**
+ * EIP-712 domain of the USDC contract per network, as @x402/evm's defaults and the token contracts state it.
+ * Discovery documents (lib/discovery-index.ts) carry it so a client can sign without asking the chain.
+ */
+export const USDC_DOMAIN: Readonly<Record<string, { name: string; version: string }>> = Object.freeze({
+  "eip155:8453": { name: "USD Coin", version: "2" },
+  "eip155:137": { name: "USD Coin", version: "2" },
+  "eip155:42161": { name: "USD Coin", version: "2" },
+  "eip155:143": { name: "USDC", version: "2" },
+  "eip155:480": { name: "USDC", version: "2" },
+  "eip155:84532": { name: "USDC", version: "2" },
+});
+
 /** USDC on networks @x402/evm has no default for; domain values read from the token contract (EIP-3009). */
 const CUSTOM_USDC: Readonly<Record<string, { asset: string; name: string; version: string }>> = Object.freeze({
   "eip155:480": { asset: "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", name: "USDC", version: "2" },

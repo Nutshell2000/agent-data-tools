@@ -29,6 +29,7 @@ import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
+import { discoveryResources } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
@@ -394,8 +395,13 @@ app.get("/revenue", async (c) => {
   const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
   return c.json({ ...x402, cardCredits });
 });
-app.get("/.well-known/x402", (c) =>
-  c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path) }),
+// The resource manifest, also at the ".json" spelling some crawlers (gold-402 entries, agent kits) look for.
+for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
+  app.get(path, (c) => c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
+}
+// Bazaar-shaped discovery index of every tool (lib/discovery-index.ts): paged like the facilitator's own.
+app.get("/discovery/resources", (c) =>
+  c.json(discoveryResources(c.env, origin(c.req.url), Number(c.req.query("limit")), Number(c.req.query("offset"))), 200, { "Cache-Control": "public, max-age=300" }),
 );
 // Proves to the 402 Index directory that we run this domain. A hash, not a secret.
 app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
