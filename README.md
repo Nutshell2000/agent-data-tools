@@ -76,7 +76,7 @@ A Cloudflare Worker that sells 172 active tools to AI agents. Each call is paid 
 | `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
 | `GET /time?zone=` | Current time and time zone conversion | $0.002 |
 
-The catalog lists 32 paid tools. Free trials are disabled by default. A request with `trial=1` gets the normal 402 challenge unless the Worker variable `TRIALS_ENABLED` is set to exactly `on`; this opt-in is reversible. When enabled, the trial limits are 10 calls per caller per day and 1,000 calls total per day.
+Free calls are on: 25 successful calls per caller and 2,000 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP. Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
 
 The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at the `/extract` catalog price of $0.002. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes.
 
@@ -117,7 +117,7 @@ An unpaid request gets HTTP 402 with a `PAYMENT-REQUIRED` header. Calls that fai
 
 ## Current revenue operations
 
-The active catalog has 32 paid tools. New seller-kit sales are paused; existing paid orders keep download access. Free trials remain disabled.
+New seller-kit sales are paused; existing paid orders keep download access. Free calls are on (see above) and are not revenue.
 `/metrics` reports request counters; `/revenue` reports deduplicated, facilitator-reported
 settlements observed since the ledger was deployed. Its amounts are integer native
 Base USDC atomic units (6 decimals), and known self-payments are excluded from gross.
