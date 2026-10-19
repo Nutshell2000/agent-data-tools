@@ -4,6 +4,7 @@ import { apiKeyFrom } from "./lib/credits";
 import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { freeCallNote } from "./lib/free-calls";
 import { mppEnabled } from "./lib/mpp-credits";
+import { SERVICE_ICON_URL } from "./endpoints";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
@@ -82,6 +83,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         description: e.description,
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
+        iconUrl: SERVICE_ICON_URL,
         tags: [...e.tags],
       },
       extensions: declareDiscoveryExtension({
