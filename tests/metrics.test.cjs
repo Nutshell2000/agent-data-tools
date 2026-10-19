@@ -332,3 +332,20 @@ test("MCP connections are counted per client and mode, capped like callers", asy
   const day = (await metrics.mcpClients())[today];
   assert.deepEqual(day, { "claude-ai": { account: 2 }, cursor: { key: 1 } });
 });
+
+test("an x402 v1 payment attempt (X-PAYMENT) answered 402 is counted as v1_payment, not as a quote", async () => {
+  const { metrics } = createMetrics();
+  const app = new Hono();
+  app.use(requestMetricsMiddleware(new Set(["/tool"]), () => false));
+  app.get("/tool", (c) => c.json({ error: "payment required" }, 402));
+  const env = { METRICS: { idFromName: () => "global", get: () => metrics } };
+  const pending = [];
+  const executionCtx = { waitUntil: (p) => pending.push(p) };
+  await app.fetch(new Request("https://x.test/tool", { headers: { "x-payment": "eyJ4NDAyVmVyc2lvbiI6MX0=" } }), env, executionCtx);
+  await app.fetch(new Request("https://x.test/tool"), env, executionCtx);
+  await app.fetch(new Request("https://x.test/tool", { headers: { "x-payment": "a", "payment-signature": "b" } }), env, executionCtx);
+  await Promise.all(pending);
+  const row = (await metrics.report())[today]["/tool"];
+  assert.equal(row.v1_payment, 1);
+  assert.equal(row.challenged, 2);
+});
