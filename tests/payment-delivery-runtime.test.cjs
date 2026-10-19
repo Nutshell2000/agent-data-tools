@@ -218,5 +218,6 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
   const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);
  }finally{await client.close();}
- assert.equal((await (await mfFree.dispatchFetch('https://api.test/revenue')).json()).settlements,0);
+ const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
+ const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],1);assert.equal(day['mcp:/extract:free_call'],2);
 });

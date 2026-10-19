@@ -163,6 +163,7 @@ app.use(async (c, next) => {
     if (free) {
       await next();
       if (c.res.status >= 400) await free.refund();
+      else markStage("free_call");
       c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
       return;
     }

@@ -6,6 +6,7 @@ import {
   CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
+import { markStage } from "./funnel";
 
 type C = Context<{ Bindings: Env }>;
 const ledger = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
@@ -94,6 +95,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
     c.res.headers.set("X-Credits-Charged", "0");
   } else {
     c.res.headers.set("X-Credits-Charged", String(creditsFromMicros(micros)));
+    markStage("credits_call");
   }
   c.res.headers.set("X-Credits-Remaining", String(creditsFromMicros(remaining)));
 }
