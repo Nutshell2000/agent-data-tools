@@ -41,6 +41,21 @@ function jsonFrom(reply: string): unknown {
   try { return JSON.parse(m[0]); } catch { throw new HttpError(502, "the AI model returned malformed JSON"); }
 }
 
+/**
+ * Keywords from a model reply. Llama 3.1 8B usually answers with a JSON array, but sometimes with an object
+ * ({"keywords": [...]}) or a numbered/bulleted list; every one of those is a usable answer, so none fails the call.
+ */
+export function keywordList(reply: string): string[] {
+  const clean = (k: unknown) => String(k ?? "").replace(/^\s*(?:\d+[.)]|[-*•])\s*/, "").replace(/^["']|["']$/g, "").trim();
+  try {
+    const parsed = jsonFrom(reply);
+    const arr = Array.isArray(parsed) ? parsed : Object.values(parsed as Record<string, unknown>).find(Array.isArray);
+    if (Array.isArray(arr)) return arr.map(clean).filter((k) => k && k.length <= 80);
+  } catch { /* not JSON: read it as a list below */ }
+  return reply.replace(/```[a-z]*|```/g, "").split(/\n|,|;/).map(clean)
+    .filter((k) => k && k.length <= 80 && !/^(here|keywords?|key phrases?)\b.*:$/i.test(k));
+}
+
 const text = (q: Input, max = TEXT_MAX) => need(q, "text", max);
 const list = (raw: string) => raw.split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -98,9 +113,10 @@ export const AI_TEXT: Entry[] = [
     { keywords: ["Cloudflare Workers", "Workers AI", "edge computing", "GPU inference", "open models"], model: MODELS.text },
     async (env, q) => {
       const n = num(q, "count", { min: 3, max: 30, fallback: 10, integer: true });
-      const r = jsonFrom(await chat(env, `You extract keywords. ${DATA_RULE}\nReply with a JSON array of at most ${n} keywords or short key phrases, most important first, nothing else.`, text(q), 300, 0));
-      if (!Array.isArray(r)) throw new HttpError(502, "the AI model did not return a list");
-      return { keywords: [...new Set(r.map((k) => String(k).trim()).filter(Boolean))].slice(0, n), model: MODELS.text };
+      const reply = await chat(env, `You extract keywords. ${DATA_RULE}\nReply with a JSON array of at most ${n} keywords or short key phrases, most important first, nothing else.`, text(q), 300, 0);
+      const keywords = keywordList(reply);
+      if (!keywords.length) throw new HttpError(502, "the AI model did not return a list");
+      return { keywords: [...new Set(keywords)].slice(0, n), model: MODELS.text };
     }),
   ai("/ai/rewrite", "Rewrite text in a style", "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages.",
     ["rewrite", "paraphrase", "writing"], { text: { type: "string", description: "Text, up to 8,000 characters", required: true, example: "hey, cant make it tmrw, can we move to thu?" }, style: { type: "string", description: "formal, casual, simpler, shorter, friendly, professional or persuasive (default professional)", example: "professional", enum: ["formal", "casual", "simpler", "shorter", "friendly", "professional", "persuasive"] } },

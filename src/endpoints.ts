@@ -937,6 +937,19 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
 });
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
 
+/**
+ * The inputs of a tool's published example (service card, Bazaar discovery input, 402 Index URL): its required
+ * parameters, or, for tools that take one of several inputs ("address or name"), the first parameter with an
+ * example. Without that fallback those examples carried no input at all and a buyer copying one got a 400.
+ */
+export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["params"][string]][] {
+  const entries = Object.entries(e.params);
+  const required = entries.filter(([, p]) => p.required);
+  if (required.length) return required;
+  const first = entries.find(([, p]) => p.example !== undefined);
+  return first ? [first] : [];
+}
+
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =

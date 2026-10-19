@@ -38,10 +38,16 @@ function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorC
   const original = client.getSupported.bind(client);
   let lastGood: Awaited<ReturnType<typeof original>> | undefined;
   client.getSupported = async () => {
+    // A cold isolate otherwise signs a CDP JWT and calls /supported before it can quote at all, which made unpaid
+    // 402 quotes take ~750 ms instead of ~150 ms; probes and directories mostly hit cold isolates and rank by it.
+    // The supported kinds change rarely, so the edge cache keeps them for a few hours.
+    const cached = lastGood ?? await readSupported(cacheKey(client));
+    if (cached) return (lastGood = cached as typeof lastGood)!;
     let lastError: unknown;
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
         lastGood = await original();
+        await writeSupported(cacheKey(client), lastGood);
         return lastGood;
       } catch (err) {
         lastError = err;
@@ -52,6 +58,29 @@ function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorC
     throw lastError;
   };
   return client;
+}
+
+const SUPPORTED_TTL_SECONDS = 6 * 3600;
+const cacheKey = (client: HTTPFacilitatorClient) =>
+  new Request(`https://supported-cache.invalid/v1?facilitator=${encodeURIComponent(client.url)}`);
+// The Workers edge cache; absent in plain Node (tests), where every call goes to the facilitator as before.
+const edgeCache = () => (typeof caches !== "undefined" ? (caches as unknown as { default?: Cache }).default : undefined);
+
+async function readSupported(key: Request): Promise<unknown> {
+  try {
+    const hit = await edgeCache()?.match(key);
+    return hit ? await hit.json() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeSupported(key: Request, value: unknown): Promise<void> {
+  try {
+    await edgeCache()?.put(key, new Response(JSON.stringify(value), { headers: { "content-type": "application/json", "cache-control": `max-age=${SUPPORTED_TTL_SECONDS}` } }));
+  } catch {
+    // Caching is an optimization only.
+  }
 }
 
 function buildClient(env: Env): HTTPFacilitatorClient {
