@@ -46,6 +46,7 @@ export async function buyCreditsWithMpp(c: C) {
   const issued = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key, keyHash: await hashCreditKey(key) });
   return result.withReceipt(Response.json({
     apiKey: issued.key,
+    mcpUrl: `${new URL(c.req.url).origin}/mcp/k/${issued.key}`,
     creditsAdded: issued.credits,
     balanceCredits: creditsFromMicros(issued.balanceMicros),
     use: "Send the key as Authorization: Bearer <key> (or X-API-Key) on any tool call or MCP connection. Save it: it is shown in this response only.",
