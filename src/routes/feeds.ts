@@ -168,5 +168,5 @@ export const FEEDS: Entry[] = [
       const page = await fetchText(q("url"), "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1", PAGE_BYTES);
       if (!/html/i.test(page.contentType)) throw new HttpError(415, `url must point to an HTML page; got ${page.contentType || "an unknown type"}`);
       return { url: parseTarget(q("url")).href, finalUrl: page.finalUrl, ...parseMeta(page.text, page.finalUrl) };
-    }, "$0.001"),
+    }, "$0.003"),
 ];
