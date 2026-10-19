@@ -22,7 +22,7 @@ export function creditsInfo(origin: string, agentPurchase = false): Record<strin
     what: "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402.",
     packs: CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })),
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
-    use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp). In apps that only take a connector URL (Claude, ChatGPT, Cursor) use /mcp/k/<key>. No x402 payment is needed then.",
+    use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp). In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then.",
     charging: "The tool's price is taken before it runs and given back if the call fails (any 4xx or 5xx, or an MCP error). Responses carry X-Credits-Charged and X-Credits-Remaining.",
     balance: `${origin}/credits/balance with the same header.`,
     refunds: "Unused credits do not expire. For a refund of unused credits, write to the support address in /openapi.json.",
@@ -57,7 +57,7 @@ credits.get("/credits/claim", async (c) => {
     const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key, keyHash: await hashCreditKey(key) });
     const result = { apiKey: issued.key, mcpUrl: `${origin}/mcp/k/${issued.key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use };
     if (!html) return c.json(result);
-    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(issued.key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Add a custom connector (remote MCP server) with this URL. It carries your key, so keep it private:</p><pre>${esc(origin)}/mcp/k/${esc(issued.key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>`));
+    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(issued.key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(issued.key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>`));
   } catch (err) {
     if (!(err instanceof CheckoutError)) throw err;
     if (!html) return c.json({ error: err.message }, err.status);
@@ -120,19 +120,23 @@ export async function useFreeCall(env: Env, ip: string | undefined) {
 }
 
 /** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */
-export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number, agentPurchase = false) {
+/** Where a newly bought key goes: signed-in connectors sign in again; others add a header or use the key URL. */
+const keyPlacement = (origin: string, signedIn: boolean) => signedIn
+  ? "then reconnect this connector and sign in with the key"
+  : `and add the header "Authorization: Bearer <key>" to this server's connection settings (or, in apps that only take a URL, connect to ${origin}/mcp/k/<key>)`;
+
+export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number, agentPurchase = false, signedIn = false) {
   const pay = hasKey
     ? "This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) and add the header "Authorization: Bearer <key>" to this server's connection settings (or, in apps that only take a URL, connect to ${origin}/mcp/k/<key>).${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key.` : ""}`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key.` : ""}`;
   return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.003 per successful call. ${pay} Every tool's result shape is in its output schema.`;
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
-export function paymentHint(origin: string, price: string) {
+export function paymentHint(origin: string, price: string, signedIn = false) {
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
-    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003), then add the header "Authorization: Bearer <key>" `
-    + `to this MCP server's connection settings (or reconnect to ${origin}/mcp/k/<key> in apps that only take a URL) and retry. The key works for every tool on this server.`;
+    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) ${keyPlacement(origin, signedIn)}, and retry. The key works for every tool on this server.`;
 }
 
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
