@@ -41,6 +41,8 @@
     // Free calls (src/lib/free-calls.ts): 25 per caller, automatic over MCP, trial=1 over HTTP.
     // Without the exact value "on", every unpaid call receives the normal payment challenge.
     "TRIALS_ENABLED": "on",
-    "BASE_RPC_URL": "https://mainnet.base.org"
+    "BASE_RPC_URL": "https://mainnet.base.org",
+    // Stripe profile (@spellzz) for MPP card payments of credit packs; the key is the secret STRIPE_MPP_KEY.
+    "STRIPE_PROFILE_ID": "profile_61VXy8TZgWPaLVrUgA6VXy8TRdQCmC1PKY56LWKJkVfM"
   }
 }

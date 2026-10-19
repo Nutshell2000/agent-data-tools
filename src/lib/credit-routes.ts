@@ -9,15 +9,16 @@ import {
   CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
-import { buyCreditsWithMpp } from "./mpp-credits";
+import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
 import { markStage } from "./funnel";
 
 type C = Context<{ Bindings: Env }>;
 const ledger = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
-export function creditsInfo(origin: string) {
+export function creditsInfo(origin: string, agentPurchase = false): Record<string, unknown> & { use: string; what: string; afterPayment: string; charging: string; refunds: string; agentPurchase?: string; packs: { price: string; credits: number; buy: string }[] } {
   return {
+    ...(agentPurchase ? { agentPurchase: `Agents with an MPP client and a Link agent wallet can buy a pack themselves, with no checkout page: GET ${origin}/credits/buy/5, /credits/buy/20 or /credits/buy/100 answers 402 with a Stripe card challenge; pay it and the response carries the API key.` } : {}),
     what: "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402.",
     packs: CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })),
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
@@ -36,11 +37,11 @@ export const credits = new Hono<{ Bindings: Env }>();
 
 credits.get("/credits", (c) => {
   const origin = new URL(c.req.url).origin;
-  const info = creditsInfo(origin);
+  const info = creditsInfo(origin, mppEnabled(c.env));
   if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) return c.json(info);
   const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits</a>`).join("");
   return c.html(page("Pay by card: Agent Data Tools credits", `<h1>Pay by card</h1><p>${esc(info.what)}</p><p>${packs}</p>
-<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Using the key</h2><pre>curl -H "Authorization: Bearer adt_…" "${esc(origin)}/eth/balance?address=0x…"</pre><p>${esc(info.charging)}</p><p>${esc(info.refunds)}</p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>.</p>`));
+${info.agentPurchase ? `<h2>Agents: buy without a checkout page</h2><p>${esc(info.agentPurchase)}</p>` : ""}<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Using the key</h2><pre>curl -H "Authorization: Bearer adt_…" "${esc(origin)}/eth/balance?address=0x…"</pre><p>${esc(info.charging)}</p><p>${esc(info.refunds)}</p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>.</p>`));
 });
 
 credits.get("/credits/claim", async (c) => {
@@ -119,11 +120,11 @@ export async function useFreeCall(env: Env, ip: string | undefined) {
 }
 
 /** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */
-export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number) {
+export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number, agentPurchase = false) {
   const pay = hasKey
     ? "This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001) and add the header "Authorization: Bearer <key>" to this server's connection settings.`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 calls at $0.001) and add the header "Authorization: Bearer <key>" to this server's connection settings.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key.` : ""}`;
   return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.001 per successful call. ${pay} Every tool's result shape is in its output schema.`;
 }
 
