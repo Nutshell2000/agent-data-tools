@@ -160,3 +160,22 @@ Until earnings fund seeding (PR #133), every organic first payment must convert 
   (unpaid GETs only; keep survey.json out of Git), fill docs/bazaar-quality-post.md, Peter publishes.
 - Not built, on purpose: GDELT news and Stooq quote tools (both timed out from Cloudflare on 20 Oct; an
   unreliable upstream is a lost first payment). Web search stays parked until Peter picks a paid key.
+
+## Deploy checklist for the 20 Oct conversion work (PRs #161–#171)
+
+Production is 1.40.0 and lacks these. After `npm run smoke:examples` and the guard deploy, verify:
+
+```sh
+O=https://agent-data-tools.revmesh2074.workers.dev
+# Browser visitors get the tool page (402, PAYMENT-REQUIRED still set), not the "@x402/paywall" note:
+curl -s -H 'Accept: text/html' -H 'User-Agent: Mozilla/5.0 Chrome/130' -D - "$O/weather" | grep -iE '^HTTP|payment-required|Run it free'
+# The bare-link trial uses the example inputs and returns data:
+curl -s -H 'Accept: text/html' -H 'User-Agent: Mozilla/5.0 Chrome/130' "$O/weather" | grep -o 'href="/weather?[^"]*trial=1"'
+# JSON clients unchanged:
+curl -s -H 'Accept: application/json' "$O/weather" | head -c 200
+# Homepage shows Get started first:
+curl -s -H 'Accept: text/html' "$O/" | grep -c 'Get started'
+```
+
+Then re-register x402scan/MPPScan (`npx agentcash register $O`) and post the Show HN from docs/launch-posts.md:
+people it sends now land on a page that converts (free trial, card from $5) instead of a dead end.
