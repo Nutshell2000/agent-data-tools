@@ -65,6 +65,9 @@ const selected = new Map();
 // Demand order (Tanod's Bazaar snapshot of 9 Oct 2026 and our buyer-bot measurement of 15-19 Oct): chain reads are
 // the most-paid category, then the crypto-risk checks bot A buys at $0.01-0.05, then prices, compliance and web
 // reading, then everything else up to $0.005. Never the $0.20 package audit or the capacity-limited AI and media tools.
+// Repeat-buyer categories first (Bazaar snapshot of 20 Oct, docs/bazaar-market-2026-10-20.md): LLM chat, web
+// reading and token data are the only ones where payers call again and again. 0.011 USD for all four.
+const REPEAT = ["/extract", "/ai/chat", "/price/token", "/wallet/portfolio"];
 const RISK = ["/contract-risk", "/token-report", "/wallet-audit", "/liquidity-pool-audit", "/check/counterparty", "/token", "/trade-insight", "/mev-simulator"];
 const NEVER = new Set(["/package-audit", "/screenshot", "/image", "/transcribe", "/describe", "/summarize", "/search", "/extract/rendered"]);
 const isChain = (path) => /^\/((base|eth|arb|op|polygon|wallet)(\/|$)|base-|btc-|ens$)/.test(path);
@@ -80,9 +83,10 @@ async function sectionPaths(set) {
 if (only.length) {
   for (const path of only) { const e = byName.get(toolName(path)); if (!e) throw new Error(`unknown tool ${path}`); selected.set(path, e); }
 } else if (!sets.length) {
-  const all = card.endpoints.map((e) => [new URL(e.url).pathname, e]).filter(([path, e]) => !NEVER.has(path) && !path.startsWith("/ai/") && !path.startsWith("/buy/") && e.price);
+  const all = card.endpoints.map((e) => [new URL(e.url).pathname, e]).filter(([path, e]) => !NEVER.has(path) && (!path.startsWith("/ai/") || REPEAT.includes(path)) && !path.startsWith("/buy/") && e.price);
   const byPath = new Map(all);
   const add = (path) => { if (byPath.has(path) && !selected.has(path)) selected.set(path, byPath.get(path)); };
+  for (const path of REPEAT) add(path);
   for (const [path] of all) if (isChain(path)) add(path);
   for (const path of RISK) add(path);
   for (const set of ["prices", "compliance", "web"]) for (const path of await sectionPaths(set)) add(path);

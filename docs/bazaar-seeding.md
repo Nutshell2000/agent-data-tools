@@ -22,7 +22,8 @@ are the most-paid category, with 400-700 one-call payers per endpoint like ours;
 
 | Budget | Tools listed |
 |---|---|
-| 0.19 USD | 63 chain reads: /base, /eth, /arb, /op, /polygon families, /base-*, /btc-*, /ens, /wallet* |
+| 0.011 USD | 4 repeat-buyer tools: /extract, /ai/chat (also serves /v1/chat/completions), /price/token, /wallet/portfolio |
+| 0.20 USD | + 63 chain reads: /base, /eth, /arb, /op, /polygon families, /base-*, /btc-*, /ens, /wallet* |
 | 0.41 USD | + 8 crypto-risk checks: contract-risk, token-report, wallet-audit, liquidity-pool-audit, check/counterparty, token, trade-insight, mev-simulator |
 | 0.67 USD | + prices, compliance, web reading and every other tool up to $0.005 (156 tools) |
 
