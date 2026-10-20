@@ -1,3 +1,5 @@
+import { findKit } from "./kits";
+
 export interface Product {
   slug: string;
   title: string;
@@ -50,5 +52,7 @@ const LEGACY_ORDER_PRODUCTS: OrderProduct[] = [
   { slug: "defi-trader-bundle", title: "DeFi Trader Intelligence Bundle", file: "defi-bundle-key.txt" },
 ];
 
+// Spreadsheet kits are sold by card through Stripe (store/kits.ts), never through PRODUCTS or /buy/*,
+// so NEW_PRODUCT_SALES_ENABLED keeps the seller kit paused while their paid orders download here.
 export const findOrderProduct = (slug: string): OrderProduct | undefined =>
-  findProduct(slug) ?? LEGACY_ORDER_PRODUCTS.find((p) => p.slug === slug);
+  findProduct(slug) ?? LEGACY_ORDER_PRODUCTS.find((p) => p.slug === slug) ?? findKit(slug);

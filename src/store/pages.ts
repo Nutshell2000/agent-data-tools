@@ -5,10 +5,10 @@ import { formatUsdc, orderState, type Order } from "./orders";
 
 const REPO = "https://github.com/Nutshell2000/agent-data-tools";
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
+export const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
 
 // Same palette and type scale as the service's home page.
-const CSS = `
+export const CSS = `
 :root { --bg:#fbfaf7; --fg:#1d1b16; --muted:#6b665c; --line:#e3ded3; --accent:#0b6e4f; --code:#f1ede4; --on-accent:#ffffff; }
 @media (prefers-color-scheme: dark) { :root { --bg:#15140f; --fg:#ece8dd; --muted:#a39d8f; --line:#2e2b23; --accent:#5fd0a5; --code:#221f18; --on-accent:#10130f; } }
 * { box-sizing: border-box; }

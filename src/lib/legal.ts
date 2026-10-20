@@ -22,6 +22,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Free calls.</strong> A one-way hash of your IP address and a count of free calls used. The IP address itself is not stored for this.</li>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
 <li><strong>Card credits.</strong> A one-way hash of your API key with its balance and purchase history, and the Stripe Checkout or payment reference that created it. The key itself is kept with that reference only so that reopening your claim link shows the same key. Card details are handled by Stripe and never reach us.</li>
+<li><strong>Spreadsheet kits bought by card.</strong> The Stripe Checkout Session id, the kits it paid for and a one-way hash of the Stripe receipt number, kept 30 days so the claim page can show your download links. Your name, email and address stay with Stripe; we do not store or email them.</li>
 </ul>
 <h2>What we do not do</h2>
 <ul>
@@ -47,6 +48,7 @@ export const TERMS_HTML = page("Terms of service", `<h1>Terms of service</h1>
 <li>Each tool's price is shown in its listing and in its payment request. You pay only for successful calls; failed calls are not charged.</li>
 <li>Every caller gets a small number of free calls; we may change or end free calls.</li>
 <li>Card credits: 1 credit = $0.001. Credits do not expire. Unused credits can be refunded on request to ${mail}; used credits are not refundable.</li>
+<li>Spreadsheet kits: one-time digital downloads, available at /kits/claim right after payment. If a file is broken or not what was described, write to ${mail} within 30 days and we replace it or refund the purchase.</li>
 <li>Crypto payments are final once settled on chain, except where a call failed after payment, which you can report to ${mail}.</li>
 </ul>
 <h2>Acceptable use</h2>

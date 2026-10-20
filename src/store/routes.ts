@@ -4,6 +4,7 @@ import { findOrderProduct, findProduct, PRODUCTS, NEW_PRODUCT_SALES_ENABLED, typ
 import { findPayment } from "./chain";
 import { createOrder, getOrder, markTestPaid, orderState, refreshOrder } from "./orders";
 import { orderPage, productPage, storePage } from "./pages";
+import { validDownload } from "../lib/stripe-webhook";
 
 export const store = new Hono<{ Bindings: Env }>();
 store.onError((error, c) => {
@@ -129,6 +130,8 @@ store.post("/store/:slug/order", async (c) => {
 store.get("/order/:id", async (c) => {
   const o = await refreshOrder(c.env, await order(c.env, c.req.param("id")));
   c.header("cache-control", "no-store");
+  // Card orders have no USDC receipt page; their signed links come from the claim page.
+  if (o.via === "stripe") return c.redirect("/kits/claim", 303);
   return c.html(orderPage(o, orderProduct(o.slug), c.env.PAY_TO));
 });
 
@@ -143,12 +146,16 @@ store.get("/order/:id/status", async (c) => {
 store.get("/order/:id/download", async (c) => {
   const o = await order(c.env, c.req.param("id"));
   if (orderState(o) !== "paid") throw new HttpError(404, "this order has not been paid");
+  // Card orders (spreadsheet kits, lib/stripe-webhook.ts) download only through a signed, expiring link from /kits/claim.
+  if (o.via === "stripe" && !await validDownload(c.env.STRIPE_WEBHOOK_SECRET, o.id, c.req.query("exp"), c.req.query("sig"))) {
+    throw new HttpError(403, "this download link has expired or is incomplete; open /kits/claim again for a fresh link");
+  }
   const p = orderProduct(o.slug);
   const file = await c.env.ASSETS.fetch(new URL(`/_files/${p.file}`, c.req.url));
   if (!file.ok) throw new HttpError(502, "the download is temporarily unavailable");
   return new Response(file.body, {
     headers: {
-      "content-type": "application/zip",
+      "content-type": p.file.endsWith(".xlsx") ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/zip",
       "content-disposition": `attachment; filename="${p.file}"`,
       "cache-control": "private, no-store",
     },

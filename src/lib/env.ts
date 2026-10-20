@@ -18,6 +18,9 @@ export interface Env {
   SEARCH_DAILY_CAP?: string;
   // Restricted Stripe key that can only read Checkout Sessions; /credits/claim uses it to confirm card payments.
   STRIPE_READ_KEY?: string;
+  // Signing secret (whsec_…) of the Stripe webhook endpoint /stripe/webhook (lib/stripe-webhook.ts): verifies events
+  // and signs spreadsheet-kit download links. Without it the webhook and /kits/claim answer 503.
+  STRIPE_WEBHOOK_SECRET?: string;
   /** Owner-only bearer token for private sales figures on /revenue (card-credit totals). Optional secret. */
   REVENUE_TOKEN?: string;
   // MPP (agent card payments for credit packs): restricted key with PaymentIntents write, and the Stripe profile id.
@@ -51,7 +54,7 @@ export const trialsEnabled = (env: Pick<Env, "TRIALS_ENABLED">): boolean => env.
 /** Error whose message is safe to show to the caller. Not charged (status >= 400). */
 export class HttpError extends Error {
   constructor(
-    public status: 400 | 404 | 415 | 422 | 502 | 503 | 504,
+    public status: 400 | 403 | 404 | 415 | 422 | 502 | 503 | 504,
     message: string,
     public code?: string,
   ) {
