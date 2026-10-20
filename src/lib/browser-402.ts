@@ -2,7 +2,7 @@
 // generic "Payment Required" page meant for developers; this page instead says what the tool does, shows its
 // example result, and offers the ways in: a free trial call, the free static sample, card credits and MCP.
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
-import type { Endpoint } from "../endpoints";
+import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -12,6 +12,15 @@ function withParam(url: URL, name: string): string {
   const next = new URL(url.href);
   next.searchParams.set(name, "1");
   return next.pathname + next.search;
+}
+
+/** The caller's request, or the tool's published example when the caller sent none of its inputs, so a free
+ *  trial from a bare link returns a real result instead of a missing-input error. */
+function trialBase(endpoint: Endpoint, url: URL): URL {
+  if (Object.keys(endpoint.params).some((name) => url.searchParams.has(name))) return url;
+  const next = new URL(url.origin + url.pathname);
+  for (const [name, param] of exampleParams(endpoint)) next.searchParams.set(name, String(param.example));
+  return next;
 }
 
 export function browserToolPage(endpoint: Endpoint, requestUrl: string, freeCalls: boolean): string {
@@ -41,7 +50,7 @@ footer{margin-top:36px;color:var(--muted);font-size:.9rem}
 <p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
-${freeCalls ? `<a class="btn primary" href="${esc(withParam(url, "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
