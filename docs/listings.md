@@ -65,16 +65,16 @@ MCP Registry.
 | mcp.so | `/mcp` | Paid listing only ($39) | skipped (no spending) |
 | Cursor directory | `/mcp` | Needs a cursor.directory sign-in | skipped |
 | Agentic.Market, Pay.sh, Ampersend, x402-list.com | origin | Agentic.Market is fed by the Bazaar (first settled payment per tool); Pay.sh needs Solana mainnet; Ampersend lists only its hosted proxies; x402-list.com charges $1 | not usable |
-| x402scan | origin | x402scan.com/resources/register or `npx agentcash register <origin>` | 179 resources listed 2026-10-20 |
-| MPPScan | origin | mppscan.com/register or the same CLI | 183 of 183 listed 2026-10-20 |
+| x402scan | origin | x402scan.com/resources/register or `npx agentcash register <origin>` | 182 of 186 registered 2026-10-20 12:25 UTC via `npx agentcash register` (3 skipped, 0 failed) |
+| MPPScan | origin | mppscan.com/register or the same CLI | 186 of 186 registered 2026-10-20 12:25 UTC |
 | 402 Index | each tool URL | `scripts/register-402index.mjs` (token file, 10 per hour) | all tools listed |
-| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; evm/charge entry with 38 routes | PR 1095 open |
+| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; tools entry (tempo + evm, 41 routes incl. /v1/chat/completions, /v1/responses, /v1/embeddings) plus `agent-data-tools-credits` (stripe card packs at serviceUrl /credits); `pnpm check:services` 44/44 and 7/7; feeds the Stripe Directory's machine-payments index | PR 1095 open, updated 2026-10-20 12:30 |
 | gold-402 | PR to Pazificateur69/gold-402 (directory/apis.md) | one line, live 402 probe | PR 1 open |
 | awesome-remote-mcp-servers | PR to punkpeye/awesome-remote-mcp-servers | needs the Glama connector badge and a starred repo | PR 2339 open, CI green |
 | mcpservers.org | `/mcp` | Free form at mcpservers.org/submit | submitted 2026-10-20, 2-week review |
 | Circle Agent Marketplace | origin | Google Form (forms.gle/7YFzvdmMcn1JH5tF6), manual review, payout wallet screened | submitted 2026-10-20 |
 | Stripe MPP directory | `/credits/buy/*` | machine-payments@stripe.com thread; card packs under MPP-team review; stablecoin access needs an incorporated company | in review 2026-10-20 |
-| AgentCash search | origin | Fed by x402scan and MPPScan; semantic index | registered, not indexed (question drafted) |
+| AgentCash search | origin | Fed by x402scan and MPPScan; semantic index | registered 186/186 but absent from `agentcash search` even by exact name, while zero-sale origins appear; email to mason@merit.systems saved as a Gmail draft for Peter (2026-10-20) |
 | MCP Market | `/mcp` | Remote listing is paid only ($69) | skipped (no spending) |
 | awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` | PR 1829 open (2026-10-20) |
 | RapidAPI | marketplace OpenAPI | Listing exists (Everyday Data API); refresh copy and prices from this file | live |
