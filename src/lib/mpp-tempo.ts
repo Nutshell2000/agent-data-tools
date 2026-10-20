@@ -131,8 +131,15 @@ export async function payTempo(c: C, endpoint: Endpoint, header: string, next: N
     console.warn(`mpp tempo verification_failed ${endpoint.path}: ${message.slice(0, 160)}`);
     return refusal(c, endpoint, `payment invalid: ${message}`);
   }
-  // A credential already settled once is refused before the tool runs (broadcast would refuse it after).
-  if (await alreadySettled(c.env, credential)) {
+  // A credential already settled once is refused before the tool runs (broadcast would refuse it after). If the
+  // replay store cannot answer (Durable Object quota), broadcast could not claim the payment either: stop here,
+  // before any work is done, uncharged.
+  const settled = await alreadySettled(c.env, credential);
+  if (settled === null) {
+    markStage("facilitator_unavailable");
+    return c.json({ error: "the payment could not be recorded right now; nothing was charged, try again later" }, 503, { "Retry-After": "60" });
+  }
+  if (settled) {
     markStage("verification_failed");
     return refusal(c, endpoint, "payment invalid: this payment credential was already used; request a new challenge");
   }
@@ -157,15 +164,21 @@ export async function payTempo(c: C, endpoint: Endpoint, header: string, next: N
   c.executionCtx.waitUntil(recordTempo(c.env, endpoint.path, network, currency, payTo(c.env)!, payer, receipt.reference, String(BigInt(usdMicros(endpoint.price)!))));
 }
 
-/** True when mppx's replay marker for this signed transaction (keyed by its hash) is still live. */
-async function alreadySettled(env: Env, credential: string): Promise<boolean> {
+/** True when mppx's replay marker for this signed transaction (keyed by its hash) is still live; null when the store is down. */
+export async function alreadySettled(env: Env, credential: string): Promise<boolean | null> {
+  let signed: `0x${string}` | undefined;
   try {
-    const signed = (Credential.deserialize(credential).payload as { signature?: `0x${string}` }).signature;
-    if (!signed || !env.METRICS) return false;
+    signed = (Credential.deserialize(credential).payload as { signature?: `0x${string}` }).signature;
+  } catch {
+    return false; // unreadable here; broadcastCredential still enforces replay protection
+  }
+  if (!signed || !env.METRICS) return false;
+  try {
     const marker = await env.METRICS.get(env.METRICS.idFromName("global")).mppGet(`mppx:charge:${keccak256(signed).toLowerCase()}`) as { expires?: number } | null;
     return Boolean(marker && (marker.expires ?? Infinity) > Date.now());
-  } catch {
-    return false; // broadcastCredential still enforces replay protection
+  } catch (e) {
+    console.error("mpp tempo: replay store unavailable", e);
+    return null;
   }
 }
 

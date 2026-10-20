@@ -256,3 +256,17 @@ people it sends now land on a page that converts (free trial, card from $5) inst
   - Its catalog feeds Dexter's crawler. The register script is in the cloud scratchpad. Re-run it after price changes (about 5 a minute, 100 per host).
 - **Dexter (x402gle / OpenDexter):** `npx @dexterai/opendexter audition <origin> --json` answered 500 ("Catalog flush could not persist 3 resource writes") on 2026-10-20. Retry it.
   - Auditioning a single tool URL makes Dexter pay for a test call from its own wallet. That settles through CDP and lists the tool on the Bazaar. Log it as a listing proof, never as revenue or demand.
+
+## When the Durable Object is down (2026-10-20)
+
+On 20 Oct the account's Durable Object quota ran out by about 18:00 UTC, and every call to the object threw until 00:00 UTC (`/status`, `/metrics/callers` and `/revenue` answered 500). Each payment path now fails safe:
+
+| Path | While the object is down |
+|---|---|
+| x402 v2 and v1 | Pay and serve as usual; only the ledger receipt is lost, logged for reconciliation |
+| MPP evm | Uncharged 503 before verify |
+| MPP tempo | Uncharged 503 before the tool runs (`alreadySettled` returns null) |
+| Card-credit calls | Uncharged 503 over HTTP; an error result over MCP (`spendCredits` caught) |
+| MPP credit packs | The store is checked before Stripe is called. If the write still fails after the charge, the buyer gets a 503 telling them to repeat the request with the same credential. mppx's Stripe idempotency key (challenge and token) prevents a second charge, and the grant is idempotent on the PaymentIntent. The reference is logged |
+
+Tests: tests/outage-resilience.test.cjs. The lasting fix is the Workers Paid plan ($5 a month), which raises the Durable Object limits. That is Peter's decision.
