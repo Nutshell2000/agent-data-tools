@@ -330,6 +330,11 @@ test("counters are buffered and written once per flush, and kept when a write fa
   for (let i = 0; i < 500; i++) await metrics.bump("/weather", "challenged", undefined, "crawler");
   await metrics.bumpMcpClient("glama", "open");
   assert.equal(records.size, 0, "nothing is written per request");
+  // Reads include unwritten counts without writing (a failed write would reset the object mid-read).
+  assert.equal((await metrics.report())[today]["/weather"].challenged, 500);
+  assert.equal((await metrics.callers())[today].crawler.challenged, 500);
+  assert.equal((await metrics.status(["/weather"])).tools[0].buyerErrors, 0);
+  assert.equal(records.size, 0, "reads do not write");
   await metrics.alarm();
   assert.equal(records.get(dayKey)["/weather"].challenged, 500);
   assert.equal(records.get(`callers:${today}`).crawler.challenged, 500);
