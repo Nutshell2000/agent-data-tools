@@ -71,11 +71,29 @@ export function pick<T extends string>(q: Input, name: string, values: readonly 
 
 const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/json" };
 
-/** GET JSON from an outside source. Outside failures become 502 (never charged). */
+/** Wait before the one retry of a 429/503: the source's short Retry-After, else 700 ms; null when it asks for longer. */
+export function retryDelayMs(res: Response): number | null {
+  const after = res.headers.get("retry-after");
+  if (after === null) return 700;
+  const seconds = Number(after);
+  return Number.isFinite(seconds) && seconds >= 0 && seconds <= 2 ? Math.max(seconds * 1000, 200) : null;
+}
+
+/**
+ * GET JSON from an outside source. Outside failures become 502 (never charged). A 429 or 503 is retried once after a
+ * short wait: Workers share egress IPs, so a per-IP limit (Wikimedia) can refuse a caller who sent nothing before.
+ */
 export async function getJson<T = unknown>(url: string, { timeoutMs = 8000, notFound }: { timeoutMs?: number; notFound?: string } = {}): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs) });
+    const signal = AbortSignal.timeout(timeoutMs);
+    res = await fetch(url, { headers: UA, signal });
+    const wait = res.status === 429 || res.status === 503 ? retryDelayMs(res) : null;
+    if (wait !== null) {
+      await res.body?.cancel().catch(() => {});
+      await new Promise((r) => setTimeout(r, wait));
+      res = await fetch(url, { headers: UA, signal });
+    }
   } catch {
     throw new HttpError(502, "the data source did not answer in time; try again");
   }
