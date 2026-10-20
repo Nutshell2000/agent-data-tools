@@ -131,7 +131,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { uvIndex: r.current.uv_index, category: cat(r.current.uv_index), todayMax: max, todayMaxCategory: cat(max), advice: max < 3 ? "No protection needed for most people." : max < 6 ? "Protection is advisable around midday." : "Seek shade at midday; use sunscreen, a hat and sunglasses." };
     }),
 
-  entry("/geocode", "Place name to coordinates", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
+  entry("/geocode", "Geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
     ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Uppsala" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
     { count: 1, results: [{ name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.858, lon: 17.645, population: 170000, elevation: 15, wikidataId: "Q…" }], source: "Wikidata (CC0 public domain)" },
     async (_e, q) => {
