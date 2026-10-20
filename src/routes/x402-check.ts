@@ -5,6 +5,7 @@ import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { entry, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
+import { USDC_BY_NETWORK } from "../lib/networks";
 
 /** Native USDC contracts (6 decimals), lower-cased, by CAIP-2 network. */
 const USDC: Record<string, string> = {
@@ -14,6 +15,8 @@ const USDC: Record<string, string> = {
   "eip155:42161": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
   "eip155:10": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
   "eip155:137": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+  // Every network this service itself accepts (Monad, World Chain…), so our own quotes read as native USDC.
+  ...Object.fromEntries(Object.entries(USDC_BY_NETWORK).map(([network, asset]) => [network, asset.toLowerCase()])),
 };
 /** v1 used network names instead of CAIP-2 ids. */
 const V1_NETWORKS: Record<string, string> = { base: "eip155:8453", "base-sepolia": "eip155:84532", ethereum: "eip155:1", arbitrum: "eip155:42161", optimism: "eip155:10", polygon: "eip155:137" };
