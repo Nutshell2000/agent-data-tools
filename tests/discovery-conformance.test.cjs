@@ -81,7 +81,7 @@ test('price tools take tickers: ETH and BTC name the wrapped tokens, addresses p
   assert.equal(tokenAddress('btc', 'arb'), '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f');
   assert.equal(tokenAddress('ARB', 'arb'), '0x912CE59144191C1204E64559FE8253a0e49E6548');
   assert.equal(tokenAddress('0x940181a94a35a4569e4529a3cdfb74e38fd98631', 'base'), '0x940181a94A35A4569E4529A3CDfB74e38FD98631');
-  assert.throws(() => tokenAddress('DOGE', 'base'), /not a 0x token address or a ticker known on this network \(ETH, BTC, WETH/);
+  assert.throws(() => tokenAddress('DOGE', 'base'), /not a 0x token address or a ticker known on this network \(ETH, BTC, SOL, XRP, WETH/);
   assert.throws(() => tokenAddress('OP', 'base'), /known on this network/, 'tickers are per network');
 });
 
