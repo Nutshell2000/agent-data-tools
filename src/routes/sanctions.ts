@@ -171,6 +171,10 @@ export const SANCTIONS: Entry[] = [
       const address = opt(q, "address", 128)?.trim();
       const name = opt(q, "name", 200)?.trim();
       if (!address && !name) throw new HttpError(400, "address or name is required");
+      // A mistyped EVM address would simply not match and read as "pass": refuse it instead.
+      if (address && /^0x/i.test(address) && !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+        throw new HttpError(400, `address "${address.slice(0, 50)}" is not a valid 0x address (40 hex characters after 0x); check it before screening`);
+      }
       const index = await sdnIndex();
       const matches = screen(index, address, name);
       return {
