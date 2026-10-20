@@ -136,6 +136,13 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 
 - Zero.xyz indexed every route, including the three POST-only /v1 fronts, as GET, so agents it routes would have hit 405. The fronts now also take GET (and HEAD) with the same inputs in the query (`chatBodyFromQuery`, `embedBodyFromQuery`, `responsesBodyFromQuery`; `requestBody()` in src/lib/openai-chat.ts picks query or JSON by method) and declare a `get` operation in OpenAPI beside the `post` (`openApiGetVariant`). A bare GET is quoted like a bare POST; a paid GET without inputs is refused 400 before anything is forwarded. `scripts/register-402index.mjs` now sees priced GET operations on the /v1 paths, so they can be registered there too.
 
+## Chain logs, RPC fallbacks and outside-source retries (1.41.0)
+
+- `<chain>/logs` scans newest-first in windows of 10, 40, 160… blocks (`recentLogs` in src/routes/chain-reads.ts) and stops at 100 logs: the Base USDC example went from a 16.5 s timeout to about 130 ms. `truncated` is also true when the scan stopped early.
+- Tenderly's public gateway is the last RPC fallback on all five chains and QuickNode's public endpoint on Polygon (src/lib/rpc.ts); BlastAPI has shut down on Polygon and drpc's free plan refuses log scans there. Measure them from Cloudflare after a deploy before reordering.
+- `getJson` (src/family.ts) retries a 429 or 503 once after a short wait, honouring `Retry-After` up to 2 s, inside the same timeout. Tests: tests/upstream-resilience.test.cjs.
+- `npm run smoke:examples` forwards outbound requests through Node's fetch without the hop-by-hop headers workerd sets (`content-length`, `host`, `connection`, `cf-*`); with them every POST failed with `UND_ERR_INVALID_ARG` and all chain reads looked dead. `SMOKE_DEBUG=1` logs outbound failures. 158/158 examples pass on the PC (2026-10-20).
+
 ## OpenAI Responses API shape (1.39.2)
 
 - `POST /v1/responses` (src/lib/openai-responses.ts) maps the Responses body (input string or role/content items, instructions, max_output_tokens) onto the chat-completions body and runs through `completeChat()` in src/lib/openai-chat.ts, so the model routing, prices, quote and refusal rules are the chat front's; the answer is one completed message in `output` plus `output_text`.
