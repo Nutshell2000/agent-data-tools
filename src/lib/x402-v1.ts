@@ -53,6 +53,9 @@ export function v1Requirements(env: Env, endpoint: Endpoint, resourceUrl: string
   }));
 }
 
+/** The leading snake_case reason code of a facilitator message ("invalid_exact_evm_insufficient_balance: …"). */
+export const reasonCode = (message: string) => /^[a-z][a-z0-9_]+/.exec(message.trim())?.[0] ?? "invalid_payment";
+
 export const v1Body = (accepts: RequirementsV1[], error: string, hint?: string) => ({ x402Version: 1 as const, error, accepts, ...(hint ? { hint } : {}) });
 
 let facilitator: ReturnType<typeof buildFacilitator> | undefined;
@@ -104,7 +107,8 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
     if ((e as Error)?.name === "VerifyError" || /^invalid_|insufficient_funds/.test(message)) {
       markStage("verification_failed");
       console.warn(`x402 v1 verification_failed ${endpoint.path} on ${payment.network}: ${message.slice(0, 160)}`);
-      return c.json(v1Body(accepts, `payment invalid: ${message.slice(0, 200)}`), 402);
+      // `error` is the facilitator's reason code, as the reference v1 server sends it (clients match on it).
+      return c.json(v1Body(accepts, reasonCode(message), `payment invalid: ${message.slice(0, 200)}`), 402);
     }
     markStage("facilitator_unavailable");
     console.error(`x402 v1 facilitator_unavailable ${endpoint.path}: ${message.slice(0, 160)}`);
@@ -113,7 +117,7 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   if (!verified.isValid) {
     markStage("verification_failed");
     console.warn(`x402 v1 verification_failed ${endpoint.path} on ${payment.network}: ${verified.invalidReason ?? "rejected by the facilitator"}`);
-    return c.json(v1Body(accepts, `payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`), 402);
+    return c.json(v1Body(accepts, verified.invalidReason ?? "invalid_payment", `payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`), 402);
   }
   markStage("verified");
   await next();

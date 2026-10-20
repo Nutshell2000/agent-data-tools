@@ -129,7 +129,7 @@ export async function evmChallenge(c: C, endpoint: Endpoint): Promise<string> {
 /** A 402 that offers a fresh challenge and says why the credential was not accepted. Never charged. */
 async function refusal(c: C, endpoint: Endpoint, error: string) {
   const challenge = await evmChallenge(c, endpoint).catch(() => undefined);
-  return c.json({ error, method: "evm", intent: "charge", hint: "Pay with a fresh evm charge credential (mppx client: an EIP-3009 USDC authorization), or with x402 (PAYMENT-REQUIRED header)." }, 402,
+  return c.json({ error, method: "evm", intent: "charge", hint: "Pay with a fresh evm charge credential (mppx: charge({ account, currencies: [assets.base.USDC], networks: [8453] }) from mppx/evm/client, an EIP-3009 USDC authorization), or with x402 (PAYMENT-REQUIRED header)." }, 402,
     challenge ? { "WWW-Authenticate": challenge, "Cache-Control": "no-store" } : { "Cache-Control": "no-store" });
 }
 
