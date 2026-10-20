@@ -202,3 +202,7 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 ## Free-call exhaustion in the funnel (1.41.x)
 
 - /revenue funnel counts `free_exhausted`: a caller who asked for a free call (HTTP `trial=1` or MCP) after using all 25, or after the daily total ran out, and was given the payment request instead. It is the buying moment; compare it with card purchases and settlements before changing the free allowance.
+
+## Durable Objects write budget (2026-10-20)
+
+- The account is on the Workers free plan: Durable Objects allow 100,000 rows written a day (reset 00:00 UTC). On 20 Oct per-request counters (`bump`, `bumpMcpClient` and per-request funnel rows for crawler quotes) used it up by ~15:30 UTC; after that every write failed, so free calls answered 500 and card-credit and Tempo calls could not be served. Counters and the counted-only funnel stages (`COUNTED_ONLY` in src/lib/funnel.ts: visit, quote, free_call, free_exhausted, credits_call) are now added up in memory in the Metrics object and written by an alarm at most every 30 s (`flush` in src/metrics.ts); reads flush first. Settlements, credits, free-call allowances, OAuth and MPP replay state still write immediately. If free calls cannot be counted, the caller gets the normal 402. Do not add per-request writes for unpaid traffic.
