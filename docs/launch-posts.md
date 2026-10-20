@@ -33,9 +33,11 @@ Every caller gets 25 free calls, so you can try it from Claude, Cursor or any MC
 
     https://agent-data-tools.revmesh2074.workers.dev/mcp
 
+Every tool also has its own page with a "Run it free" button (https://agent-data-tools.revmesh2074.workers.dev/tools). The AI and rendering tools are not in the free calls.
+
 It runs as one Cloudflare Worker. Per-tool reliability for the last 7 days is public at /status, and every tool has a free static example (`?sample=1`).
 
-Honest status: about 13,000 unpaid price quotes a day, nearly all from crawlers and directory probes, and no paying customer yet. I'd value feedback from people building agents. Which tools would you actually pay for, and what's missing?
+Honest status: 8,000 to 12,000 unpaid price quotes a day, nearly all from crawlers and directory probes, and no paying customer yet. I'd value feedback from people building agents. Which tools would you actually pay for, and what's missing?
 
 ---
 
