@@ -96,11 +96,30 @@ test('invalid input with a payment attached is refused before anything is charge
   assert.match(err.error.message, /messages/);
 });
 
-test('GET is 405 with Allow: POST; /v1/models is free; OpenAPI declares both', async () => {
-  const get = await mf.dispatchFetch('https://api.test/v1/chat/completions');
-  assert.equal(get.status, 405);
-  assert.equal(get.headers.get('allow'), 'POST');
-  await get.arrayBuffer();
+test('a GET carries the same inputs in the query: a bare GET is quoted, prompt= is forwarded, paid nonsense is refused', async () => {
+  assert.equal(lib.chatBodyFromQuery({}), null);
+  assert.deepEqual(lib.chatBodyFromQuery({ prompt: 'Hi', system: 'Be brief.', model: 'gpt-oss-120b', max_tokens: '50', temperature: '0.2' }),
+    { messages: [{ role: 'system', content: 'Be brief.' }, { role: 'user', content: 'Hi' }], model: 'gpt-oss-120b', max_tokens: 50, temperature: 0.2 });
+  assert.deepEqual(lib.chatBodyFromQuery({ input: 'Hi' }).messages, [{ role: 'user', content: 'Hi' }]);
+  assert.deepEqual(lib.chatBodyFromQuery({ messages: '[{"role":"user","content":"Yo"}]' }).messages, [{ role: 'user', content: 'Yo' }]);
+  const bare = await mf.dispatchFetch('https://api.test/v1/chat/completions');
+  assert.equal(bare.status, 402, 'a bare GET gets the quote, like a bare POST');
+  assert.ok(bare.headers.get('payment-required'));
+  await bare.arrayBuffer();
+  const get = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=Hi&model=llama-3.3-70b');
+  assert.equal(get.status, 402);
+  const quote = await get.json();
+  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
+  assert.match(quote.accepts[0].resource, /\/ai\/chat-large\?prompt=Hi&model=llama-3.3-70b/);
+  const head = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=Hi', { method: 'HEAD' });
+  assert.equal(head.status, 402);
+  await head.arrayBuffer();
+  const bad = await mf.dispatchFetch('https://api.test/v1/chat/completions', { headers: { 'payment-signature': 'eyJmYWtlIjp0cnVlfQ' } });
+  assert.equal(bad.status, 400, 'a paid GET without a prompt is refused before anything is forwarded');
+  await bad.arrayBuffer();
+});
+
+test('/v1/models is free; OpenAPI declares the POST, the GET variant and the model list', async () => {
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
   assert.equal(models.object, 'list');
   assert.equal(models.data[0].id, '@cf/meta/llama-3.1-8b-instruct-fp8');
@@ -109,5 +128,9 @@ test('GET is 405 with Allow: POST; /v1/models is free; OpenAPI declares both', a
   assert.deepEqual(post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.003', max: '0.01' });
   assert.deepEqual(post['x-payment-info'].protocols[0], { x402: {} });
   assert.ok(post.requestBody.content['application/json'].schema.properties.messages);
+  const get = api.paths['/v1/chat/completions'].get;
+  assert.deepEqual(get['x-payment-info'], post['x-payment-info']);
+  assert.deepEqual(get.parameters.map((p) => [p.name, p.required]), [['prompt', true], ['system', false], ['model', false], ['max_tokens', false], ['temperature', false]]);
+  assert.equal(get.responses['402'].description, 'Payment Required');
   assert.deepEqual(api.paths['/v1/models'].get.security, []);
 });

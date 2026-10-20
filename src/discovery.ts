@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.39.3";
+export const MCP_SERVER_VERSION = "1.40.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -269,7 +269,7 @@ ${rows}
 <p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme) and a <code>WWW-Authenticate: Payment</code> challenge for MPP (USDC on Base or USDC.e on Tempo). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header; an MPP client (mppx) answers the challenge in <code>Authorization: Payment</code>. Calls that fail are not charged.</p>
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
-<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code> and <code>POST /v1/embeddings</code> run the same paid tools at the same prices (Llama 3.1 8B at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey.</p>
+<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code> and <code>POST /v1/embeddings</code> run the same paid tools at the same prices (Llama 3.1 8B at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
     <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
@@ -425,7 +425,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
-    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); POST ${origin}/v1/embeddings (one input string, BGE-M3, 1,024 dimensions) is the same front for /ai/embed (${catalogEndpoint(EMBED_TOOL_PATH).price}). POST ${origin}/v1/responses takes the OpenAI Responses shape (input, instructions, max_output_tokens) for the same models and prices. GET ${origin}/v1/models is free. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
+    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); POST ${origin}/v1/embeddings (one input string, BGE-M3, 1,024 dimensions) is the same front for /ai/embed (${catalogEndpoint(EMBED_TOOL_PATH).price}). POST ${origin}/v1/responses takes the OpenAI Responses shape (input, instructions, max_output_tokens) for the same models and prices. GET ${origin}/v1/models is free. Each of the three also answers GET with the same inputs in the query (prompt= or input=, plus system/instructions, model, max_tokens, temperature) for clients that cannot POST. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
     "",
     "Smaller answers: add only=<comma-separated top-level keys> to any tool (for example /btc-fees?only=fastestFee); unknown keys are ignored and no match returns the full result.",
     "",
