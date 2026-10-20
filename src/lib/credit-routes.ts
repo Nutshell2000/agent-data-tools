@@ -177,6 +177,7 @@ export async function useFreeCall(env: Env, ip: string | undefined) {
   const caller = await callerHash(ip ?? "unknown");
   const day = utcDay();
   const left = await store.takeFreeCall(caller, day);
+  if (left === null) markStage("free_exhausted");
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
 }
 
