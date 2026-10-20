@@ -161,7 +161,7 @@ Until earnings fund seeding (PR #133), every organic first payment must convert 
 - Not built, on purpose: GDELT news and Stooq quote tools (both timed out from Cloudflare on 20 Oct; an
   unreliable upstream is a lost first payment). Web search stays parked until Peter picks a paid key.
 
-## Deploy checklist for the 20 Oct conversion work (PRs #161–#171)
+## Deploy checklist for the 20 Oct conversion work (PRs #161–#174)
 
 Production is 1.40.0 and lacks these. After `npm run smoke:examples` and the guard deploy, verify:
 
@@ -175,7 +175,19 @@ curl -s -H 'Accept: text/html' -H 'User-Agent: Mozilla/5.0 Chrome/130' "$O/weath
 curl -s -H 'Accept: application/json' "$O/weather" | head -c 200
 # Homepage shows Get started first:
 curl -s -H 'Accept: text/html' "$O/" | grep -c 'Get started'
+# A browser free trial renders as a page with the free calls left (PR #173):
+curl -s -H 'Accept: text/html' -H 'User-Agent: Mozilla/5.0 Chrome/130' "$O/time?zone=UTC&trial=1" | grep -o 'free calls left'
+# Indexable tool pages (PR #174): 200, in the sitemap, then tell IndexNow engines about them:
+curl -s -o /dev/null -w '%{http_code}\n' "$O/tools/check-counterparty"
+curl -s "$O/sitemap.xml" | grep -o '<loc>' | wc -l   # about 186
+node scripts/indexnow.mjs
 ```
+
+Search pages: every tool has `/tools/<slug>` (src/lib/tool-pages.ts; slug = path with `/` as `-`), a 200 page with
+canonical URL, schema.org WebAPI data, inputs, curl, example result and the free-trial/card buttons; `/tools`
+lists them and the sitemap carries them all. The tool URLs themselves stay 402 (not indexable). Google: Peter
+adds the origin in Search Console as a URL-prefix property with HTML-tag verification and gives a session the
+token (it is public; it goes in the homepage head), then submits `/sitemap.xml` there.
 
 Then re-register x402scan/MPPScan (`npx agentcash register $O`) and post the Show HN from docs/launch-posts.md:
 people it sends now land on a page that converts (free trial, card from $5) instead of a dead end.

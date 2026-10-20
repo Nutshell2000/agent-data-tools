@@ -8,9 +8,10 @@ import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
 import { browserTrialResultPage, isBrowser } from "./lib/browser-402";
+import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
-import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -331,6 +332,14 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
   app.get(`/guides/${kind}`, async c => c.html(toolGuideHtml(kind, origin(c.req.url), c.env.PAY_TO, kind === "web-reading" ? await loadReaderDemo(c.env.ASSETS, origin(c.req.url)) : undefined)));
   app.get(`/guides/${kind}.md`, c => c.text(toolGuideMarkdown(kind, origin(c.req.url), c.env.PAY_TO)));
 }
+app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
+app.get("/tools/:slug", (c) => {
+  const tool = toolBySlug(c.req.param("slug"));
+  return tool ? c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env))) : c.notFound();
+});
+// IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
+const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
+app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
 app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
