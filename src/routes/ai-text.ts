@@ -112,7 +112,7 @@ export const AI_TEXT: Entry[] = [
       const [head, ...rest] = reply.split(/\n\s*POINTS:\s*/i);
       return { summary: head.replace(/^\s*SUMMARY:\s*/i, "").trim(), keyPoints: rest.join("\n").split("\n").map((l) => l.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean), model: MODELS.text };
     }),
-  ai("/ai/sentiment", "Sentiment of text", "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies.",
+  ai("/ai/sentiment", "Sentiment analysis of text", "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies.",
     ["sentiment", "nlp", "classification"], { text: { type: "string", description: "English text, up to 4,000 characters", required: true, example: "The checkout was fast and support answered within minutes." } },
     { label: "POSITIVE", score: 0.9987, scores: { POSITIVE: 0.9987, NEGATIVE: 0.0013 }, model: AI_MODELS.sentiment },
     async (env, q) => {
@@ -167,7 +167,7 @@ export const AI_TEXT: Entry[] = [
       if (!out?.translated_text) throw new HttpError(502, "the AI model returned no translation");
       return { translatedText: out.translated_text, from, to, model: AI_MODELS.translate };
     }),
-  ai("/ai/embed", "Text embeddings (BGE-M3)", "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
+  ai("/ai/embed", "Text embeddings (BGE-M3, 1,024 dimensions)", "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
     ["embeddings", "vector", "rag", "search"], { text: { type: "string", description: "Text to embed, up to 4,000 characters", required: true, example: "pay-per-call APIs for AI agents" } },
     { dimensions: 1024, embedding: [0.0123, -0.0456, 0.0789], model: AI_MODELS.embed },
     async (env, q) => {
@@ -187,7 +187,7 @@ export const AI_TEXT: Entry[] = [
       const data = Object.fromEntries(fields.map((f) => [f, (r as Record<string, unknown>)[f] ?? null]));
       return { data, missing: fields.filter((f) => data[f] === null), model: MODELS.text };
     }),
-  entry("/ai/speech", "Text to speech (audio file)", "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots.",
+  entry("/ai/speech", "Text to speech (TTS): turn text into an audio file", "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots.",
     ["tts", "text-to-speech", "voice", "audio", ...T], {
       text: { type: "string", description: "Text to speak, up to 1,000 characters", required: true, example: "Your payment was received. Thank you!" },
       lang: { type: "string", description: "Language: en, es, fr, zh, ja or ko (default en)", example: "en", enum: ["en", "es", "fr", "zh", "ja", "ko"] },
