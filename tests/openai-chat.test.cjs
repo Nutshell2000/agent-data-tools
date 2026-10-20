@@ -45,6 +45,27 @@ test('maps OpenAI messages onto the /ai/chat query', () => {
   assert.equal(long.query.prompt.length, 8000);
 });
 
+test('the model string picks the tool: large names go to /ai/chat-large, everything else to /ai/chat', () => {
+  assert.deepEqual(lib.toolFor(undefined), { path: '/ai/chat' });
+  assert.deepEqual(lib.toolFor('gpt-4o'), { path: '/ai/chat' });
+  assert.deepEqual(lib.toolFor('@cf/meta/llama-3.1-8b-instruct-fp8'), { path: '/ai/chat' });
+  assert.deepEqual(lib.toolFor('llama-3.3-70b'), { path: '/ai/chat-large', model: 'llama-3.3-70b' });
+  assert.deepEqual(lib.toolFor('@cf/meta/llama-3.3-70b-instruct-fp8-fast'), { path: '/ai/chat-large', model: 'llama-3.3-70b' });
+  assert.deepEqual(lib.toolFor('gpt-oss-120b'), { path: '/ai/chat-large', model: 'gpt-oss-120b' });
+  assert.equal(lib.toChatQuery({ model: 'llama-3.3-70b', messages: [{ role: 'user', content: 'x' }] }).query.model, 'llama-3.3-70b');
+  assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }] }).query.model, undefined);
+});
+
+test('an unpaid POST for a large model is quoted at the /ai/chat-large price', async () => {
+  const res = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'gpt-oss-120b', messages: [{ role: 'user', content: 'Hi' }] }) });
+  assert.equal(res.status, 402);
+  const quote = await res.json();
+  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
+  assert.match(quote.accepts[0].resource, /\/ai\/chat-large\?prompt=.*model=gpt-oss-120b/);
+  const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
+  assert.deepEqual(models.data.map((m) => m.id), ['@cf/meta/llama-3.1-8b-instruct-fp8', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
+});
+
 test('shapes the answer like OpenAI and estimates usage', () => {
   const out = lib.toOpenAiResponse({ prompt: 'Hi there', system: 'Be brief.' }, { model: '@cf/meta/llama-3.1-8b-instruct-fp8', response: 'Hello!' }, 'gpt-4o');
   assert.match(out.id, /^chatcmpl-[0-9a-f]{24}$/);
@@ -85,7 +106,7 @@ test('GET is 405 with Allow: POST; /v1/models is free; OpenAPI declares both', a
   assert.equal(models.data[0].id, '@cf/meta/llama-3.1-8b-instruct-fp8');
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
   const post = api.paths['/v1/chat/completions'].post;
-  assert.equal(post['x-payment-info'].price.amount, '0.003');
+  assert.deepEqual(post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.003', max: '0.01' });
   assert.deepEqual(post['x-payment-info'].protocols[0], { x402: {} });
   assert.ok(post.requestBody.content['application/json'].schema.properties.messages);
   assert.deepEqual(api.paths['/v1/models'].get.security, []);
