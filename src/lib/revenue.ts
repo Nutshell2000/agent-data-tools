@@ -4,6 +4,7 @@ import { Receipt } from "mppx";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
 import type { Outcome } from "../metrics";
+import { canBatch, queueBatched } from "./metrics-batch";
 
 type RevenueMetrics = {
   bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void>;
@@ -55,6 +56,8 @@ export function queueMetricBump(
   caller?: string,
 ): void {
   if (!metrics) return;
+  // Paid outcomes go at once; everything else rides the isolate's batch (lib/metrics-batch.ts).
+  if (outcome !== "paid" && canBatch(metrics)) return queueBatched(metrics, waitUntil, (b) => b.bumps.push([path, outcome, revenueUsdMicros, caller]));
   waitUntil(metrics.bump(path, outcome, revenueUsdMicros, caller).catch(() => {}));
 }
 
