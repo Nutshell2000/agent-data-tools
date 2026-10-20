@@ -63,3 +63,35 @@ ${freeCalls ? `<a class="btn primary" href="${esc(withParam(trialBase(endpoint, 
 <footer><a href="/">All tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
 </main></body></html>`;
 }
+
+/** A real browser (not an HTTP client that merely accepts HTML): it asks for HTML first and identifies as one. */
+export function isBrowser(accept: string | undefined, userAgent: string | undefined): boolean {
+  return /text\/html/i.test(accept ?? "") && /Mozilla\//.test(userAgent ?? "");
+}
+
+/** A free trial's result as a page: the JSON it returned, the free calls left and the way to keep going. */
+export function browserTrialResultPage(endpoint: Endpoint, json: string, left: number): string {
+  let pretty = json;
+  try { pretty = JSON.stringify(JSON.parse(json), null, 2); } catch { /* show it as sent */ }
+  const shown = pretty.length > 20_000 ? `${pretty.slice(0, 20_000)}\n…` : pretty;
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(endpoint.summary)}: result · Agent Data Tools</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--card:#f6f7f9;--line:#e3e5e8;--accent:#0b57d0;--accent-fg:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e8eaed;--muted:#a3a8ae;--card:#1c1f24;--line:#2c3036;--accent:#8ab4f8;--accent-fg:#0b1a33}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;line-height:1.25;margin:0 0 8px}
+.meta{color:var(--muted);margin:0 0 18px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:.85rem;line-height:1.45}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}a{color:var(--accent)}
+</style></head><body><main>
+<h1>${esc(endpoint.summary)}</h1>
+<p class="meta">Free call: ${left} of your free calls left. After that, ${esc(endpoint.price)} per call; failed calls are never charged.</p>
+<pre><code>${esc(shown)}</code></pre>
+<div class="actions"><a class="btn primary" href="/credits">Buy credits by card (from $5)</a><a class="btn" href="/">All tools</a></div>
+<p>From code or an AI agent, the same request returns this JSON. Add <code>${esc(endpoint.path)}</code> to Claude, Cursor or any MCP client through <code>/mcp</code>.</p>
+</main></body></html>`;
+}
