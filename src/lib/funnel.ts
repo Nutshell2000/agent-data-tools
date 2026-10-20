@@ -78,9 +78,10 @@ export async function saveFunnel(storage: DurableObjectStorage, event: FunnelEve
   if (old.size) await storage.delete([...old.keys()]);
 }
 
-export async function funnelSummary(storage: DurableObjectStorage) {
+/** `list` defaults to storage.list; the Metrics object passes one that adds its unwritten counts. */
+export async function funnelSummary(storage: DurableObjectStorage, list: (options: DurableObjectListOptions) => Promise<Map<string, Record<string, number>>> = (o) => storage.list(o)) {
   const from = new Date(Date.now() - 29 * 86400_000).toISOString().slice(0, 10);
-  const days = await storage.list<Record<string, number>>({ prefix: "funnel:day:", start: `funnel:day:${from}` });
+  const days = await list({ prefix: "funnel:day:", start: `funnel:day:${from}` });
   return { sinceUtc: from, days: Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v])),
     note: "Visits count successful GET requests to published buying resources, including machine discovery and client downloads; they include bots and operator checks. Stages count server-observed requests, not unique people or customer conversion. Completed means result prepared after settlement; receipt by the buyer is unconfirmed. Source tags are optional, untrusted attribution. Invitations and buyer task confirmation require operator evidence." };
 }
