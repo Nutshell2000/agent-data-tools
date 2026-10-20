@@ -6,6 +6,7 @@ import type { Context } from "hono";
 import { ENDPOINTS } from "../endpoints";
 import type { Env } from "./env";
 import { openApiGetVariant, requestBody } from "./openai-chat";
+import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_EMBEDDINGS_PATH = "/v1/embeddings";
 export const EMBED_TOOL_PATH = "/ai/embed";
@@ -73,7 +74,7 @@ export async function openAiEmbeddings(c: C, forward: Forward): Promise<Response
 
 /** The /v1/embeddings path for /openapi.json, paid at the /ai/embed price and terms. */
 export function openAiEmbeddingsOpenApiPath(origin: string, price: string, mpp: readonly unknown[]) {
-  const paymentInfo = { price: { mode: "fixed", currency: "USD", amount: price.replace("$", "") }, protocols: [{ x402: {} }, ...mpp] };
+  const paymentInfo = buildPaymentInfo({ amount: price }, mpp);
   return {
     [OPENAI_EMBEDDINGS_PATH]: {
       get: openApiGetVariant(

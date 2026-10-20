@@ -39,7 +39,7 @@ import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
-import { bazaarExtensionFor } from "./lib/bazaar-extension";
+import { bazaarExtensionFor, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
@@ -112,7 +112,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
         iconUrl: SERVICE_ICON_URL,
-        tags: [...e.tags],
+        tags: listingTags(e.tags),
         extensions: { ...bazaarExtensionFor(e) },
       },
     ]),
@@ -237,8 +237,10 @@ app.use(async (c, next) => {
   if (answer.status !== 402 || !endpoint) return answer;
   const offers: string[] = [];
   // A broken MPP setup must never take the x402 quote down with it: the x402 terms go out alone then.
-  if (evmEnabled(c.env)) offers.push(await evmChallenge(c, endpoint).catch((e) => { console.error("mpp evm challenge failed", e); return ""; }));
+  // Tempo goes first: AgentCash's client (mppx 0.8) reads only the first Payment challenge and pays only on Tempo, so
+  // with evm first its buyers were refused for an "unsupported token". Newer mppx clients pick by method either way.
   if (tempoEnabled(c.env)) offers.push(await tempoChallenge(c, endpoint).catch((e) => { console.error("mpp tempo challenge failed", e); return ""; }));
+  if (evmEnabled(c.env)) offers.push(await evmChallenge(c, endpoint).catch((e) => { console.error("mpp evm challenge failed", e); return ""; }));
   const live = offers.filter(Boolean);
   if (!live.length) return answer;
   const withMpp = new Response(answer.body, answer);
@@ -315,7 +317,7 @@ app.get("/", async (c) =>
 const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
   const mpp = mppEnabled(c.env);
-  const offers = [...(evmEnabled(c.env) ? [evmProtocol(c.env)] : []), ...(tempoEnabled(c.env) ? [tempoProtocol(c.env)] : [])];
+  const offers = [...(tempoEnabled(c.env) ? [tempoProtocol(c.env)] : []), ...(evmEnabled(c.env) ? [evmProtocol(c.env)] : [])];
   const key = `${origin(c.req.url)}|${trialsEnabled(c.env)}|${mpp}|${offers.map((o) => `${o.mpp.method}:${o.mpp.currency}`).join(",")}`;
   let body = openApiDocs.get(key);
   if (!body) {

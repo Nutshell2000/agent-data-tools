@@ -130,7 +130,10 @@ test('each tool offers tempo/charge next to x402, with recipient, expiry and pul
   assert.equal(challenge.request.methodDetails.feePayer, undefined, 'the server sponsors no fees');
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
   // evm/charge (lib/mpp-evm.ts) is on by default in this fixture too (PAY_TO, Base, MPP_SECRET_KEY): both are declared.
-  assert.deepEqual(api.paths['/time'].get['x-payment-info'].protocols, [{ x402: {} }, { mpp: { method: 'evm', intent: 'charge', currency: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' } }, { mpp: { method: 'tempo', intent: 'charge', currency: USDC_E } }]);
+  assert.deepEqual(api.paths['/time'].get['x-payment-info'].protocols, [{ x402: {} }, { mpp: { method: 'tempo', intent: 'charge', currency: USDC_E } }, { mpp: { method: 'evm', intent: 'charge', currency: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' } }]);
+  // Clients that read only the first challenge (AgentCash bundles mppx 0.8, which pays only on Tempo) get Tempo.
+  assert.equal(Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers }))[0].method, 'tempo');
+  assert.equal(/method="(\w+)"/.exec(quote.headers.get('www-authenticate') ?? '')?.[1], 'tempo', 'the first challenge in the header is tempo');
   // HEAD probes see the same offer.
   const head = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { method: 'HEAD' });
   assert.equal(head.status, 402);
