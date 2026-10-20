@@ -1,3 +1,4 @@
+import { FIELDS_PARAM } from "./lib/fields";
 import { FAMILIES } from "./families";
 import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
 import { BITCOIN_FEES_OUTPUT_SCHEMA } from "./lib/bitcoin-fees-contract";
@@ -936,6 +937,8 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   "/search": "Web search is not yet enabled: the provider's resale terms are being confirmed.",
 });
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
+// Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
+for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
 
 /**
  * The inputs of a tool's published example (service card, Bazaar discovery input, 402 Index URL): its required
@@ -946,7 +949,8 @@ export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["p
   const entries = Object.entries(e.params);
   const required = entries.filter(([, p]) => p.required);
   if (required.length) return required;
-  const first = entries.find(([, p]) => p.example !== undefined);
+  // `only` is never an example input: it only trims a result, and a published example must show the tool itself.
+  const first = entries.find(([name, p]) => name !== "only" && p.example !== undefined && p.example !== "");
   return first ? [first] : [];
 }
 
