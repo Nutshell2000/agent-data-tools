@@ -153,3 +153,10 @@ Until earnings fund seeding (PR #133), every organic first payment must convert 
 - `npm run smoke:examples` runs every paid tool on exactly its published example (`exampleParams`, the Bazaar
   `input`) through the Worker with the paywall off. Run it on the PC (this cloud container cannot reach the
   upstreams) before each deploy; every failure is a first payment lost. AI and rendering tools: check on staging.
+- PC session, next deploy (main ≥ PR #161, 1.40.0): `npm run smoke:examples` first and fix any failing example;
+  run the full seed order on staging (docs/bazaar-seeding.md, faucet USDC) as the paid proof; then deploy through
+  the guard and re-register x402scan. Production seeding waits for earnings (`--budget <earned USD>`).
+- Data post that sells `/x402/check`: `node scripts/bazaar-quality-report.mjs --sample 300 --json survey.json`
+  (unpaid GETs only; keep survey.json out of Git), fill docs/bazaar-quality-post.md, Peter publishes.
+- Not built, on purpose: GDELT news and Stooq quote tools (both timed out from Cloudflare on 20 Oct; an
+  unreliable upstream is a lost first payment). Web search stays parked until Peter picks a paid key.
