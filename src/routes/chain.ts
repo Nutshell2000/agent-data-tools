@@ -2,7 +2,7 @@ import { createPublicClient, fallback, formatEther, formatGwei, formatUnits, htt
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import { HttpError, isAddress, type Env } from "../lib/env";
-import { baseClient, erc20Abi, rpcUrls } from "../lib/rpc";
+import { baseClient, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
 
 const allowanceAbi = [
   {
@@ -90,12 +90,10 @@ export async function baseAllowance(env: Env, tokenInput: string, ownerInput: st
   };
 }
 
-let ethereum: PublicClient | undefined;
-
-/** ENS lives on Ethereum mainnet, so it needs its own client. */
+/** ENS lives on Ethereum mainnet, so it needs its own client (per request, see requestClient). */
 function ethereumClient(): PublicClient {
   const options = { timeout: 8_000, retryCount: 0 };
-  return (ethereum ??= createPublicClient({
+  return requestClient("ens|eth", () => createPublicClient({
     chain: mainnet,
     transport: fallback(rpcUrls("eth").map((u) => http(u, options)), { rank: false }),
   }) as PublicClient);

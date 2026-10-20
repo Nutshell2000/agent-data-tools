@@ -30,6 +30,8 @@ export async function tradeInsight(env: Env, tokenAddress: string, walletAddress
       walletAudit(env, walletAddress),
     ]);
   } catch (error) {
+    // The caller's own mistakes (bad address, not a token: 4xx) keep their status and message.
+    if (error instanceof HttpError && error.status < 500) throw error;
     const message = error instanceof Error ? error.message : "unknown";
     throw new HttpError(502, `Chain data error: ${message}`);
   }
