@@ -76,5 +76,5 @@ MCP Registry.
 | Stripe MPP directory | `/credits/buy/*` | machine-payments@stripe.com thread; card packs under MPP-team review; stablecoin access needs an incorporated company | in review 2026-10-20 |
 | AgentCash search | origin | Fed by x402scan and MPPScan; semantic index | registered, not indexed (question drafted) |
 | MCP Market | `/mcp` | Remote listing is paid only ($69) | skipped (no spending) |
-| awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` (compare link in docs/release-1.23.0.md) | not opened |
+| awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` | PR 1829 open (2026-10-20) |
 | RapidAPI | marketplace OpenAPI | Listing exists (Everyday Data API); refresh copy and prices from this file | live |
