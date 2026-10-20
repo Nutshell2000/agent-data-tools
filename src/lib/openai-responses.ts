@@ -3,7 +3,7 @@
 // every payment path, price and refusal rule is identical; only the answer shape differs (`output` items).
 import type { Context } from "hono";
 import type { Env } from "./env";
-import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, toolFor, type ChatQuery } from "./openai-chat";
+import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openApiGetVariant, requestBody, toolFor, type ChatQuery } from "./openai-chat";
 import { MODELS } from "./ai";
 
 export const OPENAI_RESPONSES_PATH = "/v1/responses";
@@ -58,10 +58,23 @@ export function toResponsesAnswer(query: ChatQuery, result: { model?: string; re
   };
 }
 
-/** Handles POST /v1/responses through the shared chat core. */
+/** The Responses body a GET query stands for (`input=`, optional instructions, model, max_output_tokens, temperature), or null. */
+export function responsesBodyFromQuery(params: Record<string, string>): Record<string, unknown> | null {
+  const input = params.input ?? params.prompt ?? params.q;
+  if (input === undefined) return null;
+  const body: Record<string, unknown> = { input };
+  const instructions = params.instructions ?? params.system;
+  if (instructions) body.instructions = instructions;
+  if (params.model) body.model = params.model;
+  const max = params.max_output_tokens ?? params.max_tokens;
+  if (max !== undefined) body.max_output_tokens = Number(max);
+  if (params.temperature !== undefined) body.temperature = Number(params.temperature);
+  return body;
+}
+
+/** Handles /v1/responses (POST body, or GET query) through the shared chat core. */
 export async function openAiResponses(c: C, forward: Forward): Promise<Response> {
-  let body: unknown = null;
-  try { body = await c.req.json(); } catch { body = null; }
+  const body = await requestBody(c, responsesBodyFromQuery);
   const done = await completeChat(c, forward, toChatBody(body));
   if (!done.ok) return done.response;
   const out = c.json(toResponsesAnswer(done.query, done.result, done.requestedModel), 200);
@@ -73,14 +86,31 @@ export async function openAiResponses(c: C, forward: Forward): Promise<Response>
 /** The /v1/responses path for /openapi.json; paid at the chosen chat tool's price, like /v1/chat/completions. */
 export function openAiResponsesOpenApiPath(origin: string, prices: { small: string; large: string }, mpp: readonly unknown[]) {
   const usd = (p: string) => p.replace("$", "");
+  const paymentInfo = { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] };
   return {
     [OPENAI_RESPONSES_PATH]: {
+      get: openApiGetVariant(
+        "responses_get",
+        "Responses API over GET (input in the query; same models and prices as the POST)",
+        `The same Responses call for clients that can only GET: input (and optional instructions, model, max_output_tokens, temperature) in the query string, the Responses shape back (output plus output_text). Paid at the same prices as /v1/chat/completions: ${prices.small} by default, ${prices.large} with model "llama-3.3-70b" or "gpt-oss-120b". Failed calls are never charged.`,
+        ["ai", "chat", "completion", "openai"],
+        "input",
+        {
+          input: { type: "string", description: "The user message (up to 8,000 characters)" },
+          instructions: { type: "string", description: "Optional system prompt" },
+          model: { type: "string", description: `${MODELS.text} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
+          max_output_tokens: { type: "integer", minimum: 1, maximum: 1024, description: "Maximum output tokens (default 400)" },
+          temperature: { type: "number", minimum: 0, maximum: 1.5, description: "Default 0.6" },
+        },
+        paymentInfo,
+        { "200": { description: "Completed response (same shape as the POST)" }, "400": { description: "Invalid request (not charged)" }, "402": { description: "Payment Required" }, "503": { description: "Daily AI capacity used up (not charged)" } },
+      ),
       post: {
         operationId: "responses",
         summary: "OpenAI Responses API shape (same models and prices as /v1/chat/completions)",
         description: `OpenAI Responses request shape: input (a string or a list of role/content items), optional instructions, max_output_tokens and temperature; one completed message comes back in output (plus output_text). Served by the same models and prices as /v1/chat/completions: ${prices.small} by default, ${prices.large} with model "llama-3.3-70b" or "gpt-oss-120b". No streaming, no tools. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper. Failed calls are never charged.`,
         tags: ["ai", "chat", "completion", "openai"],
-        "x-payment-info": { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] },
+        "x-payment-info": paymentInfo,
         requestBody: {
           required: true,
           content: {
