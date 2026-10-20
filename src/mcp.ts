@@ -5,6 +5,7 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom, isCreditKey } from "./lib/credits";
 import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { freeCallNote } from "./lib/free-calls";
+import { freeCallsPausedNote } from "./lib/browser-402";
 import { mppEnabled } from "./lib/mpp-credits";
 import { SERVICE_ICON_URL } from "./endpoints";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -179,7 +180,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       if (paidAttempt) markStage("attempt");
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
-        const free = (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller) : null;
+        let freePaused = false;
+        const free = (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }) : null;
+        // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
+        if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
@@ -195,7 +199,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: paymentHint(origin, e.price, Boolean(account)) }]
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account))}` }]
           : free && !result.isError ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;
