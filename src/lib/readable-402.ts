@@ -4,9 +4,18 @@
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { v1Body, type RequirementsV1 } from "./x402-v1";
+import { browserToolPage } from "./browser-402";
+import type { Endpoint } from "../endpoints";
 
-export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = []): Promise<Response> {
+export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }): Promise<Response> {
   const header = res.headers.get("payment-required");
+  // A person in a browser gets the library's developer page; show them the tool and the ways to use it instead.
+  if (res.status === 402 && header && page && (res.headers.get("content-type") ?? "").includes("text/html")) {
+    const headers = new Headers(res.headers);
+    headers.delete("content-length");
+    headers.set("content-type", "text/html; charset=utf-8");
+    return new Response(browserToolPage(page.endpoint, page.url, freeCalls), { status: 402, headers });
+  }
   if (res.status !== 402 || !header || !(res.headers.get("content-type") ?? "").includes("application/json")) return res;
   const text = await res.clone().text();
   if (text.trim() !== "{}") return res;
