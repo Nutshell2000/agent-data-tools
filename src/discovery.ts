@@ -253,12 +253,19 @@ a { color:var(--accent); overflow-wrap:anywhere; }
 .wrap { overflow-x:auto; }
 pre { overflow-x:auto; padding:16px; border:1px solid var(--line); border-radius:6px; background:var(--code); white-space:pre; }
 pre code { padding:0; background:transparent; }
+.start { border:1px solid var(--line); border-radius:8px; padding:4px 18px 8px; margin:18px 0 26px; }
+.start h2 { margin:14px 0 6px; font-size:1.1rem; } .start li { margin:8px 0; }
 input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}${readerBuyingCss}</style>
 </head>
 <body>
 <main>
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
+<section class="start" aria-label="Get started"><h2>Get started</h2><ol>
+<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.</li>
+<li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $5</a> (5,000 credits; most tools cost 3). The key works over HTTP (<code>Authorization: Bearer adt_…</code>) and MCP.</li>
+<li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base and four more chains) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
+</ol></section>
 ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
