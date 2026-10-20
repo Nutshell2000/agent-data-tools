@@ -78,3 +78,5 @@ MCP Registry.
 | MCP Market | `/mcp` | Remote listing is paid only ($69) | skipped (no spending) |
 | awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` | PR 1829 open (2026-10-20) |
 | RapidAPI | marketplace OpenAPI | Listing exists (Everyday Data API); refresh copy and prices from this file | live |
+| Agent402 (agent402.tools) | origin | Open cross-seller index plus a router that buys from indexed sellers (unproven sellers last, at most $0.01 a call on Base). `POST /api/index/register {"origin"}` (5 an hour per IP) and `POST /api/mpp-index/register {"origin","path"}`; crawls `/.well-known/x402` every 30 minutes; row at `/api/index?seller=<host>` | x402 index 182 tools, routable; MPP index registered and verified 2026-10-20 |
+| Zero.xyz | origin | Search engine and payment layer (ZeroBot reads the Bazaar and OpenAPI); listing is "book a demo" only; host record at zero.xyz/host/<host>/llms.txt | 167 services indexed with old $0.001 prices, 0 activations (2026-10-20) |
