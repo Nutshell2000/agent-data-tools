@@ -67,7 +67,17 @@ export async function buyCreditsWithMpp(c: C) {
   // any charge rather than silently creating a second key.
   const existing = apiKeyFrom((n) => c.req.header(n));
   const topUpHash = existing ? await hashCreditKey(existing) : undefined;
-  if (topUpHash && !(await store.creditBalance(topUpHash))) return c.json({ error: "unknown API key in X-API-Key; remove it to buy a new key. Not charged." }, 401);
+  // The card is charged before the credits are written, so a credential is only taken while the credit store answers
+  // (it can be out of its daily Durable Object quota). Asking for the challenge needs no store.
+  const paying = /^Payment\s/i.test(c.req.header("authorization") ?? "");
+  let known: unknown;
+  try {
+    known = topUpHash || paying ? await store.creditBalance(topUpHash ?? "health-check") : null;
+  } catch (e) {
+    console.error("mpp credits: credit store unavailable before charge", e);
+    return c.json({ error: "Credit storage is unavailable right now. Not charged; try again in a few minutes." }, 503, { "Retry-After": "300" });
+  }
+  if (topUpHash && !known) return c.json({ error: "unknown API key in X-API-Key; remove it to buy a new key. Not charged." }, 401);
   const secretKey = c.env.STRIPE_MPP_KEY!;
   const mppx = Mppx.create({
     methods: [stripe.charge({ secretKey, networkId: c.env.STRIPE_PROFILE_ID!, currency: "usd", decimals: 2, paymentMethodTypes: ["card"] })],
@@ -84,15 +94,24 @@ export async function buyCreditsWithMpp(c: C) {
   if (result.status === 402) return result.challenge as Response;
   // The PaymentIntent id makes the grant idempotent: a replayed credential returns the same key.
   const reference = Receipt.fromResponse(result.withReceipt(new Response(null)) as Response).reference;
+  // Charged but not yet written: the grant is idempotent on the PaymentIntent, and mppx charges Stripe with an
+  // idempotency key of challenge and token, so repeating the same request with the same credential gets the credits
+  // without a second charge.
+  const unsaved = (e: unknown) => {
+    console.error(`mpp credits: charged ${reference} but the grant could not be written; the buyer was told to retry`, e);
+    return c.json({ error: `Your card payment (${reference}) went through but the credits could not be saved yet. Repeat this exact request with the same payment credential within a few minutes to receive them; you will not be charged again. If that fails, write to the support address on /credits with this reference.` }, 503, { "Retry-After": "30" });
+  };
   if (topUpHash) {
-    const added = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key: null, keyHash: topUpHash });
+    let added;
+    try { added = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key: null, keyHash: topUpHash }); } catch (e) { return unsaved(e); }
     return result.withReceipt(Response.json({
       toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros),
       use: "Added to the key you sent in X-API-Key; keep using it.",
     }, { headers: { "Cache-Control": "no-store" } })) as Response;
   }
   const key = newCreditKey();
-  const issued = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key, keyHash: await hashCreditKey(key) });
+  let issued;
+  try { issued = await store.issueCredits({ sessionId: `mpp:${reference}`, credits: pack.credits, key, keyHash: await hashCreditKey(key) }); } catch (e) { return unsaved(e); }
   return result.withReceipt(Response.json({
     apiKey: issued.key,
     mcpUrl: `${new URL(c.req.url).origin}/mcp/k/${issued.key}`,
