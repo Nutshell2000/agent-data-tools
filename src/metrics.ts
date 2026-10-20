@@ -99,13 +99,30 @@ export class Metrics extends DurableObject {
     await this.flush();
   }
 
+  /**
+   * Stored rows plus the unwritten counts, without writing: a failed write resets the object and fails every
+   * request in flight, so reads must work while the daily write allowance is used up.
+   */
+  private async listMerged<T>(options: DurableObjectListOptions & { prefix: string }): Promise<Map<string, T>> {
+    const stored = await this.ctx.storage.list<Counts>(options);
+    const keys = new Set(stored.keys());
+    for (const key of this.pending.keys()) if (key.startsWith(options.prefix) && (!options.start || key >= options.start)) keys.add(key);
+    const sorted = [...keys].sort();
+    if (options.reverse) sorted.reverse();
+    return new Map(sorted.slice(0, options.limit ?? sorted.length).map((key) => {
+      const row = structuredClone(stored.get(key) ?? {});
+      const extra = this.pending.get(key);
+      if (extra) addCounts(row, extra, capFor(key));
+      return [key, row as T];
+    }));
+  }
+
   async recordSettlement(record: SettlementRecord): Promise<boolean> {
     return saveSettlement(this.ctx.storage, record);
   }
 
   async revenueSummary() {
-    await this.flush().catch(() => console.error("metrics: flush before revenue read failed"));
-    return { ...await ledgerSummary(this.ctx.storage), funnel: await funnelSummary(this.ctx.storage) };
+    return { ...await ledgerSummary(this.ctx.storage), funnel: await funnelSummary(this.ctx.storage, (o) => this.listMerged({ ...o, prefix: o.prefix ?? "" })) };
   }
 
   async recordFunnel(event: FunnelEvent) {
@@ -159,8 +176,7 @@ export class Metrics extends DurableObject {
 
   /** Per-path reliability over the last STATUS_DAYS days: executed calls only, never unpaid quotes. */
   async status(paths: readonly string[]) {
-    await this.flush().catch(() => console.error("metrics: flush before status read failed"));
-    const days = [...(await this.ctx.storage.list<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
+    const days = [...(await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
     const last = await this.ctx.storage.list<string>({ prefix: "last:" });
     const rows = paths.map((path) => {
       let served = 0, serverErrors = 0, buyerErrors = 0;
@@ -171,7 +187,7 @@ export class Metrics extends DurableObject {
         buyerErrors += row.failed ?? 0;
       }
       const ran = served + serverErrors;
-      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: last.get(`last:${path}`) ?? null };
+      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null };
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
@@ -184,21 +200,18 @@ export class Metrics extends DurableObject {
   }
 
   async mcpClients(): Promise<Record<string, McpClients>> {
-    await this.flush().catch(() => console.error("metrics: flush before MCP client read failed"));
-    const days = await this.ctx.storage.list<McpClients>({ prefix: "mcpclients:", reverse: true, limit: KEEP_DAYS });
+    const days = await this.listMerged<McpClients>({ prefix: "mcpclients:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v]));
   }
 
   /** Requests per day by calling software (see callerFamily) and outcome, newest first. */
   async callers(): Promise<Record<string, Callers>> {
-    await this.flush().catch(() => console.error("metrics: flush before callers read failed"));
-    const days = await this.ctx.storage.list<Callers>({ prefix: "callers:", reverse: true, limit: KEEP_DAYS });
+    const days = await this.listMerged<Callers>({ prefix: "callers:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(8), v]));
   }
 
   async report(): Promise<Record<string, Day>> {
-    await this.flush().catch(() => console.error("metrics: flush before report read failed"));
-    const days = await this.ctx.storage.list<Day>({ prefix: "day:", reverse: true, limit: KEEP_DAYS });
+    const days = await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(4), v]));
   }
 }
