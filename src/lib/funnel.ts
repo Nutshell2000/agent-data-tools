@@ -42,11 +42,21 @@ export function markStage(stage: FunnelStage) {
     ...(trace.source ? { source: trace.source } : {}), stage, at: new Date().toISOString() });
 }
 
-/** Minimal request evidence only; no input URLs, signatures, page content or keys. */
-export async function saveFunnel(storage: DurableObjectStorage, event: FunnelEvent) {
+// High-volume stages are only counted per day (buffered in the Metrics object, see metrics.ts): one stored row
+// per request for crawler quotes used up the free Durable Objects write allowance (100,000 rows a day) on 20 Oct.
+// Payment stages keep their per-request evidence row.
+export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "credits_call"]);
+export const funnelLabel = (event: FunnelEvent) => `${event.transport}:${event.path}:${event.stage}`;
+
+export function assertFunnelEvent(event: FunnelEvent) {
   if (!/^[0-9a-f-]{36}$/.test(event.requestId) || !STAGES.includes(event.stage) ||
       !/^\/[a-zA-Z0-9/.-]{0,80}$/.test(event.path) || !["http", "mcp"].includes(event.transport) ||
       (event.source !== undefined && safeSource(event.source) !== event.source) || !Number.isFinite(Date.parse(event.at))) throw new Error("invalid funnel event");
+}
+
+/** Minimal request evidence only; no input URLs, signatures, page content or keys. */
+export async function saveFunnel(storage: DurableObjectStorage, event: FunnelEvent) {
+  assertFunnelEvent(event);
   // Copy only allowlisted fields, even on an internal RPC call.
   const clean = { requestId: event.requestId, path: event.path, transport: event.transport,
     source: safeSource(event.source), stage: event.stage, at: event.at };
@@ -58,7 +68,7 @@ export async function saveFunnel(storage: DurableObjectStorage, event: FunnelEve
     previous[event.stage] = clean;
     const dayKey = `funnel:day:${day}`;
     const counts = await txn.get<Record<string, number>>(dayKey) ?? {};
-    const label = `${event.transport}:${event.path}:${event.stage}`;
+    const label = funnelLabel(event);
     counts[label] = (counts[label] ?? 0) + 1;
     await txn.put(key, previous); await txn.put(dayKey, counts);
   });

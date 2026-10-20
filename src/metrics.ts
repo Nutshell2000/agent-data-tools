@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
-import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
+import { saveFunnel, funnelSummary, assertFunnelEvent, funnelLabel, COUNTED_ONLY, type FunnelEvent } from "./lib/funnel";
 import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
@@ -30,6 +30,23 @@ const MAX_CALLERS = 60;
 
 const KEEP_DAYS = 30;
 const today = () => new Date().toISOString().slice(0, 10);
+/**
+ * Counters (per-path outcomes, callers, MCP clients, counted-only funnel stages) are added up in memory and
+ * written at most once per FLUSH_MS, one row per day key. Writing them per request used up the free Durable
+ * Objects allowance of 100,000 rows a day on 20 Oct, after which free calls and card credits failed with 500.
+ * Settlements, credits, free calls and replay state still write immediately.
+ */
+const FLUSH_MS = 30_000;
+type Counts = { [name: string]: number | Counts };
+/** Adds the numbers in b into a at any depth; a top-level name beyond `cap` distinct names counts as "other". */
+function addCounts(a: Counts, b: Counts, cap?: number) {
+  for (const [name, value] of Object.entries(b)) {
+    const key = name in a || cap === undefined || Object.keys(a).length < cap ? name : "other";
+    if (typeof value === "number") a[key] = ((a[key] as number | undefined) ?? 0) + value;
+    else addCounts((a[key] ??= {}) as Counts, value);
+  }
+}
+const capFor = (key: string) => key.startsWith("callers:") || key.startsWith("mcpclients:") ? MAX_CALLERS : undefined;
 
 /**
  * Counts requests per paid path per day, including gross revenue for x402 settlements.
@@ -37,15 +54,66 @@ const today = () => new Date().toISOString().slice(0, 10);
  * and authorization identities for deduplication and operator reconciliation.
  */
 export class Metrics extends DurableObject {
+  /** Unwritten counter increments by storage key (day:, callers:, mcpclients:, funnel:day:). */
+  private pending = new Map<string, Counts>();
+  /** Unwritten last-success times by path. */
+  private pendingLast = new Map<string, string>();
+  private alarmSet = false;
+
+  private add(key: string, counts: Counts) {
+    const current = this.pending.get(key) ?? {};
+    addCounts(current, counts);
+    this.pending.set(key, current);
+  }
+
+  private async schedule() {
+    if (this.alarmSet) return;
+    this.alarmSet = true;
+    try { await this.ctx.storage.setAlarm(Date.now() + FLUSH_MS); }
+    catch (err) { this.alarmSet = false; throw err; }
+  }
+
+  /** Writes buffered counters in one transaction; on failure they stay buffered for the next try. */
+  async flush() {
+    if (!this.pending.size && !this.pendingLast.size) return;
+    const batch = this.pending, last = this.pendingLast;
+    this.pending = new Map(); this.pendingLast = new Map();
+    try {
+      await this.ctx.storage.transaction(async (txn) => {
+        for (const [key, counts] of batch) {
+          const stored = (await txn.get<Counts>(key)) ?? {};
+          addCounts(stored, counts, capFor(key));
+          await txn.put(key, stored);
+        }
+        for (const [path, at] of last) await txn.put(`last:${path}`, at);
+      });
+    } catch (err) {
+      for (const [key, counts] of batch) this.add(key, counts);
+      for (const [path, at] of last) if (!this.pendingLast.has(path)) this.pendingLast.set(path, at);
+      throw err;
+    }
+  }
+
+  async alarm() {
+    this.alarmSet = false;
+    await this.flush();
+  }
+
   async recordSettlement(record: SettlementRecord): Promise<boolean> {
     return saveSettlement(this.ctx.storage, record);
   }
 
   async revenueSummary() {
+    await this.flush().catch(() => console.error("metrics: flush before revenue read failed"));
     return { ...await ledgerSummary(this.ctx.storage), funnel: await funnelSummary(this.ctx.storage) };
   }
 
-  async recordFunnel(event: FunnelEvent) { await saveFunnel(this.ctx.storage, event); }
+  async recordFunnel(event: FunnelEvent) {
+    if (!COUNTED_ONLY.has(event.stage)) return saveFunnel(this.ctx.storage, event);
+    assertFunnelEvent(event);
+    this.add(`funnel:day:${event.at.slice(0, 10)}`, { [funnelLabel(event)]: 1 });
+    await this.schedule();
+  }
 
   // Card credits. Called only on the instance named "credits" (see lib/credit-routes.ts).
   async issueCredits(grant: Parameters<typeof issueCredits>[1]) { return issueCredits(this.ctx.storage, grant); }
@@ -82,32 +150,16 @@ export class Metrics extends DurableObject {
   }
 
   async bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void> {
-    const key = `day:${today()}`;
-    await this.ctx.storage.transaction(async (txn) => {
-      const day = (await txn.get<Day>(key)) ?? {};
-      const row = (day[path] ??= {});
-      row[outcome] = (row[outcome] ?? 0) + 1;
-      row.revenueUsdMicros ??= 0;
-      row.trackedPaidCalls ??= 0;
-      if (outcome === "paid" && revenueUsdMicros !== undefined && Number.isSafeInteger(revenueUsdMicros) && revenueUsdMicros > 0) {
-        row.revenueUsdMicros += revenueUsdMicros;
-        row.trackedPaidCalls++;
-      }
-      await txn.put(key, day);
-      if (caller) {
-        const callersKey = `callers:${today()}`;
-        const callers = (await txn.get<Callers>(callersKey)) ?? {};
-        const name = callers[caller] || Object.keys(callers).length < MAX_CALLERS ? caller : "other";
-        const counts = (callers[name] ??= {});
-        counts[outcome] = (counts[outcome] ?? 0) + 1;
-        await txn.put(callersKey, callers);
-      }
-      if (SERVED.includes(outcome)) await txn.put(`last:${path}`, new Date().toISOString());
-    });
+    const paid = outcome === "paid" && revenueUsdMicros !== undefined && Number.isSafeInteger(revenueUsdMicros) && revenueUsdMicros > 0;
+    this.add(`day:${today()}`, { [path]: { [outcome]: 1, revenueUsdMicros: paid ? revenueUsdMicros : 0, trackedPaidCalls: paid ? 1 : 0 } });
+    if (caller) this.add(`callers:${today()}`, { [caller]: { [outcome]: 1 } });
+    if (SERVED.includes(outcome)) this.pendingLast.set(path, new Date().toISOString());
+    await this.schedule();
   }
 
   /** Per-path reliability over the last STATUS_DAYS days: executed calls only, never unpaid quotes. */
   async status(paths: readonly string[]) {
+    await this.flush().catch(() => console.error("metrics: flush before status read failed"));
     const days = [...(await this.ctx.storage.list<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
     const last = await this.ctx.storage.list<string>({ prefix: "last:" });
     const rows = paths.map((path) => {
@@ -127,28 +179,25 @@ export class Metrics extends DurableObject {
 
   /** One MCP connection (initialize) by client name and how it connected: open, key or account. */
   async bumpMcpClient(client: string, mode: "open" | "key" | "account"): Promise<void> {
-    const key = `mcpclients:${today()}`;
-    await this.ctx.storage.transaction(async (txn) => {
-      const clients = (await txn.get<McpClients>(key)) ?? {};
-      const name = clients[client] || Object.keys(clients).length < MAX_CALLERS ? client : "other";
-      const counts = (clients[name] ??= {});
-      counts[mode] = (counts[mode] ?? 0) + 1;
-      await txn.put(key, clients);
-    });
+    this.add(`mcpclients:${today()}`, { [client]: { [mode]: 1 } });
+    await this.schedule();
   }
 
   async mcpClients(): Promise<Record<string, McpClients>> {
+    await this.flush().catch(() => console.error("metrics: flush before MCP client read failed"));
     const days = await this.ctx.storage.list<McpClients>({ prefix: "mcpclients:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v]));
   }
 
   /** Requests per day by calling software (see callerFamily) and outcome, newest first. */
   async callers(): Promise<Record<string, Callers>> {
+    await this.flush().catch(() => console.error("metrics: flush before callers read failed"));
     const days = await this.ctx.storage.list<Callers>({ prefix: "callers:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(8), v]));
   }
 
   async report(): Promise<Record<string, Day>> {
+    await this.flush().catch(() => console.error("metrics: flush before report read failed"));
     const days = await this.ctx.storage.list<Day>({ prefix: "day:", reverse: true, limit: KEEP_DAYS });
     return Object.fromEntries([...days].map(([k, v]) => [k.slice(4), v]));
   }
