@@ -46,6 +46,18 @@ function addCounts(a: Counts, b: Counts, cap?: number) {
     else addCounts((a[key] ??= {}) as Counts, value);
   }
 }
+/**
+ * After the daily write allowance is used up every write fails, and a failed write resets the object and fails
+ * the requests in flight with it. So buffered counters stop trying until the allowance resets (00:00 UTC). Kept
+ * at module level so it outlives the reset of the object instance.
+ */
+let writesBlockedUntil = 0;
+const nextUtcMidnight = () => { const d = new Date(); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); };
+function noteWriteError(err: unknown) {
+  if (String(err instanceof Error ? err.message : err).includes("Exceeded allowed rows written")) writesBlockedUntil = nextUtcMidnight();
+}
+const writesBlocked = () => Date.now() < writesBlockedUntil;
+export const __test = { writesBlocked, unblockWrites: () => { writesBlockedUntil = 0; } };
 const capFor = (key: string) => key.startsWith("callers:") || key.startsWith("mcpclients:") ? MAX_CALLERS : undefined;
 
 /**
@@ -67,15 +79,16 @@ export class Metrics extends DurableObject {
   }
 
   private async schedule() {
-    if (this.alarmSet) return;
+    if (this.alarmSet || writesBlocked()) return;
     this.alarmSet = true;
     try { await this.ctx.storage.setAlarm(Date.now() + FLUSH_MS); }
-    catch (err) { this.alarmSet = false; throw err; }
+    catch (err) { this.alarmSet = false; noteWriteError(err); throw err; }
   }
 
   /** Writes buffered counters in one transaction; on failure they stay buffered for the next try. */
   async flush() {
     if (!this.pending.size && !this.pendingLast.size) return;
+    if (writesBlocked()) return;
     const batch = this.pending, last = this.pendingLast;
     this.pending = new Map(); this.pendingLast = new Map();
     try {
@@ -90,6 +103,7 @@ export class Metrics extends DurableObject {
     } catch (err) {
       for (const [key, counts] of batch) this.add(key, counts);
       for (const [path, at] of last) if (!this.pendingLast.has(path)) this.pendingLast.set(path, at);
+      noteWriteError(err);
       throw err;
     }
   }
