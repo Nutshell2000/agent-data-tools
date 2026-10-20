@@ -39,6 +39,7 @@ import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from 
 import { bazaarExtensionFor } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
+import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
@@ -272,6 +273,8 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 app.post(OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD"], OPENAI_CHAT_PATH, (c) => c.json({ error: 'use POST with an OpenAI-style JSON body: {"messages":[{"role":"user","content":"..."}]}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
 app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
+app.post(OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD"], OPENAI_EMBEDDINGS_PATH, (c) => c.json({ error: 'use POST with an OpenAI-style JSON body: {"input":"text to embed"}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
 
 app.route("/", credits);
 // Privacy policy, terms and support.
