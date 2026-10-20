@@ -446,7 +446,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `> ${SERVICE_SUMMARY}`,
     "",
-    "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base) and a WWW-Authenticate: Payment challenge (MPP: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo). Pay with x402 (sign and retry with PAYMENT-SIGNATURE) or with MPP (an mppx client answers the challenge in Authorization: Payment; the receipt comes back in Payment-Receipt). Failed calls (4xx/5xx) are not charged on either path.",
+    "All endpoints are GET (a POST with a flat JSON body of the same inputs works too), return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base) and a WWW-Authenticate: Payment challenge (MPP: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo). Pay with x402 (sign and retry with PAYMENT-SIGNATURE) or with MPP (an mppx client answers the challenge in Authorization: Payment; the receipt comes back in Payment-Receipt). With mppx, tempo({ account }) pays the Tempo challenge as is; the evm method needs the token named, because a challenge cannot carry its EIP-712 name: charge({ account, currencies: [assets.base.USDC], networks: [8453] }) from mppx/evm/client. Failed calls (4xx/5xx) are not charged on either path.",
     "",
     trialNote(trialsEnabled),
     "",
