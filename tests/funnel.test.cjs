@@ -36,3 +36,13 @@ test('visits cover actual buying resources and exclude probes, failures and arbi
   }
   for(const path of ['/guides/nonexistent','/extract','/revenue','/metrics','/health','/clients/reader/1.1.1/secrets.txt','/examples/extract/private.json','/_files/x402-seller-kit.zip'])assert.equal(funnel.isDiscoveryVisit('GET',path,200),false,path);
 });
+
+test('page views: only the pages a buyer reads, and the referrer as a family name only',()=>{
+  for(const path of ['/','/tools','/tools/check-counterparty','/credits','/credits/claim'])assert.equal(funnel.isHumanPage(path),true,path);
+  for(const path of ['/weather','/tools/../revenue','/revenue','/openapi.json','/credits/buy/5','/tools/x/y'])assert.equal(funnel.isHumanPage(path),false,path);
+  const own='agent-data-tools.revmesh2074.workers.dev';
+  const cases={undefined:'direct','https://www.google.com/search?q=ofac':'google','https://www.google.se/':'google','https://www.bing.com/search?q=x':'bing','https://chatgpt.com/':'chatgpt','https://claude.ai/chat/1':'claude','https://old.reddit.com/r/mcp':'reddit','https://news.ycombinator.com/item?id=1':'hackernews','https://glama.ai/mcp/servers':'glama','https://example.org/page':'other','not a url':'other',['https://'+own+'/tools']:'internal'};
+  for(const [ref,family] of Object.entries(cases))assert.equal(funnel.referrerFamily(ref==='undefined'?undefined:ref,own),family,ref);
+  assert.ok(funnel.STAGES.includes('page_view')&&funnel.STAGES.includes('referral'));
+  assert.ok(funnel.COUNTED_ONLY.has('page_view')&&funnel.COUNTED_ONLY.has('referral'));
+});

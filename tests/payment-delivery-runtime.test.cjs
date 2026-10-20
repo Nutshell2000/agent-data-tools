@@ -230,6 +230,15 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
  const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],26);assert.equal(day['mcp:/extract:free_call'],2);assert.equal(day['http:/extract:free_exhausted'],1);
 });
+test('page views: a browser reading a tool page is counted with its referrer family; JSON clients are not',async()=>{
+ const browser={accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 Chrome/130',referer:'https://www.google.com/search?q=ofac+check+api'};
+ const page=await mfFree.dispatchFetch('https://api.test/tools/check-counterparty',{headers:browser});assert.equal(page.status,200);await page.arrayBuffer();
+ const json=await mfFree.dispatchFetch('https://api.test/tools/check-counterparty',{headers:{accept:'application/json'}});await json.arrayBuffer();
+ const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();
+ const day=Object.values(rev.funnel.days).at(-1);
+ assert.equal(day['http:/tools/check-counterparty:page_view'],1);
+ assert.equal(day['http:/from/google:referral'],1);
+});
 test('/revenue shows card-credit sales only to the owner token',async()=>{
   const anon=await revenue();assert.equal(anon.cardCredits,undefined);assert.ok('settlements' in anon);
   const wrong=await(await mf.dispatchFetch('https://api.test/revenue',{headers:{authorization:'Bearer owner-fixture-tokeX'}})).json();assert.equal(wrong.cardCredits,undefined);
