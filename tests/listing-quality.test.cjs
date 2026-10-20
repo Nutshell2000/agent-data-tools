@@ -57,7 +57,7 @@ test("home page and llms.txt present the full catalog without mis-encoded dashes
 
 test("catalog is grouped by category with every tool listed exactly once", () => {
   const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
-  const links = html.match(/href="#tool-/g).length;
+  const links = html.match(/<td class="path"><a href="\/tools\//g).length;
   assert.equal(links, discovery.ENDPOINTS.length + 6, "each tool once per category table plus six Start here rows");
   for (const e of discovery.ENDPOINTS) assert.ok(html.includes(`id="tool-${e.path.slice(1).replaceAll("/", "_")}"`), e.path);
   for (const name of discovery.CATEGORY_ORDER) assert.match(html, new RegExp(`<h3 class="cat">${name} \\(\\d+\\)</h3>`));
