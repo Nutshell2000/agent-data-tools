@@ -274,7 +274,7 @@ test('x402 v1: v1 terms in the 402 body beside the v2 header, X-PAYMENT settles 
  const wrong=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa03','1')}});
  assert.equal(wrong.status,402);assert.match((await wrong.json()).error,/at least 2000/);
  const invalid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'eeee')}});
- assert.equal(invalid.status,402);assert.match((await invalid.json()).error,/payment invalid/);
+ assert.equal(invalid.status,402);{const body=await invalid.json();assert.match(body.error,/^[a-z][a-z0-9_-]+$/,'a bare reason code, as the reference v1 server sends');assert.match(body.hint,/payment invalid/);}
  // Client variations that must not be refused: version as a string, the network as its CAIP-2 id, the value as a
  // number above the quote (the authorization's own value is what settles and is recorded).
  const loose=Buffer.from(JSON.stringify({x402Version:'1',scheme:'exact',network:'eip155:8453',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient.toUpperCase().replace('0X','0x'),value:2500,validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+'7'.repeat(60)+'aa05'}}})).toString('base64');
