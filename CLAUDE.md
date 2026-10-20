@@ -96,7 +96,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   (`docs/app-directory-submission.md`), and whether the 19 Oct browser payment attempts on `/eth/gas` were
   his own tests.
 
-## Per-call MPP on the tools (1.36.0): evm on Base ON, Tempo off
+## Per-call MPP on the tools: evm on Base ON (1.36.0), Tempo ON (1.37.0)
 
 - `src/lib/mpp-evm.ts` (on by default, `MPP_EVM` in `wrangler.jsonc`): each tool's 402 also offers `WWW-Authenticate: Payment`
   evm/charge, an EIP-3009 USDC authorization on our x402 network to PAY_TO, verified and settled through the same facilitator
@@ -105,10 +105,10 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   `node scripts/pay-test.mjs <staging>/time?zone=UTC --mpp-evm`. After deploying, re-register the origin at mppscan.com/register.
 - Tempo proof on staging (Moderato testnet, faucet pathUSD via `tempo_fundAddress`): `node scripts/pay-test.mjs <staging>/time?zone=UTC --tempo`
   settled on 2026-10-20 (tx 0xb3c18072…). Staging has `TEMPO_NETWORK=testnet` and a test-only `TEMPO_PAY_TO`; production stays off.
-- `src/lib/mpp-tempo.ts`: a second challenge, tempo/charge (USDC.e on Tempo, pull mode), broadcast only after the tool
-  succeeded. It stays off while `TEMPO_PAY_TO` in `wrangler.jsonc` is empty.
-- Peter decides the receiving address (reuse PAY_TO after a wallet check, or a new Tempo address):
-  `docs/mpp-per-call.md`. Do not set `TEMPO_PAY_TO` without his answer in chat.
+- `src/lib/mpp-tempo.ts`: a second challenge, tempo/charge (USDC.e on Tempo mainnet, pull mode, public RPC rpc.tempo.xyz),
+  broadcast only after the tool succeeded. ON since 1.37.0: `TEMPO_PAY_TO` = PAY_TO in `wrangler.jsonc`, Peter's decision of
+  2026-10-20 (option A, docs/mpp-per-call.md). Empty switches it off. MPP buyers (AgentCash, Poncho, MPP credits) pay on Tempo,
+  so this is the method that serves them; watch `wrangler tail` for `mpp tempo` lines and the Tempo RPC (`facilitator_unavailable`).
 - Credit packs `/credits/buy/*` answer GET only, and their Stripe challenge names a recipient (the MPPScan warnings).
 
 ## Discovery files (1.36.1)

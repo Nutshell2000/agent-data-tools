@@ -4,8 +4,9 @@ Status (2026-10-20): two MPP methods exist on the tools, next to x402.
 
 - **evm/charge, USDC on Base to PAY_TO: ON by default** (1.36.0, `src/lib/mpp-evm.ts`, section "The evm method" below).
   It reuses the x402 facilitator and the CDP secret, so it needs no new address, deposit or self-payment.
-- **tempo/charge, USDC.e on Tempo: off** until `TEMPO_PAY_TO` is set (`src/lib/mpp-tempo.ts`). Nothing changes there
-  until Peter makes the receiving-address decision below. No step needs money, a deposit or a self-payment.
+- **tempo/charge, USDC.e on Tempo: ON since 1.37.0 (2026-10-20)**, receiving address = PAY_TO (`src/lib/mpp-tempo.ts`).
+  Peter chose option A below after checking that his wallet shows the address on Tempo Mainnet (chain 4217) and can
+  send from it. No step needed money, a deposit or a self-payment.
 
 ## Why
 
@@ -24,9 +25,9 @@ one that costs us nothing to switch on, so it went live first.
 | Fees per settlement, who pays gas? | The buyer, in a USD stablecoin. A TIP-20 transfer (~50k gas) costs ~$0.00003–$0.0006. The very first transfer to a fresh address costs ~300k gas (~$0.0036 at the cap), paid once by the first buyer. This server pays nothing and holds no key. | [fees](https://tempo.xyz/developers/docs/protocol/fees), [fee spec](https://tempo.xyz/developers/docs/protocol/fees/spec-fee), [EVM differences](https://tempo.xyz/developers/docs/quickstart/evm-compatibility) |
 | Can PAY_TO receive and later move funds on Tempo? | It can **receive**: a TIP-20 transfer works to any address, and on Tempo PAY_TO is an untouched plain account (measured 19 Oct: no code, nonce 0, balance 0; on Base it is an EIP-7702 account delegated to `0x7702cb55…`, nonce 1; the delegation does not carry over to Tempo). **Moving** funds out needs the account's own key to sign a Tempo transaction. A plain USDC.e `transfer` pays its own fee in USDC.e (fee-token rule 3), so no pathUSD is needed. Unverified: whether Peter's Coinbase Wallet / Base app account can sign a transaction on chain 4217. Coinbase's developer platform does not support sending on Tempo. The Coinbase app supports USDC.e on Tempo only for its custodial accounts (a different address). | [fee spec](https://tempo.xyz/developers/docs/protocol/fees/spec-fee), [EIP-7702 on Tempo](https://tempo.xyz/developers/docs/protocol/transactions/eip-7702), [CDP Tempo](https://docs.cdp.coinbase.com/wallets/demos/tempo), on-chain reads of Base and Tempo RPCs |
 
-## Decision for Peter: which address receives on Tempo
+## Decision: which address receives on Tempo (taken 2026-10-20: option A)
 
-The only open step. Each option is free and needs no funds.
+Peter picked A on 2026-10-20 after the wallet check. Kept for the record; each option was free and needed no funds.
 
 - **A. Reuse PAY_TO, after a check (recommended if the check passes).** In the wallet that holds PAY_TO, add the
   network *Tempo Mainnet*: chain id 4217, RPC `https://rpc.tempo.xyz`, currency symbol USD, explorer
@@ -37,7 +38,7 @@ The only open step. Each option is free and needs no funds.
   (passkey). This is a new wallet, so it is Peter's decision.
 - **C. Leave it off.** The code stays dormant and MPPScan keeps listing only the three credit packs.
 
-## Switching on (after the decision)
+## Switching on (done in 1.37.0; kept as the runbook)
 
 1. Fill in `"TEMPO_PAY_TO": "0x…"` in `vars` in `wrangler.jsonc` (empty today; it is public, not a secret). `MPP_SECRET_KEY` is
    optional: without it the challenge key is derived from `CDP_API_KEY_SECRET`, which production already has.
