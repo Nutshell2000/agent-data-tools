@@ -1,5 +1,5 @@
 {
-  "version": "1.38.0",
+  "version": "1.38.1",
   "tools": [
     {
       "name": "extract",
@@ -895,7 +895,7 @@
     },
     {
       "name": "btc_fees",
-      "description": "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current Bitcoin network fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, the estimated cost in sats of a typical payment, mempool size and total pending fees, and the latest block height. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Example: fields=. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -905,7 +905,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "outputSchema": {
         "type": "object",
@@ -1351,7 +1356,7 @@
     },
     {
       "name": "btc_price",
-      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1361,13 +1366,18 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
     {
       "name": "base_gas",
-      "description": "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees. Example: fields=. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1377,7 +1387,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.002"
     },
@@ -1868,7 +1883,7 @@
     },
     {
       "name": "eth_gas",
-      "description": "Get current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Get current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1878,7 +1893,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -2146,7 +2166,7 @@
     },
     {
       "name": "arb_gas",
-      "description": "Get current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Get current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2156,7 +2176,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -2424,7 +2449,7 @@
     },
     {
       "name": "op_gas",
-      "description": "Get current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Get current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2434,7 +2459,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -2702,7 +2732,7 @@
     },
     {
       "name": "polygon_gas",
-      "description": "Get current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Get current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2712,7 +2742,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -4903,7 +4938,7 @@
     },
     {
       "name": "yes_no",
-      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "A fair random yes or no, with a cryptographic random source. For quick decisions when the options are equally good. Use to break ties. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4913,7 +4948,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -4943,7 +4983,7 @@
     },
     {
       "name": "ping",
-      "description": "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4953,7 +4993,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },
@@ -4983,7 +5028,7 @@
     },
     {
       "name": "network",
-      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client. Example: fields=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4993,7 +5038,12 @@
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fields": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example fields=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.003"
     },

@@ -1,3 +1,4 @@
+import { pickFields } from "./lib/fields";
 import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
@@ -40,7 +41,7 @@ function toContent(value: unknown) {
 async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Args) {
   try {
     const path: EndpointPath = e.path;
-    const result = await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name])));
+    const result = pickFields(await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name]))), args.only === undefined ? undefined : String(args.only));
     const { imageBase64: _image, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
