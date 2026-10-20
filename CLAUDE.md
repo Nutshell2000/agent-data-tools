@@ -103,6 +103,8 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   as x402 (settle only after the tool succeeded, Bazaar extension sent with the settlement, receipt in the ledger). It exists
   so MPPScan lists the 175 tools without a first settled payment, at no cost. Staging proof after every release:
   `node scripts/pay-test.mjs <staging>/time?zone=UTC --mpp-evm`. After deploying, re-register the origin at mppscan.com/register.
+- Tempo proof on staging (Moderato testnet, faucet pathUSD via `tempo_fundAddress`): `node scripts/pay-test.mjs <staging>/time?zone=UTC --tempo`
+  settled on 2026-10-20 (tx 0xb3c18072…). Staging has `TEMPO_NETWORK=testnet` and a test-only `TEMPO_PAY_TO`; production stays off.
 - `src/lib/mpp-tempo.ts`: a second challenge, tempo/charge (USDC.e on Tempo, pull mode), broadcast only after the tool
   succeeded. It stays off while `TEMPO_PAY_TO` in `wrangler.jsonc` is empty.
 - Peter decides the receiving address (reuse PAY_TO after a wallet check, or a new Tempo address):

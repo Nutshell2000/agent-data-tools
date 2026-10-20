@@ -47,9 +47,11 @@ The only open step. Each option is free and needs no funds.
    `PAYMENT-REQUIRED`, and `/openapi.json` lists `{ mpp: { method: "tempo", … } }` for each tool.
 4. Re-register the origin at mppscan.com/register so the 175 tools are probed again.
 
-Staging proof before mainnet (free testnet funds): deploy staging with `TEMPO_NETWORK=testnet` (Moderato, pathUSD).
-Pay one call with an mppx client funded from the Moderato faucet. That needs a `--tempo` mode in
-`scripts/pay-test.mjs`, which is not built yet.
+**Staging proof done (2026-10-20, free testnet funds):** `wrangler.staging.jsonc` runs with `TEMPO_NETWORK=testnet` (Moderato,
+chain 42431, pathUSD) and `TEMPO_PAY_TO` = the test-only PAY_TO. The test wallet was funded with the faucet RPC
+(`tempo_fundAddress` on https://rpc.moderato.tempo.xyz) and `node scripts/pay-test.mjs <staging>/time?zone=UTC --tempo`
+paid one call: HTTP 200, `Payment-Receipt` with transaction `0xb3c18072…` (pull mode, pathUSD, mined on Moderato). So
+the tempo path is proven end to end; production only needs the receiving address below.
 
 ## What the code does (`src/lib/mpp-tempo.ts`)
 
