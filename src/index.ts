@@ -213,7 +213,7 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  const answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : []);
+  const answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined);
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (answer.status !== 402 || !endpoint) return answer;
