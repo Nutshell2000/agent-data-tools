@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Env } from "./env";
+import { canBatch, queueBatched } from "./metrics-batch";
 
 // A payment attempt that never reached the facilitator ends in one of the refused_* stages: wrong amount or
 // recipient, a network we do not accept, or a header we could not read. facilitator_unavailable means the
@@ -22,7 +23,12 @@ export const safeSource = (source?: string | null) => source && /^[a-z0-9_-]{1,4
 export function withRequestTrace<T>(env: Env, path: string, source: string | null, waitUntil: (p: Promise<unknown>) => void, callback: () => T): T {
   const trace: Trace = { requestId: crypto.randomUUID(), path, transport: "http", source: safeSource(source), stages: new Set(), emit(event) {
     if (!env.METRICS) return;
-    try { waitUntil(env.METRICS.get(env.METRICS.idFromName("global")).recordFunnel(event).catch(() => console.error("funnel: recording failed"))); }
+    try {
+      const stub = env.METRICS.get(env.METRICS.idFromName("global"));
+      // Counted-only stages ride the isolate's batch; payment stages are recorded at once.
+      if (COUNTED_ONLY.has(event.stage) && canBatch(stub)) return queueBatched(stub, waitUntil, (b) => b.funnel.push(event));
+      waitUntil(stub.recordFunnel(event).catch(() => console.error("funnel: recording failed")));
+    }
     catch { console.error("funnel: recording unavailable"); }
   } };
   return traces.run(trace, callback);
