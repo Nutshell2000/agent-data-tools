@@ -1,7 +1,7 @@
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 
 export * from "./endpoints";
@@ -12,7 +12,7 @@ export const MCP_SERVER_VERSION = "1.40.0";
 export const READER_VERSION = "1.7.6";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
-const exampleQuery = (e: Endpoint) =>
+export const exampleQuery = (e: Endpoint) =>
   exampleParams(e)
     .map(([k, p]) => `${k}=${encodeURIComponent(String(p.example))}`)
     .join("&") || "format=json";
@@ -179,7 +179,7 @@ export const mcpBundleTools = (slug: string) =>
   Object.hasOwn(MCP_BUNDLES, slug) ? ENDPOINTS.filter((e) => categoryOf(e.path) === MCP_BUNDLES[slug]) : undefined;
 /** Tools shown first on the homepage. */
 const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/check/counterparty", "/company", "/pdf/text"];
-const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
+export const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
 
 /**
  * Page title. x402scan scrapes it as the origin title and puts it in the search text of every one of
@@ -192,7 +192,7 @@ export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data,
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo, "/extract", "url=https%3A%2F%2Fexample.com", "ordinary");
   const row = (e: (typeof ENDPOINTS)[number]) =>
-    `<tr><td class="path"><a href="#tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`;
+    `<tr><td class="path"><a href="/tools/${esc(toolSlug(e.path))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`;
   const starters = START_HERE.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is (typeof ENDPOINTS)[number] => Boolean(e));
   const head = "<tr><th>Endpoint</th><th>What it does</th><th>Price</th></tr>";
   const rows = [
@@ -208,7 +208,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -498,6 +498,6 @@ export const robotsTxt = (origin: string) =>
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/tools", ...ENDPOINTS.map((e) => `/tools/${toolSlug(e.path)}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
 }
