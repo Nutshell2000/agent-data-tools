@@ -131,3 +131,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 ## OpenAI-compatible embeddings (1.39.1)
 
 - `POST /v1/embeddings` (src/lib/openai-embeddings.ts) is the same kind of front as the chat one, for `/ai/embed` ($0.003, BGE-M3, 1,024 dimensions): one input string per request because one payment pays for one call; arrays with more than one item are refused 400 before anything is forwarded. Unpaid or empty POSTs get the /ai/embed 402; GET is 405.
+
+## OpenAI Responses API shape (1.39.2)
+
+- `POST /v1/responses` (src/lib/openai-responses.ts) maps the Responses body (input string or role/content items, instructions, max_output_tokens) onto the chat-completions body and runs through `completeChat()` in src/lib/openai-chat.ts, so the model routing, prices, quote and refusal rules are the chat front's; the answer is one completed message in `output` plus `output_text`.

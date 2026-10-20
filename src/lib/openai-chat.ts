@@ -25,7 +25,7 @@ const SYSTEM_LIMIT = 2000;
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 
-interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS }
+export interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS }
 
 /** Which tool (and large-model name) an OpenAI `model` string selects. */
 export function toolFor(model: unknown): { path: string; model?: keyof typeof LARGE_CHAT_MODELS } {
@@ -95,17 +95,32 @@ export function toOpenAiResponse(query: ChatQuery, result: { model?: string; res
 }
 
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
-const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
+export const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 /** Handles POST /v1/chat/completions by forwarding the equivalent chat-tool GET through the whole middleware chain. */
 export async function openAiChatCompletions(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   let body: unknown = null;
   try { body = await c.req.json(); } catch { body = null; }
+  const done = await completeChat(c, forward, body);
+  if (!done.ok) return done.response;
+  const out = c.json(toOpenAiResponse(done.query, done.result, done.requestedModel), 200);
+  for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = done.answer.headers.get(name); if (v) out.headers.set(name, v); }
+  out.headers.set("Cache-Control", "no-store");
+  return out;
+}
+
+/**
+ * Runs one chat request (an OpenAI chat-completions body) through the paid tool: validation, the unpaid quote, the
+ * forwarded call. Shared by the chat-completions and Responses fronts, which only differ in the body and answer shapes.
+ */
+export async function completeChat(c: C, forward: Forward, body: unknown): Promise<
+  { ok: true; answer: Response; query: ChatQuery; result: { model?: string; response?: string }; requestedModel?: string } | { ok: false; response: Response }
+> {
+  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   const mapped = toChatQuery(body);
   if ("error" in mapped && paying) {
     // Invalid input with a payment attached: refuse before anything is forwarded, so nothing is charged.
-    return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
+    return { ok: false, response: c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400) };
   }
   // An unpaid probe (directories, validators, a first unpaid call) gets the real quote even with an empty body.
   const requestedModel = body && typeof body === "object" ? String((body as { model?: unknown }).model ?? "") || undefined : undefined;
@@ -126,12 +141,9 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
   headers.delete("content-length");
   headers.set("accept", "application/json");
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
-  if (answer.status !== 200) return answer; // the 402 quote, a refusal or an uncharged error, unchanged
+  if (answer.status !== 200) return { ok: false, response: answer }; // the 402 quote, a refusal or an uncharged error, unchanged
   const result = (await answer.json().catch(() => ({}))) as { model?: string; response?: string };
-  const out = c.json(toOpenAiResponse(query, result, requestedModel), 200);
-  for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
-  out.headers.set("Cache-Control", "no-store");
-  return out;
+  return { ok: true, answer, query, result, requestedModel };
 }
 
 /** GET /v1/models: the models behind /v1/chat/completions, free to read. */
