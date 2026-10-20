@@ -425,30 +425,48 @@ app.on(["GET", "HEAD"], "/examples/extract/", c => c.env.ASSETS.fetch(new Reques
 for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/reader/*"]) {
   app.on(["GET", "HEAD"], prefix, async c => readerAssets.has(c.req.path) ? await c.env.ASSETS.fetch(c.req.raw) : c.json({ error: "not found" }, 404));
 }
+/**
+ * The report routes read the Metrics object. While it is out of its daily free-plan quota (resets 00:00 UTC) every
+ * call to it throws: answer a retryable 503 that says the tools still work, not a bare 500 that a directory health
+ * check reads as a dead seller.
+ */
+async function fromMetrics(read: () => Promise<Response>): Promise<Response> {
+  try {
+    return await read();
+  } catch (err) {
+    console.error("metrics report unavailable", err);
+    return Response.json(
+      { error: "usage figures are unavailable right now (storage quota, resets 00:00 UTC). The tools and x402 payments keep working." },
+      { status: 503, headers: { "Retry-After": "600" } },
+    );
+  }
+}
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.
-app.get("/metrics", async (c) => {
+app.get("/metrics", (c) => fromMetrics(async () => {
   if (!c.env.METRICS) return c.json({});
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   await sendBatchNow(metrics);
   return c.json(await metrics.report());
-});
+}));
 // Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
 // Only the software name is stored, never the full User-Agent or any caller address.
-app.get("/metrics/callers", async (c) => {
+app.get("/metrics/callers", (c) => fromMetrics(async () => {
   if (!c.env.METRICS) return c.json({});
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   await sendBatchNow(metrics);
   const [http, mcp] = await Promise.all([metrics.callers(), metrics.mcpClients()]);
   return c.json({ http, mcpConnections: mcp });
-});
+}));
 // Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
 app.get("/status", async (c) => {
   const generatedAt = new Date().toISOString();
   const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx), which are never charged; server errors (5xx) are never charged either.";
   if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-  await sendBatchNow(metrics);
-  return c.json({ generatedAt, note, ...await metrics.status(ENDPOINTS.map((e) => e.path)) });
+  return fromMetrics(async () => {
+    await sendBatchNow(metrics);
+    return c.json({ generatedAt, note, ...await metrics.status(ENDPOINTS.map((e) => e.path)) });
+  });
 });
 /** True when `header` is "Bearer <token>" for the configured token; digests compared, so no early exit on a prefix. */
 async function ownerToken(token: string | undefined, header: string | undefined): Promise<boolean> {
@@ -457,7 +475,7 @@ async function ownerToken(token: string | undefined, header: string | undefined)
   const [a, b] = await Promise.all([digest(token), digest(header.slice(7))]);
   return a.every((byte, i) => byte === b[i]);
 }
-app.get("/revenue", async (c) => {
+app.get("/revenue", (c) => fromMetrics(async () => {
   if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
   const global = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   await sendBatchNow(global);
@@ -466,7 +484,7 @@ app.get("/revenue", async (c) => {
   if (!(await ownerToken(c.env.REVENUE_TOKEN, c.req.header("authorization")))) return c.json(x402);
   const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
   return c.json({ ...x402, cardCredits });
-});
+}));
 // The resource manifest, also at the ".json" spelling some crawlers (gold-402 entries, agent kits) look for.
 for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
   app.get(path, (c) => c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
