@@ -27,6 +27,12 @@ const mf = new Miniflare(convertV4MiniflareOptions({
   modules: true, script: worker.outputFiles[0].text, compatibilityDate: "2026-09-01", compatibilityFlags: ["nodejs_compat"],
   durableObjects: { METRICS: { className: "Metrics", useSQLite: true } }, kvNamespaces: ["TRIALS"],
   bindings: { PAY_TO: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", NETWORK: "eip155:8453", PAYWALL: "off", TRIALS_ENABLED: "off", MPP_EVM: "off", FACILITATOR_URL: "https://facilitator.invalid", BASE_RPC_URL: "https://mainnet.base.org" },
+  // The Worker's outbound requests go through Node's fetch, so an HTTPS proxy (NODE_USE_ENV_PROXY=1) applies to them too.
+  outboundService: async (request) => {
+    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+    try { return await fetch(request.url, { method: request.method, headers: request.headers, body, redirect: "manual" }); }
+    catch (err) { return new Response(String(err?.cause?.message ?? err?.message ?? err), { status: 599 }); }
+  },
 }));
 
 const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
@@ -52,6 +58,6 @@ await mf.dispose();
 
 const failed = results.filter((r) => !(r.status >= 200 && r.status < 400));
 const slow = results.filter((r) => r.ms > 10_000 && !failed.includes(r));
-console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.length - tools.length} AI/rendering tools skipped (staging).`);
+console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.filter((e) => CAPACITY_LIMITED.has(e.path) || e.path.startsWith("/ai/")).length} AI/rendering tools skipped (staging).`);
 if (jsonOut) await writeFile(jsonOut, JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));
 process.exit(failed.length ? 1 : 0);
