@@ -10,13 +10,16 @@ import type { Env } from "./env";
  * Arbitrum: all 7-8/8. Optimism: publicnode 8/8, official 6/8, drpc and BlastAPI 0/8. Polygon: publicnode 8/8,
  * drpc 6/8, polygon-rpc.com and BlastAPI 0/8. Second probe: POKT gateway (nodies) 8/8 on Base and Optimism, 0/8 on
  * Polygon; meowrpc, subquery and omniatech 0/8 everywhere. Re-measure before reordering.
+ * Last fallbacks, added 2026-10-20 for eth_getLogs (not yet measured from Cloudflare): Tenderly's public gateway answers
+ * 1,000-block log scans on all five chains, and QuickNode's public Polygon endpoint too. BlastAPI caps eth_getLogs at
+ * 10 blocks and has shut down on Polygon; drpc's free plan refuses Polygon and Base log scans.
  */
 export const EDGE_RPCS = {
-  base: ["https://base-mainnet.public.blastapi.io", "https://base-pokt.nodies.app", "https://base-rpc.publicnode.com", "https://mainnet.base.org"],
-  eth: ["https://eth.drpc.org", "https://rpc.mevblocker.io", "https://eth-mainnet.public.blastapi.io", "https://ethereum-rpc.publicnode.com"],
-  arb: ["https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://arbitrum-one.public.blastapi.io", "https://arb1.arbitrum.io/rpc"],
-  op: ["https://optimism-rpc.publicnode.com", "https://op-pokt.nodies.app", "https://mainnet.optimism.io"],
-  polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon.drpc.org"],
+  base: ["https://base-mainnet.public.blastapi.io", "https://base-pokt.nodies.app", "https://base-rpc.publicnode.com", "https://mainnet.base.org", "https://base.gateway.tenderly.co"],
+  eth: ["https://eth.drpc.org", "https://rpc.mevblocker.io", "https://eth-mainnet.public.blastapi.io", "https://ethereum-rpc.publicnode.com", "https://mainnet.gateway.tenderly.co"],
+  arb: ["https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://arbitrum-one.public.blastapi.io", "https://arb1.arbitrum.io/rpc", "https://arbitrum.gateway.tenderly.co"],
+  op: ["https://optimism-rpc.publicnode.com", "https://op-pokt.nodies.app", "https://mainnet.optimism.io", "https://optimism.gateway.tenderly.co"],
+  polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon.drpc.org", "https://polygon.gateway.tenderly.co", "https://rpc-mainnet.matic.quiknode.pro"],
 } as const;
 
 /**
