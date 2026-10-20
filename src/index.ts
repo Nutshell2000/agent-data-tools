@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
+import { browserTrialResultPage, isBrowser } from "./lib/browser-402";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
@@ -190,6 +191,16 @@ app.use(async (c, next) => {
       if (c.res.status >= 400) await free.refund();
       else markStage("free_call");
       c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
+      // A person who clicked "Run it free" sees the result on a page with what to do next; clients keep the JSON.
+      if (c.res.status < 400 && isBrowser(c.req.header("accept"), c.req.header("user-agent")) && (c.res.headers.get("content-type") ?? "").includes("application/json")) {
+        const { status } = c.res;
+        const headers = new Headers(c.res.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.delete("content-length");
+        const page = browserTrialResultPage(endpoint, await c.res.text(), free.left);
+        c.res = undefined as never; // Hono copies an existing response's headers into the next one
+        c.res = new Response(page, { status, headers });
+      }
       return;
     }
   }
