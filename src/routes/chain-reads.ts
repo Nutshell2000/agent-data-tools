@@ -7,6 +7,7 @@ import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
 import { EDGE_RPCS, erc20Abi, rpcUrls } from "../lib/rpc";
+import { tokenAddress } from "../lib/tickers";
 
 interface ChainDef {
   slug: string;
@@ -55,6 +56,15 @@ const address = (v: string | undefined, name = "address") => {
   if (!a || !isAddress(a)) throw new HttpError(400, `${name} must be a 0x address (40 hex characters)`);
   return a;
 };
+/** What 2,000 blocks cover per chain (Base, Optimism and Polygon 2 s blocks, Arbitrum 0.25 s, Ethereum 12 s). */
+const BLOCK_WINDOW: Record<string, string> = { base: "67 minutes", op: "67 minutes", polygon: "67 minutes", arb: "8 minutes", eth: "6.7 hours" };
+
+/** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
+const tokenInput = (v: string | undefined, slug: string) => {
+  const t = v?.trim();
+  if (!t) throw new HttpError(400, "token is required: a ticker such as USDC or a 0x token contract address");
+  return /^0x/i.test(t) ? address(t, "token") : tokenAddress(t, slug);
+};
 const txHash = (v: string | undefined) => {
   const h = v?.trim();
   if (!h || !isHash(h)) throw new HttpError(400, "hash must be a 0x transaction hash (64 hex characters)");
@@ -98,12 +108,12 @@ function chainEntries(c: ChainDef): Entry[] {
     entry(p("token-balance"), `${c.name} ERC-20 balance`,
       `ERC-20 token balance of a wallet on ${c.name} (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use ${c.slug}_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged.`,
       tags("erc20", "token", "balance"), {
-        token: { type: "string", description: "0x ERC-20 token contract address", required: true, example: USDC[c.slug] },
+        token: { type: "string", description: "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },
         address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
       },
       head({ token: USDC[c.slug], symbol: "USDC", decimals: 6, address: EX_ADDR, raw: "2500000", balance: "2.5" }),
       async (env, q) => {
-        const token = address(q("token"), "token");
+        const token = tokenInput(q("token"), c.slug);
         const a = address(q("address"));
         const cl = client(env, c);
         // Same rule as token-info: no code is 404; a contract that cannot answer ERC-20 reads is 422.
@@ -118,11 +128,11 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("token-info"), `${c.name} ERC-20 token info`,
-      `Look up the name, symbol, decimals and total supply of an ERC-20 token contract on ${c.name}, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use ${c.slug}_token_balance. Input is the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged.`,
-      tags("erc20", "token", "metadata"), { token: { type: "string", description: "0x ERC-20 token contract address", required: true, example: USDC[c.slug] } },
+      `Look up the name, symbol, decimals and total supply of an ERC-20 token contract on ${c.name}, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use ${c.slug}_token_balance. Input is a ticker (USDC, WETH…) or the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged.`,
+      tags("erc20", "token", "metadata"), { token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] } },
       head({ token: USDC[c.slug], name: "USD Coin", symbol: "USDC", decimals: 6, totalSupply: "1000000000.0", totalSupplyRaw: "1000000000000000" }),
       async (env, q) => {
-        const token = address(q("token"), "token");
+        const token = tokenInput(q("token"), c.slug);
         const cl = client(env, c);
         const code = await rpc(() => cl.getCode({ address: token }));
         if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
@@ -243,13 +253,13 @@ function chainEntries(c: ChainDef): Entry[] {
       `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
       tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
         address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
-        token: { type: "string", description: "0x ERC-20 token contract (default: USDC on this network)", example: USDC[c.slug] },
-        blocks: { type: "integer", description: "How many recent blocks to scan (1-2000, default 1000)", example: 1000 },
+        token: { type: "string", description: "Token: a ticker such as USDT or WETH, or the 0x ERC-20 contract (default: USDC on this network)", example: USDC[c.slug] },
+        blocks: { type: "integer", description: `How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about ${BLOCK_WINDOW[c.slug]} on ${c.name})`, example: 1000 },
       },
       head({ address: EX_ADDR, fromBlock: 123456290, toBlock: 123456789, count: 1, truncated: false, transfers: [{ block: 123456780, tx: "0x…", token: USDC[c.slug], symbol: "USDC", direction: "in", counterparty: "0x…", amount: "2.5", raw: "2500000" }] }),
       async (env, q) => {
         const a = address(q("address"));
-        const token = q("token") ? address(q("token"), "token") : USDC[c.slug];
+        const token = q("token") ? tokenInput(q("token"), c.slug) : USDC[c.slug];
         const span = BigInt(num(q, "blocks", { min: 1, max: 2000, fallback: 1000, integer: true }));
         const cl = client(env, c);
         const latest = await rpc(() => cl.getBlockNumber());

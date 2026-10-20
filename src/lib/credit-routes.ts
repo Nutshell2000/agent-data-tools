@@ -190,6 +190,9 @@ const keyPlacement = (origin: string, signedIn: boolean) => signedIn
   ? "then reconnect this connector and sign in with the key"
   : `and add the header "Authorization: Bearer <key>" to this server's connection settings (or, in apps that only take a URL, connect to ${origin}/mcp/k/<key>)`;
 
+/** The tool for the common jobs, so a model does not have to read all tool descriptions to pick one. */
+const PICK_BY_TASK = "Pick by task: is it safe to pay an address → check_counterparty; OFAC only → sanctions_check; token price by ticker or address → price_token (many: price_tokens); a wallet's holdings in USD → wallet_portfolio (5 chains: wallet_balances); chain state on base, eth, arb, op or polygon → <chain>_balance, _token_balance (tickers like USDC work), _tx, _receipt, _logs, _gas, _block; read a web page → extract (JavaScript sites: extract_rendered); PDF → pdf_text; company → company; FX → fx; weather by city → weather. Smaller servers per section: /mcp/prices, /mcp/chain, /mcp/web, /mcp/compliance, /mcp/ai, /mcp/everyday, /mcp/utilities.";
+
 export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number, agentPurchase = false, signedIn = false) {
   const pay = signedIn
     ? (hasKey
@@ -199,7 +202,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
       + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
-  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.003 per successful call. ${pay} Every tool's result shape is in its output schema.`;
+  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.003 per successful call. ${pay} Every tool's result shape is in its output schema. ${PICK_BY_TASK}`;
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */

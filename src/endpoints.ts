@@ -141,7 +141,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Base ERC-20 token facts and risk flags",
     description:
-      "Live on-chain facts for any ERC-20 token on Base: name, symbol, decimals, total supply, owner address and whether ownership is renounced, paused state, proxy detection (EIP-1967 and minimal proxy) with implementation and admin addresses, and bytecode heuristics for mint, pause, blacklist and fee-setter functions. Use for token due diligence and rug-pull or honeypot screening before a swap.",
+      "Base only (other chains: <chain>_token_info). Live on-chain facts for an ERC-20 token on Base: name, symbol, decimals, total supply, owner and whether ownership is renounced, paused state, proxy detection (EIP-1967, minimal proxy) with implementation and admin, and bytecode heuristics for mint, pause, blacklist and fee-setter functions. Use for token due diligence and rug-pull or honeypot screening before a swap.",
     tags: ["base", "token", "erc20", "security", "onchain"],
     params: {
       address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
@@ -201,7 +201,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.005",
     summary: "Base wallet balances and account nonce snapshot",
     description:
-      "Live snapshot of any address on Base: ETH balance, balances of major tokens (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 extra token addresses you pass, the EVM account nonce, and whether the address is an EOA, a smart contract or an EIP-7702 delegated account. For EOAs the nonce reflects outgoing transactions only; this is not full transaction, token-transfer or trading history. Use to check a counterparty's holdings.",
+      "Base only (all 5 chains: wallet_balances; USD values: wallet_portfolio). An address on Base: ETH and major token balances (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 token addresses you pass, the account nonce, and whether it is an EOA, a contract or an EIP-7702 account. The nonce counts outgoing transactions only; not transfer or trading history. Use to check a counterparty's holdings.",
     tags: ["base", "wallet", "balance", "portfolio", "onchain"],
     params: {
       address: { type: "string", description: "Wallet or contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -226,7 +226,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Summarize a web page",
     description:
-      "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. Use for research, news triage, link previews and deciding whether a page is worth reading in full.",
+      "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. HTML pages only; for a PDF use pdf_text, then ai_summarize_text. Use for research, news triage, link previews and deciding whether a page is worth reading in full.",
     tags: ["summary", "web", "llm", "research", "text"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of the page to summarize", required: true, example: "https://en.wikipedia.org/wiki/HTTP_402" },
@@ -493,7 +493,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.02",
     summary: "Heuristic wallet risk indicators, balances and account nonce on Base",
     description:
-      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only, not full history. Address type is reported separately and does not affect the balance/nonce-based risk tier. Use to screen an address before paying it.",
+      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only. Address type is reported separately and does not affect the risk tier. Use to screen a Base address; other chains or OFAC: check_counterparty.",
     tags: ["wallet", "base", "ethereum", "crypto"],
     params: {
       address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
@@ -863,7 +863,7 @@ export const CORE_ENDPOINTS = [
       city: { type: "string", description: "City or place name, e.g. London or Uppsala (used when lat and lon are not given)", example: "London" },
       lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)", example: 59.33 },
       lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)", example: 18.07 },
-      hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12)", example: 12 },
+      hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)", example: 12 },
     },
     outputExample: {
       latitude: 59.33,
