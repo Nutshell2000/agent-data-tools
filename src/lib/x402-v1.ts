@@ -35,7 +35,16 @@ export function v1Requirements(env: Env, endpoint: Endpoint, resourceUrl: string
     resource: resourceUrl,
     description: endpoint.description,
     mimeType: "application/json",
-    outputSchema: { input: { type: "http", method: "GET", discoverable: true }, output: endpoint.outputExample },
+    // The v1 Bazaar lists a tool from this block at its first settlement, inputs included.
+    outputSchema: {
+      input: {
+        type: "http", method: "GET", discoverable: true,
+        queryParams: Object.fromEntries(Object.entries(endpoint.params).map(([name, p]) => [name, {
+          type: p.type, required: Boolean(p.required), description: p.description, ...(p.enum ? { enum: [...p.enum] } : {}),
+        }])),
+      },
+      output: endpoint.outputExample,
+    },
     payTo,
     maxTimeoutSeconds: 300,
     asset: USDC_BY_NETWORK[network as keyof typeof USDC_BY_NETWORK],

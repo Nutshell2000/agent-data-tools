@@ -216,3 +216,17 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 ## Search copy on tool pages
 
 - `TOOL_SEO` (src/lib/tool-seo.ts) gives 20 likely-searched tools a search-phrased title and h1, a "When to use it" list and a FAQ (also published as schema.org FAQPage). The page adds the "How do I pay?" answer itself from its free-call flag. Copy may only restate what the tool's description and limits say. `/tools/<slug>` no longer offers "Run it free" on capacity-limited tools (AI, rendering, transcription, search), which are outside the free calls. Tests: tests/browser-402.test.cjs.
+
+## Buyer-client compatibility and discovery conformance (cloud audit, 2026-10-20)
+
+- Audit on staging with an unfunded throwaway key. Each client got as far as a funds refusal:
+  - `@x402/fetch` 2.28 (and AgentKit, which wraps it), `x402-fetch` and `x402-axios` 1.2: all four routes.
+  - mppx 0.13 tempo/charge.
+  - mppx evm needs `currencies:[evm.assets.base.USDC], networks:[8453]` from the buyer, because the challenge cannot carry the EIP-712 token name and version.
+- **Tempo challenge first.** AgentCash's client bundles mppx 0.8, which reads only the first `Payment` challenge and pays only on Tempo. With evm first, its buyers were refused for an "unsupported token". The OpenAPI `protocols` list Tempo first too. Keep this order.
+- **MPP evm anti-replay claim.** If the Durable Object cannot write (daily write budget), the call now answers an uncharged 503 with `Retry-After`. It used to be an unhandled 500 before verify.
+- **`x-payment-info` carries both shapes.** AgentCash and x402scan read `price` and `protocols`. MPP discovery (mppx and mpp.dev) reads `offers[]`, one per MPP method, with the amount in base units and `null` for the dynamic chat fronts. The builder is `paymentInfo()` in src/lib/payment-info.ts.
+- **Bazaar keeps the first 5 tags.** `listingTags()` (src/lib/bazaar-extension.ts) puts the specific tags first. Bazaar inputs carry `examples` and, for 0x address and hash inputs, a `pattern`.
+- **The v1 body lists `queryParams`.** Without them, a v1 first payment would list the tool with no inputs.
+- **OpenAPI 200 schemas.** `completeResponses()` gives every 200 response a schema; the `/v1` GET variants reuse the POST response.
+- Validators, all clean: AgentCash discovery check per route, x402scan probe, `@x402/extensions` 2.28 and `mppx discover validate`. x402scan skips the three `/credits/buy/*` packs because they take MPP only; that is expected.

@@ -8,17 +8,36 @@ import { schemaFromExample } from "./output-schema";
  * payment. Shared by the x402 paywall (every 402 carries it) and the MPP evm settlement (lib/mpp-evm.ts), which
  * sends it with the payment payload so an MPP settlement can index the tool too.
  */
+/** A pattern for inputs that only take a 0x address or a 32-byte hash, so agents can validate before paying. */
+function formatOf(p: Endpoint["params"][string]): { pattern?: string } {
+  if (typeof p.example !== "string" || /\bens\b|name/i.test(p.description)) return {};
+  if (/^0x[0-9a-fA-F]{40}$/.test(p.example)) return { pattern: "^0x[0-9a-fA-F]{40}$" };
+  if (/^0x[0-9a-fA-F]{64}$/.test(p.example)) return { pattern: "^0x[0-9a-fA-F]{64}$" };
+  return {};
+}
+
 export function bazaarExtensionFor(e: Endpoint) {
   return declareDiscoveryExtension({
     input: Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example])),
     inputSchema: {
       properties: Object.fromEntries(
-        Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
+        Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), examples: [p.example] }]),
       ),
       required: Object.entries(e.params)
         .filter(([, p]) => p.required)
         .map(([k]) => k),
     },
-    output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
+    output: { example: e.outputExample, schema: e.outputSchema ?? schemaFromExample(e.outputExample) },
   });
+}
+
+/** Tags that most tools share; they say little to a search, so they go after the specific ones. */
+const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "data"]);
+
+/**
+ * The tags a directory listing carries. The Bazaar keeps the first 5 and drops the rest without a warning, so the
+ * specific ones (usdc, payments, sanctions…) go first and the shared ones last.
+ */
+export function listingTags(tags: readonly string[]): string[] {
+  return [...tags.filter((t) => !GENERIC_TAGS.has(t)), ...tags.filter((t) => GENERIC_TAGS.has(t))].slice(0, 5);
 }
