@@ -230,3 +230,8 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 - **The v1 body lists `queryParams`.** Without them, a v1 first payment would list the tool with no inputs.
 - **OpenAPI 200 schemas.** `completeResponses()` gives every 200 response a schema; the `/v1` GET variants reuse the POST response.
 - Validators, all clean: AgentCash discovery check per route, x402scan probe, `@x402/extensions` 2.28 and `mppx discover validate`. x402scan skips the three `/credits/buy/*` packs because they take MPP only; that is expected.
+- **The `/v1` fronts quote under their own name** (`asFrontQuote` in src/lib/openai-chat.ts).
+  - The x402 v2 `resource` (URL without the query, plus the front's description) and the v1 body's `resource` name `/v1/chat/completions`, `/v1/responses` or `/v1/embeddings`, never `/ai/chat?prompt=…`. A settled front is therefore listed under its OpenAI path.
+  - The payment terms and the Bazaar extension stay the tool's. `@x402/core` matches a payment on its accepted terms, never on the resource, and it refuses echoed extensions that differ from what the route advertises (`extension_echo_mismatch`), so the extension must not be rewritten.
+  - `X-Tool` on the quote names the tool, and so the price, that the request maps to.
+  - Proven with a real `@x402/fetch` client in tests/openai-chat.test.cjs.

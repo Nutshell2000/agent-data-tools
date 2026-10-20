@@ -169,9 +169,47 @@ export async function completeChat(c: C, forward: Forward, body: unknown): Promi
   headers.delete("content-length");
   headers.set("accept", "application/json");
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
-  if (answer.status !== 200) return { ok: false, response: answer }; // the 402 quote, a refusal or an uncharged error, unchanged
+  if (answer.status === 402) return { ok: false, response: await asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", toolPath) };
+  if (answer.status !== 200) return { ok: false, response: answer }; // a refusal or an uncharged error, unchanged
   const result = (await answer.json().catch(() => ({}))) as { model?: string; response?: string };
   return { ok: true, answer, query, result, requestedModel };
+}
+
+/** What the quote of each front says it sells; directories list a settled front under this name and text. */
+export const FRONT_DESCRIPTIONS: Record<string, string> = {
+  "/v1/chat/completions": "OpenAI-compatible chat completions, pay per request: Llama 3.1 8B by default, Llama 3.3 70B or gpt-oss-120b by model name. POST an OpenAI messages body (or GET with prompt in the query) and get one assistant message back. No account or API key; failed calls are not charged.",
+  "/v1/responses": "OpenAI Responses API shape, pay per request: input text or messages, instructions and max_output_tokens in, one completed message and output_text out. Llama 3.1 8B by default, Llama 3.3 70B or gpt-oss-120b by model name. No account or API key; failed calls are not charged.",
+  "/v1/embeddings": "OpenAI-compatible embeddings, pay per request: one input string in, a 1,024-dimension BGE-M3 vector out (multilingual, for search and RAG). No account or API key; failed calls are not charged.",
+};
+
+/**
+ * A front's 402 names the front, not the tool it forwards to: the x402 v2 resource (URL without the query, and the
+ * front's description) and the v1 body's resource. Directories then list the OpenAI path, and clients that compare
+ * the quoted resource with the URL they called accept it. The payment terms and the Bazaar extension stay the
+ * tool's: the paid retry is checked against those (matching ignores the resource; echoed extensions must match).
+ */
+export async function asFrontQuote(answer: Response, outer: URL, description: string, toolPath?: string): Promise<Response> {
+  const url = outer.origin + outer.pathname;
+  const headers = new Headers(answer.headers);
+  if (toolPath) headers.set("X-Tool", toolPath); // which tool (and so which price) this request maps to
+  const encoded = headers.get("payment-required");
+  if (encoded) {
+    try {
+      const terms = JSON.parse(atob(encoded)) as { resource?: Record<string, unknown> };
+      terms.resource = { ...terms.resource, url, ...(description ? { description } : {}) };
+      headers.set("payment-required", btoa(JSON.stringify(terms)));
+    } catch { /* not ours to fix: pass it on unchanged */ }
+  }
+  let body: string | null = await answer.text();
+  try {
+    const parsed = JSON.parse(body) as { accepts?: Array<Record<string, unknown>> };
+    if (Array.isArray(parsed.accepts)) {
+      for (const a of parsed.accepts) { a.resource = url; if (description) a.description = description; }
+      body = JSON.stringify(parsed);
+      headers.delete("content-length");
+    }
+  } catch { /* an HTML page or another body: unchanged */ }
+  return new Response(body, { status: answer.status, statusText: answer.statusText, headers });
 }
 
 /** GET /v1/models: the models behind /v1/chat/completions, free to read. */

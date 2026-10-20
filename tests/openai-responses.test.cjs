@@ -49,7 +49,8 @@ test('an unpaid POST /v1/responses is quoted like the chat tool, a large model a
   assert.ok(res.headers.get('payment-required'));
   const quote = await res.json();
   assert.equal(quote.accepts[0].maxAmountRequired, '3000');
-  assert.match(quote.accepts[0].resource, /\/ai\/chat\?prompt=Hi/);
+  assert.equal(quote.accepts[0].resource, 'https://api.test/v1/responses');
+  assert.equal(res.headers.get('x-tool'), '/ai/chat');
   const large = await (await mf.dispatchFetch('https://api.test/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'llama-3.3-70b', input: 'Hi' }) })).json();
   assert.equal(large.accepts[0].maxAmountRequired, '10000');
   const bad = await mf.dispatchFetch('https://api.test/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'eyJmYWtlIjp0cnVlfQ' }, body: JSON.stringify({ input: [] }) });
