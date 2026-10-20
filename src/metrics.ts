@@ -5,6 +5,7 @@ import { saveFunnel, funnelSummary, assertFunnelEvent, funnelLabel, COUNTED_ONLY
 import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
+import type { MetricsBatch } from "./lib/metrics-batch";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
@@ -141,8 +142,23 @@ export class Metrics extends DurableObject {
 
   async recordFunnel(event: FunnelEvent) {
     if (!COUNTED_ONLY.has(event.stage)) return saveFunnel(this.ctx.storage, event);
+    this.addFunnel(event);
+    await this.schedule();
+  }
+
+  private addFunnel(event: FunnelEvent) {
     assertFunnelEvent(event);
     this.add(`funnel:day:${event.at.slice(0, 10)}`, { [funnelLabel(event)]: 1 });
+  }
+
+  /** One call for an isolate's batch of counter updates (lib/metrics-batch.ts); a bad item is skipped. */
+  async ingest(batch: MetricsBatch) {
+    for (const [path, outcome, revenueUsdMicros, caller] of batch.bumps ?? []) this.addBump(path, outcome, revenueUsdMicros, caller);
+    for (const event of batch.funnel ?? []) {
+      if (!COUNTED_ONLY.has(event.stage)) { await saveFunnel(this.ctx.storage, event).catch(() => {}); continue; }
+      try { this.addFunnel(event); } catch { console.error("metrics: invalid funnel event in batch"); }
+    }
+    for (const [client, mode] of batch.mcp ?? []) this.addMcpClient(client, mode);
     await this.schedule();
   }
 
@@ -181,11 +197,16 @@ export class Metrics extends DurableObject {
   }
 
   async bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void> {
+    this.addBump(path, outcome, revenueUsdMicros, caller);
+    await this.schedule();
+  }
+
+  private addBump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string) {
+    if (typeof path !== "string" || typeof outcome !== "string") return;
     const paid = outcome === "paid" && revenueUsdMicros !== undefined && Number.isSafeInteger(revenueUsdMicros) && revenueUsdMicros > 0;
     this.add(`day:${today()}`, { [path]: { [outcome]: 1, revenueUsdMicros: paid ? revenueUsdMicros : 0, trackedPaidCalls: paid ? 1 : 0 } });
     if (caller) this.add(`callers:${today()}`, { [caller]: { [outcome]: 1 } });
     if (SERVED.includes(outcome)) this.pendingLast.set(path, new Date().toISOString());
-    await this.schedule();
   }
 
   /** Per-path reliability over the last STATUS_DAYS days: executed calls only, never unpaid quotes. */
@@ -209,8 +230,12 @@ export class Metrics extends DurableObject {
 
   /** One MCP connection (initialize) by client name and how it connected: open, key or account. */
   async bumpMcpClient(client: string, mode: "open" | "key" | "account"): Promise<void> {
-    this.add(`mcpclients:${today()}`, { [client]: { [mode]: 1 } });
+    this.addMcpClient(client, mode);
     await this.schedule();
+  }
+
+  private addMcpClient(client: string, mode: "open" | "key" | "account") {
+    if (typeof client === "string" && typeof mode === "string") this.add(`mcpclients:${today()}`, { [client]: { [mode]: 1 } });
   }
 
   async mcpClients(): Promise<Record<string, McpClients>> {

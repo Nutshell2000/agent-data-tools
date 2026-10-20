@@ -1,4 +1,5 @@
 import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
+import { sendBatchNow } from "./lib/metrics-batch";
 import { localMcpHtml, localMcpMarkdown } from "./guides/local-mcp";
 import { readerSkillMarkdown, readerSkillIndex } from "./guides/reader-skill";
 import { loadReaderDemo } from "./guides/reader-buying";
@@ -395,13 +396,16 @@ for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/re
 // Daily request counts per paid path. Aggregates only, so it is safe to leave public.
 app.get("/metrics", async (c) => {
   if (!c.env.METRICS) return c.json({});
-  return c.json(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).report());
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  await sendBatchNow(metrics);
+  return c.json(await metrics.report());
 });
 // Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
 // Only the software name is stored, never the full User-Agent or any caller address.
 app.get("/metrics/callers", async (c) => {
   if (!c.env.METRICS) return c.json({});
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  await sendBatchNow(metrics);
   const [http, mcp] = await Promise.all([metrics.callers(), metrics.mcpClients()]);
   return c.json({ http, mcpConnections: mcp });
 });
@@ -410,7 +414,9 @@ app.get("/status", async (c) => {
   const generatedAt = new Date().toISOString();
   const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx), which are never charged; server errors (5xx) are never charged either.";
   if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
-  return c.json({ generatedAt, note, ...await c.env.METRICS.get(c.env.METRICS.idFromName("global")).status(ENDPOINTS.map((e) => e.path)) });
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  await sendBatchNow(metrics);
+  return c.json({ generatedAt, note, ...await metrics.status(ENDPOINTS.map((e) => e.path)) });
 });
 /** True when `header` is "Bearer <token>" for the configured token; digests compared, so no early exit on a prefix. */
 async function ownerToken(token: string | undefined, header: string | undefined): Promise<boolean> {
@@ -421,7 +427,9 @@ async function ownerToken(token: string | undefined, header: string | undefined)
 }
 app.get("/revenue", async (c) => {
   if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
-  const x402 = await c.env.METRICS.get(c.env.METRICS.idFromName("global")).revenueSummary();
+  const global = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  await sendBatchNow(global);
+  const x402 = await global.revenueSummary();
   // Card-credit sales are private business figures: shown only with the owner's REVENUE_TOKEN.
   if (!(await ownerToken(c.env.REVENUE_TOKEN, c.req.header("authorization")))) return c.json(x402);
   const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
