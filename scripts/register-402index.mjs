@@ -34,7 +34,10 @@ for (const [i, [path, item]] of todo.entries()) {
   const params = (op.parameters ?? []).filter((p) => p.in !== "header");
   const chosen = params.some((p) => p.required) ? params.filter((p) => p.required) : params.filter((p) => p.example !== undefined).slice(0, 1);
   for (const p of chosen) if (p.example !== undefined) query.set(p.name, String(p.example));
-  const price = Number(op["x-payment-info"]?.price?.amount);
+  // A dynamic price (the /v1 chat fronts: the default model's price up to the large model's) is listed at its minimum,
+  // which is what a call without a model choice costs; the live 402 states the exact amount.
+  const priceInfo = op["x-payment-info"]?.price ?? {};
+  const price = Number(priceInfo.amount ?? priceInfo.min);
   if (!price) { console.log(`${path}: no price in OpenAPI, skipped`); continue; }
   const body = {
     url: `${ORIGIN}${path}${query.size ? `?${query}` : ""}`,
