@@ -8,6 +8,8 @@ import { COUNTERPARTY } from "./routes/counterparty";
 import { EXTRACT_RENDERED } from "./routes/extract-rendered";
 import { FEEDS } from "./routes/feeds";
 import { FUN } from "./routes/fun";
+import { GOV_DATA } from "./routes/gov-data";
+import { HYPERLIQUID } from "./routes/hyperliquid";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
@@ -16,4 +18,4 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...PUBLIC_DATA, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...PUBLIC_DATA, ...GOV_DATA, ...HYPERLIQUID, ...FUN, ...BASICS, ...AI_TEXT];
