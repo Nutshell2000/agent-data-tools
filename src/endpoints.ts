@@ -945,6 +945,9 @@ for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Re
  * parameters, or, for tools that take one of several inputs ("address or name"), the first parameter with an
  * example. Without that fallback those examples carried no input at all and a buyer copying one got a 400.
  */
+/** The tool's documentation page, /tools/<slug>: its path with slashes as hyphens (unique across the catalog, checked by a test). */
+export const toolSlug = (path: string) => path.slice(1).replaceAll("/", "-");
+
 export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["params"][string]][] {
   const entries = Object.entries(e.params);
   const required = entries.filter(([, p]) => p.required);

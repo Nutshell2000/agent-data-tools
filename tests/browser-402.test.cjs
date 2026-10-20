@@ -72,3 +72,36 @@ test('a free trial opened in a browser shows its result as a page; code still ge
   assert.match(json.headers.get('content-type'), /application\/json/);
   await json.json();
 });
+
+test('every tool has an indexable page (200, canonical, in the sitemap); the tool URL itself stays a 402', async () => {
+  const res = await mf.dispatchFetch('https://api.test/tools/check-counterparty');
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('payment-required'), null);
+  const html = await res.text();
+  assert.match(html, /<link rel="canonical" href="https:\/\/api\.test\/tools\/check-counterparty">/);
+  assert.match(html, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema\.org","@type":"WebAPI"/);
+  assert.match(html, /href="\/check\/counterparty\?[^"]*trial=1"/);
+  assert.match(html, /href="\/credits"/);
+  assert.match(html, /check_counterparty/);
+  assert.equal((await mf.dispatchFetch('https://api.test/tools/no-such-tool')).status, 404);
+
+  const index = await (await mf.dispatchFetch('https://api.test/tools')).text();
+  const linked = new Set([...index.matchAll(/href="(\/tools\/[^"]+)"/g)].map((m) => m[1]));
+  const sitemap = await (await mf.dispatchFetch('https://api.test/sitemap.xml')).text();
+  const listed = [...sitemap.matchAll(/<loc>https:\/\/api\.test(\/tools\/[^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.ok(listed.length >= 150, `sitemap lists ${listed.length} tool pages`);
+  assert.equal(new Set(listed).size, listed.length, 'slugs are unique');
+  assert.deepEqual([...linked].sort(), [...listed].sort(), '/tools links exactly the pages in the sitemap');
+  assert.doesNotMatch(sitemap, /<loc>[^<]*\?/, 'no payment URLs in the sitemap');
+  for (const path of listed.slice(0, 40)) assert.equal((await mf.dispatchFetch(`https://api.test${path}`)).status, 200, path);
+
+  const home = await (await mf.dispatchFetch('https://api.test/', { headers: browser })).text();
+  assert.match(home, /href="\/tools\/extract"/);
+});
+
+test('the IndexNow key file serves its own key', async () => {
+  const key = /INDEXNOW_KEY = "([0-9a-f]{32})"/.exec(require('node:fs').readFileSync('src/index.ts', 'utf8'))[1];
+  const res = await mf.dispatchFetch(`https://api.test/${key}.txt`);
+  assert.equal(res.status, 200);
+  assert.equal((await res.text()).trim(), key);
+});
