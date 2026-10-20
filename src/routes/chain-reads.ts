@@ -85,7 +85,7 @@ function chainEntries(c: ChainDef): Entry[] {
 
   return [
     entry(p("balance"), `${c.name} native balance`,
-      `Read the native ${c.symbol} balance of any 0x address on ${c.name} at the latest block, in wei and in ${c.symbol}. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use ${c.slug}_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged.`,
+      `Native ${c.symbol} balance (eth_getBalance) of any 0x wallet address on ${c.name} at the latest block, in wei and in ${c.symbol}. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use ${c.slug}_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged.`,
       tags("balance", "wallet"), { address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_ADDR } },
       head({ address: EX_ADDR, balanceWei: "1234500000000000000", balance: "1.2345", symbol: c.symbol, block: 123456789 }),
       async (env, q) => {
@@ -96,7 +96,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("token-balance"), `${c.name} ERC-20 balance`,
-      `Read one wallet's balance of one ERC-20 token on ${c.name}: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use ${c.slug}_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged.`,
+      `ERC-20 token balance of a wallet on ${c.name} (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use ${c.slug}_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged.`,
       tags("erc20", "token", "balance"), {
         token: { type: "string", description: "0x ERC-20 token contract address", required: true, example: USDC[c.slug] },
         address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
@@ -136,7 +136,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("block"), `${c.name} block`,
-      `Fetch a block on ${c.name} by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use ${c.slug}_gas. A block that does not exist yet returns 404, uncharged.`,
+      `Latest block number and block details on ${c.name}, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use ${c.slug}_gas. A block that does not exist yet returns 404, uncharged.`,
       tags("block", "chain-data"), { number: { type: "string", description: "Block number, or 'latest' (default)", example: "latest" } },
       head({ number: 123456789, hash: "0xabc…", timestamp: "2026-10-18T12:00:00.000Z", transactions: 154, gasUsed: "21000000", gasLimit: "30000000", baseFeeGwei: "0.012", miner: "0x…" }),
       async (env, q) => {
@@ -155,7 +155,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("gas"), `${c.name} gas price`,
-      `Get current gas on ${c.name}: gas price, base fee and suggested priority fee in gwei, plus what a plain ${c.symbol} transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use ${c.slug}_receipt.`,
+      `Current gas price on ${c.name} (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ${c.symbol} transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use ${c.slug}_receipt.`,
       tags("gas", "fees"), {},
       head({ gasPriceGwei: "0.015", baseFeeGwei: "0.012", priorityFeeGwei: "0.001", transferCost: "0.000000315", symbol: c.symbol, block: 123456789 }),
       async (env) => {
@@ -181,7 +181,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("receipt"), `${c.name} transaction receipt`,
-      `Get the receipt of a mined ${c.name} transaction: success or reverted, gas used, effective gas price, fee paid in ${c.symbol}, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use ${c.slug}_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged.`,
+      `Transaction receipt on ${c.name} (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in ${c.symbol}, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use ${c.slug}_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged.`,
       tags("transaction", "receipt", "confirmation"), { hash: { type: "string", description: "0x-prefixed transaction hash (64 hex characters)", required: true, example: EX_TX[c.slug] } },
       head({ hash: EX_TX[c.slug], status: "success", block: 123456789, gasUsed: "52000", effectiveGasPriceGwei: "0.012", fee: "0.000000624", logs: 1, contractAddress: null }),
       async (env, q) => {
@@ -217,7 +217,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("logs"), `${c.name} recent event logs`,
-      `List recent event logs a contract emitted on ${c.name} over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ${c.slug}_receipt.`,
+      `Recent contract event logs on ${c.name} (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ${c.slug}_receipt.`,
       tags("logs", "events", "chain-data"), {
         address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] },
         blocks: { type: "integer", description: "How many recent blocks to scan (1-1000, default 50)", example: 50 },

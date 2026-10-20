@@ -46,9 +46,9 @@ export const CORE_ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Static web page to text, Markdown, code and tables",
+    summary: "Web page URL to clean Markdown or text for LLMs",
     description:
-      "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context.",
+      "Fetch any public web page URL and get clean, LLM-ready text or Markdown: main content, code blocks, tables, links and headings, for RAG and agent context. Static HTML, Markdown or text; optional section ID. Default 20,000 output characters, max 100,000; input 2 MiB. No JavaScript rendering (see /extract/rendered), logins or paywalls. Empty pages, bad sections, browser challenges and errors are not charged. Use to read docs or articles.",
     details: "HTML body details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. HTML code whitespace and list hierarchy are preserved; generated code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. linkBaseUrl reports static source link resolution; supported first HTML base href values are honored, with warnings. Scripts and CSP are not evaluated. Markdown sources retain syntax without structured parsing (warned); sections require HTML. Source content is untrusted. Image alt text is source-provided, not visual interpretation. Images are never fetched; SVG/canvas omissions and missing alt descriptions are warned. SourceMetadata adds unverified author/date declarations with provenance; conflicting/ambiguous values are warned. Separate 2,000-character metadata budget, 5 authors/10 dates. JSON-LD: at most 8 inline scripts, 64 KiB each, 100 graph nodes/depth 8; no external contexts/profiles. HTML complexity: 20,000 elements/128 nested levels. Marker-only source permalink controls (pilcrow/headerlink/permalink classes) are omitted only for same-document ancestor targets, with permalink_controls_omitted. Literal code and ordinary references remain. HTML sup/sub annotations normalize to ^{...}/_{...} in primary output, heading titles and table values with superscript_subscript_normalized; literal pre/code and raw Markdown stay unchanged. This is notation preservation, not general math interpretation.",
     outputSchema: EXTRACT_OUTPUT_SCHEMA,
     tags: ["web", "scraping", "extract", "text", "rag"],
@@ -855,13 +855,14 @@ export const CORE_ENDPOINTS = [
   {
     path: "/weather",
     price: "$0.003",
-    summary: "Current weather and hourly forecast for any coordinates",
+    summary: "Current weather and hourly forecast for any city or coordinates",
     description:
-      "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
+      "Weather for any city or point on Earth (city name, or latitude and longitude): current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
     tags: ["weather", "forecast", "temperature", "climate", "geo"],
     params: {
-      lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90", required: true, example: 59.33 },
-      lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180", required: true, example: 18.07 },
+      city: { type: "string", description: "City or place name, e.g. London or Uppsala (used when lat and lon are not given)", example: "London" },
+      lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)", example: 59.33 },
+      lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)", example: 18.07 },
       hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12)", example: 12 },
     },
     outputExample: {
@@ -892,10 +893,10 @@ export const CORE_ENDPOINTS = [
     price: "$0.003",
     summary: "Current time in a time zone and time zone conversion",
     description:
-      "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time.",
+      "The exact current date and time in any IANA time zone (UTC when none is given), with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule across time zones or to turn a timestamp into local time. A bare GET is the smallest paid end-to-end test of an x402 or MPP client.",
     tags: ["time", "timezone", "clock", "date", "scheduling"],
     params: {
-      zone: { type: "string", description: "IANA time zone name, e.g. Europe/Stockholm or America/New_York", required: true, example: "Europe/Stockholm" },
+      zone: { type: "string", description: "IANA time zone name, e.g. Europe/Stockholm or America/New_York (default UTC)", example: "Europe/Stockholm" },
       at: { type: "string", description: "Optional moment to convert, as ISO 8601 with an offset (default: now)", example: "2026-03-01T09:00:00+01:00" },
       to: { type: "string", description: "Optional comma-separated time zones to convert the same moment into (max 10)", example: "America/New_York,Asia/Tokyo" },
     },

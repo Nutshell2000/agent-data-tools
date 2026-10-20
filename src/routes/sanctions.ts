@@ -153,13 +153,13 @@ export function screen(index: SdnIndex, address: string | undefined, name: strin
 
 export const SANCTIONS: Entry[] = [
   entry("/sanctions/check", "OFAC sanctions screening for a wallet or name",
-    "Screen a crypto wallet address or a person or company name against the US Treasury OFAC SDN list, including aliases and the listed digital currency addresses (BTC, ETH, USDT, TRX and more). Returns each match with SDN ID, programs and match strength, plus the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty.",
+    "OFAC sanctions screen for a crypto wallet before you pay it: checks an address (BTC, ETH, USDT, TRX and more) or a person or company name against the US Treasury SDN list, aliases included. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and match strength, and the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty.",
     ["sanctions", "ofac", "compliance", "kyc", "aml", "wallet"], {
       address: { type: "string", description: "Crypto address to check (give address, name or both)", example: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
       name: { type: "string", description: "Person or company name; matches when every word appears in a listed name or alias", example: "Lazarus Group" },
     },
     {
-      query: { address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", name: "Lazarus Group" }, listed: true,
+      query: { address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", name: "Lazarus Group" }, verdict: "block", listed: true,
       matches: [
         { sdnId: "…", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "address", currency: "ETH", address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
         { sdnId: "…", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "name", matchedName: "LAZARUS GROUP", score: 1 },
@@ -174,7 +174,10 @@ export const SANCTIONS: Entry[] = [
       const index = await sdnIndex();
       const matches = screen(index, address, name);
       return {
-        query: { address: address ?? null, name: name ?? null }, listed: matches.length > 0, matches,
+        query: { address: address ?? null, name: name ?? null },
+        // An address on the list is a hard stop; a name match can be a namesake and needs a person to look.
+        verdict: matches.some((m) => m.matchedOn === "address") ? "block" : matches.length ? "review" : "pass",
+        listed: matches.length > 0, matches,
         list: "OFAC Specially Designated Nationals (SDN)", listDate: index.listDate, entries: index.parties.size,
         note: "Screening aid only: confirm any match against the official OFAC record before acting.",
       };

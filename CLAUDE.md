@@ -235,3 +235,24 @@ people it sends now land on a page that converts (free trial, card from $5) inst
   - The payment terms and the Bazaar extension stay the tool's. `@x402/core` matches a payment on its accepted terms, never on the resource, and it refuses echoed extensions that differ from what the route advertises (`extension_echo_mismatch`), so the extension must not be rewritten.
   - `X-Tool` on the quote names the tool, and so the price, that the request maps to.
   - Proven with a real `@x402/fetch` client in tests/openai-chat.test.cjs.
+
+## Buyer ergonomics (1.42.0)
+
+- **Inputs that need nothing, or what agents type:**
+  - `/time` defaults to UTC when no zone is given; a bare GET is the smallest paid end-to-end test.
+  - `/weather` takes `city`: a built-in table of about 50 major cities, then Wikidata's best match. The published example is `city=London`, which makes no Wikidata call.
+  - `/price/token` takes `symbol`, and `/price/tokens` takes `symbols`. The per-network ticker table `TICKERS` in src/routes/prices.ts was checked against `symbol()` on 2026-10-20. ETH and BTC map to WETH and cbBTC/WBTC.
+- **POST to a tool with a flat JSON body** is the GET with those fields in the query. It is forwarded before tracing and metrics, and an empty or unreadable body still gets the quote. The `/v1` fronts and MCP are unaffected.
+- **Copy:**
+  - `/extract` opens with "Fetch any public web page URL…".
+  - Chain reads name the JSON-RPC method and the tokens.
+  - `/sanctions/check` opens as a wallet screen before paying, and returns `verdict`: `block` on a listed address, `review` on a name match, `pass` otherwise.
+  - The repo's description limit is 450 characters (tests/listing-quality.test.cjs).
+
+## Open registries (2026-10-20, cloud session)
+
+- **Ultravioleta DAO Bazaar:** 100 tools registered on 2026-10-20 through the keyless `POST https://facilitator.ultravioletadao.xyz/discovery/register`. All returned 201.
+  - Order: chain reads, then prices, compliance, web and everyday data. AI tools and toys were left out.
+  - Its catalog feeds Dexter's crawler. The register script is in the cloud scratchpad. Re-run it after price changes (about 5 a minute, 100 per host).
+- **Dexter (x402gle / OpenDexter):** `npx @dexterai/opendexter audition <origin> --json` answered 500 ("Catalog flush could not persist 3 resource writes") on 2026-10-20. Retry it.
+  - Auditioning a single tool URL makes Dexter pay for a test call from its own wallet. That settles through CDP and lists the tool on the Bazaar. Log it as a listing proof, never as revenue or demand.

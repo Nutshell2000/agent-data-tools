@@ -37,8 +37,7 @@ function inZone(instant: Date, zone: string) {
 
 /** Current time in a time zone, or one instant converted between time zones. */
 export function timeInZone(zoneInput?: string, atInput?: string, toInput?: string) {
-  const zone = (zoneInput ?? "").trim();
-  if (!zone) throw new HttpError(400, "zone is required: an IANA time zone name such as Europe/Stockholm");
+  const zone = (zoneInput ?? "").trim() || "UTC";
   const instant = atInput?.trim() ? new Date(atInput.trim()) : new Date();
   if (Number.isNaN(instant.getTime())) {
     throw new HttpError(400, "at must be an ISO 8601 date-time with an offset, e.g. 2026-03-01T09:00:00+01:00");
