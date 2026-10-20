@@ -223,8 +223,12 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
   const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);
  }finally{await client.close();}
+ // A caller who has used all 25 gets the 402 and is counted as free_exhausted, the moment they are asked to pay.
+ const other={'cf-connecting-ip':'198.51.100.8'};
+ for(let i=0;i<25;i++){const r=await mfFree.dispatchFetch(url+'&trial=1',{headers:other});assert.equal(r.status,200);await r.arrayBuffer();}
+ const over=await mfFree.dispatchFetch(url+'&trial=1',{headers:other});assert.equal(over.status,402);await over.arrayBuffer();
  const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
- const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],1);assert.equal(day['mcp:/extract:free_call'],2);
+ const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],26);assert.equal(day['mcp:/extract:free_call'],2);assert.equal(day['http:/extract:free_exhausted'],1);
 });
 test('/revenue shows card-credit sales only to the owner token',async()=>{
   const anon=await revenue();assert.equal(anon.cardCredits,undefined);assert.ok('settlements' in anon);
