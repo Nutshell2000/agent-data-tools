@@ -6,7 +6,7 @@ import { canBatch, queueBatched } from "./metrics-batch";
 // recipient, a network we do not accept, or a header we could not read. facilitator_unavailable means the
 // facilitator itself could not be reached, so the buyer was told to retry and was not charged.
 // free_exhausted marks a caller who asked for a free call after using them all: the moment they are asked to pay.
-export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable"] as const;
+export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral"] as const;
 export type FunnelStage = typeof STAGES[number];
 export interface FunnelEvent {
   requestId: string; path: string; transport: "http" | "mcp";
@@ -40,18 +40,19 @@ export function withToolTrace<T>(path: string, callback: () => T): T {
   return traces.run({ ...parent, requestId: crypto.randomUUID(), path, transport: "mcp", stages: new Set() }, callback);
 }
 
-export function markStage(stage: FunnelStage) {
+/** Marks a stage once per request; `path` overrides the request path (used for /from/<referrer family>). */
+export function markStage(stage: FunnelStage, path?: string) {
   const trace = activeTrace();
   if (!trace || trace.stages.has(stage)) return;
   trace.stages.add(stage);
-  trace.emit({ requestId: trace.requestId, path: trace.path, transport: trace.transport,
+  trace.emit({ requestId: trace.requestId, path: path ?? trace.path, transport: trace.transport,
     ...(trace.source ? { source: trace.source } : {}), stage, at: new Date().toISOString() });
 }
 
 // High-volume stages are only counted per day (buffered in the Metrics object, see metrics.ts): one stored row
 // per request for crawler quotes used up the free Durable Objects write allowance (100,000 rows a day) on 20 Oct.
 // Payment stages keep their per-request evidence row.
-export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "credits_call"]);
+export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "credits_call", "page_view", "referral"]);
 export const funnelLabel = (event: FunnelEvent) => `${event.transport}:${event.path}:${event.stage}`;
 
 export function assertFunnelEvent(event: FunnelEvent) {
@@ -90,6 +91,26 @@ export async function funnelSummary(storage: DurableObjectStorage, list: (option
   const days = await list({ prefix: "funnel:day:", start: `funnel:day:${from}` });
   return { sinceUtc: from, days: Object.fromEntries([...days].map(([k, v]) => [k.slice(11), v])),
     note: "Visits count successful GET requests to published buying resources, including machine discovery and client downloads; they include bots and operator checks. Stages count server-observed requests, not unique people or customer conversion. Completed means result prepared after settlement; receipt by the buyer is unconfirmed. Source tags are optional, untrusted attribution. Invitations and buyer task confirmation require operator evidence." };
+}
+
+/** Pages a person reads before buying: home, tool index, tool pages and the card-credit pages. */
+export const isHumanPage = (path: string) => path === "/" || path === "/tools" || /^\/tools\/[a-z0-9-]{1,60}$/.test(path) || path === "/credits" || path === "/credits/claim";
+
+const REFERRER_FAMILIES: [RegExp, string][] = [
+  [/(^|\.)google\./, "google"], [/(^|\.)bing\.com$/, "bing"], [/(^|\.)duckduckgo\.com$/, "duckduckgo"],
+  [/(^|\.)chatgpt\.com$|(^|\.)openai\.com$/, "chatgpt"], [/(^|\.)claude\.ai$|(^|\.)anthropic\.com$/, "claude"],
+  [/(^|\.)perplexity\.ai$/, "perplexity"], [/(^|\.)github\.com$/, "github"], [/(^|\.)reddit\.com$/, "reddit"],
+  [/(^|\.)ycombinator\.com$/, "hackernews"], [/(^|\.)glama\.ai$/, "glama"], [/(^|\.)mcp\.so$/, "mcpso"],
+  [/(^|\.)x402scan\.com$/, "x402scan"], [/(^|\.)zero\.xyz$/, "zero"], [/(^|\.)yandex\./, "yandex"],
+];
+
+/** Where a page visit came from, as a family name only (no URL, path or query is kept). */
+export function referrerFamily(referer: string | undefined, ownHost: string): string {
+  if (!referer) return "direct";
+  let host: string;
+  try { host = new URL(referer).hostname.toLowerCase(); } catch { return "other"; }
+  if (host === ownHost) return "internal";
+  return REFERRER_FAMILIES.find(([pattern]) => pattern.test(host))?.[1] ?? "other";
 }
 
 /** Successful reads of published buying resources; no identity or cross-request tracking. */
