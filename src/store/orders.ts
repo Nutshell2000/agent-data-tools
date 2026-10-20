@@ -15,7 +15,7 @@ export interface Order {
   createdBlock: string;
   paidAt?: number;
   paidTx?: string;
-  via?: "transfer" | "x402" | "test";
+  via?: "transfer" | "x402" | "test" | "stripe";
 }
 
 export type OrderState = "waiting" | "paid" | "expired";
@@ -102,3 +102,16 @@ export async function refreshOrder(env: Env, order: Order): Promise<Order> {
 }
 
 export const markTestPaid = (env: Env, order: Order) => markPaid(env, order, "test");
+
+/**
+ * A spreadsheet kit paid by card through Stripe (lib/stripe-webhook.ts). The id is derived from the Checkout
+ * Session, so a repeated webhook or claim writes the same order instead of a second one. Holds no buyer data.
+ */
+export async function putStripeOrder(env: Env, id: string, slug: string, usdCents: number): Promise<Order> {
+  const existing = await getOrder(env, id);
+  if (existing) return existing;
+  const now = Date.now();
+  const order: Order = { id, slug, amount: String(usdCents * 10_000), createdAt: now, createdBlock: "0", paidAt: now, via: "stripe" };
+  await kv(env).put(`order:${id}`, JSON.stringify(order), { expirationTtl: KEEP_SECONDS });
+  return order;
+}

@@ -175,19 +175,38 @@ export class CheckoutError extends Error {
   constructor(public status: 400 | 402 | 404 | 502 | 503, message: string) { super(message); }
 }
 
-export async function verifyCheckout(stripeKey: string | undefined, sessionId: string, fetchImpl: typeof fetch = fetch) {
+export const isCheckoutSessionId = (id: string) => /^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(id);
+
+export interface PaidSession {
+  id?: string; status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string;
+  metadata?: Record<string, string>; client_reference_id?: string | null;
+}
+
+/**
+ * Reads a Checkout Session from Stripe and checks that it is a completed, paid one-time payment.
+ * `query` adds expand[] parameters; `stripeVersion` pins a (preview) API version for fields such as
+ * line_items.data.price.external_reference that agentic orders carry. Throws CheckoutError otherwise.
+ */
+export async function fetchPaidSession<T extends PaidSession = PaidSession>(stripeKey: string | undefined, sessionId: string, fetchImpl: typeof fetch = fetch, query = "", stripeVersion?: string): Promise<T> {
   if (!stripeKey) throw new CheckoutError(503, "card payments are being set up; your payment is safe and this link will work once they are. Keep this page's address.");
-  if (!/^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(sessionId)) throw new CheckoutError(400, "session_id is not a Stripe Checkout Session id");
+  if (!isCheckoutSessionId(sessionId)) throw new CheckoutError(400, "session_id is not a Stripe Checkout Session id");
   let res: Response;
   try {
-    res = await fetchImpl(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, { headers: { authorization: `Bearer ${stripeKey}` } });
+    res = await fetchImpl(`https://api.stripe.com/v1/checkout/sessions/${sessionId}${query ? `?${query}` : ""}`, {
+      headers: { authorization: `Bearer ${stripeKey}`, ...(stripeVersion && { "stripe-version": stripeVersion }) },
+    });
   } catch {
     throw new CheckoutError(502, "could not reach Stripe; reload this page in a minute");
   }
   if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
   if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
-  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null };
+  const s = await res.json() as T;
   if (s.mode !== "payment" || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
+  return s;
+}
+
+export async function verifyCheckout(stripeKey: string | undefined, sessionId: string, fetchImpl: typeof fetch = fetch) {
+  const s = await fetchPaidSession(stripeKey, sessionId, fetchImpl);
   const pack = CREDIT_PACKS.find((p) => p.usdCents === s.amount_total && String(p.credits) === s.metadata?.adt_credits);
   if (s.currency !== "usd" || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
   return { ...pack, topUpKeyHash: keyHashFromReference(s.client_reference_id) };

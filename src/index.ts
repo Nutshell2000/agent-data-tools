@@ -34,6 +34,7 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { discoveryResources } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
+import { stripeKits } from "./lib/stripe-webhook";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
@@ -297,6 +298,8 @@ app.route("/", oauth);
 
 // Store for people: product pages, orders paid by plain USDC transfer, downloads.
 app.route("/", store);
+// Spreadsheet kits paid by card through Stripe (Agentic Commerce Suite orders): webhook, claim page, kit pages.
+app.route("/", stripeKits());
 
 const origin = (url: string) => new URL(url).origin;
 app.get("/", async (c) =>
