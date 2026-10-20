@@ -139,3 +139,17 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 ## OpenAI Responses API shape (1.39.2)
 
 - `POST /v1/responses` (src/lib/openai-responses.ts) maps the Responses body (input string or role/content items, instructions, max_output_tokens) onto the chat-completions body and runs through `completeChat()` in src/lib/openai-chat.ts, so the model routing, prices, quote and refusal rules are the chat front's; the answer is one completed message in `output` plus `output_text`.
+
+## First-payment readiness (2026-10-20, Peter: no self-funded seeding yet, no Solana)
+
+Why there are no payments: paying bots shop the Coinbase Bazaar, which lists a tool only after a settled CDP
+payment and drops it after 30 days without one (we have at most `/btc-fees`). Tanod's 9 Oct snapshot: chain reads
+are the top paid category, onesource's identical reads at $0.001–0.005 draw 400–700 one-call payers each.
+Until earnings fund seeding (PR #133), every organic first payment must convert and list cleanly:
+
+- Settlements name the tool without the caller's query (`withoutQuery` in src/lib/facilitator.ts), so a first
+  payment on `/eth/balance?address=…` lists `/eth/balance`. Quotes keep the exact URL: `clients/chain/core.mjs`
+  checks it. The MPP evm path already did this (src/lib/mpp-evm.ts).
+- `npm run smoke:examples` runs every paid tool on exactly its published example (`exampleParams`, the Bazaar
+  `input`) through the Worker with the paywall off. Run it on the PC (this cloud container cannot reach the
+  upstreams) before each deploy; every failure is a first payment lost. AI and rendering tools: check on staging.

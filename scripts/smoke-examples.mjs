@@ -1,0 +1,57 @@
+// Runs every paid tool on exactly the example input it publishes to the Bazaar and directories
+// (exampleParams(), the `input` of its discovery extension), through the real Worker with the paywall off
+// and live upstreams. Buyer bots call that example; we settle only on success, so an example that fails
+// is a first payment lost. Tools that need Workers AI or Browser Rendering are skipped here; check them on staging.
+//   node scripts/smoke-examples.mjs [path-filter] [--json out.json]
+import { build } from "esbuild";
+import { createRequire } from "node:module";
+import { writeFile } from "node:fs/promises";
+import { Miniflare, convertV4MiniflareOptions } from "miniflare";
+
+const args = process.argv.slice(2);
+const jsonAt = args.indexOf("--json");
+const jsonOut = jsonAt >= 0 ? args[jsonAt + 1] : undefined;
+const filter = args.find((a, i) => !a.startsWith("--") && (jsonAt < 0 || i !== jsonAt + 1));
+
+const urlShim = { name: "url", setup(b) { b.onResolve({ filter: /^url$/ }, () => ({ path: "node:url", external: true })); } };
+const catalog = await build({
+  stdin: { contents: 'export { ENDPOINTS, exampleParams } from "./src/endpoints"; export { CAPACITY_LIMITED } from "./src/lib/capacity";', resolveDir: process.cwd(), sourcefile: "smoke-examples-entry.ts" },
+  bundle: true, platform: "node", format: "cjs", write: false, plugins: [urlShim],
+});
+const mod = { exports: {} };
+new Function("module", "exports", "require", catalog.outputFiles[0].text)(mod, mod.exports, createRequire(import.meta.url));
+const { ENDPOINTS, exampleParams, CAPACITY_LIMITED } = mod.exports;
+
+const worker = await build({ entryPoints: ["src/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, external: ["cloudflare:workers", "node:*"], plugins: [urlShim] });
+const mf = new Miniflare(convertV4MiniflareOptions({
+  modules: true, script: worker.outputFiles[0].text, compatibilityDate: "2026-09-01", compatibilityFlags: ["nodejs_compat"],
+  durableObjects: { METRICS: { className: "Metrics", useSQLite: true } }, kvNamespaces: ["TRIALS"],
+  bindings: { PAY_TO: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", NETWORK: "eip155:8453", PAYWALL: "off", TRIALS_ENABLED: "off", MPP_EVM: "off", FACILITATOR_URL: "https://facilitator.invalid", BASE_RPC_URL: "https://mainnet.base.org" },
+}));
+
+const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
+const results = [];
+for (const e of tools) {
+  const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)]));
+  const url = `https://agent-data-tools.revmesh2074.workers.dev${e.path}${query.size ? `?${query}` : ""}`;
+  const t0 = Date.now();
+  let status = 0, error = "";
+  try {
+    const res = await mf.dispatchFetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
+    status = res.status;
+    const text = await res.text();
+    if (status >= 400) error = text.slice(0, 160).replace(/\s+/g, " ");
+  } catch (err) {
+    error = String(err?.message ?? err).slice(0, 160);
+  }
+  const ms = Date.now() - t0;
+  results.push({ path: e.path, price: e.price, status, ms, error, url });
+  console.log(`${status >= 200 && status < 400 ? "ok  " : "FAIL"} ${String(status).padStart(3)} ${String(ms).padStart(6)}ms ${e.path}${error ? `  ${error}` : ""}`);
+}
+await mf.dispose();
+
+const failed = results.filter((r) => !(r.status >= 200 && r.status < 400));
+const slow = results.filter((r) => r.ms > 10_000 && !failed.includes(r));
+console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.length - tools.length} AI/rendering tools skipped (staging).`);
+if (jsonOut) await writeFile(jsonOut, JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));
+process.exit(failed.length ? 1 : 0);
