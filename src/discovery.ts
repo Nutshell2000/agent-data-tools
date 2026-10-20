@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.39.2";
+export const MCP_SERVER_VERSION = "1.39.3";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -269,7 +269,8 @@ ${rows}
 <p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme) and a <code>WWW-Authenticate: Payment</code> challenge for MPP (USDC on Base or USDC.e on Tempo). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header; an MPP client (mppx) answers the challenge in <code>Authorization: Payment</code>. Calls that fail are not charged.</p>
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
-<p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
+<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code> and <code>POST /v1/embeddings</code> run the same paid tools at the same prices (Llama 3.1 8B at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey.</p>
+    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
