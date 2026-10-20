@@ -269,7 +269,9 @@ On 20 Oct the account's Durable Object quota ran out by about 18:00 UTC, and eve
 | Card-credit calls | Uncharged 503 over HTTP; an error result over MCP (`spendCredits` caught) |
 | MPP credit packs | The store is checked before Stripe is called. If the write still fails after the charge, the buyer gets a 503 telling them to repeat the request with the same credential. mppx's Stripe idempotency key (challenge and token) prevents a second charge, and the grant is idempotent on the PaymentIntent. The reference is logged |
 
-Tests: tests/outage-resilience.test.cjs. The lasting fix is the Workers Paid plan ($5 a month), which raises the Durable Object limits. That is Peter's decision.
+The report routes (`/status`, `/revenue`, `/metrics`, `/metrics/callers`) answer a 503 with `Retry-After: 600` that says the tools and x402 payments keep working (`fromMetrics` in src/index.ts), not a bare 500.
+
+Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasting fix is the Workers Paid plan ($5 a month), which raises the Durable Object limits. That is Peter's decision.
 
 ## Correctness under concurrency and odd inputs (cloud edge audit, 2026-10-20)
 
