@@ -26,7 +26,7 @@ const CHAIN_SLUGS = ["base", "eth", "arb", "op"] as [string, ...string[]];
 const portfolio = PRICES.find((e) => e.endpoint.path === "/wallet/portfolio")!;
 
 export const COUNTERPARTY: Entry[] = [
-  entry("/check/counterparty", "Counterparty check before paying an EVM address",
+  entry("/check/counterparty", "Counterparty risk check before paying an EVM address (OFAC and on-chain signals)",
     "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address.",
     ["compliance", "sanctions", "ofac", "wallet", "risk", "base", "ethereum"], {
       address: { type: "string", description: "0x address to check", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
