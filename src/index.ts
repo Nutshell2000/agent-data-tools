@@ -37,6 +37,7 @@ import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor } from "./lib/bazaar-extension";
+import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 
@@ -265,6 +266,12 @@ app.all("/mcp/k/:key", (c) => handleMcp(c, "", c.req.param("key")));
 app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.param("key")));
 
 // Card payments: prepaid credits and their API keys.
+// OpenAI-compatible chat completions (lib/openai-chat.ts): a POST front for /ai/chat that goes through the same
+// middleware, so every payment path and price applies unchanged. GET /v1/models is free.
+app.post(OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD"], OPENAI_CHAT_PATH, (c) => c.json({ error: 'use POST with an OpenAI-style JSON body: {"messages":[{"role":"user","content":"..."}]}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
+app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
+
 app.route("/", credits);
 // Privacy policy, terms and support.
 app.route("/", legal);

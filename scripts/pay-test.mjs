@@ -4,6 +4,7 @@
 //
 //   node scripts/pay-test.mjs address                       create the test wallet if needed and print its address
 //   node scripts/pay-test.mjs <url>                         HTTP, x402 v2: pay the 402 with PAYMENT-SIGNATURE
+//   node scripts/pay-test.mjs <url> --post-json '{...}'  HTTP, x402 v2 with a POST body (the OpenAI-style /v1/chat/completions)
 //   node scripts/pay-test.mjs <url> --v1                    HTTP, x402 v1: pay from the 402 body with X-PAYMENT
 //   node scripts/pay-test.mjs <origin> --mcp <tool> [--args '{"url":"https://example.com"}']
 //                                                           MCP: the @x402/mcp client wrapper pays the tool call
@@ -55,7 +56,7 @@ else if (flag("--v1")) await httpV1(target);
 else await httpV2(target);
 
 async function httpV2(url) {
-  const plain = await fetch(url);
+  const plain = await fetch(url, option("--post-json") ? { method: "POST", headers: { "content-type": "application/json" }, body: option("--post-json") } : undefined);
   console.log(`unpaid: HTTP ${plain.status}`);
   if (plain.status !== 402) { console.log(await plain.text()); process.exit(1); }
   const challenge = JSON.parse(Buffer.from(plain.headers.get("payment-required"), "base64").toString());
@@ -66,7 +67,8 @@ async function httpV2(url) {
   }
   console.log(`asks:   ${terms.amount} units of ${terms.asset} on ${terms.network}, payTo ${terms.payTo}`);
   const paidFetch = wrapFetchWithPayment(fetch, testnetClient());
-  const res = await paidFetch(url);
+  const postJson = option("--post-json");
+  const res = await paidFetch(url, postJson ? { method: "POST", headers: { "content-type": "application/json" }, body: postJson } : undefined);
   const body = await res.text();
   console.log(`paid:   HTTP ${res.status}`);
   const receipt = res.headers.get("payment-response");
