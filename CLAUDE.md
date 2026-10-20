@@ -127,3 +127,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 ## Larger chat models (1.39.0)
 
 - `/ai/chat-large` ($0.01, src/routes/ai-text.ts LARGE_CHAT_MODELS): Llama 3.3 70B (default) or gpt-oss-120b (Apache 2.0) on Workers AI, same free daily allowance (503 uncharged when used up). `/v1/chat/completions` routes by the OpenAI `model` string: names with 70b, llama-3.3, gpt-oss or 120b go to /ai/chat-large, everything else to /ai/chat; its x-payment-info is therefore dynamic ($0.003 to $0.01). 176 tools.
+
+## OpenAI-compatible embeddings (1.39.1)
+
+- `POST /v1/embeddings` (src/lib/openai-embeddings.ts) is the same kind of front as the chat one, for `/ai/embed` ($0.003, BGE-M3, 1,024 dimensions): one input string per request because one payment pays for one call; arrays with more than one item are refused 400 before anything is forwarded. Unpaid or empty POSTs get the /ai/embed 402; GET is 405.
