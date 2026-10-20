@@ -16,6 +16,7 @@ async function loadTypeScript(entry) {
 }
 
 let lib, mf;
+const verified = [];
 before(async () => {
   lib = await loadTypeScript('src/lib/openai-chat.ts');
   const b = await esbuild.build({ entryPoints: ['src/index.ts'], bundle: true, format: 'esm', platform: 'browser', write: false, external: ['cloudflare:workers', 'node:*'],
@@ -24,7 +25,13 @@ before(async () => {
     durableObjects: { METRICS: { className: 'Metrics', useSQLite: true } },
     bindings: { PAY_TO: '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5', NETWORK: 'eip155:8453', PAYWALL: 'on', TRIALS_ENABLED: 'off', FACILITATOR_URL: 'https://fixture.invalid', BASE_RPC_URL: 'https://rpc.invalid', MPP_SECRET_KEY: 'mpp-test-secret-fixture' },
     outboundService: async (r) => {
-      if (new URL(r.url).hostname === 'fixture.invalid') return Response.json({ kinds: [{ x402Version: 2, scheme: 'exact', network: 'eip155:8453', extra: { name: 'USD Coin', version: '2' } }], extensions: [] });
+      const u = new URL(r.url);
+      if (u.hostname === 'fixture.invalid' && u.pathname.endsWith('/verify')) {
+        const sent = await r.json();
+        verified.push(sent.paymentPayload);
+        return Response.json({ isValid: true, payer: sent.paymentPayload.payload.authorization.from });
+      }
+      if (u.hostname === 'fixture.invalid') return Response.json({ kinds: [{ x402Version: 2, scheme: 'exact', network: 'eip155:8453', extra: { name: 'USD Coin', version: '2' } }], extensions: [] });
       return new Response('unexpected outbound request', { status: 599 });
     } }));
 });
@@ -61,7 +68,7 @@ test('an unpaid POST for a large model is quoted at the /ai/chat-large price', a
   assert.equal(res.status, 402);
   const quote = await res.json();
   assert.equal(quote.accepts[0].maxAmountRequired, '10000');
-  assert.match(quote.accepts[0].resource, /\/ai\/chat-large\?prompt=.*model=gpt-oss-120b/);
+  assert.equal(res.headers.get('x-tool'), '/ai/chat-large');
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
   assert.deepEqual(models.data.map((m) => m.id), ['@cf/meta/llama-3.1-8b-instruct-fp8', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
 });
@@ -84,8 +91,30 @@ test('an unpaid POST gets the /ai/chat quote with x402 terms and MPP challenges,
     const quote = await res.json();
     assert.equal(quote.x402Version, 1);
     assert.equal(quote.accepts[0].maxAmountRequired, '3000', 'the /ai/chat price');
-    assert.match(quote.accepts[0].resource, /\/ai\/chat\?prompt=/);
+    assert.equal(quote.accepts[0].resource, 'https://api.test/v1/chat/completions', 'the v1 quote names the front');
+    const terms = JSON.parse(Buffer.from(res.headers.get('payment-required'), 'base64').toString());
+    assert.equal(terms.resource.url, 'https://api.test/v1/chat/completions', 'the v2 quote names the front, without a query');
+    assert.match(terms.resource.description, /^OpenAI-compatible chat completions/);
+    assert.ok(terms.extensions.bazaar, 'the tool\'s Bazaar extension stays (the paid retry echoes it)');
   }
+});
+
+test('a real x402 client pays the renamed front quote: the retry passes the paywall under the front\'s name', async () => {
+  const { x402Client, x402HTTPClient } = await import('@x402/fetch');
+  const { ExactEvmScheme } = await import('@x402/evm');
+  const { privateKeyToAccount, generatePrivateKey } = await import('viem/accounts');
+  const http = new x402HTTPClient(new x402Client().register('eip155:*', new ExactEvmScheme(privateKeyToAccount(generatePrivateKey()))));
+  const url = 'https://api.test/v1/chat/completions';
+  const init = { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'Hi' }] }) };
+  const quote = await mf.dispatchFetch(url, init);
+  const required = http.getPaymentRequiredResponse((n) => quote.headers.get(n), await quote.json());
+  const payload = await http.createPaymentPayload(required);
+  verified.length = 0;
+  const paid = await mf.dispatchFetch(url, { ...init, headers: { ...init.headers, ...http.encodePaymentSignatureHeader(payload) } });
+  await paid.arrayBuffer();
+  assert.notEqual(paid.status, 402, 'not refused: matching ignores the renamed resource and the echoed extension is the tool\'s');
+  assert.equal(verified.length, 1, 'the facilitator verified the payment');
+  assert.equal(verified[0].resource.url, url, 'the payment (and so its settlement) names the front');
 });
 
 test('invalid input with a payment attached is refused before anything is charged', async () => {
@@ -110,7 +139,7 @@ test('a GET carries the same inputs in the query: a bare GET is quoted, prompt= 
   assert.equal(get.status, 402);
   const quote = await get.json();
   assert.equal(quote.accepts[0].maxAmountRequired, '10000');
-  assert.match(quote.accepts[0].resource, /\/ai\/chat-large\?prompt=Hi&model=llama-3.3-70b/);
+  assert.equal(quote.accepts[0].resource, 'https://api.test/v1/chat/completions');
   const head = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=Hi', { method: 'HEAD' });
   assert.equal(head.status, 402);
   await head.arrayBuffer();

@@ -5,7 +5,7 @@
 import type { Context } from "hono";
 import { ENDPOINTS } from "../endpoints";
 import type { Env } from "./env";
-import { openApiGetVariant, requestBody } from "./openai-chat";
+import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody } from "./openai-chat";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_EMBEDDINGS_PATH = "/v1/embeddings";
@@ -64,6 +64,7 @@ export async function openAiEmbeddings(c: C, forward: Forward): Promise<Response
   headers.delete("content-length");
   headers.set("accept", "application/json");
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
+  if (answer.status === 402) { const outer = new URL(c.req.url); return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", inner.pathname); }
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as { embedding?: number[]; model?: string };
   const out = c.json(toOpenAiEmbedding(text, result), 200);
