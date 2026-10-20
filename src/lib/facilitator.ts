@@ -33,7 +33,8 @@ function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorC
       throw lastError;
     };
   client.verify = retrying(client.verify.bind(client), 4);
-  client.settle = retrying(client.settle.bind(client), 4);
+  const settle = retrying(client.settle.bind(client), 4);
+  client.settle = ((payload: unknown, requirements: unknown) => settle(...(withoutQuery(payload, requirements) as Parameters<typeof settle>))) as typeof client.settle;
 
   const original = client.getSupported.bind(client);
   let lastGood: Awaited<ReturnType<typeof original>> | undefined;
@@ -58,6 +59,30 @@ function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorC
     throw lastError;
   };
   return client;
+}
+
+/**
+ * The Bazaar indexes a tool from the resource URL of its first settlement. Quotes keep the caller's exact URL
+ * (published clients check it), but the settlement names the tool without its query, so a first payment on
+ * /eth/balance?address=0x… lists /eth/balance and not one address. The buyer's signature does not cover the
+ * resource. v2 carries it in the payload, v1 in the requirements.
+ */
+export function withoutQuery(payload: unknown, requirements: unknown): [unknown, unknown] {
+  const strip = (url: unknown) => {
+    if (typeof url !== "string") return url;
+    try {
+      const u = new URL(url);
+      return u.search || u.hash ? u.origin + u.pathname : url;
+    } catch {
+      return url;
+    }
+  };
+  const p = payload as { resource?: { url?: unknown } } | undefined;
+  const r = requirements as { resource?: unknown } | undefined;
+  return [
+    p && typeof p === "object" && p.resource && typeof p.resource === "object" ? { ...p, resource: { ...p.resource, url: strip(p.resource.url) } } : payload,
+    r && typeof r === "object" && typeof r.resource === "string" ? { ...r, resource: strip(r.resource) } : requirements,
+  ];
 }
 
 const SUPPORTED_TTL_SECONDS = 6 * 3600;
