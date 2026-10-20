@@ -5,6 +5,7 @@ import type { Context } from "hono";
 import type { Env } from "./env";
 import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openApiGetVariant, requestBody, toolFor, type ChatQuery } from "./openai-chat";
 import { MODELS } from "./ai";
+import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_RESPONSES_PATH = "/v1/responses";
 type Forward = (request: Request) => Response | Promise<Response>;
@@ -85,8 +86,7 @@ export async function openAiResponses(c: C, forward: Forward): Promise<Response>
 
 /** The /v1/responses path for /openapi.json; paid at the chosen chat tool's price, like /v1/chat/completions. */
 export function openAiResponsesOpenApiPath(origin: string, prices: { small: string; large: string }, mpp: readonly unknown[]) {
-  const usd = (p: string) => p.replace("$", "");
-  const paymentInfo = { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] };
+  const paymentInfo = buildPaymentInfo({ min: prices.small, max: prices.large }, mpp);
   return {
     [OPENAI_RESPONSES_PATH]: {
       get: openApiGetVariant(

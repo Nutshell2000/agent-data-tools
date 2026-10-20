@@ -177,7 +177,16 @@ export async function payEvm(c: C, endpoint: Endpoint, header: string, next: Nex
   // One authorization pays once, whichever path presents it: the claim is atomic across isolates, and the ledger
   // records x402 and MPP settlements under the same nonce-based identity.
   const expires = Math.min(Number(authorization.validBefore) * 1000, Date.now() + 2 * MAX_TIMEOUT_SECONDS * 1000);
-  if (c.env.METRICS && !(await c.env.METRICS.get(c.env.METRICS.idFromName("global")).mppClaim(`evm:${network}:${authorization.nonce.toLowerCase()}`, expires))) {
+  // If the claim cannot be recorded (storage limits), nothing has been charged yet: answer an uncharged 503.
+  const claimed = c.env.METRICS
+    ? await c.env.METRICS.get(c.env.METRICS.idFromName("global")).mppClaim(`evm:${network}:${authorization.nonce.toLowerCase()}`, expires)
+      .catch((e: unknown) => { console.error("mpp evm claim failed", e); return null; })
+    : true;
+  if (claimed === null) {
+    markStage("facilitator_unavailable");
+    return c.json({ error: "the payment could not be recorded right now; nothing was charged, try again later" }, 503, { "Retry-After": "60" });
+  }
+  if (!claimed) {
     markStage("verification_failed");
     return refusal(c, endpoint, "payment invalid: this authorization was already used; request a new challenge");
   }

@@ -340,7 +340,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: { ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
+    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       ENDPOINTS.map((e) => [
         e.path,
         {
@@ -354,10 +354,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
             tags: e.tags,
             // Shape required by x402scan's discovery spec. Amount is decimal USD. x402 tooling keeps reading the
             // x402 entry; MPP directories (MPPScan) read the mpp one.
-            "x-payment-info": {
-              price: { mode: "fixed", currency: "USD", amount: e.price.replace("$", "") },
-              protocols: [{ x402: {} }, ...mpp],
-            },
+            "x-payment-info": paymentInfo({ amount: e.price }, mpp),
             parameters: Object.entries(e.params).map(([name, p]) => ({
               name,
               in: "query",
@@ -382,8 +379,29 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
           },
         },
       ]),
-    ) },
+    ) }),
   };
+}
+
+type Operation = { responses?: Record<string, { description?: string; content?: Record<string, { schema?: unknown; example?: unknown }> }> };
+
+/**
+ * Every 200 an agent can be charged for describes its body: a GET variant without content takes its POST's 200, and
+ * a 200 with only an example gets a schema derived from it (MPP discovery warns "output-schema-missing" otherwise).
+ */
+export function completeResponses<T extends Record<string, Record<string, unknown>>>(paths: T): T {
+  for (const item of Object.values(paths)) {
+    const get = item.get as Operation | undefined;
+    const post = item.post as Operation | undefined;
+    if (get?.responses?.["200"] && !get.responses["200"].content && post?.responses?.["200"]?.content) {
+      get.responses["200"] = { ...post.responses["200"], description: get.responses["200"].description ?? post.responses["200"].description };
+    }
+    for (const op of Object.values(item) as Operation[]) {
+      const json = op?.responses?.["200"]?.content?.["application/json"];
+      if (json && !json.schema && json.example !== undefined) json.schema = schemaFromExample(json.example as Record<string, unknown>);
+    }
+  }
+  return paths;
 }
 
 // Left out of marketplace listings: these run on a limited daily allowance, which a
@@ -393,6 +411,7 @@ import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/
 import { EMBED_TOOL_PATH, openAiEmbeddingsOpenApiPath } from "./lib/openai-embeddings";
 import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
 import { MODELS } from "./lib/ai";
+import { paymentInfo } from "./lib/payment-info";
 export { CAPACITY_LIMITED };
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
