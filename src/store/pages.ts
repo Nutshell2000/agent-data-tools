@@ -77,13 +77,13 @@ ${body}
 export function storePage(origin: string, availability: Readonly<Record<string, boolean>>) {
   const lead = PRODUCTS.every((p) => availability[p.slug] === true)
     ? "Digital products for developers building paid APIs for AI agents. Pay in USDC and download after confirmation, no account."
-    : "New seller-kit purchases are paused for template verification. Existing paid orders retain their download access.";
+    : "Digital products for developers building paid APIs for AI agents. The x402 Seller Kit is sold by card on Gumroad; existing USDC orders keep their download access.";
   const cards = PRODUCTS.map(
     (p) => `<div class="card">
 <h2 style="margin-top:0"><a href="/store/${esc(p.slug)}">${esc(p.title)}</a></h2>
 <p>${esc(p.tagline)}</p>
 <p><span class="price">$${p.priceUsd.toFixed(2)}</span> <span class="note">in USDC on Base</span></p>
-${availability[p.slug] ? "" : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`}
+${availability[p.slug] ? "" : p.cardCheckout ? `<p><a class="btn" href="${esc(p.cardCheckout.url)}">Buy by card on Gumroad (${esc(p.cardCheckout.price)})</a></p>` : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`}
 <a class="btn" href="/store/${esc(p.slug)}">See what's inside</a>
 </div>`,
   ).join("");
@@ -101,7 +101,9 @@ export function productPage(p: Product, origin: string, assetAvailable: boolean)
   const purchaseControls = assetAvailable
     ? `<form method="post" action="/store/${esc(p.slug)}/order"><button type="submit">Buy with USDC</button></form>
 <p class="note" style="margin:12px 0 0">You'll get an exact amount and an address. Send it from any wallet or exchange that supports USDC on Base, and the download unlocks by itself, usually within a minute.</p>`
-    : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`;
+    : p.cardCheckout
+      ? `<p><a class="btn" href="${esc(p.cardCheckout.url)}">Buy by card on Gumroad (${esc(p.cardCheckout.price)})</a></p><p class="note" style="margin:12px 0 0">Instant download after payment. USDC purchases here are paused; existing paid downloads remain available.</p>`
+      : `<p class="status" role="status">New purchases paused for template verification. Existing paid downloads remain available.</p>`;
   return shell(
     `${p.title} | ${SERVICE_NAME}`,
     p.tagline,

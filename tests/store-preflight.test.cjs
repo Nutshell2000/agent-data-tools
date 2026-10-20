@@ -31,11 +31,11 @@ test('paused seller-kit GET, HEAD and direct order creation fail before payment 
   assert.deepEqual(f.counts(),{assets:0,writes:0,challenges:0});
   assert.deepEqual(routes.buyOpenApiPaths(),{});
 });
-test('storefront explains pause even when the asset exists and has no purchase controls',async()=>{
+test('storefront offers the Gumroad card checkout while USDC purchases stay paused, with no purchase form',async()=>{
   const f=fixture();
   for(const path of ['/store','/store/x402-seller-kit']) {
     const r=await f.app.fetch(new Request('https://example.test'+path),f.env);const html=await r.text();
-    assert.equal(r.status,200);assert.match(html,/New purchases paused for template verification/);
+    assert.equal(r.status,200);assert.match(html,/href="https:\/\/spellbound501\.gumroad\.com\/l\/banoac">Buy by card on Gumroad \(\$19\)/);
     assert.doesNotMatch(html,/<form method="post"|Agents can buy it too/);
   }
   assert.equal(f.counts().assets,0);
