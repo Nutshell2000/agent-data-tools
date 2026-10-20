@@ -1,6 +1,6 @@
 ## Motivation
 
-Agent Data Tools sells single calls to 175 data tools for AI agents, most at $0.003 per successful call:
+Agent Data Tools sells single calls to 176 data tools for AI agents, most at $0.003 per successful call:
 web pages, PDFs and feeds as clean text; OFAC sanctions screening and a one-call counterparty check;
 token prices, wallet and chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon; domain, email and
 company checks; Bitcoin, FX, weather, time and small AI text tools. No account; failed calls are never
