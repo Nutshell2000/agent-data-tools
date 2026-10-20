@@ -8,7 +8,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
-import { browserTrialResultPage, isBrowser } from "./lib/browser-402";
+import { browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
@@ -215,8 +215,13 @@ app.use(async (c, next) => {
   const trialable = !c.req.path.startsWith("/buy/");
   if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
   // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
+  // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
+  let freePaused = false;
   if (endpoint && trialable && !CAPACITY_LIMITED.has(c.req.path) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"));
+    const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; });
+    if (freePaused && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
+      return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
+    }
     if (free) {
       await next();
       if (c.res.status >= 400) await free.refund();
@@ -255,9 +260,10 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  const answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined);
+  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined);
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
+  if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }
   if (answer.status !== 402 || !endpoint) return answer;
   const offers: string[] = [];
   // A broken MPP setup must never take the x402 quote down with it: the x402 terms go out alone then.

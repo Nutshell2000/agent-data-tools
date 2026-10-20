@@ -69,6 +69,39 @@ export function isBrowser(accept: string | undefined, userAgent: string | undefi
   return /text\/html/i.test(accept ?? "") && /Mozilla\//.test(userAgent ?? "");
 }
 
+/** Hours until the next 00:00 UTC, rounded up, when the free-call allowance can be counted again. */
+export function hoursToUtcMidnight(now = new Date()): number {
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  return Math.max(1, Math.ceil((next - now.getTime()) / 3_600_000));
+}
+
+/** Said wherever a free call was asked for but could not be counted (storage over its daily write limit). */
+export const freeCallsPausedNote = (now = new Date()) =>
+  `Free calls are paused until 00:00 UTC (in about ${hoursToUtcMidnight(now)} h) because today's free-call capacity is used up; they come back then. Paid x402 calls keep working.`;
+
+/** A person who clicked "Run it free" while free calls could not be counted: say so instead of showing the paywall. */
+export function browserTrialPausedPage(endpoint: Endpoint, requestUrl: string, now = new Date()): string {
+  const url = new URL(requestUrl);
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(endpoint.summary)}: free calls paused · Agent Data Tools</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--line:#e3e5e8;--accent:#0b57d0;--accent-fg:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e8eaed;--muted:#a3a8ae;--line:#2c3036;--accent:#8ab4f8;--accent-fg:#0b1a33}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;line-height:1.25;margin:0 0 8px}
+.meta{color:var(--muted);margin:0 0 18px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}a{color:var(--accent)}
+</style></head><body><main>
+<h1>${esc(endpoint.summary)}</h1>
+<p class="meta">${esc(freeCallsPausedNote(now))}</p>
+<p>Nothing was charged and none of your ${FREE_CALLS_PER_CALLER} free calls were used. Until then you can look at a real example result, or come back after 00:00 UTC and run it again.</p>
+<div class="actions"><a class="btn primary" href="${esc(withParam(new URL(url.origin + url.pathname), "sample"))}">See an example result</a><a class="btn" href="/tools">All tools</a></div>
+</main></body></html>`;
+}
+
 /** A free trial's result as a page: the JSON it returned, the free calls left and the way to keep going. */
 export function browserTrialResultPage(endpoint: Endpoint, json: string, left: number): string {
   let pretty = json;
