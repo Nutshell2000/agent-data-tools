@@ -47,7 +47,8 @@ test('an unpaid POST gets the /ai/embed quote; a multi-input body with a payment
   assert.match(res.headers.get('www-authenticate') ?? '', /method="evm"/);
   const quote = await res.json();
   assert.equal(quote.accepts[0].maxAmountRequired, '3000');
-  assert.match(quote.accepts[0].resource, /\/ai\/embed\?text=hello/);
+  assert.equal(quote.accepts[0].resource, 'https://api.test/v1/embeddings');
+  assert.equal(res.headers.get('x-tool'), '/ai/embed');
   const bad = await mf.dispatchFetch('https://api.test/v1/embeddings', { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'eyJmYWtlIjp0cnVlfQ' }, body: JSON.stringify({ input: ['a', 'b'] }) });
   assert.equal(bad.status, 400);
   assert.match((await bad.json()).error.message, /one input per request/);
@@ -56,7 +57,7 @@ test('an unpaid POST gets the /ai/embed quote; a multi-input body with a payment
   const get = await mf.dispatchFetch('https://api.test/v1/embeddings?input=hello%20there');
   assert.equal(get.status, 402, 'a GET with input= is forwarded like the POST');
   const getQuote = await get.json();
-  assert.match(getQuote.accepts[0].resource, /\/ai\/embed\?text=hello\+there/);
+  assert.equal(getQuote.accepts[0].resource, 'https://api.test/v1/embeddings');
   const bare = await mf.dispatchFetch('https://api.test/v1/embeddings');
   assert.equal(bare.status, 402);
   await bare.arrayBuffer();
