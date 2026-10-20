@@ -3,6 +3,8 @@ export interface Product {
   title: string;
   /** Whole US dollars; charged in USDC. */
   priceUsd: number;
+  /** Optional card checkout elsewhere (Gumroad), offered while USDC purchases here are paused. */
+  cardCheckout?: { url: string; price: string };
   tagline: string;
   description: string[];
   includes: string[];
@@ -36,6 +38,8 @@ export const PRODUCTS: Product[] = [
       "GitHub Action that publishes to the official MCP Registry with no secrets",
     ],
     file: "x402-seller-kit.zip",
+    // Card checkout on Gumroad (template re-verified 2026-10-20: typecheck, 402 with Bazaar data, both tools, MCP).
+    cardCheckout: { url: "https://spellbound501.gumroad.com/l/banoac", price: "$19" },
   },
 ];
 
