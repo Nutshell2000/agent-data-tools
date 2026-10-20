@@ -70,6 +70,7 @@ function createMetrics(initial = new Map()) {
       pending = result.catch(() => {});
       return result;
     },
+    async setAlarm() {},
   };
   return { metrics: new Metrics({ storage }), records };
 }
@@ -322,6 +323,26 @@ test("MCP client name comes from initialize only, sanitized", async () => {
   assert.equal(mcpClientName(JSON.stringify([{ jsonrpc: "2.0", method: "notifications/initialized" }, JSON.parse(init("openai-mcp"))])), "openai-mcp");
   assert.equal(mcpClientName(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: {} })), undefined);
   assert.equal(mcpClientName("not json"), undefined);
+});
+
+test("counters are buffered and written once per flush, and kept when a write fails", async () => {
+  const { metrics, records } = createMetrics();
+  for (let i = 0; i < 500; i++) await metrics.bump("/weather", "challenged", undefined, "crawler");
+  await metrics.bumpMcpClient("glama", "open");
+  assert.equal(records.size, 0, "nothing is written per request");
+  await metrics.alarm();
+  assert.equal(records.get(dayKey)["/weather"].challenged, 500);
+  assert.equal(records.get(`callers:${today}`).crawler.challenged, 500);
+  assert.equal(records.get(`mcpclients:${today}`).glama.open, 1);
+  // A write over the storage limit keeps the counts for the next flush instead of losing them.
+  const failing = createMetrics();
+  await failing.metrics.bump("/weather", "challenged");
+  const realTransaction = failing.metrics.ctx.storage.transaction;
+  failing.metrics.ctx.storage.transaction = async () => { throw new Error("Exceeded allowed rows written"); };
+  await assert.rejects(failing.metrics.alarm(), /Exceeded/);
+  failing.metrics.ctx.storage.transaction = realTransaction;
+  await failing.metrics.bump("/weather", "challenged");
+  assert.equal((await failing.metrics.report())[today]["/weather"].challenged, 2);
 });
 
 test("MCP connections are counted per client and mode, capped like callers", async () => {
