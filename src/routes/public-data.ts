@@ -64,11 +64,13 @@ const P = ["data"];
 
 export const PUBLIC_DATA: Entry[] = [
   entry("/holidays", "Public holidays by country", "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths.",
-    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code: US, GB, SE, DE, FR, NO, DK or FI", required: true, example: "SE" }, year: { type: "integer", description: "Year, 2024-2100 (default this year)", example: 2026 } },
+    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code: US, GB (UK), SE, DE, FR, NO, DK or FI; English country names also work", required: true, example: "SE" }, year: { type: "integer", description: "Year, 2024-2100 (default this year)", example: 2026 } },
     { country: "SE", countryName: "Sweden", year: 2026, count: 13, holidays: [{ date: "2026-01-01", localName: "Nyårsdagen", name: "New Year's Day", nationwide: true, types: ["Public"], observed: null }], note: "Computed from statutory rules; nationwide holidays only. Regional holidays and one-off proclamations are not included." },
     async (_e, q) => {
-      const country = need(q, "country", 2).toUpperCase();
-      if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, "country must be a 2-letter ISO code");
+      // What agents type: "UK" (the description's own word), "USA" or the country's English name.
+      const typed = need(q, "country", 40).trim().toUpperCase().replace(/[^A-Z ]/g, "");
+      const country = ({ UK: "GB", "UNITED KINGDOM": "GB", ENGLAND: "GB", USA: "US", "UNITED STATES": "US", SWEDEN: "SE", GERMANY: "DE", FRANCE: "FR", NORWAY: "NO", DENMARK: "DK", FINLAND: "FI" } as Record<string, string>)[typed] ?? typed;
+      if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, `country must be a 2-letter ISO code such as GB, US or SE (got "${typed.slice(0, 40)}")`);
       const year = num(q, "year", { min: 2024, max: 2100, fallback: new Date().getUTCFullYear(), integer: true });
       const out = holidaysFor(country, year);
       if (!out) throw new HttpError(404, `no holiday rules for ${country}; supported: ${Object.keys(COUNTRIES).join(", ")}`);

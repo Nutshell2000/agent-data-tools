@@ -46,6 +46,7 @@ import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embedding
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
+import { allowedValue } from "./family";
 import { isUpstreamFailure } from "./lib/env";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -181,7 +182,7 @@ app.use(async (c, next) => {
   if (endpoint && (c.req.method === "GET" || c.req.method === "HEAD")) {
     for (const [name, param] of Object.entries(endpoint.params)) {
       const value = c.req.query(name);
-      if (value !== undefined && param.enum && !param.enum.some((allowed: string) => allowed === value)) {
+      if (value !== undefined && param.enum && !allowedValue(value, param.enum)) {
         return c.json({ error: `${name} must be one of: ${param.enum.join(", ")}` }, 400);
       }
     }

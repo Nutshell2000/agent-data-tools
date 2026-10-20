@@ -5,7 +5,7 @@ import type { Param } from "../endpoints";
 
 export const FIELDS_PARAM: Param = {
   type: "string",
-  description: "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=fastestFee,halfHourFee); unknown keys are ignored and an empty match returns the full result",
+  description: "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result",
   example: "",
 };
 
