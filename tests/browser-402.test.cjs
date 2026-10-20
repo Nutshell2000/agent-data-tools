@@ -44,8 +44,7 @@ test('a bare tool link offers the trial on the published example inputs', async 
   const html = await res.text();
   const trial = /href="(\/weather\?[^"]*trial=1)"/.exec(html);
   assert.ok(trial, 'trial link present');
-  assert.match(trial[1], /lat=/);
-  assert.match(trial[1], /lon=/);
+  assert.match(trial[1], /city=London/, 'the published example: a city name');
 });
 
 test('JSON clients keep the machine-readable 402 body', async () => {
@@ -126,4 +125,16 @@ test('search copy: every TOOL_SEO entry is a real tool page with a short title, 
   // The AI chat page must not promise free calls (AI tools are outside the free allowance).
   const chat = await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text();
   assert.match(chat, /This tool is not in the free calls/);
+});
+
+test('a POST with a flat JSON body is the GET with those fields: quoted, not refused with 405', async () => {
+  const post = await mf.dispatchFetch('https://api.test/weather', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ city: 'London', hours: 6, ignored: { nested: true } }) });
+  assert.equal(post.status, 402);
+  const terms = JSON.parse(Buffer.from(post.headers.get('payment-required'), 'base64').toString());
+  assert.equal(terms.resource.url, 'https://api.test/weather?city=London&hours=6', 'known fields become the query; unknown and nested ones are dropped');
+  for (const body of ['', 'not json', '[1,2]']) {
+    const res = await mf.dispatchFetch('https://api.test/time', { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    assert.equal(res.status, 402, `body ${JSON.stringify(body)} still gets the quote`);
+    await res.arrayBuffer();
+  }
 });
