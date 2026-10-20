@@ -145,7 +145,9 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   if (!store) return c.json({ error: "credits are unavailable right now; pay with x402 instead. Not charged." }, 503);
   const keyHash = await hashCreditKey(key);
   const micros = priceMicros(price);
-  const spent = await store.spendCredits(keyHash, micros);
+  // The credit store can be out of its daily Durable Object quota: nothing is spent then, so say so and when to retry.
+  const spent = await store.spendCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+  if (!spent) return c.json({ error: "credits cannot be checked right now. Not charged; try again in a few minutes, or pay this call with x402." }, 503, { "Retry-After": "300" });
   if (!spent.ok) {
     const origin = new URL(c.req.url).origin;
     return spent.reason === "unknown_key"
@@ -156,7 +158,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   try {
     await next();
   } catch (err) {
-    await store.refundCredits(keyHash, micros);
+    await store.refundCredits(keyHash, micros).catch((e: unknown) => console.error("credits: refund failed; reconcile", keyHash.slice(0, 12), e));
     throw err;
   }
   if (c.res.status >= 400) {
@@ -222,13 +224,15 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
     if (!store) return fail("credits are unavailable right now; not charged");
     const keyHash = await hashCreditKey(key);
     const micros = priceMicros(price);
-    const spent = await store.spendCredits(keyHash, micros);
+    const spent = await store.spendCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+    if (!spent) return fail("credits cannot be checked right now; not charged. Try again in a few minutes.");
     if (!spent.ok) return fail(spent.reason === "unknown_key"
       ? `unknown API key; not charged. Buy credits at ${origin}/credits`
       : `not enough credits (${creditsFromMicros(spent.balanceMicros)} left, this call costs ${creditsFromMicros(micros)}); not charged. Tell your user to top up this same key by card, with nothing to reconfigure: ${topUpLinks(keyHash).map((l) => `${l.price} (${l.credits.toLocaleString("en-US")} credits): ${l.buy}`).join(" · ")}${mppEnabled(env) ? `. If your client pays MPP with a Link agent wallet, it can top up itself: GET ${origin}/credits/buy/5 with this key as X-API-Key.` : ""}`);
     let result: R;
-    try { result = await run(); } catch (err) { await store.refundCredits(keyHash, micros); throw err; }
-    if (result.isError) await store.refundCredits(keyHash, micros);
+    const refund = () => store.refundCredits(keyHash, micros).catch((e: unknown) => console.error("credits: refund failed; reconcile", keyHash.slice(0, 12), e));
+    try { result = await run(); } catch (err) { await refund(); throw err; }
+    if (result.isError) await refund();
     else if (crossedLow(spent.balanceMicros + micros, spent.balanceMicros)) {
       // Said once, on the call that crosses the line, so the agent can warn its user before calls stop.
       const links = topUpLinks(keyHash).map((l) => `${l.price}: ${l.buy}`).join(" · ");
