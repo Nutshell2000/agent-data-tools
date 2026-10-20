@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.37.0";
+export const MCP_SERVER_VERSION = "1.37.1";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -266,7 +266,7 @@ ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 ${rows}
 
 <h2>How paying works</h2>
-<p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header. Calls that fail are not charged.</p>
+<p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme) and a <code>WWW-Authenticate: Payment</code> challenge for MPP (USDC on Base or USDC.e on Tempo). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header; an MPP client (mppx) answers the challenge in <code>Authorization: Payment</code>. Calls that fail are not charged.</p>
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
@@ -411,7 +411,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `> ${SERVICE_SUMMARY}`,
     "",
-    "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base). Sign the payment and retry with the PAYMENT-SIGNATURE header. Failed calls (4xx/5xx) are not charged.",
+    "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base) and a WWW-Authenticate: Payment challenge (MPP: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo). Pay with x402 (sign and retry with PAYMENT-SIGNATURE) or with MPP (an mppx client answers the challenge in Authorization: Payment; the receipt comes back in Payment-Receipt). Failed calls (4xx/5xx) are not charged on either path.",
     "",
     trialNote(trialsEnabled),
     "",
