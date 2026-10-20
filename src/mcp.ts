@@ -18,6 +18,7 @@ import { HttpError, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
+import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
@@ -131,7 +132,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
     const client = mcpClientName(await c.req.raw.clone().text());
     if (client) {
       const mode = account ? "account" : urlKey || apiKeyFrom((name) => c.req.header(name)) ? "key" : "open";
-      c.executionCtx.waitUntil(env.METRICS.get(env.METRICS.idFromName("global")).bumpMcpClient(client, mode).catch(() => {}));
+      queueBatched(env.METRICS.get(env.METRICS.idFromName("global")), (p) => c.executionCtx.waitUntil(p), (b) => b.mcp.push([client, mode]));
     }
   }
   const paid = env.PAYWALL !== "off";

@@ -25,6 +25,7 @@ let metricsTest;
 let productUsdMicros;
 let queueMetricBump;
 let requestMetricsMiddleware;
+let sendBatchNow;
 let settledApiRevenueMicros;
 let settledMcpRevenueMicros;
 let usdMicros;
@@ -51,6 +52,7 @@ before(async () => {
     usdMicros,
   } = await loadTypeScript(require.resolve("../src/lib/revenue.ts")));
   ({ requestMetricsMiddleware } = await loadTypeScript(require.resolve("../src/lib/request-metrics.ts")));
+  ({ sendBatchNow } = await loadTypeScript(require.resolve("../src/lib/metrics-batch.ts")));
 });
 
 function createMetrics(initial = new Map()) {
@@ -156,7 +158,7 @@ test("HTTP middleware records settled product revenue and excludes missing or fa
     await Promise.all(pending.splice(0));
   }
 
-  const row = (await metrics.report())[today]["/buy/x402-seller-kit"];
+  const row = (await sendBatchNow(metrics), await metrics.report())[today]["/buy/x402-seller-kit"];
   assert.equal(row.revenueUsdMicros, 1_900_000);
   assert.equal(row.trackedPaidCalls, 1);
   assert.equal(row.paid, 1);
@@ -183,7 +185,7 @@ test("persists revenue and tracked-call count only for paid outcomes", async () 
     metrics.bump("/package-audit", "marketplace", 200_000),
     metrics.bump("/package-audit", "unsettled", 200_000),
   ]);
-  const pathMetrics = (await metrics.report())[today]["/package-audit"];
+  const pathMetrics = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(pathMetrics.paid, 1);
   assert.equal(pathMetrics.challenged, 1);
   assert.equal(pathMetrics.trial, 1);
@@ -198,13 +200,13 @@ test("preserves legacy paid counts without backfilling revenue", async () => {
   const { metrics } = createMetrics(new Map([
     [dayKey, { "/package-audit": { paid: 7, challenged: 3 } }],
   ]));
-  const before = (await metrics.report())[today]["/package-audit"];
+  const before = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(before.paid, 7);
   assert.equal(before.revenueUsdMicros, undefined);
   assert.equal(before.trackedPaidCalls, undefined);
 
   await metrics.bump("/package-audit", "paid", 200_000);
-  const after = (await metrics.report())[today]["/package-audit"];
+  const after = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(after.paid, 8);
   assert.equal(after.revenueUsdMicros, 200_000);
   assert.equal(after.trackedPaidCalls, 1);
@@ -222,7 +224,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
 
   trackHttp("/package-audit", new Headers({ "PAYMENT-RESPONSE": successfulSettlement }));
   await Promise.all(pending.splice(0));
-  let row = (await metrics.report())[today]["/package-audit"];
+  let row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.revenueUsdMicros, 200_000);
   assert.equal(row.trackedPaidCalls, 1);
 
@@ -234,7 +236,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   );
   await mcpCallback();
   await Promise.all(pending.splice(0));
-  row = (await metrics.report())[today]["/package-audit"];
+  row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.revenueUsdMicros, 400_000);
   assert.equal(row.trackedPaidCalls, 2);
   assert.equal(row.paid, 2);
@@ -257,7 +259,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
 
   trackHttp("/buy/x402-seller-kit", new Headers({ "PAYMENT-RESPONSE": successfulSettlement }));
   await Promise.all(pending.splice(0));
-  const purchaseRow = (await metrics.report())[today]["/buy/x402-seller-kit"];
+  const purchaseRow = (await sendBatchNow(metrics), await metrics.report())[today]["/buy/x402-seller-kit"];
   assert.equal(purchaseRow.revenueUsdMicros, 1_900_000);
   assert.equal(purchaseRow.trackedPaidCalls, 1);
 
@@ -267,7 +269,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   trackHttp("/package-audit", new Headers());
   await Promise.all(pending.splice(0));
 
-  row = (await metrics.report())[today]["/package-audit"];
+  row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.challenged, 1);
   assert.equal(row.trial, 1);
   assert.equal(row.failed, 1);
@@ -326,13 +328,29 @@ test("MCP client name comes from initialize only, sanitized", async () => {
   assert.equal(mcpClientName("not json"), undefined);
 });
 
+test("unpaid counter updates reach the Metrics object in one batched call; paid ones go at once", async () => {
+  const { metrics } = createMetrics();
+  let ingests = 0, bumps = 0;
+  const target = { ingest: (b) => { ingests++; return metrics.ingest(b); }, bump: (...a) => { bumps++; return metrics.bump(...a); } };
+  const pending = [];
+  for (let i = 0; i < 300; i++) queueMetricBump(target, (p) => pending.push(p), "/weather", "challenged", undefined, "crawler");
+  queueMetricBump(target, (p) => pending.push(p), "/weather", "paid", 3000);
+  await Promise.all(pending);
+  assert.equal(ingests, 0, "unpaid updates wait for the batch window");
+  assert.equal(bumps, 1, "a paid outcome is sent at once");
+  await sendBatchNow(target);
+  assert.equal(ingests, 1);
+  const row = (await metrics.report())[today]["/weather"];
+  assert.deepEqual([row.challenged, row.paid, row.revenueUsdMicros], [300, 1, 3000]);
+});
+
 test("counters are buffered and written once per flush, and kept when a write fails", async () => {
   const { metrics, records } = createMetrics();
   for (let i = 0; i < 500; i++) await metrics.bump("/weather", "challenged", undefined, "crawler");
   await metrics.bumpMcpClient("glama", "open");
   assert.equal(records.size, 0, "nothing is written per request");
   // Reads include unwritten counts without writing (a failed write would reset the object mid-read).
-  assert.equal((await metrics.report())[today]["/weather"].challenged, 500);
+  assert.equal((await sendBatchNow(metrics), await metrics.report())[today]["/weather"].challenged, 500);
   assert.equal((await metrics.callers())[today].crawler.challenged, 500);
   assert.equal((await metrics.status(["/weather"])).tools[0].buyerErrors, 0);
   assert.equal(records.size, 0, "reads do not write");
@@ -379,7 +397,7 @@ test("payment attempts answered 402 are counted as v1_payment (X-PAYMENT) or v2_
   await app.fetch(new Request("https://x.test/tool"), env, executionCtx);
   await app.fetch(new Request("https://x.test/tool", { headers: { "x-payment": "a", "payment-signature": "b" } }), env, executionCtx);
   await Promise.all(pending);
-  const row = (await metrics.report())[today]["/tool"];
+  const row = (await sendBatchNow(metrics), await metrics.report())[today]["/tool"];
   assert.equal(row.v1_payment, 1);
   assert.equal(row.v2_payment, 1);
   assert.equal(row.challenged, 1);
