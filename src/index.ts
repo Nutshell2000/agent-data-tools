@@ -46,6 +46,7 @@ import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embedding
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
+import { isUpstreamFailure } from "./lib/env";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -486,6 +487,8 @@ app.notFound((c) => c.json({ error: "not found", docs: `${origin(c.req.url)}/llm
 app.onError((err, c) => {
   if (err instanceof HttpError) return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}) }, err.status);
   console.error(err);
+  // An outside source that timed out or could not be reached (a tool without its own catch): say so, uncharged.
+  if (isUpstreamFailure(err)) return c.json({ error: "an outside data source did not respond in time; not charged, try again" }, 502);
   return c.json({ error: "internal error" }, 500);
 });
 

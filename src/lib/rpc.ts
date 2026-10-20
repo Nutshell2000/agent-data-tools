@@ -1,6 +1,7 @@
 import { createPublicClient, fallback, http, type PublicClient } from "viem";
 import { base } from "viem/chains";
 import type { Env } from "./env";
+import { activeTrace } from "./funnel";
 
 /**
  * Keyless public RPCs per chain, best first, ordered by how they answer from Cloudflare's network (Workers share
@@ -32,24 +33,32 @@ export function rpcUrls(slug: keyof typeof EDGE_RPCS, env?: Pick<Env, "BASE_RPC_
   return custom && !list.includes(custom) ? [custom, ...list] : list;
 }
 
-let cached: { key: string; client: PublicClient } | undefined;
+const perRequest = new WeakMap<object, Map<string, PublicClient>>();
+
+/**
+ * One viem client per request (shared by that request's calls, so multicall batching still works), never per
+ * isolate: viem caches block numbers and batches calls in promises that a later request would await, and workerd
+ * cancels promises that cross requests, so concurrent calls hung with "Worker's code had hung" (5xx).
+ */
+export function requestClient(key: string, make: () => PublicClient): PublicClient {
+  const trace = activeTrace();
+  if (!trace) return make();
+  let clients = perRequest.get(trace);
+  if (!clients) perRequest.set(trace, (clients = new Map()));
+  let client = clients.get(key);
+  if (!client) clients.set(key, (client = make()));
+  return client;
+}
 
 /** Read-only Base client. Batches eth_calls through Multicall3; falls back across the measured RPC list. */
 export function baseClient(env: Env): PublicClient {
   const urls = rpcUrls("base", env);
-  const key = urls.join("|");
-  if (cached?.key !== key) {
-    const options = { timeout: 8_000, retryCount: 0 };
-    cached = {
-      key,
-      client: createPublicClient({
-        chain: base,
-        transport: fallback(urls.map((u) => http(u, options)), { rank: false }),
-        batch: { multicall: true },
-      }) as PublicClient,
-    };
-  }
-  return cached.client;
+  const options = { timeout: 8_000, retryCount: 0 };
+  return requestClient(`base|${urls.join("|")}`, () => createPublicClient({
+    chain: base,
+    transport: fallback(urls.map((u) => http(u, options)), { rank: false }),
+    batch: { multicall: true },
+  }) as PublicClient);
 }
 
 export const erc20Abi = [

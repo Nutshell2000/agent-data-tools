@@ -23,7 +23,7 @@ test('malformed paid outputs cannot settle through HTTP or schema-aware MCP clie
   b.onResolve({filter:/^\.\/facilitator$/},()=>({path:'facilitator',namespace:'fixture'}));
   b.onLoad({filter:/.*/,namespace:'fixture'},()=>({loader:'js',contents:`export function buildFacilitator(){return {getSupported:async()=>({kinds:[{x402Version:2,scheme:'exact',network:'eip155:8453',extra:{name:'USD Coin',version:'2',asset:'${asset}',assetTransferMethod:'eip3009'}}],extensions:[]}),verify:async()=>({isValid:true,payer:'${payer}'}),settle:async()=>{throw Error('Fixture must never settle')}}}`}));
   b.onLoad({filter:/[\\/]src[\\/]tools\.ts$/},async({path})=>{
-   const text=await readFile(path,'utf8'),needle='const result = await handler(env, input);';assert.ok(text.includes(needle));
+   const text=await readFile(path,'utf8'),needle='const result = await handler(env, normalizedInput(input));';assert.ok(text.includes(needle));
    return{loader:'ts',contents:text.replace(needle,'const result = { fixtureOnly: "invalid paid result" };')};
   });
  }}]});
