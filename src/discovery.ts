@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.37.1";
+export const MCP_SERVER_VERSION = "1.38.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -329,7 +329,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: Object.fromEntries(
+    paths: { ...openAiOpenApiPaths(origin, catalogEndpoint(CHAT_TOOL_PATH).price, mpp), ...Object.fromEntries(
       ENDPOINTS.map((e) => [
         e.path,
         {
@@ -371,13 +371,15 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
           },
         },
       ]),
-    ),
+    ) },
   };
 }
 
 // Left out of marketplace listings: these run on a limited daily allowance, which a
 // subscription plan with a monthly quota could exhaust.
 import { CAPACITY_LIMITED } from "./lib/capacity";
+import { CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/openai-chat";
+import { MODELS } from "./lib/ai";
 export { CAPACITY_LIMITED };
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
@@ -393,8 +395,9 @@ export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
     },
     servers: doc.servers,
     paths: Object.fromEntries(
-      Object.entries(doc.paths)
-        .filter(([path]) => !CAPACITY_LIMITED.has(path))
+      // Tools only: the OpenAI-style /v1 paths are a front for the capacity-limited /ai/chat and stay out too.
+      (Object.entries(doc.paths) as unknown as [string, { get: { "x-payment-info"?: unknown; responses: Record<string, unknown>; [key: string]: unknown } }][])
+        .filter(([path]) => !CAPACITY_LIMITED.has(path) && !path.startsWith("/v1/"))
         .map(([path, item]) => {
           const { "x-payment-info": _payment, responses, ...get } = item.get;
           const { "402": _unpaid, ...rest } = responses;
@@ -418,6 +421,8 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance.`,
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
+    "",
+    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); GET ${origin}/v1/models is free. Point an OpenAI SDK at ${origin}/v1 behind an x402 or MPP fetch wrapper.`,
     "",
     `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${READER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
     "",
