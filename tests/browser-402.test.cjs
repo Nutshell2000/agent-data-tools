@@ -105,3 +105,25 @@ test('the IndexNow key file serves its own key', async () => {
   assert.equal(res.status, 200);
   assert.equal((await res.text()).trim(), key);
 });
+
+test('search copy: every TOOL_SEO entry is a real tool page with a short title, uses, FAQ and FAQPage data', async () => {
+  const { build } = require('esbuild');
+  const b = await build({ entryPoints: ['src/lib/tool-seo.ts'], bundle: true, format: 'cjs', platform: 'node', write: false });
+  const m = { exports: {} }; new Function('module', 'exports', b.outputFiles[0].text)(m, m.exports);
+  const seo = m.exports.TOOL_SEO;
+  assert.ok(Object.keys(seo).length >= 20);
+  for (const [path, entry] of Object.entries(seo)) {
+    assert.ok(entry.title.length <= 70, `${path} title too long`);
+    assert.ok(entry.uses.length >= 2 && entry.faq.length >= 1, path);
+    const res = await mf.dispatchFetch(`https://api.test/tools/${path.slice(1).replaceAll('/', '-')}`);
+    assert.equal(res.status, 200, path);
+    const html = await res.text();
+    assert.ok(html.includes(`<h1>${entry.title.replaceAll('&', '&amp;')}</h1>`), `${path} heading`);
+    assert.match(html, /"@type":"FAQPage"/, path);
+    assert.match(html, /<h2>When to use it<\/h2>/, path);
+    assert.match(html, /How do I pay\?/, path);
+  }
+  // The AI chat page must not promise free calls (AI tools are outside the free allowance).
+  const chat = await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text();
+  assert.match(chat, /This tool is not in the free calls/);
+});
