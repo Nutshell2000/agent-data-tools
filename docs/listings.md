@@ -68,13 +68,13 @@ MCP Registry.
 | x402scan | origin | x402scan.com/resources/register or `npx agentcash register <origin>` | 182 of 186 registered 2026-10-20 12:25 UTC via `npx agentcash register` (3 skipped, 0 failed) |
 | MPPScan | origin | mppscan.com/register or the same CLI | 186 of 186 registered 2026-10-20 12:25 UTC |
 | 402 Index | each tool URL | `scripts/register-402index.mjs` (token file, 10 per hour) | all tools listed |
-| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; tools entry (tempo + evm, 41 routes incl. /v1/chat/completions, /v1/responses, /v1/embeddings) plus `agent-data-tools-credits` (stripe card packs at serviceUrl /credits); `pnpm check:services` 44/44 and 7/7; feeds the Stripe Directory's machine-payments index | PR 1095 open, updated 2026-10-20 12:30 |
+| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; tools entry (tempo + evm, 41 routes incl. /v1/chat/completions, /v1/responses, /v1/embeddings) plus `agent-data-tools-credits` (stripe card packs at serviceUrl /credits); `pnpm check:services` 44/44 and 7/7; feeds the Stripe Directory's machine-payments index | PR 1095 open, updated 2026-10-20 12:30. Their bot asks for the service PR template (`.github/PULL_REQUEST_TEMPLATE/service.md`) in the PR description before review, and `stale-service-prs.yml` closes service PRs 14 days after opening (#1095: about 2 Nov). Filled template sent to Peter 2026-10-20; this session cannot edit tempoxyz PRs. |
 | gold-402 | PR to Pazificateur69/gold-402 (directory/apis.md) | one line, live 402 probe | PR 1 open |
 | awesome-remote-mcp-servers | PR to punkpeye/awesome-remote-mcp-servers | needs the Glama connector badge and a starred repo | PR 2339 open, CI green |
 | mcpservers.org | `/mcp` | Free form at mcpservers.org/submit | submitted 2026-10-20, 2-week review |
 | Circle Agent Marketplace | origin | Google Form (forms.gle/7YFzvdmMcn1JH5tF6), manual review, payout wallet screened | submitted 2026-10-20 |
 | Stripe MPP directory | `/credits/buy/*` | machine-payments@stripe.com thread; card packs under MPP-team review; stablecoin access needs an incorporated company | in review 2026-10-20 |
-| AgentCash search | origin | Fed by x402scan and MPPScan; semantic index | registered 186/186 but absent from `agentcash search` even by exact name, while zero-sale origins appear; email to mason@merit.systems saved as a Gmail draft for Peter (2026-10-20) |
+| AgentCash search | origin | Fed by x402scan and MPPScan; semantic index | registered again 2026-10-20 13:55 UTC (x402scan 182/186, MPPScan 186/186, origin id 1db0e01d…) but absent from the first 100 `agentcash search --broad --limit 50` results, even by exact name, while zero-sale origins appear; asked mason@merit.systems by email 2026-10-20 13:58 UTC (from the support address), awaiting reply |
 | MCP Market | `/mcp` | Remote listing is paid only ($69) | skipped (no spending) |
 | awesome-x402 (xpaysh) | origin | PR from fork branch `add-agent-data-tools` | PR 1829 open (2026-10-20) |
 | RapidAPI | marketplace OpenAPI | Listing exists (Everyday Data API); refresh copy and prices from this file | live |
