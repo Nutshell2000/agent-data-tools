@@ -1,0 +1,25 @@
+From 3792a5748c0633284ecd208752ef0c8056e9f1f5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 20 Oct 2026 10:04:02 +0000
+Subject: [PATCH] services: Agent Data Tools also takes tempo/charge (USDC.e)
+
+---
+ schemas/services.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/schemas/services.ts b/schemas/services.ts
+index fe49470..65f9944 100644
+--- a/schemas/services.ts
++++ b/schemas/services.ts
+@@ -11866,7 +11866,7 @@ export const services: ServiceDef[] = [
+     provider: { name: "SpellzCode", url: "https://agent-data-tools.revmesh2074.workers.dev" },
+     realm: "agent-data-tools.revmesh2074.workers.dev",
+     intent: "charge",
+-    payments: [{ method: "evm", currency: usdc(8453).address, decimals: 6 }],
++    payments: [TEMPO_PAYMENT, { method: "evm", currency: usdc(8453).address, decimals: 6 }],
+     endpoints: [
+       {
+         route: "GET /extract",
+-- 
+2.43.0
+
