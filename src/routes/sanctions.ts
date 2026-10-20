@@ -153,7 +153,7 @@ export function screen(index: SdnIndex, address: string | undefined, name: strin
 
 export const SANCTIONS: Entry[] = [
   entry("/sanctions/check", "OFAC sanctions screening for a wallet or name",
-    "OFAC sanctions screen for a crypto wallet before you pay it: checks an address (BTC, ETH, USDT, TRX and more) or a person or company name against the US Treasury SDN list, aliases included. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and match strength, and the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty.",
+    "OFAC sanctions screen for a crypto wallet before you pay it: checks an address (BTC, ETH, USDT, TRX and more) or a person or company name against the US Treasury SDN list, aliases included. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and match strength, and the list date. A screening aid, not legal advice. Use before paying; full verdict with wallet risk: check_counterparty.",
     ["sanctions", "ofac", "compliance", "kyc", "aml", "wallet"], {
       address: { type: "string", description: "Crypto address to check (give address, name or both)", example: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
       name: { type: "string", description: "Person or company name; matches when every word appears in a listed name or alias", example: "Lazarus Group" },
