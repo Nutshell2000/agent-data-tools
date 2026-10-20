@@ -4,10 +4,13 @@
 // marks the buyer wallet as owned, so these settlements never count as revenue or demand.
 //
 //   node scripts/seed-bazaar.mjs wallet                       create the buyer wallet if needed, print its address
-//   node scripts/seed-bazaar.mjs                              dry run: plan for --set prices,compliance
-//   node scripts/seed-bazaar.mjs --set prices,compliance,chain dry run for other MCP sections
+//   node scripts/seed-bazaar.mjs                              dry run: every eligible tool in demand order
+//   node scripts/seed-bazaar.mjs --budget 0.25                 dry run: the demand order, cut at 0.25 USD
+//   node scripts/seed-bazaar.mjs --set prices,compliance,chain dry run for named MCP sections
 //   node scripts/seed-bazaar.mjs --only /btc-address,/ens     dry run for named paths
 //   node scripts/seed-bazaar.mjs --pay --ledger-excluded      pay (needs BUYER_KEY in the environment)
+//   --budget 0.25      seed in demand order until this many USD is planned (the "earned -> seed" trigger:
+//                      Peter moves what the service earned into the buyer wallet and seeds that much)
 //   --max-total 1.00   refuse to spend more than this many USD in one run (default 1.00)
 //   --force            include tools that are already listed in the Bazaar
 //
@@ -40,7 +43,9 @@ const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
 const option = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : fallback; };
 const pay = flag("--pay");
-const sets = option("--set", "prices,compliance").split(",").map((s) => s.trim()).filter(Boolean);
+const sets = option("--set", "").split(",").map((s) => s.trim()).filter(Boolean);
+const budgetUsd = option("--budget", "") === "" ? undefined : Number(option("--budget", ""));
+if (budgetUsd !== undefined && (!Number.isFinite(budgetUsd) || budgetUsd <= 0)) throw new Error("--budget must be a positive number of USD");
 const only = option("--only", "").split(",").map((s) => s.trim()).filter(Boolean);
 const maxTotalUsd = Number(option("--max-total", "1.00"));
 if (!Number.isFinite(maxTotalUsd) || maxTotalUsd <= 0 || maxTotalUsd > 5) throw new Error("--max-total must be between 0 and 5 USD");
@@ -57,18 +62,33 @@ const byName = new Map(card.endpoints.map((e) => [toolName(new URL(e.url).pathna
 
 // 2. The selection: the tools of the named MCP sections (what buyers of that kind look for), or named paths.
 const selected = new Map();
+// Demand order (Tanod's Bazaar snapshot of 9 Oct 2026 and our buyer-bot measurement of 15-19 Oct): chain reads are
+// the most-paid category, then the crypto-risk checks bot A buys at $0.01-0.05, then prices, compliance and web
+// reading, then everything else up to $0.005. Never the $0.20 package audit or the capacity-limited AI and media tools.
+const RISK = ["/contract-risk", "/token-report", "/wallet-audit", "/liquidity-pool-audit", "/check/counterparty", "/token", "/trade-insight", "/mev-simulator"];
+const NEVER = new Set(["/package-audit", "/screenshot", "/image", "/transcribe", "/describe", "/summarize", "/search", "/extract/rendered"]);
+const isChain = (path) => /^\/((base|eth|arb|op|polygon|wallet)(\/|$)|base-|btc-|ens$)/.test(path);
+async function sectionPaths(set) {
+  const res = await fetch(`${ORIGIN}/mcp/${set}`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "user-agent": UA },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }), signal: AbortSignal.timeout(30_000) });
+  const text = await res.text();
+  const line = text.split("\n").find((l) => l.startsWith("data:")) ?? text;
+  const tools = JSON.parse(line.replace(/^data:\s*/, "")).result?.tools ?? [];
+  if (!tools.length) throw new Error(`no tools in section ${set}`);
+  return tools.map((t) => byName.get(t.name)).filter(Boolean).map((e) => new URL(e.url).pathname);
+}
 if (only.length) {
   for (const path of only) { const e = byName.get(toolName(path)); if (!e) throw new Error(`unknown tool ${path}`); selected.set(path, e); }
+} else if (!sets.length) {
+  const all = card.endpoints.map((e) => [new URL(e.url).pathname, e]).filter(([path, e]) => !NEVER.has(path) && !path.startsWith("/ai/") && !path.startsWith("/buy/") && e.price);
+  const byPath = new Map(all);
+  const add = (path) => { if (byPath.has(path) && !selected.has(path)) selected.set(path, byPath.get(path)); };
+  for (const [path] of all) if (isChain(path)) add(path);
+  for (const path of RISK) add(path);
+  for (const set of ["prices", "compliance", "web"]) for (const path of await sectionPaths(set)) add(path);
+  for (const [path, e] of all) if (micros(e.price) <= 5000n) add(path);
 } else {
-  for (const set of sets) {
-    const res = await fetch(`${ORIGIN}/mcp/${set}`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "user-agent": UA },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }), signal: AbortSignal.timeout(30_000) });
-    const text = await res.text();
-    const line = text.split("\n").find((l) => l.startsWith("data:")) ?? text;
-    const tools = JSON.parse(line.replace(/^data:\s*/, "")).result?.tools ?? [];
-    if (!tools.length) throw new Error(`no tools in section ${set}`);
-    for (const t of tools) { const e = byName.get(t.name); if (e) selected.set(new URL(e.url).pathname, e); }
-  }
+  for (const set of sets) for (const path of await sectionPaths(set)) selected.set(path, byName.get(toolName(path)));
 }
 
 // 3. What the Bazaar already lists for our payout address, so each tool is seeded at most once.
@@ -100,10 +120,17 @@ for (const [path, e] of selected) {
   if (BigInt(terms.amount) !== expected) { plan.push({ path, skip: `quote ${terms.amount} differs from catalog ${expected}` }); continue; }
   plan.push({ path, example: e.example, amount: terms.amount, price: e.price });
 }
+// --budget cuts the demand order: tools past the budget are planned for a later run, not skipped for good.
+let planned = 0n;
+for (const p of plan) {
+  if (p.skip || budgetUsd === undefined) continue;
+  if (planned + BigInt(p.amount) > BigInt(Math.round(budgetUsd * 1e6))) p.skip = `beyond --budget ${budgetUsd}`;
+  else planned += BigInt(p.amount);
+}
 const todo = plan.filter((p) => !p.skip);
 const totalAtomic = todo.reduce((s, p) => s + BigInt(p.amount), 0n);
 
-console.log(`${selected.size} tools selected (${only.length ? "named paths" : `sections ${sets.join(", ")}`}); ${listed.size} of our resources already in the Bazaar.`);
+console.log(`${selected.size} tools selected (${only.length ? "named paths" : sets.length ? `sections ${sets.join(", ")}` : "demand order"}); ${listed.size} of our resources already in the Bazaar.`);
 for (const p of plan) console.log(p.skip ? `  skip ${p.path}: ${p.skip}` : `  pay  ${p.path}  ${p.price}`);
 console.log(`${todo.length} payments, ${usd(totalAtomic)} USDC in total (cap ${maxTotalUsd} USD).`);
 if (totalAtomic > BigInt(Math.round(maxTotalUsd * 1e6))) throw new Error("total exceeds --max-total; narrow the selection or raise the cap deliberately");

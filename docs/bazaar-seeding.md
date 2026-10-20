@@ -6,9 +6,27 @@ indexes a resource only after its first payment settles through the CDP facilita
 for once by the owner, from a buyer wallet he funds, into our own `PAY_TO`. Nothing leaves the business:
 the USDC moves from one owner wallet to the other and the facilitator pays the gas.
 
+**On hold since 19 Oct evening, reconfirmed 20 Oct: no funding until the service has earned something.**
+The trigger: when `/revenue` shows external earnings (`grossAtomic`, self-payments excluded), Peter may move
+that amount from PAY_TO to the buyer wallet and run the script with `--budget` equal to it. Earnings, not new
+money, fund the listings; the money comes back to PAY_TO. Until then the script runs on staging only (below).
+
 These settlements are never revenue or demand. The buyer wallet is listed in `OWNED_WALLETS`
 (`src/lib/settlement-ledger.ts`), so the ledger records them as `selfPayment: true` and `/revenue` excludes
 them from `grossAtomic`; the weekly review and the daily report ignore self-payments.
+
+## Demand order and what each budget buys (catalog of 20 Oct 2026)
+
+Without `--set` or `--only`, the script seeds in demand order (Tanod Labs' Bazaar snapshot of 9 Oct: chain reads
+are the most-paid category, with 400-700 one-call payers per endpoint like ours; bot A buys crypto-risk checks):
+
+| Budget | Tools listed |
+|---|---|
+| 0.19 USD | 63 chain reads: /base, /eth, /arb, /op, /polygon families, /base-*, /btc-*, /ens, /wallet* |
+| 0.41 USD | + 8 crypto-risk checks: contract-risk, token-report, wallet-audit, liquidity-pool-audit, check/counterparty, token, trade-insight, mev-simulator |
+| 0.67 USD | + prices, compliance, web reading and every other tool up to $0.005 (156 tools) |
+
+Never seeded: `/package-audit` ($0.20) and the capacity-limited AI, media and rendering tools.
 
 ## Steps (Peter, once per batch)
 
@@ -20,20 +38,19 @@ them from `grossAtomic`; the weekly review and the daily report ignore self-paym
    the environment overrides it):
 
    ```sh
-   node scripts/seed-bazaar.mjs
+   node scripts/seed-bazaar.mjs --budget <earned USD>
    ```
 
-   reads the plan for the `prices` and `compliance` sections (23 payments, 0.477 USDC at current prices, of
-   which `/package-audit` alone is 0.20; drop it with `--only` if you prefer), checks
-   each tool's live 402 terms (our address, Base USDC, the catalog price) and pays nothing. Then:
+   plans the demand order up to that budget, checks each tool's live 402 terms (our address, Base USDC, the
+   catalog price) and pays nothing. Then:
 
    ```sh
-   node scripts/seed-bazaar.mjs --pay --ledger-excluded
+   node scripts/seed-bazaar.mjs --budget <earned USD> --pay --ledger-excluded
    ```
 
    pays each tool once, prints the transaction per tool and any Bazaar `EXTENSION-RESPONSES` outcome, and
-   writes a private git-ignored log `.seed-bazaar-<time>.json`. Tools already listed are skipped, so a re-run
-   only retries failures. Other sections: `--set chain`, `--set web,everyday`; named tools: `--only /ens,/btc-address`.
+   writes a private git-ignored log `.seed-bazaar-<time>.json`. Tools already listed are skipped, so the next
+   budget continues down the demand order. Named sections instead: `--set web,everyday`; named tools: `--only /ens,/btc-address`.
    The run refuses to spend more than `--max-total` (default 1.00 USD).
 
 4. After about ten minutes, `node scripts/bazaar-listings.mjs` (in `C:\MoneyWallet\x402-api\scripts`) lists
@@ -45,6 +62,10 @@ The same script runs against the Base Sepolia staging Worker with the faucet tes
 `OWNED_WALLETS`), which proves the paying path before Peter uses it: set `SEED_ORIGIN` to the staging URL,
 `SEED_NETWORK=eip155:84532`, `SEED_USDC=0x036CbD53842c5426634e7929541eC2318f3dCF7e` and `BUYER_KEY` to the
 test wallet key, then `node scripts/seed-bazaar.mjs --only /fx,/btc-price --pay --ledger-excluded`.
+
+Before each release, run the whole demand order there (same variables, no `--only`, about 0.67 faucet USDC):
+every tool must settle on testnet with its published example. A failure is a first payment we would lose in
+production; fix the example or the tool first. `npm run smoke:examples` is the quicker check without payment.
 
 ## What to expect
 
