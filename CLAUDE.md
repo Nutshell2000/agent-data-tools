@@ -120,6 +120,6 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 
 - `POST /v1/chat/completions` and `GET /v1/models` (src/lib/openai-chat.ts) are a front for `/ai/chat`: the body is mapped to the tool's query and forwarded through the same middleware (`app.fetch`), so x402 v1/v2, MPP evm/tempo, card credits and free calls apply unchanged at the /ai/chat price. An unpaid or empty-body POST returns the /ai/chat 402 quote (validators expect 402, never 400); invalid input with a payment header is refused 400 before anything is forwarded. Not an MCP tool, not in /discovery/resources, not in the RapidAPI document. Staging proof: `node scripts/pay-test.mjs <staging>/v1/chat/completions --post-json '{"messages":[{"role":"user","content":"Say hi"}]}'`.
 
-## The `only` result filter (1.38.1)
+## The `only` result filter (1.38.2)
 
 - Every tool accepts `only=<comma-separated top-level keys>` over HTTP and MCP (src/lib/fields.ts, applied in index.ts and mcp.ts); unknown keys are ignored and no match returns the full result. The ten tools without inputs of their own declare it in ENDPOINTS (endpoints.ts, after the array), so every paid route has an input schema for AgentCash and MPPScan. `exampleParams()` never uses it. Do not add a tool parameter named `only`; `fields` is taken by /ai/extract-json.
