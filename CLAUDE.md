@@ -295,3 +295,20 @@ Tests: tests/outage-resilience.test.cjs. The lasting fix is the Workers Paid pla
   - `/summarize` points PDFs to pdf_text.
   - token-transfers states how much time `blocks` covers on each chain.
   - MCP instructions include a pick-by-task map and the `/mcp/<section>` servers. The signed-in instructions must not mention crypto (tests/oauth).
+
+## New tools (1.44.0, 179 tools; Peter approved on 2026-10-20)
+
+- **`/sec/filings`** (src/routes/gov-data.ts): SEC EDGAR filings by ticker or CIK, optionally one form type.
+  - The data is public information under sec.gov's privacy notice.
+  - SEC's fair-access policy requires a User-Agent naming a contact; ours names the public support address. Keep requests under 10 a second.
+  - The 800 KB ticker map is cached for a day at the edge, and submissions for 10 minutes.
+  - Before relying on it, check from staging that SEC does not block Cloudflare's egress IPs.
+- **`/airport/status`** (gov-data.ts): FAA's live National Airspace System status (US federal work) for one IATA code, or for the whole country.
+  - The XML is parsed with small regexes, because Workers have no DOMParser.
+  - Cached 60 s.
+- **`/hyperliquid/market`** (src/routes/hyperliquid.ts): perpetuals price, hourly funding rate and its APR, open interest and 24 h volume, for one coin or the top 20.
+  - The terms of Hyperliquid's public info API say nothing about resale; Peter approved it anyway.
+  - Snapshots are kept 15 s as plain module data (never a shared promise), because of the 1,200-weight-a-minute limit per IP.
+- **Demand:** competitors with the same data had 29 (EDGAR), 23 (FAA) and 56/48 (Hyperliquid) paying bots on the Bazaar.
+- **Rejected on their terms:** Chainlink feeds (ToS §3 forbids resale), Polymarket (no market data distributors) and DefiLlama (non-commercial). The Treasury yield curve is too slow (18 s).
+- **After deploying:** register the three paths with 402 Index (`scripts/register-402index.mjs`), re-run `npx agentcash register`, and add them to the Ultravioleta registry.

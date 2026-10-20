@@ -1,5 +1,5 @@
 {
-  "version": "1.43.0",
+  "version": "1.44.0",
   "tools": [
     {
       "name": "extract",
@@ -4737,6 +4737,87 @@
         "required": [
           "package"
         ]
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "sec_filings",
+      "description": "Latest SEC EDGAR filings for a US-listed company by stock ticker or CIK: form (10-K, 10-Q, 8-K, 4, S-1…), filing and report dates, accession number, document description and a direct link, newest first, optionally only one form type. Plus company name, CIK and industry (SIC). Public SEC data. Use to check a company's latest annual or quarterly report, insider trades (form 4) or material events (8-K). Example: ticker=AAPL. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker such as AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "form": {
+            "type": "string",
+            "description": "Only this form type, e.g. 10-K, 10-Q, 8-K or 4 (default: all)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Filings to return, 1-50 (default 10)"
+          }
+        }
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "airport_status",
+      "description": "Live FAA National Airspace System status for US airports: ground stops, ground delay programs, arrival and departure delays (with minimum, maximum and trend) and closures, each with its reason. Give an IATA code such as LGA for one airport (normal when nothing is reported), or nothing for the whole country. Public FAA data, refreshed about every minute. Use before travel planning, logistics or customer notices. Example: airport=LGA. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "airport": {
+            "type": "string",
+            "description": "IATA airport code such as LGA, SFO or ORD (default: all US airports with events)"
+          }
+        }
+      },
+      "price": "$0.003"
+    },
+    {
+      "name": "hyperliquid_market",
+      "description": "Live Hyperliquid perpetual futures data for a coin (BTC, ETH, SOL, HYPE…): mark, oracle and mid price, hourly funding rate and its APR, premium, open interest in coins and USD, 24-hour volume and price change, and max leverage. Without a coin, the 20 most traded markets by 24-hour volume. Read from Hyperliquid's public API. Use for funding-rate checks, basis trades, derivatives dashboards and market context. Example: coin=BTC. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default: the 20 most traded markets)"
+          }
+        }
       },
       "price": "$0.003"
     },
