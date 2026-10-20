@@ -231,15 +231,11 @@ function chainEntries(c: ChainDef): Entry[] {
         if (topic0 && !isHash(topic0)) throw new HttpError(400, "topic0 must be a 0x 32-byte hash");
         const cl = client(env, c);
         const latest = await rpc(() => cl.getBlockNumber());
-        const fromBlock = latest - span + 1n;
-        const logs = await rpc(() => cl.request({
-          method: "eth_getLogs",
-          params: [{ address: a, fromBlock: `0x${fromBlock.toString(16)}`, toBlock: `0x${latest.toString(16)}`, ...(topic0 ? { topics: [topic0 as `0x${string}`] } : {}) }],
-        }));
-        const list = (logs as Array<{ blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string }>);
+        const { logs: list, fromBlock, complete } = await recentLogs(cl, { address: a, ...(topic0 ? { topics: [topic0 as `0x${string}`] } : {}) }, latest, span, 100);
+        // The newest 100, oldest first; fromBlock is where the scan stopped when a busy contract filled them early.
         return head({
-          address: a, fromBlock: Number(fromBlock), toBlock: Number(latest), count: list.length, truncated: list.length > 100,
-          logs: list.slice(0, 100).map((l) => ({ block: Number(l.blockNumber), tx: l.transactionHash, logIndex: Number(l.logIndex), topics: l.topics, data: l.data.length > 514 ? `${l.data.slice(0, 514)}…` : l.data })),
+          address: a, fromBlock: Number(fromBlock), toBlock: Number(latest), count: list.length, truncated: list.length > 100 || !complete,
+          logs: list.slice(-100).map((l) => ({ block: Number(l.blockNumber), tx: l.transactionHash, logIndex: Number(l.logIndex), topics: l.topics, data: l.data.length > 514 ? `${l.data.slice(0, 514)}…` : l.data })),
         });
       }),
 
@@ -294,6 +290,30 @@ function chainEntries(c: ChainDef): Entry[] {
 }
 
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
+
+type RawLog = { blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string };
+
+/**
+ * eth_getLogs over the last `span` blocks, newest first, in windows of 10, 40, 160… blocks, stopping once `want` logs
+ * are in. One busy contract (USDC on Base: ~270 logs a block) fills them from the first small window instead of
+ * pulling megabytes over the whole span; a quiet one covers 1,000 blocks in five calls. Small windows also suit nodes
+ * that cap the range. Returns the logs oldest first and the first block actually scanned.
+ */
+export async function recentLogs(cl: PublicClient, filter: { address: `0x${string}`; topics?: `0x${string}`[] }, latest: bigint, span: bigint, want: number) {
+  const floor = latest - span + 1n;
+  let logs: RawLog[] = [];
+  let to = latest;
+  let size = 10n;
+  while (to >= floor) {
+    const from = to - size + 1n > floor ? to - size + 1n : floor;
+    const chunk = await rpc(() => cl.request({ method: "eth_getLogs", params: [{ ...filter, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] })) as RawLog[];
+    logs = chunk.concat(logs);
+    if (logs.length >= want || from === floor) return { logs, fromBlock: from, complete: from === floor };
+    to = from - 1n;
+    size *= 4n;
+  }
+  return { logs, fromBlock: floor, complete: true };
+}
 
 /** Native coin and USDC on every supported network in one call: the "where are this wallet's funds?" question. */
 const WALLET_BALANCES: Entry = entry("/wallet/balances", "Native and USDC balances on 5 networks",
