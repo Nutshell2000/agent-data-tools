@@ -32,6 +32,13 @@
     // wallet has a USDC token account: x402 SPL transfers do not create the recipient's account, so
     // offering Solana earlier would make every Solana payment fail.
     "SOLANA_PAY_TO": "",
+    // Tempo address that receives per-call MPP payments in USDC.e (src/lib/mpp-tempo.ts): PAY_TO, by Peter's
+    // decision of 2026-10-20 (option A in docs/mpp-per-call.md; his wallet shows the address on Tempo Mainnet and can
+    // send from it). Empty switches the tempo method off.
+    "TEMPO_PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+    // Per-call MPP with USDC on Base to PAY_TO (src/lib/mpp-evm.ts) is ON unless this is "off": it reuses the x402
+    // facilitator and the CDP secret, so it needs nothing new. MPPScan lists the tools from it (docs/mpp-per-call.md).
+    "MPP_EVM": "on",
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.
@@ -41,6 +48,7 @@
     // Free calls (src/lib/free-calls.ts): 25 per caller, automatic over MCP, trial=1 over HTTP.
     // Without the exact value "on", every unpaid call receives the normal payment challenge.
     "TRIALS_ENABLED": "on",
+    // Only a private endpoint here changes anything: public ones keep their measured order (src/lib/rpc.ts EDGE_RPCS).
     "BASE_RPC_URL": "https://mainnet.base.org",
     // Stripe profile (@spellzz) for MPP card payments of credit packs; the key is the secret STRIPE_MPP_KEY.
     "STRIPE_PROFILE_ID": "profile_61VXy8TZgWPaLVrUgA6VXy8TRdQCmC1PKY56LWKJkVfM"

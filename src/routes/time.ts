@@ -25,9 +25,13 @@ function inZone(instant: Date, zone: string) {
   // "GMT" for UTC itself, otherwise "GMT+02:00".
   const utcOffset = get("timeZoneName").replace("GMT", "") || "+00:00";
   const local = `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
-  const abbreviation = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "short" })
+  // en-US names American zones (EDT) and en-GB European ones (CEST, BST); each gives a bare GMT offset
+  // for the other's, so take the first that is a real abbreviation.
+  const short = (locale: string) => new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "short" })
     .formatToParts(instant)
     .find((p) => p.type === "timeZoneName")?.value;
+  const us = short("en-US");
+  const abbreviation = us && /^GMT[+-]/.test(us) ? (short("en-GB") ?? us) : us;
   return { zone, localTime: local, isoWithOffset: local + utcOffset, utcOffset, weekday: get("weekday"), abbreviation: abbreviation ?? null };
 }
 

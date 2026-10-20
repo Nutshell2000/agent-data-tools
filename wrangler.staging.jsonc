@@ -31,6 +31,13 @@
     "PAYWALL": "on",
     // Off, so an MCP tool call gets a payment quote instead of a free call and the payment path is what gets tested.
     "TRIALS_ENABLED": "off",
+    // Staging has no CDP secret, so the MPP challenge-signing key is a plain var here. Not a secret: testnet only.
+    "MPP_SECRET_KEY": "agent-data-tools-staging-mpp-challenge-key-2026-10-20-not-a-secret",
+    // Per-call MPP on Tempo, TESTNET only (Moderato, chain 42431, pathUSD from the faucet): staging proves the
+    // tempo path with `node scripts/pay-test.mjs <staging>/time?zone=UTC --tempo`. The receiving address is the
+    // same test-only PAY_TO; production keeps TEMPO_PAY_TO empty until Peter chooses a Tempo address.
+    "TEMPO_NETWORK": "testnet",
+    "TEMPO_PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     "BASE_RPC_URL": "https://mainnet.base.org"
   }
 }

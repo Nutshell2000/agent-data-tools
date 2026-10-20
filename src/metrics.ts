@@ -4,12 +4,13 @@ import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/sett
 import { saveFunnel, funnelSummary, type FunnelEvent } from "./lib/funnel";
 import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
+import { claimReplay, swapReplay } from "./lib/mpp-store";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
  * "sample" a free ?sample=1 preview of the static example (the tool did not run).
  */
-export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample" | "credits" | "v1_payment" | "v2_payment";
+export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample" | "credits" | "v1_payment" | "v2_payment" | "mpp_payment";
 /** Outcomes where the tool ran and answered 2xx. */
 const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace", "credits"];
 const STATUS_DAYS = 7;
@@ -63,6 +64,12 @@ export class Metrics extends DurableObject {
       return value ?? null;
     });
   }
+  // MPP replay state for per-call Tempo payments (lib/mpp-tempo.ts), shared by every isolate. Called on "global".
+  async mppGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`mpp:${key}`)) ?? null; }
+  async mppPut(key: string, value: unknown) { await this.ctx.storage.put(`mpp:${key}`, value); }
+  async mppDelete(key: string) { await this.ctx.storage.delete(`mpp:${key}`); }
+  async mppClaim(key: string, expires: number) { return claimReplay(this.ctx.storage, key, expires); }
+  async mppSwap(key: string, expected: string, next: { value: unknown } | null) { return swapReplay(this.ctx.storage, key, expected, next); }
   async takeFreeCall(caller: string, day: string) { return takeFreeCall(this.ctx.storage, caller, day); }
   async refundFreeCall(caller: string, day: string) { return refundFreeCall(this.ctx.storage, caller, day); }
 

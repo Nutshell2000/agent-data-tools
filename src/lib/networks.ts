@@ -41,6 +41,29 @@ export function paymentNetworks(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS">): N
   return [env.NETWORK, ...new Set(extra)] as Network[];
 }
 
+/**
+ * Tempo, where MPP agents pay per call (lib/mpp-tempo.ts), never an x402 network: kept out of USDC_BY_NETWORK
+ * so EXTRA_NETWORKS cannot offer it to x402 clients. Mainnet takes USDC.e (Stargate-bridged USDC, what MPP
+ * credits and Tempo wallets settle in); Moderato testnet takes faucet pathUSD. Both TIP-20, 6 decimals.
+ */
+export const TEMPO_STABLECOIN: Readonly<Record<string, string>> = Object.freeze({
+  "eip155:4217": "0x20c000000000000000000000b9537d11c60e8b50", // Tempo mainnet USDC.e
+  "eip155:42431": "0x20c0000000000000000000000000000000000000", // Moderato testnet pathUSD (staging only)
+});
+
+/**
+ * EIP-712 domain of the USDC contract per network, as @x402/evm's defaults and the token contracts state it.
+ * Discovery documents (lib/discovery-index.ts) carry it so a client can sign without asking the chain.
+ */
+export const USDC_DOMAIN: Readonly<Record<string, { name: string; version: string }>> = Object.freeze({
+  "eip155:8453": { name: "USD Coin", version: "2" },
+  "eip155:137": { name: "USD Coin", version: "2" },
+  "eip155:42161": { name: "USD Coin", version: "2" },
+  "eip155:143": { name: "USDC", version: "2" },
+  "eip155:480": { name: "USDC", version: "2" },
+  "eip155:84532": { name: "USDC", version: "2" },
+});
+
 /** USDC on networks @x402/evm has no default for; domain values read from the token contract (EIP-3009). */
 const CUSTOM_USDC: Readonly<Record<string, { asset: string; name: string; version: string }>> = Object.freeze({
   "eip155:480": { asset: "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", name: "USDC", version: "2" },

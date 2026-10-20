@@ -4,9 +4,14 @@
 //
 //   node scripts/pay-test.mjs address                       create the test wallet if needed and print its address
 //   node scripts/pay-test.mjs <url>                         HTTP, x402 v2: pay the 402 with PAYMENT-SIGNATURE
+//   node scripts/pay-test.mjs <url> --post-json '{...}'  HTTP, x402 v2 with a POST body (the OpenAI-style /v1/chat/completions)
 //   node scripts/pay-test.mjs <url> --v1                    HTTP, x402 v1: pay from the 402 body with X-PAYMENT
 //   node scripts/pay-test.mjs <origin> --mcp <tool> [--args '{"url":"https://example.com"}']
 //                                                           MCP: the @x402/mcp client wrapper pays the tool call
+//   node scripts/pay-test.mjs <url> --mpp-evm               HTTP, MPP evm/charge: the mppx client answers the WWW-Authenticate
+//                                                           challenge with a USDC authorization (Authorization: Payment)
+//   node scripts/pay-test.mjs <url> --tempo                 HTTP, MPP tempo/charge on the Moderato TESTNET: the mppx client signs a
+//                                                           pathUSD transfer (pull mode) that staging broadcasts after the tool ran
 //
 // The test wallet's key lives in .test-wallet.json (git-ignored) and is never printed. Fund it with Base Sepolia
 // USDC from https://faucet.circle.com (and a little Sepolia ETH is not needed: the facilitator pays gas).
@@ -45,11 +50,13 @@ function testnetClient() {
 const describe = (receipt) => (receipt ? JSON.stringify(receipt) : "none");
 
 if (flag("--mcp")) await mcp(target, option("--mcp"), JSON.parse(option("--args") ?? "{}"));
+else if (flag("--mpp-evm")) await mppEvm(target);
+else if (flag("--tempo")) await mppTempo(target);
 else if (flag("--v1")) await httpV1(target);
 else await httpV2(target);
 
 async function httpV2(url) {
-  const plain = await fetch(url);
+  const plain = await fetch(url, option("--post-json") ? { method: "POST", headers: { "content-type": "application/json" }, body: option("--post-json") } : undefined);
   console.log(`unpaid: HTTP ${plain.status}`);
   if (plain.status !== 402) { console.log(await plain.text()); process.exit(1); }
   const challenge = JSON.parse(Buffer.from(plain.headers.get("payment-required"), "base64").toString());
@@ -60,7 +67,8 @@ async function httpV2(url) {
   }
   console.log(`asks:   ${terms.amount} units of ${terms.asset} on ${terms.network}, payTo ${terms.payTo}`);
   const paidFetch = wrapFetchWithPayment(fetch, testnetClient());
-  const res = await paidFetch(url);
+  const postJson = option("--post-json");
+  const res = await paidFetch(url, postJson ? { method: "POST", headers: { "content-type": "application/json" }, body: postJson } : undefined);
   const body = await res.text();
   console.log(`paid:   HTTP ${res.status}`);
   const receipt = res.headers.get("payment-response");
@@ -127,4 +135,47 @@ async function mcp(origin, tool, args) {
   } finally {
     await client.close();
   }
+}
+
+/** MPP evm/charge: the mppx client reads the WWW-Authenticate challenge, signs a USDC authorization for the testnet only and retries. */
+async function mppEvm(url) {
+  const plain = await fetch(url);
+  console.log(`unpaid: HTTP ${plain.status}`);
+  await plain.arrayBuffer();
+  const { Challenge } = await import("mppx");
+  const { Mppx, evm } = await import("mppx/client");
+  const challenge = plain.status === 402 ? Challenge.fromResponseList(plain).find((ch) => ch.method === "evm") : undefined;
+  if (!challenge) { console.log("REFUSING: no evm/charge challenge in WWW-Authenticate"); process.exit(1); }
+  if (challenge.request.methodDetails.chainId !== 84532) { console.log(`REFUSING: the challenge is for chain ${challenge.request.methodDetails.chainId}, not the Base Sepolia testnet.`); process.exit(1); }
+  console.log(`asks:   ${challenge.request.amount} units of ${challenge.request.currency} on eip155:${challenge.request.methodDetails.chainId}, recipient ${challenge.request.recipient}`);
+  const client = Mppx.create({ polyfill: false, methods: [evm.charge({ account, currencies: [evm.assets.baseSepolia.USDC], networks: [84532] })] });
+  const res = await client.fetch(url);
+  const body = await res.text();
+  console.log(`paid:   HTTP ${res.status}`);
+  const receipt = res.headers.get("payment-receipt");
+  console.log(`settle: ${receipt ? receipt : "no Payment-Receipt header"}`);
+  console.log(`body:   ${body.slice(0, 300)}`);
+  process.exitCode = res.ok && receipt ? 0 : 1;
+}
+/** MPP tempo/charge on Moderato (chain 42431): faucet pathUSD only (tempo_fundAddress on rpc.moderato.tempo.xyz). Refuses Tempo mainnet. */
+async function mppTempo(url) {
+  const plain = await fetch(url);
+  console.log(`unpaid: HTTP ${plain.status}`);
+  await plain.arrayBuffer();
+  const { Challenge } = await import("mppx");
+  const { Mppx, tempo } = await import("mppx/client");
+  const { createClient, http } = await import("viem");
+  const { tempoModerato } = await import("viem/tempo/chains");
+  const challenge = plain.status === 402 ? Challenge.fromResponseList(plain).find((ch) => ch.method === "tempo") : undefined;
+  if (!challenge) { console.log("REFUSING: no tempo/charge challenge in WWW-Authenticate (is TEMPO_PAY_TO set on staging?)"); process.exit(1); }
+  if (challenge.request.methodDetails.chainId !== tempoModerato.id) { console.log(`REFUSING: the challenge is for Tempo chain ${challenge.request.methodDetails.chainId}, not Moderato (${tempoModerato.id}).`); process.exit(1); }
+  console.log(`asks:   ${challenge.request.amount} units of ${challenge.request.currency} on eip155:${challenge.request.methodDetails.chainId}, recipient ${challenge.request.recipient}, modes ${(challenge.request.methodDetails.supportedModes ?? []).join("/")}`);
+  const client = Mppx.create({ polyfill: false, methods: [tempo.charge({ account, mode: "pull", getClient: () => createClient({ chain: tempoModerato, transport: http() }) })] });
+  const res = await client.fetch(url);
+  const body = await res.text();
+  console.log(`paid:   HTTP ${res.status}`);
+  const receipt = res.headers.get("payment-receipt");
+  console.log(`settle: ${receipt ? Buffer.from(receipt, "base64url").toString() : "no Payment-Receipt header"}`);
+  console.log(`body:   ${body.slice(0, 300)}`);
+  process.exitCode = res.ok && receipt ? 0 : 1;
 }

@@ -2,7 +2,7 @@ import type { SettleResultContext } from "@x402/core/server";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
 import { activeTrace } from "./funnel";
-import { SOLANA_NETWORK, SOLANA_USDC, USDC_BY_NETWORK } from "./networks";
+import { SOLANA_NETWORK, SOLANA_USDC, TEMPO_STABLECOIN, USDC_BY_NETWORK } from "./networks";
 
 const ADDRESS = /^0x[0-9a-f]{40}$/;
 const HASH = /^0x[0-9a-f]{64}$/;
@@ -106,7 +106,9 @@ export async function saveSettlement(storage: DurableObjectStorage, record: Sett
     ? SOLANA_SIGNATURE.test(record.transaction) && SOLANA_ACCOUNT.test(record.payer) && SOLANA_ACCOUNT.test(record.recipient) &&
       record.authorizationNonce === record.transaction && record.asset === SOLANA_USDC
     : HASH.test(record.transaction) && ADDRESS.test(record.payer) && ADDRESS.test(record.recipient) &&
-      HASH.test(record.authorizationNonce) && record.network in USDC_BY_NETWORK && record.asset === USDC_BY_NETWORK[record.network];
+      HASH.test(record.authorizationNonce) && record.asset === (USDC_BY_NETWORK[record.network] ?? TEMPO_STABLECOIN[record.network]) &&
+      // MPP Tempo receipts (lib/mpp-tempo.ts): the transaction hash is the payment's unique identity.
+      (record.network in USDC_BY_NETWORK || record.authorizationNonce === record.transaction);
   if (!/^[0-9a-f]{64}$/.test(record.id) || !partiesValid || !PATHS.has(record.path) ||
       !/^[1-9]\d{0,29}$/.test(record.amountAtomic) || record.reconciliation !== "pending" ||
       !Number.isFinite(Date.parse(record.recordedAt))) throw new Error("invalid settlement record");
