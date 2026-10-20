@@ -341,7 +341,8 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", (c) => {
   const tool = toolBySlug(c.req.param("slug"));
-  return tool ? c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env))) : c.notFound();
+  // Capacity-limited tools (AI, rendering, transcription, search) are outside the free calls, so no free button.
+  return tool ? c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && !CAPACITY_LIMITED.has(tool.path))) : c.notFound();
 });
 // IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
