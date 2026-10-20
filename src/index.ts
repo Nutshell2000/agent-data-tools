@@ -37,6 +37,7 @@ import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor } from "./lib/bazaar-extension";
+import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
@@ -233,7 +234,7 @@ function decodedChallengeError(header: string | null): string {
 }
 
 for (const e of ENDPOINTS) {
-  app.get(e.path, async (c) => c.json(await TOOLS[e.path](c.env, (name) => c.req.query(name))));
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => c.req.query(name)), c.req.query("only"))));
 }
 
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
