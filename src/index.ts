@@ -269,15 +269,13 @@ app.all("/mcp/k/:key", (c) => handleMcp(c, "", c.req.param("key")));
 app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.param("key")));
 
 // Card payments: prepaid credits and their API keys.
-// OpenAI-compatible chat completions (lib/openai-chat.ts): a POST front for /ai/chat that goes through the same
-// middleware, so every payment path and price applies unchanged. GET /v1/models is free.
-app.post(OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
-app.on(["GET", "HEAD"], OPENAI_CHAT_PATH, (c) => c.json({ error: 'use POST with an OpenAI-style JSON body: {"messages":[{"role":"user","content":"..."}]}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
+// OpenAI-compatible chat completions (lib/openai-chat.ts): a front for /ai/chat that goes through the same
+// middleware, so every payment path and price applies unchanged. POST takes the OpenAI body; GET takes the same
+// inputs in the query (directories that index every route as GET send agents that way). GET /v1/models is free.
+app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
-app.post(OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
-app.on(["GET", "HEAD"], OPENAI_RESPONSES_PATH, (c) => c.json({ error: 'use POST with an OpenAI Responses body: {"input":"..."}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
-app.post(OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
-app.on(["GET", "HEAD"], OPENAI_EMBEDDINGS_PATH, (c) => c.json({ error: 'use POST with an OpenAI-style JSON body: {"input":"text to embed"}', docs: `${origin(c.req.url)}/openapi.json` }, 405, { Allow: "POST" }));
+app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
 // Privacy policy, terms and support.
