@@ -13,6 +13,7 @@ import { ENDPOINTS } from "../endpoints";
 import { MODELS } from "./ai";
 import type { Env } from "./env";
 import { LARGE_CHAT_MODELS } from "../routes/ai-text";
+import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_CHAT_PATH = "/v1/chat/completions";
 export const OPENAI_MODELS_PATH = "/v1/models";
@@ -200,8 +201,7 @@ export function openApiGetVariant(operationId: string, summary: string, descript
 
 /** The two OpenAI-style paths for /openapi.json; the completion is paid at the chosen chat tool's price and terms. */
 export function openAiOpenApiPaths(origin: string, prices: { small: string; large: string }, mpp: readonly unknown[]) {
-  const usd = (p: string) => p.replace("$", "");
-  const paymentInfo = { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] };
+  const paymentInfo = buildPaymentInfo({ min: prices.small, max: prices.large }, mpp);
   const errorResponses = {
     "400": { description: "Invalid request (not charged)" },
     "402": { description: "Payment Required" },

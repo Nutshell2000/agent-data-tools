@@ -22,6 +22,7 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
+import { listingTags } from "./lib/bazaar-extension";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
@@ -87,7 +88,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         mimeType: "application/json",
         serviceName: SERVICE_NAME,
         iconUrl: SERVICE_ICON_URL,
-        tags: [...e.tags],
+        tags: listingTags(e.tags),
       },
       extensions: declareDiscoveryExtension({
         toolName: toolName(e),
