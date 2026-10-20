@@ -1,27 +1,39 @@
 // OpenAI-compatible chat completions: `POST /v1/chat/completions` with the usual `{ messages: [...] }` body, answered
-// in the OpenAI response shape. It is a front for the paid `/ai/chat` tool: the request is translated into that
-// tool's GET call and forwarded through the same middleware, so x402 (v1 and v2), MPP (evm and tempo), card credits
-// and free calls all work unchanged, at the same price, and a failed call is never charged. Agents that already
-// speak the OpenAI API (SDKs with an x402 or MPP fetch wrapper) can use the tool without learning our query format.
+// in the OpenAI response shape. It is a front for the paid chat tools: the request is translated into the tool's GET
+// call and forwarded through the same middleware, so x402 (v1 and v2), MPP (evm and tempo), card credits and free
+// calls all work unchanged, at the tool's price, and a failed call is never charged. Agents that already speak the
+// OpenAI API (SDKs with an x402 or MPP fetch wrapper) can use the tools without learning our query format.
+//
+// The `model` field picks the tool: the default is /ai/chat (Llama 3.1 8B); a model name containing "70b",
+// "llama-3.3", "gpt-oss" or "120b" goes to /ai/chat-large (Llama 3.3 70B or gpt-oss-120b) at its own price.
 //
 // Why: on-chain, the one tool category with verified outside buyers is LLM inference sold through this interface.
 import type { Context } from "hono";
 import { ENDPOINTS } from "../endpoints";
 import { MODELS } from "./ai";
 import type { Env } from "./env";
+import { LARGE_CHAT_MODELS } from "../routes/ai-text";
 
 export const OPENAI_CHAT_PATH = "/v1/chat/completions";
 export const OPENAI_MODELS_PATH = "/v1/models";
-/** The tool that answers; its price and payment terms apply. */
+/** The tools that answer; their prices and payment terms apply. */
 export const CHAT_TOOL_PATH = "/ai/chat";
+export const CHAT_LARGE_TOOL_PATH = "/ai/chat-large";
 const PROMPT_LIMIT = 8000;
 const SYSTEM_LIMIT = 2000;
-const DEFAULT_SYSTEM = "You are a helpful, concise assistant.";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 
-interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number }
+interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS }
+
+/** Which tool (and large-model name) an OpenAI `model` string selects. */
+export function toolFor(model: unknown): { path: string; model?: keyof typeof LARGE_CHAT_MODELS } {
+  const name = String(model ?? "").toLowerCase();
+  if (/gpt-oss|120b/.test(name)) return { path: CHAT_LARGE_TOOL_PATH, model: "gpt-oss-120b" };
+  if (/70b|llama-3\.3|large/.test(name)) return { path: CHAT_LARGE_TOOL_PATH, model: "llama-3.3-70b" };
+  return { path: CHAT_TOOL_PATH };
+}
 
 /** Text of an OpenAI message `content` (a string, or an array of text parts). */
 function textOf(content: unknown): string {
@@ -31,7 +43,7 @@ function textOf(content: unknown): string {
 }
 
 /**
- * Maps an OpenAI chat request onto the /ai/chat query: system messages become the system prompt, a single user
+ * Maps an OpenAI chat request onto the chat tool's query: system messages become the system prompt, a single user
  * message is the prompt, a longer conversation is rendered as a transcript the model is asked to continue.
  */
 export function toChatQuery(body: unknown): { query: ChatQuery } | { error: string } {
@@ -62,10 +74,12 @@ export function toChatQuery(body: unknown): { query: ChatQuery } | { error: stri
   if (Number.isFinite(maxTokens) && maxTokens > 0) query.maxTokens = Math.min(1024, Math.floor(maxTokens));
   const temperature = Number(b.temperature);
   if (Number.isFinite(temperature) && temperature >= 0) query.temperature = Math.min(1.5, temperature);
+  const large = toolFor(b.model).model;
+  if (large) query.model = large;
   return { query };
 }
 
-/** The OpenAI-shaped answer for one /ai/chat result. Token counts are estimates (about four characters per token). */
+/** The OpenAI-shaped answer for one chat tool result. Token counts are estimates (about four characters per token). */
 export function toOpenAiResponse(query: ChatQuery, result: { model?: string; response?: string }, requestedModel?: string) {
   const text = String(result.response ?? "");
   const promptTokens = Math.ceil((query.prompt.length + (query.system ?? "").length) / 4);
@@ -83,7 +97,7 @@ export function toOpenAiResponse(query: ChatQuery, result: { model?: string; res
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
-/** Handles POST /v1/chat/completions by forwarding the equivalent /ai/chat GET through the whole middleware chain. */
+/** Handles POST /v1/chat/completions by forwarding the equivalent chat-tool GET through the whole middleware chain. */
 export async function openAiChatCompletions(c: C, forward: Forward): Promise<Response> {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   let body: unknown = null;
@@ -94,10 +108,15 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
     return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
   }
   // An unpaid probe (directories, validators, a first unpaid call) gets the real quote even with an empty body.
-  const query: ChatQuery = "error" in mapped ? { prompt: String(ENDPOINTS.find((e) => e.path === CHAT_TOOL_PATH)?.params.prompt.example ?? "Hello") } : mapped.query;
+  const requestedModel = body && typeof body === "object" ? String((body as { model?: unknown }).model ?? "") || undefined : undefined;
+  const query: ChatQuery = "error" in mapped
+    ? { prompt: String(ENDPOINTS.find((e) => e.path === CHAT_TOOL_PATH)?.params.prompt.example ?? "Hello"), model: toolFor(requestedModel).model }
+    : mapped.query;
+  const toolPath = query.model ? CHAT_LARGE_TOOL_PATH : CHAT_TOOL_PATH;
   const outer = new URL(c.req.url);
-  const inner = new URL(CHAT_TOOL_PATH, outer.origin);
+  const inner = new URL(toolPath, outer.origin);
   inner.searchParams.set("prompt", query.prompt);
+  if (query.model) inner.searchParams.set("model", query.model);
   if (query.system) inner.searchParams.set("system", query.system);
   if (query.maxTokens) inner.searchParams.set("maxTokens", String(query.maxTokens));
   if (query.temperature !== undefined) inner.searchParams.set("temperature", String(query.temperature));
@@ -109,28 +128,35 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
   if (answer.status !== 200) return answer; // the 402 quote, a refusal or an uncharged error, unchanged
   const result = (await answer.json().catch(() => ({}))) as { model?: string; response?: string };
-  const requestedModel = body && typeof body === "object" ? String((body as { model?: unknown }).model ?? "") || undefined : undefined;
   const out = c.json(toOpenAiResponse(query, result, requestedModel), 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   out.headers.set("Cache-Control", "no-store");
   return out;
 }
 
-/** GET /v1/models: the one model behind /v1/chat/completions, free to read. */
+/** GET /v1/models: the models behind /v1/chat/completions, free to read. */
 export function openAiModels() {
-  return { object: "list", data: [{ id: MODELS.text, object: "model", created: 1735689600, owned_by: "cloudflare-workers-ai" }] };
+  const created = 1735689600;
+  return {
+    object: "list",
+    data: [
+      { id: MODELS.text, object: "model", created, owned_by: "cloudflare-workers-ai", tool: CHAT_TOOL_PATH },
+      ...Object.entries(LARGE_CHAT_MODELS).map(([alias, id]) => ({ id, object: "model", created, owned_by: "cloudflare-workers-ai", alias, tool: CHAT_LARGE_TOOL_PATH })),
+    ],
+  };
 }
 
-/** The two OpenAI-style paths for /openapi.json; the completion is paid at the /ai/chat price and terms. */
-export function openAiOpenApiPaths(origin: string, price: string, mpp: readonly unknown[]) {
+/** The two OpenAI-style paths for /openapi.json; the completion is paid at the chosen chat tool's price and terms. */
+export function openAiOpenApiPaths(origin: string, prices: { small: string; large: string }, mpp: readonly unknown[]) {
+  const usd = (p: string) => p.replace("$", "");
   return {
     [OPENAI_CHAT_PATH]: {
       post: {
         operationId: "chat_completions",
-        summary: "OpenAI-compatible chat completion (Llama 3.1 8B)",
-        description: `OpenAI chat completions request shape, answered by the same model and at the same price as ${CHAT_TOOL_PATH}: send messages (system, user, assistant), get one assistant message back. No streaming. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper; the unpaid request returns the 402 quote and the paid retry returns the completion. Failed calls are never charged.`,
+        summary: "OpenAI-compatible chat completion (Llama 3.1 8B, Llama 3.3 70B or gpt-oss-120b)",
+        description: `OpenAI chat completions request shape, answered by the same models and at the same prices as ${CHAT_TOOL_PATH} (${prices.small}, default) and ${CHAT_LARGE_TOOL_PATH} (${prices.large}; pick it with model "llama-3.3-70b" or "gpt-oss-120b"): send messages (system, user, assistant), get one assistant message back. No streaming. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper; the unpaid request returns the 402 quote and the paid retry returns the completion. Failed calls are never charged.`,
         tags: ["ai", "chat", "completion", "llama", "openai"],
-        "x-payment-info": { price: { mode: "fixed", currency: "USD", amount: price.replace("$", "") }, protocols: [{ x402: {} }, ...mpp] },
+        "x-payment-info": { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] },
         requestBody: {
           required: true,
           content: {
@@ -139,7 +165,7 @@ export function openAiOpenApiPaths(origin: string, price: string, mpp: readonly 
                 type: "object",
                 required: ["messages"],
                 properties: {
-                  model: { type: "string", description: `Ignored; the model is ${MODELS.text}` },
+                  model: { type: "string", description: `${MODELS.text} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
                   messages: { type: "array", minItems: 1, items: { type: "object", required: ["role", "content"], properties: { role: { type: "string", enum: ["system", "user", "assistant"] }, content: { type: "string" } } } },
                   max_tokens: { type: "integer", minimum: 1, maximum: 1024, description: "Maximum output tokens (default 400)" },
                   temperature: { type: "number", minimum: 0, maximum: 1.5, description: "Default 0.6" },
@@ -170,7 +196,7 @@ export function openAiOpenApiPaths(origin: string, price: string, mpp: readonly 
       get: {
         operationId: "list_models",
         summary: "OpenAI-compatible model list",
-        description: "The one model behind /v1/chat/completions. Free.",
+        description: "The models behind /v1/chat/completions. Free.",
         tags: ["ai", "openai"],
         security: [],
         responses: { "200": { description: "Model list", content: { "application/json": { example: openAiModels() } } } },

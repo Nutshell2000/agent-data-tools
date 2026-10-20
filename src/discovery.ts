@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.38.3";
+export const MCP_SERVER_VERSION = "1.39.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -329,7 +329,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: { ...openAiOpenApiPaths(origin, catalogEndpoint(CHAT_TOOL_PATH).price, mpp), ...Object.fromEntries(
+    paths: { ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       ENDPOINTS.map((e) => [
         e.path,
         {
@@ -378,7 +378,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
 // Left out of marketplace listings: these run on a limited daily allowance, which a
 // subscription plan with a monthly quota could exhaust.
 import { CAPACITY_LIMITED } from "./lib/capacity";
-import { CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/openai-chat";
+import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/openai-chat";
 import { MODELS } from "./lib/ai";
 export { CAPACITY_LIMITED };
 
@@ -422,7 +422,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
-    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); GET ${origin}/v1/models is free. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
+    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); GET ${origin}/v1/models is free. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
     "",
     "Smaller answers: add only=<comma-separated top-level keys> to any tool (for example /btc-fees?only=fastestFee); unknown keys are ignored and no match returns the full result.",
     "",
