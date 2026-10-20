@@ -24,18 +24,28 @@ after(async () => { await mf?.dispose(); });
 const browser = { accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' };
 
 test('a browser opening a paid tool gets a page with the tool, a free trial and card credits, still as a 402', async () => {
-  const res = await mf.dispatchFetch('https://api.test/weather?city=Stockholm', { headers: browser });
+  const res = await mf.dispatchFetch('https://api.test/weather?lat=59.33&lon=18.07', { headers: browser });
   assert.equal(res.status, 402);
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.ok(res.headers.get('payment-required'), 'machine-readable terms stay in the header');
   const html = await res.text();
   assert.doesNotMatch(html, /@x402\/paywall/);
   assert.match(html, /<h1>[^<]*weather/i);
-  assert.match(html, /href="\/weather\?city=Stockholm&amp;trial=1"/, 'the trial keeps the caller\'s own inputs');
-  assert.match(html, /href="\/weather\?city=Stockholm&amp;sample=1"/);
+  assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;trial=1"/, 'the trial keeps the caller\'s own inputs');
+  assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;sample=1"/);
   assert.match(html, /href="\/credits"/);
   assert.match(html, /https:\/\/api\.test\/mcp/);
   assert.doesNotMatch(html, /<script/i, 'static page, nothing executes');
+});
+
+test('a bare tool link offers the trial on the published example inputs', async () => {
+  const res = await mf.dispatchFetch('https://api.test/weather', { headers: browser });
+  assert.equal(res.status, 402);
+  const html = await res.text();
+  const trial = /href="(\/weather\?[^"]*trial=1)"/.exec(html);
+  assert.ok(trial, 'trial link present');
+  assert.match(trial[1], /lat=/);
+  assert.match(trial[1], /lon=/);
 });
 
 test('JSON clients keep the machine-readable 402 body', async () => {
