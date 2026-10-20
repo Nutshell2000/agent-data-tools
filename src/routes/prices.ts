@@ -241,7 +241,7 @@ export const PRICES: Entry[] = [
       holdings.sort((a, b) => (b.valueUsd as number) - (a.valueUsd as number));
       const total = holdings.reduce((n, h) => n + (h.valueUsd as number), 0);
       return {
-        chain: c.name, chainId: c.chain.id, address: owner, totalUsd: Math.round(total * 100) / 100, ethUsd: sig(ethUsd), block,
+        chain: c.name, chainId: c.chain.id, address: owner, totalUsd: total >= 1 ? Math.round(total * 100) / 100 : sig(total), ethUsd: sig(ethUsd), block,
         holdings, unpriced, tokensChecked: tokens.length + 1, method: METHOD,
         note: "Only native ETH, the listed major tokens and any tokens you pass are checked.",
       };
