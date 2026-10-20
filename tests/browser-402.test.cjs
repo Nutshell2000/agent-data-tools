@@ -56,3 +56,19 @@ test('JSON clients keep the machine-readable 402 body', async () => {
   assert.ok(Array.isArray(body.accepts) && body.accepts.length > 0);
   assert.match(body.hint, /trial=1/);
 });
+
+test('a free trial opened in a browser shows its result as a page; code still gets JSON', async () => {
+  const page = await mf.dispatchFetch('https://api.test/time?zone=UTC&trial=1', { headers: { ...browser, 'cf-connecting-ip': '198.51.100.7' } });
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-type'), /text\/html/);
+  assert.ok(page.headers.get('x-free-trial-remaining'));
+  const html = await page.text();
+  assert.match(html, /free calls left/);
+  assert.match(html, /&quot;timezone&quot;|&quot;zone&quot;|UTC/);
+  assert.match(html, /href="\/credits"/);
+  assert.doesNotMatch(html, /<script/i);
+  const json = await mf.dispatchFetch('https://api.test/time?zone=UTC&trial=1', { headers: { accept: 'application/json', 'cf-connecting-ip': '198.51.100.8' } });
+  assert.equal(json.status, 200);
+  assert.match(json.headers.get('content-type'), /application\/json/);
+  await json.json();
+});
