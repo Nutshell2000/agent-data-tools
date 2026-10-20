@@ -6,7 +6,7 @@ import { entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
-import { EDGE_RPCS, erc20Abi, rpcUrls } from "../lib/rpc";
+import { EDGE_RPCS, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
 
 interface ChainDef {
   slug: string;
@@ -25,17 +25,11 @@ export const CHAINS: ChainDef[] = [
   { slug: "polygon", name: "Polygon PoS", chain: polygon, symbol: "POL", rpcs: [...EDGE_RPCS.polygon] },
 ];
 
-const clients = new Map<string, PublicClient>();
 export function client(env: Env, c: ChainDef): PublicClient {
   const urls = c.slug in EDGE_RPCS ? rpcUrls(c.slug as keyof typeof EDGE_RPCS, env) : c.rpcs;
-  const key = `${c.slug}|${urls.join("|")}`;
-  let cl = clients.get(key);
-  if (!cl) {
-    const options = { timeout: 8_000, retryCount: 0 };
-    cl = createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }), batch: { multicall: true } }) as PublicClient;
-    clients.set(key, cl);
-  }
-  return cl;
+  const options = { timeout: 8_000, retryCount: 0 };
+  return requestClient(`${c.slug}|${urls.join("|")}`, () =>
+    createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }), batch: { multicall: true } }) as PublicClient);
 }
 
 /** Runs an RPC call; node failures become 502 so the caller is not charged. */

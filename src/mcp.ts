@@ -14,7 +14,7 @@ import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { z } from "zod";
 import { CAPACITY_LIMITED, ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
-import { HttpError, type Env } from "./lib/env";
+import { HttpError, isUpstreamFailure, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
@@ -48,7 +48,7 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
     return { content: toContent(result), structuredContent };
   } catch (err) {
     if (!(err instanceof HttpError)) console.error(err);
-    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : "internal error" }], ...(err instanceof HttpError && err.code ? { structuredContent: { error: err.message, code: err.code } } : {}) };
+    return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : isUpstreamFailure(err) ? "an outside data source did not respond in time; not charged, try again" : "internal error" }], ...(err instanceof HttpError && err.code ? { structuredContent: { error: err.message, code: err.code } } : {}) };
   }
 }
 
