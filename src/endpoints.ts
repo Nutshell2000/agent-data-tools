@@ -46,7 +46,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Web page URL to clean Markdown or text for LLMs",
+    summary: "Web scraping: page URL to clean Markdown or text for LLMs",
     description:
       "Fetch any public web page URL and get clean, LLM-ready text or Markdown: main content, code blocks, tables, links and headings, for RAG and agent context. Static HTML, Markdown or text; optional section ID. Default 20,000 output characters, max 100,000; input 2 MiB. No JavaScript rendering (see /extract/rendered), logins or paywalls. Empty pages, bad sections, browser challenges and errors are not charged. Use to read docs or articles.",
     details: "HTML body details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. HTML code whitespace and list hierarchy are preserved; generated code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. linkBaseUrl reports static source link resolution; supported first HTML base href values are honored, with warnings. Scripts and CSP are not evaluated. Markdown sources retain syntax without structured parsing (warned); sections require HTML. Source content is untrusted. Image alt text is source-provided, not visual interpretation. Images are never fetched; SVG/canvas omissions and missing alt descriptions are warned. SourceMetadata adds unverified author/date declarations with provenance; conflicting/ambiguous values are warned. Separate 2,000-character metadata budget, 5 authors/10 dates. JSON-LD: at most 8 inline scripts, 64 KiB each, 100 graph nodes/depth 8; no external contexts/profiles. HTML complexity: 20,000 elements/128 nested levels. Marker-only source permalink controls (pilcrow/headerlink/permalink classes) are omitted only for same-document ancestor targets, with permalink_controls_omitted. Literal code and ordinary references remain. HTML sup/sub annotations normalize to ^{...}/_{...} in primary output, heading titles and table values with superscript_subscript_normalized; literal pre/code and raw Markdown stay unchanged. This is notation preservation, not general math interpretation.",
@@ -79,7 +79,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/domain",
     price: "$0.005",
-    summary: "Domain DNS, registration age and email authentication",
+    summary: "Domain lookup: DNS, RDAP registration age and email authentication",
     description:
       "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits.",
     tags: ["domain", "dns", "whois", "email", "security"],
@@ -224,7 +224,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/summarize",
     price: "$0.01",
-    summary: "Summarize a web page",
+    summary: "Summarize a web page from its URL",
     description:
       "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. HTML pages only; for a PDF use pdf_text, then ai_summarize_text. Use for research, news triage, link previews and deciding whether a page is worth reading in full.",
     tags: ["summary", "web", "llm", "research", "text"],
@@ -244,7 +244,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/screenshot",
     price: "$0.02",
-    summary: "Screenshot of a web page",
+    summary: "Website screenshot: capture a web page as an image",
     description:
       "Render any public web page in a real headless Chrome browser, with JavaScript executed, and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and page title. Set fullPage=true to capture up to 4000 px of page height. Use for visual checks, page previews, monitoring and feeding pages to vision models.",
     tags: ["screenshot", "browser", "render", "web", "image"],
@@ -266,7 +266,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/image",
     price: "$0.02",
-    summary: "Generate an image from a text prompt",
+    summary: "Image generation from a text prompt",
     description:
       "Text-to-image generation with FLUX.1 schnell. Send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds. Use for illustrations, thumbnails, mockups, avatars and social media images. Optional steps parameter (1-8, default 4) trades speed for detail.",
     tags: ["image", "generation", "flux", "ai", "art"],
@@ -285,7 +285,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/transcribe",
     price: "$0.02",
-    summary: "Speech to text for an audio file",
+    summary: "Transcribe audio: speech to text for an audio file",
     description:
       "Transcribe speech from an audio file at a public URL using Whisper large-v3-turbo. Returns the transcript text, detected language, duration and word count. Accepts common formats such as MP3, WAV, M4A and OGG up to 5 MB. Use for voice notes, podcast clips, meeting snippets and voice messages.",
     tags: ["audio", "transcription", "whisper", "speech", "ai"],
@@ -674,7 +674,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/email",
     price: "$0.003",
-    summary: "Email address validation without sending mail",
+    summary: "Email verification: syntax, MX and disposable-address checks without sending mail",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
@@ -742,7 +742,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/btc-price",
     price: "$0.003",
-    summary: "Bitcoin price in major currencies",
+    summary: "Bitcoin (BTC) price in USD, EUR and other major currencies",
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
     tags: ["bitcoin", "price", "btc", "crypto", "market"],
@@ -855,7 +855,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/weather",
     price: "$0.003",
-    summary: "Current weather and hourly forecast for any city or coordinates",
+    summary: "Weather forecast: current weather and 48-hour hourly forecast for any city or coordinates",
     description:
       "Weather for any city or point on Earth (city name, or latitude and longitude): current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
     tags: ["weather", "forecast", "temperature", "climate", "geo"],

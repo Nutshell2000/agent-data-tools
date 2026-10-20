@@ -9,7 +9,7 @@ import { buildExtraction, extractOptions } from "./extract";
 const MAX_SOURCE_CHARS = 2 * 1024 * 1024;
 
 export const EXTRACT_RENDERED: Entry[] = [
-  entry("/extract/rendered", "Read a JavaScript-rendered page as text or Markdown",
+  entry("/extract/rendered", "Scrape a JavaScript-rendered page as text or Markdown",
     "Same output as /extract, but the page is first rendered in a real browser, so single-page apps and pages that build their content with JavaScript come back with their text instead of an empty shell. Waits for the network to settle (up to 15 seconds). Public pages only; no login. Use when /extract returns EXTRACTION_EMPTY or too little text for a page you can read in a browser.",
     ["web", "extract", "javascript", "rendering", "markdown", "scraping"], {
       url: { type: "string", description: "Absolute public http(s) URL of the page", required: true, example: "https://example.com/" },
