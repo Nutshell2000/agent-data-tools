@@ -78,7 +78,19 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  * upper-case, mis-checksummed or 0x-less addresses; viem's strict checks turned those into misleading 502s and 422s,
  * and a 0x-less address missed the sanctions list. Other inputs (and non-EVM addresses) pass through unchanged.
  */
-export const normalizedInput = (input: Input): Input => (name) => {
+/**
+ * Other names agents commonly send for an input. Read only when the tool asks for the input and the caller did not
+ * send it under its own name, so an input a tool really has is never overridden.
+ */
+const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  address: ["wallet", "addr", "account"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
+  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone"], date: ["day"], text: ["input"],
+  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link"],
+  from: ["from_currency"], to: ["to_currency"],
+};
+
+export const normalizedInput = (sent: Input): Input => (name) => {
+  const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => sent(alias)).find((v) => v !== undefined);
   const value = input(name);
   if (value === undefined || !ADDRESS_INPUTS.has(name)) return value;
   return value.split(",").map((part) => {

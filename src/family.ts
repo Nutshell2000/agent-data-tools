@@ -28,20 +28,29 @@ export function entry(
 }
 
 /** Required string input, trimmed, with a length cap. */
+/** Short inputs (codes, names, addresses: max 500 or less) are trimmed; longer free text is kept exactly as sent. */
+const tidy = (v: string, max: number) => (max <= 500 ? v.trim() : v);
+
 export function need(q: Input, name: string, max = 10_000): string {
-  const v = q(name);
-  if (v === undefined || v.trim() === "") throw new HttpError(400, `${name} is required`);
+  const raw = q(name);
+  if (raw === undefined || raw.trim() === "") throw new HttpError(400, `${name} is required`);
+  const v = tidy(raw, max);
   if (v.length > max) throw new HttpError(400, `${name} is longer than ${max} characters`);
   return v;
 }
 
 /** Optional string input with a length cap. */
 export function opt(q: Input, name: string, max = 10_000): string | undefined {
-  const v = q(name);
-  if (v === undefined || v === "") return undefined;
+  const raw = q(name);
+  if (raw === undefined || raw === "") return undefined;
+  const v = tidy(raw, max);
+  if (v === "") return undefined;
   if (v.length > max) throw new HttpError(400, `${name} is longer than ${max} characters`);
   return v;
 }
+
+/** A yes/no input: true, 1, yes or on, in any case. */
+export const flag = (q: Input, name: string) => /^(true|1|yes|on)$/i.test(q(name)?.trim() ?? "");
 
 /** Number input with range checks; `fallback` makes it optional. */
 export function num(q: Input, name: string, { min = -Infinity, max = Infinity, fallback, integer = false }: { min?: number; max?: number; fallback?: number; integer?: boolean } = {}): number {
@@ -50,7 +59,8 @@ export function num(q: Input, name: string, { min = -Infinity, max = Infinity, f
     if (fallback !== undefined) return fallback;
     throw new HttpError(400, `${name} is required`);
   }
-  const n = Number(raw);
+  // Thousands separators as agents write them: "1,000", "1 000", "1_000".
+  const n = Number(/^\s*-?\d{1,3}([,_ ]\d{3})+(\.\d+)?\s*$/.test(raw) ? raw.replace(/[,_ ]/g, "") : raw);
   if (!Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) {
     throw new HttpError(400, `${name} must be ${integer ? "a whole number" : "a number"}${Number.isFinite(min) ? ` from ${min}` : ""}${Number.isFinite(max) ? ` to ${max}` : ""}`);
   }
@@ -58,13 +68,25 @@ export function num(q: Input, name: string, { min = -Infinity, max = Infinity, f
 }
 
 /** One of a fixed set of values (case-insensitive). */
+/** Network names and chain ids agents send for our chain slugs ("ethereum", "arbitrum", "42161"…). */
+export const CHAIN_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  ethereum: "eth", mainnet: "eth", "1": "eth", arbitrum: "arb", "arbitrum-one": "arb", arbitrum_one: "arb", "42161": "arb",
+  optimism: "op", "10": "op", "8453": "base", matic: "polygon", pol: "polygon", "137": "polygon",
+});
+
+/** The allowed value a raw input names, directly or through a chain alias. */
+export const allowedValue = <T extends string>(raw: string, values: readonly T[]): T | undefined => {
+  const lower = raw.trim().toLowerCase();
+  return values.find((v) => v.toLowerCase() === lower) ?? values.find((v) => v.toLowerCase() === CHAIN_ALIASES[lower]);
+};
+
 export function pick<T extends string>(q: Input, name: string, values: readonly T[], fallback?: T): T {
   const raw = q(name)?.trim().toLowerCase();
   if (!raw) {
     if (fallback !== undefined) return fallback;
     throw new HttpError(400, `${name} is required (one of: ${values.join(", ")})`);
   }
-  const hit = values.find((v) => v.toLowerCase() === raw);
+  const hit = allowedValue(raw, values);
   if (!hit) throw new HttpError(400, `${name} must be one of: ${values.join(", ")}`);
   return hit;
 }

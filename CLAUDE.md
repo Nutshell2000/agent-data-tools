@@ -277,3 +277,21 @@ Tests: tests/outage-resilience.test.cjs. The lasting fix is the Workers Paid pla
 - **Address inputs are normalized in the TOOLS wrapper** (`normalizedInput` in src/tools.ts). Inputs named address, addresses, token, tokens, owner, spender, wallet, contract or pool, holding 40 hex characters with or without `0x`, become `0x` plus lowercase. Upper-case or mis-checksummed addresses used to give misleading 502s and 422s, and a listed address sent without `0x` read "pass" on `/sanctions/check`. That tool now refuses a malformed `0x` address.
 - **Upstream timeouts and unreachable sources** that a tool does not catch answer an uncharged 502 over HTTP and MCP (`isUpstreamFailure`), not a 500. `/trade-insight` keeps its inner 4xx errors.
 - Tests: tests/correctness.test.cjs.
+
+## How agents pick and call tools (1.43.0, cloud agent-eye and edge audits)
+
+- **MCP examples.** Each tool description's "Example: …" is the published example call (`exampleParams`). It no longer pairs alternatives that override each other: weather showed city with lat/lon, and price_token showed symbol with address. It never shows `only=`.
+- **MCP inputs.** String inputs whose example is a flag or a number (fullPage, plus, sortKeys) also accept JSON booleans and numbers. `flag()` (src/family.ts) reads true, 1, yes and on in any case.
+- **Inputs fixed:**
+  - `/date/add` declares years, weeks, hours and minutes. MCP had dropped them, so callers were charged for an unchanged date.
+  - `/date/info` no longer requires `date`.
+  - `/holidays` takes UK, USA and English country names.
+- **Chains and tokens.**
+  - `chain` accepts ethereum, arbitrum, optimism, matic and chain ids (`CHAIN_ALIASES`, `allowedValue`), including in the pre-paywall enum check.
+  - `<chain>/token-balance`, `token-info` and `token-transfers` take tickers. `src/lib/tickers.ts` is shared with the price tools and now has a Polygon row plus SOL (uSOL), XRP (cbXRP) and BNB/POL on Ethereum, all checked on-chain.
+- **Inputs agents send under other names** are read when the real input is missing (`INPUT_ALIASES` in src/tools.ts): wallet for address, tx for hash, latitude for lat, tz for zone, q for name, and so on. Short inputs are trimmed, and numbers accept thousands separators.
+- **Copy.**
+  - Base-only tools (token, wallet, wallet_audit) say so and name their cross-chain siblings.
+  - `/summarize` points PDFs to pdf_text.
+  - token-transfers states how much time `blocks` covers on each chain.
+  - MCP instructions include a pick-by-task map and the `/mcp/<section>` servers. The signed-in instructions must not mention crypto (tests/oauth).

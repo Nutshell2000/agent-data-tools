@@ -11,7 +11,7 @@ const MAX_FULL_HEIGHT = 4000;
 export async function screenshot(env: Env, rawUrl: string | undefined, fullPageParam?: string) {
   const target = parseTarget(rawUrl);
   if (!env.BROWSER) throw new HttpError(503, "screenshots are not available in this environment");
-  const fullPage = fullPageParam === "true" || fullPageParam === "1";
+  const fullPage = /^(true|1|yes|on)$/i.test(fullPageParam?.trim() ?? "");
   return withBrowserPage(env, target, { width: WIDTH, height: HEIGHT }, async (page, status) => {
     let height = HEIGHT;
     if (fullPage) {

@@ -70,6 +70,9 @@ export async function weather(latInput?: string, lonInput?: string, hoursInput?:
   const place = city && (latInput ?? "").trim() === "" && (lonInput ?? "").trim() === ""
     ? await cityCoordinates(city.slice(0, 100)).then((p) => p ?? Promise.reject(new HttpError(404, `no place with coordinates found for "${city.slice(0, 100)}"; pass lat and lon`)))
     : null;
+  if (!place && !city && !(latInput ?? "").trim() && !(lonInput ?? "").trim()) {
+    throw new HttpError(400, "send city (for example city=London) or lat and lon (for example lat=59.33&lon=18.07)");
+  }
   const lat = place ? place.lat : coordinate(latInput, "lat", 90);
   const lon = place ? place.lon : coordinate(lonInput, "lon", 180);
   const hours = Math.min(Math.max(Math.trunc(Number(hoursInput)) || 12, 1), 48);

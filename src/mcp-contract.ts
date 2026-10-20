@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as z4mini from "zod/v4-mini";
-import type { Endpoint } from "./endpoints";
+import { exampleParams, type Endpoint } from "./endpoints";
 import { CAPACITY_LIMITED } from "./lib/capacity";
 import { FREE_CALLS_PER_CALLER } from "./lib/free-calls";
 
@@ -12,9 +12,13 @@ export const toolName = (endpoint: Endpoint) => mcpName(endpoint.path);
 // (Before 1.35.1 readOnlyHint was false, which the Claude directory and Glama flagged as a mismatch.)
 export const toolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 
-/** A short "Example: name=value" from the documented parameter examples (directories score descriptions with examples). */
+/**
+ * A short "Example: name=value" from the published example call (directories score descriptions with examples). It is
+ * exactly the call the Bazaar lists, so it never pairs alternatives that override each other (city with lat/lon,
+ * symbol with address) and never shows the empty `only` filter.
+ */
 const exampleText = (endpoint: Endpoint) => {
-  const parts = Object.entries(endpoint.params).filter(([, p]) => p.example !== undefined).map(([name, p]) => `${name}=${String(p.example)}`);
+  const parts = exampleParams(endpoint).filter(([, p]) => p.example !== undefined && p.example !== "").map(([name, p]) => `${name}=${String(p.example)}`);
   const text = parts.join(", ");
   return parts.length && text.length <= 90 ? ` Example: ${text}.` : "";
 };
@@ -31,7 +35,11 @@ export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
           ? z.number().int()
           : param.type === "number"
             ? z.number()
-            : z.string();
+            // String inputs whose example is a flag or a number (fullPage=true, plus=1) also take the JSON type an
+            // agent naturally sends; the handler reads every argument as a string either way.
+            : typeof param.example === "string" && /^(true|false|-?\d+(\.\d+)?)$/.test(param.example)
+              ? z.union([z.string(), z.number(), z.boolean()])
+              : z.string();
       const field = schema.describe(param.description);
       return [name, param.required ? field : field.optional()];
     }),
