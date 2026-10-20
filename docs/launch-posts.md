@@ -6,7 +6,7 @@ Every post is honest about where we are: no paying customers yet. Each one offer
 
 ## Show HN
 
-**Title:** Show HN: Agent Data Tools – 176 pay-per-call tools for AI agents, no signup
+**Title:** Show HN: Agent Data Tools – 179 pay-per-call tools for AI agents, no signup
 
 **URL:** https://agent-data-tools.revmesh2074.workers.dev
 
@@ -18,6 +18,7 @@ I built a single endpoint that AI agents can call without an account or API key:
 - token prices and wallet portfolios
 - chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon
 - company, domain and email checks
+- SEC filings, US airport delays and Hyperliquid perp data
 - FX, weather, time and geocoding
 - small AI text tools
 - OpenAI-compatible chat and embeddings
@@ -43,7 +44,7 @@ Honest status: 8,000 to 12,000 unpaid price quotes a day, nearly all from crawle
 
 ## Reddit r/mcp
 
-**Title:** Remote MCP server with 176 data tools, 25 free calls, no signup
+**Title:** Remote MCP server with 179 data tools, 25 free calls, no signup
 
 **Body:**
 
@@ -70,7 +71,7 @@ Feedback welcome. In particular: which tools are noise, and which would you want
 
 Lead with the OpenAI-compatible endpoints:
 
-**Title:** Pay-per-call OpenAI-compatible endpoint (chat, responses, embeddings) plus 170 data tools, no account
+**Title:** Pay-per-call OpenAI-compatible endpoint (chat, responses, embeddings) plus 173 data tools, no account
 
 **Body:**
 
@@ -79,7 +80,7 @@ Lead with the OpenAI-compatible endpoints:
 - Llama 3.3 70B or gpt-oss-120b at $0.01
 - BGE-M3 embeddings at $0.003
 
-You pay per request with x402 or MPP (USDC), or with a $5 prepaid card key. There's no subscription, no account, and no API key to request. The same key also unlocks 170 data tools (web and PDF reading, chain reads, sanctions checks, FX, weather) over HTTP or MCP.
+You pay per request with x402 or MPP (USDC), or with a $5 prepaid card key. There's no subscription, no account, and no API key to request. The same key also unlocks 173 data tools (web and PDF reading, chain reads, sanctions checks, FX, weather) over HTTP or MCP.
 
 It's useful when an agent needs a model or a lookup and you don't want to hand it your main provider key.
 
@@ -89,7 +90,7 @@ It's useful when an agent needs a model or a lookup and you don't want to hand i
 
 Agents can't sign up for APIs, so I made the payment the credential.
 
-176 tools at one URL: web and PDF reading, sanctions checks, token and wallet data, chain reads, FX, weather, OpenAI-compatible chat.
+179 tools at one URL: web and PDF reading, sanctions checks, token and wallet data, chain reads, FX, weather, OpenAI-compatible chat.
 
 - $0.003 a call via x402, MPP or a $5 card pack
 - 25 free calls
