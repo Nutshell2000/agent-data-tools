@@ -29,9 +29,16 @@ const mf = new Miniflare(convertV4MiniflareOptions({
   bindings: { PAY_TO: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", NETWORK: "eip155:8453", PAYWALL: "off", TRIALS_ENABLED: "off", MPP_EVM: "off", FACILITATOR_URL: "https://facilitator.invalid", BASE_RPC_URL: "https://mainnet.base.org" },
   // The Worker's outbound requests go through Node's fetch, so an HTTPS proxy (NODE_USE_ENV_PROXY=1) applies to them too.
   outboundService: async (request) => {
-    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
-    try { return await fetch(request.url, { method: request.method, headers: request.headers, body, redirect: "manual" }); }
-    catch (err) { return new Response(String(err?.cause?.message ?? err?.message ?? err), { status: 599 }); }
+    const body = request.method === "GET" || request.method === "HEAD" ? undefined : new Uint8Array(await request.arrayBuffer());
+    // Node's fetch rejects hop-by-hop and length headers that workerd sets itself (UND_ERR_INVALID_ARG on every POST).
+    const headers = {};
+    for (const [k, v] of request.headers) if (!/^(content-length|host|connection|transfer-encoding|expect|cf-.*)$/i.test(k)) headers[k] = v;
+    try { return await fetch(request.url, { method: request.method, headers, body, redirect: "manual" }); }
+    catch (err) {
+      const why = String(err?.cause?.code ?? err?.cause?.message ?? err?.message ?? err);
+      if (process.env.SMOKE_DEBUG) console.error(`outbound ${request.method} ${request.url}: ${why}`);
+      return new Response(why, { status: 599 });
+    }
   },
 }));
 
