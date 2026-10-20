@@ -75,6 +75,28 @@ app.use(async (c, next) => {
   }
 });
 
+// A POST to a tool with a flat JSON body ({"url": …}, {"address": …}) is the same call as the GET with those fields
+// in the query: agents and directories that default to POST get the quote and a paid answer instead of a 405. It is
+// forwarded before tracing and metrics, so only the GET is counted. An empty or unreadable body gets the quote.
+app.use(async (c, next) => {
+  if (c.req.method !== "POST" || !PAID_PATHS.has(c.req.path)) return next();
+  const endpoint = ENDPOINTS.find((e) => e.path === c.req.path);
+  if (!endpoint) return next();
+  const target = new URL(c.req.url);
+  const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
+  if (body && typeof body === "object" && !Array.isArray(body)) {
+    for (const [name, value] of Object.entries(body)) {
+      if (!(name in endpoint.params) && !["only", "trial", "sample"].includes(name)) continue;
+      if (["string", "number", "boolean"].includes(typeof value)) target.searchParams.set(name, String(value));
+      else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.join(","));
+    }
+  }
+  const headers = new Headers(c.req.raw.headers);
+  headers.delete("content-type");
+  headers.delete("content-length");
+  return app.fetch(new Request(target.href, { method: "GET", headers }), c.env, c.executionCtx);
+});
+
 app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X402-Source") ?? null,
   p => c.executionCtx.waitUntil(p), async () => {
     const id = activeTrace()!.requestId;

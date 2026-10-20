@@ -1,9 +1,9 @@
 {
-  "version": "1.41.0",
+  "version": "1.42.0",
   "tools": [
     {
       "name": "extract",
-      "description": "Read public static HTML, Markdown or plain text. HTML includes code, tables, links, heading IDs, image alt text and unverified author/date provenance. Optional exact HTML section ID. Default 20,000 output characters, maximum 100,000; input 2 MiB. No JavaScript rendering, authentication or paywall access. Empty pages, invalid sections, browser challenges and execution errors are uncharged. Use to read docs or articles into context. Example: url=https://example.com, maxChars=20000, format=text, section=retry-policy. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fetch any public web page URL and get clean, LLM-ready text or Markdown: main content, code blocks, tables, links and headings, for RAG and agent context. Static HTML, Markdown or text; optional section ID. Default 20,000 output characters, max 100,000; input 2 MiB. No JavaScript rendering (see /extract/rendered), logins or paywalls. Empty pages, bad sections, browser challenges and errors are not charged. Use to read docs or articles. Example: url=https://example.com, maxChars=20000, format=text, section=retry-policy. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1480,7 +1480,7 @@
     },
     {
       "name": "weather",
-      "description": "Weather for any point on Earth by latitude and longitude: current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind speed and direction, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: lat=59.33, lon=18.07, hours=12. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Weather for any city or point on Earth (city name, or latitude and longitude): current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: city=London, lat=59.33, lon=18.07, hours=12. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1491,13 +1491,17 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Uppsala (used when lat and lon are not given)"
+          },
           "lat": {
             "type": "number",
-            "description": "Latitude in decimal degrees, -90 to 90"
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
           },
           "lon": {
             "type": "number",
-            "description": "Longitude in decimal degrees, -180 to 180"
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
           },
           "hours": {
             "type": "integer",
@@ -1505,17 +1509,13 @@
             "maximum": 9007199254740991,
             "description": "Hours of hourly forecast to return, 1-48 (default 12)"
           }
-        },
-        "required": [
-          "lat",
-          "lon"
-        ]
+        }
       },
       "price": "$0.003"
     },
     {
       "name": "time",
-      "description": "The exact current date and time in any IANA time zone, with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule a meeting across time zones, or to turn a timestamp into local time. Example: zone=Europe/Stockholm, at=2026-03-01T09:00:00+01:00, to=America/New_York,Asia/Tokyo. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "The exact current date and time in any IANA time zone (UTC when none is given), with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule across time zones or to turn a timestamp into local time. A bare GET is the smallest paid end-to-end test of an x402 or MPP client. Example: zone=Europe/Stockholm, at=2026-03-01T09:00:00+01:00, to=America/New_York,Asia/Tokyo. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1528,7 +1528,7 @@
         "properties": {
           "zone": {
             "type": "string",
-            "description": "IANA time zone name, e.g. Europe/Stockholm or America/New_York"
+            "description": "IANA time zone name, e.g. Europe/Stockholm or America/New_York (default UTC)"
           },
           "at": {
             "type": "string",
@@ -1538,16 +1538,13 @@
             "type": "string",
             "description": "Optional comma-separated time zones to convert the same moment into (max 10)"
           }
-        },
-        "required": [
-          "zone"
-        ]
+        }
       },
       "price": "$0.003"
     },
     {
       "name": "base_balance",
-      "description": "Read the native ETH balance of any 0x address on Base at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use base_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Base at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use base_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1571,7 +1568,7 @@
     },
     {
       "name": "base_token_balance",
-      "description": "Read one wallet's balance of one ERC-20 token on Base: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use base_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "ERC-20 token balance of a wallet on Base (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use base_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1624,7 +1621,7 @@
     },
     {
       "name": "base_block",
-      "description": "Fetch a block on Base by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use base_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Base, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use base_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1645,7 +1642,7 @@
     },
     {
       "name": "base_receipt",
-      "description": "Get the receipt of a mined Base transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use base_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transaction receipt on Base (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use base_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1717,7 +1714,7 @@
     },
     {
       "name": "base_logs",
-      "description": "List recent event logs a contract emitted on Base over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use base_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Base (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use base_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1785,7 +1782,7 @@
     },
     {
       "name": "eth_balance",
-      "description": "Read the native ETH balance of any 0x address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1809,7 +1806,7 @@
     },
     {
       "name": "eth_token_balance",
-      "description": "Read one wallet's balance of one ERC-20 token on Ethereum: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use eth_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "ERC-20 token balance of a wallet on Ethereum (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use eth_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1862,7 +1859,7 @@
     },
     {
       "name": "eth_block",
-      "description": "Fetch a block on Ethereum by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use eth_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Ethereum, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use eth_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1883,7 +1880,7 @@
     },
     {
       "name": "eth_gas",
-      "description": "Get current gas on Ethereum: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Ethereum (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1928,7 +1925,7 @@
     },
     {
       "name": "eth_receipt",
-      "description": "Get the receipt of a mined Ethereum transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use eth_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x9531467e03a57bbb5cd080439ac3b10c0cefed147282eb2ff709b02c897afcbf. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transaction receipt on Ethereum (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use eth_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x9531467e03a57bbb5cd080439ac3b10c0cefed147282eb2ff709b02c897afcbf. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2000,7 +1997,7 @@
     },
     {
       "name": "eth_logs",
-      "description": "List recent event logs a contract emitted on Ethereum over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use eth_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Ethereum (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use eth_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2068,7 +2065,7 @@
     },
     {
       "name": "arb_balance",
-      "description": "Read the native ETH balance of any 0x address on Arbitrum One at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use arb_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Arbitrum One at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use arb_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2092,7 +2089,7 @@
     },
     {
       "name": "arb_token_balance",
-      "description": "Read one wallet's balance of one ERC-20 token on Arbitrum One: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use arb_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "ERC-20 token balance of a wallet on Arbitrum One (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use arb_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2145,7 +2142,7 @@
     },
     {
       "name": "arb_block",
-      "description": "Fetch a block on Arbitrum One by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use arb_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Arbitrum One, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use arb_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2166,7 +2163,7 @@
     },
     {
       "name": "arb_gas",
-      "description": "Get current gas on Arbitrum One: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Arbitrum One (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2211,7 +2208,7 @@
     },
     {
       "name": "arb_receipt",
-      "description": "Get the receipt of a mined Arbitrum One transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use arb_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0xf03682db039f7b1b72ddf4d17572738f142cf63ecb36c90afa570430ea9774c4. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transaction receipt on Arbitrum One (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use arb_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0xf03682db039f7b1b72ddf4d17572738f142cf63ecb36c90afa570430ea9774c4. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2283,7 +2280,7 @@
     },
     {
       "name": "arb_logs",
-      "description": "List recent event logs a contract emitted on Arbitrum One over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use arb_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Arbitrum One (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use arb_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2351,7 +2348,7 @@
     },
     {
       "name": "op_balance",
-      "description": "Read the native ETH balance of any 0x address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2375,7 +2372,7 @@
     },
     {
       "name": "op_token_balance",
-      "description": "Read one wallet's balance of one ERC-20 token on Optimism: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use op_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "ERC-20 token balance of a wallet on Optimism (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use op_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2428,7 +2425,7 @@
     },
     {
       "name": "op_block",
-      "description": "Fetch a block on Optimism by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use op_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Optimism, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use op_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2449,7 +2446,7 @@
     },
     {
       "name": "op_gas",
-      "description": "Get current gas on Optimism: gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Optimism (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2494,7 +2491,7 @@
     },
     {
       "name": "op_receipt",
-      "description": "Get the receipt of a mined Optimism transaction: success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use op_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x721f3e9a996da49e2a8929bd2dd42e0f51344c11d7ca7bc3328fda349cdfae89. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transaction receipt on Optimism (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in ETH, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use op_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x721f3e9a996da49e2a8929bd2dd42e0f51344c11d7ca7bc3328fda349cdfae89. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2566,7 +2563,7 @@
     },
     {
       "name": "op_logs",
-      "description": "List recent event logs a contract emitted on Optimism over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use op_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Optimism (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use op_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2634,7 +2631,7 @@
     },
     {
       "name": "polygon_balance",
-      "description": "Read the native POL balance of any 0x address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native POL balance (eth_getBalance) of any 0x wallet address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2658,7 +2655,7 @@
     },
     {
       "name": "polygon_token_balance",
-      "description": "Read one wallet's balance of one ERC-20 token on Polygon PoS: raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use polygon_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "ERC-20 token balance of a wallet on Polygon PoS (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use polygon_balance. Both inputs are 0x addresses (40 hex characters); no contract returns 404 and a non-ERC-20 contract 422, both uncharged. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2711,7 +2708,7 @@
     },
     {
       "name": "polygon_block",
-      "description": "Fetch a block on Polygon PoS by decimal number, or the latest one when omitted: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use polygon_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Polygon PoS, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use polygon_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2732,7 +2729,7 @@
     },
     {
       "name": "polygon_gas",
-      "description": "Get current gas on Polygon PoS: gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Polygon PoS (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Example: only=. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2777,7 +2774,7 @@
     },
     {
       "name": "polygon_receipt",
-      "description": "Get the receipt of a mined Polygon PoS transaction: success or reverted, gas used, effective gas price, fee paid in POL, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use polygon_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x23e86c30c46638b2e9798692fe89327a66aa8569a5d4a566125f655aeb8f80c7. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transaction receipt on Polygon PoS (eth_getTransactionReceipt): success or reverted, gas used, effective gas price, fee paid in POL, number of event logs and any contract created. Use to confirm a payment or call went through; for sender, value and calldata use polygon_tx. Input is a 0x-prefixed 64-hex hash; a pending or unknown hash returns 404, uncharged. Example: hash=0x23e86c30c46638b2e9798692fe89327a66aa8569a5d4a566125f655aeb8f80c7. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2849,7 +2846,7 @@
     },
     {
       "name": "polygon_logs",
-      "description": "List recent event logs a contract emitted on Polygon PoS over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use polygon_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Polygon PoS (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use polygon_receipt. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2941,7 +2938,7 @@
     },
     {
       "name": "price_token",
-      "description": "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: address=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf, chain=base. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: symbol=ETH, address=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf, chain=base. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2952,9 +2949,13 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+          },
           "address": {
             "type": "string",
-            "description": "0x ERC-20 token contract address"
+            "description": "0x ERC-20 token contract address (instead of symbol)"
           },
           "chain": {
             "type": "string",
@@ -2966,16 +2967,13 @@
             ],
             "description": "Network: base (default), eth, arb or op"
           }
-        },
-        "required": [
-          "address"
-        ]
+        }
       },
       "price": "$0.003"
     },
     {
       "name": "price_tokens",
-      "description": "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2986,9 +2984,13 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
+          "symbols": {
+            "type": "string",
+            "description": "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all)"
+          },
           "addresses": {
             "type": "string",
-            "description": "Comma-separated 0x ERC-20 token addresses (1-20)"
+            "description": "Comma-separated 0x ERC-20 token addresses (with or instead of symbols; 1-20 tokens in all)"
           },
           "chain": {
             "type": "string",
@@ -3000,10 +3002,7 @@
             ],
             "description": "Network: base (default), eth, arb or op"
           }
-        },
-        "required": [
-          "addresses"
-        ]
+        }
       },
       "price": "$0.005"
     },
@@ -3211,7 +3210,7 @@
     },
     {
       "name": "sanctions_check",
-      "description": "Screen a crypto wallet address or a person or company name against the US Treasury OFAC SDN list, including aliases and the listed digital currency addresses (BTC, ETH, USDT, TRX and more). Returns each match with SDN ID, programs and match strength, plus the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96, name=Lazarus Group. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "OFAC sanctions screen for a crypto wallet before you pay it: checks an address (BTC, ETH, USDT, TRX and more) or a person or company name against the US Treasury SDN list, aliases included. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and match strength, and the list date. A screening aid, not legal advice. Use before paying, onboarding or trading with a counterparty. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96, name=Lazarus Group. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

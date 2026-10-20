@@ -73,3 +73,31 @@ test('v1 terms list the inputs; Bazaar inputs carry examples and address pattern
   const ens = bazaarExtensionFor(ENDPOINTS.find((x) => x.path === '/ens')).bazaar.schema.properties.input.properties.queryParams.properties;
   assert.equal(ens.name.pattern, undefined, 'ENS names are not 0x addresses');
 });
+
+test('price tools take tickers: ETH and BTC name the wrapped tokens, addresses pass through, unknown tickers list the known ones', async () => {
+  const { tokenAddress } = await load('src/routes/prices.ts');
+  assert.equal(tokenAddress('eth', 'base'), '0x4200000000000000000000000000000000000006');
+  assert.equal(tokenAddress('BTC', 'base'), '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf');
+  assert.equal(tokenAddress('btc', 'arb'), '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f');
+  assert.equal(tokenAddress('ARB', 'arb'), '0x912CE59144191C1204E64559FE8253a0e49E6548');
+  assert.equal(tokenAddress('0x940181a94a35a4569e4529a3cdfb74e38fd98631', 'base'), '0x940181a94A35A4569E4529A3CDfB74e38FD98631');
+  assert.throws(() => tokenAddress('DOGE', 'base'), /not a 0x token address or a ticker known on this network \(ETH, BTC, WETH/);
+  assert.throws(() => tokenAddress('OP', 'base'), /known on this network/, 'tickers are per network');
+});
+
+test('weather by city: the published example (London) needs no Wikidata call', async () => {
+  const { weather } = await load('src/routes/weather.ts');
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (url) => {
+    asked.push(String(url));
+    return Response.json({ geometry: { coordinates: [-0.13, 51.51, 20] }, properties: { meta: { updated_at: '2026-10-20T00:00:00Z' }, timeseries: [{ time: '2026-10-20T10:00:00Z', data: { instant: { details: { air_temperature: 12 } }, next_1_hours: { summary: { symbol_code: 'cloudy' }, details: { precipitation_amount: 0 } } } }] } });
+  };
+  try {
+    const r = await weather(undefined, undefined, '1', 'london, UK');
+    assert.equal(r.place, 'London');
+    assert.equal(r.latitude, 51.5074);
+    assert.equal(asked.length, 1);
+    assert.match(asked[0], /api\.met\.no.*lat=51\.5074&lon=-0\.1278/);
+  } finally { globalThis.fetch = realFetch; }
+});

@@ -96,13 +96,37 @@ export function pricer(cl: PublicClient, slug: string) {
 }
 
 const METHOD = "Uniswap v3 spot price from the pool with the largest USDC or WETH reserve";
+
+/**
+ * Tickers agents ask for, per network; each address was checked against the contract's symbol() on 2026-10-20
+ * (Arbitrum's USDT now reports "USD₮0", the same contract). ETH and BTC name the wrapped tokens the pools trade.
+ */
+const TICKERS: Record<string, Record<string, Address>> = {
+  base: { WETH: "0x4200000000000000000000000000000000000006", USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", CBBTC: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", AERO: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", CBETH: "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22", EURC: "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", USDBC: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA" },
+  eth: { WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7", DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F", WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", CBBTC: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA", UNI: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", AAVE: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9" },
+  arb: { WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", ARB: "0x912CE59144191C1204E64559FE8253a0e49E6548", WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", LINK: "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4", DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", GMX: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" },
+  op: { WETH: "0x4200000000000000000000000000000000000006", USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", OP: "0x4200000000000000000000000000000000000042", DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", WBTC: "0x68f180fcCe6836688e9084f035309E29Bf0A2095", LINK: "0x350a791Bfc2C21F9Ed5d10980Dad2e2638ffa7f6" },
+};
+const ALIASES: Record<string, Record<string, string>> = { base: { ETH: "WETH", BTC: "CBBTC" }, eth: { ETH: "WETH", BTC: "WBTC" }, arb: { ETH: "WETH", BTC: "WBTC" }, op: { ETH: "WETH", BTC: "WBTC" } };
+
+/** A 0x address as given, or the address of a known ticker on this network; 400 lists the tickers otherwise. */
+export function tokenAddress(input: string, slug: string): Address {
+  const v = input.trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(v)) return getAddress(v);
+  const key = v.toUpperCase();
+  const hit = TICKERS[slug]?.[ALIASES[slug]?.[key] ?? key];
+  if (hit) return getAddress(hit);
+  const known = ["ETH", "BTC", ...Object.keys(TICKERS[slug] ?? {})].join(", ");
+  throw new HttpError(400, `"${v.slice(0, 20)}" is not a 0x token address or a ticker known on this network (${known}); pass the token's 0x address`);
+}
 const poolOut = (p: PoolQuote | null) => p && { address: p.pool, feeTier: p.feeTier, quoteReserve: sig(p.quoteReserve), quoteReserveUsd: sig(p.quoteReserveUsd) };
 
 export const PRICES: Entry[] = [
   entry("/price/token", "Token USD price from Uniswap v3 pools",
-    "USD price of any ERC-20 token on Base, Ethereum, Arbitrum or Optimism, computed from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote-token reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
+    "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
-      address: { type: "string", description: "0x ERC-20 token contract address", required: true, example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf" },
+      symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)", example: "ETH" },
+      address: { type: "string", description: "0x ERC-20 token contract address (instead of symbol)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
     {
@@ -114,10 +138,10 @@ export const PRICES: Entry[] = [
       method: "Uniswap v3 spot price from the pool with the largest USDC or WETH reserve",
     },
     async (env, q) => {
-      const raw = q("address")?.trim();
-      if (!raw || !/^0x[0-9a-fA-F]{40}$/.test(raw)) throw new HttpError(400, "address must be a 0x token address (40 hex characters)");
-      const token = getAddress(raw);
+      const raw = (q("address") ?? q("symbol"))?.trim();
+      if (!raw) throw new HttpError(400, "symbol (e.g. ETH) or address (a 0x token address) is required");
       const slug = pick(q, "chain", SLUGS, "base");
+      const token = tokenAddress(raw, slug);
       const c = CHAINS.find((x) => x.slug === slug)!;
       const cl = client(env, c);
       const head = { chain: c.name, chainId: c.chain.id };
@@ -144,9 +168,10 @@ export const PRICES: Entry[] = [
     }, "$0.003"),
 
   entry("/price/tokens", "USD prices for up to 20 tokens in one call",
-    "USD prices for up to 20 ERC-20 tokens on Base, Ethereum, Arbitrum or Optimism in one call, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices, not time averages. Use to value a basket of tokens or refresh a watchlist in one paid call.",
-    ["price", "token", "crypto", "market-data", "uniswap", "defi", "batch"], {
-      addresses: { type: "string", description: "Comma-separated 0x ERC-20 token addresses (1-20)", required: true, example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf,0x4200000000000000000000000000000000000006" },
+    "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call.",
+    ["price", "token", "batch", "crypto", "market-data", "uniswap", "defi"], {
+      symbols: { type: "string", description: "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all)", example: "ETH,BTC,AERO" },
+      addresses: { type: "string", description: "Comma-separated 0x ERC-20 token addresses (with or instead of symbols; 1-20 tokens in all)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf,0x4200000000000000000000000000000000000006" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
     {
@@ -155,11 +180,10 @@ export const PRICES: Entry[] = [
       unpriced: [{ address: "0x…", reason: "no Uniswap v3 pool against USDC or WETH" }], method: METHOD,
     },
     async (env, q) => {
-      const raw = (q("addresses") ?? "").split(",").map((a) => a.trim()).filter(Boolean);
-      if (raw.length === 0 || raw.length > 20) throw new HttpError(400, "addresses must list 1 to 20 token addresses");
-      if (!raw.every((a) => /^0x[0-9a-fA-F]{40}$/.test(a))) throw new HttpError(400, "addresses must be comma-separated 0x token addresses");
-      const tokens = [...new Set(raw.map((a) => getAddress(a)))];
+      const raw = [q("symbols"), q("addresses")].flatMap((list) => (list ?? "").split(",")).map((a) => a.trim()).filter(Boolean);
+      if (raw.length === 0 || raw.length > 20) throw new HttpError(400, "symbols and addresses must name 1 to 20 tokens in all");
       const slug = pick(q, "chain", SLUGS, "base");
+      const tokens = [...new Set(raw.map((a) => tokenAddress(a, slug)))];
       const c = CHAINS.find((x) => x.slug === slug)!;
       const cl = client(env, c);
       const p = pricer(cl, slug);

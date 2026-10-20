@@ -63,3 +63,16 @@ export async function labelsOf(ids: string[]): Promise<Record<string, string>> {
   for (const [id, e] of Object.entries(lab.entities ?? {})) if (e.labels?.en) labels[id] = e.labels.en.value;
   return labels;
 }
+
+/** The best-matching place with coordinates for a name (city, town, landmark), or null when none has any. */
+export async function placeCoordinates(name: string): Promise<{ name: string; lat: number; lon: number } | null> {
+  const ids = await searchItems(name, 6);
+  if (!ids.length) return null;
+  const entities = await getEntities(ids);
+  for (const id of ids) {
+    const e = entities[id];
+    const at = e ? statements(e, "P625")[0]?.mainsnak.datavalue?.value as { latitude: number; longitude: number } | undefined : undefined;
+    if (at) return { name: e!.labels?.en?.value ?? id, lat: Math.round(at.latitude * 1e4) / 1e4, lon: Math.round(at.longitude * 1e4) / 1e4 };
+  }
+  return null;
+}
