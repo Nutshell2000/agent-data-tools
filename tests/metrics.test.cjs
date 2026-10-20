@@ -21,6 +21,7 @@ async function loadTypeScript(entry, plugins = []) {
 }
 
 let Metrics;
+let metricsTest;
 let productUsdMicros;
 let queueMetricBump;
 let requestMetricsMiddleware;
@@ -40,7 +41,7 @@ before(async () => {
       }));
     },
   };
-  ({ Metrics } = await loadTypeScript(require.resolve("../src/metrics.ts"), [workersStub]));
+  ({ Metrics, __test: metricsTest } = await loadTypeScript(require.resolve("../src/metrics.ts"), [workersStub]));
   ({
     productUsdMicros,
     queueMetricBump,
@@ -348,6 +349,13 @@ test("counters are buffered and written once per flush, and kept when a write fa
   failing.metrics.ctx.storage.transaction = realTransaction;
   await failing.metrics.bump("/weather", "challenged");
   assert.equal((await failing.metrics.report())[today]["/weather"].challenged, 2);
+  // After the limit error no buffered write is tried until 00:00 UTC (a failed write would reset the object).
+  assert.equal(metricsTest.writesBlocked(), true);
+  await failing.metrics.alarm();
+  assert.equal(failing.records.size, 0);
+  metricsTest.unblockWrites();
+  await failing.metrics.alarm();
+  assert.equal(failing.records.get(dayKey)["/weather"].challenged, 2);
 });
 
 test("MCP connections are counted per client and mode, capped like callers", async () => {
