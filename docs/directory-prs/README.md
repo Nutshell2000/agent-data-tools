@@ -5,6 +5,8 @@ fork or push there). Run these from Peter's PC.
 
 ## tempoxyz/mpp#1095 (mpp.dev services)
 
+**Done 2026-10-20 (PC session):** template applied with `gh pr edit` (tool count 176) and the tempo patch pushed to Nutshell2000/mpp `agent-data-tools` (commit 6fc8191), after checking that live 402s offer `method="tempo"`. Nothing left to do unless the maintainers ask.
+
 Status 2026-10-20: CI ran on the fork without a result shown; the github-actions bot asks to "Complete the
 service pull request template in your PR description before review", so review has not started.
 
