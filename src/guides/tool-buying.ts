@@ -42,7 +42,7 @@ export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: str
     "",
     `For an existing MCP agent, use the bundled local adapter: ${origin}/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.`,
     "",
-    `Open ${origin}/examples/extract/ for reader demonstrations from owned sample documents. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.`,
+    `Open ${origin}/examples/extract/ for reader demonstrations from owned sample documents. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Live URLs use one of the caller's free calls (add trial=1 over HTTP; automatic over MCP) or a paid call.`,
     "",
     readerDownloadMarkdown(origin,READER_VERSION,"reader-client.mjs"),
     "Inspect an unsigned quote:",
