@@ -907,7 +907,7 @@ export const CORE_ENDPOINTS = [
       isoWithOffset: "2026-10-13T11:12:00+02:00",
       utcOffset: "+02:00",
       weekday: "Tuesday",
-      abbreviation: "GMT+2",
+      abbreviation: "CEST",
       converted: [
         { zone: "America/New_York", localTime: "2026-10-13T05:12:00", isoWithOffset: "2026-10-13T05:12:00-04:00", utcOffset: "-04:00", weekday: "Tuesday", abbreviation: "EDT" },
       ],
