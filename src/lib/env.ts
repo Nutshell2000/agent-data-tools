@@ -60,3 +60,7 @@ export class HttpError extends Error {
 }
 
 export const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
+
+/** A timed-out or unreachable outside fetch (AbortSignal.timeout, network failure), as opposed to a bug of ours. */
+export const isUpstreamFailure = (err: unknown) =>
+  err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError" || (err instanceof TypeError && /fetch|network/i.test(err.message)));

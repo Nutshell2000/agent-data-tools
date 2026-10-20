@@ -69,11 +69,29 @@ const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown
 
 for (const f of FAMILIES) handlers[f.endpoint.path] = async (env, q) => f.run(env, q);
 
+/** Inputs that hold EVM addresses (one, or a comma-separated list). */
+const ADDRESS_INPUTS = new Set(["address", "addresses", "token", "tokens", "owner", "spender", "wallet", "contract", "pool"]);
+const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
+
+/**
+ * EVM addresses as viem accepts them everywhere: "0x" and lowercase (no checksum to fail). Agents send checksummed,
+ * upper-case, mis-checksummed or 0x-less addresses; viem's strict checks turned those into misleading 502s and 422s,
+ * and a 0x-less address missed the sanctions list. Other inputs (and non-EVM addresses) pass through unchanged.
+ */
+export const normalizedInput = (input: Input): Input => (name) => {
+  const value = input(name);
+  if (value === undefined || !ADDRESS_INPUTS.has(name)) return value;
+  return value.split(",").map((part) => {
+    const m = EVM_HEX.exec(part.trim());
+    return m ? `0x${m[2].toLowerCase()}` : part;
+  }).join(",");
+};
+
 // Both transports await this guard before their payment wrapper can settle.
 export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, handler]) => [
   path, async (env: Env, input: Input) => {
     if (Object.hasOwn(PAUSED_FAMILY_TOOLS, path)) throw new HttpError(503, PAUSED_FAMILY_TOOLS[path], "TOOL_PAUSED");
-    const result = await handler(env, input);
+    const result = await handler(env, normalizedInput(input));
     assertToolOutput(path as EndpointPath, result);
     return result;
   },
