@@ -58,13 +58,25 @@ export function num(q: Input, name: string, { min = -Infinity, max = Infinity, f
 }
 
 /** One of a fixed set of values (case-insensitive). */
+/** Network names and chain ids agents send for our chain slugs ("ethereum", "arbitrum", "42161"…). */
+export const CHAIN_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  ethereum: "eth", mainnet: "eth", "1": "eth", arbitrum: "arb", "arbitrum-one": "arb", arbitrum_one: "arb", "42161": "arb",
+  optimism: "op", "10": "op", "8453": "base", matic: "polygon", pol: "polygon", "137": "polygon",
+});
+
+/** The allowed value a raw input names, directly or through a chain alias. */
+export const allowedValue = <T extends string>(raw: string, values: readonly T[]): T | undefined => {
+  const lower = raw.trim().toLowerCase();
+  return values.find((v) => v.toLowerCase() === lower) ?? values.find((v) => v.toLowerCase() === CHAIN_ALIASES[lower]);
+};
+
 export function pick<T extends string>(q: Input, name: string, values: readonly T[], fallback?: T): T {
   const raw = q(name)?.trim().toLowerCase();
   if (!raw) {
     if (fallback !== undefined) return fallback;
     throw new HttpError(400, `${name} is required (one of: ${values.join(", ")})`);
   }
-  const hit = values.find((v) => v.toLowerCase() === raw);
+  const hit = allowedValue(raw, values);
   if (!hit) throw new HttpError(400, `${name} must be one of: ${values.join(", ")}`);
   return hit;
 }
