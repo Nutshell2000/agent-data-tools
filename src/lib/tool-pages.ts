@@ -4,6 +4,7 @@
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { TOOL_SEO } from "./tool-seo";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -21,7 +22,11 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean): st
   const mcpName = e.path.slice(1).replace(/[/-]/g, "_");
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 4000 ? `${example.slice(0, 4000)}\n…` : example;
-  const title = `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
+  const seo = TOOL_SEO[e.path];
+  const heading = seo?.title ?? e.summary;
+  const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
+  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "This tool is not in the free calls;"} pay with card credits (from $5) or per call in USDC over x402 or MPP. No account or API key is needed.`;
+  const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
   const related = ENDPOINTS.filter((o) => o.path !== e.path && categoryOf(o.path) === category).slice(0, 12);
   const params = Object.entries(e.params).filter(([name]) => name !== "only");
@@ -45,6 +50,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean): st
 <meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
+${faq.length ? `<script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>` : ""}
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--card:#f6f7f9;--line:#e3e5e8;--accent:#0b57d0;--accent-fg:#fff}
 @media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e8eaed;--muted:#a3a8ae;--card:#1c1f24;--line:#2c3036;--accent:#8ab4f8;--accent-fg:#0b1a33}}
@@ -61,9 +67,10 @@ table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1
 .wrap{overflow-x:auto}ul.related{padding-left:20px}footer{margin-top:36px;color:var(--muted);font-size:.9rem}
 </style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/tools">${esc(category)}</a></nav>
-<h1>${esc(e.summary)}</h1>
+<h1>${esc(heading)}</h1>
 <p class="meta"><span class="price">${esc(e.price)} per call</span> · failed calls are never charged · no account or API key needed</p>
 <p>${esc(e.description)}</p>
+${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
@@ -81,6 +88,7 @@ ${freeCalls ? `<p>Or one of your ${FREE_CALLS_PER_CALLER} free calls, no key:</p
 <p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
+${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}
 ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) => `<li><a href="/tools/${esc(toolSlug(o.path))}">${esc(o.summary)}</a> · ${esc(o.price)}</li>`).join("")}</ul>` : ""}
 <footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
 </main></body></html>`;
