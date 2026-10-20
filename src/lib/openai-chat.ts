@@ -97,10 +97,37 @@ export function toOpenAiResponse(query: ChatQuery, result: { model?: string; res
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 export const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
-/** Handles POST /v1/chat/completions by forwarding the equivalent chat-tool GET through the whole middleware chain. */
+/**
+ * The chat-completions body a GET request's query stands for, or null when the query names no prompt. Directories
+ * that index every route as GET (Zero.xyz did) send agents here with `prompt=` (or `input`, `q`, `message`, `text`),
+ * optional `system`/`instructions`, `model`, `max_tokens` and `temperature`; `messages=<JSON array>` is accepted too.
+ */
+export function chatBodyFromQuery(params: Record<string, string>): Record<string, unknown> | null {
+  const body: Record<string, unknown> = {};
+  if (params.messages !== undefined) {
+    try { body.messages = JSON.parse(params.messages); } catch { body.messages = params.messages; }
+  } else {
+    const prompt = params.prompt ?? params.input ?? params.q ?? params.message ?? params.text;
+    if (prompt === undefined) return null;
+    const system = params.system ?? params.instructions;
+    body.messages = [...(system ? [{ role: "system", content: system }] : []), { role: "user", content: prompt }];
+  }
+  if (params.model) body.model = params.model;
+  const max = params.max_tokens ?? params.maxTokens ?? params.max_completion_tokens ?? params.max_output_tokens;
+  if (max !== undefined) body.max_tokens = Number(max);
+  if (params.temperature !== undefined) body.temperature = Number(params.temperature);
+  return body;
+}
+
+/** The request body: JSON for POST, the query's equivalent for GET and HEAD. */
+export async function requestBody(c: C, fromQuery: (params: Record<string, string>) => unknown): Promise<unknown> {
+  if (c.req.method === "GET" || c.req.method === "HEAD") return fromQuery(c.req.query());
+  try { return await c.req.json(); } catch { return null; }
+}
+
+/** Handles /v1/chat/completions (POST body, or GET query) by forwarding the equivalent chat-tool GET through the whole middleware chain. */
 export async function openAiChatCompletions(c: C, forward: Forward): Promise<Response> {
-  let body: unknown = null;
-  try { body = await c.req.json(); } catch { body = null; }
+  const body = await requestBody(c, chatBodyFromQuery);
   const done = await completeChat(c, forward, body);
   if (!done.ok) return done.response;
   const out = c.json(toOpenAiResponse(done.query, done.result, done.requestedModel), 200);
@@ -158,17 +185,52 @@ export function openAiModels() {
   };
 }
 
+/** The OpenAPI `get` operation of a /v1 front: the same call with the inputs in the query, for GET-only clients. */
+export function openApiGetVariant(operationId: string, summary: string, description: string, tags: string[], required: string, parameters: Record<string, { type: string; description: string; minimum?: number; maximum?: number }>, paymentInfo: unknown, responses: unknown) {
+  return {
+    operationId,
+    summary,
+    description,
+    tags,
+    "x-payment-info": paymentInfo,
+    parameters: Object.entries(parameters).map(([name, schema]) => ({ name, in: "query", required: name === required, schema: { type: schema.type, ...(schema.minimum !== undefined ? { minimum: schema.minimum } : {}), ...(schema.maximum !== undefined ? { maximum: schema.maximum } : {}) }, description: schema.description })),
+    responses,
+  };
+}
+
 /** The two OpenAI-style paths for /openapi.json; the completion is paid at the chosen chat tool's price and terms. */
 export function openAiOpenApiPaths(origin: string, prices: { small: string; large: string }, mpp: readonly unknown[]) {
   const usd = (p: string) => p.replace("$", "");
+  const paymentInfo = { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] };
+  const errorResponses = {
+    "400": { description: "Invalid request (not charged)" },
+    "402": { description: "Payment Required" },
+    "503": { description: "Daily AI capacity used up (not charged)" },
+  };
   return {
     [OPENAI_CHAT_PATH]: {
+      get: openApiGetVariant(
+        "chat_completions_get",
+        "Chat completion over GET (prompt in the query; same models and prices as the POST)",
+        `The same chat completion for clients that can only GET: prompt (and optional system, model, max_tokens, temperature) in the query string, the OpenAI chat-completion shape back. Paid at the same prices as ${CHAT_TOOL_PATH} (${prices.small}) and ${CHAT_LARGE_TOOL_PATH} (${prices.large}, model "llama-3.3-70b" or "gpt-oss-120b"). Failed calls are never charged.`,
+        ["ai", "chat", "completion", "llama", "openai"],
+        "prompt",
+        {
+          prompt: { type: "string", description: "The user message (up to 8,000 characters)" },
+          system: { type: "string", description: "Optional system prompt (up to 2,000 characters)" },
+          model: { type: "string", description: `${MODELS.text} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
+          max_tokens: { type: "integer", minimum: 1, maximum: 1024, description: "Maximum output tokens (default 400)" },
+          temperature: { type: "number", minimum: 0, maximum: 1.5, description: "Default 0.6" },
+        },
+        paymentInfo,
+        { "200": { description: "Chat completion (same shape as the POST)" }, ...errorResponses },
+      ),
       post: {
         operationId: "chat_completions",
         summary: "OpenAI-compatible chat completion (Llama 3.1 8B, Llama 3.3 70B or gpt-oss-120b)",
         description: `OpenAI chat completions request shape, answered by the same models and at the same prices as ${CHAT_TOOL_PATH} (${prices.small}, default) and ${CHAT_LARGE_TOOL_PATH} (${prices.large}; pick it with model "llama-3.3-70b" or "gpt-oss-120b"): send messages (system, user, assistant), get one assistant message back. No streaming. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper; the unpaid request returns the 402 quote and the paid retry returns the completion. Failed calls are never charged.`,
         tags: ["ai", "chat", "completion", "llama", "openai"],
-        "x-payment-info": { price: { mode: "dynamic", currency: "USD", min: usd(prices.small), max: usd(prices.large) }, protocols: [{ x402: {} }, ...mpp] },
+        "x-payment-info": paymentInfo,
         requestBody: {
           required: true,
           content: {
