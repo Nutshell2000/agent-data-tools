@@ -186,6 +186,8 @@ export const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: END
  * our resources (origin title | resource description | origin description | tags), so it names what
  * buyers search for, not just a tool count.
  */
+// Google Search Console ownership (URL-prefix property for the worker origin, added by Peter on 2026-10-20). Public by design.
+const GOOGLE_SITE_VERIFICATION = "HeQjGo464TFyKSavKXvOaOF3C2o62GLeO5XySvLiHco";
 export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} tools, 25 free calls, then from $0.002`;
 
 /** Human-readable front page for people arriving from a directory listing. */
@@ -217,6 +219,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(PAGE_TITLE)}</title>
 <link rel="canonical" href="${esc(origin)}/">
+<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION}">
 <meta name="description" content="${esc(SERVICE_SUMMARY)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(SERVICE_NAME)}">
