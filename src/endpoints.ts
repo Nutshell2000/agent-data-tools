@@ -1,3 +1,4 @@
+import { FIELDS_PARAM } from "./lib/fields";
 import { FAMILIES } from "./families";
 import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
 import { BITCOIN_FEES_OUTPUT_SCHEMA } from "./lib/bitcoin-fees-contract";
@@ -16,7 +17,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "175 pay-per-call tools for AI agents over HTTP or MCP, most at $0.003. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "176 pay-per-call tools for AI agents over HTTP or MCP, most at $0.003. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -642,7 +643,8 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/package",
-    price: "$0.003",
+    // Must equal its Coinbase Bazaar listing (tests/bazaar-listed-prices.test.cjs): buyers that read the listing pay that amount.
+    price: "$0.002",
     summary: "Package metadata and latest or pinned-version dependency-risk signals",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",
@@ -905,7 +907,7 @@ export const CORE_ENDPOINTS = [
       isoWithOffset: "2026-10-13T11:12:00+02:00",
       utcOffset: "+02:00",
       weekday: "Tuesday",
-      abbreviation: "GMT+2",
+      abbreviation: "CEST",
       converted: [
         { zone: "America/New_York", localTime: "2026-10-13T05:12:00", isoWithOffset: "2026-10-13T05:12:00-04:00", utcOffset: "-04:00", weekday: "Tuesday", abbreviation: "EDT" },
       ],
@@ -935,11 +937,27 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   "/search": "Web search is not yet enabled: the provider's resale terms are being confirmed.",
 });
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
+// Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
+for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
+
+/**
+ * The inputs of a tool's published example (service card, Bazaar discovery input, 402 Index URL): its required
+ * parameters, or, for tools that take one of several inputs ("address or name"), the first parameter with an
+ * example. Without that fallback those examples carried no input at all and a buyer copying one got a 400.
+ */
+export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["params"][string]][] {
+  const entries = Object.entries(e.params);
+  const required = entries.filter(([, p]) => p.required);
+  if (required.length) return required;
+  // `only` is never an example input: it only trims a result, and a published example must show the tool itself.
+  const first = entries.find(([name, p]) => name !== "only" && p.example !== undefined && p.example !== "");
+  return first ? [first] : [];
+}
 
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header; pay with any x402 client (exact scheme, USDC on Base) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.003: JSON, CSV, encodings, hashes, dates, cron, units and validators. Paused and not charged: /search, /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
+  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header and a WWW-Authenticate: Payment challenge; pay with any x402 client (exact scheme, USDC on Base, Polygon, Arbitrum, Monad or World Chain) or any MPP client (mppx: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.003: JSON, CSV, encodings, hashes, dates, cron, units and validators. Paused and not charged: /search, /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/guides/web-reading", label: "Read documentation: real examples, free quote and capped CLI" }];

@@ -19,6 +19,39 @@ async function challengeSecret(stripeKey: string) {
 
 export const mppEnabled = (env: Env) => Boolean(env.STRIPE_MPP_KEY && env.STRIPE_PROFILE_ID);
 
+/**
+ * OpenAPI entries for the MPP credit packs, so MPP directories (MPPScan, mpp.dev) can list them: each GET answers
+ * 402 with a WWW-Authenticate Payment challenge (Stripe card, charge intent). Only x402-free MPP routes are added
+ * here; x402 tooling (402 Index, x402scan) reads x-payment-info.protocols and skips entries without x402.
+ */
+export function mppCreditOpenApiPaths() {
+  return Object.fromEntries(CREDIT_PACKS.map((p) => {
+    const usd = p.usdCents / 100;
+    return [`/credits/buy/${usd}`, {
+      get: {
+        operationId: `buy-credits-${usd}`,
+        summary: `Buy ${p.credits.toLocaleString("en-US")} prepaid tool credits for $${usd} (card, MPP)`,
+        description: `An agent pays $${usd} by card through MPP (Stripe, Link agent wallet) and gets an API key worth ${p.credits.toLocaleString("en-US")} credits (1 credit = $0.001) in the response, with no checkout page. The key pays any of the service's tools over HTTP (Authorization: Bearer <key>) or MCP (/mcp/k/<key>); most tools cost 3 credits per call and failed calls are refunded. To add credits to a key you already hold, send it as X-API-Key.`,
+        tags: ["credits"],
+        "x-payment-info": { price: { mode: "fixed", currency: "USD", amount: usd.toFixed(2) }, protocols: [{ mpp: { method: "stripe", intent: "charge", currency: "usd" } }] },
+        parameters: [{ name: "X-API-Key", in: "header", required: false, description: "Optional existing adt_ key to top up instead of creating a new one", schema: { type: "string", pattern: "^adt_[A-Za-z0-9_-]{20,}$" } }],
+        responses: {
+          "200": {
+            description: "Credits issued; the new key is shown only in this response",
+            content: { "application/json": { schema: { type: "object", properties: {
+              apiKey: { type: "string", description: "New adt_ key (absent on a top-up)" },
+              mcpUrl: { type: "string", description: "MCP connector URL with the key embedded" },
+              creditsAdded: { type: "integer" }, balanceCredits: { type: "integer" },
+              toppedUp: { type: "boolean" }, use: { type: "string" },
+            } } } },
+          },
+          "402": { description: "Payment Required (MPP: WWW-Authenticate: Payment, method stripe, intent charge)" },
+        },
+      },
+    }];
+  }));
+}
+
 export async function buyCreditsWithMpp(c: C) {
   c.header("Cache-Control", "no-store");
   const usd = Number(c.req.param("usd"));
@@ -41,6 +74,8 @@ export async function buyCreditsWithMpp(c: C) {
     realm: new URL(c.req.url).host,
   });
   const result = await mppx.stripe.charge({
+    // The Stripe profile that receives the card payment; MPP directories expect a recipient in every challenge.
+    recipient: c.env.STRIPE_PROFILE_ID!,
     amount: (pack.usdCents / 100).toFixed(2),
     description: `${pack.credits.toLocaleString("en-US")} Agent Data Tools credits (1 credit = $0.001)`,
     metadata: { adt_credits: String(pack.credits) },

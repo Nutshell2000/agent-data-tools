@@ -1,20 +1,19 @@
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.35.1";
+export const MCP_SERVER_VERSION = "1.40.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 const exampleQuery = (e: Endpoint) =>
-  Object.entries(e.params)
-    .filter(([, p]) => p.required)
+  exampleParams(e)
     .map(([k, p]) => `${k}=${encodeURIComponent(String(p.example))}`)
     .join("&") || "format=json";
 
@@ -267,10 +266,11 @@ ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 ${rows}
 
 <h2>How paying works</h2>
-<p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header. Calls that fail are not charged.</p>
+<p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme) and a <code>WWW-Authenticate: Payment</code> challenge for MPP (USDC on Base or USDC.e on Tempo). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header; an MPP client (mppx) answers the challenge in <code>Authorization: Payment</code>. Calls that fail are not charged.</p>
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
-<p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
+<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code> and <code>POST /v1/embeddings</code> run the same paid tools at the same prices (Llama 3.1 8B at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
+    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. <code>/package-audit</code> costs $0.20 and is rejected by this lower cap.</p>
@@ -306,7 +306,9 @@ export const OWNERSHIP_PROOFS: readonly string[] = [
   "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000413e5f9cac8f7c1dfe7f44c5b57ddf3618682fffeeed033d842128e30775141f38083802e95f2cda9eea4002ececa24d1bdbc5ec23c58d4e2320d081840d38bad91c00000000000000000000000000000000000000000000000000000000000000",
 ];
 
-export function openApi(origin: string, trialsEnabled = false) {
+type MppOffer = { mpp: { method: string; intent: string; currency: string } };
+/** `mpp`: the MPP offers each tool also accepts (lib/mpp-evm.ts, lib/mpp-tempo.ts), declared next to x402 while on. */
+export function openApi(origin: string, trialsEnabled = false, mpp: readonly MppOffer[] = []) {
   const guidance = `${GUIDANCE} ${clientGuidance()} ${trialNote(trialsEnabled)} No USDC wallet: buy card credits at ${origin}/credits and send the key as Authorization: Bearer adt_….`;
   return {
     openapi: "3.1.0",
@@ -328,7 +330,7 @@ export function openApi(origin: string, trialsEnabled = false) {
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: Object.fromEntries(
+    paths: { ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       ENDPOINTS.map((e) => [
         e.path,
         {
@@ -340,10 +342,11 @@ export function openApi(origin: string, trialsEnabled = false) {
             ...(e.path === "/extract" ? { externalDocs: { description: "Read a public documentation page for $0.002", url: `${origin}/guides/web-reading` } } : {}),
             ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
             tags: e.tags,
-            // Shape required by x402scan's discovery spec. Amount is decimal USD.
+            // Shape required by x402scan's discovery spec. Amount is decimal USD. x402 tooling keeps reading the
+            // x402 entry; MPP directories (MPPScan) read the mpp one.
             "x-payment-info": {
               price: { mode: "fixed", currency: "USD", amount: e.price.replace("$", "") },
-              protocols: [{ x402: {} }],
+              protocols: [{ x402: {} }, ...mpp],
             },
             parameters: Object.entries(e.params).map(([name, p]) => ({
               name,
@@ -369,13 +372,17 @@ export function openApi(origin: string, trialsEnabled = false) {
           },
         },
       ]),
-    ),
+    ) },
   };
 }
 
 // Left out of marketplace listings: these run on a limited daily allowance, which a
 // subscription plan with a monthly quota could exhaust.
 import { CAPACITY_LIMITED } from "./lib/capacity";
+import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/openai-chat";
+import { EMBED_TOOL_PATH, openAiEmbeddingsOpenApiPath } from "./lib/openai-embeddings";
+import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
+import { MODELS } from "./lib/ai";
 export { CAPACITY_LIMITED };
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
@@ -391,8 +398,9 @@ export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
     },
     servers: doc.servers,
     paths: Object.fromEntries(
-      Object.entries(doc.paths)
-        .filter(([path]) => !CAPACITY_LIMITED.has(path))
+      // Tools only: the OpenAI-style /v1 paths are a front for the capacity-limited /ai/chat and stay out too.
+      (Object.entries(doc.paths) as unknown as [string, { get: { "x-payment-info"?: unknown; responses: Record<string, unknown>; [key: string]: unknown } }][])
+        .filter(([path]) => !CAPACITY_LIMITED.has(path) && !path.startsWith("/v1/"))
         .map(([path, item]) => {
           const { "x-payment-info": _payment, responses, ...get } = item.get;
           const { "402": _unpaid, ...rest } = responses;
@@ -409,13 +417,17 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `> ${SERVICE_SUMMARY}`,
     "",
-    "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base). Sign the payment and retry with the PAYMENT-SIGNATURE header. Failed calls (4xx/5xx) are not charged.",
+    "All endpoints are GET, return JSON, and cost a fixed price per successful call. An unpaid request returns HTTP 402 with a PAYMENT-REQUIRED header (x402 v2, exact scheme, USDC on Base) and a WWW-Authenticate: Payment challenge (MPP: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo). Pay with x402 (sign and retry with PAYMENT-SIGNATURE) or with MPP (an mppx client answers the challenge in Authorization: Payment; the receipt comes back in Payment-Receipt). Failed calls (4xx/5xx) are not charged on either path.",
     "",
     trialNote(trialsEnabled),
     "",
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance.`,
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
+    "",
+    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); POST ${origin}/v1/embeddings (one input string, BGE-M3, 1,024 dimensions) is the same front for /ai/embed (${catalogEndpoint(EMBED_TOOL_PATH).price}). POST ${origin}/v1/responses takes the OpenAI Responses shape (input, instructions, max_output_tokens) for the same models and prices. GET ${origin}/v1/models is free. Each of the three also answers GET with the same inputs in the query (prompt= or input=, plus system/instructions, model, max_tokens, temperature) for clients that cannot POST. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
+    "",
+    "Smaller answers: add only=<comma-separated top-level keys> to any tool (for example /btc-fees?only=fastestFee); unknown keys are ignored and no match returns the full result.",
     "",
     `Local MCP adapter: ${origin}/guides/local-mcp.md; download ${origin}/clients/reader/${READER_VERSION}/reader-mcp.mjs. Quotes only by default; explicit paid mode requires a bounded session allowance and per-call maxUsdc. No automatic retries.`,
     "",
