@@ -206,3 +206,24 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 ## Durable Objects write budget (2026-10-20)
 
 - The account is on the Workers free plan: Durable Objects allow 100,000 rows written a day (reset 00:00 UTC). On 20 Oct per-request counters (`bump`, `bumpMcpClient` and per-request funnel rows for crawler quotes) used it up by ~15:30 UTC; after that every write failed, so free calls answered 500 and card-credit and Tempo calls could not be served. Counters and the counted-only funnel stages (`COUNTED_ONLY` in src/lib/funnel.ts: visit, quote, free_call, free_exhausted, credits_call) are now added up in memory in the Metrics object and written by an alarm at most every 30 s (`flush` in src/metrics.ts); reads add the unwritten counts in memory (`listMerged`) and never write, because a failed write resets the object and fails every request in flight. Settlements, credits, free-call allowances, OAuth and MPP replay state still write immediately. If free calls cannot be counted, the caller gets the normal 402. Do not add per-request writes for unpaid traffic.
+
+## Spreadsheet kits by card through Stripe (Agentic Commerce Suite, 2026-10-20)
+
+- Six XLSX kits (src/store/kits.ts) are sold by card only: the Stripe catalog feed (business/agentic/stripe-feed.csv in the
+  MoneyWallet folder, built from KITS) lists them with `disable_checkout=false`; credit packs and the WordPress Pro add-on are
+  discovery-only (`disable_checkout=true`, the agent sends the buyer to /credits or the Freemius checkout). The seller kit stays
+  paused (`NEW_PRODUCT_SALES_ENABLED = false`); kits are never in PRODUCTS, /buy/* or the x402 paywall.
+- `POST /stripe/webhook` (src/lib/stripe-webhook.ts) verifies `Stripe-Signature` with `STRIPE_WEBHOOK_SECRET` (5-minute tolerance),
+  handles `checkout.session.completed` / `async_payment_succeeded`, reads the session back from Stripe with `STRIPE_READ_KEY`
+  (`fetchPaidSession` in credits.ts, shared with `verifyCheckout`; expand line_items.data.price.product and
+  payment_intent.latest_charge, Stripe-Version 2025-12-15.preview for `price.external_reference` = feed id) and writes one paid
+  store order per kit (`putStripeOrder`, id derived from session + kit, so replays write nothing). Stored: session id, kit slugs,
+  SHA-256 of the receipt number. No name, email or address; nothing is emailed.
+- Buyers get signed 7-day links at `/kits/claim?session_id=cs_…` or `?receipt=<Stripe receipt number>`; a missed webhook is
+  fulfilled there from Stripe. `/order/<id>/download` requires `exp`+`sig` for `via: "stripe"` orders. Kit pages: `/kits`, `/kits/<slug>`
+  (the feed's `link`).
+- Before the deploy that ships this: copy the six .xlsx files from `C:\MoneyWallet\shopify-store\products\` into
+  `public/_files/` of the deploy checkout (git-ignored, like the seller kit zip); Peter sets `npx wrangler secret put STRIPE_WEBHOOK_SECRET`
+  (from Dashboard → Developers → Webhooks, endpoint `<origin>/stripe/webhook`, event checkout.session.completed). The restricted
+  read key needs Checkout Sessions read (plus Products/Prices read for the expansion).
+- Tests: tests/stripe-webhook.test.cjs (valid signature, bad signature, unknown product, replay, missed webhook, no secret).
