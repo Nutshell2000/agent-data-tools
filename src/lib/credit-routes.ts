@@ -176,7 +176,10 @@ export async function useFreeCall(env: Env, ip: string | undefined) {
   if (!store || !trialsEnabled(env)) return null;
   const caller = await callerHash(ip ?? "unknown");
   const day = utcDay();
-  const left = await store.takeFreeCall(caller, day);
+  // If the allowance cannot be counted (storage over its daily write limit), the caller gets the payment
+  // request like any unpaid call instead of a 500.
+  const left = await store.takeFreeCall(caller, day).catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
+  if (left === undefined) return null;
   if (left === null) markStage("free_exhausted");
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
 }
