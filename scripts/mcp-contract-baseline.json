@@ -1,5 +1,5 @@
 {
-  "version": "1.38.3",
+  "version": "1.39.0",
   "tools": [
     {
       "name": "extract",
@@ -5084,6 +5084,52 @@
         ]
       },
       "price": "$0.003"
+    },
+    {
+      "name": "ai_chat_large",
+      "description": "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "User prompt, up to 8,000 characters"
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "llama-3.3-70b",
+              "gpt-oss-120b"
+            ],
+            "description": "llama-3.3-70b (default) or gpt-oss-120b"
+          },
+          "system": {
+            "type": "string",
+            "description": "Optional system prompt, up to 2,000 characters"
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum output tokens, 1-1024 (default 400)"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "0-1.5 (default 0.6)"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "ai_summarize_text",
