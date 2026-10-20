@@ -198,3 +198,7 @@ token (it is public; it goes in the homepage head), then submits `/sitemap.xml` 
 
 Then re-register x402scan/MPPScan (`npx agentcash register $O`) and post the Show HN from docs/launch-posts.md:
 people it sends now land on a page that converts (free trial, card from $5) instead of a dead end.
+
+## Free-call exhaustion in the funnel (1.41.x)
+
+- /revenue funnel counts `free_exhausted`: a caller who asked for a free call (HTTP `trial=1` or MCP) after using all 25, or after the daily total ran out, and was given the payment request instead. It is the buying moment; compare it with card purchases and settlements before changing the free allowance.
