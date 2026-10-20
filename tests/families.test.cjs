@@ -521,3 +521,18 @@ test("counterparty: chain is validated before any network call", async () => {
   await assert.rejects(run({ address: "not-an-address" }), (e) => e.status === 400);
   assert.deepEqual(COUNTERPARTY[0].endpoint.params.chain.enum, ["base", "eth", "arb", "op"]);
 });
+
+test("x402 check treats every network we accept as native USDC (Monad, World Chain)", async () => {
+  const { analyze } = await loadTypeScript(require.resolve("../src/routes/x402-check.ts"));
+  const { encodePaymentRequiredHeader } = require("@x402/core/http");
+  const header = encodePaymentRequiredHeader({
+    x402Version: 2,
+    resource: { url: "https://seller.example/x", description: "d. Use for tests.", mimeType: "application/json" },
+    accepts: [
+      { scheme: "exact", network: "eip155:143", amount: "3000", asset: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603", payTo: "0x0000000000000000000000000000000000000001", maxTimeoutSeconds: 300, extra: {} },
+      { scheme: "exact", network: "eip155:480", amount: "3000", asset: "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", payTo: "0x0000000000000000000000000000000000000001", maxTimeoutSeconds: 300, extra: {} },
+    ],
+  });
+  const out = analyze("https://seller.example/x", 402, header, "");
+  assert.deepEqual(out.accepts.map((a) => [a.assetIsNativeUsdc, a.priceUsd]), [[true, 0.003], [true, 0.003]]);
+});
