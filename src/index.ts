@@ -32,7 +32,7 @@ import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { paymentOptions, priceOn } from "./lib/networks";
-import { discoveryResources } from "./lib/discovery-index";
+import { discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
@@ -503,7 +503,7 @@ app.get("/revenue", (c) => fromMetrics(async () => {
 }));
 // The resource manifest, also at the ".json" spelling some crawlers (gold-402 entries, agent kits) look for.
 for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
-  app.get(path, (c) => c.json({ version: 1, resources: ENDPOINTS.map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
+  app.get(path, (c) => c.json({ version: 1, resources: salesOrdered(ENDPOINTS).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
 }
 // Bazaar-shaped discovery index of every tool (lib/discovery-index.ts): paged like the facilitator's own.
 app.get("/discovery/resources", (c) =>
