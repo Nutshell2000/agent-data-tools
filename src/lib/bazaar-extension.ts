@@ -1,5 +1,17 @@
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
 import type { Endpoint } from "../endpoints";
+
+/**
+ * Our Base Builder Code (ERC-8021, registered on base.dev). Every x402 v2 and MPP evm payment declares it as the app
+ * code; a facilitator that supports the builder-code extension appends it to the settlement transaction, which
+ * attributes our onchain volume to us on Base (a prerequisite of the Base Builder Grants). It changes no price or term.
+ */
+export const BUILDER_APP_CODE = "bc_09e30bdm";
+
+export function builderCodeExtension() {
+  return { [BUILDER_CODE]: declareBuilderCodeExtension(BUILDER_APP_CODE) };
+}
 import { exampleParams } from "../endpoints";
 import { schemaFromExample } from "./output-schema";
 
