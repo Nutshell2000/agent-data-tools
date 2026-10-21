@@ -7,7 +7,7 @@ import { schemaFromExample } from "./lib/output-schema";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.45.2";
+export const MCP_SERVER_VERSION = "1.45.3";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -188,6 +188,9 @@ export const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: END
  */
 // Google Search Console ownership (URL-prefix property for the worker origin, added by Peter on 2026-10-20). Public by design.
 const GOOGLE_SITE_VERIFICATION = "HeQjGo464TFyKSavKXvOaOF3C2o62GLeO5XySvLiHco";
+/** What a tool does first, then its fine print: directories and agents read the opening words to pick a tool. */
+export const fullDescription = (e: Pick<Endpoint, "description"> & { details?: string }) => e.details ? `${e.description} Details: ${e.details}` : e.description;
+
 export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} tools, 25 free calls, then from $0.002`;
 
 /**
@@ -229,7 +232,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc((e as Endpoint).details ?? e.description)}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(fullDescription(e as Endpoint))}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -369,7 +372,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
           get: {
             operationId: mcpName(e.path),
             summary: e.summary,
-            description: (e as Endpoint).details ?? e.description,
+            description: fullDescription(e as Endpoint),
             ...(e.path === "/sitemap" ? { externalDocs: { description: "Discover documentation URLs before choosing pages to read", url: `${origin}/guides/sitemap` } } : {}),
             ...(e.path === "/extract" ? { externalDocs: { description: "Read a public documentation page for $0.002", url: `${origin}/guides/web-reading` } } : {}),
             ...(e.path === "/package-audit" ? { externalDocs: { description: "Dependency audit buying guide and capped client", url: `${origin}/guides/dependency-audit` } } : {}),
@@ -519,7 +522,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     ...byCategory().flatMap((g) => [`### ${g.name}`, "", ...g.tools.flatMap((e) => [
       `#### GET ${e.path} — ${e.price}`,
-      (e as Endpoint).details ?? e.description,
+      fullDescription(e as Endpoint),
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),
       `Example: ${origin}${e.path}?${exampleQuery(e)}`,
       "",
