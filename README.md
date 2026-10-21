@@ -1,10 +1,14 @@
 # Agent Data Tools
 
-175 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
+[![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-000000?style=flat-square)](https://cursor.com/en/install-mcp?name=agent-data-tools&config=eyJ1cmwiOiJodHRwczovL2FnZW50LWRhdGEtdG9vbHMucmV2bWVzaDIwNzQud29ya2Vycy5kZXYvbWNwIn0%3D)
+[![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/Install_in-VS_Code_Insiders-24bfa5?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D&quality=insiders)
+
+179 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
 
 ## Quick start
 
-1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp` (Streamable HTTP, no sign-up). Smaller sections: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.
+1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp` (Streamable HTTP, no sign-up), or use the buttons above. Claude Code: `claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp`. Claude.ai and ChatGPT: add a custom connector with `https://agent-data-tools.revmesh2074.workers.dev/mcp/account`. If your client limits how many tools it loads, connect one section instead. Smaller sections: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.
 2. **Try free:** every caller gets **25 free successful calls**; over MCP they are used automatically. Over HTTP add `trial=1`. Failed calls never count. AI, rendering and search tools are not included.
 3. **Then pay either way:**
    - **Card:** buy prepaid credits at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits) ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001) and send the key as `Authorization: Bearer adt_…` (or `X-API-Key`) on HTTP calls or in your MCP client's connection headers.
@@ -104,7 +108,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 ## MCP
 
-The same 32 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless). Listing tools is free. Calling a tool without payment returns an x402 payment requirement; an MCP client with x402 support pays and retries. A tool call that fails is not charged.
+All 179 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless), and in smaller section servers at `/mcp/<section>`. Listing tools is free. Every caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, MCP tool, OpenAPI document and web page are generated from that catalog.
 
