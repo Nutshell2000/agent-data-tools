@@ -190,9 +190,28 @@ export const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: END
 const GOOGLE_SITE_VERIFICATION = "HeQjGo464TFyKSavKXvOaOF3C2o62GLeO5XySvLiHco";
 export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} tools, 25 free calls, then from $0.002`;
 
+/**
+ * One-click installs of the MCP server: Cursor and VS Code deep links (each opens the editor's own "add server"
+ * prompt), the Claude Code command and the Claude.ai/ChatGPT connector URL. Directories send developers to the
+ * homepage and the README; before these, both only showed the bare URL to copy.
+ */
+export function mcpInstallLinks(origin: string) {
+  const url = `${origin}/mcp`;
+  const vscodeConfig = encodeURIComponent(JSON.stringify({ name: "agent-data-tools", type: "http", url }));
+  return {
+    url,
+    cursor: `cursor://anysphere.cursor-deeplink/mcp/install?name=agent-data-tools&config=${encodeURIComponent(btoa(JSON.stringify({ url })))}`,
+    vscode: `vscode:mcp/install?${vscodeConfig}`,
+    vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
+    claudeCode: `claude mcp add --transport http agent-data-tools ${url}`,
+    claudeAi: `${origin}/mcp/account`,
+  };
+}
+
 /** Human-readable front page for people arriving from a directory listing. */
 export function homePage(origin: string, payTo: string, trialsEnabled = false, demo?: ReaderDemo) {
   const clientExample = paymentClientExample(origin, payTo, "/extract", "url=https%3A%2F%2Fexample.com", "ordinary");
+  const install = mcpInstallLinks(origin);
   const row = (e: (typeof ENDPOINTS)[number]) =>
     `<tr><td class="path"><a href="/tools/${esc(toolSlug(e.path))}"><code>${esc(e.path)}</code></a></td><td>${esc(e.summary)}</td><td class="price">${esc(e.price)}</td></tr>`;
   const starters = START_HERE.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is (typeof ENDPOINTS)[number] => Boolean(e));
@@ -258,6 +277,7 @@ pre { overflow-x:auto; padding:16px; border:1px solid var(--line); border-radius
 pre code { padding:0; background:transparent; }
 .start { border:1px solid var(--line); border-radius:8px; padding:4px 18px 8px; margin:18px 0 26px; }
 .start h2 { margin:14px 0 6px; font-size:1.1rem; } .start li { margin:8px 0; }
+.install { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 4px; } .install a { display:inline-block; padding:6px 12px; border:1px solid var(--line); border-radius:6px; text-decoration:none; font-weight:600; }
 input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline-block;margin:6px 10px 6px 0}#reader-url{display:block;width:100%;min-width:min(600px,75vw)}#reader-builder-error{color:#b24430}button{cursor:pointer}nav a{line-height:2}${readerBuyingCss}</style>
 </head>
 <body>
@@ -265,7 +285,9 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
-<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.</li>
+<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
+<div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
+Claude Code: <code>${esc(install.claudeCode)}</code>. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. If your client limits how many tools it loads, add one section instead, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $5</a> (5,000 credits; most tools cost 3). The key works over HTTP (<code>Authorization: Bearer adt_…</code>) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base and four more chains) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
