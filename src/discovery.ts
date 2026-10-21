@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.47.2";
+export const MCP_SERVER_VERSION = "1.47.3";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -63,6 +63,49 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
     },
     tools: salesOrdered(ENDPOINTS).map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
+}
+
+/** Legacy ChatGPT plugin manifest: some agent crawlers still look for it first; it only points at the OpenAPI. */
+export function aiPluginManifest(origin: string) {
+  return {
+    schema_version: "v1",
+    name_for_human: SERVICE_NAME,
+    name_for_model: "agent_data_tools",
+    description_for_human: "Pay-per-call data tools for AI agents: payee and sanctions checks, prices, chain data, web reading.",
+    description_for_model: `${SERVICE_SUMMARY} Every unpaid call answers HTTP 402 with x402 and MPP payment terms; ${FREE_CALLS_PER_CALLER} free calls per caller with trial=1. Pick a tool from ${origin}/llms.txt or ${origin}/discovery/resources.`,
+    auth: { type: "none" },
+    api: { type: "openapi", url: `${origin}/openapi.json` },
+    logo_url: `${origin}/logo.png`,
+    contact_email: SUPPORT_EMAIL,
+    legal_info_url: `${origin}/terms`,
+  };
+}
+
+/** Words in a guessed URL that say nothing about the tool wanted. */
+const PATH_NOISE = new Set(["api", "v1", "v2", "v3", "get", "tool", "tools", "data", "paid", "rest", "json", "query", "lookup", "info", "check", "the", "www", "http", "https"]);
+
+/** Words agents use for a tool whose path says it differently. */
+const PATH_SYNONYMS: Record<string, string[]> = {
+  ofac: ["sanctions"], sdn: ["sanctions"], aml: ["sanctions"], kyc: ["counterparty"], kyt: ["counterparty"],
+  honeypot: ["token", "report"], rug: ["token", "report"], scrape: ["extract"], scraper: ["extract"], markdown: ["extract"],
+  crawl: ["extract"], whois: ["domain"], rdap: ["domain"], dns: ["domain"], currency: ["fx"], exchange: ["fx"],
+  mempool: ["btc", "fees"], forecast: ["weather"], geoip: ["ip"], edgar: ["sec", "filings"], stock: ["sec", "filings"],
+};
+
+/**
+ * Tools whose path shares a word with a path that does not exist ("/api/v1/weather" -> /weather), best sellers first
+ * on ties, so a bot that guessed our URL scheme is sent to the paid tool instead of a dead end.
+ */
+export function suggestTools(path: string, max = 3): string[] {
+  const words = path.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2 && !PATH_NOISE.has(w));
+  for (const w of [...words]) words.push(...(PATH_SYNONYMS[w] ?? []));
+  if (!words.length) return [];
+  const scored = salesOrdered(ENDPOINTS).map((e, rank) => {
+    const own = e.path.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const hits = words.filter((w) => own.some((o) => o === w || (w.length >= 4 && (o.startsWith(w) || w.startsWith(o)) && o.length >= 3))).length;
+    return { path: e.path, hits, extra: own.length - hits, rank };
+  });
+  return scored.filter((s) => s.hits > 0).sort((a, b) => b.hits - a.hits || a.extra - b.extra || a.rank - b.rank).slice(0, max).map((s) => s.path);
 }
 
 /** RFC 9727 API catalog pointing at the machine-readable descriptions. */
