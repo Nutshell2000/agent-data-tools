@@ -354,8 +354,15 @@ app.get("/", async (c) =>
   // Browsers and directory scrapers get a readable page, programs get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
-    : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK)),
+    : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))),
 );
+/** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
+function paymentRails(env: Env) {
+  return {
+    networks: paymentOptions(env).map((o) => o.network),
+    mpp: [...(tempoEnabled(env) ? ["tempo/charge"] : []), ...(evmEnabled(env) ? ["evm/charge"] : [])],
+  };
+}
 // Every agent that discovers us downloads this; it only changes with a deploy, so build it once per isolate.
 const openApiDocs = new Map<string, string>();
 app.get("/openapi.json", (c) => {
@@ -521,7 +528,7 @@ app.get("/discovery/resources", (c) =>
 app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
 // Glama connector ownership claim (public token bound to our Glama account; keep it published).
 app.get("/.well-known/glama.json", (c) => c.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_n6dyHp-kpVDnsj1SvyWEhoeenwlxpGQj" }));
-app.get("/.well-known/mcp/server-card.json", (c) => c.json(mcpServerCard(origin(c.req.url))));
+app.get("/.well-known/mcp/server-card.json", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
 app.get("/.well-known/api-catalog", (c) =>
   c.body(JSON.stringify(apiCatalog(origin(c.req.url))), 200, { "content-type": "application/linkset+json" }),
 );
