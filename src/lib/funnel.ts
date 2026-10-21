@@ -114,7 +114,7 @@ export function referrerFamily(referer: string | undefined, ownHost: string): st
 }
 
 /** The machine-readable catalogs agents and directories read before buying (a subset of the discovery visits). */
-export const isCatalogFile = (path: string) => ["/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/x402.json", "/discovery/resources", "/.well-known/mcp/server-card.json", "/.well-known/api-catalog"].includes(path);
+export const isCatalogFile = (path: string) => ["/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/x402.json", "/discovery/resources", "/.well-known/mcp/server-card.json", "/.well-known/mcp.json", "/.well-known/mcp", "/.well-known/ai-plugin.json", "/llms-full.txt", "/.well-known/api-catalog"].includes(path);
 
 /** Successful reads of published buying resources; no identity or cross-request tracking. */
 export function isDiscoveryVisit(method: string, path: string, status: number): boolean {

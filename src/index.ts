@@ -13,7 +13,7 @@ import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { demoPage } from "./lib/demo-page";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
-import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -539,7 +539,22 @@ app.get("/.well-known/api-catalog", (c) =>
   c.body(JSON.stringify(apiCatalog(origin(c.req.url))), 200, { "content-type": "application/linkset+json" }),
 );
 
-app.notFound((c) => c.json({ error: "not found", docs: `${origin(c.req.url)}/llms.txt` }, 404));
+// Discovery paths other conventions use; each serves an existing description, so nothing new to keep in step.
+app.get("/.well-known/mcp.json", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
+app.get("/.well-known/mcp", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
+app.get("/.well-known/ai-plugin.json", (c) => c.json(aiPluginManifest(origin(c.req.url))));
+app.get("/llms-full.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+
+// A guessed URL gets the closest tools and every catalog instead of a dead end.
+app.notFound((c) => {
+  const o = origin(c.req.url);
+  const suggestions = suggestTools(c.req.path);
+  return c.json({
+    error: "not found",
+    ...(suggestions.length ? { didYouMean: suggestions.map((p) => `${o}${p}`) } : {}),
+    docs: `${o}/llms.txt`, catalog: `${o}/discovery/resources`, openapi: `${o}/openapi.json`, mcp: `${o}/mcp`,
+  }, 404);
+});
 app.onError((err, c) => {
   if (err instanceof HttpError) return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}) }, err.status);
   console.error(err);
