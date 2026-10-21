@@ -68,8 +68,8 @@ export const CORE_ENDPOINTS = [
     details: "XML only: 512 KiB compressed and expanded, 1000 entries, 8000 XML elements, depth 16, locations up to 2048 characters. DTD declarations are rejected. contains is a case-insensitive substring of source-reported URLs, not semantic search. Pagination counts distinct reported loc values before public-URL validation of the selected page. Returned URLs are not probed; dates are not verified. Index entries are child sitemaps, not pages. DNS-resolution limitations of the public-fetch guard remain.",
     tags: ["web", "sitemap", "discovery", "research"],
     params: {
-      url: { type: "string", required: true, description: "Absolute public HTTP(S) XML sitemap URL; child sitemaps are not fetched automatically", example: "https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/source.xml" },
-      contains: { type: "string", description: "Optional case-insensitive URL substring, at most 200 characters", example: "/examples/" },
+      url: { type: "string", required: true, description: "Absolute public HTTP(S) XML sitemap URL; child sitemaps are not fetched automatically", example: "https://www.sitemaps.org/sitemap.xml" },
+      contains: { type: "string", description: "Optional case-insensitive URL substring, at most 200 characters", example: "/protocol" },
       maxUrls: { type: "integer", description: "Reported matching locations examined in one page (1-100, default 25); invalid/nonpublic locations may reduce returned entries", example: 25 },
       offset: { type: "integer", description: "Offset into distinct reported matching locations (0-1000, default 0); use nextOffset to continue", example: 0 },
     },
