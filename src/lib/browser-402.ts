@@ -52,7 +52,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
-${freeCalls ? `<a class="btn primary" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
