@@ -168,11 +168,11 @@ export const CORE_ENDPOINTS = [
   {
     path: "/token-report",
     price: "$0.02",
-    summary: "Base token pre-trade report: on-chain risk plus live DEX market data",
+    summary: "Token risk and honeypot check: red flags plus live DEX liquidity for a Base token before a swap",
     description:
-      "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token.",
+      "Check a Base token before you swap into it: a high/medium/low risk verdict with named red flags (paused transfers, blacklist, owner-set fees or tax, a mint selector with a live owner, upgradeable proxy, no or thin liquidity, a pair under 7 days old, buys but no sells as a honeypot sign) plus live DexScreener price, liquidity, volume and FDV. Heuristic screening, not a safety guarantee. Use before swapping into an unfamiliar Base token.",
     details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
-    tags: ["base", "token", "security", "dex", "liquidity", "due-diligence"],
+    tags: ["token-risk", "honeypot", "rug-check", "base", "token", "security", "dex", "due-diligence"],
     params: {
       address: { type: "string", description: "Token contract address on Base (0x...)", required: true, example: "0x4200000000000000000000000000000000000006" },
     },
@@ -491,10 +491,10 @@ export const CORE_ENDPOINTS = [
   {
     path: "/wallet-audit",
     price: "$0.02",
-    summary: "Heuristic wallet risk indicators, balances and account nonce on Base",
+    summary: "Wallet risk check: fresh-wallet risk tier, flags, balances and nonce for a Base address",
     description:
-      "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only. Address type is reported separately and does not affect the risk tier. Use to screen a Base address; other chains or OFAC: check_counterparty.",
-    tags: ["wallet", "base", "ethereum", "crypto"],
+      "Screen a Base address for fresh or throwaway-wallet signals: a high/medium/low heuristic risk tier with named flags (no or one outgoing transaction, a near-empty balance with few transactions), plus ETH, USDC, WETH, cbBTC and DAI balances and the account nonce. Address type is reported separately and does not affect the tier; token contracts are not audited. Use to screen a Base address; OFAC and other chains: check_counterparty.",
+    tags: ["wallet-risk", "wallet", "due-diligence", "base", "crypto"],
     params: {
       address: { type: "string", description: "Base chain wallet address, 0x-prefixed 20-byte hex", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
     },
@@ -522,11 +522,11 @@ export const CORE_ENDPOINTS = [
   {
     path: "/contract-risk",
     price: "$0.02",
-    summary: "Base contract bytecode, proxy-slot and zero-supply heuristics",
+    summary: "Smart contract risk check: proxy, bytecode and supply red flags for a Base contract before approving it",
     description:
-      "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract.",
+      "Check a Base contract before you approve or call it: a low to critical risk tier with named flags (proxy, proxy with no implementation, tiny bytecode, zero token supply), plus bytecode size, the EIP-1967 implementation slot and ERC-20 owner, renounced and paused reads. Unreadable reads are null; EOAs return not-applicable. Limited heuristics, not a full security audit. Use before approving a spender or calling an unfamiliar Base contract.",
     details: "Base contract bytecode size and EIP-1967 slot check (a confirmed zero slot returns isProxy false; an empty/unreadable slot response returns null; RPC failures return 502). A nonzero slot with a zero implementation flags proxy-impl-unset. ERC-20 property reads run only for 500–50,000-byte contracts; individual unsupported/reverting reads are null, while multicall transport failures return 502. Zero supply requires a successful zero read; ownershipRenounced is true only for zero owner, false for nonzero, else null; paused is null if unsupported. Risk tiers are limited bytecode/proxy/zero-supply heuristics, not a full audit; empty slots cannot identify uninitialized proxies. EOAs return not-applicable.",
-    tags: ["contract", "bytecode", "proxy", "token-properties", "base"],
+    tags: ["contract-risk", "approval-check", "contract", "proxy", "bytecode", "base"],
     params: {
       address: { type: "string", description: "Base chain contract address, 0x-prefixed 20-byte hex", required: true, example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
     },
@@ -584,11 +584,11 @@ export const CORE_ENDPOINTS = [
   {
     path: "/liquidity-pool-audit",
     price: "$0.03",
-    summary: "Verified Base DEX pair details and market data",
+    summary: "Liquidity pool check: a Base DEX pair's liquidity, volume, trades and age before trading",
     description:
-      "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading.",
+      "Check a Base DEX pool before you trade or add liquidity: give a pair address and get the verified DEX, both tokens, reported liquidity, 24h volume and trades, and pair age from DexScreener, with source and retrieval time. Missing fields are null; an unknown pair returns 404. Market data only, no pool-security or investment-risk assessment. Use to confirm a pair is real and deep enough before trading; token red flags: token_report.",
     details: "Looks up a pair address on Base through DexScreener and returns the verified DEX, pair URL, token details, liquidity, volume, 24-hour trades, and pair age when supplied by the source. source identifies DexScreener and retrievedAt is the retrieval timestamp. Missing source fields are null; this endpoint does not assess pool security or investment risk. Returns 404 when no matching Base pair is found and 502 when the market-data source is unavailable. Example market values and timestamp are illustrative snapshots, not live guarantees.",
-    tags: ["defi", "liquidity", "pool", "market", "base"],
+    tags: ["liquidity-check", "defi", "liquidity", "pool", "dex", "base"],
     params: {
       address: { type: "string", description: "DEX pair address on Base, 0x-prefixed 20-byte hex", required: true, example: "0x98c7A2338336d2d354663246F64676009c7bDa97" },
     },
