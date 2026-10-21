@@ -1,5 +1,5 @@
 {
-  "version": "1.47.3",
+  "version": "1.47.4",
   "tools": [
     {
       "name": "extract",
@@ -3349,7 +3349,7 @@
     },
     {
       "name": "check_payee",
-      "description": "Fast check of a payee before an agent pays it: OFAC SDN match on the address, account type (wallet, delegated wallet or contract) and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon, and optionally the payee domain's age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice. Use before an x402 or USDC payment to an unfamiliar address; holdings and wallet heuristics: check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fast check of a payee before an agent pays it: OFAC SDN match on the address, account type (wallet, delegated wallet or contract) and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon, and optionally the payee domain's age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice. Use before an x402 or USDC payment to an unfamiliar address; holdings and wallet heuristics: check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3384,7 +3384,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.005"
     },
     {
       "name": "x402_check",
