@@ -1,5 +1,5 @@
 {
-  "version": "1.44.1",
+  "version": "1.44.2",
   "tools": [
     {
       "name": "extract",
@@ -3311,7 +3311,7 @@
     },
     {
       "name": "check_counterparty",
-      "description": "One call to vet an address on Base, Ethereum, Arbitrum or Optimism before paying, trading or onboarding: OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Cheaper than buying the parts. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Screen a payee before paying, trading or onboarding: one call vets an address on Base, Ethereum, Arbitrum or Optimism with an OFAC SDN address match, account type and activity, USD holdings and, on Base, wallet risk heuristics (or contract bytecode and proxy checks), combined into a block, review or pass verdict with reasons. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
