@@ -22,6 +22,41 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Screen a payee's EVM address before sending funds", "Combine sanctions, account type, activity and USD holdings into one block, review or pass verdict", "Let an agent decide whether to pay an address it was given"],
     faq: [["Which networks?", "Base, Ethereum, Arbitrum and Optimism."], ["What does the verdict mean?", "Block, review or pass, with the reasons that produced it. It is a screening aid, not a security audit."]],
   },
+  "/token-report": {
+    title: "Token honeypot and rug-pull check API for Base tokens",
+    uses: ["Check a Base token before swapping into it", "Get named red flags (paused transfers, blacklist, owner-set fees, live mint owner, proxy, thin or new liquidity, buys but no sells) and a high, medium or low verdict", "Read live DEX price, liquidity, volume and FDV in the same call"],
+    faq: [["Is a low verdict a safety guarantee?", "No. It is heuristic screening from on-chain reads and DexScreener market data, not an audit."], ["Which chain?", "Base. For token facts on other chains use the chain's token_info tool."]],
+  },
+  "/token": {
+    title: "ERC-20 token facts API: owner, proxy, pause and mint flags",
+    uses: ["Read a Base token's name, symbol, decimals, supply and owner on chain", "See whether ownership is renounced, transfers are paused or the token is a proxy", "Spot mint, pause, blacklist and fee-setter functions in the bytecode"],
+    faq: [["Which chain?", "Base only; other chains have their own token_info tools."], ["Do I also get market data?", "No. /token-report adds a risk verdict plus live DEX liquidity and volume."]],
+  },
+  "/wallet-audit": {
+    title: "Wallet risk check API: fresh or throwaway Base wallets",
+    uses: ["Screen a Base address for fresh or throwaway-wallet signals", "Get a high, medium or low risk tier with named flags", "See ETH, USDC, WETH, cbBTC and DAI balances and the nonce in one call"],
+    faq: [["Does it check sanctions?", "No. For OFAC screening and other chains use /check/counterparty."], ["Does the address type affect the tier?", "No, it is reported separately."]],
+  },
+  "/contract-risk": {
+    title: "Smart contract risk check API before approving a Base contract",
+    uses: ["Check a Base contract before approving it as a spender or calling it", "Get a low to critical tier with named flags such as proxy, unset implementation, tiny bytecode or zero supply", "Read the EIP-1967 implementation slot and ERC-20 owner, renounced and paused state"],
+    faq: [["Is this a security audit?", "No. It is a limited set of bytecode, proxy and supply heuristics."], ["What about plain wallets?", "An address without code returns not-applicable."]],
+  },
+  "/liquidity-pool-audit": {
+    title: "DEX liquidity pool check API for Base pairs",
+    uses: ["Confirm a Base DEX pair is real before trading or adding liquidity", "Read its DEX, both tokens, liquidity, 24h volume and trades, and pair age", "Check a pool is deep enough for the size of a trade"],
+    faq: [["Where does the data come from?", "DexScreener, with the source and retrieval time in every answer."], ["Does it assess pool security?", "No. It reports market data only; for token red flags use /token-report."]],
+  },
+  "/x402/check": {
+    title: "x402 endpoint checker: decode payment terms without paying",
+    uses: ["Check an x402 seller's price, network, asset and recipient before paying it", "Decode a v1 402 body or a v2 PAYMENT-REQUIRED header", "Score your own x402 listing for the fields directories and the Bazaar read"],
+    faq: [["Does it pay or sign anything?", "No. It only reads the endpoint's unpaid 402 answer."], ["What does the listing score check?", "An https resource URL, the atomic amount, the facilitator minimum, a description, Bazaar metadata and an output schema."]],
+  },
+  "/package": {
+    title: "Package risk check API for npm, PyPI, Cargo, Go, Maven and NuGet",
+    uses: ["Check a dependency before adding it: age, versions, downloads, licenses and deprecation", "See known advisory severity for the latest or a pinned version", "Let a coding agent vet the packages it is about to install"],
+    faq: [["Does ok mean the package is safe?", "No. It means none of the listed flags applied."], ["Where are the CVE details?", "/package-audit adds OSV affected ranges and dated FIRST EPSS estimates."]],
+  },
   "/price/token": {
     title: "ERC-20 token price API from Uniswap v3 pools",
     uses: ["Get a token's USD price straight from its on-chain Uniswap v3 pool", "Price long-tail tokens that centralized price feeds do not list", "Value a wallet or a trade inside an agent"],
