@@ -23,7 +23,7 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
-import { listingTags } from "./lib/bazaar-extension";
+import { builderCodeExtension, listingTags } from "./lib/bazaar-extension";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
@@ -91,18 +91,21 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         iconUrl: SERVICE_ICON_URL,
         tags: listingTags(e.tags),
       },
-      extensions: declareDiscoveryExtension({
-        toolName: toolName(e),
-        description: e.description,
-        inputSchema: {
-          type: "object",
-          properties: Object.fromEntries(
-            Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
-          ),
-          required,
-        },
-        output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
-      }),
+      extensions: {
+        ...declareDiscoveryExtension({
+          toolName: toolName(e),
+          description: e.description,
+          inputSchema: {
+            type: "object",
+            properties: Object.fromEntries(
+              Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
+            ),
+            required,
+          },
+          output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
+        }),
+        ...builderCodeExtension(),
+      },
     });
     wrappers.set(e.path, factory);
   }
