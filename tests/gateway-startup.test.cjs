@@ -131,3 +131,23 @@ test('MCP bundles serve one catalog section each and quote like /mcp', async () 
     assert.equal(unknown.status, 404); await unknown.body?.cancel();
   } finally { await f.mf.dispose(); }
 });
+
+test('an MCP request with a protocol version we do not support gets the spec 400, not a 500', async () => {
+  const f = await fixture();
+  f.release();
+  const post = (version) => f.mf.dispatchFetch('https://api.test/mcp', { method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(version ? { 'mcp-protocol-version': version } : {}) },
+    body: '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' });
+  try {
+    // Health probes (mcp-health-probe, agentprobe) send the 2026-07-28 revision, which SDK 1.32 does not know.
+    const future = await post('2026-07-28');
+    assert.equal(future.status, 400);
+    const body = await future.json();
+    assert.equal(body.jsonrpc, '2.0');
+    assert.match(body.error.message, /Unsupported protocol version.*2025-11-25/);
+    for (const version of ['2025-06-18', undefined]) {
+      const ok = await post(version);
+      assert.equal(ok.status, 200, `version ${version}`); await ok.body?.cancel();
+    }
+  } finally { await f.mf.dispose(); }
+});
