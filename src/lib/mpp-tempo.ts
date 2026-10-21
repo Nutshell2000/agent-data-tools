@@ -8,7 +8,7 @@
 // because it pays before the tool runs. The buyer's transaction pays its own network fee in a stablecoin, so this
 // server holds no key and spends nothing. Research and the receiving-address decision: docs/mpp-per-call.md.
 import type { Context, Next } from "hono";
-import { BaseError, HttpRequestError, TimeoutError, createClient, http, keccak256 } from "viem";
+import { BaseError, HttpRequestError, LimitExceededRpcError, TimeoutError, createClient, fallback, http, keccak256, type Transport } from "viem";
 import { tempo as tempoMainnet, tempoModerato } from "viem/tempo/chains";
 import { Mppx, tempo } from "mppx/server";
 import { Challenge, Credential, Errors, Receipt } from "mppx";
@@ -48,6 +48,34 @@ async function challengeSecret(env: Env) {
   return [...mac].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Keyless public RPCs tried after the default one, by chain id. `send` lists only those that implement Tempo's
+ * eth_sendRawTransactionSync. Measured from the Worker on 22 Oct 2026: rpc.tempo.xyz answered every read and send;
+ * Moderato's RPC refused most reads and every send ("rate limited"); dRPC answers reads but has no sync send;
+ * 1rpc.io refuses Cloudflare traffic ("usage limit"), so it is not listed.
+ */
+const TEMPO_FALLBACK_RPCS: Record<number, { read: string[]; send: string[] }> = {
+  [tempoMainnet.id]: { read: ["https://tempo-mainnet.drpc.org"], send: [] },
+  [tempoModerato.id]: { read: ["https://rpc.testnet.tempo.xyz", "https://tempo-moderato-testnet.drpc.org"], send: ["https://rpc.testnet.tempo.xyz"] },
+};
+const SEND_METHODS = new Set(["eth_sendRawTransaction", "eth_sendRawTransactionSync"]);
+
+/**
+ * Tempo's public RPC rate-limits Cloudflare's shared egress ("rate limited, try again in 11ms" on every verification
+ * from the Worker, 22 Oct), so reads move on to the next public RPC, and the broadcast (a signed transaction, so a
+ * repeat cannot pay twice) retries quickly on the RPCs that can send it.
+ */
+export function tempoTransport(primary: string, chainId: number): Transport {
+  const more = TEMPO_FALLBACK_RPCS[chainId] ?? { read: [], send: [] };
+  const reads = fallback([primary, ...more.read].map((url) => http(url, { retryCount: 1, retryDelay: 40 })));
+  const sends = fallback([primary, ...more.send].map((url) => http(url, { retryCount: 8, retryDelay: 15 })));
+  return ((params: Parameters<Transport>[0]) => {
+    const read = reads(params);
+    const send = sends(params);
+    return { ...read, request: ((args: { method: string }, options?: unknown) => (SEND_METHODS.has(args.method) ? send : read).request(args as never, options as never)) as typeof read.request };
+  }) as Transport;
+}
+
 /** One server per isolate and realm; challenges are stateless (HMAC), replay state lives in the Durable Object. */
 const servers = new Map<string, ReturnType<typeof createServer>>();
 async function createServer(env: Env, realm: string) {
@@ -61,7 +89,7 @@ async function createServer(env: Env, realm: string) {
       chainId: chain.id,
       supportedModes: ["pull"],
       store: replayStore(env),
-      getClient: () => createClient({ chain, transport: http(rpcUrl) }),
+      getClient: () => createClient({ chain, transport: tempoTransport(rpcUrl, chain.id) }),
     })],
     secretKey: await challengeSecret(env),
     realm,
@@ -122,13 +150,13 @@ export async function payTempo(c: C, endpoint: Endpoint, header: string, next: N
     const message = String((e as Error)?.message ?? e).split("\n")[0].slice(0, 200);
     if (!isPaymentAnswer(e)) {
       markStage("facilitator_unavailable"); // the Tempo RPC, our facilitator for this method
-      console.error(`mpp tempo rpc_unavailable ${endpoint.path}: ${message.slice(0, 160)}`);
+      console.error(`mpp tempo rpc_unavailable ${endpoint.path}: ${errorChain(e).slice(0, 600)}`);
       return refusal(c, endpoint, "payment verification is temporarily unavailable; you were not charged");
     }
     if (/challenge|scope|expired|malformed|payload|mode|not supported|source/i.test(message)) return refuse("refused_format", `payment invalid: ${message}`);
     if (/amount|recipient|currency|no matching payment|memo/i.test(message)) return refuse("refused_amount", `payment invalid: ${message}`);
     markStage("verification_failed");
-    console.warn(`mpp tempo verification_failed ${endpoint.path}: ${message.slice(0, 160)}`);
+    console.warn(`mpp tempo verification_failed ${endpoint.path}: ${errorChain(e).slice(0, 600)}`);
     return refusal(c, endpoint, `payment invalid: ${message}`);
   }
   // A credential already settled once is refused before the tool runs (broadcast would refuse it after). If the
@@ -187,9 +215,32 @@ export async function alreadySettled(env: Env, credential: string): Promise<bool
  * empty balance); false when the Tempo RPC could not be reached, so the buyer is told to retry.
  */
 function isPaymentAnswer(e: unknown): boolean {
+  if (rpcRefused(e)) return false;
   if (e instanceof Errors.PaymentError) return !(e instanceof Errors.InternalPaymentError) || isPaymentAnswer((e as Error).cause);
   if (e instanceof BaseError) return !e.walk((inner) => inner instanceof HttpRequestError || inner instanceof TimeoutError);
   return false;
+}
+
+/**
+ * The RPC refused our request rather than judging the payment: a rate or size limit (-32005, -32029, HTTP 429).
+ * On 22 Oct Tempo's public testnet RPC answered every verification from the Worker with "Request exceeds defined
+ * limit" while the same check passed from a PC, and buyers were told their payment was invalid.
+ */
+export function rpcRefused(e: unknown): boolean {
+  for (let inner = e as { cause?: unknown; code?: unknown; status?: unknown; message?: unknown } | undefined, depth = 0; inner && depth < 8; inner = inner.cause as typeof inner, depth++) {
+    if (inner instanceof LimitExceededRpcError || inner.code === -32005 || inner.code === -32029 || inner.status === 429) return true;
+    if (typeof inner.message === "string" && /exceeds defined limit|rate limit|too many requests/i.test(inner.message)) return true;
+  }
+  return false;
+}
+
+/** The error and its causes on one line (name, RPC code, message), for wrangler tail. */
+function errorChain(e: unknown): string {
+  const parts: string[] = [];
+  for (let inner = e as { cause?: unknown; name?: unknown; code?: unknown; shortMessage?: unknown; message?: unknown } | undefined, depth = 0; inner && depth < 6; inner = inner.cause as typeof inner, depth++) {
+    parts.push(`${String(inner.name ?? "Error")}${inner.code !== undefined ? `(${String(inner.code)})` : ""}: ${String(inner.shortMessage ?? inner.message ?? inner).split("\n")[0].slice(0, 120)}`);
+  }
+  return parts.join(" <- ");
 }
 
 async function recordTempo(env: Env, path: string, network: string, asset: string, recipient: string, payer: string, transaction: string, amountAtomic: string) {
