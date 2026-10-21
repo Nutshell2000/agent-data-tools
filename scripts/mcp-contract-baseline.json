@@ -1,5 +1,5 @@
 {
-  "version": "1.45.5",
+  "version": "1.47.0",
   "tools": [
     {
       "name": "extract",
@@ -3348,6 +3348,45 @@
       "price": "$0.03"
     },
     {
+      "name": "check_payee",
+      "description": "Fast check of a payee before an agent pays it: OFAC SDN match on the address, account type (wallet, delegated wallet or contract) and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon, and optionally the payee domain's age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice. Use before an x402 or USDC payment to an unfamiliar address; holdings and wallet heuristics: check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address you are about to pay"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network of the payment: base (default), eth, arb, op or polygon"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Optional: the payee's domain or website URL, e.g. ethereum.org; adds domain age and trust flags"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "x402_check",
       "description": "Check an x402 seller before you pay it: decode any public endpoint's 402 payment requirements without paying (v1 body or v2 header) into USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to audit your own x402 listing. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -3370,6 +3409,30 @@
         ]
       },
       "price": "$0.003"
+    },
+    {
+      "name": "check_x402_seller",
+      "description": "Audit an x402 seller before an agent buys from it: decodes the endpoint's 402 terms without paying, OFAC-screens each payTo address, reads its account type and nonce on the payment network, checks the seller domain's age and trust flags, and flags non-USDC assets and high prices. One block, review or pass verdict with reasons. Never signs. Screening aid, not legal advice. Use before the first payment to an unfamiliar x402 seller. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "json_validate",
