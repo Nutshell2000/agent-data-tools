@@ -21,7 +21,8 @@ import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
-import { activeTrace, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
+import { callerFamily } from "./lib/caller";
+import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
@@ -107,6 +108,11 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
     if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path) && c.req.header("payment-signature")) markStage("attempt");
     await next();
     if (isDiscoveryVisit(c.req.method, c.req.path, c.res.status)) markStage("visit");
+    // Which software reads our catalogs (crawler or agent family only), so a first payment can be traced back to
+    // the directory whose crawler found us. The JSON service card at / counts too; the HTML homepage does not.
+    if (c.req.method === "GET" && c.res.status === 200 && (isCatalogFile(c.req.path) || (c.req.path === "/" && /json/.test(c.res.headers.get("content-type") ?? "")))) {
+      markStage("discovery_read", `/read/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
+    }
     // People (browsers) reading the pages that lead to a purchase, and the referrer family they came from.
     if (c.req.method === "GET" && c.res.status === 200 && isHumanPage(c.req.path) && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
       markStage("page_view");
