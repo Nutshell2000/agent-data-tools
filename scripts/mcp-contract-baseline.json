@@ -1,5 +1,5 @@
 {
-  "version": "1.44.0",
+  "version": "1.44.1",
   "tools": [
     {
       "name": "extract",
@@ -461,7 +461,7 @@
     },
     {
       "name": "sitemap",
-      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Example: url=https://agent-data-tools.revmesh2074.workers.dev/examples/sitemap/source.xml. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Example: url=https://www.sitemaps.org/sitemap.xml. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

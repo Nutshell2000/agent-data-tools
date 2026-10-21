@@ -222,6 +222,13 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 - Before this, a visitor could only run the canned example (London, one fixed wallet).
 - Tests: tests/browser-402.test.cjs.
 
+## Published examples must not point at our own origin (1.44.1)
+
+- `/sitemap`'s example was our own `/examples/sitemap/source.xml`. It returns 200 to a browser, but a request from inside Cloudflare (a Worker fetching it, as the tool does) got 404. So every first try of the published example failed in production (/status: 0 of 2), even though `npm run smoke:examples` passed on the PC.
+- The example is now `https://www.sitemaps.org/sitemap.xml` (8.6 KB, 84 URLs, the protocol's own site), proven on staging with a paid testnet call on 2026-10-21.
+- `/x402/check` fetching our own dynamic tool URL does work from Cloudflare; only the static asset path failed.
+- Prove any new example that fetches a URL on staging (`scripts/pay-test.mjs`), not only with the local smoke run.
+
 ## Search copy on tool pages
 
 - `TOOL_SEO` (src/lib/tool-seo.ts) gives 34 likely-searched tools (14 added on 21 Oct: email, company, weather, screenshot, domain, domain-report, sec/filings, hyperliquid/market, airport/status, eth/balance, eth/gas, geocode, extract/rendered, url/meta) a search-phrased title and h1, a "When to use it" list and a FAQ (also published as schema.org FAQPage). The page adds the "How do I pay?" answer itself from its free-call flag. Copy may only restate what the tool's description and limits say. `/tools/<slug>` no longer offers "Run it free" on capacity-limited tools (AI, rendering, transcription, search), which are outside the free calls. Tests: tests/browser-402.test.cjs.
