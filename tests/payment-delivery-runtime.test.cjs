@@ -1,3 +1,4 @@
+const { getAddress } = require('viem');
 const assert=require('node:assert/strict');
 const {before,after,test}=require('node:test');
 const {build}=require('esbuild');
@@ -261,7 +262,7 @@ test('x402 v1: v1 terms in the 402 body beside the v2 header, X-PAYMENT settles 
  const body=await quote.json();
  assert.equal(body.x402Version,1);
  const base=body.accepts.find(a=>a.network==='base');
- assert.equal(base.maxAmountRequired,'2000');assert.equal(base.payTo,recipient);assert.equal(base.asset.toLowerCase(),'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
+ assert.equal(base.maxAmountRequired,'2000');assert.equal(base.payTo,getAddress(recipient),'payTo is quoted checksummed');assert.equal(base.payTo.toLowerCase(),recipient);assert.equal(base.asset.toLowerCase(),'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
  assert.equal(base.resource,url);assert.deepEqual(base.extra,{name:'USD Coin',version:'2'});
  const v1=(nonce,value='2000')=>Buffer.from(JSON.stringify({x402Version:1,scheme:'exact',network:'base',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value,validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+nonce}}})).toString('base64');
  const paid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa01')}});

@@ -1,3 +1,4 @@
+import { getAddress } from "viem";
 import type { Env } from "./env";
 
 /**
@@ -27,9 +28,18 @@ export const SOLANA_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 export const SOLANA_USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
+/**
+ * PAY_TO in its EIP-55 checksummed form, as the x402 examples and most sellers quote it. Ours went out all
+ * lower case; that is valid, but a buyer comparing addresses as exact strings would see a mismatch. Our own
+ * checks compare lower-cased, so nothing else changes. A value that is not a 0x address is left as it is.
+ */
+export function checksummed(address: string): string {
+  return /^0x[0-9a-fA-F]{40}$/.test(address?.trim() ?? "") ? getAddress(address.trim()) : address;
+}
+
 /** Every way a tool can be paid: each EVM network to PAY_TO, then Solana to SOLANA_PAY_TO when it is set. */
 export function paymentOptions(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "PAY_TO" | "SOLANA_PAY_TO">): { network: Network; payTo: string }[] {
-  const options = paymentNetworks(env).map((network) => ({ network, payTo: env.PAY_TO }));
+  const options = paymentNetworks(env).map((network) => ({ network, payTo: checksummed(env.PAY_TO) }));
   const solana = env.SOLANA_PAY_TO?.trim();
   if (solana && SOLANA_ADDRESS.test(solana)) options.push({ network: SOLANA_NETWORK as Network, payTo: solana });
   return options;
