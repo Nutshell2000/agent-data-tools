@@ -501,6 +501,19 @@ test("counterparty verdict: SDN match blocks, high heuristics review, otherwise 
   assert.equal(verdict([], { riskLevel: "medium", riskFlags: ["a"] }, { riskLevel: "medium", riskFlags: [] }).verdict, "pass");
 });
 
+test("counterparty payee domain: a high domain flag means review, never block; medium flags alone pass; URLs normalize", async () => {
+  const { verdict, payeeDomain } = await loadTypeScript(require.resolve("../src/routes/counterparty.ts"));
+  const low = { riskLevel: "low", riskFlags: [] };
+  const young = [{ level: "high", code: "very_new", message: "Registered only 3 day(s) ago." }];
+  assert.deepEqual(verdict([], low, null, young), { verdict: "review", reasons: ["payee domain: Registered only 3 day(s) ago."] });
+  assert.equal(verdict([], low, null, [{ level: "medium", code: "no_dmarc", message: "x" }]).verdict, "pass");
+  assert.equal(verdict([{ name: "LAZARUS GROUP" }], low, null, young).verdict, "block", "an SDN match still blocks");
+  assert.equal(payeeDomain("https://www.Shop.Example.com/pay?x=1"), "shop.example.com");
+  assert.equal(payeeDomain("example.org"), "example.org");
+  assert.equal(payeeDomain("  "), undefined);
+  assert.equal(payeeDomain(undefined), undefined);
+});
+
 test("extract/rendered: rendered HTML goes through the /extract builder; no browser is an uncharged 503", async () => {
   const { buildExtraction, extractOptions } = await loadTypeScript(require.resolve("../src/routes/extract.ts"));
   const opts = extractOptions("https://app.example/", undefined, "markdown", undefined);
