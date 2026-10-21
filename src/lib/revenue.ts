@@ -58,7 +58,7 @@ export function queueMetricBump(
   if (!metrics) return;
   // Paid outcomes go at once; everything else rides the isolate's batch (lib/metrics-batch.ts).
   if (outcome !== "paid" && canBatch(metrics)) return queueBatched(metrics, waitUntil, (b) => b.bumps.push([path, outcome, revenueUsdMicros, caller]));
-  waitUntil(metrics.bump(path, outcome, revenueUsdMicros, caller).catch(() => {}));
+  waitUntil(metrics.bump(path, outcome, revenueUsdMicros, caller).catch((err) => console.error(`metrics: ${outcome} count for ${path} failed`, err)));
 }
 
 /** Wraps a paid MCP callback and records only its successful structured settlement. */
