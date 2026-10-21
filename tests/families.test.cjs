@@ -25,9 +25,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 157);
+  assert.equal(families.length, 158);
   for (const { endpoint: e } of families) {
-    assert.equal(e.price, e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.003" : "$0.003", e.path);
+    assert.equal(e.price, e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : e.path === "/check/payee" ? "$0.01" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.003" : e.path === "/x402/check" || e.path === "/feed" ? "$0.003" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.003" : "$0.003", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,179);
+  assert.equal(ENDPOINTS.length,180);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -554,4 +554,15 @@ test("x402 check treats every network we accept as native USDC (Monad, World Cha
   });
   const out = analyze("https://seller.example/x", 402, header, "");
   assert.deepEqual(out.accepts.map((a) => [a.assetIsNativeUsdc, a.priceUsd]), [[true, 0.003], [true, 0.003]]);
+});
+
+test("payee preflight: inputs and chain are validated before any network call; all five chains are accepted", async () => {
+  const { COUNTERPARTY } = await loadTypeScript(require.resolve("../src/routes/counterparty.ts"));
+  const payee = COUNTERPARTY.find((e) => e.endpoint.path === "/check/payee");
+  assert.equal(payee.endpoint.price, "$0.01");
+  assert.deepEqual(payee.endpoint.params.chain.enum, ["base", "eth", "arb", "op", "polygon"]);
+  const run = (args) => payee.run({}, (n) => args[n]);
+  await assert.rejects(run({ address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "solana" }), (e) => e.status === 400 && /polygon/.test(e.message));
+  await assert.rejects(run({ address: "not-an-address" }), (e) => e.status === 400);
+  await assert.rejects(run({ address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", domain: "http://[" }), (e) => e.status === 400);
 });

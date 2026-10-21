@@ -22,6 +22,11 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Screen a payee's EVM address before sending funds", "Combine sanctions, account type, activity and USD holdings into one block, review or pass verdict", "Let an agent decide whether to pay an address it was given"],
     faq: [["Which networks?", "Base, Ethereum, Arbitrum and Optimism."], ["What does the verdict mean?", "Block, review or pass, with the reasons that produced it. It is a screening aid, not a security audit."]],
   },
+  "/check/payee": {
+    title: "Payee preflight API: OFAC screen an address before paying",
+    uses: ["Screen the address an x402 seller or invoice asks you to pay before sending USDC", "Check the payee's account type and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon", "Add the payee's domain to see its age and trust flags in the same call"],
+    faq: [["How is it different from /check/counterparty?", "It skips holdings and the Base wallet and contract heuristics, so it is cheaper and faster; use /check/counterparty when you need those."], ["Is a pass a guarantee?", "No. It is a screening aid; confirm any sanctions match against the official OFAC record."]],
+  },
   "/token-report": {
     title: "Token honeypot and rug-pull check API for Base tokens",
     uses: ["Check a Base token before swapping into it", "Get named red flags (paused transfers, blacklist, owner-set fees, live mint owner, proxy, thin or new liquidity, buys but no sells) and a high, medium or low verdict", "Read live DEX price, liquidity, volume and FDV in the same call"],
