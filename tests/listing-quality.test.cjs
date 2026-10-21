@@ -155,3 +155,15 @@ test("listing names carry the words of the measured buyer intents", async () => 
   ];
   for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
 });
+
+// The Bazaar checks a listed tool by calling it with its published example (HTTP `input`, MCP `example`); an example
+// its own schema rejects would fail that check and never list.
+test("every tool's published example input validates against its own published input schema", async () => {
+  const bazaar = await loadTypeScript(require.resolve("../src/lib/bazaar-extension.ts"));
+  const ajv = new Ajv({ strict: false });
+  for (const e of discovery.ENDPOINTS) {
+    const schema = { type: "object", properties: bazaar.bazaarInputProperties(e), required: bazaar.requiredInputs(e) };
+    const ok = ajv.validate(schema, bazaar.exampleInput(e));
+    assert.ok(ok, `${e.path}: ${ajv.errorsText()}`);
+  }
+});

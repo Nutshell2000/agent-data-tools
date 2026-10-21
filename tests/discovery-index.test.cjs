@@ -97,3 +97,18 @@ test('listingName: every tool gets its own 32-character printable-ASCII serviceN
   assert.equal(listingName('Text embeddings (BGE-M3, 1,024 dimensions)'), 'Text embeddings');
   assert.equal(listingName('Sourced token and wallet risk indicators with market facts'), 'Sourced token and wallet risk');
 });
+
+// agents-trust and Agent402 probe a seller repeatedly and penalise terms that change between probes.
+test('two quotes in a row carry identical payment terms, Base first, at the new payee price', async () => {
+  const quote = async () => {
+    const res = await mf.dispatchFetch('https://api.test/check/payee?address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', { headers: { accept: 'application/json' } });
+    assert.equal(res.status, 402);
+    return JSON.parse(Buffer.from(res.headers.get('payment-required'), 'base64').toString());
+  };
+  const [a, b] = [await quote(), await quote()];
+  const terms = (q) => q.accepts.map(({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }) => ({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }));
+  assert.deepEqual(terms(a), terms(b));
+  assert.equal(a.accepts[0].network, 'eip155:8453');
+  assert.equal(a.accepts[0].amount, '5000');
+  assert.deepEqual(a.resource, b.resource);
+});

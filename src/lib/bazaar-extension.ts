@@ -35,11 +35,13 @@ export function bazaarInputProperties(e: Endpoint) {
   );
 }
 export const requiredInputs = (e: Endpoint) => Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
+/** The published example call's inputs: what the Bazaar sends when it checks a listed tool (HTTP and MCP alike). */
+export const exampleInput = (e: Endpoint) => Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example]));
 export const listingOutputSchema = (e: Endpoint) => e.outputSchema ?? schemaFromExample(e.outputExample);
 
 export function bazaarExtensionFor(e: Endpoint) {
   return declareDiscoveryExtension({
-    input: Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example])),
+    input: exampleInput(e),
     inputSchema: { properties: bazaarInputProperties(e), required: requiredInputs(e) },
     output: { example: e.outputExample, schema: listingOutputSchema(e) },
   });
