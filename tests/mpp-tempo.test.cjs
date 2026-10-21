@@ -227,3 +227,19 @@ test('credit packs: recipient in the Stripe challenge, GET only', async () => {
     }
   } finally { await on.dispose(); }
 });
+
+test('an RPC rate or size limit is "verification unavailable" (uncharged retry), never "payment invalid"', async () => {
+  const Module = require('node:module');
+  const entry = require.resolve('../src/lib/mpp-tempo.ts');
+  const out = await build({ entryPoints: [entry], bundle: true, platform: 'node', format: 'cjs', write: false });
+  const loaded = new Module(entry, module); loaded.filename = entry; loaded.paths = Module._nodeModulePaths(process.cwd());
+  loaded._compile(out.outputFiles[0].text, entry);
+  const { rpcRefused } = loaded.exports;
+  const { LimitExceededRpcError, RpcRequestError } = require('viem');
+  // What the Worker logged on 22 Oct: CallExecutionError <- LimitExceededRpcError(-32005) <- RpcRequestError <- "rate limited".
+  const limit = new LimitExceededRpcError(new RpcRequestError({ body: {}, url: 'https://rpc.moderato.tempo.xyz', error: { code: -32005, message: 'rate limited, try again in 11ms' } }));
+  assert.equal(rpcRefused(new Error('call failed', { cause: limit })), true);
+  assert.equal(rpcRefused(Object.assign(new Error('x'), { status: 429 })), true);
+  assert.equal(rpcRefused(new Error('amount does not match the challenge')), false);
+  assert.equal(rpcRefused(new Error('TIP20 token error: InsufficientBalance')), false);
+});
