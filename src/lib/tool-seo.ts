@@ -27,6 +27,11 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Screen the address an x402 seller or invoice asks you to pay before sending USDC", "Check the payee's account type and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon", "Add the payee's domain to see its age and trust flags in the same call"],
     faq: [["How is it different from /check/counterparty?", "It skips holdings and the Base wallet and contract heuristics, so it is cheaper and faster; use /check/counterparty when you need those."], ["Is a pass a guarantee?", "No. It is a screening aid; confirm any sanctions match against the official OFAC record."]],
   },
+  "/check/x402-seller": {
+    title: "x402 seller audit API: vet terms, payTo and domain before paying",
+    uses: ["Vet an unfamiliar x402 seller before an agent's first payment to it", "OFAC-screen every payTo address and read its account type on the payment network", "Flag non-USDC assets, high prices and a young or untrusted seller domain"],
+    faq: [["Does it pay or sign anything?", "No. It reads the endpoint's unpaid 402 answer and public chain and registration data."], ["Does a pass mean the seller delivers?", "No. It is a screening aid on who gets paid and on what terms, not a delivery guarantee."]],
+  },
   "/token-report": {
     title: "Token honeypot and rug-pull check API for Base tokens",
     uses: ["Check a Base token before swapping into it", "Get named red flags (paused transfers, blacklist, owner-set fees, live mint owner, proxy, thin or new liquidity, buys but no sells) and a high, medium or low verdict", "Read live DEX price, liquidity, volume and FDV in the same call"],
