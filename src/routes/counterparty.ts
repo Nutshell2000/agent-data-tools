@@ -19,8 +19,9 @@ interface DomainFlag { level: string; code: string; message: string }
 export function verdict(matches: Record<string, unknown>[], account: Risk, contract: Risk | null, domainFlags: DomainFlag[] = []) {
   const reasons: string[] = [];
   if (matches.length) reasons.push(`address is on the OFAC SDN list (${[...new Set(matches.map((m) => m.name))].join(", ")})`);
-  if (account.riskLevel === "high") reasons.push(`wallet heuristics: ${account.riskFlags.join(", ")}`);
-  if (contract && (contract.riskLevel === "high" || contract.riskLevel === "critical")) reasons.push(`contract heuristics: ${contract.riskFlags.join(", ")}`);
+  // The heuristics run on Base only; naming it keeps "zero-account-nonce" from reading as "never transacted".
+  if (account.riskLevel === "high") reasons.push(`wallet heuristics on Base: ${account.riskFlags.join(", ")}`);
+  if (contract && (contract.riskLevel === "high" || contract.riskLevel === "critical")) reasons.push(`contract heuristics on Base: ${contract.riskFlags.join(", ")}`);
   const domainHigh = domainFlags.filter((f) => f.level === "high");
   if (domainHigh.length) reasons.push(`payee domain: ${domainHigh.map((f) => f.message).join(" ")}`);
   return { verdict: matches.length ? "block" : reasons.length ? "review" : "pass", reasons };
@@ -100,7 +101,11 @@ export const COUNTERPARTY: Entry[] = [
         contract: contract && { riskLevel: contract.riskLevel, riskFlags: contract.riskFlags },
         domain,
         holdings: { totalUsd: value.totalUsd, tokensChecked: value.tokensChecked },
-        limitations: [],
+        // A wallet busy elsewhere can be new on Base (21 Oct: the Lazarus Group's Ethereum wallet read as
+        // zero-nonce here); say so instead of letting the Base heuristics stand for its whole history.
+        limitations: audit.type === "eoa" && audit.accountNonce === 0
+          ? ["no outgoing transactions on Base, so the wallet heuristics treat it as new here; if the payee uses another network, check it with chain=eth, arb or op"]
+          : [],
         note,
       };
     }, "$0.03"),

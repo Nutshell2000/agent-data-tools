@@ -502,7 +502,7 @@ test("counterparty verdict: SDN match blocks, high heuristics review, otherwise 
   assert.deepEqual(verdict([], low, null), { verdict: "pass", reasons: [] });
   const hit = [{ name: "LAZARUS GROUP" }, { name: "LAZARUS GROUP" }];
   assert.deepEqual(verdict(hit, low, null), { verdict: "block", reasons: ["address is on the OFAC SDN list (LAZARUS GROUP)"] });
-  assert.equal(verdict([], { riskLevel: "high", riskFlags: ["a", "b"] }, null).verdict, "review");
+  assert.deepEqual(verdict([], { riskLevel: "high", riskFlags: ["a", "b"] }, null), { verdict: "review", reasons: ["wallet heuristics on Base: a, b"] });
   assert.equal(verdict([], low, { riskLevel: "critical", riskFlags: ["proxy-impl-unset"] }).verdict, "review");
   assert.equal(verdict([], { riskLevel: "medium", riskFlags: ["a"] }, { riskLevel: "medium", riskFlags: [] }).verdict, "pass");
 });
