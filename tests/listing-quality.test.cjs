@@ -134,3 +134,22 @@ test("directory listing copy names every MCP bundle with its current tool count"
   const short = copy.split("## Short description (under 160 characters)\n\n")[1].split("\n")[0];
   assert.ok(short.length <= 160, `short description is ${short.length}`);
 });
+
+// Zero.xyz names a crawled tool after its serviceName and searches that name lexically, so each measured buyer
+// intent must find our tool by its words (Zero intents with paid calls, 20 Oct 2026).
+test("listing names carry the words of the measured buyer intents", async () => {
+  const { listingName } = await loadTypeScript(require.resolve("../src/lib/bazaar-extension.ts"));
+  const nameOf = (path) => listingName(discovery.ENDPOINTS.find((e) => e.path === path).summary).toLowerCase();
+  const intents = [
+    ["/email", ["verify", "email"]],
+    ["/company", ["company", "data"]],
+    ["/weather", ["weather"]],
+    ["/domain", ["domain"]],
+    ["/check/counterparty", ["payee"]],
+    ["/sanctions/check", ["sanctions"]],
+    ["/token-report", ["token", "honeypot"]],
+    ["/x402/check", ["x402"]],
+    ["/package", ["package", "risk"]],
+  ];
+  for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
+});

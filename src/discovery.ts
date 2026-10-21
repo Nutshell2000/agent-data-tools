@@ -3,11 +3,12 @@ import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
+import { salesOrdered } from "./lib/discovery-index";
 
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.45.4";
+export const MCP_SERVER_VERSION = "1.45.5";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -22,12 +23,16 @@ const trialNote = (enabled: boolean) =>
     ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls (failed calls do not count). Over MCP they are used automatically before any payment; over HTTP add trial=1 to a GET request. Not for the AI, rendering, screenshot, transcription and search tools, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. The operator can switch this off.`
     : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
-export function serviceCard(origin: string, payTo: string, network: string) {
+/** Every way a buyer can pay per call: the x402 networks (primary first) and the MPP methods (Tempo first). */
+export type PaymentRails = { networks: readonly string[]; mpp: readonly string[] };
+
+export function serviceCard(origin: string, payTo: string, network: string, rails?: PaymentRails) {
   return {
     name: SERVICE_NAME,
     description: SERVICE_SUMMARY,
-    payment: { protocol: "x402", version: 2, scheme: "exact", network, asset: "USDC", payTo },
-    endpoints: ENDPOINTS.map((e) => ({
+    // `network` stays the primary one for older readers; `networks` and `mpp` list every accepted rail.
+    payment: { protocol: "x402", version: 2, scheme: "exact", network, ...(rails ? { networks: rails.networks, mpp: rails.mpp } : {}), asset: "USDC", payTo },
+    endpoints: salesOrdered(ENDPOINTS).map((e) => ({
       method: "GET",
       url: origin + e.path,
       price: e.price,
@@ -40,7 +45,7 @@ export function serviceCard(origin: string, payTo: string, network: string) {
 }
 
 /** Advertises the MCP endpoint to clients that look for a server card. */
-export function mcpServerCard(origin: string) {
+export function mcpServerCard(origin: string, networks: readonly string[] = ["base"]) {
   return {
     serverInfo: { name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION },
     description: SERVICE_SUMMARY,
@@ -51,11 +56,12 @@ export function mcpServerCard(origin: string) {
     authentication: { required: false, optional: { type: "oauth2", endpoint: `${origin}/mcp/account`, metadata: `${origin}/.well-known/oauth-authorization-server` } },
     freeCalls: { perCaller: FREE_CALLS_PER_CALLER },
     payment: {
-      protocol: "x402", asset: "USDC", network: "base",
+      // MCP tool payments accept x402 on every network listed (the first is the default).
+      protocol: "x402", asset: "USDC", network: networks[0], networks,
       // Card alternative: a prepaid key from /credits sent on the MCP request replaces x402 for every call.
       alternatives: [{ method: "card-credits", buy: `${origin}/credits`, header: "Authorization: Bearer adt_…", balance: `${origin}/credits/balance` }],
     },
-    tools: ENDPOINTS.map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
+    tools: salesOrdered(ENDPOINTS).map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
 }
 
@@ -366,7 +372,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       : {}),
     servers: [{ url: origin }],
     paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
-      ENDPOINTS.map((e) => [
+      salesOrdered(ENDPOINTS).map((e) => [
         e.path,
         {
           get: {
@@ -518,9 +524,14 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     clientExample,
     "```",
     "",
+    "## Start here",
+    "",
+    // The tools paying agents pick first, in the same order as /discovery/resources.
+    ...salesOrdered(ENDPOINTS).slice(0, 12).map((e) => `- GET ${origin}${e.path} (${e.price}): ${e.summary}`),
+    "",
     "## Endpoints",
     "",
-    ...byCategory().flatMap((g) => [`### ${g.name}`, "", ...g.tools.flatMap((e) => [
+    ...byCategory().flatMap((g) => [`### ${g.name}`, "", ...salesOrdered(g.tools).flatMap((e) => [
       `#### GET ${e.path} — ${e.price}`,
       fullDescription(e as Endpoint),
       ...Object.entries(e.params).map(([k, p]) => `- \`${k}\` (${p.type}${p.required ? ", required" : ""}): ${p.description}`),

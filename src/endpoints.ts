@@ -645,7 +645,7 @@ export const CORE_ENDPOINTS = [
     path: "/package",
     // Must equal its Coinbase Bazaar listing (tests/bazaar-listed-prices.test.cjs): buyers that read the listing pay that amount.
     price: "$0.002",
-    summary: "Package metadata and latest or pinned-version dependency-risk signals",
+    summary: "Package risk check: npm, PyPI, Cargo, Go, Maven or NuGet metadata and dependency-risk signals, latest or pinned version",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",
     tags: ["package", "npm", "pypi", "security", "dependencies"],
@@ -674,7 +674,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/email",
     price: "$0.003",
-    summary: "Email verification: syntax, MX and disposable-address checks without sending mail",
+    summary: "Verify email address: syntax, MX and disposable-address checks without sending mail",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
