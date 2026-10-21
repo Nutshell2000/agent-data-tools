@@ -134,3 +134,14 @@ test("the registry description in server.json states the live tool count", async
   assert.match(manifest.description, new RegExp(`^${discovery.ENDPOINTS.length} agent tools: `), "update server.json when tools are added or removed");
   assert.ok(manifest.description.length <= 100, "the MCP Registry allows 100 characters");
 });
+
+test("OpenAPI and llms.txt open each tool with what it does; fine print follows", async () => {
+  const discovery = await loadTypeScript(require.resolve("../src/discovery.ts"));
+  const extract = discovery.ENDPOINTS.find((e) => e.path === "/extract");
+  assert.ok(extract.details, "/extract keeps its fine print");
+  const text = discovery.fullDescription(extract);
+  assert.ok(text.startsWith(extract.description), "description first");
+  assert.ok(text.endsWith(extract.details), "details after it");
+  const plain = discovery.ENDPOINTS.find((e) => !e.details);
+  assert.equal(discovery.fullDescription(plain), plain.description);
+});
