@@ -23,7 +23,7 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
-import { bazaarInputProperties, builderCodeExtension, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
+import { bazaarInputProperties, builderCodeExtension, exampleInput, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
 
 type Args = Record<string, unknown>;
@@ -99,6 +99,8 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
           // Same schema as the HTTP listing (examples, patterns, the real output schema), so an MCP settlement lists
           // the tool as completely as an HTTP one.
           inputSchema: { type: "object", properties: bazaarInputProperties(e), required },
+          // The Bazaar indexes an MCP tool by calling it with this example, as it does an HTTP tool with `input`.
+          example: exampleInput(e),
           output: { example: e.outputExample, schema: listingOutputSchema(e) },
         }),
         ...builderCodeExtension(),
