@@ -466,6 +466,8 @@ app.get("/metrics", (c) => fromMetrics(async () => {
   if (!c.env.METRICS) return c.json({});
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   await sendBatchNow(metrics);
+  // Whether counters are being written (buffer age, last write, last write error): the body stays the report.
+  c.header("X-Metrics-State", JSON.stringify(await metrics.flushState()));
   return c.json(await metrics.report());
 }));
 // Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
