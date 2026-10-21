@@ -229,6 +229,8 @@ app.use(async (c, next) => {
       if (c.res.status >= 400) await free.refund();
       else markStage("free_call");
       c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
+      // Free calls are for people and agents trying a tool, not for search crawlers indexing the result.
+      c.res.headers.set("X-Robots-Tag", "noindex, nofollow");
       // A person who clicked "Run it free" sees the result on a page with what to do next; clients keep the JSON.
       if (c.res.status < 400 && isBrowser(c.req.header("accept"), c.req.header("user-agent")) && (c.res.headers.get("content-type") ?? "").includes("application/json")) {
         const { status } = c.res;

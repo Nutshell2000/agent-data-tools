@@ -193,3 +193,14 @@ test('/demo is a static walkthrough page that points at the recording and the fr
   assert.match(html, /href="\/tools\/check-counterparty"/);
   assert.doesNotMatch(html, /<script/i);
 });
+
+test('free-trial links are nofollow, robots.txt disallows them and trial answers are noindex', async () => {
+  const page = await (await mf.dispatchFetch('https://api.test/tools/weather')).text();
+  assert.match(page, /<a class="btn primary" rel="nofollow" href="\/weather\?[^"]*trial=1"/);
+  const robots = await (await mf.dispatchFetch('https://api.test/robots.txt')).text();
+  assert.match(robots, /^Disallow: \/\*trial=1$/m);
+  const trial = await mf.dispatchFetch('https://api.test/time?zone=UTC&trial=1', { headers: { accept: 'application/json', 'cf-connecting-ip': '198.51.100.31' } });
+  assert.equal(trial.status, 200);
+  assert.equal(trial.headers.get('x-robots-tag'), 'noindex, nofollow');
+  await trial.arrayBuffer();
+});
