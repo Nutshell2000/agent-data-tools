@@ -127,6 +127,7 @@ test('an MPP agent pays one call with USDC on Base: verify, run, settle after su
   assert.equal(settle.body.paymentPayload.resource.url, 'https://api.test/time');
   assert.equal(settle.body.paymentPayload.extensions.bazaar.info.input.queryParams.zone, 'Europe/Stockholm');
   assert.ok(settle.body.paymentPayload.extensions.bazaar.info.output.example.zone);
+  assert.deepEqual(settle.body.paymentPayload.extensions['builder-code'].info, { a: 'bc_09e30bdm' }, 'the settlement carries our Base Builder Code');
   await new Promise((r) => setTimeout(r, 200)); // the ledger write runs in waitUntil
   const revenue = await (await mf.dispatchFetch('https://api.test/revenue')).json();
   assert.equal(revenue.byEndpoint['/time'].settlements, 1);

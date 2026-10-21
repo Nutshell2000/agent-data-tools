@@ -39,7 +39,7 @@ import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
-import { bazaarExtensionFor, listingTags } from "./lib/bazaar-extension";
+import { bazaarExtensionFor, builderCodeExtension, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
@@ -137,7 +137,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         serviceName: SERVICE_NAME,
         iconUrl: SERVICE_ICON_URL,
         tags: listingTags(e.tags),
-        extensions: { ...bazaarExtensionFor(e) },
+        extensions: { ...bazaarExtensionFor(e), ...builderCodeExtension() },
       },
     ]),
   );
@@ -165,6 +165,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
               },
             },
           }),
+          ...builderCodeExtension(),
         },
       },
     ]),
