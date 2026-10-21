@@ -1,5 +1,5 @@
 {
-  "version": "1.45.0",
+  "version": "1.45.1",
   "tools": [
     {
       "name": "extract",
@@ -709,7 +709,7 @@
     },
     {
       "name": "token_report",
-      "description": "Base token heuristic screening plus DexScreener market data, source and retrieval time. Returns owner, paused and proxy facts with limited selector checks. A mint selector does not prove callable minting; missing or unavailable evidence remains unknown. Illustrative examples are not live quotes. Not a safety guarantee; see endpoint details for coverage limits. Use before swapping into an unfamiliar Base token. Example: address=0x4200000000000000000000000000000000000006. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a Base token before you swap into it: a high/medium/low risk verdict with named red flags (paused transfers, blacklist, owner-set fees or tax, a mint selector with a live owner, upgradeable proxy, no or thin liquidity, a pair under 7 days old, buys but no sells as a honeypot sign) plus live DexScreener price, liquidity, volume and FDV. Heuristic screening, not a safety guarantee. Use before swapping into an unfamiliar Base token. Example: address=0x4200000000000000000000000000000000000006. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1108,7 +1108,7 @@
     },
     {
       "name": "wallet_audit",
-      "description": "Returns a heuristic high/medium/low address risk tier, named flags, ETH balance, holdings of 4 major tokens (USDC, WETH, cbBTC, DAI), and the Base EVM account nonce. Per-token risk is unknown because token contracts are not audited here. For EOAs the nonce counts outgoing transactions only. Address type is reported separately and does not affect the risk tier. Use to screen a Base address; other chains or OFAC: check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Screen a Base address for fresh or throwaway-wallet signals: a high/medium/low heuristic risk tier with named flags (no or one outgoing transaction, a near-empty balance with few transactions), plus ETH, USDC, WETH, cbBTC and DAI balances and the account nonce. Address type is reported separately and does not affect the tier; token contracts are not audited. Use to screen a Base address; OFAC and other chains: check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1132,7 +1132,7 @@
     },
     {
       "name": "contract_risk",
-      "description": "Limited Base contract bytecode, EIP-1967 slot and zero-supply heuristics. Missing or unsupported property reads are null; RPC transport failures return 502. Ownership renunciation requires a confirmed zero owner. Empty slots do not identify uninitialized proxies. EOAs return not-applicable. Not a full security audit; see endpoint details for coverage limits. Use before approving or calling an unfamiliar Base contract. Example: address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a Base contract before you approve or call it: a low to critical risk tier with named flags (proxy, proxy with no implementation, tiny bytecode, zero token supply), plus bytecode size, the EIP-1967 implementation slot and ERC-20 owner, renounced and paused reads. Unreadable reads are null; EOAs return not-applicable. Limited heuristics, not a full security audit. Use before approving a spender or calling an unfamiliar Base contract. Example: address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1185,7 +1185,7 @@
     },
     {
       "name": "liquidity_pool_audit",
-      "description": "Base DEX pair lookup through DexScreener: verified pair identity, tokens, reported liquidity, volume, trades and pair age where available. Returns source and retrieval time; missing fields are null. No pool-security or investment-risk assessment. Missing pairs return 404; upstream failure returns 502. Example values are illustrative. Use to check a pair's liquidity before trading. Example: address=0x98c7A2338336d2d354663246F64676009c7bDa97. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a Base DEX pool before you trade or add liquidity: give a pair address and get the verified DEX, both tokens, reported liquidity, 24h volume and trades, and pair age from DexScreener, with source and retrieval time. Missing fields are null; an unknown pair returns 404. Market data only, no pool-security or investment-risk assessment. Use to confirm a pair is real and deep enough before trading; token red flags: token_report. Example: address=0x98c7A2338336d2d354663246F64676009c7bDa97. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3349,7 +3349,7 @@
     },
     {
       "name": "x402_check",
-      "description": "Decode any public x402 endpoint's 402 payment requirements without paying (v1 body or v2 header): USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to debug your own listing. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check an x402 seller before you pay it: decode any public endpoint's 402 payment requirements without paying (v1 body or v2 header) into USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to audit your own x402 listing. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
