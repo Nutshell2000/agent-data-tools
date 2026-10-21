@@ -46,3 +46,12 @@ test('page views: only the pages a buyer reads, and the referrer as a family nam
   assert.ok(funnel.STAGES.includes('page_view')&&funnel.STAGES.includes('referral'));
   assert.ok(funnel.COUNTED_ONLY.has('page_view')&&funnel.COUNTED_ONLY.has('referral'));
 });
+
+test('catalog reads: counted-only by crawler family, for the machine-readable catalogs only',()=>{
+  for(const path of ['/llms.txt','/openapi.json','/.well-known/x402','/.well-known/x402.json','/discovery/resources','/.well-known/mcp/server-card.json'])assert.equal(funnel.isCatalogFile(path),true,path);
+  for(const path of ['/','/tools','/weather','/revenue','/llms.txt/../revenue'])assert.equal(funnel.isCatalogFile(path),false,path);
+  for(const path of ['/discovery/resources','/.well-known/x402.json'])assert.equal(funnel.isDiscoveryVisit('GET',path,200),true,path);
+  assert.ok(funnel.STAGES.includes('discovery_read')&&funnel.COUNTED_ONLY.has('discovery_read'));
+  // The label carries only the software family, and it must pass the funnel's path rule (no underscores).
+  for(const family of ['zerobot','googlebot','python-requests','node','none','other'])funnel.assertFunnelEvent({requestId:'00000000-0000-4000-8000-000000000000',path:`/read/${family}`,transport:'http',stage:'discovery_read',at:new Date().toISOString()});
+});
