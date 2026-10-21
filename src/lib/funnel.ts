@@ -6,7 +6,7 @@ import { canBatch, queueBatched } from "./metrics-batch";
 // recipient, a network we do not accept, or a header we could not read. facilitator_unavailable means the
 // facilitator itself could not be reached, so the buyer was told to retry and was not charged.
 // free_exhausted marks a caller who asked for a free call after using them all: the moment they are asked to pay.
-export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral"] as const;
+export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral", "discovery_read"] as const;
 export type FunnelStage = typeof STAGES[number];
 export interface FunnelEvent {
   requestId: string; path: string; transport: "http" | "mcp";
@@ -52,7 +52,7 @@ export function markStage(stage: FunnelStage, path?: string) {
 // High-volume stages are only counted per day (buffered in the Metrics object, see metrics.ts): one stored row
 // per request for crawler quotes used up the free Durable Objects write allowance (100,000 rows a day) on 20 Oct.
 // Payment stages keep their per-request evidence row.
-export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "credits_call", "page_view", "referral"]);
+export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "credits_call", "page_view", "referral", "discovery_read"]);
 export const funnelLabel = (event: FunnelEvent) => `${event.transport}:${event.path}:${event.stage}`;
 
 export function assertFunnelEvent(event: FunnelEvent) {
@@ -113,11 +113,14 @@ export function referrerFamily(referer: string | undefined, ownHost: string): st
   return REFERRER_FAMILIES.find(([pattern]) => pattern.test(host))?.[1] ?? "other";
 }
 
+/** The machine-readable catalogs agents and directories read before buying (a subset of the discovery visits). */
+export const isCatalogFile = (path: string) => ["/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/x402.json", "/discovery/resources", "/.well-known/mcp/server-card.json", "/.well-known/api-catalog"].includes(path);
+
 /** Successful reads of published buying resources; no identity or cross-request tracking. */
 export function isDiscoveryVisit(method: string, path: string, status: number): boolean {
   if (method !== "GET" || status < 200 || status >= 300) return false;
   if (["/skills/index.json","/skills/spellzcode-x402-reader/SKILL.md"].includes(path)) return true;
-  if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json", "/examples/sitemap/", "/examples/sitemap/manifest.json", "/examples/sitemap/result.json", "/examples/sitemap/source.xml", "/examples/sitemap/index.xml"].includes(path)) return true;
+  if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/x402.json", "/discovery/resources", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json", "/examples/sitemap/", "/examples/sitemap/manifest.json", "/examples/sitemap/result.json", "/examples/sitemap/source.xml", "/examples/sitemap/index.xml"].includes(path)) return true;
   if (/^\/guides\/(web-reading|bitcoin-fees|dependency-audit|sitemap|local-mcp)(\.md)?$/.test(path)) return true;
   if (/^\/clients\/reader\/\d+\.\d+\.\d+\/(reader-client\.mjs(?:\.sha256)?|reader-mcp\.mjs(?:\.sha256)?|SHA256SUMS)$/.test(path)) return true;
   return /^\/examples\/extract\/(technical-guide|short-article|long-document|section-result)\.json$/.test(path);
