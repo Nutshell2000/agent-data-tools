@@ -81,7 +81,15 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
       continue;
     }
     const allowed = allowStatus.includes(res.status);
-    if (!res.ok && !allowed) { await res.body?.cancel().catch(() => {}); throw new HttpError(502, `target responded with HTTP ${res.status}`); }
+    if (!res.ok && !allowed) {
+      await res.body?.cancel().catch(() => {});
+      // A missing, gone or forbidden page is the caller's input, not our failure: 422 keeps it out of our server-error
+      // count (/status, directory health checks). Rate limits, timeouts and the target's own 5xx stay 502.
+      const callerSide = res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429;
+      throw new HttpError(callerSide ? 422 : 502, callerSide
+        ? `target responded with HTTP ${res.status}; check that the URL is public and correct (nothing was charged)`
+        : `target responded with HTTP ${res.status}`);
+    }
     if (!res.body && !allowed) throw new HttpError(502, "target returned an empty body");
     // A response from a manual redirect chain otherwise loses its effective URL.
     Object.defineProperty(res, "url", { value: current.href });
