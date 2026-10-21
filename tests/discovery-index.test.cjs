@@ -59,6 +59,17 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   assert.deepEqual(live.extra, time.accepts[0].extra);
 });
 
+test('without a limit the first page holds every tool, best sellers first and toys last', async () => {
+  const page = await (await mf.dispatchFetch('https://api.test/discovery/resources')).json();
+  assert.equal(page.items.length, page.pagination.total, 'one page, the whole catalog');
+  const paths = page.items.map((i) => new URL(i.resource).pathname);
+  assert.deepEqual(paths.slice(0, 3), ['/check/counterparty', '/sanctions/check', '/token-report']);
+  assert.ok(paths.indexOf('/hyperliquid/market') < 20 && paths.indexOf('/sec/filings') < 20, 'demanded data tools near the top');
+  const firstToy = paths.findIndex((p) => /^\/(coin|dice|random\/|magic-8-ball|yes-no|echo|ping)/.test(p));
+  assert.ok(firstToy > paths.length - 15, `toys at the end (first at ${firstToy})`);
+  assert.equal(new Set(paths).size, paths.length, 'no tool twice');
+});
+
 test('paging and the manifest aliases', async () => {
   const page = await (await mf.dispatchFetch('https://api.test/discovery/resources?limit=2&offset=3')).json();
   assert.equal(page.items.length, 2);
@@ -66,7 +77,7 @@ test('paging and the manifest aliases', async () => {
   const all = await (await mf.dispatchFetch('https://api.test/discovery/resources?limit=9999')).json();
   assert.equal(all.pagination.limit, 500);
   const bad = await (await mf.dispatchFetch('https://api.test/discovery/resources?limit=abc&offset=-5')).json();
-  assert.equal(bad.pagination.limit, 100);
+  assert.equal(bad.pagination.limit, 500);
   assert.equal(bad.pagination.offset, 0);
   const json = await (await mf.dispatchFetch('https://api.test/.well-known/x402.json')).json();
   const plain = await (await mf.dispatchFetch('https://api.test/.well-known/x402')).json();
