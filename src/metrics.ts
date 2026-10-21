@@ -102,15 +102,19 @@ export class Metrics extends DurableObject {
     if (!this.pendingSince) this.pendingSince = Date.now();
   }
 
+  /** When this instance last wrote its counters (0: never, so the first update writes at once). */
+  private lastFlushMs = 0;
+
   /**
-   * An idle object is evicted with its memory, and the alarm then wakes a new, empty instance: on staging on
-   * 21 Oct a paid call's count was in /metrics at once and gone two minutes later, and production never kept a
-   * paid count. So a request that finds the buffer FLUSH_MS old writes it there and then (the same number of
-   * writes as the alarm), and the alarm only covers the quiet tail.
+   * An idle object is evicted with its memory, often before its alarm, which then wakes a new, empty instance:
+   * on staging on 21 Oct a paid call's count was in /metrics at once and gone two minutes later, a lone quote's
+   * count never arrived, and production never kept a paid count. So an update writes at once when the last
+   * write is FLUSH_MS old or more (a quiet object writes its first update straight away; a busy one still writes
+   * at most once per FLUSH_MS), and the alarm only covers the tail of a busy spell.
    */
   private async schedule() {
     if (writesBlocked()) return;
-    if (this.pendingSince && Date.now() - this.pendingSince >= FLUSH_MS) {
+    if (this.pending.size && Date.now() - this.lastFlushMs >= FLUSH_MS) {
       try { await this.flush(); return; } catch { /* stays buffered; the alarm retries */ }
     }
     if (this.alarmSet) return;
@@ -125,6 +129,7 @@ export class Metrics extends DurableObject {
     if (writesBlocked()) return;
     const batch = this.pending, last = this.pendingLast;
     this.pending = new Map(); this.pendingLast = new Map(); this.pendingSince = 0;
+    this.lastFlushMs = Date.now(); // also on failure, so a failing write is not retried on every request
     try {
       await this.ctx.storage.transaction(async (txn) => {
         for (const [key, counts] of batch) {

@@ -155,7 +155,7 @@ test("HTTP middleware records settled product revenue and excludes missing or fa
   for (const mode of ["success", "failed", "missing", "invalid", "marketplace", "challenge", "trial", "failed-http"]) {
     const headers = mode === "marketplace" ? { "x-rapidapi-proxy-secret": "marketplace" } : undefined;
     await app.fetch(new Request(`https://example.test/buy/x402-seller-kit?mode=${mode}`, { headers }), env, executionCtx);
-    await Promise.all(pending.splice(0));
+    await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   }
 
   const row = (await sendBatchNow(metrics), await metrics.report())[today]["/buy/x402-seller-kit"];
@@ -223,7 +223,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   };
 
   trackHttp("/package-audit", new Headers({ "PAYMENT-RESPONSE": successfulSettlement }));
-  await Promise.all(pending.splice(0));
+  await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   let row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.revenueUsdMicros, 200_000);
   assert.equal(row.trackedPaidCalls, 1);
@@ -235,7 +235,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
     waitUntil,
   );
   await mcpCallback();
-  await Promise.all(pending.splice(0));
+  await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.revenueUsdMicros, 400_000);
   assert.equal(row.trackedPaidCalls, 2);
@@ -255,10 +255,10 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
     waitUntil,
   );
   await missingMcpCallback();
-  await Promise.all(pending.splice(0));
+  await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
 
   trackHttp("/buy/x402-seller-kit", new Headers({ "PAYMENT-RESPONSE": successfulSettlement }));
-  await Promise.all(pending.splice(0));
+  await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   const purchaseRow = (await sendBatchNow(metrics), await metrics.report())[today]["/buy/x402-seller-kit"];
   assert.equal(purchaseRow.revenueUsdMicros, 1_900_000);
   assert.equal(purchaseRow.trackedPaidCalls, 1);
@@ -267,7 +267,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   queueMetricBump(metrics, waitUntil, "/package-audit", "trial", 200_000);
   queueMetricBump(metrics, waitUntil, "/package-audit", "failed", 200_000);
   trackHttp("/package-audit", new Headers());
-  await Promise.all(pending.splice(0));
+  await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
 
   row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
   assert.equal(row.challenged, 1);
@@ -332,20 +332,36 @@ test("unpaid counter updates reach the Metrics object in one batched call; paid 
   const { metrics } = createMetrics();
   let ingests = 0, bumps = 0;
   const target = { ingest: (b) => { ingests++; return metrics.ingest(b); }, bump: (...a) => { bumps++; return metrics.bump(...a); } };
-  const pending = [];
+  const pending = [], paid = [];
   for (let i = 0; i < 300; i++) queueMetricBump(target, (p) => pending.push(p), "/weather", "challenged", undefined, "crawler");
-  queueMetricBump(target, (p) => pending.push(p), "/weather", "paid", 3000);
-  await Promise.all(pending);
+  queueMetricBump(target, (p) => paid.push(p), "/weather", "paid", 3000);
+  await Promise.all(paid);
   assert.equal(ingests, 0, "unpaid updates wait for the batch window");
   assert.equal(bumps, 1, "a paid outcome is sent at once");
   await sendBatchNow(target);
-  assert.equal(ingests, 1);
+  await Promise.all(pending); // the batch's own send timer ends at once and sends nothing more
+  assert.equal(ingests, 1, "one call per batch");
   const row = (await metrics.report())[today]["/weather"];
   assert.deepEqual([row.challenged, row.paid, row.revenueUsdMicros], [300, 1, 3000]);
 });
 
+test("an isolate with no later request sends its batch itself after the window", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { metrics } = createMetrics();
+  let ingests = 0;
+  const target = { ingest: (b) => { ingests++; return metrics.ingest(b); }, bump: (...a) => metrics.bump(...a) };
+  const pending = [];
+  for (let i = 0; i < 3; i++) queueMetricBump(target, (p) => pending.push(p), "/time", "challenged");
+  assert.equal(ingests, 0);
+  t.mock.timers.tick(10_000);
+  await Promise.all(pending);
+  assert.equal(ingests, 1, "sent once, without a later request or a report read");
+  assert.equal((await metrics.report())[today]["/time"].challenged, 3);
+});
+
 test("counters are buffered and written once per flush, and kept when a write fails", async () => {
   const { metrics, records } = createMetrics();
+  metrics.lastFlushMs = Date.now(); // a busy object that has just written
   for (let i = 0; i < 500; i++) await metrics.bump("/weather", "challenged", undefined, "crawler");
   await metrics.bumpMcpClient("glama", "open");
   assert.equal(records.size, 0, "nothing is written per request");
@@ -360,6 +376,7 @@ test("counters are buffered and written once per flush, and kept when a write fa
   assert.equal(records.get(`mcpclients:${today}`).glama.open, 1);
   // A write over the storage limit keeps the counts for the next flush instead of losing them.
   const failing = createMetrics();
+  failing.metrics.lastFlushMs = Date.now();
   await failing.metrics.bump("/weather", "challenged");
   const realTransaction = failing.metrics.ctx.storage.transaction;
   failing.metrics.ctx.storage.transaction = async () => { throw new Error("Exceeded allowed rows written"); };
@@ -376,11 +393,13 @@ test("counters are buffered and written once per flush, and kept when a write fa
   assert.equal(failing.records.get(dayKey)["/weather"].challenged, 2);
 });
 
-test("a paid call is written at once, and an old buffer is written by the next request, so eviction loses neither", async () => {
-  // Staging, 21 Oct: a paid call's count was in /metrics at once and gone two minutes later, because the idle
-  // object was evicted with its memory and the alarm woke an empty instance.
+test("a paid call is written at once, and a quiet object writes its first update at once, so eviction loses neither", async () => {
+  // Staging, 21 Oct: a paid call's count was in /metrics at once and gone two minutes later, and a lone quote's
+  // count never arrived, because the idle object was evicted with its memory before its alarm.
   const { metrics, records } = createMetrics();
+  metrics.lastFlushMs = Date.now();
   await metrics.bump("/weather", "challenged", undefined, "crawler");
+  assert.equal(records.size, 0, "a busy object buffers");
   await metrics.bump("/check/counterparty", "paid", 30_000, "node");
   const row = records.get(dayKey);
   assert.equal(row["/check/counterparty"].trackedPaidCalls, 1, "no alarm needed");
@@ -390,11 +409,13 @@ test("a paid call is written at once, and an old buffer is written by the next r
   assert.equal((await evicted.report())[today]["/check/counterparty"].trackedPaidCalls, 1);
 
   const quiet = createMetrics();
+  await quiet.metrics.ingest({ bumps: [["/weather", "challenged", undefined, "crawler"]], funnel: [], mcp: [] });
+  assert.equal(quiet.records.get(dayKey)["/weather"].challenged, 1, "the first update of a quiet object is written at once");
   await quiet.metrics.bump("/weather", "challenged");
-  assert.equal(quiet.records.size, 0, "a fresh buffer waits for the flush interval");
-  quiet.metrics.pendingSince = Date.now() - 31_000;
+  assert.equal(quiet.records.get(dayKey)["/weather"].challenged, 1, "then it buffers for the flush interval");
+  quiet.metrics.lastFlushMs = Date.now() - 31_000;
   await quiet.metrics.bump("/weather", "challenged");
-  assert.equal(quiet.records.get(dayKey)["/weather"].challenged, 2, "a request finding the buffer old writes it");
+  assert.equal(quiet.records.get(dayKey)["/weather"].challenged, 3, "an update after the interval writes the buffer");
 });
 
 test("MCP connections are counted per client and mode, capped like callers", async () => {
@@ -417,8 +438,8 @@ test("payment attempts answered 402 are counted as v1_payment (X-PAYMENT) or v2_
   await app.fetch(new Request("https://x.test/tool", { headers: { "x-payment": "eyJ4NDAyVmVyc2lvbiI6MX0=" } }), env, executionCtx);
   await app.fetch(new Request("https://x.test/tool"), env, executionCtx);
   await app.fetch(new Request("https://x.test/tool", { headers: { "x-payment": "a", "payment-signature": "b" } }), env, executionCtx);
-  await Promise.all(pending);
-  const row = (await sendBatchNow(metrics), await metrics.report())[today]["/tool"];
+  await sendBatchNow(metrics); await Promise.all(pending);
+  const row = (await metrics.report())[today]["/tool"];
   assert.equal(row.v1_payment, 1);
   assert.equal(row.v2_payment, 1);
   assert.equal(row.challenged, 1);
