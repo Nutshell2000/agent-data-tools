@@ -13,7 +13,7 @@ import { Challenge, Credential, Errors, Receipt } from "mppx";
 import { ENDPOINTS, type Endpoint } from "../endpoints";
 import { isAddress, type Env } from "./env";
 import { buildFacilitator } from "./facilitator";
-import { bazaarExtensionFor } from "./bazaar-extension";
+import { bazaarExtensionFor, builderCodeExtension } from "./bazaar-extension";
 import { USDC_BY_NETWORK } from "./networks";
 import { usdMicros } from "./revenue";
 import { activeTrace, markStage } from "./funnel";
@@ -92,7 +92,7 @@ async function createServer(env: Env, realm: string) {
         // The Bazaar indexes a resource from its first settlement, given the resource and its discovery extension.
         const endpoint = currentEndpoint();
         const trace = activeTrace();
-        const enriched = endpoint && trace ? { ...paymentPayload, resource: { url: new URL(`https://${realm}${endpoint.path}`).href }, extensions: bazaarExtensionFor(endpoint) } : paymentPayload;
+        const enriched = endpoint && trace ? { ...paymentPayload, resource: { url: new URL(`https://${realm}${endpoint.path}`).href }, extensions: { ...bazaarExtensionFor(endpoint), ...builderCodeExtension() } } : paymentPayload;
         const settled = await buildFacilitator(env).settle(enriched as never, requirements as never);
         if (!settled.success || !settled.transaction) throw new Errors.VerificationFailedError({ reason: settled.errorMessage ?? settled.errorReason ?? "settlement failed" });
         return { reference: settled.transaction };

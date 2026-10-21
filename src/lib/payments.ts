@@ -1,6 +1,7 @@
 import { x402ResourceServer } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
+import { builderCodeResourceServerExtension } from "@x402/extensions/builder-code";
 import type { Env } from "./env";
 import { buildFacilitator } from "./facilitator";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
@@ -16,6 +17,7 @@ export function resourceServer(env: Env): x402ResourceServer {
   const server = new x402ResourceServer(buildFacilitator(env));
   for (const { network } of paymentOptions(env)) server.register(network, network === SOLANA_NETWORK ? new ExactSvmScheme() : new ExactEvmScheme());
   server.registerExtension(bazaarResourceServerExtension);
+  server.registerExtension(builderCodeResourceServerExtension);
   // Each failure is logged with its reason (never the signature, payload or payer) so refused buyers show up in
   // `wrangler tail` and the funnel, not only as a count of 402s.
   const where = (requirements: { network?: string } | undefined, payload: { resource?: { url?: string } } | undefined) =>

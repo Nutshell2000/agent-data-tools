@@ -96,6 +96,7 @@ test('an unpaid POST gets the /ai/chat quote with x402 terms and MPP challenges,
     assert.equal(terms.resource.url, 'https://api.test/v1/chat/completions', 'the v2 quote names the front, without a query');
     assert.match(terms.resource.description, /^OpenAI-compatible chat completions/);
     assert.ok(terms.extensions.bazaar, 'the tool\'s Bazaar extension stays (the paid retry echoes it)');
+    assert.deepEqual(terms.extensions['builder-code'].info, { a: 'bc_09e30bdm' }, 'our Base Builder Code is declared');
   }
 });
 
