@@ -57,3 +57,13 @@ test("the cards list every payment rail they are given, primary network first", 
   const accepted = [...new Set(index.discoveryResources(ENV, ORIGIN).items[0].accepts.map((a) => a.network))];
   assert.deepEqual(accepted, ["eip155:8453", ...ENV.EXTRA_NETWORKS.split(",")]);
 });
+
+test("a guessed URL is pointed at the matching paid tools, and junk gets no suggestion", () => {
+  const cases = { "/api/v1/weather": "/weather", "/ofac": "/sanctions/check", "/payee": "/check/payee", "/honeypot": "/token-report", "/scrape": "/extract", "/whois": "/domain", "/api/btc/fees": "/btc-fees", "/kyc": "/check/counterparty" };
+  for (const [guess, tool] of Object.entries(cases)) assert.equal(discovery.suggestTools(guess)[0], tool, guess);
+  for (const junk of ["/wp-login.php", "/favicon.ico", "/api", "/.env"]) assert.deepEqual(discovery.suggestTools(junk), [], junk);
+  assert.ok(discovery.suggestTools("/gas").length <= 3);
+  const plugin = discovery.aiPluginManifest(ORIGIN);
+  assert.equal(plugin.api.url, `${ORIGIN}/openapi.json`);
+  assert.equal(plugin.auth.type, "none");
+});
