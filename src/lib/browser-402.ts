@@ -4,6 +4,7 @@
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
 import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { TRY_FORM_CSS, tryForm } from "./try-form";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -45,6 +46,7 @@ main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.6rem;li
 h2{font-size:1.05rem;margin:28px 0 8px}pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:.85rem;line-height:1.45}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}p{margin:8px 0}a{color:var(--accent)}
 footer{margin-top:36px;color:var(--muted);font-size:.9rem}
+${freeCalls ? TRY_FORM_CSS : ""}
 </style></head><body><main>
 <h1>${esc(endpoint.summary)}</h1>
 <p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>
@@ -54,6 +56,7 @@ ${freeCalls ? `<a class="btn primary" href="${esc(withParam(trialBase(endpoint, 
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
+${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
 <h2>Example result</h2>
 <pre><code>${esc(shown)}</code></pre>
 <h2>Use it from an AI agent</h2>
@@ -102,8 +105,38 @@ main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;li
 </main></body></html>`;
 }
 
-/** A free trial's result as a page: the JSON it returned, the free calls left and the way to keep going. */
-export function browserTrialResultPage(endpoint: Endpoint, json: string, left: number): string {
+/** A free trial the tool refused (bad or missing input): the reason in plain words, nothing charged, the free call
+ *  given back, and the form again with what the visitor typed. */
+export function browserTrialErrorPage(endpoint: Endpoint, json: string, left: number, requestUrl: string): string {
+  let reason = "";
+  try { const body = JSON.parse(json) as { error?: unknown; message?: unknown }; reason = String(body.error ?? body.message ?? ""); } catch { /* not JSON */ }
+  if (!reason) reason = "The tool could not use these inputs.";
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(endpoint.summary)}: check the inputs · Agent Data Tools</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--card:#f6f7f9;--line:#e3e5e8;--accent:#0b57d0;--accent-fg:#fff;--warn:#fdecea;--warn-fg:#8a1c12}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e8eaed;--muted:#a3a8ae;--card:#1c1f24;--line:#2c3036;--accent:#8ab4f8;--accent-fg:#0b1a33;--warn:#3b1f1c;--warn-fg:#f6b8b0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;line-height:1.25;margin:0 0 8px}
+.meta{color:var(--muted);margin:0 0 18px}.err{background:var(--warn);color:var(--warn-fg);border-radius:8px;padding:12px 14px;margin:0 0 18px}
+.btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}a{color:var(--accent)}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+${TRY_FORM_CSS}
+</style></head><body><main>
+<h1>${esc(endpoint.summary)}</h1>
+<p class="err">${esc(reason)}</p>
+<p class="meta">Nothing was charged and this did not use a free call: ${left} left.</p>
+${tryForm(endpoint, new URL(requestUrl).searchParams, "Change the inputs and try again")}
+<p><a href="/tools">All tools</a></p>
+</main></body></html>`;
+}
+
+/** A free trial's result as a page: the JSON it returned, the free calls left and the way to keep going (another
+ *  run on other inputs while free calls remain, then card credits). */
+export function browserTrialResultPage(endpoint: Endpoint, json: string, left: number, requestUrl?: string): string {
+  const again = left > 0 && requestUrl ? tryForm(endpoint, new URL(requestUrl).searchParams, "Run it again with other inputs") : "";
   let pretty = json;
   try { pretty = JSON.stringify(JSON.parse(json), null, 2); } catch { /* show it as sent */ }
   const shown = pretty.length > 20_000 ? `${pretty.slice(0, 20_000)}\n…` : pretty;
@@ -120,11 +153,13 @@ main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;li
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:.85rem;line-height:1.45}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}a{color:var(--accent)}
+${again ? TRY_FORM_CSS : ""}
 </style></head><body><main>
 <h1>${esc(endpoint.summary)}</h1>
 <p class="meta">Free call: ${left} of your free calls left. After that, ${esc(endpoint.price)} per call; failed calls are never charged.</p>
 <pre><code>${esc(shown)}</code></pre>
 <div class="actions"><a class="btn primary" href="/credits">Buy credits by card (from $5)</a><a class="btn" href="/">All tools</a></div>
+${again}
 <p>From code or an AI agent, the same request returns this JSON. Add <code>${esc(endpoint.path)}</code> to Claude, Cursor or any MCP client through <code>/mcp</code>.</p>
 </main></body></html>`;
 }

@@ -72,6 +72,37 @@ test('a free trial opened in a browser shows its result as a page; code still ge
   await json.json();
 });
 
+test('"Try it with your own inputs": a GET form with the example prefilled on the tool page and the 402 page', async () => {
+  for (const [url, headers] of [['https://api.test/tools/weather', {}], ['https://api.test/weather', browser]]) {
+    const html = await (await mf.dispatchFetch(url, { headers })).text();
+    const form = /<form class="try" method="get" action="\/weather">([\s\S]*?)<\/form>/.exec(html);
+    assert.ok(form, `form on ${url}`);
+    assert.match(form[1], /<input id="try-city" name="city" type="text" value="London"/);
+    assert.match(form[1], /<input type="hidden" name="trial" value="1">/);
+    assert.doesNotMatch(form[1], /name="only"/);
+  }
+  // The visitor's own inputs prefill the form on the 402 page.
+  const own = await (await mf.dispatchFetch('https://api.test/sanctions/check?address=0x1234567890abcdef1234567890abcdef12345678', { headers: browser })).text();
+  assert.match(own, /name="address" type="text" value="0x1234567890abcdef1234567890abcdef12345678"/);
+  // Capacity-limited tools are outside the free calls: no form.
+  assert.doesNotMatch(await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text(), /<form class="try"/);
+});
+
+test('a browser trial result offers another run; refused inputs come back as a page with the reason and the form', async () => {
+  const ok = await (await mf.dispatchFetch('https://api.test/time?zone=UTC&trial=1', { headers: { ...browser, 'cf-connecting-ip': '198.51.100.21' } })).text();
+  assert.match(ok, /Run it again with other inputs/);
+  assert.match(ok, /name="zone" type="text" value="UTC"/);
+  const bad = await mf.dispatchFetch('https://api.test/time?zone=Not%2FA_Zone&trial=1', { headers: { ...browser, 'cf-connecting-ip': '198.51.100.22' } });
+  assert.ok(bad.status >= 400 && bad.status < 500, `status ${bad.status}`);
+  assert.match(bad.headers.get('content-type'), /text\/html/);
+  const html = await bad.text();
+  assert.match(html, /Nothing was charged and this did not use a free call/);
+  assert.match(html, /name="zone" type="text" value="Not\/A_Zone"/, 'keeps what the visitor typed');
+  assert.doesNotMatch(html, /<script/i);
+  const json = await mf.dispatchFetch('https://api.test/time?zone=Not%2FA_Zone&trial=1', { headers: { accept: 'application/json', 'cf-connecting-ip': '198.51.100.23' } });
+  assert.match(json.headers.get('content-type'), /application\/json/, 'code still gets the JSON error');
+});
+
 test('every tool has an indexable page (200, canonical, in the sitemap); the tool URL itself stays a 402', async () => {
   const res = await mf.dispatchFetch('https://api.test/tools/check-counterparty');
   assert.equal(res.status, 200);
