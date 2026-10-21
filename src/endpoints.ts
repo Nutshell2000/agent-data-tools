@@ -81,7 +81,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.005",
     summary: "Domain lookup: DNS, RDAP registration age and email authentication",
     description:
-      "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits.",
+      "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits. For a trust verdict with named flags use domain_report.",
     tags: ["domain", "dns", "whois", "email", "security"],
     params: {
       name: { type: "string", description: "Domain name, e.g. cloudflare.com", required: true, example: "cloudflare.com" },
@@ -111,7 +111,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Domain trust verdict: age, DNS and email-auth flags",
     description:
-      "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee.",
+      "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Raw DNS records: domain.",
     tags: ["domain", "security", "trust", "phishing", "email"],
     params: {
       name: { type: "string", description: "Domain name, e.g. cloudflare.com", required: true, example: "cloudflare.com" },
@@ -226,7 +226,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Summarize a web page from its URL",
     description:
-      "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. HTML pages only; for a PDF use pdf_text, then ai_summarize_text. Use for research, news triage, link previews and deciding whether a page is worth reading in full.",
+      "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. HTML pages only; for a PDF use pdf_text, then ai_summarize_text. Use for research, news triage, link previews and deciding whether a page is worth reading in full. For the full text use extract.",
     tags: ["summary", "web", "llm", "research", "text"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of the page to summarize", required: true, example: "https://en.wikipedia.org/wiki/HTTP_402" },
