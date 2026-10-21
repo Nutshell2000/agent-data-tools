@@ -376,6 +376,27 @@ test("counters are buffered and written once per flush, and kept when a write fa
   assert.equal(failing.records.get(dayKey)["/weather"].challenged, 2);
 });
 
+test("a paid call is written at once, and an old buffer is written by the next request, so eviction loses neither", async () => {
+  // Staging, 21 Oct: a paid call's count was in /metrics at once and gone two minutes later, because the idle
+  // object was evicted with its memory and the alarm woke an empty instance.
+  const { metrics, records } = createMetrics();
+  await metrics.bump("/weather", "challenged", undefined, "crawler");
+  await metrics.bump("/check/counterparty", "paid", 30_000, "node");
+  const row = records.get(dayKey);
+  assert.equal(row["/check/counterparty"].trackedPaidCalls, 1, "no alarm needed");
+  assert.equal(row["/check/counterparty"].revenueUsdMicros, 30_000);
+  assert.equal(row["/weather"].challenged, 1, "the buffered counts go with it");
+  const evicted = new Metrics({ storage: metrics.ctx.storage });
+  assert.equal((await evicted.report())[today]["/check/counterparty"].trackedPaidCalls, 1);
+
+  const quiet = createMetrics();
+  await quiet.metrics.bump("/weather", "challenged");
+  assert.equal(quiet.records.size, 0, "a fresh buffer waits for the flush interval");
+  quiet.metrics.pendingSince = Date.now() - 31_000;
+  await quiet.metrics.bump("/weather", "challenged");
+  assert.equal(quiet.records.get(dayKey)["/weather"].challenged, 2, "a request finding the buffer old writes it");
+});
+
 test("MCP connections are counted per client and mode, capped like callers", async () => {
   const { metrics } = createMetrics();
   await metrics.bumpMcpClient("claude-ai", "account");
