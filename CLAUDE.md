@@ -219,10 +219,13 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 
 - **Counters must not wait for the alarm alone (21 Oct).** An idle Metrics object is evicted with its memory, and the alarm then wakes a new, empty instance. So no paid call was ever counted in production /metrics: bot C's $0.03 is in /revenue but not in /metrics. Staging lost every count for 21 Oct.
   - A paid bump now writes at once.
-  - A request that finds the buffer 30 s old writes it inline.
+  - Any update writes at once when the object's last write is 30 s old or more, so a quiet object writes its first update straight away and a busy one at most once per 30 s. The alarm only covers the tail of a busy spell.
+  - Each isolate sends its own unpaid batch 10 s after the first item, inside `waitUntil`, so a batch no longer waits for a later request in the same isolate (src/lib/metrics-batch.ts). It is still one Metrics call per batch. A generation guard and `wake` stop a second send.
   - `/metrics` sends `X-Metrics-State` (instance start, lastFlushAt, pendingSince, alarmSet, writesBlockedUntil, lastWriteError). Read it before trusting the counts.
-  - Proven on staging: the paid row survived an instance change (13:41:53 → 13:45:04).
-  - Unpaid batches can still be lost when an isolate dies in quiet periods. They are traffic counters; `/revenue` is the money record.
+  - Proven on staging:
+    - A paid row survived an instance change (13:41:53 → 13:45:04).
+    - A lone quote with nothing after it was counted, and read back from a new instance (14:31).
+  - `/revenue` stays the money record; these are traffic counters.
 
 ## People on the buying pages (page_view, referral)
 
