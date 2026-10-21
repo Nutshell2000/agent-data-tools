@@ -56,14 +56,19 @@ function jsonFrom(reply: string): unknown {
  * ({"keywords": [...]}) or a numbered/bulleted list; every one of those is a usable answer, so none fails the call.
  */
 export function keywordList(reply: string): string[] {
-  const clean = (k: unknown) => String(k ?? "").replace(/^\s*(?:\d+[.)]|[-*•])\s*/, "").replace(/^["']|["']$/g, "").trim();
+  // A JSON array that does not parse (cut off, single quotes, a trailing comma) is read line by line below, so
+  // brackets, quotes and commas around each item are stripped too: on 21 Oct a paid call returned "[" and
+  // "\"Cloudflare Workers" as keywords. An item with no letter or digit is dropped.
+  const clean = (k: unknown) => String(k ?? "").trim().replace(/^(?:\d+[.)]|[-*•])\s*/, "")
+    .replace(/^[\s[\]{}"'`]+|[\s[\]{}"'`,]+$/g, "").trim();
+  const real = (k: string) => k.length > 0 && k.length <= 80 && /[\p{L}\p{N}]/u.test(k);
   try {
     const parsed = jsonFrom(reply);
     const arr = Array.isArray(parsed) ? parsed : Object.values(parsed as Record<string, unknown>).find(Array.isArray);
-    if (Array.isArray(arr)) return arr.map(clean).filter((k) => k && k.length <= 80);
+    if (Array.isArray(arr)) return arr.map(clean).filter(real);
   } catch { /* not JSON: read it as a list below */ }
   return reply.replace(/```[a-z]*|```/g, "").split(/\n|,|;/).map(clean)
-    .filter((k) => k && k.length <= 80 && !/^(here|keywords?|key phrases?)\b.*:$/i.test(k));
+    .filter((k) => real(k) && !/^(here|keywords?|key phrases?)\b.*:$/i.test(k));
 }
 
 const text = (q: Input, max = TEXT_MAX) => need(q, "text", max);
