@@ -232,7 +232,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     // discovery examples should continue to trigger the normal 402 challenge.
     const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
     const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(fullDescription(e as Endpoint))}</p><ul>${params}</ul><p class="ex">Example: <a href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
+    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(fullDescription(e as Endpoint))}</p><ul>${params}</ul><p class="ex">Example: <a ${trialsEnabled ? 'rel="nofollow" ' : ""}href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -541,7 +541,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
 }
 
 export const robotsTxt = (origin: string) =>
-  ["User-agent: *", "Allow: /", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
+  ["User-agent: *", "Allow: /", "Disallow: /*trial=1", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
