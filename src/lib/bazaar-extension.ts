@@ -53,3 +53,25 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
 export function listingTags(tags: readonly string[]): string[] {
   return [...tags.filter((t) => !GENERIC_TAGS.has(t)), ...tags.filter((t) => GENERIC_TAGS.has(t))].slice(0, 5);
 }
+
+const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "its", "of", "on", "or", "the", "to", "under", "up", "via", "with", "without"]);
+
+/**
+ * The per-tool `serviceName` in the 402 resource. Zero.xyz names a crawled capability after it and its search
+ * is lexical on that name, so one shared "Agent Data Tools" matched no buyer query. The x402 schema allows
+ * 32 printable ASCII characters: the summary's lead phrase (before a colon), cut at a word within 32 characters,
+ * without trailing filler words. Example: "Weather forecast: current weather…" -> "Weather forecast".
+ */
+export function listingName(summary: string): string {
+  const head = summary.split(":")[0].replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim();
+  if (head.length <= 32) return head || "Agent Data Tools";
+  let words = head.slice(0, 33).split(" ");
+  if (words.length > 1) words.pop(); // the last word may be cut
+  // A connecting word near the end starts a phrase that no longer fits ("…filings for a US"): cut before it.
+  const late = words.map((w) => TRAILING_FILLER.has(w.toLowerCase())).lastIndexOf(true);
+  if (late >= 3 && late >= words.length - 3) words = words.slice(0, late);
+  while (words.length > 1 && TRAILING_FILLER.has(words[words.length - 1].toLowerCase())) words.pop();
+  let name = words.join(" ");
+  if (name.lastIndexOf("(") > name.lastIndexOf(")")) name = name.slice(0, name.lastIndexOf("(")); // no open bracket
+  return name.slice(0, 32).replace(/[\s,(]+$/, "");
+}

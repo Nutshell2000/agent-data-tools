@@ -23,7 +23,7 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
-import { builderCodeExtension, listingTags } from "./lib/bazaar-extension";
+import { builderCodeExtension, listingName, listingTags } from "./lib/bazaar-extension";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
@@ -87,7 +87,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         url: `mcp://tool${e.path}`,
         description: e.description,
         mimeType: "application/json",
-        serviceName: SERVICE_NAME,
+        serviceName: listingName(e.summary),
         iconUrl: SERVICE_ICON_URL,
         tags: listingTags(e.tags),
       },
