@@ -28,18 +28,20 @@ function formatOf(p: Endpoint["params"][string]): { pattern?: string } {
   return {};
 }
 
+/** One input schema for every listing (HTTP 402 and MCP payments): types, enums, patterns and an example each. */
+export function bazaarInputProperties(e: Endpoint) {
+  return Object.fromEntries(
+    Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), examples: [p.example] }]),
+  );
+}
+export const requiredInputs = (e: Endpoint) => Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
+export const listingOutputSchema = (e: Endpoint) => e.outputSchema ?? schemaFromExample(e.outputExample);
+
 export function bazaarExtensionFor(e: Endpoint) {
   return declareDiscoveryExtension({
     input: Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example])),
-    inputSchema: {
-      properties: Object.fromEntries(
-        Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), examples: [p.example] }]),
-      ),
-      required: Object.entries(e.params)
-        .filter(([, p]) => p.required)
-        .map(([k]) => k),
-    },
-    output: { example: e.outputExample, schema: e.outputSchema ?? schemaFromExample(e.outputExample) },
+    inputSchema: { properties: bazaarInputProperties(e), required: requiredInputs(e) },
+    output: { example: e.outputExample, schema: listingOutputSchema(e) },
   });
 }
 

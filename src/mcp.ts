@@ -10,7 +10,6 @@ import { mppEnabled } from "./lib/mpp-credits";
 import { SERVICE_ICON_URL } from "./endpoints";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
-import { schemaFromExample } from "./lib/output-schema";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -24,7 +23,8 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
-import { builderCodeExtension, listingName, listingTags } from "./lib/bazaar-extension";
+import { bazaarInputProperties, builderCodeExtension, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
+import { salesOrdered } from "./lib/discovery-index";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
@@ -96,14 +96,10 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         ...declareDiscoveryExtension({
           toolName: toolName(e),
           description: e.description,
-          inputSchema: {
-            type: "object",
-            properties: Object.fromEntries(
-              Object.entries(e.params).map(([name, p]) => [name, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}) }]),
-            ),
-            required,
-          },
-          output: { example: e.outputExample, schema: schemaFromExample(e.outputExample) },
+          // Same schema as the HTTP listing (examples, patterns, the real output schema), so an MCP settlement lists
+          // the tool as completely as an HTTP one.
+          inputSchema: { type: "object", properties: bazaarInputProperties(e), required },
+          output: { example: e.outputExample, schema: listingOutputSchema(e) },
         }),
         ...builderCodeExtension(),
       },
@@ -130,7 +126,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${Object.keys(MCP_BUNDLES).join(", ")}` }, 404);
   // The signed-in server is what app directories list; their policy excludes AI generation of images,
   // video and audio, so those two tools stay on the open /mcp and HTTP only.
-  const endpoints = account ? catalog.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : catalog;
+  // Sales order, as in /discovery/resources: payee and risk checks first, toys last (tools/list and registration).
+  const endpoints = salesOrdered(account ? catalog.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : catalog);
   const listKey = account ? `${bundle}#account` : bundle;
   const env = c.env;
   if (c.req.method === "POST" && env.METRICS) {
