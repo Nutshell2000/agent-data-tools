@@ -182,3 +182,14 @@ test('a POST with a flat JSON body is the GET with those fields: quoted, not ref
     await res.arrayBuffer();
   }
 });
+
+test('/demo is a static walkthrough page that points at the recording and the free tools', async () => {
+  const res = await mf.dispatchFetch('https://api.test/demo');
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/html/);
+  const html = await res.text();
+  assert.match(html, /<img src="\/demo\.gif"/);
+  assert.match(html, /bc_09e30bdm/);
+  assert.match(html, /href="\/tools\/check-counterparty"/);
+  assert.doesNotMatch(html, /<script/i);
+});
