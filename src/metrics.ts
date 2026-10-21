@@ -53,9 +53,13 @@ function addCounts(a: Counts, b: Counts, cap?: number) {
  * at module level so it outlives the reset of the object instance.
  */
 let writesBlockedUntil = 0;
+/** The last failed counter write, for the X-Metrics-State header on /metrics. */
+let lastWriteError: { at: string; message: string } | null = null;
 const nextUtcMidnight = () => { const d = new Date(); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); };
 function noteWriteError(err: unknown) {
-  if (String(err instanceof Error ? err.message : err).includes("Exceeded allowed rows written")) writesBlockedUntil = nextUtcMidnight();
+  const message = String(err instanceof Error ? err.message : err);
+  lastWriteError = { at: new Date().toISOString(), message: message.slice(0, 200) };
+  if (message.includes("Exceeded allowed rows written")) writesBlockedUntil = nextUtcMidnight();
 }
 const writesBlocked = () => Date.now() < writesBlockedUntil;
 export const __test = { writesBlocked, unblockWrites: () => { writesBlockedUntil = 0; } };
@@ -72,15 +76,44 @@ export class Metrics extends DurableObject {
   /** Unwritten last-success times by path. */
   private pendingLast = new Map<string, string>();
   private alarmSet = false;
+  /** When the oldest unwritten count arrived (0 when nothing is buffered). */
+  private pendingSince = 0;
+  /** When this instance started and last wrote its counters (for the X-Metrics-State header). */
+  private readonly startedAt = new Date().toISOString();
+  private lastFlushAt: string | null = null;
+
+  /** Buffer and write state, so an operator can see from /metrics whether counters are being written. */
+  async flushState() {
+    return {
+      instanceStartedAt: this.startedAt,
+      lastFlushAt: this.lastFlushAt,
+      pendingKeys: this.pending.size,
+      pendingSince: this.pendingSince ? new Date(this.pendingSince).toISOString() : null,
+      alarmSet: this.alarmSet,
+      writesBlockedUntil: writesBlocked() ? new Date(writesBlockedUntil).toISOString() : null,
+      lastWriteError,
+    };
+  }
 
   private add(key: string, counts: Counts) {
     const current = this.pending.get(key) ?? {};
     addCounts(current, counts);
     this.pending.set(key, current);
+    if (!this.pendingSince) this.pendingSince = Date.now();
   }
 
+  /**
+   * An idle object is evicted with its memory, and the alarm then wakes a new, empty instance: on staging on
+   * 21 Oct a paid call's count was in /metrics at once and gone two minutes later, and production never kept a
+   * paid count. So a request that finds the buffer FLUSH_MS old writes it there and then (the same number of
+   * writes as the alarm), and the alarm only covers the quiet tail.
+   */
   private async schedule() {
-    if (this.alarmSet || writesBlocked()) return;
+    if (writesBlocked()) return;
+    if (this.pendingSince && Date.now() - this.pendingSince >= FLUSH_MS) {
+      try { await this.flush(); return; } catch { /* stays buffered; the alarm retries */ }
+    }
+    if (this.alarmSet) return;
     this.alarmSet = true;
     try { await this.ctx.storage.setAlarm(Date.now() + FLUSH_MS); }
     catch (err) { this.alarmSet = false; noteWriteError(err); throw err; }
@@ -91,7 +124,7 @@ export class Metrics extends DurableObject {
     if (!this.pending.size && !this.pendingLast.size) return;
     if (writesBlocked()) return;
     const batch = this.pending, last = this.pendingLast;
-    this.pending = new Map(); this.pendingLast = new Map();
+    this.pending = new Map(); this.pendingLast = new Map(); this.pendingSince = 0;
     try {
       await this.ctx.storage.transaction(async (txn) => {
         for (const [key, counts] of batch) {
@@ -101,6 +134,7 @@ export class Metrics extends DurableObject {
         }
         for (const [path, at] of last) await txn.put(`last:${path}`, at);
       });
+      this.lastFlushAt = new Date().toISOString();
     } catch (err) {
       for (const [key, counts] of batch) this.add(key, counts);
       for (const [path, at] of last) if (!this.pendingLast.has(path)) this.pendingLast.set(path, at);
@@ -198,6 +232,10 @@ export class Metrics extends DurableObject {
 
   async bump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string): Promise<void> {
     this.addBump(path, outcome, revenueUsdMicros, caller);
+    // A paid call is rare and is the count that matters: write it now, with whatever else is buffered.
+    if (outcome === "paid" && !writesBlocked()) {
+      try { await this.flush(); return; } catch { /* stays buffered; the alarm retries */ }
+    }
     await this.schedule();
   }
 

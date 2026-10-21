@@ -217,6 +217,13 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 
 - Durable Object requests are capped too (100,000 a day on the free plan; 55,600 by 16:20 UTC on 20 Oct). Unpaid counter updates (`queueMetricBump` for non-paid outcomes, counted-only funnel stages, MCP connections) are collected per isolate and sent in one `ingest` call at most every 10 s or 500 items (src/lib/metrics-batch.ts); paid outcomes and payment-stage funnel events still go at once. Report routes call `sendBatchNow` first. Usage per day: Cloudflare dashboard → Durable Objects (requests, rows written, duration).
 
+- **Counters must not wait for the alarm alone (21 Oct).** An idle Metrics object is evicted with its memory, and the alarm then wakes a new, empty instance. So no paid call was ever counted in production /metrics: bot C's $0.03 is in /revenue but not in /metrics. Staging lost every count for 21 Oct.
+  - A paid bump now writes at once.
+  - A request that finds the buffer 30 s old writes it inline.
+  - `/metrics` sends `X-Metrics-State` (instance start, lastFlushAt, pendingSince, alarmSet, writesBlockedUntil, lastWriteError). Read it before trusting the counts.
+  - Proven on staging: the paid row survived an instance change (13:41:53 → 13:45:04).
+  - Unpaid batches can still be lost when an isolate dies in quiet periods. They are traffic counters; `/revenue` is the money record.
+
 ## People on the buying pages (page_view, referral)
 
 - A browser GET (`isBrowser`) that returns 200 on `/`, `/tools`, `/tools/<slug>`, `/credits` or `/credits/claim` counts `page_view` at that path, and `referral` at `/from/<family>` (google, bing, duckduckgo, chatgpt, claude, perplexity, github, reddit, hackernews, glama, mcpso, x402scan, zero, yandex, other, internal, direct; `referrerFamily` in src/lib/funnel.ts). Only the family name is kept. Both are counted-only and batched. Read them in the /revenue funnel: page views, then free trials (`free_call`), `free_exhausted`, card purchases.
