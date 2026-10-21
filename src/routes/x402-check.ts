@@ -2,8 +2,12 @@
 // what directories and buying agents look for. Buyers vet a seller before signing; sellers
 // debug why a listing is not discovered. Fetches go through the public-fetch guard.
 import { decodePaymentRequiredHeader } from "@x402/core/http";
+import { getAddress } from "viem";
 import { entry, type Entry } from "../family";
-import { HttpError } from "../lib/env";
+import { HttpError, isAddress } from "../lib/env";
+import { CHAINS, client, rpc } from "./chain-reads";
+import { domainReport } from "./domain-report";
+import { screen, sdnIndex } from "./sanctions";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { USDC_BY_NETWORK } from "../lib/networks";
 
@@ -108,4 +112,90 @@ export const X402_CHECK: Entry[] = [
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
       return analyze(target.href, res.status, res.headers.get("payment-required"), body);
     }, "$0.003"),
+  // The audit paying agents buy before trusting a new seller (21 Oct: our buyer pays for x402 audits elsewhere):
+  // the decoded terms plus who gets the money (OFAC, account type on the payment chain) and how old the domain is.
+  entry("/check/x402-seller", "x402 seller audit: vet a paid endpoint's terms, payTo and domain before buying",
+    "Audit an x402 seller before an agent buys from it: decodes the endpoint's 402 terms without paying, OFAC-screens each payTo address, reads its account type and nonce on the payment network, checks the seller domain's age and trust flags, and flags non-USDC assets and high prices. One block, review or pass verdict with reasons. Never signs. Screening aid, not legal advice. Use before the first payment to an unfamiliar x402 seller.",
+    ["x402", "payee-screening", "sanctions", "payments", "agents", "compliance"], {
+      url: { type: "string", description: "Absolute public https URL of the paid endpoint, with any query it needs", required: true, example: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees" },
+    },
+    {
+      url: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees", verdict: "pass", reasons: [],
+      terms: { paywalled: true, x402Version: 2, score: 1, accepts: [{ network: "eip155:8453", payTo: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", priceUsd: 0.002, assetIsNativeUsdc: true }] },
+      payees: [{ payTo: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", network: "eip155:8453", sanctioned: false, sanctionMatches: [], accountType: "eoa-delegated", accountNonce: 1 }],
+      domain: { name: "agent-data-tools.revmesh2074.workers.dev", trust: "medium", ageDays: 2812, registeredAt: "2019-02-08T20:36:47.904Z", flags: [{ level: "medium", code: "few_nameservers", message: "Fewer than two nameservers." }] },
+      sanctionsListDate: "2026-10-17T20:15:00.000Z",
+      limitations: [],
+      note: "Screening aid only: confirm any sanctions match against the official OFAC record; a pass is not a guarantee the seller delivers.",
+    },
+    async (env, q) => {
+      const target = parseTarget(q("url"));
+      const res = target.hostname === SELF_HOST && env.SELF
+        ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" } })
+        : await fetchPublic(target, "application/json", [402]);
+      const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
+      const terms = analyze(target.href, res.status, res.headers.get("payment-required"), body);
+      const limitations: string[] = [];
+      // One account read per distinct payTo (at most 4), on its first network we can read; every payTo is screened.
+      const byPayee = new Map<string, (typeof terms.accepts)[number]>();
+      for (const a of terms.accepts) {
+        const key = a.payTo?.toLowerCase();
+        if (!key) continue;
+        const known = byPayee.get(key);
+        if (!known || (!CHAIN_BY_NETWORK[known.network ?? ""] && CHAIN_BY_NETWORK[a.network ?? ""])) byPayee.set(key, a);
+      }
+      const targets = [...byPayee.values()].slice(0, 4);
+      const [index, domain, payees] = await Promise.all([
+        sdnIndex(),
+        domainReport(env, target.hostname.replace(/^www\./, "")).then(
+          (r) => ({ name: r.domain, trust: r.trust, ageDays: r.facts.ageDays, registeredAt: r.facts.registeredAt, flags: r.flags }),
+          () => { limitations.push("domain registration data was unavailable, so domain age is not assessed"); return null; },
+        ),
+        Promise.all(targets.map(async (a) => {
+          const chain = CHAINS.find((c) => c.slug === CHAIN_BY_NETWORK[a.network ?? ""]);
+          if (!chain || !isAddress(a.payTo!)) {
+            limitations.push(`payTo ${a.payTo} on ${a.network}: account type not read (network not supported here)`);
+            return { payTo: a.payTo!, network: a.network, accountType: null, accountNonce: null };
+          }
+          const cl = client(env, chain);
+          const owner = getAddress(a.payTo!);
+          const [code, nonce] = await Promise.all([rpc(() => cl.getCode({ address: owner })), rpc(() => cl.getTransactionCount({ address: owner }))]);
+          return { payTo: a.payTo!, network: a.network, accountType: !code || code === "0x" ? "eoa" : code.startsWith("0xef0100") ? "eoa-delegated" : "contract", accountNonce: nonce };
+        })),
+      ]);
+      const screened = payees.map((p) => { const m = screen(index, p.payTo, undefined); return { ...p, sanctioned: m.length > 0, sanctionMatches: m }; });
+      return {
+        url: target.href,
+        ...sellerVerdict(terms, screened, domain?.flags ?? []),
+        terms: { paywalled: terms.paywalled, x402Version: terms.x402Version, score: terms.score, accepts: terms.accepts.map((a) => ({ network: a.network, payTo: a.payTo, priceUsd: a.priceUsd, assetIsNativeUsdc: a.assetIsNativeUsdc })) },
+        payees: screened.map(({ payTo, network, sanctioned, sanctionMatches, accountType, accountNonce }) => ({ payTo, network, sanctioned, sanctionMatches, accountType, accountNonce })),
+        domain,
+        sanctionsListDate: index.listDate,
+        limitations,
+        note: "Screening aid only: confirm any sanctions match against the official OFAC record; a pass is not a guarantee the seller delivers.",
+      };
+    }, "$0.01"),
 ];
+
+/** CAIP-2 network to the chain-reads slug. */
+const CHAIN_BY_NETWORK: Record<string, string> = { "eip155:8453": "base", "eip155:1": "eth", "eip155:42161": "arb", "eip155:10": "op", "eip155:137": "polygon" };
+/** Above this a single call is unusual for an agent tool, so it is worth a second look (not a block). */
+const HIGH_PRICE_USD = 1;
+
+/** block on a sanctioned payTo; review on missing terms, a non-USDC asset, a high price or a high domain flag; else pass. */
+export function sellerVerdict(
+  terms: { paywalled: boolean; accepts: { priceUsd: number | null; assetIsNativeUsdc: boolean }[] },
+  payees: { payTo: string; sanctioned: boolean; sanctionMatches: Record<string, unknown>[] }[],
+  domainFlags: { level: string; message: string }[],
+) {
+  const reasons: string[] = [];
+  for (const p of payees.filter((p) => p.sanctioned)) reasons.push(`payTo ${p.payTo} is on the OFAC SDN list (${[...new Set(p.sanctionMatches.map((m) => m.name))].join(", ")})`);
+  const blocked = reasons.length > 0;
+  if (!terms.paywalled || !terms.accepts.length) reasons.push("the endpoint did not answer 402 with x402 payment terms");
+  if (terms.accepts.length && !terms.accepts.some((a) => a.assetIsNativeUsdc)) reasons.push("no payment option uses native USDC; check the asset before signing");
+  const price = Math.min(...terms.accepts.map((a) => a.priceUsd ?? Infinity));
+  if (Number.isFinite(price) && price > HIGH_PRICE_USD) reasons.push(`the cheapest option costs $${price} per call`);
+  const domainHigh = domainFlags.filter((f) => f.level === "high");
+  if (domainHigh.length) reasons.push(`seller domain: ${domainHigh.map((f) => f.message).join(" ")}`);
+  return { verdict: blocked ? "block" : reasons.length ? "review" : "pass", reasons };
+}
