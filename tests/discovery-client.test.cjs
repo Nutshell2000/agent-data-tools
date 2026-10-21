@@ -127,3 +127,10 @@ test("reader documentation is canonical across owned discovery metadata", async 
   assert.match(html, /rel="canonical" href="https:\/\/api.example.test\/"/);
   assert.ok(html.indexOf("Buy one page") < html.indexOf("Tools and prices"));
 });
+
+test("the registry description in server.json states the live tool count", async () => {
+  const manifest = require("../server.json");
+  const discovery = await loadTypeScript(require.resolve("../src/discovery.ts"));
+  assert.match(manifest.description, new RegExp(`^${discovery.ENDPOINTS.length} agent tools: `), "update server.json when tools are added or removed");
+  assert.ok(manifest.description.length <= 100, "the MCP Registry allows 100 characters");
+});
