@@ -1,5 +1,5 @@
 {
-  "version": "1.45.3",
+  "version": "1.45.4",
   "tools": [
     {
       "name": "extract",
@@ -1905,7 +1905,7 @@
     },
     {
       "name": "eth_tx",
-      "description": "Look up a Ethereum transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use eth_receipt, for emitted events eth_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0x9531467e03a57bbb5cd080439ac3b10c0cefed147282eb2ff709b02c897afcbf. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up an Ethereum transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use eth_receipt, for emitted events eth_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0x9531467e03a57bbb5cd080439ac3b10c0cefed147282eb2ff709b02c897afcbf. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2188,7 +2188,7 @@
     },
     {
       "name": "arb_tx",
-      "description": "Look up a Arbitrum One transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use arb_receipt, for emitted events arb_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0xf03682db039f7b1b72ddf4d17572738f142cf63ecb36c90afa570430ea9774c4. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up an Arbitrum One transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use arb_receipt, for emitted events arb_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0xf03682db039f7b1b72ddf4d17572738f142cf63ecb36c90afa570430ea9774c4. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2471,7 +2471,7 @@
     },
     {
       "name": "op_tx",
-      "description": "Look up a Optimism transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use op_receipt, for emitted events op_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0x721f3e9a996da49e2a8929bd2dd42e0f51344c11d7ca7bc3328fda349cdfae89. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up an Optimism transaction by hash: sender, recipient, value in ETH, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use op_receipt, for emitted events op_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged. Example: hash=0x721f3e9a996da49e2a8929bd2dd42e0f51344c11d7ca7bc3328fda349cdfae89. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

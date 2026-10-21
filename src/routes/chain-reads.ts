@@ -172,7 +172,7 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("tx"), `${c.name} transaction`,
-      `Look up a ${c.name} transaction by hash: sender, recipient, value in ${c.symbol}, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use ${c.slug}_receipt, for emitted events ${c.slug}_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged.`,
+      `Look up ${/^[AEIOU]/.test(c.name) ? "an" : "a"} ${c.name} transaction by hash: sender, recipient, value in ${c.symbol}, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use ${c.slug}_receipt, for emitted events ${c.slug}_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged.`,
       tags("transaction", "chain-data"), { hash: { type: "string", description: "0x-prefixed transaction hash (64 hex characters)", required: true, example: EX_TX[c.slug] } },
       head({ hash: EX_TX[c.slug], from: "0x…", to: "0x…", value: "0.0", nonce: 12, gas: "65000", selector: "0xa9059cbb", inputBytes: 68, block: 123456789 }),
       async (env, q) => {
