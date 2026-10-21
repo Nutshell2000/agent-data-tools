@@ -1,5 +1,5 @@
 {
-  "version": "1.46.0",
+  "version": "1.47.0",
   "tools": [
     {
       "name": "extract",
@@ -3409,6 +3409,30 @@
         ]
       },
       "price": "$0.003"
+    },
+    {
+      "name": "check_x402_seller",
+      "description": "Audit an x402 seller before an agent buys from it: decodes the endpoint's 402 terms without paying, OFAC-screens each payTo address, reads its account type and nonce on the payment network, checks the seller domain's age and trust flags, and flags non-USDC assets and high prices. One block, review or pass verdict with reasons. Never signs. Screening aid, not legal advice. Use before the first payment to an unfamiliar x402 seller. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "json_validate",
