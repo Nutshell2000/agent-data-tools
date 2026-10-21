@@ -213,6 +213,15 @@ people it sends now land on a page that converts (free trial, card from $5) inst
 
 - A browser GET (`isBrowser`) that returns 200 on `/`, `/tools`, `/tools/<slug>`, `/credits` or `/credits/claim` counts `page_view` at that path, and `referral` at `/from/<family>` (google, bing, duckduckgo, chatgpt, claude, perplexity, github, reddit, hackernews, glama, mcpso, x402scan, zero, yandex, other, internal, direct; `referrerFamily` in src/lib/funnel.ts). Only the family name is kept. Both are counted-only and batched. Read them in the /revenue funnel: page views, then free trials (`free_call`), `free_exhausted`, card purchases.
 
+## "Try it with your own inputs" (browser pages)
+
+- `tryForm()` (src/lib/try-form.ts) puts a plain GET form, with no script, on `/tools/<slug>`, on the 402 page a browser gets, and on the free-trial result page ("Run it again with other inputs"). It covers only tools in the free calls.
+  - Fields are the required inputs plus the published example's inputs, at most 6, never `only`.
+  - Fields are prefilled with what the visitor sent, or else the example. The form submits to the tool URL with `trial=1`.
+- A browser trial that the tool refuses with a 4xx gets `browserTrialErrorPage`: the tool's error message, "nothing was charged and this did not use a free call", and the form with what the visitor typed. Code still gets the JSON error.
+- Before this, a visitor could only run the canned example (London, one fixed wallet).
+- Tests: tests/browser-402.test.cjs.
+
 ## Search copy on tool pages
 
 - `TOOL_SEO` (src/lib/tool-seo.ts) gives 20 likely-searched tools a search-phrased title and h1, a "When to use it" list and a FAQ (also published as schema.org FAQPage). The page adds the "How do I pay?" answer itself from its free-call flag. Copy may only restate what the tool's description and limits say. `/tools/<slug>` no longer offers "Run it free" on capacity-limited tools (AI, rendering, transcription, search), which are outside the free calls. Tests: tests/browser-402.test.cjs.

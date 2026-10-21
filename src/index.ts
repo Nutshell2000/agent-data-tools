@@ -8,7 +8,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
-import { browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
+import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
@@ -233,8 +233,17 @@ app.use(async (c, next) => {
         const headers = new Headers(c.res.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.delete("content-length");
-        const page = browserTrialResultPage(endpoint, await c.res.text(), free.left);
+        const page = browserTrialResultPage(endpoint, await c.res.text(), free.left, c.req.url);
         c.res = undefined as never; // Hono copies an existing response's headers into the next one
+        c.res = new Response(page, { status, headers });
+      } else if (c.res.status >= 400 && c.res.status < 500 && isBrowser(c.req.header("accept"), c.req.header("user-agent")) && (c.res.headers.get("content-type") ?? "").includes("application/json")) {
+        // Own inputs from the "Try it" form that the tool refused: say why on a page with the form, not raw JSON.
+        const { status } = c.res;
+        const headers = new Headers(c.res.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.delete("content-length");
+        const page = browserTrialErrorPage(endpoint, await c.res.text(), free.left + 1, c.req.url);
+        c.res = undefined as never;
         c.res = new Response(page, { status, headers });
       }
       return;
