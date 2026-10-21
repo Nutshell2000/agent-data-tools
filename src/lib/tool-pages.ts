@@ -5,6 +5,7 @@ import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { TOOL_SEO } from "./tool-seo";
+import { TRY_FORM_CSS, tryForm } from "./try-form";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -65,6 +66,7 @@ h2{font-size:1.1rem;margin:30px 0 8px}pre{background:var(--card);border:1px soli
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}p{margin:8px 0}a{color:var(--accent)}
 table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
 .wrap{overflow-x:auto}ul.related{padding-left:20px}footer{margin-top:36px;color:var(--muted);font-size:.9rem}
+${freeCalls ? TRY_FORM_CSS : ""}
 </style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/tools">${esc(category)}</a></nav>
 <h1>${esc(heading)}</h1>
@@ -76,6 +78,7 @@ ${freeCalls ? `<a class="btn primary" href="${esc(`${e.path}?${query}&trial=1`)}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
 <a class="btn" href="${esc(`${e.path}?${query}&sample=1`)}">Example result (JSON)</a>
 </div>
+${freeCalls ? tryForm(e) : ""}
 ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>Type</th><th>Description</th></tr>${params.map(([name, p]) => `<tr><td><code>${esc(name)}</code>${p.required ? " (required)" : ""}</td><td>${esc(p.type)}</td><td>${esc(p.description)}${p.enum ? `${/[.!?]$/.test(p.description) ? "" : "."}` : ""}${p.enum ? ` One of: ${p.enum.map((v) => `<code>${esc(v)}</code>`).join(", ")}.` : ""}</td></tr>`).join("")}</table></div>` : ""}
 <h2>Request</h2>
 <p>Over HTTP, with a card key from <a href="/credits">/credits</a>:</p>
