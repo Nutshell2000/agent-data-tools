@@ -112,4 +112,76 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Run a quick completion without an account or provider key", "Give an agent a cheap model for summaries or classification", "Use the same key through the OpenAI-compatible /v1/chat/completions"],
     faq: [["Is there an OpenAI-compatible endpoint?", "Yes: /v1/chat/completions, /v1/responses and /v1/embeddings take the same payment methods."]],
   },
+  // Added 21 Oct 2026 for the job categories agents and people search for most (email verification, company data,
+  // weather, screenshots, domains, filings, chain reads); each line restates the tool's own description.
+  "/email": {
+    title: "Email verification API: syntax, MX and disposable checks",
+    uses: ["Check an address before sending mail or saving a signup", "Flag disposable, role and free-provider addresses", "See whether the domain has MX records and SPF/DMARC"],
+    faq: [["Does it send an email?", "No. No message is sent and the mail server is not contacted; the result comes from syntax and DNS signals."], ["Does it prove the mailbox exists?", "No. It returns likely-deliverable, risky, undeliverable or invalid with reasons, which are signals, not proof of delivery."]],
+  },
+  "/company": {
+    title: "Company data API: website, founders, tickers and LEI",
+    uses: ["Enrich a lead, vendor or counterparty with its official website and country", "Look up founding date, headquarters, CEO, parent company and employee count", "Find a listed company's stock tickers, exchanges and LEI"],
+    faq: [["Where does the data come from?", "Wikidata (public domain, CC0), with Wikidata and Wikipedia links. It is best for established and listed companies."], ["What if there is no match?", "The call returns 404 and is not charged."]],
+  },
+  "/weather": {
+    title: "Weather API: current weather and 48-hour forecast by city",
+    uses: ["Get the current temperature, conditions, wind and humidity for a city or coordinates", "Plan travel, events or logistics with an hourly forecast up to 48 hours", "Give an AI agent the weather without a provider account"],
+    faq: [["Where does the forecast come from?", "The Norwegian Meteorological Institute (MET Norway); city names resolve via Wikidata."], ["Can I use coordinates instead of a city?", "Yes, pass lat and lon instead of city."]],
+  },
+  "/screenshot": {
+    title: "Website screenshot API: capture any web page as an image",
+    uses: ["Capture a page as a JPEG after its JavaScript has run", "Make page previews or monitor how a page looks", "Feed a page to a vision model"],
+    faq: [["How large is the image?", "1280 px wide; with fullPage=true up to 4000 px of page height, returned as base64 with the final URL, status and title."]],
+  },
+  "/domain": {
+    title: "Domain lookup API: DNS records, WHOIS age and SPF/DMARC",
+    uses: ["See a domain's DNS records, registrar and registration and expiry dates", "Check domain age before trusting a lead or a sender", "Audit SPF and DMARC for email deliverability"],
+    faq: [["Which records are included?", "A, AAAA, CNAME, MX, NS, TXT and CAA, plus DNSSEC status, RDAP/WHOIS dates and the SPF and DMARC policies."]],
+  },
+  "/domain-report": {
+    title: "Domain trust check API: phishing and new-domain flags",
+    uses: ["Get a high, medium or low trust verdict for a domain in one call", "Catch very new registrations, weak SPF/DMARC and non-resolving domains", "Check a domain before an agent emails or trusts it"],
+    faq: [["Is the verdict a guarantee?", "No. It lists named signals such as new registration or missing DMARC; it is not a guarantee."]],
+  },
+  "/sec/filings": {
+    title: "SEC EDGAR filings API: 10-K, 10-Q, 8-K and Form 4 by ticker",
+    uses: ["Find a US-listed company's latest annual or quarterly report", "Watch insider trades (Form 4) and material events (8-K)", "Get direct links to filings by stock ticker or CIK"],
+    faq: [["Can I ask for one form type?", "Yes, pass form (for example 10-K or 4) to get only that type, newest first."], ["Where does the data come from?", "SEC EDGAR, public SEC data."]],
+  },
+  "/hyperliquid/market": {
+    title: "Hyperliquid funding rate and open interest API",
+    uses: ["Check a perp's hourly funding rate and its APR", "See open interest, 24-hour volume and mark price for BTC, ETH, SOL and more", "List the 20 most traded Hyperliquid markets"],
+    faq: [["Where does the data come from?", "Hyperliquid's public API, read at call time."]],
+  },
+  "/airport/status": {
+    title: "US airport delay API: FAA ground stops and closures",
+    uses: ["Check an airport for ground stops, delays or closures before travel", "Warn customers or plan logistics around airport delays", "See every US airport with active delays at once"],
+    faq: [["Which airports?", "US airports in the FAA National Airspace System status, by IATA code such as LGA, or all of them when no code is given."], ["How fresh is it?", "Public FAA data, refreshed about every minute."]],
+  },
+  "/eth/balance": {
+    title: "Ethereum balance API: ETH balance of any wallet address",
+    uses: ["Check whether a wallet can pay gas or a transfer", "Read the ETH balance at the latest block in wei and ETH", "Add a balance check to an agent before it sends funds"],
+    faq: [["Does it include tokens?", "No, native ETH only; eth_token_balance reads ERC-20 tokens and wallet_portfolio lists all holdings."], ["What about a bad address?", "A malformed address is rejected with 400 and not charged."]],
+  },
+  "/eth/gas": {
+    title: "Ethereum gas price API: base fee, tip and transfer cost",
+    uses: ["Get the current gas price, base fee and suggested priority fee in gwei", "See what a plain ETH transfer costs right now", "Decide whether to send a transaction now or wait"],
+    faq: [["Does it need any input?", "No. It takes no input and reads the latest Ethereum gas data."]],
+  },
+  "/geocode": {
+    title: "Geocoding API: place name to latitude and longitude",
+    uses: ["Turn a city, town or landmark name into coordinates", "Tell two places with the same name apart by country and region", "Prepare coordinates for weather, sun or distance lookups"],
+    faq: [["Where does the data come from?", "Wikidata (CC0), best match first, with population and elevation where recorded."]],
+  },
+  "/extract/rendered": {
+    title: "JavaScript page scraper API: rendered page to Markdown",
+    uses: ["Scrape single-page apps that come back empty without a browser", "Get the text of pages that build their content with JavaScript", "Fall back here when /extract returns too little text"],
+    faq: [["How long does it wait?", "It renders the page in a real browser and waits for the network to settle, up to 15 seconds."], ["Can it log in?", "No. Public pages only."]],
+  },
+  "/url/meta": {
+    title: "Link preview API: OpenGraph and Twitter card metadata",
+    uses: ["Build link previews with title, description and image", "Check how a URL will unfurl before sharing it", "Label citations with site name, author and published time"],
+    faq: [["Does it run JavaScript?", "No. It reads at most 512 KB of the page's head and never runs JavaScript."]],
+  },
 };
