@@ -13,6 +13,7 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { schemaFromExample } from "./lib/output-schema";
 import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { CAPACITY_LIMITED, ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, isUpstreamFailure, type Env } from "./lib/env";
@@ -227,5 +228,17 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(listKey) ?? (listedTools.set(listKey, endpoints.map(protocolTool)), listedTools.get(listKey)!)}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
-  return (await transport.handleRequest(c)) ?? c.body(null, 204);
+  try {
+    return (await transport.handleRequest(c)) ?? c.body(null, 204);
+  } catch (err) {
+    // @hono/mcp rejects transport problems (an unsupported MCP-Protocol-Version, a wrong Accept header) with an
+    // HTTPException that carries its JSON-RPC answer; app.onError turned it into a 500, so health probes sending
+    // the 2026-07-28 version logged us as broken. Pass the answer on, with the spec's 400 for an unknown version
+    // (the library says 404, which clients read as an expired session).
+    if (!(err instanceof HTTPException)) throw err;
+    const res = err.getResponse();
+    const body = await res.text();
+    const status = /unsupported protocol version/i.test(body) ? 400 : res.status;
+    return new Response(body, { status, headers: res.headers });
+  }
 }
