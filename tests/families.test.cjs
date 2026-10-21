@@ -143,6 +143,12 @@ test("AI tools parse model output, keep labels and fields within what was asked,
 
   const kw = await call("/ai/keywords", { response: '["a","b","a","c"]' }, { text: "t", count: "3" });
   assert.deepEqual(kw.keywords, ["a", "b", "c"]);
+  // A JSON array that does not parse (cut off, single quotes, trailing comma) still yields clean keywords:
+  // a paid staging call on 21 Oct returned "[" and "\"Cloudflare Workers" as keywords.
+  for (const response of ['[\n  "Cloudflare Workers",\n  "JavaScript",\n  "edge computing"', "['Cloudflare Workers', 'JavaScript', 'edge computing']", '["Cloudflare Workers", "JavaScript", "edge computing",]']) {
+    const broken = await call("/ai/keywords", { response }, { text: "t" });
+    assert.deepEqual(broken.keywords, ["Cloudflare Workers", "JavaScript", "edge computing"], response);
+  }
 
   const s = await call("/ai/sentiment", [{ label: "NEGATIVE", score: 0.1 }, { label: "POSITIVE", score: 0.9 }], { text: "great" });
   assert.equal(s.label, "POSITIVE");
