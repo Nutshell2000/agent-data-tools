@@ -103,6 +103,19 @@ test('a browser trial result offers another run; refused inputs come back as a p
   assert.match(json.headers.get('content-type'), /application\/json/, 'code still gets the JSON error');
 });
 
+test('the homepage offers one-click MCP installs (Cursor, VS Code) and the Claude Code command', async () => {
+  const html = await (await mf.dispatchFetch('https://api.test/', { headers: browser })).text();
+  const cursor = /href="cursor:\/\/anysphere\.cursor-deeplink\/mcp\/install\?name=agent-data-tools&amp;config=([^"]+)"/.exec(html);
+  assert.ok(cursor, 'Cursor deep link');
+  assert.deepEqual(JSON.parse(Buffer.from(decodeURIComponent(cursor[1]), 'base64').toString()), { url: 'https://api.test/mcp' });
+  const vscode = /href="vscode:mcp\/install\?([^"]+)"/.exec(html);
+  assert.ok(vscode, 'VS Code deep link');
+  assert.deepEqual(JSON.parse(decodeURIComponent(vscode[1])), { name: 'agent-data-tools', type: 'http', url: 'https://api.test/mcp' });
+  assert.match(html, /href="vscode-insiders:mcp\/install\?/);
+  assert.match(html, /claude mcp add --transport http agent-data-tools https:\/\/api\.test\/mcp/);
+  assert.match(html, /https:\/\/api\.test\/mcp\/account/);
+});
+
 test('every tool has an indexable page (200, canonical, in the sitemap); the tool URL itself stays a 402', async () => {
   const res = await mf.dispatchFetch('https://api.test/tools/check-counterparty');
   assert.equal(res.status, 200);
