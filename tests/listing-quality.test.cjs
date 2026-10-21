@@ -146,6 +146,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/weather", ["weather"]],
     ["/domain", ["domain"]],
     ["/check/counterparty", ["payee"]],
+    ["/check/payee", ["payee"]],
     ["/sanctions/check", ["sanctions"]],
     ["/token-report", ["token", "honeypot"]],
     ["/x402/check", ["x402"]],

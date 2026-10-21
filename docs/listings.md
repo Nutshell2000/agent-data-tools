@@ -19,7 +19,7 @@ Token prices, OFAC sanctions checks, chain reads, web/PDF reading and LLM calls 
 
 ## Long description (under 500 characters)
 
-Agent Data Tools sells single tool calls to AI agents over MCP or HTTP. Try 25 calls free, then pay per call with x402 (USDC on Base, Polygon, Arbitrum, Monad, World Chain) or MPP (USDC on Base, USDC.e on Tempo), or by card with prepaid credits; failed calls are never charged. OpenAI-compatible /v1 chat, Responses and embeddings endpoints run on the same tools. Main jobs: value tokens and wallets, vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, verdict), and read the web (pages, JavaScript apps, PDFs, RSS). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.003.
+Agent Data Tools sells single tool calls to AI agents over MCP or HTTP. Try 25 calls free, then pay per call with x402 (USDC on Base, Polygon, Arbitrum, Monad, World Chain) or MPP (USDC on Base, USDC.e on Tempo), or by card with prepaid credits; failed calls are never charged. OpenAI-compatible /v1 chat, Responses and embeddings endpoints run on the same tools. Main jobs: value tokens and wallets, screen a payee before paying or vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, verdict), and read the web (pages, JavaScript apps, PDFs, RSS). Plus chain reads on five EVM chains and everyday utilities. Most calls cost $0.003.
 
 ## Categories / tags
 
@@ -35,7 +35,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 - Smaller MCP servers, one per section:
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 13 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 11 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 13 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 14 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 64 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/ai (AI text, 15 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/everyday (everyday data, 11 tools)

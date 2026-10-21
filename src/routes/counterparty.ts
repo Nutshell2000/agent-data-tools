@@ -28,6 +28,11 @@ export function verdict(matches: Record<string, unknown>[], account: Risk, contr
 }
 
 const CHAIN_SLUGS = ["base", "eth", "arb", "op"] as [string, ...string[]];
+/** Every chain we read, since a payee check needs no Base-only heuristics. */
+const PAYEE_CHAINS = ["base", "eth", "arb", "op", "polygon"] as [string, ...string[]];
+
+/** eoa, eoa-delegated (EIP-7702) or contract, from the address's code. */
+const accountType = (code: string | undefined) => (!code || code === "0x" ? "eoa" : code.startsWith("0xef0100") ? "eoa-delegated" : "contract");
 
 /** The payee's domain from a bare name or a URL ("https://shop.example.com/pay" -> "shop.example.com"). */
 export function payeeDomain(raw: string | undefined): string | undefined {
@@ -77,7 +82,7 @@ export const COUNTERPARTY: Entry[] = [
           sdnIndex(), holdingsOf(), rpc(() => cl.getCode({ address: owner })), rpc(() => cl.getTransactionCount({ address: owner })), domainPart(env, domainName),
         ]);
         const matches = screen(index, address, undefined);
-        const type = !code || code === "0x" ? "eoa" : code.startsWith("0xef0100") ? "eoa-delegated" : "contract";
+        const type = accountType(code);
         return {
           address: getAddress(address), chain: slug,
           ...verdict(matches, { riskLevel: "not-assessed", riskFlags: [] }, null, domain?.flags),
@@ -109,4 +114,44 @@ export const COUNTERPARTY: Entry[] = [
         note,
       };
     }, "$0.03"),
+  // The one-cent job paying agents buy most at other sellers (21 Oct: "screen a payee before paying", sanctions plus
+  // domain age): one SDN lookup and two RPC reads on one chain, no holdings or audits, so it answers in about a second.
+  entry("/check/payee", "Payee preflight check: OFAC screen an address before paying, plus account type and domain age",
+    "Fast check of a payee before an agent pays it: OFAC SDN match on the address, account type (wallet, delegated wallet or contract) and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon, and optionally the payee domain's age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice. Use before an x402 or USDC payment to an unfamiliar address; holdings and wallet heuristics: check_counterparty.",
+    ["payee-screening", "sanctions", "ofac", "payments", "x402", "compliance", "wallet", "base"], {
+      address: { type: "string", description: "0x address you are about to pay", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
+      chain: { type: "string", description: "Network of the payment: base (default), eth, arb, op or polygon", enum: PAYEE_CHAINS, example: "base" },
+      domain: { type: "string", description: "Optional: the payee's domain or website URL, e.g. ethereum.org; adds domain age and trust flags", example: "ethereum.org" },
+    },
+    {
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "base", verdict: "pass", reasons: [],
+      sanctions: { listed: false, matches: [], listDate: "2026-10-17T20:15:00.000Z" },
+      account: { type: "eoa", accountNonce: 1234 },
+      domain: { name: "ethereum.org", trust: "high", ageDays: 4100, registeredAt: "2015-03-21T00:00:00Z", flags: [] },
+      limitations: [],
+      note: "Screening aid only: confirm any sanctions match against the official OFAC record.",
+    },
+    async (env, q) => {
+      const address = q("address")?.trim() ?? "";
+      if (!isAddress(address)) throw new HttpError(400, "address must be a 0x-prefixed 20-byte hex address, e.g. 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+      const slug = pick(q, "chain", PAYEE_CHAINS, "base");
+      const domainName = payeeDomain(q("domain"));
+      const cl = client(env, CHAINS.find((c) => c.slug === slug)!);
+      const owner = getAddress(address);
+      const [index, code, nonce, domain] = await Promise.all([
+        sdnIndex(), rpc(() => cl.getCode({ address: owner })), rpc(() => cl.getTransactionCount({ address: owner })), domainPart(env, domainName),
+      ]);
+      const matches = screen(index, address, undefined);
+      const type = accountType(code);
+      return {
+        address: owner, chain: slug,
+        ...verdict(matches, { riskLevel: "not-assessed", riskFlags: [] }, null, domain?.flags),
+        sanctions: { listed: matches.length > 0, matches, listDate: index.listDate },
+        account: { type, accountNonce: nonce },
+        domain,
+        // A fresh receiving address is normal for a payee, so it is reported, not counted against the verdict.
+        limitations: type === "eoa" && nonce === 0 ? [`no outgoing transactions on ${slug}: a new receiving address is common, but confirm it with the payee if it should be an established one`] : [],
+        note: "Screening aid only: confirm any sanctions match against the official OFAC record.",
+      };
+    }, "$0.01"),
 ];
