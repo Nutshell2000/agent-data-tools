@@ -10,6 +10,7 @@ import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
+import { demoPage } from "./lib/demo-page";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard } from "./discovery";
@@ -441,6 +442,9 @@ app.on(["GET", "HEAD"], "/examples/extract/", c => c.env.ASSETS.fetch(new Reques
 for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/reader/*"]) {
   app.on(["GET", "HEAD"], prefix, async c => readerAssets.has(c.req.path) ? await c.env.ASSETS.fetch(c.req.raw) : c.json({ error: "not found" }, 404));
 }
+// Product walkthrough: one stable demo link on our own domain (src/lib/demo-page.ts, recording in public/demo.gif).
+app.get("/demo", c => c.html(demoPage(origin(c.req.url), ENDPOINTS.length)));
+app.on(["GET", "HEAD"], "/demo.gif", c => c.env.ASSETS.fetch(c.req.raw));
 /**
  * The report routes read the Metrics object. While it is out of its daily free-plan quota (resets 00:00 UTC) every
  * call to it throws: answer a retryable 503 that says the tools still work, not a bare 500 that a directory health
