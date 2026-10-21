@@ -34,7 +34,7 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   assert.equal(time.type, 'http');
   assert.equal(time.x402Version, 2);
   assert.match(time.lastUpdated, /^\d{4}-\d{2}-\d{2}T/);
-  assert.equal(time.metadata.serviceName, 'Agent Data Tools');
+  assert.equal(time.metadata.serviceName, 'Current time in a time zone', 'per-tool name, not the shared brand');
   assert.ok(time.metadata.description.length > 20 && time.metadata.description.length <= 500);
   assert.deepEqual(time.accepts.map((a) => a.network), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143', 'eip155:480']);
   for (const a of time.accepts) {
@@ -83,4 +83,17 @@ test('paging and the manifest aliases', async () => {
   const plain = await (await mf.dispatchFetch('https://api.test/.well-known/x402')).json();
   assert.deepEqual(json, plain);
   assert.equal(json.discovery, 'https://api.test/discovery/resources');
+});
+
+test('listingName: every tool gets its own 32-character printable-ASCII serviceName, cut cleanly', async () => {
+  const b = await build({ stdin: { contents: 'export { ENDPOINTS } from "./src/discovery"; export { listingName } from "./src/lib/bazaar-extension";', resolveDir: process.cwd(), loader: 'ts' }, bundle: true, format: 'cjs', platform: 'node', write: false, external: ['cloudflare:workers'], logLevel: 'silent' });
+  const m = { exports: {} }; new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  const { ENDPOINTS, listingName } = m.exports;
+  const names = ENDPOINTS.map((e) => listingName(e.summary));
+  for (const n of names) assert.match(n, /^[\x20-\x7e]{1,32}$/, n);
+  assert.equal(new Set(names).size, names.length, 'no two tools share a name');
+  assert.equal(listingName('Weather forecast: current weather and 48-hour hourly forecast'), 'Weather forecast');
+  assert.equal(listingName('SEC EDGAR filings for a US public company'), 'SEC EDGAR filings');
+  assert.equal(listingName('Text embeddings (BGE-M3, 1,024 dimensions)'), 'Text embeddings');
+  assert.equal(listingName('Sourced token and wallet risk indicators with market facts'), 'Sourced token and wallet risk');
 });
