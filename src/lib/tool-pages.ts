@@ -74,7 +74,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p>${esc(e.description)}</p>
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 <div class="actions">
-${freeCalls ? `<a class="btn primary" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
 <a class="btn" href="${esc(`${e.path}?${query}&sample=1`)}">Example result (JSON)</a>
 </div>
