@@ -18,8 +18,8 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     faq: [["Which list does it check?", "The US Treasury OFAC SDN list, including aliases and the listed digital currency addresses. Each match comes with its SDN ID, programs and the list date."], ["Is this legal advice?", "No. It is a screening aid; confirm any match against official OFAC records before acting."]],
   },
   "/check/counterparty": {
-    title: "Wallet counterparty risk check API (OFAC, activity, holdings)",
-    uses: ["Vet an EVM address before sending funds", "Combine sanctions, account type, activity and USD holdings into one block, review or pass verdict", "Let an agent decide whether to pay an address it was given"],
+    title: "Screen a payee before paying: wallet risk check API (OFAC)",
+    uses: ["Screen a payee's EVM address before sending funds", "Combine sanctions, account type, activity and USD holdings into one block, review or pass verdict", "Let an agent decide whether to pay an address it was given"],
     faq: [["Which networks?", "Base, Ethereum, Arbitrum and Optimism."], ["What does the verdict mean?", "Block, review or pass, with the reasons that produced it. It is a screening aid, not a security audit."]],
   },
   "/price/token": {
