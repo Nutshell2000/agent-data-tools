@@ -122,7 +122,7 @@ test('each tool offers tempo/charge next to x402, with recipient, expiry and pul
   assert.equal(challenge.intent, 'charge');
   assert.equal(challenge.realm, 'api.test');
   assert.ok(challenge.id && challenge.expires);
-  assert.equal(challenge.request.amount, '3000');
+  assert.equal(challenge.request.amount, '10000');
   assert.equal(challenge.request.currency.toLowerCase(), USDC_E);
   assert.equal(challenge.request.recipient.toLowerCase(), TEMPO_PAY_TO);
   assert.equal(challenge.request.methodDetails.chainId, 4217);
@@ -156,12 +156,12 @@ test('an MPP agent pays one call on Tempo: broadcast after success, receipt head
   await new Promise((r) => setTimeout(r, 200)); // the ledger write runs in waitUntil
   const revenue = await (await mf.dispatchFetch('https://api.test/revenue')).json();
   assert.equal(revenue.byEndpoint['/time'].settlements, 1);
-  assert.equal(revenue.byEndpoint['/time'].grossAtomic, '3000');
+  assert.equal(revenue.byEndpoint['/time'].grossAtomic, '10000');
   assert.equal(revenue.payerActivity.distinctExternalWallets, 1);
   const metrics = await (await mf.dispatchFetch('https://api.test/metrics')).json();
   const today = Object.values(metrics)[0];
   assert.equal(today['/time'].paid, 1);
-  assert.equal(today['/time'].revenueUsdMicros, 3000);
+  assert.equal(today['/time'].revenueUsdMicros, 10000);
   assert.ok(address);
 });
 

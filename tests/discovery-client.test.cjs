@@ -62,8 +62,8 @@ test("publishes the same safely capped client example on homepage and llms.txt",
   assert.match(example, /expectedPayTo = "0x1111111111111111111111111111111111111111"/);
   assert.match(example, /0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913/);
   // Capped at the ordinary per-call price, not the cheapest tool's, so a copied client can pay for most tools.
-  assert.match(example, /const maxUsdcAtomic = 3000n; \/\/ \$0\.003 USDC, the ordinary per-call price \(\/extract costs \$0\.002\)/);
-  assert.match(example, /maxAmountPerPayment: "\$0\.003"/);
+  assert.match(example, /const maxUsdcAtomic = 10000n; \/\/ \$0\.01 USDC, the ordinary per-call price \(\/extract costs \$0\.002\)/);
+  assert.match(example, /maxAmountPerPayment: "\$0\.01"/);
   assert.match(example, /return \/\^\\d\+\$\/\.test\(requirement\.amount\)/);
   assert.doesNotMatch(example, /trial=1/);
   assert.doesNotMatch(example, /0x[0-9a-fA-F]{64}/, "the example must not contain a private-key literal");

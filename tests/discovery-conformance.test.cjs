@@ -33,8 +33,8 @@ test('every paid operation carries MPP offers in base units next to the AgentCas
     }
   }
   assert.ok(fixed > 300);
-  assert.deepEqual(doc.paths['/time'].get['x-payment-info'].offers[1], { amount: '3000', currency: BASE_USDC, method: 'evm', intent: 'charge' });
-  assert.deepEqual(doc.paths['/time'].get['x-payment-info'].offers[0], { amount: '3000', currency: TEMPO_USDC, method: 'tempo', intent: 'charge' });
+  assert.deepEqual(doc.paths['/time'].get['x-payment-info'].offers[1], { amount: '10000', currency: BASE_USDC, method: 'evm', intent: 'charge' });
+  assert.deepEqual(doc.paths['/time'].get['x-payment-info'].offers[0], { amount: '10000', currency: TEMPO_USDC, method: 'tempo', intent: 'charge' });
 });
 
 test('card packs offer Stripe in cents; GET fronts and /v1/models describe their 200 body', async () => {
