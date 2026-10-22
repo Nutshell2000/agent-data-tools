@@ -69,14 +69,14 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
   "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price"],
   "/sanctions/check": ["sanctions-check", "ofac-screening"], "/check/payee": ["payee-screening"],
-  "/wallet/balances": ["wallet-balance"], "/wallet-audit": ["wallet-risk"], "/extract/rendered": ["web-page-to-markdown"],
+  "/wallet/balances": ["wallet-balance", "usdc-balance"], "/wallet-audit": ["wallet-risk"], "/extract/rendered": ["web-page-to-markdown"],
   "/extract": ["scrape-website", "web-scraping"], "/email": ["email-verification"], "/company": ["company-data"],
   "/domain-report": ["domain-lookup"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price"],
   "/btc-fees": ["bitcoin-fees"], "/pdf/text": ["pdf-to-text"], "/geocode": ["geocoding"], "/sec/filings": ["sec-filings"],
   "/token-report": ["honeypot-token-check"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
   "/ai/chat": ["chat-completions", "llm-chat-completion"], "/ai/embed": ["text-embeddings", "openai-compatible"],
   "/eth/balance": ["ethereum-balance"], "/hyperliquid/market": ["hyperliquid-funding"], "/airport/status": ["airport-delays"],
-  "/fx": ["currency-exchange-rate"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],
+  "/fx": ["currency-exchange-rate", "forex", "exchange-rates"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],
   "/ai/summarize-text": ["summarize-text"], "/image": ["image-generation"], "/transcribe": ["speech-to-text"],
   "/package": ["npm-package"], "/wikipedia": ["wikipedia-summary"], "/earthquakes": ["earthquakes"],
   "/holidays": ["public-holidays"], "/feed": ["rss-feed"], "/sitemap": ["sitemap"],
@@ -85,6 +85,12 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/liquidity-pool-audit": ["liquidity-pool"], "/check/counterparty": ["counterparty-risk"], "/base-gas": ["base-gas"],
   "/btc-price": ["btc-price"], "/wallet/portfolio": ["portfolio-value"], "/papers": ["research-papers"],
   "/dictionary": ["dictionary-definition"],
+  // Second pass, 66 more searches measured on 22 Oct evening (absent or below #5 where the #1 has 1-4 payers).
+  "/time": ["timezone", "time-zone", "current-time"], "/hash": ["sha256", "hash"], "/uuid": ["uuid", "uuid-generator"],
+  "/units/convert": ["unit-conversion"], "/text/stats": ["word-count", "readability"], "/slug": ["slugify"],
+  "/text/diff": ["text-diff"], "/date/diff": ["date-difference"], "/validate/isbn": ["isbn"], "/color/contrast": ["color-contrast"],
+  "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
+  "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
 });
 
 /** The tool's tags with its search-phrase tags first, without duplicates (the full list, for our own discovery index). */

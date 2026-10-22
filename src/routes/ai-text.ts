@@ -126,7 +126,7 @@ export const AI_TEXT: Entry[] = [
       const best = [...out].sort((a, b) => b.score - a.score)[0];
       return { label: best.label, score: Number(best.score.toFixed(4)), scores: Object.fromEntries(out.map((s) => [s.label, Number(s.score.toFixed(4))])), model: AI_MODELS.sentiment };
     }),
-  ai("/ai/classify", "Classify text into your labels", "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues.",
+  ai("/ai/classify", "Text classification into labels", "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues.",
     ["classification", "zero-shot", "routing"], { text: { type: "string", description: "Text to classify, up to 8,000 characters", required: true, example: "My card was charged twice for the same order." }, labels: { type: "string", description: "Comma-separated candidate labels (2-20)", required: true, example: "billing,shipping,technical,other" } },
     { label: "billing", reason: "The customer reports a duplicate charge.", ranking: ["billing", "other", "technical", "shipping"], model: MODELS.text },
     async (env, q) => {
@@ -140,7 +140,7 @@ export const AI_TEXT: Entry[] = [
       const ranking = [...new Set([label, ...(r.ranking ?? []).map(norm).filter((l): l is string => !!l), ...labels])];
       return { label, reason: String(r.reason ?? "").slice(0, 300), ranking, model: MODELS.text };
     }),
-  ai("/ai/keywords", "Extract keywords", "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection.",
+  ai("/ai/keywords", "Keyword extraction", "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection.",
     ["keywords", "seo", "tagging"], { text: { type: "string", description: "Text, up to 12,000 characters", required: true, example: "Cloudflare Workers run JavaScript at the edge. Workers AI adds GPU inference for open models." }, count: { type: "integer", description: "How many, 3-30 (default 10)", example: 5 } },
     { keywords: ["Cloudflare Workers", "Workers AI", "edge computing", "GPU inference", "open models"], model: MODELS.text },
     async (env, q) => {
@@ -181,7 +181,7 @@ export const AI_TEXT: Entry[] = [
       if (!Array.isArray(v) || !v.length) throw new HttpError(502, "the AI model returned no embedding");
       return { dimensions: v.length, embedding: v.map((x) => Number(x.toFixed(6))), model: AI_MODELS.embed };
     }),
-  ai("/ai/extract-json", "Extract fields from text as JSON", "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent.",
+  ai("/ai/extract-json", "Extract JSON fields from text", "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent.",
     ["extraction", "json", "structured-data"], { text: { type: "string", description: "Source text, up to 12,000 characters", required: true, example: "Invoice 1043 from Acme AB, due 2026-11-01, total 2 450 SEK incl. VAT." }, fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "invoice_number,company,due_date,total,currency" } },
     { data: { invoice_number: "1043", company: "Acme AB", due_date: "2026-11-01", total: 2450, currency: "SEK" }, missing: [], model: MODELS.text },
     async (env, q) => {

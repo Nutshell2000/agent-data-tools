@@ -720,7 +720,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/fx",
     price: "$0.01",
-    summary: "Currency exchange rates and conversion",
+    summary: "Currency exchange rates, forex: rates and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
     tags: ["currency", "exchange-rate", "forex", "finance", "conversion"],
@@ -893,7 +893,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/time",
     price: "$0.01",
-    summary: "Current time in a time zone and time zone conversion",
+    summary: "Timezone, current time in a zone: time zone conversion",
     description:
       "The exact current date and time in any IANA time zone (UTC when none is given), with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule across time zones or to turn a timestamp into local time. A bare GET is the smallest paid end-to-end test of an x402 or MPP client.",
     tags: ["time", "timezone", "clock", "date", "scheduling"],

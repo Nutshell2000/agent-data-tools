@@ -35,7 +35,7 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   assert.equal(time.type, 'http');
   assert.equal(time.x402Version, 2);
   assert.match(time.lastUpdated, /^\d{4}-\d{2}-\d{2}T/);
-  assert.equal(time.metadata.serviceName, 'Current time in a time zone', 'per-tool name, not the shared brand');
+  assert.equal(time.metadata.serviceName, 'Timezone, current time in a zone', 'per-tool name, not the shared brand');
   assert.ok(time.metadata.description.length > 20 && time.metadata.description.length <= 500);
   assert.deepEqual(time.accepts.map((a) => a.network), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143', 'eip155:480']);
   for (const a of time.accepts) {
