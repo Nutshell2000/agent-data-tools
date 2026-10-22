@@ -135,8 +135,15 @@ WaitFor "main CI for $($sha.Substring(0,7))" {
 $settled = '"success":true|settle:\s+(?!none|no )\S'
 # The testnet facilitator sometimes answers one proof with a transient refusal (insufficient_balance while the wallet
 # holds funds): a proof gets one retry after a short wait; two refusals abort before production.
-function Proof([string]$Name, [string[]]$Args) {
-  Step $Name { $first = (node scripts/pay-test.mjs @Args 2>&1 | ForEach-Object { "$_" }); if (($first -join "`n") -match $settled) { $first } else { Write-Host "[retry] $Name did not settle; retrying in 8 s" -ForegroundColor Yellow; Start-Sleep 8; node scripts/pay-test.mjs @Args } } $settled
+function Proof([string]$Name, [string[]]$ProofArgs) {
+  # Not `$Args`: inside the step's scriptblock that name is PowerShell's own automatic variable (empty), which ran the
+  # proofs without arguments on the 1.48.1 release.
+  $script:proofArgs = $ProofArgs
+  Step $Name {
+    $first = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
+    if (($first -join "`n") -match $settled) { $first }
+    else { Write-Host "[retry] $Name did not settle; retrying in 8 s" -ForegroundColor Yellow; Write-Host (($first | Select-Object -Last 3) -join "`n"); Start-Sleep 8; node scripts/pay-test.mjs @script:proofArgs }
+  } $settled
 }
 Step 'staging-deploy' { npx wrangler deploy -c wrangler.staging.jsonc } 'Current Version ID'
 RevertGenerated
