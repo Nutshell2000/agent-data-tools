@@ -42,7 +42,7 @@ const all = (xml: string, name: string) => [...xml.matchAll(new RegExp(`<${name}
 const attr = (xml: string, name: string, key: string) => xml.match(new RegExp(`<${name}[^>]*\\b${key}="([^"]*)"`))?.[1] ?? null;
 
 export const GOV_DATA: Entry[] = [
-  entry("/sec/filings", "SEC EDGAR filings for a US public company",
+  entry("/sec/filings", "SEC filings (EDGAR) by ticker: 10-K, 10-Q, 8-K and Form 4 for a US public company",
     "Latest SEC EDGAR filings for a US-listed company by stock ticker or CIK: form (10-K, 10-Q, 8-K, 4, S-1…), filing and report dates, accession number, document description and a direct link, newest first, optionally only one form type. Plus company name, CIK and industry (SIC). Public SEC data. Use to check a company's latest annual or quarterly report, insider trades (form 4) or material events (8-K).",
     ["sec", "edgar", "filings", "stocks", "company", "compliance"], {
       ticker: { type: "string", description: "Stock ticker such as AAPL (or give cik)", example: "AAPL" },
