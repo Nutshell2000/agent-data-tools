@@ -23,7 +23,7 @@ import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
-import { bazaarInputProperties, builderCodeExtension, exampleInput, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
+import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
 
 type Args = Record<string, unknown>;
@@ -86,7 +86,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         // The wrapper can't see the tool's name, so the default URL would be a placeholder.
         // The receipt ledger reads the catalog path back from this URL, so keep the real path.
         url: `mcp://tool${e.path}`,
-        description: e.description,
+        description: listingDescription(e),
         mimeType: "application/json",
         serviceName: listingName(e.summary),
         iconUrl: SERVICE_ICON_URL,

@@ -128,3 +128,13 @@ export function listingName(summary: string): string {
   if (name.lastIndexOf("(") > name.lastIndexOf(")")) name = name.slice(0, name.lastIndexOf("(")); // no open bracket
   return name.slice(0, 32).replace(/[\s,(]+$/, "");
 }
+
+/**
+ * The description a directory listing carries: the tool's description, opened by its listing name when it does not
+ * already start with it, so the searched phrase is in the first words (inside a tier of equal payers the Bazaar orders
+ * by text relevance; a description starting with the query phrase won 56% of 206 tied pairs on 22 Oct 2026).
+ */
+export function listingDescription(e: { summary: string; description: string }): string {
+  const name = listingName(e.summary);
+  return e.description.toLowerCase().startsWith(name.toLowerCase()) ? e.description : `${name}. ${e.description}`;
+}

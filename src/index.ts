@@ -42,7 +42,7 @@ import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
-import { bazaarExtensionFor, builderCodeExtension, listingName, listingTags } from "./lib/bazaar-extension";
+import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
@@ -148,7 +148,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
       `GET ${e.path}`,
       {
         accepts: paymentOptions(env).map(({ network, payTo }) => ({ scheme: "exact" as const, price: priceOn(network, e.price), network, payTo })),
-        description: e.description,
+        description: listingDescription(e),
         mimeType: "application/json",
         serviceName: listingName(e.summary),
         iconUrl: SERVICE_ICON_URL,
