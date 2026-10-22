@@ -166,10 +166,16 @@ function Proof([string]$Name, [string[]]$ProofArgs) {
   # Not `$Args`: inside the step's scriptblock that name is PowerShell's own automatic variable (empty), which ran the
   # proofs without arguments on the 1.48.1 release.
   $script:proofArgs = $ProofArgs
+  # The testnet facilitator's relayer wallet gets stuck now and then ("nonce lower than the current nonce",
+  # "replacement transaction underpriced" on 22 Oct 2026, both its side); give it up to four tries over about two minutes.
   Step $Name {
-    $first = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
-    if (($first -join "`n") -match $settled) { $first }
-    else { Write-Host "[retry] $Name did not settle; retrying in 8 s" -ForegroundColor Yellow; Write-Host (($first | Select-Object -Last 3) -join "`n"); Start-Sleep 8; node scripts/pay-test.mjs @script:proofArgs }
+    $waits = @(8, 30, 60)
+    for ($try = 0; ; $try++) {
+      $out = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
+      if (($out -join "`n") -match $settled -or $try -ge $waits.Count) { $out; break }
+      Write-Host "[retry] $Name did not settle; retrying in $($waits[$try]) s" -ForegroundColor Yellow; Write-Host (($out | Select-Object -Last 3) -join "`n")
+      Start-Sleep $waits[$try]
+    }
   } $settled
 }
 Step 'staging-deploy' { npx wrangler deploy -c wrangler.staging.jsonc } 'Current Version ID'
