@@ -1,5 +1,5 @@
 {
-  "version": "1.48.6",
+  "version": "1.49.0",
   "tools": [
     {
       "name": "extract",
@@ -3047,6 +3047,36 @@
         ]
       },
       "price": "$0.005"
+    },
+    {
+      "name": "search",
+      "description": "Search the web and get the top results as JSON: title, URL, a short snippet and the page age, from the Brave Search API. 1-20 results per call. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted daily capacity return 503, uncharged. Pair with /extract to read a result in full. Use when an agent needs current information or sources from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "pdf_text",

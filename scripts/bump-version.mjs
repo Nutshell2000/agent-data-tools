@@ -28,6 +28,7 @@ export const PINS = {
     [/(assert\.equal\(all\.length, )(\d+)(,)/, "count", 1],
     [/(new Set\(all\)\.size, )(\d+)(\))/, "count", 1],
   ],
+  "tests/payment-delivery-runtime.test.cjs": [[/(assert\.equal\(listed\.length,)(\d+)(\))/, "count", 1]],
   "src/endpoints.ts": [[/(")(\d+)( pay-per-call tools)/, "count", 1]],
 };
 
