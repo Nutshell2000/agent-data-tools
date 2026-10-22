@@ -145,13 +145,17 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/company", ["company", "data"]],
     ["/weather", ["weather"]],
     ["/domain", ["domain"]],
-    ["/check/counterparty", ["payee"]],
+    ["/check/counterparty", ["counterparty", "risk"]],
     ["/check/payee", ["payee"]],
     ["/check/x402-seller", ["x402", "seller"]],
     ["/sanctions/check", ["sanctions"]],
     ["/token-report", ["token", "honeypot"]],
     ["/x402/check", ["x402"]],
     ["/package", ["package", "risk"]],
+    ["/price/token", ["crypto", "token", "price"]],
+    ["/extract", ["scrape", "web", "page", "markdown"]],
+    ["/ai/chat", ["llm", "chat", "completion"]],
+    ["/domain", ["domain", "dns", "whois"]],
   ];
   for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
 });
