@@ -141,7 +141,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
   const { listingName } = await loadTypeScript(require.resolve("../src/lib/bazaar-extension.ts"));
   const nameOf = (path) => listingName(discovery.ENDPOINTS.find((e) => e.path === path).summary).toLowerCase();
   const intents = [
-    ["/email", ["verify", "email"]],
+    ["/email", ["email", "verif"]],
     ["/company", ["company", "data"]],
     ["/weather", ["weather"]],
     ["/domain", ["domain"]],

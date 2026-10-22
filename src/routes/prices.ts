@@ -102,7 +102,7 @@ export { tokenAddress };
 const poolOut = (p: PoolQuote | null) => p && { address: p.pool, feeTier: p.feeTier, quoteReserve: sig(p.quoteReserve), quoteReserveUsd: sig(p.quoteReserveUsd) };
 
 export const PRICES: Entry[] = [
-  entry("/price/token", "Crypto token price in USD from Uniswap v3 pools",
+  entry("/price/token", "Token price: crypto token price in USD from Uniswap v3 pools",
     "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
       symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)", example: "ETH" },
