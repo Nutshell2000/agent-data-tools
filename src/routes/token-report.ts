@@ -1,3 +1,4 @@
+import { dexscreener } from "../lib/dexscreener";
 import { HttpError, type Env } from "../lib/env";
 import { tokenInfo } from "./token";
 
@@ -19,10 +20,7 @@ interface Pair {
 }
 
 async function pairs(address: string): Promise<{ pairs: Pair[]; retrievedAt: string }> {
-  const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`, {
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(8000),
-  });
+  const res = await dexscreener(`/latest/dex/tokens/${address}`);
   if (!res.ok) throw new HttpError(502, "market data source unavailable");
   const body = (await res.json()) as { pairs?: Pair[] | null };
   return {
