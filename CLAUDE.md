@@ -353,3 +353,31 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - Every x402 v2 route, `/buy/*` purchase, MCP payment and MPP evm settlement declares the `builder-code` extension (ERC-8021) with app code `bc_09e30bdm` (`BUILDER_APP_CODE` in src/lib/bazaar-extension.ts). The facilitator appends the CBOR suffix plus the `8021…8021` marker to the settlement calldata. This was proven on Base Sepolia on 2026-10-21: txs 0xf75a6618… (v2) and 0x192f6f1b… (MCP) both end with `a161616b62635f303965333062646d…80218021`. x402 v1 has no extensions and carries no code.
 - Why: the Base Builder Grants (up to $5,000, "x402 implementations") require Builder Codes. The application draft is `C:\MoneyWallet\x402-launch\base-grant-application.md`; Peter submits it.
+
+## Release train, reliability layer and listing names (1.47.12–1.47.15, 22 Oct 2026)
+
+- **One command releases:** `pwsh scripts/release.ps1 -Version x.y.z -MessageFile notes.md [-ProofPath /tool?x=y] [-Dry] [-Resume]`
+  on a feature branch. It bumps every pin (`scripts/bump-version.mjs`, tested), runs the checks, opens the PR, waits for CI,
+  squash-merges, waits for main CI, deploys staging and proves v2/v1/MCP/MPP-evm payments with `pay-test.mjs`, deploys
+  production through the guard, runs `check:live`, tags `vX.Y.Z` (MCP Registry republish), IndexNow, and registers with
+  each directory at most once per UTC day (stamp file under `%LOCALAPPDATA%\agent-data-tools\release`). Every step is
+  logged there as JSON; `-Resume` continues a partial run. It checks out branches in its worktree, so develop in another
+  worktree (`C:\MoneyWallet\x402-dev`, node_modules junction to x402-canonical) while it runs.
+- **Reliability (1.47.14):** `fetchPublic` retries a target 429/5xx or network error once inside its 8 s budget (a
+  Retry-After over 2 s means no retry) and can cache 2xx bodies in `caches.default` (`cacheSeconds`: /url/meta,
+  /sitemap, /pdf/text bytes 10 min; never probes or /extract). `/btc-price` falls back to Coinbase spot and keeps a 30 s
+  snapshot. PDF.js failures are 422/502, never 500. Chain transports retry once; token-transfers scans in growing
+  windows. The hosted browser launch retries once. `scripts/reliability-line.mjs` prints the /status line and exits 1
+  when a tool with 5+ calls is under 90%.
+- **Listing names (1.47.8–1.47.9):** the Coinbase Bazaar search ranks on 30-day payers and calls, then on whether the
+  name contains every query word; price has no effect (measured over 321 results). `listingName(summary)` is the text
+  before the colon, so summaries start with the exact task phrase ("Token price", "Scrape web page to Markdown",
+  "Payee screening"). The Bazaar takes a new name only with the tool's next settlement: Peter runs
+  `C:\MoneyWallet\Refresh Bazaar names.cmd` (it computes the renamed and unlisted tools itself via
+  `business/agentic/tools/bazaar-rename-diff.mjs`).
+- **Related tools (1.47.15):** every GET tool quote or answer carries three `Link: …; rel="related"` headers
+  (`src/lib/related.ts`: same section first, then `salesOrdered`); the readable 402 body has a `related` list. Tool
+  output bodies are unchanged. `TOOL_SEO` covers 109 tools; copy may only restate the tool's own description.
+- **Networks (1.47.13):** quotes list Base, Polygon, Arbitrum and Solana (SOLANA_PAY_TO = Peter's Phantom wallet, whose
+  USDC account exists). Monad and World Chain were dropped (never paid). Dexter's verifier still refuses to pay us with
+  "could not settle on a chain this route accepts" and never sends a payment; it says the fault is on its side.
