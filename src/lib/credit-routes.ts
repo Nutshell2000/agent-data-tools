@@ -48,8 +48,8 @@ credits.get("/credits", (c) => {
   const info = creditsInfo(origin, mppEnabled(c.env), Boolean(c.env.STRIPE_READ_KEY));
   if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) return c.json(info);
   // Calls per pack at the most common price, so a buyer sees what the money gets.
-  const calls = (credits: number) => Math.floor(credits / 3).toLocaleString("en-US");
-  const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.003</small></a>`).join("");
+  const calls = (credits: number) => Math.floor(credits / 10).toLocaleString("en-US");
+  const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.01</small></a>`).join("");
   const previews = [
     ["/check/counterparty", "Vet an address before paying it"],
     ["/extract", "Read a web page as clean text"],
@@ -134,7 +134,7 @@ credits.get("/credits/balance", async (c) => {
   return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash) });
 });
 
-/** Below this many credits (about 66 calls at $0.003) a key is "low"; the call that crosses it says so once. */
+/** Below this many credits (about 20 calls at $0.01) a key is "low"; the call that crosses it says so once. */
 export const LOW_BALANCE_MICROS = 200_000;
 /** True for the one successful call that takes the balance from at or above the threshold to below it. */
 export const crossedLow = (before: number, after: number) => before >= LOW_BALANCE_MICROS && after < LOW_BALANCE_MICROS;
@@ -203,14 +203,14 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
-  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.003 per successful call. ${pay} Every tool's result shape is in its output schema. ${PICK_BY_TASK}`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
+  return `Agent Data Tools: ${toolCount} data tools (blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, countries, utilities). Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${PICK_BY_TASK}`;
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
 export function paymentHint(origin: string, price: string, signedIn = false) {
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
-    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 1,700 calls at $0.003) ${keyPlacement(origin, signedIn)}, and retry. The key works for every tool on this server.`
+    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}, and retry. The key works for every tool on this server.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may
     // already be used by someone else; signing in gives this person their own allowance.
     + (signedIn ? "" : ` In Claude, ChatGPT or another app that connects from the cloud, the free calls are shared with everyone behind the same address; connect to ${origin}/mcp/account instead and continue without a key to get your own ${FREE_CALLS_PER_CALLER} free calls.`);

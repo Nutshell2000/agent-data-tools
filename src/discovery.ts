@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.47.15";
+export const MCP_SERVER_VERSION = "1.48.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -141,7 +141,7 @@ function endpointSpendCap(path: string) {
  * The per-payment cap in the published client example: the ordinary per-call price, which most tools charge.
  * An example capped at the cheapest tool's price would make an agent that copies it refuse almost every tool.
  */
-export const ORDINARY_PRICE = "$0.003";
+export const ORDINARY_PRICE = "$0.01";
 const atomicOf = (price: string) => {
   const match = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(price);
   if (!match) throw new Error(`Cannot express ${price} as six-decimal USDC`);

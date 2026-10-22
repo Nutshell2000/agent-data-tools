@@ -68,7 +68,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   the quote). On 19 Oct a real, unidentified browser-based v1 buyer failed four times on `/eth/gas` before
   any of this was deployed (Peter confirmed it was not him); watch `wrangler tail` for the next one.
 - The published client example (homepage, llms.txt, OpenAPI x-guidance) caps payments at `ORDINARY_PRICE`
-  ($0.003, `src/discovery.ts`), so an agent that copies it can pay for every ordinary tool. Keep that
+  ($0.01 since 22 Oct, `src/discovery.ts`), so an agent that copies it can pay for every ordinary tool. Keep that
   constant equal to the catalog's common price.
 - Paused `/buy/*` paths answer 503 before the paywall and the counters.
 - **Staging on Base Sepolia**: `wrangler.staging.jsonc` deploys `agent-data-tools-staging` with the keyless
@@ -381,3 +381,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - **Networks (1.47.13):** quotes list Base, Polygon, Arbitrum and Solana (SOLANA_PAY_TO = Peter's Phantom wallet, whose
   USDC account exists). Monad and World Chain were dropped (never paid). Dexter's verifier still refuses to pay us with
   "could not settle on a chain this route accepts" and never sends a payment; it says the fault is on its side.
+
+## Price move to $0.01 (22 Oct 2026, Peter)
+
+- Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.
+- `PRICE` (src/family.ts), `AI_PRICE` (src/routes/ai-text.ts), `ORDINARY_PRICE` and every explicit `"$0.003"` entry are now `$0.01`. Unchanged: the $0.002 entry tools (/extract, /btc-fees, /sitemap, /package, /base-gas, /base-allowance), the $0.005 and higher tools, and **/base-tx at $0.003**, which the published capped chain client (clients/chain, docs/chain-checks.md) promises.
+- tests/fixtures/price-freeze.json was regenerated at the new prices (freeze again until 8 Nov). Copy that quotes call counts uses $0.01 ($5 = 5,000 credits, about 500 calls).
+- The Bazaar shows each tool's last settled price until it sells again: Peter's `Refresh Bazaar names.cmd` can re-pay the repriced listings once (about $1.60). Run `scripts/update-402index-prices.mjs --dry` then for real after the deploy (the release train does not).
