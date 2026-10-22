@@ -37,7 +37,8 @@ $state = [ordered]@{ version = $Version; startedAt = (Get-Date).ToUniversalTime(
 $done = @{}
 if ($Resume) {
   $prev = Get-ChildItem (Join-Path $DataDir 'runs') -Filter "v$Version-*.json" | Sort-Object Name | Select-Object -Last 1
-  if ($prev) { foreach ($s in (Get-Content $prev.FullName -Raw | ConvertFrom-Json).steps) { if ($s.ok) { $done[$s.name] = $true } }; Write-Host "Resuming after: $($done.Keys -join ', ')" }
+  if ($prev) { foreach ($s in (Get-Content $prev.FullName -Raw | ConvertFrom-Json).steps) { if ($s.ok) { $done[$s.name] = $true } }; Write-Host "Resuming from $($prev.Name); done: $($done.Keys -join ', ')" }
+  else { Write-Host "No earlier run log for $Version under $DataDir\runs; starting from the first step (every step is safe to repeat)." -ForegroundColor Yellow }
 }
 function Save { $state | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 $runFile }
 function Step([string]$Name, [scriptblock]$Run, [string]$Expect = '', [switch]$Optional) {
@@ -65,6 +66,18 @@ function WaitFor([string]$What, [scriptblock]$Done, [int]$CapMinutes = 20) {
 
 # ---- 0. preconditions ---------------------------------------------------------------------------------------------
 Step 'auth' { gh auth status 2>&1 | Select-Object -First 2; npx wrangler whoami 2>&1 | Select-String 'logged in|Account' | Select-Object -First 1 } 'Logged in|logged in'
+# The staging proofs pay from .test-wallet.json in THIS worktree. pay-test.mjs would otherwise create a fresh, unfunded
+# wallet here and every proof would fail with insufficient_balance; copy the funded one in, and tell pay-test to refuse
+# a missing file rather than invent one.
+$WalletSource = 'C:\MoneyWallet\x402-canonical\.test-wallet.json'
+Step 'wallet' {
+  if (-not (Test-Path '.test-wallet.json')) {
+    if (-not (Test-Path $WalletSource)) { throw "no .test-wallet.json here and none at $WalletSource" }
+    Copy-Item $WalletSource '.test-wallet.json'; "copied the funded test wallet from $WalletSource"
+  } else { 'test wallet present' }
+  $env:PAY_TEST_REQUIRE_WALLET = '1'
+  "wallet address: $(node scripts/pay-test.mjs address)"
+}
 # The branch under release. A resumed run may start on a detached checkout (the train detaches onto main after the
 # merge), so the branch is remembered in the run log and read back from it.
 $branch = "$(git branch --show-current)".Trim()
@@ -91,7 +104,9 @@ Step 'sync-main' {
   $global:LASTEXITCODE = 0
 }
 Step 'bump' { node scripts/bump-version.mjs $Version }
-Step 'update:mcp-contract' { npm run update:mcp-contract } 'contract baseline'
+# Idempotent: a restarted run finds the baseline already at this version, and the update script refuses a same-version
+# update, so check first and update only when the baseline differs.
+Step 'update:mcp-contract' { npm run check:mcp-contract 2>&1 | Out-Null; if ($LASTEXITCODE -eq 0) { $global:LASTEXITCODE = 0; "contract baseline already matches $Version" } else { npm run update:mcp-contract } } 'contract baseline'
 # The full suite starts many Miniflare workers; a file-level flake (every test green, the file red) happens about once
 # in ten runs, so one rerun is allowed. A real failure fails twice.
 Step 'test' { $first = (npm test 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0) { $first } else { Write-Host '[retry] npm test failed once; running again' -ForegroundColor Yellow; npm test } } 'fail 0'
