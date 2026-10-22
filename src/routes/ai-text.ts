@@ -78,7 +78,7 @@ const ai = (path: string, summary: string, description: string, tags: string[], 
   entry(path, summary, description, [...tags, ...T], params, example, run, AI_PRICE);
 
 export const AI_TEXT: Entry[] = [
-  ai("/ai/chat", "LLM chat completion: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
+  ai("/ai/chat", "LLM chat completions: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
     ["chat", "completion", "llama"], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
@@ -172,7 +172,7 @@ export const AI_TEXT: Entry[] = [
       if (!out?.translated_text) throw new HttpError(502, "the AI model returned no translation");
       return { translatedText: out.translated_text, from, to, model: AI_MODELS.translate };
     }),
-  ai("/ai/embed", "Text embeddings (BGE-M3, 1,024 dimensions)", "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
+  ai("/ai/embed", "Embeddings, OpenAI compatible: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
     ["embeddings", "vector", "rag", "search"], { text: { type: "string", description: "Text to embed, up to 4,000 characters", required: true, example: "pay-per-call APIs for AI agents" } },
     { dimensions: 1024, embedding: [0.0123, -0.0456, 0.0789], model: AI_MODELS.embed },
     async (env, q) => {
