@@ -26,8 +26,10 @@
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.
     "NETWORK": "eip155:8453",
-    // Also accept USDC on Polygon, Arbitrum, Monad and World Chain (same PAY_TO, same CDP facilitator).
-    "EXTRA_NETWORKS": "eip155:137,eip155:42161,eip155:143,eip155:480",
+    // Also accept USDC on Polygon and Arbitrum (same PAY_TO, same CDP facilitator). Monad (eip155:143) and World Chain (eip155:480)
+    // were dropped on 22 Oct 2026: nothing was ever paid to us there, and Dexter's verifier (the free route to a Bazaar listing)
+    // refused every route while they were quoted; the sellers it pays quote Base, Polygon, Arbitrum and Solana only.
+    "EXTRA_NETWORKS": "eip155:137,eip155:42161",
     // Solana USDC receiver (Peter's Phantom wallet). x402 SPL transfers do not create the recipient's account; its
     // USDC associated token account C7L5qhPw7xMs6qf8jEyZQiwmoB9oDZ24cFvRaedbECwR exists since 22 Oct 2026 (checked
     // against the derived address). Dexter's verifier pays on Solana; empty switches Solana off.
