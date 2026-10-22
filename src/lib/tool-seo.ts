@@ -82,6 +82,11 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Check an address's ETH/POL and USDC on Base, Ethereum, Arbitrum, Optimism and Polygon in one call", "Confirm a wallet is funded before a payment", "Monitor treasury or bot wallets"],
     faq: [["Which networks?", "Base, Ethereum, Arbitrum, Optimism and Polygon."]],
   },
+  "/search": {
+    title: "Web search API for AI agents: top results as JSON, pay per query",
+    uses: ["Give an agent current information or sources from the open web in one call", "Get title, URL, snippet and page age for 1-20 results, then read one in full with /extract", "Ground an answer in live web results without an account or a monthly plan"],
+    faq: [["Where do the results come from?", "The Brave Search API, one request per paid call. Results are for the caller's immediate use: no storing, resale or model training."], ["What if the search provider is down or the daily capacity is used up?", "The call answers 503 and nothing is charged."]],
+  },
   "/extract": {
     title: "Web page to Markdown and text API for LLMs",
     uses: ["Turn a web page into clean Markdown or text for an LLM or RAG pipeline", "Pull the tables and code blocks out of documentation pages", "Read one section of a long page by heading"],
