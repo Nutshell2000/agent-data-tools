@@ -167,9 +167,12 @@ export async function sitemap(
     );
   const maxUrls = bounded(maxParam, 25, 1, 100, "maxUrls");
   const offset = bounded(offsetParam, 0, 0, 1000, "offset");
+  // Sitemaps change rarely: a repeat read within 10 minutes is served from the edge cache instead of asking the host again.
   const response = await fetchPublic(
     target,
     "application/xml,text/xml,application/gzip,application/octet-stream;q=0.8,text/plain;q=0.5",
+    [],
+    { cacheSeconds: 600 },
   );
   const contentType = (response.headers.get("content-type") ?? "")
     .split(";")[0]
