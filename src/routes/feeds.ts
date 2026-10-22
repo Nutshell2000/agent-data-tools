@@ -136,7 +136,7 @@ export function parseMeta(html: string, base: string) {
 }
 
 export const FEEDS: Entry[] = [
-  entry("/feed", "Read an RSS or Atom feed",
+  entry("/feed", "RSS feed reader: read an RSS or Atom feed",
     "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages.",
     ["rss", "atom", "feed", "news", "web", "monitoring"], {
       url: { type: "string", description: "Absolute public http(s) URL of the feed", required: true, example: "https://github.blog/feed/" },
