@@ -336,7 +336,7 @@ export async function recentLogs(cl: PublicClient, filter: { address: `0x${strin
 }
 
 /** Native coin and USDC on every supported network in one call: the "where are this wallet's funds?" question. */
-const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance: native and USDC balances on 5 networks",
+const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance, USDC balance: native and USDC balances on 5 networks",
   `Read a wallet's native coin and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, live from each network, plus the USDC total. Use to find where a wallet's funds are before a payment or bridge; for one token on one network use <chain>_token_balance, for all tokens on Base use wallet_portfolio. A network whose nodes do not answer is listed with an error instead of failing the call.`,
   ["wallet", "balance", "multichain", "usdc", "evm", "blockchain"],
   { address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR } },
