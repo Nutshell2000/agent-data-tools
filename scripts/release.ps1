@@ -68,7 +68,24 @@ Step 'auth' { gh auth status 2>&1 | Select-Object -First 2; npx wrangler whoami 
 $branch = (git branch --show-current).Trim()
 if (-not $branch -or $branch -eq 'main') { throw "run on a feature branch, not '$branch'" }
 
-# ---- 1. bump + local checks ----------------------------------------------------------------------------------------
+# ---- 1. sync with main, bump, local checks --------------------------------------------------------------------------
+# A release that merged while this branch was cut moved the same pin lines (version, tool count, contract baseline), so
+# the PR would not merge. Merge main first; conflicts in the pin files are taken from main and re-bumped below; any
+# other conflict stops the run for a human.
+$PinFiles = @('server.json', 'src/discovery.ts', 'src/endpoints.ts', 'tests/tool-buying.test.cjs', 'tests/families.test.cjs', 'tests/gateway-startup.test.cjs', 'scripts/mcp-contract-baseline.json')
+Step 'sync-main' {
+  git fetch -q origin
+  git merge --no-edit origin/main 2>&1 | Out-String | Select-Object -Last 1
+  $conflicts = @(git diff --name-only --diff-filter=U)
+  if ($conflicts) {
+    $other = $conflicts | Where-Object { $_ -notin $PinFiles }
+    if ($other) { git merge --abort; throw "conflicts outside the pin files: $($other -join ', ')" }
+    foreach ($f in $conflicts) { git checkout --theirs -- $f; git add $f }
+    git commit -q -m "Merge origin/main (pin files taken from main; re-bumped by release.ps1)"
+    "merged origin/main; pin conflicts resolved: $($conflicts -join ', ')"
+  } else { 'in sync with origin/main' }
+  $global:LASTEXITCODE = 0
+}
 Step 'bump' { node scripts/bump-version.mjs $Version }
 Step 'update:mcp-contract' { npm run update:mcp-contract } 'contract baseline'
 # The full suite starts many Miniflare workers; a file-level flake (every test green, the file red) happens about once
