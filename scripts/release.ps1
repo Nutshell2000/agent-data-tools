@@ -91,20 +91,28 @@ $state.branch = $branch; Save
 
 # ---- 1. sync with main, bump, local checks --------------------------------------------------------------------------
 # A release that merged while this branch was cut moved the same pin lines (version, tool count, contract baseline), so
-# the PR would not merge. Merge main first; conflicts in the pin files are taken from main and re-bumped below; any
-# other conflict stops the run for a human.
-$PinFiles = @('server.json', 'src/discovery.ts', 'src/endpoints.ts', 'tests/tool-buying.test.cjs', 'tests/families.test.cjs', 'tests/gateway-startup.test.cjs', 'scripts/mcp-contract-baseline.json')
+# the PR would not merge. Set our pins to main's first, so the pin lines are identical and the merge is clean, then merge
+# and re-bump below. Taking whole pin files from main is not safe: on 22 Oct 2026 that dropped this branch's edits to
+# src/discovery.ts (category rules for new tools) because the file also carries MCP_SERVER_VERSION. Only the generated
+# contract baseline may be taken from main, because update:mcp-contract rebuilds it. Any other conflict stops the run.
+$Regenerated = @('scripts/mcp-contract-baseline.json')
 Step 'sync-main' {
   git fetch -q origin
+  $mainVersion = ([regex]'"version":\s*"(\d+\.\d+\.\d+)"').Match("$(git show origin/main:server.json)").Groups[1].Value
+  $mainCount = ([regex]'assert\.equal\(ENDPOINTS\.length,(\d+)\)').Match("$(git show origin/main:tests/families.test.cjs)").Groups[1].Value
+  if (-not $mainVersion -or -not $mainCount) { throw "could not read main's version/count pins" }
+  node scripts/bump-version.mjs $mainVersion --count $mainCount 2>&1 | Out-String | Select-Object -Last 1
+  if ($LASTEXITCODE -ne 0) { throw "could not set the pins to main's $mainVersion / $mainCount" }
+  if ("$(git status --porcelain)".Trim()) { git commit -q -am "Pins set to main's $mainVersion / $mainCount tools for the merge (release.ps1)" }
   git merge --no-edit origin/main 2>&1 | Out-String | Select-Object -Last 1
   $conflicts = @(git diff --name-only --diff-filter=U)
   if ($conflicts) {
-    $other = $conflicts | Where-Object { $_ -notin $PinFiles }
-    if ($other) { git merge --abort; throw "conflicts outside the pin files: $($other -join ', ')" }
+    $other = $conflicts | Where-Object { $_ -notin $Regenerated }
+    if ($other) { git merge --abort; throw "conflicts with origin/main: $($other -join ', ')" }
     foreach ($f in $conflicts) { git checkout --theirs -- $f; git add $f }
-    git commit -q -m "Merge origin/main (pin files taken from main; re-bumped by release.ps1)"
-    "merged origin/main; pin conflicts resolved: $($conflicts -join ', ')"
-  } else { 'in sync with origin/main' }
+    git commit -q -m "Merge origin/main (generated baseline taken from main; rebuilt by release.ps1)"
+    "merged origin/main; regenerated files taken from main: $($conflicts -join ', ')"
+  } else { "merged origin/main ($mainVersion / $mainCount tools) cleanly" }
   $global:LASTEXITCODE = 0
 }
 Step 'bump' { node scripts/bump-version.mjs $Version }

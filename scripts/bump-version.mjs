@@ -67,10 +67,15 @@ async function liveCount() {
 }
 
 async function main() {
-  const [version, flag] = process.argv.slice(2);
-  if (!version || (flag && flag !== "--check")) throw new Error("Usage: node scripts/bump-version.mjs <x.y.z> [--check]");
+  const args = process.argv.slice(2);
+  const version = args[0];
+  const countAt = args.indexOf("--count");
+  const flag = args.slice(1).find((a) => a !== "--count" && a !== args[countAt + 1]);
+  if (!version || (flag && flag !== "--check") || (countAt > 0 && !/^\d+$/.test(args[countAt + 1] ?? ""))) throw new Error("Usage: node scripts/bump-version.mjs <x.y.z> [--check] [--count N]");
   const files = Object.fromEntries(await Promise.all(Object.keys(PINS).map(async (f) => [f, await readFile(f, "utf8")])));
-  const count = await liveCount();
+  // --count sets the count pins to a given number instead of the catalog's (release.ps1 uses it to match main's pins
+  // before merging); without it the count is read from ENDPOINTS.
+  const count = countAt > 0 ? Number(args[countAt + 1]) : await liveCount();
   const { files: next, changes } = applyBump(files, { version, count });
   if (flag === "--check") {
     if (changes.length) throw new Error(`pins out of date:\n  ${changes.join("\n  ")}`);
