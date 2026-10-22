@@ -93,13 +93,8 @@ export function pick<T extends string>(q: Input, name: string, values: readonly 
 
 const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/json" };
 
-/** Wait before the one retry of a 429/503: the source's short Retry-After, else 700 ms; null when it asks for longer. */
-export function retryDelayMs(res: Response): number | null {
-  const after = res.headers.get("retry-after");
-  if (after === null) return 700;
-  const seconds = Number(after);
-  return Number.isFinite(seconds) && seconds >= 0 && seconds <= 2 ? Math.max(seconds * 1000, 200) : null;
-}
+export { retryDelayMs } from "./lib/retry";
+import { retryDelayMs } from "./lib/retry";
 
 /**
  * GET JSON from an outside source. Outside failures become 502 (never charged). A 429 or 503 is retried once after a

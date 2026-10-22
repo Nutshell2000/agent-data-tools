@@ -17,7 +17,9 @@ export async function readPdf(bytes: Uint8Array, firstPage: number, want: number
     throw new HttpError(415, "url did not return a PDF file");
   }
   // PDF.js is large: load it on the first PDF call rather than on every isolate start.
-  const { extractText, getDocumentProxy, getMeta } = await import("unpdf");
+  let engine: typeof import("unpdf");
+  try { engine = await import("unpdf"); } catch (e) { console.error(`unpdf load: ${e}`); throw new HttpError(502, "the PDF engine is unavailable; try again"); }
+  const { extractText, getDocumentProxy, getMeta } = engine;
   let doc: Awaited<ReturnType<typeof getDocumentProxy>>;
   try {
     doc = await getDocumentProxy(bytes);
@@ -28,10 +30,16 @@ export async function readPdf(bytes: Uint8Array, firstPage: number, want: number
   const totalPages = doc.numPages;
   if (firstPage > totalPages) throw new HttpError(400, `firstPage is beyond the last page (${totalPages})`);
   const last = Math.min(totalPages, firstPage + want - 1);
-  const [{ text }, meta] = await Promise.all([
-    extractText(doc, { mergePages: false }),
-    getMeta(doc).catch(() => ({ info: {} as Record<string, unknown> })),
-  ]);
+  let text: string[], meta: { info?: Record<string, unknown> };
+  try {
+    [{ text }, meta] = await Promise.all([
+      extractText(doc, { mergePages: false }),
+      getMeta(doc).catch(() => ({ info: {} as Record<string, unknown> })),
+    ]);
+  } catch (e) {
+    // The caller's document, not our failure: PDF.js could open it but not read its pages.
+    throw new HttpError(422, `the PDF could not be read: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
+  }
   const pages: { page: number; chars: number; text: string }[] = [];
   let used = 0;
   let truncated = false;
@@ -72,7 +80,7 @@ export const PDF: Entry[] = [
       const firstPage = num(q, "firstPage", { min: 1, max: 100_000, fallback: 1, integer: true });
       const want = num(q, "pages", { min: 1, max: MAX_PAGES, fallback: 50, integer: true });
       const maxChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
-      const file = await fetchFile(q("url"), /^application\/(pdf|x-pdf|octet-stream)/i, MAX_BYTES, "a PDF");
+      const file = await fetchFile(q("url"), /^application\/(pdf|x-pdf|octet-stream)/i, MAX_BYTES, "a PDF", { cacheSeconds: 600 });
       return { url: file.url, ...(await readPdf(file.bytes, firstPage, want, maxChars)) };
     }, "$0.005"),
 ];
