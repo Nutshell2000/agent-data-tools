@@ -63,6 +63,8 @@ test('actual HTTP paywall links successful payment to completed output and never
   assert.equal(requirements.amount,'2000');
   // The body carries the same terms in x402 v1 shape for v1 clients (v2 clients read the header).
   const body=await q.json();assert.equal(body.x402Version,1);const v1base=body.accepts.find(a=>a.network==='base');assert.equal(v1base.maxAmountRequired,requirements.amount);assert.equal(v1base.payTo.toLowerCase(),requirements.payTo.toLowerCase());assert.equal(v1base.asset.toLowerCase(),requirements.asset.toLowerCase());assert.match(body.hint,/llms\.txt/);
+  // Card payments are ready here, so a caller without a wallet gets the $5 Stripe checkout as one link.
+  assert.match(body.hint,/No wallet\? Pay \$5 by card in one step at https:\/\/buy\.stripe\.com\/bJe4gz5ma1v99xMa33bII02 \(5,000 credits, about 500 calls at \$0\.01; the key is shown right after payment/);
   // A free sample shows the documented example without running the tool or settling.
   const sample=await mf.dispatchFetch('https://api.test/extract?sample=1');assert.equal(sample.status,200);assert.equal(sample.headers.get('X-Sample'),'1');
   const preview=await sample.json();assert.equal(preview.sample,true);assert.equal(preview.price,'$0.002');assert.ok(preview.example.contentHash);
