@@ -111,7 +111,7 @@ export const X402_CHECK: Entry[] = [
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
       return analyze(target.href, res.status, res.headers.get("payment-required"), body);
-    }, "$0.003"),
+    }, "$0.01"),
   // The audit paying agents buy before trusting a new seller (21 Oct: our buyer pays for x402 audits elsewhere):
   // the decoded terms plus who gets the money (OFAC, account type on the payment chain) and how old the domain is.
   entry("/check/x402-seller", "x402 seller audit: vet a paid endpoint's terms, payTo and domain before buying",

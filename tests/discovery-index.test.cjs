@@ -40,7 +40,7 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   assert.deepEqual(time.accepts.map((a) => a.network), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143', 'eip155:480']);
   for (const a of time.accepts) {
     assert.equal(a.scheme, 'exact');
-    assert.equal(a.amount, '3000');
+    assert.equal(a.amount, '10000');
     assert.equal(a.payTo, getAddress(PAY_TO), "payTo is quoted checksummed (EIP-55)");
     assert.match(a.asset, /^0x[0-9a-fA-F]{40}$/);
     assert.equal(a.maxTimeoutSeconds, 300);

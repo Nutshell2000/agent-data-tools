@@ -8,7 +8,7 @@ import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 
-export const AI_PRICE = "$0.003";
+export const AI_PRICE = "$0.01";
 const T = ["ai", "llm", "text"];
 const TEXT_MAX = 12_000;
 
@@ -209,23 +209,23 @@ export const AI_TEXT: Entry[] = [
       const head = atob(audioBase64.slice(0, 8));
       const contentType = head.startsWith("RIFF") ? "audio/wav" : head.startsWith("ID3") || head.charCodeAt(0) === 0xff ? "audio/mpeg" : head.startsWith("OggS") ? "audio/ogg" : "application/octet-stream";
       return { contentType, audioBase64, bytes: Math.floor(audioBase64.length * 3 / 4), lang, characters: t.length, model: AI_MODELS.speech };
-    }, "$0.003"),
+    }, "$0.01"),
 ];
 
 const B = ["utility", "basics"];
 export const BASICS: Entry[] = [
   entry("/echo", "Echo a message", "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end.",
     ["echo", "testing", ...B], { message: { type: "string", description: "Message, up to 2,000 characters", required: true, example: "hello" } }, { message: "hello", length: 5, receivedAt: "2026-10-18T12:00:00.000Z" },
-    (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.003"),
+    (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.01"),
   entry("/ping", "Ping", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
-    ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.003"),
+    ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.01"),
   entry("/keccak", "Keccak-256 hash", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
     { input: "transfer(address,uint256)", inputType: "text", keccak256: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b", selector: "0xa9059cbb" },
-    (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.003"),
+    (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.01"),
   entry("/network", "Base network and USDC facts", "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client.",
     ["base", "usdc", "network", ...B], {}, { chain: "Base", chainId: 8453, caip2: "eip155:8453", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 } },
-    () => ({ chain: "Base", chainId: 8453, caip2: "eip155:8453", nativeCurrency: "ETH", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6, symbol: "USDC" }, explorer: "https://basescan.org", publicRpc: ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], x402Network: "eip155:8453" }), "$0.003"),
+    () => ({ chain: "Base", chainId: 8453, caip2: "eip155:8453", nativeCurrency: "ETH", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6, symbol: "USDC" }, explorer: "https://basescan.org", publicRpc: ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], x402Network: "eip155:8453" }), "$0.01"),
 ];
 
 export const AI_PATHS = AI_TEXT.map((e) => e.endpoint.path);

@@ -21,7 +21,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
 <h2>What the recording shows</h2>
 <ol>
 ${step("The homepage.", "One endpoint for agents: add it to Claude, Cursor or any MCP client, buy card credits, or pay per call with an x402 wallet.")}
-${step("The tool list.", `All ${toolCount} tools with their prices: onchain reads on five chains, token prices, sanctions and payee checks, web and PDF text, SEC filings, weather, time and utilities. Most calls cost $0.003.`)}
+${step("The tool list.", `All ${toolCount} tools with their prices: onchain reads on five chains, token prices, sanctions and payee checks, web and PDF text, SEC filings, weather, time and utilities. Most calls cost $0.01.`)}
 ${step("A free check on real data.", "“Screen a payee before paying” runs on an Ethereum address: OFAC sanctions, account type, holdings and a pass, review or block verdict.")}
 ${step("The payment page.", "Opened without payment, a tool URL answers HTTP 402 Payment Required with its price in USDC on Base, our wallet and our Base Builder Code (bc_09e30bdm). An x402 client signs the payment and repeats the request.")}
 ${step("A live answer.", "A free trial call returns current gas prices read from Base. Paid calls settle through Coinbase's facilitator straight to our wallet; failed calls are never charged.")}

@@ -76,5 +76,5 @@ export const COMPANY: Entry[] = [
       if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : "no company found under this name");
       const labels = await labelsOf(linkedIds(best));
       return companyFacts([best], labels)!;
-    }, "$0.003"),
+    }, "$0.01"),
 ];

@@ -90,7 +90,7 @@ test('an unpaid POST gets the /ai/chat quote with x402 terms and MPP challenges,
     assert.match(res.headers.get('www-authenticate') ?? '', /method="evm"/, 'MPP challenge');
     const quote = await res.json();
     assert.equal(quote.x402Version, 1);
-    assert.equal(quote.accepts[0].maxAmountRequired, '3000', 'the /ai/chat price');
+    assert.equal(quote.accepts[0].maxAmountRequired, '10000', 'the /ai/chat price');
     assert.equal(quote.accepts[0].resource, 'https://api.test/v1/chat/completions', 'the v1 quote names the front');
     const terms = JSON.parse(Buffer.from(res.headers.get('payment-required'), 'base64').toString());
     assert.equal(terms.resource.url, 'https://api.test/v1/chat/completions', 'the v2 quote names the front, without a query');
@@ -155,7 +155,7 @@ test('/v1/models is free; OpenAPI declares the POST, the GET variant and the mod
   assert.equal(models.data[0].id, '@cf/meta/llama-3.1-8b-instruct-fp8');
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
   const post = api.paths['/v1/chat/completions'].post;
-  assert.deepEqual(post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.003', max: '0.01' });
+  assert.deepEqual(post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.01', max: '0.01' });
   assert.deepEqual(post['x-payment-info'].protocols[0], { x402: {} });
   assert.ok(post.requestBody.content['application/json'].schema.properties.messages);
   const get = api.paths['/v1/chat/completions'].get;

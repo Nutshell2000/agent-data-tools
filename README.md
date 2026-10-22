@@ -4,7 +4,7 @@
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D)
 [![Install in VS Code Insiders](https://img.shields.io/badge/Install_in-VS_Code_Insiders-24bfa5?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D&quality=insiders)
 
-181 pay-per-call tools for AI agents over MCP and plain HTTP: payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
+181 pay-per-call tools for AI agents over MCP and plain HTTP: payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.01** per successful call.
 
 ## Quick start
 
@@ -60,7 +60,7 @@ A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid 
 | `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.02 |
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
 | `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
-| `GET /btc-address?address=` | Bitcoin address balance and activity | $0.003 |
+| `GET /btc-address?address=` | Bitcoin address balance and activity | $0.01 |
 | `GET /ln-invoice?invoice=` | Decoded Lightning invoice | | $0.002 |.003 |
 | `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.20 |
 | `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.02 |
@@ -70,7 +70,7 @@ A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid 
 | `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.04 |
 | `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | | $0.002 |.003 |
 | `GET /email?address=` | Email validation without sending mail | | $0.002 |.003 |
-| `GET /papers?query=` | Academic paper search | $0.003 |
+| `GET /papers?query=` | Academic paper search | $0.01 |
 | `GET /fx?from=&to=` | Currency exchange rates and conversion | | $0.002 |.003 |
 | `GET /btc-price` | Bitcoin price in major currencies | | $0.002 |.003 |
 | `GET /base-gas` | Base network gas price and fee estimate | $0.002 |
@@ -82,7 +82,7 @@ A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid 
 
 Free calls are on: 25 successful calls per caller and 2,000 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP. Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
 
-The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at $0.003, the ordinary per-call price, so it can pay for every tool priced at $0.003 or less. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes. Tool-specific guides (`/guides/web-reading`, `/guides/bitcoin-fees`, `/guides/dependency-audit`) pin that one tool's exact price instead.
+The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at $0.01, the ordinary per-call price, so it can pay for every tool priced at $0.01 or less. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes. Tool-specific guides (`/guides/web-reading`, `/guides/bitcoin-fees`, `/guides/dependency-audit`) pin that one tool's exact price instead.
 
 A staging copy of the service runs on the Base Sepolia testnet (`wrangler.staging.jsonc`, keyless facilitator, faucet USDC) so every release can be paid for real over HTTP v2, HTTP v1 and MCP with `scripts/pay-test.mjs` before production deploys; see CLAUDE.md. Testnet settlements are never income.
 
