@@ -15,11 +15,20 @@ async function worker() {
     const endpoint = queue.shift();
     const path = new URL(endpoint.url).pathname;
     try {
-      const response = await fetch("https://api.cdp.coinbase.com/platform/v2/x402/validate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resource: endpoint.example, method: "GET" }), signal: AbortSignal.timeout(45_000),
-      });
-      const detail = await response.json();
+      // The CDP validator throttles bursts (empty bodies or 429 part-way through a run: 79/181 and 169/181 on 22 Oct
+      // while every tool answered); wait and ask again, up to three tries per tool.
+      let response, detail;
+      for (let attempt = 1; ; attempt++) {
+        response = await fetch("https://api.cdp.coinbase.com/platform/v2/x402/validate", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resource: endpoint.example, method: "GET" }), signal: AbortSignal.timeout(45_000),
+        });
+        const text = await response.text();
+        try { detail = text ? JSON.parse(text) : null; } catch { detail = null; }
+        if (detail && response.status !== 429 && response.status < 500) break;
+        if (attempt >= 3) throw new Error(`validator answered HTTP ${response.status} ${text ? "with unreadable JSON" : "with an empty body"} three times`);
+        await new Promise((r) => setTimeout(r, 5_000 * attempt));
+      }
       const failed = (detail.preflight ?? []).filter(check => check.severity === "required" && !check.passed);
       const quote = detail.paymentRequirements?.accepts?.[0];
       const expectedAtomic = Math.round(Number(endpoint.price.slice(1)) * 1e6).toString();
@@ -34,7 +43,8 @@ async function worker() {
     }
   }
 }
-await Promise.all([worker(), worker(), worker()]);
+// Two workers: three tripped the validator's rate limit on long runs.
+await Promise.all([worker(), worker()]);
 results.sort((a, b) => a.path.localeCompare(b.path));
 const report = { checkedAt: new Date().toISOString(), method: "free read-only CDP validator; no signer or payment", origin, passed: results.filter(r => r.ok).length, total: results.length, results };
 if (args.length) await writeFile(args[1], JSON.stringify(report, null, 2) + "\n");
