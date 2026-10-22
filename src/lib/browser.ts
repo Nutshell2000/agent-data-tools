@@ -19,7 +19,10 @@ export async function withBrowserPage<T>(
   let browser: Awaited<ReturnType<typeof puppeteer.launch>>;
   let blockedNavigation = false;
   try {
-    browser = await puppeteer.launch(env.BROWSER);
+    // The hosted browser refuses a launch while another session is closing (/screenshot got a 503 right after a
+    // successful /extract/rendered on 22 Oct); one short retry covers that, a second refusal is capacity.
+    try { browser = await puppeteer.launch(env.BROWSER); }
+    catch (first) { console.warn(`browser launch retry: ${first}`); await new Promise((r) => setTimeout(r, 1500)); browser = await puppeteer.launch(env.BROWSER); }
   } catch (e) {
     console.error(`browser launch: ${e}`);
     throw new HttpError(503, "today's free browser capacity is used up or busy; try again later");
