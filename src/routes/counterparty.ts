@@ -116,7 +116,7 @@ export const COUNTERPARTY: Entry[] = [
     }, "$0.03"),
   // At $0.005 it sits in Agent402's cheapest router tier and unproven lane (both cap the price). The job paying agents buy most at other sellers (21 Oct: "screen a payee before paying", sanctions plus
   // domain age): one SDN lookup and two RPC reads on one chain, no holdings or audits, so it answers in about a second.
-  entry("/check/payee", "Payee preflight check: OFAC screen an address before paying, plus account type and domain age",
+  entry("/check/payee", "Payee screening: OFAC-screen an address before paying, plus account type and domain age",
     "Fast check of a payee before an agent pays it: OFAC SDN match on the address, account type (wallet, delegated wallet or contract) and nonce on Base, Ethereum, Arbitrum, Optimism or Polygon, and optionally the payee domain's age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice. Use before an x402 or USDC payment to an unfamiliar address; holdings and wallet heuristics: check_counterparty.",
     ["payee-screening", "sanctions", "ofac", "payments", "x402", "compliance", "wallet", "base"], {
       address: { type: "string", description: "0x address you are about to pay", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
