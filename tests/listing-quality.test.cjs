@@ -153,9 +153,12 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/x402/check", ["x402"]],
     ["/package", ["package", "risk"]],
     ["/price/token", ["crypto", "token", "price"]],
-    ["/extract", ["scrape", "web", "page", "markdown"]],
+    ["/extract", ["scrape website", "page to markdown"]],
     ["/ai/chat", ["llm", "chat", "completion"]],
-    ["/domain", ["domain", "dns", "whois"]],
+    // Bazaar search (22 Oct 2026) found "Domain lookup (DNS, WHOIS)" for "domain lookup" but not for "dns lookup",
+    // and "Crypto token price" for "token price" but not for "crypto price": the task phrase must appear as written.
+    ["/domain", ["dns lookup", "whois", "domain lookup"]],
+    ["/price/token", ["crypto price", "token price"]],
   ];
   for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
 });

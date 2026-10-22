@@ -371,8 +371,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   when a tool with 5+ calls is under 90%.
 - **Listing names (1.47.8–1.47.9):** the Coinbase Bazaar search ranks on 30-day payers and calls, then on whether the
   name contains every query word; price has no effect (measured over 321 results). `listingName(summary)` is the text
-  before the colon, so summaries start with the exact task phrase ("Token price", "Scrape web page to Markdown",
-  "Payee screening"). The Bazaar takes a new name only with the tool's next settlement: Peter runs
+  before the colon, so summaries start with the exact task phrase ("Scrape website page to Markdown", "DNS lookup,
+  WHOIS, domain lookup", "Payee screening"). Measured on 22 Oct: the search matches the phrase as written, not its
+  words in any order ("Crypto token price" was found for "token price" and absent for "crypto price"), so a name may
+  carry two phrases ("Crypto price and token price"), within 32 characters. The Bazaar takes a new name only with the tool's next settlement: Peter runs
   `C:\MoneyWallet\Refresh Bazaar names.cmd` (it computes the renamed and unlisted tools itself via
   `business/agentic/tools/bazaar-rename-diff.mjs`).
 - **Related tools (1.47.15):** every GET tool quote or answer carries three `Link: …; rel="related"` headers
