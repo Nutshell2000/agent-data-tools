@@ -37,7 +37,15 @@ export function bazaarInputProperties(e: Endpoint) {
 export const requiredInputs = (e: Endpoint) => Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
 /** The published example call's inputs: what the Bazaar sends when it checks a listed tool (HTTP and MCP alike). */
 export const exampleInput = (e: Endpoint) => Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example]));
-export const listingOutputSchema = (e: Endpoint) => e.outputSchema ?? schemaFromExample(e.outputExample);
+/**
+ * The listing travels base64-encoded in the PAYMENT-REQUIRED header, next to one accepts entry per network and the
+ * MPP challenges. Node's fetch (undici) refuses responses with more than 16 KB of headers, and /extract's full
+ * output schema (6.9 KB) pushed its 402 to 16.7 KB on 22 Oct, so Node agents could not read the quote. A schema
+ * larger than this budget is listed in its compact form, derived from the example; OpenAPI keeps the full one.
+ */
+const LISTING_SCHEMA_BUDGET = 3000;
+export const listingOutputSchema = (e: Endpoint) =>
+  e.outputSchema && JSON.stringify(e.outputSchema).length <= LISTING_SCHEMA_BUDGET ? e.outputSchema : schemaFromExample(e.outputExample);
 
 export function bazaarExtensionFor(e: Endpoint) {
   return declareDiscoveryExtension({
