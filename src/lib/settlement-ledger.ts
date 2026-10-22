@@ -10,6 +10,9 @@ const HASH = /^0x[0-9a-f]{64}$/;
 const OWNED_WALLETS = new Set([
   "0x60c51dd9c16fdad84165474279c70cc91eb7b15f", // Existing Taskmarket agent.
   "0x279bdcc64cee279dcd2ca0e4cc45ec2d8950ae66", // Existing test-wallet public address.
+  // Bazaar seeding buyer wallet (docs/bazaar-seeding.md): its payments list our tools on the Bazaar and are
+  // recorded as self-payments, never revenue or demand.
+  "0x4d4aeb549f7024de1cea777af70f844bafcff8d3",
 ]);
 const PATHS = new Set([...ENDPOINTS.map(e => e.path), ...PRODUCTS.map(p => `/buy/${p.slug}`)]);
 const object = (value: unknown): Record<string, unknown> | null =>
