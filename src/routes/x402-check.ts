@@ -114,7 +114,7 @@ export const X402_CHECK: Entry[] = [
     }, "$0.01"),
   // The audit paying agents buy before trusting a new seller (21 Oct: our buyer pays for x402 audits elsewhere):
   // the decoded terms plus who gets the money (OFAC, account type on the payment chain) and how old the domain is.
-  entry("/check/x402-seller", "x402 seller audit: vet a paid endpoint's terms, payTo and domain before buying",
+  entry("/check/x402-seller", "x402 audit of a seller: vet a paid endpoint's terms, payTo and domain before buying",
     "Audit an x402 seller before an agent buys from it: decodes the endpoint's 402 terms without paying, OFAC-screens each payTo address, reads its account type and nonce on the payment network, checks the seller domain's age and trust flags, and flags non-USDC assets and high prices. One block, review or pass verdict with reasons. Never signs. Screening aid, not legal advice. Use before the first payment to an unfamiliar x402 seller.",
     ["x402", "payee-screening", "sanctions", "payments", "agents", "compliance"], {
       url: { type: "string", description: "Absolute public https URL of the paid endpoint, with any query it needs", required: true, example: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees" },
