@@ -1,4 +1,5 @@
 import { HttpError } from "./env";
+import { retryDelayMs, sleep } from "./retry";
 
 /** Rejects targets that are never legitimate for a public fetch service. */
 export function parseTarget(raw: string | undefined): URL {
@@ -52,12 +53,40 @@ export function capBytes(body: ReadableStream<Uint8Array>, limit: number, onTrun
   );
 }
 
-/** Fetches a public URL with the same guards as /extract. Throws HttpError on any failure. */
-/** `allowStatus` lists non-2xx answers to return instead of failing (e.g. 402 for /x402/check). */
-export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = []): Promise<Response> {
+const BUDGET_MS = 8_000;
+/** Bodies above this are served but not kept in the edge cache. */
+const CACHE_MAX_BYTES = 12 * 1024 * 1024;
+
+export interface FetchPublicOptions {
+  /** Keep a successful answer in the edge cache this long, keyed by final URL and Accept (0 = never). */
+  cacheSeconds?: number;
+}
+
+/**
+ * Fetches a public URL with the same guards as /extract. Throws HttpError on any failure.
+ * `allowStatus` lists non-2xx answers to return instead of failing (e.g. 402 for /x402/check).
+ * A target's 429/5xx or a network error is retried once within the 8 s budget (Workers share egress IPs, so an
+ * upstream's per-IP limit can refuse a caller who sent nothing before); a target's other 4xx answers are the
+ * caller's input and are never retried. With `cacheSeconds`, a 2xx body is kept in the edge cache so repeated reads
+ * of the same document do not spend the target's limit again (never for `allowStatus` answers).
+ */
+export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = [], { cacheSeconds = 0 }: FetchPublicOptions = {}): Promise<Response> {
   let current = parseTarget(target.href);
-  const signal = AbortSignal.timeout(8_000);
-  for (let redirects = 0; redirects <= 5; redirects++) {
+  const deadline = Date.now() + BUDGET_MS;
+  const cache = cacheSeconds > 0 && typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
+  const cacheKey = cache ? new Request(`https://fetch-cache.internal/?u=${encodeURIComponent(current.href)}&a=${encodeURIComponent(accept)}`) : undefined;
+  if (cache && cacheKey) {
+    const hit = await cache.match(cacheKey).catch(() => undefined);
+    if (hit) {
+      Object.defineProperty(hit, "url", { value: hit.headers.get("x-final-url") ?? current.href });
+      return hit;
+    }
+  }
+  // One signal for the whole budget: redirects and the one retry share the same 8 s deadline.
+  const signal = AbortSignal.timeout(BUDGET_MS);
+  let retried = false;
+  for (let redirects = 0; redirects <= 5;) {
+
     let res: Response;
     try {
       res = await fetch(current, {
@@ -66,6 +95,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
       });
     } catch (e) {
       const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");
+      if (!timedOut && !retried && Date.now() + 700 < deadline) { retried = true; await sleep(700); continue; }
       throw new HttpError(timedOut ? 504 : 502, timedOut ? "target did not respond within 8 seconds" : "could not reach target URL");
     }
     if ([301, 302, 303, 307, 308].includes(res.status)) {
@@ -78,6 +108,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
       catch { throw new HttpError(502, "target redirect location is invalid"); }
       // Validate BEFORE making the redirected request, never after automatic follow.
       current = parseTarget(next.href);
+      redirects++;
       continue;
     }
     const allowed = allowStatus.includes(res.status);
@@ -86,11 +117,31 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
       // A missing, gone or forbidden page is the caller's input, not our failure: 422 keeps it out of our server-error
       // count (/status, directory health checks). Rate limits, timeouts and the target's own 5xx stay 502.
       const callerSide = res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429;
+      if (!callerSide && !retried) {
+        // null: the source asked for a longer wait than our budget allows, so answer 502 now instead of retrying.
+        const wait = retryDelayMs(res);
+        if (wait !== null && Date.now() + wait < deadline) { retried = true; await sleep(wait); continue; }
+      }
       throw new HttpError(callerSide ? 422 : 502, callerSide
         ? `target responded with HTTP ${res.status}; check that the URL is public and correct (nothing was charged)`
         : `target responded with HTTP ${res.status}`);
     }
     if (!res.body && !allowed) throw new HttpError(502, "target returned an empty body");
+    if (cache && cacheKey && res.ok && res.body) {
+      const bytes = await res.arrayBuffer();
+      const headers = new Headers(res.headers);
+      headers.delete("set-cookie");
+      headers.delete("content-length");
+      if (bytes.byteLength <= CACHE_MAX_BYTES) {
+        const stored = new Headers(headers);
+        stored.set("cache-control", `max-age=${cacheSeconds}`);
+        stored.set("x-final-url", current.href);
+        await cache.put(cacheKey, new Response(bytes.slice(0), { status: 200, headers: stored })).catch(() => undefined);
+      }
+      const out = new Response(bytes, { status: res.status, headers });
+      Object.defineProperty(out, "url", { value: current.href });
+      return out;
+    }
     // A response from a manual redirect chain otherwise loses its effective URL.
     Object.defineProperty(res, "url", { value: current.href });
     return res;
@@ -99,9 +150,9 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
 }
 
 /** Downloads a file of an expected media type, refusing anything over `maxBytes`. */
-export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp, maxBytes: number, what: string) {
+export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp, maxBytes: number, what: string, options: FetchPublicOptions = {}) {
   const target = parseTarget(rawUrl);
-  const res = await fetchPublic(target, "*/*");
+  const res = await fetchPublic(target, "*/*", [], options);
   const contentType = res.headers.get("content-type") ?? "";
   if (!typePattern.test(contentType)) throw new HttpError(415, `url must point to ${what}; got ${contentType || "an unknown type"}`);
   let tooBig = Number(res.headers.get("content-length")) > maxBytes;

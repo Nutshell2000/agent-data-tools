@@ -48,17 +48,39 @@ export async function exchangeRates(fromInput: string, toInput?: string, amountI
 const BTC_CURRENCIES = ["USD", "EUR", "GBP", "CAD", "CHF", "AUD", "JPY"] as const;
 
 /** Bitcoin spot price in major fiat currencies. */
-export async function bitcoinPrice() {
-  const data = await getJson<Record<string, number>>("https://mempool.space/api/v1/prices", "Bitcoin price", "price not available");
-  const prices = Object.fromEntries(BTC_CURRENCIES.filter((c) => data[c] > 0).map((c) => [c, data[c]]));
-  if (!prices.USD) throw new HttpError(502, "the Bitcoin price data source returned no price");
-  return {
-    asset: "BTC",
-    prices,
-    satsPerUsd: Math.round(100_000_000 / prices.USD),
-    usdPerSat: prices.USD / 100_000_000,
-    priceTime: new Date(data.time * 1000).toISOString(),
-    source: "mempool.space (average of major exchanges)",
-    checkedAt: new Date().toISOString(),
-  };
+/** The last good answer, kept 30 s as plain data (never a shared promise), so bursts do not spend the sources' limits. */
+let btcSnapshot: { at: number; value: Awaited<ReturnType<typeof readBitcoinPrice>> } | null = null;
+const BTC_SNAPSHOT_MS = 30_000;
+
+/** mempool.space (all currencies) with Coinbase spot (USD only) as the second source; neither answer is trusted blindly. */
+async function readBitcoinPrice() {
+  const checkedAt = new Date().toISOString();
+  try {
+    const data = await getJson<Record<string, unknown>>("https://mempool.space/api/v1/prices", "Bitcoin price", "price not available");
+    if (!data || typeof data !== "object") throw new HttpError(502, "the Bitcoin price data source sent an unreadable answer");
+    const prices = Object.fromEntries(BTC_CURRENCIES.filter((c) => typeof data[c] === "number" && (data[c] as number) > 0).map((c) => [c, data[c] as number]));
+    if (!prices.USD) throw new HttpError(502, "the Bitcoin price data source returned no USD price");
+    const time = typeof data.time === "number" && Number.isFinite(data.time) ? new Date(data.time * 1000) : new Date();
+    return {
+      asset: "BTC", prices, satsPerUsd: Math.round(100_000_000 / prices.USD), usdPerSat: prices.USD / 100_000_000,
+      priceTime: time.toISOString(), source: "mempool.space (average of major exchanges)", checkedAt,
+    };
+  } catch (first) {
+    if (!(first instanceof HttpError)) throw first;
+    // Second source: Coinbase's public spot price (USD only). The same endpoint prices ETH in mev-simulator.ts.
+    const spot = await getJson<{ data?: { amount?: string } }>("https://api.coinbase.com/v2/prices/BTC-USD/spot", "Bitcoin price", "price not available").catch(() => { throw first; });
+    const usd = Number(spot?.data?.amount);
+    if (!Number.isFinite(usd) || usd <= 0) throw first;
+    return {
+      asset: "BTC", prices: { USD: usd }, satsPerUsd: Math.round(100_000_000 / usd), usdPerSat: usd / 100_000_000,
+      priceTime: checkedAt, source: "Coinbase spot (USD only; mempool.space unavailable)", checkedAt,
+    };
+  }
+}
+
+export async function bitcoinPrice({ fresh = false } = {}) {
+  if (!fresh && btcSnapshot && Date.now() - btcSnapshot.at < BTC_SNAPSHOT_MS) return btcSnapshot.value;
+  const value = await readBitcoinPrice();
+  btcSnapshot = { at: Date.now(), value };
+  return value;
 }

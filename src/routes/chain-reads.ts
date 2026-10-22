@@ -28,7 +28,8 @@ export const CHAINS: ChainDef[] = [
 
 export function client(env: Env, c: ChainDef): PublicClient {
   const urls = c.slug in EDGE_RPCS ? rpcUrls(c.slug as keyof typeof EDGE_RPCS, env) : c.rpcs;
-  const options = { timeout: 8_000, retryCount: 0 };
+  // 5 s per node with one quick retry: a transient node error moves on instead of costing the whole request budget.
+  const options = { timeout: 5_000, retryCount: 1, retryDelay: 100 };
   return requestClient(`${c.slug}|${urls.join("|")}`, () =>
     createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }), batch: { multicall: true } }) as PublicClient);
 }
@@ -259,13 +260,16 @@ function chainEntries(c: ChainDef): Entry[] {
         const latest = await rpc(() => cl.getBlockNumber());
         const fromBlock = latest - span + 1n;
         const padded = `0x${a.slice(2).toLowerCase().padStart(64, "0")}`;
-        const range = { fromBlock: `0x${fromBlock.toString(16)}` as `0x${string}`, toBlock: `0x${latest.toString(16)}` as `0x${string}` };
         type Log = { address: string; blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string };
-        // Sent and received Transfer events of this one token (public nodes only scan wide ranges with a contract filter).
-        const [sent, received] = await rpc(() => Promise.all([
-          cl.request({ method: "eth_getLogs", params: [{ ...range, address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }] }),
-          cl.request({ method: "eth_getLogs", params: [{ ...range, address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }] }),
-        ])).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
+        // Sent and received Transfer events of this one token, newest first in growing windows (recentLogs): public nodes
+        // refuse or time out on a single 1,000-block eth_getLogs, which made this tool fail about one call in four.
+        const [sentScan, receivedScan] = await Promise.all([
+          recentLogs(cl, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50),
+          recentLogs(cl, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50),
+        ]).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
+        const sent = sentScan.logs, received = receivedScan.logs;
+        const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;
+        const partial = !sentScan.complete || !receivedScan.complete;
         const all = [...(sent as Log[]).map((l) => ({ l, direction: "out" as const })), ...(received as Log[]).map((l) => ({ l, direction: "in" as const }))]
           .filter(({ l }) => l.topics.length === 3)
           .sort((x, y) => Number(y.l.blockNumber) - Number(x.l.blockNumber) || Number(y.l.logIndex) - Number(x.l.logIndex));
@@ -280,7 +284,7 @@ function chainEntries(c: ChainDef): Entry[] {
           return [t, { symbol: symbol as string | null, decimals: decimals === null ? null : Number(decimals) }] as const;
         })));
         return head({
-          address: a, fromBlock: Number(fromBlock), toBlock: Number(latest), count: all.length, truncated: all.length > 50,
+          address: a, fromBlock: Number(partial ? scannedFrom : fromBlock), toBlock: Number(latest), count: all.length, truncated: all.length > 50 || partial,
           transfers: shown.map(({ l, direction }) => {
             const raw = BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66));
             const m = meta.get(l.address.toLowerCase() as `0x${string}`);
@@ -303,7 +307,7 @@ type RawLog = { blockNumber: string; transactionHash: string; logIndex: string; 
  * pulling megabytes over the whole span; a quiet one covers 1,000 blocks in five calls. Small windows also suit nodes
  * that cap the range. Returns the logs oldest first and the first block actually scanned.
  */
-export async function recentLogs(cl: PublicClient, filter: { address: `0x${string}`; topics?: `0x${string}`[] }, latest: bigint, span: bigint, want: number) {
+export async function recentLogs(cl: PublicClient, filter: { address: `0x${string}`; topics?: (`0x${string}` | null)[] }, latest: bigint, span: bigint, want: number) {
   const floor = latest - span + 1n;
   let logs: RawLog[] = [];
   let to = latest;
