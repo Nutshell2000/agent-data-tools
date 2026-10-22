@@ -1,5 +1,5 @@
 {
-  "version": "1.49.0",
+  "version": "1.50.0",
   "tools": [
     {
       "name": "extract",
@@ -3079,6 +3079,40 @@
       "price": "$0.01"
     },
     {
+      "name": "news",
+      "description": "Search current news and get the latest headlines as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted capacity return 503, uncharged. Use when an agent needs current news on a topic. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "News search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Only articles from the past day, week or month (default: any age)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "pdf_text",
       "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -4894,6 +4928,126 @@
             "description": "IATA airport code such as LGA, SFO or ORD (default: all US airports with events)"
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "econ_gdp",
+      "description": "GDP of any country from World Bank data: GDP in current US dollars, annual real GDP growth in % and GDP per capita in US dollars, for the last 1-10 years with the newest year first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers at once; the snapshot date is in the answer. Use for country comparisons, market sizing and macro context. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 code (SE, SWE) or English country name (Sweden)"
+          },
+          "years": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Years of history to return, 1-10 (default 5)"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "econ_inflation",
+      "description": "Inflation rate of any country: annual % change in consumer prices (CPI) from World Bank data, for the last 1-10 years with the newest year first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers at once; the snapshot date is in the answer. Use for real-return, pricing and macro questions. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 code (SE, SWE) or English country name (Sweden)"
+          },
+          "years": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Years of history to return, 1-10 (default 5)"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "econ_population",
+      "description": "Population of any country from World Bank data: total population, annual population growth in % and the urban share of the population in %, for the last 1-10 years with the newest year first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers at once; the snapshot date is in the answer. Use for market sizing, per-capita figures and demographics. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 code (SE, SWE) or English country name (Sweden)"
+          },
+          "years": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Years of history to return, 1-10 (default 5)"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "econ_unemployment",
+      "description": "Unemployment rate of any country from World Bank data (ILO modelled estimates): total unemployment and youth unemployment (ages 15-24) as % of the labour force, for the last 1-10 years with the newest year first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers at once; the snapshot date is in the answer. Use for labour-market and macro questions. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166 code (SE, SWE) or English country name (Sweden)"
+          },
+          "years": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Years of history to return, 1-10 (default 5)"
+          }
+        },
+        "required": [
+          "country"
+        ]
       },
       "price": "$0.01"
     },

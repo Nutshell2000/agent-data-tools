@@ -25,7 +25,7 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 159);
+  assert.equal(families.length, 164);
   for (const { endpoint: e } of families) {
     assert.equal(e.price, e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,182);
+  assert.equal(ENDPOINTS.length,187);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -168,6 +168,52 @@ test("Uniswap v3 sqrtPriceX96 converts to quote units per token in both token or
   assert.ok(Math.abs(priceFromSqrt(sqrt, true, 18, 6) - 2000) < 1e-6);
   // Same pool seen from USDC: 1 USDC = 1/2000 WETH.
   assert.ok(Math.abs(priceFromSqrt(sqrt, false, 6, 18) - 1 / 2000) < 1e-12);
+});
+
+test("economic indicators answer from the World Bank snapshot without network access, by code, name or alias", async () => {
+  const econ = await loadTypeScript(require.resolve("../src/routes/econ.ts"));
+  for (const f of econ.ECON) {
+    const out = await f.run({}, inputFrom(f.endpoint.params));
+    assert.equal(out.country.code, "SWE", f.endpoint.path);
+    assert.match(out.source, /World Bank Open Data \(CC BY 4\.0\), snapshot \d{4}-\d{2}-\d{2}/);
+    const series = Object.values(out).filter((v) => v && typeof v === "object" && "values" in v);
+    assert.ok(series.length >= 1 && series.every((s) => s.latest && s.values.length >= 1 && s.values.length <= 5 && s.values[0].year >= s.values.at(-1).year), f.endpoint.path);
+  }
+  const gdp = econ.ECON.find((f) => f.endpoint.path === "/econ/gdp");
+  for (const [input, code] of [["se", "SWE"], ["SWE", "SWE"], ["Sweden", "SWE"], ["united states", "USA"], ["UK", "GBR"], ["South Korea", "KOR"], ["Côte d'Ivoire", "CIV"], ["Russian Federation", "RUS"]])
+    assert.equal(econ.resolveCountry(input), code, input);
+  const two = await gdp.run({}, (n) => ({ country: "Germany", years: "2" })[n]);
+  assert.equal(two.country.name, "Germany");
+  assert.equal(two.gdp.values.length, 2);
+  assert.ok(two.gdp.latest.value > 3e12 && two.gdp.latest.year >= 2023);
+  await assert.rejects(gdp.run({}, (n) => ({ country: "Atlantis" })[n]), (e) => e.status === 404);
+  await assert.rejects(gdp.run({}, (n) => ({ country: "SE", years: "11" })[n]), (e) => e.status === 400);
+});
+
+test("news search maps Brave news results, validates freshness and shares the search daily cap", async () => {
+  const { SEARCH } = await loadTypeScript(require.resolve("../src/routes/search.ts"));
+  const run = SEARCH.find((f) => f.endpoint.path === "/news").run;
+  const store = new Map();
+  const kv = { get: async (k) => store.get(k) ?? null, put: async (k, v) => { store.set(k, v); } };
+  const q = (params) => (name) => params[name];
+  const realFetch = global.fetch;
+  const seen = [];
+  global.fetch = async (url) => {
+    seen.push(String(url));
+    return new Response(JSON.stringify({ results: [{ title: "Bitcoin <b>ETF</b> inflows", url: "https://news.example.com/a", description: "Record &amp; rising", age: "3 hours ago", meta_url: { hostname: "news.example.com" } }, { title: "no url" }] }));
+  };
+  try {
+    const env = { TRIALS: kv, SEARCH_API_KEY: "k", SEARCH_DAILY_CAP: "1" };
+    await assert.rejects(run(env, q({ q: "bitcoin", freshness: "yesterday" })), (e) => e.status === 400);
+    assert.equal(seen.length, 0);
+    const out = await run(env, q({ q: "bitcoin", count: "5", freshness: "day" }));
+    assert.deepEqual(out, { query: "bitcoin", provider: "Brave News", count: 1, results: [{ title: "Bitcoin ETF inflows", url: "https://news.example.com/a", snippet: "Record & rising", source: "news.example.com", age: "3 hours ago" }], terms: SEARCH[0].endpoint.outputExample.terms });
+    assert.match(seen[0], /\/res\/v1\/news\/search\?q=bitcoin&count=5&freshness=pd$/);
+    await assert.rejects(run(env, q({ q: "again" })), (e) => e.status === 503 && e.code === "SEARCH_CAPACITY");
+    assert.equal(seen.length, 1);
+  } finally {
+    global.fetch = realFetch;
+  }
 });
 
 test("web search maps Brave results, stays within the daily cap and fails uncharged without a key", async () => {
