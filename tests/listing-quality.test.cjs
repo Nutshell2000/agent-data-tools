@@ -159,6 +159,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
     // and "Crypto token price" for "token price" but not for "crypto price": the task phrase must appear as written.
     ["/domain", ["dns lookup", "whois", "domain lookup"]],
     ["/price/token", ["crypto price", "token price"]],
+    ["/search", ["web search"]],
   ];
   for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
 });

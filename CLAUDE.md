@@ -384,6 +384,22 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   USDC account exists). Monad and World Chain were dropped (never paid). Dexter's verifier still refuses to pay us with
   "could not settle on a chain this route accepts" and never sends a payment; it says the fault is on its side.
 
+## Web search ON (1.49.0, 22 Oct 2026, Peter: "I approve")
+
+- `/search` ($0.01, src/routes/search.ts) is live: one Brave Search API request per paid call, key in the secret `SEARCH_API_KEY`
+  (production and staging, set 22 Oct; never in Git or chat). 182 tools.
+- Terms basis (api-dashboard.search.brave.com/terms-of-service, 1 Sep 2026): §3(a) licenses showing Search Results to the end users
+  of a Customer Application; §4(c) wants those end users bound by the §3(b) duties, so the description and every answer carry
+  `terms` (immediate use only, no storing, no resale, no model training); §3(b)(i) allows only transient storage, so nothing
+  about results is cached or logged. §3(b)(xii) ("redistribute, resell") is the clause Peter accepted the risk on; the worst
+  case is Brave closing the API account on 10 days' notice. Nobody contacts Brave on Peter's behalf.
+- Spend: Brave bills $5 per 1,000 from prepaid credits with free credits each month; `SEARCH_DAILY_CAP=120` (wrangler.jsonc)
+  keeps a month under about $18. Over the cap, or when the credits are gone, the tool answers 503 uncharged. `/search` is
+  capacity-limited (no free calls) and first in `SALES_FIRST` after the payee checks; the Bazaar lists it after Peter's next
+  Refresh click (seed-bazaar.mjs no longer skips it).
+- `scripts/check-live-readiness.mjs`: a 429 from the CDP validator pauses both workers and each tool gets up to five tries
+  with Retry-After or doubling waits from 10 s (two 177/181 runs on 22 Oct were throttling, not outages).
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.

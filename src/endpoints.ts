@@ -17,7 +17,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "181 pay-per-call tools for AI agents over HTTP or MCP, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "182 pay-per-call tools for AI agents over HTTP or MCP, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -936,8 +936,8 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   "/crypto/price": "A source permitted for this commercial service is not yet configured.",
   "/iss": "A source with terms permitting this commercial service is not yet confirmed.",
   "/hackernews/top": "A source with terms permitting this commercial service is not yet confirmed.",
-  // Remove once SEARCH_API_KEY is set and Brave confirms its terms permit per-call resale.
-  "/search": "Web search is not yet enabled: the provider's resale terms are being confirmed.",
+  // /search is on since 1.49.0 (22 Oct 2026, Peter's decision): SEARCH_API_KEY is set and the Brave API terms' end-user
+  // obligations are stated in the tool's description and answer (src/routes/search.ts).
 });
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).

@@ -13,7 +13,8 @@ export interface Env {
   CDP_API_KEY_SECRET?: string;
   // Set once the API is listed on RapidAPI: the secret its proxy sends with every call.
   RAPIDAPI_PROXY_SECRET?: string;
-  // Brave Search API key for /search, and the most upstream searches per UTC day (default 500).
+  // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
+  // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
   // Restricted Stripe key that can only read Checkout Sessions; /credits/claim uses it to confirm card payments.

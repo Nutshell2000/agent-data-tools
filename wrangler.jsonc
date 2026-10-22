@@ -52,6 +52,10 @@
     "TRIALS_ENABLED": "on",
     // Only a private endpoint here changes anything: public ones keep their measured order (src/lib/rpc.ts EDGE_RPCS).
     "BASE_RPC_URL": "https://mainnet.base.org",
+    // /search: at most this many Brave Search API requests per UTC day (src/routes/search.ts). Brave bills $5 per 1,000
+    // from prepaid credits and gives free credits each month; 120 a day (about $18 a month) stays inside them, and
+    // the tool answers 503, uncharged, above the cap or when the credits are gone. The key is the secret SEARCH_API_KEY.
+    "SEARCH_DAILY_CAP": "120",
     // Stripe profile (@spellzz) for MPP card payments of credit packs; the key is the secret STRIPE_MPP_KEY.
     "STRIPE_PROFILE_ID": "profile_61VXy8TZgWPaLVrUgA6VXy8TRdQCmC1PKY56LWKJkVfM"
   }

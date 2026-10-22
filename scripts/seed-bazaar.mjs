@@ -73,7 +73,7 @@ const REPEAT = ["/extract", "/ai/chat", "/price/token", "/wallet/portfolio"];
 // the payee checks match the $0.005-0.01 jobs our one organic buyer pays others for.
 const PRIORITY = ["/weather", "/check/payee", "/check/x402-seller", "/price/token", "/eth/balance", "/sanctions/check", "/geocode", "/airport/status", "/hyperliquid/market", "/sec/filings", "/email", "/company", "/domain"];
 const RISK = ["/contract-risk", "/token-report", "/wallet-audit", "/liquidity-pool-audit", "/check/counterparty", "/token", "/trade-insight", "/mev-simulator"];
-const NEVER = new Set(["/package-audit", "/screenshot", "/image", "/transcribe", "/describe", "/summarize", "/search", "/extract/rendered"]);
+const NEVER = new Set(["/package-audit", "/screenshot", "/image", "/transcribe", "/describe", "/summarize", "/extract/rendered"]);
 const isChain = (path) => /^\/((base|eth|arb|op|polygon|wallet)(\/|$)|base-|btc-|ens$)/.test(path);
 async function sectionPaths(set) {
   const res = await fetch(`${ORIGIN}/mcp/${set}`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "user-agent": UA },
