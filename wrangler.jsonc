@@ -28,10 +28,10 @@
     "NETWORK": "eip155:8453",
     // Also accept USDC on Polygon, Arbitrum, Monad and World Chain (same PAY_TO, same CDP facilitator).
     "EXTRA_NETWORKS": "eip155:137,eip155:42161,eip155:143,eip155:480",
-    // Solana USDC receiver (Phantom 82wfSCZhCmZA7zwqqt6Q3FG8nqYBwUvbThP6M97fa9Q6). Leave empty until that
-    // wallet has a USDC token account: x402 SPL transfers do not create the recipient's account, so
-    // offering Solana earlier would make every Solana payment fail.
-    "SOLANA_PAY_TO": "",
+    // Solana USDC receiver (Peter's Phantom wallet). x402 SPL transfers do not create the recipient's account; its
+    // USDC associated token account C7L5qhPw7xMs6qf8jEyZQiwmoB9oDZ24cFvRaedbECwR exists since 22 Oct 2026 (checked
+    // against the derived address). Dexter's verifier pays on Solana; empty switches Solana off.
+    "SOLANA_PAY_TO": "82wfSCZhCmZA7zwqqt6Q3FG8nqYBwUvbThP6M97fa9Q6",
     // Tempo address that receives per-call MPP payments in USDC.e (src/lib/mpp-tempo.ts): PAY_TO, by Peter's
     // decision of 2026-10-20 (option A in docs/mpp-per-call.md; his wallet shows the address on Tempo Mainnet and can
     // send from it). Empty switches the tempo method off.
