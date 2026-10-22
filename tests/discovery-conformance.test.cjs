@@ -57,7 +57,15 @@ test('listing tags keep the specific ones within the Bazaar limit of 5', async (
   assert.deepEqual(listingTags(['base', 'blockchain', 'evm', 'erc20', 'transfers', 'wallet', 'history', 'usdc']), ['base', 'erc20', 'transfers', 'wallet', 'history']);
   assert.deepEqual(listingTags(['a', 'b']), ['a', 'b']);
   const { ENDPOINTS } = await load('src/endpoints.ts');
-  for (const e of ENDPOINTS) assert.ok(listingTags(e.tags).length <= 5);
+  for (const e of ENDPOINTS) assert.ok(listingTags(e.tags, e.path).length <= 5);
+  // Search-phrase tags come first and every SEARCH_TAGS path is a real tool.
+  const { SEARCH_TAGS } = await load('src/lib/bazaar-extension.ts');
+  for (const [path, phrases] of Object.entries(SEARCH_TAGS)) {
+    const e = ENDPOINTS.find((x) => x.path === path);
+    assert.ok(e, path);
+    assert.deepEqual(listingTags(e.tags, path).slice(0, phrases.length), [...phrases], path);
+  }
+  assert.deepEqual(listingTags(['sanctions', 'ofac', 'compliance', 'kyc', 'aml'], '/sanctions/check'), ['sanctions-check', 'ofac-screening', 'sanctions', 'ofac', 'compliance']);
 });
 
 test('v1 terms list the inputs; Bazaar inputs carry examples and address patterns', async () => {

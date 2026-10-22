@@ -59,11 +59,46 @@ export function bazaarExtensionFor(e: Endpoint) {
 const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "data"]);
 
 /**
- * The tags a directory listing carries. The Bazaar keeps the first 5 and drops the rest without a warning, so the
- * specific ones (usdc, payments, sanctions…) go first and the shared ones last.
+ * The task phrases buyers type into the Bazaar search, as tags, per tool (business/agentic/base-bots/search-ranks.mjs
+ * measures them daily). Inside a tier of equal 30-day payers the Bazaar orders by text relevance; a tag holding a query
+ * word won 55% of 206 tied pairs on 22 Oct 2026, the name 56%, price and recency nothing. Each phrase must describe
+ * what the tool does.
  */
-export function listingTags(tags: readonly string[]): string[] {
-  return [...tags.filter((t) => !GENERIC_TAGS.has(t)), ...tags.filter((t) => GENERIC_TAGS.has(t))].slice(0, 5);
+export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  "/search": ["web-search"], "/news": ["news-headlines", "latest-news"],
+  "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
+  "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price"],
+  "/sanctions/check": ["sanctions-check", "ofac-screening"], "/check/payee": ["payee-screening"],
+  "/wallet/balances": ["wallet-balance"], "/wallet-audit": ["wallet-risk"], "/extract/rendered": ["web-page-to-markdown"],
+  "/extract": ["scrape-website", "web-scraping"], "/email": ["email-verification"], "/company": ["company-data"],
+  "/domain-report": ["domain-lookup"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price"],
+  "/btc-fees": ["bitcoin-fees"], "/pdf/text": ["pdf-to-text"], "/geocode": ["geocoding"], "/sec/filings": ["sec-filings"],
+  "/token-report": ["honeypot-token-check"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
+  "/ai/chat": ["chat-completions", "llm-chat-completion"], "/ai/embed": ["text-embeddings", "openai-compatible"],
+  "/eth/balance": ["ethereum-balance"], "/hyperliquid/market": ["hyperliquid-funding"], "/airport/status": ["airport-delays"],
+  "/fx": ["currency-exchange-rate"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],
+  "/ai/summarize-text": ["summarize-text"], "/image": ["image-generation"], "/transcribe": ["speech-to-text"],
+  "/package": ["npm-package"], "/wikipedia": ["wikipedia-summary"], "/earthquakes": ["earthquakes"],
+  "/holidays": ["public-holidays"], "/feed": ["rss-feed"], "/sitemap": ["sitemap"],
+  "/text/prompt-injection": ["prompt-injection-detection"], "/json/repair": ["json-repair"],
+  "/validate/iban": ["iban-validation"], "/base/token-transfers": ["token-transfers"], "/ens": ["ens-name"],
+  "/liquidity-pool-audit": ["liquidity-pool"], "/check/counterparty": ["counterparty-risk"], "/base-gas": ["base-gas"],
+  "/btc-price": ["btc-price"], "/wallet/portfolio": ["portfolio-value"], "/papers": ["research-papers"],
+  "/dictionary": ["dictionary-definition"],
+});
+
+/** The tool's tags with its search-phrase tags first, without duplicates (the full list, for our own discovery index). */
+export function searchTagged(tags: readonly string[], path?: string): string[] {
+  return [...new Set([...(path ? SEARCH_TAGS[path] ?? [] : []), ...tags])];
+}
+
+/**
+ * The tags a directory listing carries. The Bazaar keeps the first 5 and drops the rest without a warning, so the
+ * search phrases go first, then the specific tags (usdc, payments, sanctions…), and the shared ones last.
+ */
+export function listingTags(tags: readonly string[], path?: string): string[] {
+  const all = searchTagged(tags, path);
+  return [...all.filter((t) => !GENERIC_TAGS.has(t)), ...all.filter((t) => GENERIC_TAGS.has(t))].slice(0, 5);
 }
 
 const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "its", "of", "on", "or", "the", "to", "under", "up", "via", "with", "without"]);

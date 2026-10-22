@@ -3,6 +3,9 @@ name: MCP contract
 on:
   push:
   pull_request:
+  # release.ps1 starts it by hand when GitHub did not start a push run for a merge commit (22 Oct 2026, 1.50.3);
+  # the deploy guard needs a successful run for the exact commit.
+  workflow_dispatch:
 
 jobs:
   check:
