@@ -24,6 +24,22 @@ export const EDGE_RPCS = {
 } as const;
 
 /**
+ * eth_getLogs order per chain: the providers that answered a 1,000-block filtered USDC Transfer scan go first, the rest
+ * stay as fallbacks. Measured 2026-10-22 from a PC: Base publicnode and Tenderly (BlastAPI refuses, nodies caps at 50
+ * blocks, mainnet.base.org refuses); Ethereum MEV Blocker and Tenderly (drpc, BlastAPI, publicnode refuse); Arbitrum
+ * arbitrum.io and Tenderly (publicnode, drpc, BlastAPI refuse); Optimism publicnode, Tenderly, optimism.io (nodies caps
+ * at 50); Polygon publicnode, Tenderly, QuickNode (drpc refuses). With the general order, /base/token-transfers spent
+ * its budget on refusals and answered 502 on its own published example. Re-measure from Cloudflare before reordering.
+ */
+export const LOG_RPCS: { readonly [K in keyof typeof EDGE_RPCS]: readonly string[] } = {
+  base: ["https://base-rpc.publicnode.com", "https://base.gateway.tenderly.co", "https://mainnet.base.org", "https://base-mainnet.public.blastapi.io", "https://base-pokt.nodies.app"],
+  eth: ["https://mainnet.gateway.tenderly.co", "https://rpc.mevblocker.io", "https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth-mainnet.public.blastapi.io"],
+  arb: ["https://arb1.arbitrum.io/rpc", "https://arbitrum.gateway.tenderly.co", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://arbitrum-one.public.blastapi.io"],
+  op: ["https://optimism-rpc.publicnode.com", "https://optimism.gateway.tenderly.co", "https://mainnet.optimism.io", "https://op-pokt.nodies.app"],
+  polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon.gateway.tenderly.co", "https://rpc-mainnet.matic.quiknode.pro", "https://polygon.drpc.org"],
+};
+
+/**
  * The RPC list for a chain. BASE_RPC_URL goes first only when it is a private endpoint (not one of the public ones
  * above), so a stale public default in configuration cannot push a rate-limited node to the front.
  */
