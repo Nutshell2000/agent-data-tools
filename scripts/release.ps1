@@ -42,7 +42,11 @@ if ($Resume) {
 }
 function Save { $state | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 $runFile }
 function Step([string]$Name, [scriptblock]$Run, [string]$Expect = '', [switch]$Optional) {
-  if ($done[$Name]) { Write-Host "[skip] $Name (done in a previous run)" -ForegroundColor DarkGray; return $null }
+  if ($done[$Name]) {
+    # Carried into this run's log too, so a resume of a resume still knows what is done.
+    $state.steps += [ordered]@{ name = $Name; startedAt = (Get-Date).ToUniversalTime().ToString('o'); ms = 0; exitCode = 0; ok = $true; tail = '(done in a previous run)' }; Save
+    Write-Host "[skip] $Name (done in a previous run)" -ForegroundColor DarkGray; return $null
+  }
   Write-Host "`n==> $Name" -ForegroundColor Cyan
   $t = Get-Date; $global:LASTEXITCODE = 0
   $out = (& $Run 2>&1 | ForEach-Object { "$_" }) -join "`n"
