@@ -79,7 +79,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/domain",
     price: "$0.005",
-    summary: "DNS lookup, WHOIS, domain lookup: DNS, RDAP registration age and email authentication",
+    summary: "DNS lookup, WHOIS lookup: DNS, RDAP registration age and email authentication",
     description:
       "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits. For a trust verdict with named flags use domain_report.",
     tags: ["domain", "dns", "whois", "email", "security"],
@@ -109,7 +109,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/domain-report",
     price: "$0.01",
-    summary: "Domain trust verdict: age, DNS and email-auth flags",
+    summary: "Domain lookup, trust verdict: age, DNS and email-auth flags",
     description:
       "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Raw DNS records: domain.",
     tags: ["domain", "security", "trust", "phishing", "email"],
@@ -168,7 +168,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/token-report",
     price: "$0.02",
-    summary: "Token risk and honeypot check: red flags plus live DEX liquidity for a Base token before a swap",
+    summary: "Honeypot token check, token risk: red flags plus live DEX liquidity for a Base token before a swap",
     description:
       "Check a Base token before you swap into it: a high/medium/low risk verdict with named red flags (paused transfers, blacklist, owner-set fees or tax, a mint selector with a live owner, upgradeable proxy, no or thin liquidity, a pair under 7 days old, buys but no sells as a honeypot sign) plus live DexScreener price, liquidity, volume and FDV. Heuristic screening, not a safety guarantee. Use before swapping into an unfamiliar Base token.",
     details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
