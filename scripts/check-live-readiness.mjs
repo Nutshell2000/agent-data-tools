@@ -10,15 +10,19 @@ const cardResponse = await fetch(origin, { headers: { accept: "application/json"
 if (!cardResponse.ok) throw new Error(`Service card HTTP ${cardResponse.status}`);
 const card = await cardResponse.json();
 const queue = [...card.endpoints], results = [];
+/** A 429 from the validator pauses every worker until this settles (the limit is per caller, not per tool). */
+let pausedUntil = Promise.resolve();
 async function worker() {
   while (queue.length) {
     const endpoint = queue.shift();
     const path = new URL(endpoint.url).pathname;
     try {
       // The CDP validator throttles bursts (empty bodies or 429 part-way through a run: 79/181 and 169/181 on 22 Oct
-      // while every tool answered); wait and ask again, up to three tries per tool.
+      // while every tool answered, and 177/181 twice with 429s even with three 5 s tries); wait and ask again, up to
+      // five tries per tool, honouring Retry-After and otherwise doubling from 10 s, and pause every worker on a 429.
       let response, detail;
       for (let attempt = 1; ; attempt++) {
+        await pausedUntil;
         response = await fetch("https://api.cdp.coinbase.com/platform/v2/x402/validate", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resource: endpoint.example, method: "GET" }), signal: AbortSignal.timeout(45_000),
@@ -26,8 +30,11 @@ async function worker() {
         const text = await response.text();
         try { detail = text ? JSON.parse(text) : null; } catch { detail = null; }
         if (detail && response.status !== 429 && response.status < 500) break;
-        if (attempt >= 3) throw new Error(`validator answered HTTP ${response.status} ${text ? "with unreadable JSON" : "with an empty body"} three times`);
-        await new Promise((r) => setTimeout(r, 5_000 * attempt));
+        if (attempt >= 5) throw new Error(`validator answered HTTP ${response.status} ${text ? "with unreadable JSON" : "with an empty body"} five times`);
+        const retryAfter = Number(response.headers.get("retry-after")) * 1000;
+        const waitMs = Math.min(120_000, Math.max(retryAfter || 0, 10_000 * 2 ** (attempt - 1)));
+        if (response.status === 429) pausedUntil = new Promise((r) => setTimeout(r, waitMs));
+        await new Promise((r) => setTimeout(r, waitMs));
       }
       const failed = (detail.preflight ?? []).filter(check => check.severity === "required" && !check.passed);
       const quote = detail.paymentRequirements?.accepts?.[0];
