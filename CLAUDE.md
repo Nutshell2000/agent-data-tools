@@ -414,6 +414,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   network, so `smoke:examples` and the families test run them for real. Names carry the search phrases ("GDP by country,
   World Bank data", "Inflation rate by country", "Population by country", "Unemployment rate by country").
 
+## LLM names and proof patience (1.50.1, 22 Oct 2026)
+
+- Bazaar search for "chat completions" (8 results, #1 with 5 payers) did not find "LLM chat completion" (singular), so
+  `/ai/chat` is "LLM chat completions" and `/ai/embed` is "Embeddings, OpenAI compatible" ("embeddings" 19 results, we were
+  #9; "openai compatible" 7 results, absent). Both need one settlement (Refresh click) to show on the Bazaar.
+- The busiest single resource on Base is blockrun.ai's chat completions at $0.002 (83k calls, 288 payers in 30 days);
+  ours is $0.01 since 22 Oct. Price is Peter's call; the daily report now lists the most-used resources.
+- release.ps1 staging proofs try up to four times (8, 30, 60 s) because the testnet facilitator's relayer wallet gets
+  stuck ("nonce lower than the current nonce", "replacement transaction underpriced").
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.

@@ -150,12 +150,15 @@ if (-not $merged) {
 }
 Step 'checkout-main' { git fetch -q origin; git checkout -q --detach origin/main; git rev-parse HEAD }
 $sha = (git rev-parse HEAD).Trim()
-WaitFor "main CI for $($sha.Substring(0,7))" {
-  $runs = gh run list --repo Nutshell2000/agent-data-tools --commit $sha --json status,conclusion 2>$null | ConvertFrom-Json
+# The deploy guard (scripts/deploy-production.mjs) wants a completed, successful run of mcp-contract.yml for this exact
+# commit, so wait for that workflow by name: on 22 Oct 2026 a resumed run passed this wait on another workflow's run and
+# the guard then refused ("No successful clean-install CI run for this exact commit").
+WaitFor "main CI (mcp-contract.yml) for $($sha.Substring(0,7))" {
+  $runs = gh run list --repo Nutshell2000/agent-data-tools --workflow mcp-contract.yml --commit $sha --json status,conclusion 2>$null | ConvertFrom-Json
   if (-not $runs) { return 'wait' }
+  if ($runs | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'success' }) { return 'ok' }
   if ($runs | Where-Object { $_.status -eq 'completed' -and $_.conclusion -ne 'success' }) { return 'fail' }
-  if ($runs | Where-Object { $_.status -ne 'completed' }) { return 'wait' }
-  'ok'
+  'wait'
 }
 
 # ---- 3. staging proofs ---------------------------------------------------------------------------------------------
@@ -166,10 +169,16 @@ function Proof([string]$Name, [string[]]$ProofArgs) {
   # Not `$Args`: inside the step's scriptblock that name is PowerShell's own automatic variable (empty), which ran the
   # proofs without arguments on the 1.48.1 release.
   $script:proofArgs = $ProofArgs
+  # The testnet facilitator's relayer wallet gets stuck now and then ("nonce lower than the current nonce",
+  # "replacement transaction underpriced" on 22 Oct 2026, both its side); give it up to four tries over about two minutes.
   Step $Name {
-    $first = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
-    if (($first -join "`n") -match $settled) { $first }
-    else { Write-Host "[retry] $Name did not settle; retrying in 8 s" -ForegroundColor Yellow; Write-Host (($first | Select-Object -Last 3) -join "`n"); Start-Sleep 8; node scripts/pay-test.mjs @script:proofArgs }
+    $waits = @(8, 30, 60)
+    for ($try = 0; ; $try++) {
+      $out = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
+      if (($out -join "`n") -match $settled -or $try -ge $waits.Count) { $out; break }
+      Write-Host "[retry] $Name did not settle; retrying in $($waits[$try]) s" -ForegroundColor Yellow; Write-Host (($out | Select-Object -Last 3) -join "`n")
+      Start-Sleep $waits[$try]
+    }
   } $settled
 }
 Step 'staging-deploy' { npx wrangler deploy -c wrangler.staging.jsonc } 'Current Version ID'
@@ -186,7 +195,14 @@ else {
   $list = (npx wrangler deployments list --name agent-data-tools 2>&1 | Out-String)
   $uuid = ([regex]::Matches($list, '\(100%\)\s+([0-9a-f-]{36})') | Select-Object -Last 1).Groups[1].Value
   if (-not $uuid) { throw "could not read the live deployment uuid" }
-  $deploy = Step 'deploy-production' { npm run deploy:production -- --expected-version $uuid } '"ok":true'
+  # The guard reads GitHub's run list, which can lag the CI wait above by a minute; give it three tries.
+  $deploy = Step 'deploy-production' {
+    for ($try = 1; ; $try++) {
+      $out = (npm run deploy:production -- --expected-version $uuid 2>&1 | ForEach-Object { "$_" })
+      if (($out -join "`n") -notmatch 'No successful clean-install CI run' -or $try -ge 3) { $out; break }
+      Write-Host "[retry] the guard does not see the CI run yet; retrying in 60 s" -ForegroundColor Yellow; Start-Sleep 60
+    }
+  } '"ok":true'
   RevertGenerated
   $state.productionVersion = ([regex]::Match($deploy, 'Current Version ID:\s*([0-9a-f-]{36})')).Groups[1].Value; Save
   Write-Host "production version $($state.productionVersion)"
