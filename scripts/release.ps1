@@ -153,9 +153,19 @@ $sha = (git rev-parse HEAD).Trim()
 # The deploy guard (scripts/deploy-production.mjs) wants a completed, successful run of mcp-contract.yml for this exact
 # commit, so wait for that workflow by name: on 22 Oct 2026 a resumed run passed this wait on another workflow's run and
 # the guard then refused ("No successful clean-install CI run for this exact commit").
+# GitHub sometimes starts no push run for a merge commit (1.50.3 on 22 Oct waited 20 minutes for nothing); after three
+# minutes without a run, start the workflow on main by hand once (workflow_dispatch runs on main's head, this commit).
+$ciWaitStart = Get-Date; $script:ciDispatched = $false
 WaitFor "main CI (mcp-contract.yml) for $($sha.Substring(0,7))" {
   $runs = gh run list --repo Nutshell2000/agent-data-tools --workflow mcp-contract.yml --commit $sha --json status,conclusion 2>$null | ConvertFrom-Json
-  if (-not $runs) { return 'wait' }
+  if (-not $runs) {
+    if (-not $script:ciDispatched -and ((Get-Date) - $ciWaitStart).TotalMinutes -ge 3) {
+      Write-Host "[retry] no CI run for $($sha.Substring(0,7)) after 3 minutes; starting mcp-contract.yml on main" -ForegroundColor Yellow
+      gh workflow run mcp-contract.yml --repo Nutshell2000/agent-data-tools --ref main 2>&1 | Out-Null
+      $script:ciDispatched = $true
+    }
+    return 'wait'
+  }
   if ($runs | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'success' }) { return 'ok' }
   if ($runs | Where-Object { $_.status -eq 'completed' -and $_.conclusion -ne 'success' }) { return 'fail' }
   'wait'

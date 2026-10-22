@@ -424,6 +424,17 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - release.ps1 staging proofs try up to four times (8, 30, 60 s) because the testnet facilitator's relayer wallet gets
   stuck ("nonce lower than the current nonce", "replacement transaction underpriced").
 
+## What orders Bazaar search ties, and the CI dispatch (1.50.4, 22 Oct 2026)
+
+- Measured over 206 adjacent result pairs with equal 30-day payers in 62 task searches (business/agentic/base-bots/tie-breaks.mjs):
+  price, calls, lastUpdated, lastCalledAt, name length and description length are all coin flips (45-50%); the name holding
+  the query phrase wins 56%, the description start 56%, a tag word 55%. So inside a payer tier the order is text
+  relevance (probably semantic), and the controllable lever stays the exact phrase in the name, then tags and the first
+  80 characters of the description. Payers decide between tiers.
+- mcp-contract.yml takes `workflow_dispatch`; release.ps1 starts it on main when no push run appeared for the merge commit
+  within 3 minutes (GitHub started none for 1.50.3's merge c01b1cd; it was unblocked by pushing the commit to a scratch
+  branch `ci/<sha>`, which the guard accepts because it filters by commit, not branch).
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.
