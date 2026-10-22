@@ -112,3 +112,28 @@ test('two quotes in a row carry identical payment terms, Base first, at the new 
   assert.equal(a.accepts[0].amount, '5000');
   assert.deepEqual(a.resource, b.resource);
 });
+
+// Node's fetch (undici) refuses a response whose headers exceed 16 KB. /extract's 402 reached 16.7 KB in production
+// on 22 Oct (PAYMENT-REQUIRED 14.4 KB plus two MPP challenges), so Node agents could not read its quote. Production
+// adds about 1.5 KB (the Tempo challenge and edge headers) to what this fixture sends; keep a margin under 16 KB.
+test('every tool quote fits a Node client: headers well under 16 KB', async () => {
+  const { build: b2 } = require('esbuild');
+  const Module = require('node:module');
+  const entry = require.resolve('../src/endpoints.ts');
+  const out = await b2({ entryPoints: [entry], bundle: true, platform: 'node', format: 'cjs', write: false });
+  const loaded = new Module(entry, module); loaded.filename = entry; loaded.paths = Module._nodeModulePaths(process.cwd());
+  loaded._compile(out.outputFiles[0].text, entry);
+  const { ENDPOINTS, exampleParams } = loaded.exports;
+  let largest = { path: '', bytes: 0 };
+  for (const e of ENDPOINTS) {
+    const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)])).toString();
+    const res = await mf.dispatchFetch(`https://api.test${e.path}${query ? `?${query}` : ''}`, { headers: { accept: 'application/json' } });
+    await res.arrayBuffer();
+    if (res.status !== 402) continue;
+    let bytes = 0;
+    for (const [k, v] of res.headers) bytes += k.length + v.length + 4;
+    if (bytes > largest.bytes) largest = { path: e.path, bytes };
+    assert.ok(bytes <= 13_000, `${e.path}: ${bytes} header bytes`);
+  }
+  assert.ok(largest.bytes > 0, 'quotes were measured');
+});
