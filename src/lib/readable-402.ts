@@ -6,6 +6,7 @@ import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import type { Endpoint } from "../endpoints";
+import { relatedList } from "./related";
 
 export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }): Promise<Response> {
   const header = res.headers.get("payment-required");
@@ -28,7 +29,9 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). x402 v1 clients: terms in this body, pay with X-PAYMENT. No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_…. Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // With v1 terms the body is a v1 PaymentRequired (official v2 clients read the header first and use the
   // body only when it is absent); otherwise the body mirrors the v2 header.
-  const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource } : { ...challenge, hint };
+  // Three related tools, so an agent that cannot use this one (price, inputs, chain) sees the next thing to try.
+  const related = page ? relatedList(origin, page.endpoint.path) : undefined;
+  const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource, related } : { ...challenge, hint, related };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
   return new Response(JSON.stringify(body), { status: 402, headers });

@@ -138,3 +138,19 @@ test('every tool quote fits a Node client: headers well under 16 KB', async () =
   }
   assert.ok(largest.bytes > 0, 'quotes were measured');
 });
+
+// Every quote and every answer names three related tools: a Link header (RFC 8288) and, in the readable 402 body, a list.
+test('a quote carries related tools as Link header and body list; a free sample answer carries the Link header too', async () => {
+  const quote = await mf.dispatchFetch('https://api.test/btc-fees', { headers: { accept: 'application/json' } });
+  assert.equal(quote.status, 402);
+  const link = quote.headers.get('link') ?? '';
+  assert.equal((link.match(/rel="related"/g) ?? []).length, 3, link);
+  assert.match(link, /<https:\/\/api\.test\/[a-z0-9/-]+>; rel="related"; title="[^"]+"/);
+  const body = await quote.json();
+  assert.equal(body.related.length, 3);
+  for (const r of body.related) { assert.match(r.url, /^https:\/\/api\.test\//); assert.match(r.price, /^\$/); assert.ok(r.name); }
+  assert.ok(body.related.every((r) => !r.url.endsWith('/btc-fees')));
+  const sample = await mf.dispatchFetch('https://api.test/time?zone=UTC&sample=1', { headers: { accept: 'application/json' } });
+  assert.equal(sample.status, 200);
+  assert.equal(((sample.headers.get('link') ?? '').match(/rel="related"/g) ?? []).length, 3);
+});

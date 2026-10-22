@@ -8,6 +8,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402 } from "./lib/readable-402";
+import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { demoPage } from "./lib/demo-page";
@@ -119,6 +120,14 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
       markStage("referral", `/from/${referrerFamily(c.req.header("referer"), new URL(c.req.url).hostname)}`);
     }
     if (c.req.method === "GET" && ENDPOINTS.some(e => e.path === c.req.path)) {
+      // Three tools to try next (same section first, best sellers first), as RFC 8288 links on every quote and every
+      // answer: the bot that just bought /btc-fees found /check/counterparty through our catalog; this is the short path.
+      if (c.res.ok || c.res.status === 402) {
+        const linked = new Response(c.res.body, c.res);
+        linked.headers.append("Link", relatedLinkHeader(origin(c.req.url), c.req.path));
+        c.res = undefined as never;
+        c.res = linked;
+      }
       if (c.res.status === 402 && !c.req.header("payment-signature")) markStage("quote");
       if (c.res.status >= 400 && activeTrace()?.stages.has("verified") && !activeTrace()?.stages.has("settlement_failed")) markStage("execution_failed");
       if (c.res.ok && (c.res.headers.has("PAYMENT-RESPONSE") || c.res.headers.has("Payment-Receipt"))) markStage("completed");
