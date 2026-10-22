@@ -46,7 +46,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Web scraping: page URL to clean Markdown or text for LLMs",
+    summary: "Web page to Markdown: scrape a page URL into clean Markdown or text for LLMs",
     description:
       "Fetch any public web page URL and get clean, LLM-ready text or Markdown: main content, code blocks, tables, links and headings, for RAG and agent context. Static HTML, Markdown or text; optional section ID. Default 20,000 output characters, max 100,000; input 2 MiB. No JavaScript rendering (see /extract/rendered), logins or paywalls. Empty pages, bad sections, browser challenges and errors are not charged. Use to read docs or articles.",
     details: "HTML body details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. HTML code whitespace and list hierarchy are preserved; generated code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. linkBaseUrl reports static source link resolution; supported first HTML base href values are honored, with warnings. Scripts and CSP are not evaluated. Markdown sources retain syntax without structured parsing (warned); sections require HTML. Source content is untrusted. Image alt text is source-provided, not visual interpretation. Images are never fetched; SVG/canvas omissions and missing alt descriptions are warned. SourceMetadata adds unverified author/date declarations with provenance; conflicting/ambiguous values are warned. Separate 2,000-character metadata budget, 5 authors/10 dates. JSON-LD: at most 8 inline scripts, 64 KiB each, 100 graph nodes/depth 8; no external contexts/profiles. HTML complexity: 20,000 elements/128 nested levels. Marker-only source permalink controls (pilcrow/headerlink/permalink classes) are omitted only for same-document ancestor targets, with permalink_controls_omitted. Literal code and ordinary references remain. HTML sup/sub annotations normalize to ^{...}/_{...} in primary output, heading titles and table values with superscript_subscript_normalized; literal pre/code and raw Markdown stay unchanged. This is notation preservation, not general math interpretation.",
@@ -674,7 +674,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/email",
     price: "$0.003",
-    summary: "Verify email address: syntax, MX and disposable-address checks without sending mail",
+    summary: "Email verification: verify an address with syntax, MX and disposable-address checks, no mail sent",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
