@@ -1,5 +1,5 @@
 {
-  "version": "1.47.9",
+  "version": "1.47.11",
   "tools": [
     {
       "name": "extract",
@@ -1185,7 +1185,7 @@
     },
     {
       "name": "liquidity_pool_audit",
-      "description": "Check a Base DEX pool before you trade or add liquidity: give a pair address and get the verified DEX, both tokens, reported liquidity, 24h volume and trades, and pair age from DexScreener, with source and retrieval time. Missing fields are null; an unknown pair returns 404. Market data only, no pool-security or investment-risk assessment. Use to confirm a pair is real and deep enough before trading; token red flags: token_report. Example: address=0x98c7A2338336d2d354663246F64676009c7bDa97. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a Base DEX pool before you trade: give a pair address and get the verified DEX, both tokens, reported liquidity, 24h volume and trades, and pair age from DexScreener, or read on Base when it is unavailable, with source and retrieval time. Missing fields are null; an unknown pair returns 404. Market data only, no risk assessment. Use to confirm a pair is real and deep enough before trading; token red flags: token_report. Example: address=0x98c7A2338336d2d354663246F64676009c7bDa97. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
