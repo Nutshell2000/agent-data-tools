@@ -154,7 +154,8 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/package", ["package", "risk"]],
     ["/price/token", ["crypto", "token", "price"]],
     ["/extract", ["scrape website", "page to markdown"]],
-    ["/ai/chat", ["llm", "chat", "completion"]],
+    ["/ai/chat", ["llm chat completion", "chat completions"]],
+    ["/ai/embed", ["embeddings", "openai compatible"]],
     // Bazaar search (22 Oct 2026) found "Domain lookup (DNS, WHOIS)" for "domain lookup" but not for "dns lookup",
     // and "Crypto token price" for "token price" but not for "crypto price": the task phrase must appear as written.
     ["/domain", ["dns lookup", "whois", "domain lookup"]],
