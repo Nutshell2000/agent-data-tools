@@ -288,7 +288,7 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined);
+  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }
