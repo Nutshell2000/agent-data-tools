@@ -24,7 +24,13 @@ const TESTNET = "eip155:84532";
 const TESTNET_V1 = "base-sepolia";
 
 const KEY_FILE = new URL("../.test-wallet.json", import.meta.url);
-if (!existsSync(KEY_FILE)) writeFileSync(KEY_FILE, JSON.stringify({ note: "Base Sepolia test wallet. Faucet tokens only.", key: generatePrivateKey() }));
+// A checkout without the wallet file gets a fresh, unfunded one, which is right for a first local run and wrong for a
+// release proof (every 1.48.x "insufficient_balance" came from a worktree without the file). The release train sets
+// PAY_TEST_REQUIRE_WALLET=1 so a missing file is an error there instead of a silent new wallet.
+if (!existsSync(KEY_FILE)) {
+  if (process.env.PAY_TEST_REQUIRE_WALLET) throw new Error(`no ${KEY_FILE.pathname} in this checkout; copy the funded test wallet here before running proofs`);
+  writeFileSync(KEY_FILE, JSON.stringify({ note: "Base Sepolia test wallet. Faucet tokens only.", key: generatePrivateKey() }));
+}
 const account = privateKeyToAccount(JSON.parse(readFileSync(KEY_FILE, "utf8")).key);
 
 const argv = process.argv.slice(2);
