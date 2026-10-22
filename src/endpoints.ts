@@ -17,7 +17,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "181 pay-per-call tools for AI agents over HTTP or MCP, most at $0.003. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "181 pay-per-call tools for AI agents over HTTP or MCP, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -343,7 +343,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/btc-address",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Bitcoin address balance and activity",
     description:
       "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring.",
@@ -365,7 +365,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/ln-invoice",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Decode a Lightning invoice",
     description:
       "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it.",
@@ -673,7 +673,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/email",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Email verification: verify an address with syntax, MX and disposable-address checks, no mail sent",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
@@ -698,7 +698,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/papers",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Research papers search: academic papers",
     description:
       "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
@@ -719,7 +719,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/fx",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Currency exchange rates and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
@@ -741,7 +741,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/btc-price",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Bitcoin (BTC) price in USD, EUR and other major currencies",
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
@@ -781,6 +781,8 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/base-tx",
+    // Stays at $0.003 after the 22 Oct move to $0.01: the published capped chain client (clients/chain) and
+    // docs/chain-checks.md promise this price, and copies already downloaded refuse anything higher.
     price: "$0.003",
     summary: "Base transaction status and details",
     description:
@@ -835,7 +837,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/ens",
-    price: "$0.003",
+    price: "$0.01",
     summary: "ENS name lookup: ENS name to address and address to ENS name",
     description:
       "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
@@ -854,7 +856,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/weather",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Weather forecast: current weather and 48-hour hourly forecast for any city or coordinates",
     description:
       "Weather for any city or point on Earth (city name, or latitude and longitude): current temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
@@ -890,7 +892,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/time",
-    price: "$0.003",
+    price: "$0.01",
     summary: "Current time in a time zone and time zone conversion",
     description:
       "The exact current date and time in any IANA time zone (UTC when none is given), with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule across time zones or to turn a timestamp into local time. A bare GET is the smallest paid end-to-end test of an x402 or MPP client.",
@@ -961,7 +963,7 @@ export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["p
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header and a WWW-Authenticate: Payment challenge; pay with any x402 client (exact scheme, USDC on Base, Polygon, Arbitrum, Monad or World Chain) or any MPP client (mppx: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.003: JSON, CSV, encodings, hashes, dates, cron, units and validators. Paused and not charged: /search, /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
+  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header and a WWW-Authenticate: Payment challenge; pay with any x402 client (exact scheme, USDC on Base, Polygon, Arbitrum, Monad or World Chain) or any MPP client (mppx: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.01: JSON, CSV, encodings, hashes, dates, cron, units and validators. Paused and not charged: /search, /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/guides/web-reading", label: "Read documentation: real examples, free quote and capped CLI" }];

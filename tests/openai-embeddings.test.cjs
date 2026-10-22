@@ -46,7 +46,7 @@ test('an unpaid POST gets the /ai/embed quote; a multi-input body with a payment
   assert.ok(res.headers.get('payment-required'));
   assert.match(res.headers.get('www-authenticate') ?? '', /method="evm"/);
   const quote = await res.json();
-  assert.equal(quote.accepts[0].maxAmountRequired, '3000');
+  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
   assert.equal(quote.accepts[0].resource, 'https://api.test/v1/embeddings');
   assert.equal(res.headers.get('x-tool'), '/ai/embed');
   const bad = await mf.dispatchFetch('https://api.test/v1/embeddings', { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'eyJmYWtlIjp0cnVlfQ' }, body: JSON.stringify({ input: ['a', 'b'] }) });
@@ -64,6 +64,6 @@ test('an unpaid POST gets the /ai/embed quote; a multi-input body with a payment
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
   assert.deepEqual(api.paths['/v1/embeddings'].get.parameters.map((p) => [p.name, p.required]), [['input', true]]);
   const post = api.paths['/v1/embeddings'].post;
-  assert.equal(post['x-payment-info'].price.amount, '0.003');
+  assert.equal(post['x-payment-info'].price.amount, '0.01');
   assert.ok(post.requestBody.content['application/json'].schema.properties.input);
 });

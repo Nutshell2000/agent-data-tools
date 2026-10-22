@@ -89,7 +89,7 @@ test('each tool offers evm/charge next to x402 by default: USDC on Base to PAY_T
   assert.equal(challenge.intent, 'charge');
   assert.equal(challenge.realm, 'api.test');
   assert.ok(challenge.id && challenge.expires);
-  assert.equal(challenge.request.amount, '3000');
+  assert.equal(challenge.request.amount, '10000');
   assert.equal(challenge.request.currency.toLowerCase(), BASE_USDC);
   assert.equal(challenge.request.recipient.toLowerCase(), PAY_TO);
   assert.equal(challenge.request.methodDetails.chainId, 8453);
@@ -119,9 +119,9 @@ test('an MPP agent pays one call with USDC on Base: verify, run, settle after su
   const settle = facilitatorCalls.findLast((c) => c.path.endsWith('/settle'));
   for (const call of [verify, settle]) {
     assert.equal(call.body.x402Version, 2);
-    assert.deepEqual(call.body.paymentRequirements, { scheme: 'exact', network: 'eip155:8453', amount: '3000', asset: BASE_USDC, payTo: PAY_TO, maxTimeoutSeconds: 300, extra: { name: 'USD Coin', version: '2' } });
+    assert.deepEqual(call.body.paymentRequirements, { scheme: 'exact', network: 'eip155:8453', amount: '10000', asset: BASE_USDC, payTo: PAY_TO, maxTimeoutSeconds: 300, extra: { name: 'USD Coin', version: '2' } });
     assert.equal(call.body.paymentPayload.payload.authorization.from.toLowerCase(), address);
-    assert.equal(call.body.paymentPayload.payload.authorization.value, '3000');
+    assert.equal(call.body.paymentPayload.payload.authorization.value, '10000');
     assert.match(call.body.paymentPayload.payload.signature, /^0x[0-9a-f]{130}$/);
   }
   assert.equal(settle.body.paymentPayload.resource.url, 'https://api.test/time');
@@ -131,12 +131,12 @@ test('an MPP agent pays one call with USDC on Base: verify, run, settle after su
   await new Promise((r) => setTimeout(r, 200)); // the ledger write runs in waitUntil
   const revenue = await (await mf.dispatchFetch('https://api.test/revenue')).json();
   assert.equal(revenue.byEndpoint['/time'].settlements, 1);
-  assert.equal(revenue.byEndpoint['/time'].grossAtomic, '3000');
+  assert.equal(revenue.byEndpoint['/time'].grossAtomic, '10000');
   assert.equal(revenue.payerActivity.distinctExternalWallets, 1);
   const metrics = await (await mf.dispatchFetch('https://api.test/metrics')).json();
   const today = Object.values(metrics)[0];
   assert.equal(today['/time'].paid, 1);
-  assert.equal(today['/time'].revenueUsdMicros, 3000);
+  assert.equal(today['/time'].revenueUsdMicros, 10000);
 });
 
 test('a failed call is never settled, a rejected verification never runs the tool, and a credential works once', async () => {
