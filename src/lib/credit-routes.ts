@@ -208,9 +208,15 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
 }
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
-export function paymentHint(origin: string, price: string, signedIn = false) {
+export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
+  // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
+  // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
+  const [starter] = CREDIT_PACKS;
+  const card = cardReady
+    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${Math.floor(starter.credits / 10).toLocaleString("en-US")} calls at $0.01; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
+    : `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}`;
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
-    + `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}, and retry. The key works for every tool on this server.`
+    + `${card}, and retry. The key works for every tool on this server.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may
     // already be used by someone else; signing in gives this person their own allowance.
     + (signedIn ? "" : ` In Claude, ChatGPT or another app that connects from the cloud, the free calls are shared with everyone behind the same address; connect to ${origin}/mcp/account instead and continue without a key to get your own ${FREE_CALLS_PER_CALLER} free calls.`);
