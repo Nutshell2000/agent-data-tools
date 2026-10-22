@@ -90,7 +90,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         mimeType: "application/json",
         serviceName: listingName(e.summary),
         iconUrl: SERVICE_ICON_URL,
-        tags: listingTags(e.tags),
+        tags: listingTags(e.tags, e.path),
       },
       extensions: {
         ...declareDiscoveryExtension({

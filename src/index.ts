@@ -152,7 +152,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
         mimeType: "application/json",
         serviceName: listingName(e.summary),
         iconUrl: SERVICE_ICON_URL,
-        tags: listingTags(e.tags),
+        tags: listingTags(e.tags, e.path),
         extensions: { ...bazaarExtensionFor(e), ...builderCodeExtension() },
       },
     ]),
