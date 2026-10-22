@@ -102,7 +102,7 @@ export { tokenAddress };
 const poolOut = (p: PoolQuote | null) => p && { address: p.pool, feeTier: p.feeTier, quoteReserve: sig(p.quoteReserve), quoteReserveUsd: sig(p.quoteReserveUsd) };
 
 export const PRICES: Entry[] = [
-  entry("/price/token", "Token price: crypto token price in USD from Uniswap v3 pools",
+  entry("/price/token", "Crypto token price: USD price of a token from Uniswap v3 pools",
     "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
       symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)", example: "ETH" },
@@ -187,7 +187,7 @@ export const PRICES: Entry[] = [
       };
     }, "$0.005"),
 
-  entry("/wallet/portfolio", "Wallet holdings valued in USD",
+  entry("/wallet/portfolio", "Wallet portfolio value: holdings valued in USD",
     "USD value of a wallet on Base, Ethereum, Arbitrum or Optimism: native ETH plus major tokens (USDC and WETH everywhere, the common Base tokens on Base) and up to 20 tokens you add, each priced from its deepest Uniswap v3 pool, read live from the chain. Returns holdings, total and anything that could not be priced. Not a full token inventory. Use to check what a wallet is worth before trading, lending or paying.",
     ["wallet", "portfolio", "balance", "price", "crypto", "defi"], {
       address: { type: "string", description: "0x wallet address", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },

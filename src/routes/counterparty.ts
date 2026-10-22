@@ -50,7 +50,7 @@ async function domainPart(env: Parameters<typeof domainReport>[0], name: string 
 const portfolio = PRICES.find((e) => e.endpoint.path === "/wallet/portfolio")!;
 
 export const COUNTERPARTY: Entry[] = [
-  entry("/check/counterparty", "Screen a payee before paying: EVM address risk check (OFAC and on-chain signals)",
+  entry("/check/counterparty", "Counterparty risk check: screen a payee's EVM address before paying (OFAC and on-chain signals)",
     "Screen a payee before paying, trading or onboarding: one call vets an address on Base, Ethereum, Arbitrum or Optimism with an OFAC SDN match, account type and activity, USD holdings and, on Base, wallet or contract risk checks; add the payee's domain for its age and trust flags. One block, review or pass verdict with reasons. Screening aid, not legal advice or a security audit. Use before paying, trading with or onboarding an address.",
     ["payee-screening", "compliance", "sanctions", "ofac", "wallet", "risk", "base", "ethereum"], {
       address: { type: "string", description: "0x address to check", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
