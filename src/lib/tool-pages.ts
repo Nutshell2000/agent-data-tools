@@ -84,7 +84,7 @@ ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>
 <p>Over HTTP, with a card key from <a href="/credits">/credits</a>:</p>
 <pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"</code></pre>
 ${freeCalls ? `<p>Or one of your ${FREE_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
-<p>Without a key, the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so an agent with a wallet pays per call in USDC (Base, Polygon, Arbitrum, Monad, World Chain or Tempo) and retries.</p>
+<p>Without a key, the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so an agent with a wallet pays per call in USDC (Base, Polygon, Arbitrum or Solana over x402; Base or Tempo over MPP) and retries.</p>
 <h2>Example result</h2>
 <pre><code>${esc(shown)}</code></pre>
 <h2>From an AI agent (MCP)</h2>
