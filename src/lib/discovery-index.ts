@@ -37,11 +37,11 @@ export function usdcRequirements(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "
  * in its own order, and the toys last.
  */
 const SALES_FIRST = [
-  "/check/payee", "/check/counterparty", "/check/x402-seller", "/search", "/sanctions/check", "/token-report", "/token", "/wallet-audit", "/contract-risk",
+  "/check/payee", "/check/counterparty", "/check/x402-seller", "/search", "/news", "/sanctions/check", "/token-report", "/token", "/wallet-audit", "/contract-risk",
   "/liquidity-pool-audit", "/x402/check", "/price/token", "/price/tokens", "/wallet/portfolio", "/wallet/balances",
   "/hyperliquid/market", "/sec/filings", "/airport/status", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
   "/base-gas", "/extract", "/extract/rendered", "/email", "/company", "/domain", "/domain-report", "/weather",
-  "/pdf/text", "/package", "/package-audit",
+  "/econ/gdp", "/econ/inflation", "/econ/population", "/econ/unemployment", "/pdf/text", "/package", "/package-audit",
 ];
 const SALES_LAST = /^\/(coin|dice|magic-8-ball|yes-no|echo|ping)$|^\/random\//;
 export function salesOrdered<T extends { path: string }>(list: readonly T[]): T[] {

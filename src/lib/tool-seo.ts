@@ -87,6 +87,31 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Give an agent current information or sources from the open web in one call", "Get title, URL, snippet and page age for 1-20 results, then read one in full with /extract", "Ground an answer in live web results without an account or a monthly plan"],
     faq: [["Where do the results come from?", "The Brave Search API, one request per paid call. Results are for the caller's immediate use: no storing, resale or model training."], ["What if the search provider is down or the daily capacity is used up?", "The call answers 503 and nothing is charged."]],
   },
+  "/news": {
+    title: "News search API for AI agents: latest headlines as JSON, pay per query",
+    uses: ["Get the latest headlines on a topic with title, URL, snippet, publisher and age", "Limit results to the past day, week or month for a current-events answer", "Read a story in full afterwards with /extract"],
+    faq: [["Where do the articles come from?", "The Brave Search API's news index, one request per paid call. Results are for the caller's immediate use: no storing, resale or model training."], ["What if the provider is down or the daily capacity is used up?", "The call answers 503 and nothing is charged."]],
+  },
+  "/econ/gdp": {
+    title: "GDP by country API: World Bank GDP, growth and per capita",
+    uses: ["Get a country's GDP in US dollars, real growth and GDP per capita for the last 1-10 years", "Compare economies by ISO code or English country name", "Add macro context to a market-sizing or research answer"],
+    faq: [["Where does the data come from?", "A committed snapshot of World Bank Open Data (CC BY 4.0); the snapshot date is in every answer."], ["How current is it?", "The World Bank publishes annual figures; the newest year available for the country is returned first."]],
+  },
+  "/econ/inflation": {
+    title: "Inflation rate by country API: World Bank consumer prices",
+    uses: ["Get a country's annual consumer-price inflation for the last 1-10 years", "Deflate prices or returns with the official CPI change", "Compare inflation across countries by ISO code or name"],
+    faq: [["Where does the data come from?", "A committed snapshot of World Bank Open Data (CC BY 4.0); the snapshot date is in every answer."], ["Is it monthly?", "No. The series is the World Bank's annual % change in consumer prices."]],
+  },
+  "/econ/population": {
+    title: "Population by country API: World Bank totals, growth and urban share",
+    uses: ["Get a country's total population, growth rate and urban share for the last 1-10 years", "Compute per-capita figures from a total you already have", "Compare countries by ISO code or English name"],
+    faq: [["Where does the data come from?", "A committed snapshot of World Bank Open Data (CC BY 4.0); the snapshot date is in every answer."], ["Which countries are covered?", "The 217 World Bank economies; aggregates such as regions are not included."]],
+  },
+  "/econ/unemployment": {
+    title: "Unemployment rate by country API: World Bank ILO estimates",
+    uses: ["Get a country's unemployment rate and youth unemployment rate for the last 1-10 years", "Compare labour markets across countries by ISO code or name", "Add labour-market context to an economic answer"],
+    faq: [["Where does the data come from?", "A committed snapshot of World Bank Open Data (CC BY 4.0), ILO modelled estimates; the snapshot date is in every answer."], ["Is it seasonally adjusted monthly data?", "No. The series are annual rates as % of the labour force."]],
+  },
   "/extract": {
     title: "Web page to Markdown and text API for LLMs",
     uses: ["Turn a web page into clean Markdown or text for an LLM or RAG pipeline", "Pull the tables and code blocks out of documentation pages", "Read one section of a long page by heading"],
