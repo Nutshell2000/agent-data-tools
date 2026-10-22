@@ -65,8 +65,12 @@ function WaitFor([string]$What, [scriptblock]$Done, [int]$CapMinutes = 20) {
 
 # ---- 0. preconditions ---------------------------------------------------------------------------------------------
 Step 'auth' { gh auth status 2>&1 | Select-Object -First 2; npx wrangler whoami 2>&1 | Select-String 'logged in|Account' | Select-Object -First 1 } 'Logged in|logged in'
-$branch = (git branch --show-current).Trim()
+# The branch under release. A resumed run may start on a detached checkout (the train detaches onto main after the
+# merge), so the branch is remembered in the run log and read back from it.
+$branch = "$(git branch --show-current)".Trim()
+if ($Resume -and -not $branch -and $prev) { $branch = "$((Get-Content $prev.FullName -Raw | ConvertFrom-Json).branch)".Trim() }
 if (-not $branch -or $branch -eq 'main') { throw "run on a feature branch, not '$branch'" }
+$state.branch = $branch; Save
 
 # ---- 1. sync with main, bump, local checks --------------------------------------------------------------------------
 # A release that merged while this branch was cut moved the same pin lines (version, tool count, contract baseline), so
@@ -129,12 +133,17 @@ WaitFor "main CI for $($sha.Substring(0,7))" {
 
 # ---- 3. staging proofs ---------------------------------------------------------------------------------------------
 $settled = '"success":true|settle:\s+(?!none|no )\S'
+# The testnet facilitator sometimes answers one proof with a transient refusal (insufficient_balance while the wallet
+# holds funds): a proof gets one retry after a short wait; two refusals abort before production.
+function Proof([string]$Name, [string[]]$Args) {
+  Step $Name { $first = (node scripts/pay-test.mjs @Args 2>&1 | ForEach-Object { "$_" }); if (($first -join "`n") -match $settled) { $first } else { Write-Host "[retry] $Name did not settle; retrying in 8 s" -ForegroundColor Yellow; Start-Sleep 8; node scripts/pay-test.mjs @Args } } $settled
+}
 Step 'staging-deploy' { npx wrangler deploy -c wrangler.staging.jsonc } 'Current Version ID'
 RevertGenerated
-Step 'proof-v2' { node scripts/pay-test.mjs "$StagingOrigin$ProofPath" } $settled
-Step 'proof-v1' { node scripts/pay-test.mjs "$StagingOrigin$ProofPath" --v1 } $settled
-Step 'proof-mcp' { node scripts/pay-test.mjs $StagingOrigin --mcp btc_fees } $settled
-Step 'proof-mpp-evm' { node scripts/pay-test.mjs "$StagingOrigin/time?zone=UTC" --mpp-evm } $settled
+Proof 'proof-v2' @("$StagingOrigin$ProofPath")
+Proof 'proof-v1' @("$StagingOrigin$ProofPath", '--v1')
+Proof 'proof-mcp' @($StagingOrigin, '--mcp', 'btc_fees')
+Proof 'proof-mpp-evm' @("$StagingOrigin/time?zone=UTC", '--mpp-evm')
 
 # ---- 4. production -------------------------------------------------------------------------------------------------
 $liveVersion = (Invoke-RestMethod "$Origin/.well-known/mcp/server-card.json" -TimeoutSec 60).serverInfo.version
