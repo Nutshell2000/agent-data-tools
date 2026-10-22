@@ -6,7 +6,7 @@ import { entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
-import { EDGE_RPCS, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
+import { EDGE_RPCS, LOG_RPCS, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
 
 interface ChainDef {
@@ -32,6 +32,17 @@ export function client(env: Env, c: ChainDef): PublicClient {
   const options = { timeout: 5_000, retryCount: 1, retryDelay: 100 };
   return requestClient(`${c.slug}|${urls.join("|")}`, () =>
     createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }), batch: { multicall: true } }) as PublicClient);
+}
+
+/** A client whose node order suits eth_getLogs (LOG_RPCS); everything else keeps client()'s order. */
+export function logsClient(env: Env, c: ChainDef): PublicClient {
+  const slug = c.slug as keyof typeof LOG_RPCS;
+  if (!(slug in LOG_RPCS)) return client(env, c);
+  const custom = slug === "base" ? env?.BASE_RPC_URL?.trim() : undefined;
+  const urls = custom && !LOG_RPCS[slug].includes(custom) && !(EDGE_RPCS.base as readonly string[]).includes(custom) ? [custom, ...LOG_RPCS[slug]] : [...LOG_RPCS[slug]];
+  const options = { timeout: 5_000, retryCount: 1, retryDelay: 100 };
+  return requestClient(`logs|${c.slug}|${urls.join("|")}`, () =>
+    createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }) }) as PublicClient);
 }
 
 /** Runs an RPC call; node failures become 502 so the caller is not charged. */
@@ -236,7 +247,7 @@ function chainEntries(c: ChainDef): Entry[] {
         if (topic0 && !isHash(topic0)) throw new HttpError(400, "topic0 must be a 0x 32-byte hash");
         const cl = client(env, c);
         const latest = await rpc(() => cl.getBlockNumber());
-        const { logs: list, fromBlock, complete } = await recentLogs(cl, { address: a, ...(topic0 ? { topics: [topic0 as `0x${string}`] } : {}) }, latest, span, 100);
+        const { logs: list, fromBlock, complete } = await recentLogs(logsClient(env, c), { address: a, ...(topic0 ? { topics: [topic0 as `0x${string}`] } : {}) }, latest, span, 100);
         // The newest 100, oldest first; fromBlock is where the scan stopped when a busy contract filled them early.
         return head({
           address: a, fromBlock: Number(fromBlock), toBlock: Number(latest), count: list.length, truncated: list.length > 100 || !complete,
@@ -263,9 +274,10 @@ function chainEntries(c: ChainDef): Entry[] {
         type Log = { address: string; blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string };
         // Sent and received Transfer events of this one token, newest first in growing windows (recentLogs): public nodes
         // refuse or time out on a single 1,000-block eth_getLogs, which made this tool fail about one call in four.
+        const logs = logsClient(env, c);
         const [sentScan, receivedScan] = await Promise.all([
-          recentLogs(cl, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50),
-          recentLogs(cl, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50),
         ]).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
         const sent = sentScan.logs, received = receivedScan.logs;
         const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;
