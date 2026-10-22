@@ -400,6 +400,20 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `scripts/check-live-readiness.mjs`: a 429 from the CDP validator pauses both workers and each tool gets up to five tries
   with Retry-After or doubling waits from 10 s (two 177/181 runs on 22 Oct were throttling, not outages).
 
+## News and World Bank economics (1.50.0, 22 Oct 2026; 187 tools)
+
+- `/news` (src/routes/search.ts): the Brave News endpoint under the same key, daily cap and end-user terms as `/search`;
+  `freshness` day/week/month. Capacity-limited, fifth in `SALES_FIRST`. Bazaar demand: "news headlines" (#1 had 13 payers)
+  and "latest news", no listing of ours before.
+- `/econ/gdp`, `/econ/inflation`, `/econ/population`, `/econ/unemployment` (src/routes/econ.ts) read a committed World Bank
+  snapshot, `src/data/world-bank.generated.ts` (388 KB, 217 economies, 9 indicators, 10 years), built by
+  `node scripts/fetch-world-bank.mjs` (rerun monthly; the file carries its date and every answer names "World Bank Open
+  Data (CC BY 4.0), snapshot <date>"). Why a snapshot: the live API answered 7-20 s for cold country/indicator pairs and
+  even timed out on a bulk query, while the data changes yearly. Country input is an ISO2/ISO3 code or an English name
+  (`ALIASES` covers the usual differences from World Bank names); unknown country or no data is 404, uncharged. No
+  network, so `smoke:examples` and the families test run them for real. Names carry the search phrases ("GDP by country,
+  World Bank data", "Inflation rate by country", "Population by country", "Unemployment rate by country").
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.

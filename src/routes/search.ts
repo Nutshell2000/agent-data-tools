@@ -69,4 +69,45 @@ export const SEARCH: Entry[] = [
         .map((r) => ({ title: stripTags(r.title!), url: r.url!, snippet: stripTags(r.description ?? ""), age: r.age ?? null }));
       return { query, provider: "Brave Search", count: results.length, results, terms: TERMS };
     }, "$0.01"),
+
+  // Same provider, key, daily cap and terms as /search: the Brave News endpoint. Bazaar search on 22 Oct 2026: "news
+  // headlines" (13 results, #1 with 13 payers) and "latest news" (12 results) with no listing of ours.
+  entry("/news", "News headlines, latest news: search current news articles (Brave)",
+    "Search current news and get the latest headlines as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted capacity return 503, uncharged. Use when an agent needs current news on a topic.",
+    ["news", "headlines", "search", "web", "research"], {
+      q: { type: "string", description: "News search query, at most 400 characters", required: true, example: "bitcoin ETF" },
+      count: { type: "integer", description: "Number of results (1-20, default 10)", example: 10 },
+      freshness: { type: "string", description: "Only articles from the past day, week or month (default: any age)", example: "day" },
+    },
+    {
+      query: "bitcoin ETF", provider: "Brave News", count: 1,
+      results: [{ title: "Bitcoin ETFs see record inflows", url: "https://www.example-news.com/markets/bitcoin-etf-inflows", snippet: "Spot bitcoin ETFs took in…", source: "example-news.com", age: "3 hours ago" }],
+      terms: TERMS,
+    },
+    async (env, q) => {
+      const query = need(q, "q", 400);
+      const count = num(q, "count", { min: 1, max: 20, fallback: 10, integer: true });
+      const freshnessInput = (q("freshness") ?? "").trim().toLowerCase();
+      const freshness = { "": undefined, day: "pd", week: "pw", month: "pm", pd: "pd", pw: "pw", pm: "pm" }[freshnessInput];
+      if (freshness === undefined && freshnessInput !== "") throw new HttpError(400, "freshness must be day, week or month");
+      if (!env.SEARCH_API_KEY) throw new HttpError(503, "search is not configured on this deployment", "SEARCH_UNAVAILABLE");
+      await takeSearchBudget(env);
+      let res: Response;
+      try {
+        res = await fetch(`https://api.search.brave.com/res/v1/news/search?${new URLSearchParams({ q: query, count: String(count), ...(freshness ? { freshness } : {}) })}`, {
+          headers: { accept: "application/json", "x-subscription-token": env.SEARCH_API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
+      } catch {
+        throw new HttpError(503, "the news provider did not answer in time; try again");
+      }
+      if (!res.ok) throw new HttpError(503, `the news provider answered HTTP ${res.status}; try again`);
+      const body = (await res.json().catch(() => null)) as { results?: (BraveResult & { meta_url?: { hostname?: string } })[] } | null;
+      if (!body) throw new HttpError(503, "the news provider sent an unreadable answer");
+      const results = (body.results ?? [])
+        .filter((r) => r.url && r.title)
+        .slice(0, count)
+        .map((r) => ({ title: stripTags(r.title!), url: r.url!, snippet: stripTags(r.description ?? ""), source: r.meta_url?.hostname ?? new URL(r.url!).hostname, age: r.age ?? null }));
+      return { query, provider: "Brave News", count: results.length, results, terms: TERMS };
+    }, "$0.01"),
 ];

@@ -14,7 +14,7 @@ test('related tools: three others, same category first, best sellers first, neve
   const weather = relatedTools('/weather');
   assert.equal(weather.length, 3);
   assert.ok(weather.every((e) => e.path !== '/weather'));
-  assert.ok(weather.every((e) => ['/geocode', '/airport/status', '/time', '/holidays', '/earthquakes', '/sun', '/moon', '/country', '/npm/downloads', '/pypi'].includes(e.path)), weather.map((e) => e.path).join(','));
+  assert.ok(weather.every((e) => ['/geocode', '/airport/status', '/econ/gdp', '/econ/inflation', '/econ/population', '/econ/unemployment', '/time', '/holidays', '/earthquakes', '/sun', '/moon', '/country', '/npm/downloads', '/pypi'].includes(e.path)), weather.map((e) => e.path).join(','));
   const payee = relatedTools('/check/payee');
   assert.deepEqual(payee.map((e) => e.path), ['/check/counterparty', '/check/x402-seller', '/sanctions/check']);
   const header = relatedLinkHeader('https://api.test', '/btc-fees');

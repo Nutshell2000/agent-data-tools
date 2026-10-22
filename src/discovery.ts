@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.49.1";
+export const MCP_SERVER_VERSION = "1.50.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -204,10 +204,10 @@ function clientGuidance() {
 const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Prices and DeFi", (p) => /^\/(price\/|wallet\/portfolio|token|trade-insight|liquidity-pool-audit|mev-simulator|contract-risk|wallet-audit|btc-price|hyperliquid\/|fx$)/.test(p)],
   ["Chain data", (p) => /^\/(base|eth|arb|op|polygon)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|wallet\/balances|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
-  ["Web, documents and search", (p) => /^\/(extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|search|wikipedia|dictionary|papers)$/.test(p)],
+  ["Web, documents and search", (p) => /^\/(extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|search|news|wikipedia|dictionary|papers)$/.test(p)],
   ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|check\/counterparty|check\/payee|check\/x402-seller|domain|domain-report|email|package|package-audit|x402\/check|sec\/filings|text\/prompt-injection|http\/security-headers|dockerfile\/lint)$/.test(p)],
   ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
-  ["Everyday data", (p) => /^\/(weather|time|holidays|geocode|earthquakes|airport\/status|sun|moon|country|npm\/downloads|pypi)$/.test(p)],
+  ["Everyday data", (p) => /^\/(weather|time|holidays|geocode|earthquakes|airport\/status|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/")],
 ];
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities";

@@ -160,6 +160,11 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/domain", ["dns lookup", "whois", "domain lookup"]],
     ["/price/token", ["crypto price", "token price"]],
     ["/search", ["web search"]],
+    ["/news", ["news headlines", "latest news"]],
+    ["/econ/gdp", ["gdp", "world bank"]],
+    ["/econ/inflation", ["inflation rate"]],
+    ["/econ/population", ["population"]],
+    ["/econ/unemployment", ["unemployment rate"]],
   ];
   for (const [path, words] of intents) for (const w of words) assert.ok(nameOf(path).includes(w), `${path}: "${nameOf(path)}" lacks "${w}"`);
 });
