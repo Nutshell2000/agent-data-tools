@@ -229,4 +229,345 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Build link previews with title, description and image", "Check how a URL will unfurl before sharing it", "Label citations with site name, author and published time"],
     faq: [["Does it run JavaScript?", "No. It reads at most 512 KB of the page's head and never runs JavaScript."]],
   },
+
+  // Prices and chain reads
+  "/price/tokens": {
+    title: "Batch crypto price API: USD prices for up to 20 tokens in one call",
+    uses: ["Value a basket of tokens or refresh a watchlist in one paid call", "Price by ticker (ETH, BTC, USDC, AERO) or ERC-20 address on Base, Ethereum, Arbitrum or Optimism", "Spot tokens with thin liquidity before relying on the price"],
+    faq: [["Where do the prices come from?", "Each token's deepest Uniswap v3 pool against USDC or WETH on the chosen chain, read live from the chain at call time. Spot prices."], ["What if a token has no pool?", "It is listed under unpriced with the reason instead of failing the call."]],
+  },
+  "/btc-price": {
+    title: "Bitcoin price API: BTC in USD, EUR, GBP and sats per dollar",
+    uses: ["Convert between sats and fiat", "Value a Bitcoin or Lightning payment", "Check the BTC price before a trade"],
+    faq: [["Where does the price come from?", "mempool.space, an average across major exchanges, with the time of the price in the result."], ["Which currencies?", "USD, EUR, GBP, CAD, CHF, AUD and JPY, plus satoshis per US dollar."]],
+  },
+  "/base-gas": {
+    title: "Base gas price API: base fee, priority fee and EIP-1559 suggestions",
+    uses: ["Get the current base fee and priority fee on Base in gwei", "Take suggested maxFeePerGas and maxPriorityFeePerGas for an EIP-1559 transaction", "See the estimated fee of an ETH or ERC-20 transfer before sending"],
+    faq: [["Does it need any input?", "No. It reads the latest Base block (chain 8453) and reports how full it is."], ["Is this the same as /base/gas?", "/base/gas is paused and points here: this tool has the same Base gas data plus the EIP-1559 fee suggestions."]],
+  },
+  "/wallet": {
+    title: "Base wallet balance API: ETH, USDC and token holdings with nonce",
+    uses: ["Check a counterparty's ETH and major token balances on Base (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC)", "Add up to 20 token addresses of your own to the same call", "See the account nonce and whether the address is an EOA, a contract or an EIP-7702 account"],
+    faq: [["Which chains?", "Base only. For all five chains use /wallet/balances; for USD values use /wallet/portfolio."], ["Is the nonce a transaction history?", "No. It counts outgoing transactions only, not transfers or trading history."]],
+  },
+  "/base/token-transfers": {
+    title: "Base USDC transfer history API: recent ERC-20 transfers of a wallet",
+    uses: ["Confirm a USDC payment arrived at a Base address", "See what a wallet sent or received, newest first, with counterparty, amount and transaction", "Check another ERC-20 token by ticker or contract address"],
+    faq: [["How far back does it look?", "The last 1 to 2,000 blocks (default 1,000); 2,000 blocks is about 67 minutes on Base. Up to 50 transfers are returned."], ["Which token is the default?", "USDC on Base; pass token for USDT, WETH or any ERC-20 contract. For the current balance use base_token_balance."]],
+  },
+  "/eth/token-transfers": {
+    title: "Ethereum USDC transfer history API: recent ERC-20 wallet transfers",
+    uses: ["Confirm a USDC payment arrived at an Ethereum address", "See what a wallet sent or received, newest first, with counterparty, amount and transaction", "Check another ERC-20 token by ticker or contract address"],
+    faq: [["How far back does it look?", "The last 1 to 2,000 blocks (default 1,000); 2,000 blocks is about 6.7 hours on Ethereum. Up to 50 transfers are returned."], ["Which token is the default?", "USDC on Ethereum; pass token for USDT, WETH or any ERC-20 contract. For the current balance use eth_token_balance."]],
+  },
+  "/base/balance": {
+    title: "Base ETH balance API: native balance of any wallet address",
+    uses: ["Check whether a Base wallet can pay gas or a transfer", "Read the ETH balance at the latest block in wei and ETH", "Add a balance check before an agent sends funds on Base"],
+    faq: [["Does it include tokens?", "No, native ETH only (eth_getBalance); base_token_balance reads ERC-20 tokens and wallet_portfolio lists all holdings."], ["What about a bad address?", "A malformed address is rejected with 400 and not charged."]],
+  },
+  "/base/token-balance": {
+    title: "Base USDC balance API: ERC-20 token balance of a wallet",
+    uses: ["Check a wallet's USDC, USDT, WETH or any ERC-20 balance on Base before a transfer or trade", "Pass a ticker or the token's 0x contract address", "Get the raw amount, decimals, symbol and human-readable amount from balanceOf"],
+    faq: [["What if the token address is wrong?", "No contract returns 404 and a non-ERC-20 contract 422, both uncharged."], ["What about ETH itself?", "Use base_balance for the native coin."]],
+  },
+  "/mev-simulator": {
+    title: "Base gas cost estimator API: swap fees under priority-fee scenarios",
+    uses: ["Budget gas for a Base transaction", "Compare the standard, high-mev (3x priority fee) and low-gas (half) presets", "See the cost in ETH and USD for 100k, 250k and 180k gas units"],
+    faq: [["Does it simulate my transaction?", "No. Gas units are fixed typical assumptions (100k simple, 250k complex, 180k liquidity), not transaction-specific estimates; there is no mempool observation or MEV or sandwich-risk measurement."], ["What if the scenario is wrong?", "Invalid values return 400 without charge."]],
+  },
+  "/trade-insight": {
+    title: "Base token and wallet risk indicators API before a trade",
+    uses: ["Get one input before a Base trade: token risk tier and flags, DEX market data, wallet risk tier and flags", "Read the wallet's account nonce and native balance in the same call"],
+    faq: [["Does it recommend buying or selling?", "No. It returns the underlying indicators separately, with no buy/sell recommendation or calibrated confidence; holder concentration is not evaluated."], ["Which chain?", "Base; it combines the token-report and wallet-audit indicators."]],
+  },
+
+  // Bitcoin and Lightning
+  "/btc-address": {
+    title: "Bitcoin address balance API: confirmed, pending, received and sent",
+    uses: ["Payment verification: check whether a deposit arrived", "Wallet monitoring with confirmed balance, unconfirmed pending amount, totals and transaction counts"],
+    faq: [["Which address types?", "Bitcoin mainnet legacy, P2SH and bech32 addresses."]],
+  },
+  "/ln-invoice": {
+    title: "Lightning invoice decoder API: BOLT11 amount, expiry and hash",
+    uses: ["Check what an invoice asks for before an agent pays it", "Read network, amount in sats and BTC, description, payment hash, creation and expiry time", "See whether the invoice has already expired"],
+    faq: [["Does it pay the invoice?", "No. It decodes the BOLT11 string only."]],
+  },
+
+  "/dictionary": {
+    title: "English dictionary API: word definitions from Wiktionary",
+    uses: ["Look up definitions of an English word grouped by part of speech", "Get example sentences where Wiktionary gives them", "Writing help, vocabulary, translation checks and word games"],
+    faq: [["Where do the definitions come from?", "Wiktionary, with the page link and the CC BY-SA attribution to show."], ["Which languages?", "English words only."]],
+  },
+  "/wikipedia": {
+    title: "Wikipedia summary API: article extract in any language edition",
+    uses: ["Ground an agent's answer in a quick, citable fact sheet", "Get the title, one-paragraph extract, description, thumbnail and page URL", "Read another language edition with lang (default en)"],
+    faq: [["Is the full article returned?", "No, a short summary: title, one-paragraph extract, description, thumbnail and page URL, with CC BY-SA 4.0 attribution."]],
+  },
+  "/papers": {
+    title: "Academic paper search API: titles, authors, citations and DOI",
+    uses: ["Search journals, conferences, preprints and books for a research agent or literature review", "Fact-check a claim against published work", "Find the DOI for a citation"],
+    faq: [["How many results?", "Up to 20 per call (default 5), optionally only works from fromYear onwards."], ["What does each result include?", "Title, authors, year, venue, citation count, DOI link and abstract where available."]],
+  },
+  "/earthquakes": {
+    title: "Recent earthquakes API: USGS quakes for the past day or week",
+    uses: ["Alerts, news and travel checks", "Filter by minimum magnitude 2.5, 4.5 or significant", "Get magnitude, place, time, depth, coordinates, tsunami flag and USGS link"],
+    faq: [["Where does the data come from?", "The US Geological Survey feeds for the past day or week."]],
+  },
+  "/country": {
+    title: "Country data API: ISO codes, capital, region and population",
+    uses: ["Enrich records with country data by ISO code (SE, SWE, US)", "Get the capital city and its coordinates", "Read the latest population figure with its year and the income level"],
+    faq: [["Where does the data come from?", "World Bank open data, with the official World Bank name and region."]],
+  },
+  "/moon": {
+    title: "Moon phase API: illumination, age and next new and full moon",
+    uses: ["Calendars and night-sky planning", "Get the phase name, illuminated percentage and age in days for any date"],
+    faq: [["Is it computed or looked up?", "Computed locally from the mean synodic month."]],
+  },
+  "/time": {
+    title: "Current time API: now in any time zone, with time zone conversion",
+    uses: ["Tell an agent what time it is, in UTC or any IANA zone", "Schedule across time zones: convert one moment into up to 10 zones", "Run the smallest paid end-to-end test of an x402 or MPP client with a bare GET"],
+    faq: [["What if I give no zone?", "UTC. The result has the UTC offset, weekday, abbreviation and Unix timestamp, with daylight saving time handled."]],
+  },
+
+  // Web reading
+  "/feed": {
+    title: "RSS feed reader API: parse RSS and Atom feeds to JSON",
+    uses: ["Follow news, blogs, release notes or podcasts without scraping pages", "Get the newest items with title, link, ISO date, plain-text summary, author and id", "Read the feed title, link and description"],
+    faq: [["Which formats and limits?", "RSS 2.0, RSS 1.0 and Atom, up to 50 items per call and feeds up to 2 MB; it is lenient with real-world feeds."], ["What if the URL is not a feed?", "It returns 422 and is not charged."]],
+  },
+  "/sitemap": {
+    title: "Sitemap URL extractor API: list the pages of a docs site",
+    uses: ["Find which pages of a documentation site to read before calling /extract", "Filter URLs by a substring and page through large sitemaps", "Read source-reported last-modified dates"],
+    faq: [["Does it crawl the pages?", "No. It reads one XML sitemap or sitemap index (gzip supported); child sitemaps are not followed and URLs are not probed."], ["What are the limits?", "512 KiB expanded input and 1,000 entries. Invalid XML is not charged; a valid empty match is."]],
+  },
+  "/summarize": {
+    title: "Web page summarizer API: summary and key points from a URL",
+    uses: ["Research, news triage, link previews and deciding whether a page is worth reading in full", "Get a short summary plus three to six key points ready for an agent's context"],
+    faq: [["Does it work on PDFs?", "No, HTML pages only; for a PDF use pdf_text, then ai_summarize_text."], ["Can I get the full text instead?", "Yes, with /extract."]],
+  },
+
+  // AI
+  "/ai/chat-large": {
+    title: "Pay-per-call LLM API: Llama 3.3 70B or gpt-oss-120b, no subscription",
+    uses: ["Reasoning, drafting and Q&A when the 8B model is not enough", "Pick llama-3.3-70b (default) or gpt-oss-120b with the model input", "Call it through the OpenAI-compatible /v1/chat/completions by naming a 70b or gpt-oss model"],
+    faq: [["How is it different from /ai/chat?", "Same call and inputs (prompt, optional system prompt, up to 1,024 output tokens, temperature) with a stronger model, at its own price."]],
+  },
+  "/ai/translate": {
+    title: "Translation API: translate text between 100 languages (M2M100)",
+    uses: ["Localise messages and documents", "Translate up to 4,000 characters with a target ISO code such as en, sv, de, fr, es, zh or ja"],
+    faq: [["Which model?", "Meta's M2M100 1.2B, about 100 languages; the source language is optional (default en)."]],
+  },
+  "/ai/embed": {
+    title: "Text embeddings API: 1,024-dimension vectors (BGE-M3), pay per call",
+    uses: ["Semantic search, RAG retrieval, clustering and deduplication", "Embed up to 4,000 characters in 100+ languages", "Use the same call through the OpenAI-compatible /v1/embeddings"],
+    faq: [["Which model and size?", "BAAI's BGE-M3, 1,024 dimensions."], ["Can I send several texts at once?", "No, one text (up to 4,000 characters) per call."]],
+  },
+  "/ai/summarize-text": {
+    title: "Text summarization API: summary and key points, pay per call",
+    uses: ["Summarize long emails, documents, transcripts and tool outputs", "Choose the summary length, 1-8 sentences", "Get bullet key points with the summary"],
+    faq: [["How much text?", "Up to 12,000 characters that you send; for a web page by URL use /summarize."]],
+  },
+  "/ai/sentiment": {
+    title: "Sentiment analysis API: positive or negative with confidence score",
+    uses: ["Triage reviews, support messages, social posts and replies", "Get POSITIVE or NEGATIVE with a score for each label"],
+    faq: [["Which model and languages?", "A DistilBERT model fine-tuned on SST-2, for English text up to 4,000 characters."], ["Is there a neutral class?", "No, positive or negative only, each with its score."]],
+  },
+  "/ai/classify": {
+    title: "Zero-shot text classification API: route text into your own labels",
+    uses: ["Route tickets, tag content, detect intent and fill moderation queues", "Give 2-20 candidate labels and get the best one, a short reason and a ranking"],
+    faq: [["Do I need to train anything?", "No. It is zero-shot: send the text (up to 8,000 characters) and the comma-separated labels."]],
+  },
+  "/ai/keywords": {
+    title: "Keyword extraction API: key phrases from text, most relevant first",
+    uses: ["Tagging, SEO, search indexing and topic detection", "Ask for 3-30 keywords (default 10) from up to 12,000 characters"],
+    faq: [["What comes back?", "A list of keywords and short key phrases, most important first."]],
+  },
+  "/ai/rewrite": {
+    title: "Text rewriting API: make text formal, casual, shorter or simpler",
+    uses: ["Polish emails, replies, product copy and messages", "Pick a style: formal, casual, simpler, shorter, friendly, professional or persuasive"],
+    faq: [["Does it change the meaning or language?", "No. It keeps the meaning and language and adds no facts, names or details that are not in the original."]],
+  },
+  "/ai/outline": {
+    title: "Outline generator API: Markdown outline of a text or topic",
+    uses: ["Plan articles, reports, talks and documentation", "Outline a text you send, or get a suggested outline for a topic", "Choose 1-3 heading levels"],
+    faq: [["What format is the outline?", "Markdown headings and bullet points, up to the depth you choose (default 2)."]],
+  },
+  "/ai/extract-json": {
+    title: "Text to JSON extraction API: pull named fields from messy text",
+    uses: ["Turn emails, invoices, listings and bios into structured data for an agent", "Name 1-30 fields and get a JSON object with exactly those keys"],
+    faq: [["What if a field is not in the text?", "It is null and listed under missing; the model is told never to guess."]],
+  },
+  "/ai/speech": {
+    title: "Text to speech API: turn text into an audio file (MeloTTS)",
+    uses: ["Voice replies, audio notes, accessibility and phone or chat bots", "Speak up to 1,000 characters in English, Spanish, French, Chinese, Japanese or Korean"],
+    faq: [["What do I get back?", "The audio as base64 with its content type and size in bytes."]],
+  },
+  "/describe": {
+    title: "Image description API: caption, OCR-style reading and visual Q&A",
+    uses: ["Write alt text for an image at a public URL", "Read the text in screenshots and charts", "Ask a specific question about the image"],
+    faq: [["Which formats and sizes?", "PNG, JPEG, WebP and GIF up to 3 MB, by public URL."], ["Which model answers?", "A vision model on Workers AI; its exact name is returned in the model field."]],
+  },
+  "/image": {
+    title: "AI image generation API: text to 1024x1024 JPEG with FLUX.1 schnell",
+    uses: ["Illustrations, thumbnails, mockups, avatars and social media images", "Trade speed for detail with steps 1-8 (default 4)"],
+    faq: [["What do I get back?", "A 1024x1024 JPEG as base64, in a few seconds."], ["How long can the prompt be?", "3 to 800 characters."]],
+  },
+  "/transcribe": {
+    title: "Audio transcription API: speech to text with Whisper large-v3-turbo",
+    uses: ["Transcribe voice notes, podcast clips, meeting snippets and voice messages", "Get the transcript, detected language, duration and word count"],
+    faq: [["Which formats and size?", "Common formats such as MP3, WAV, M4A and OGG at a public URL, up to 5 MB."]],
+  },
+
+  // Utilities
+  "/ip/info": {
+    title: "IP address classifier API: private, public, loopback or link-local",
+    uses: ["Triage IPs in logs or allowlists", "Tell private, loopback, link-local, carrier-grade NAT and public addresses apart", "Get the integer and reverse-DNS forms of an IPv4 address"],
+    faq: [["Does it look up geolocation or ownership?", "No. It classifies the IPv4 or IPv6 address without any lookup."]],
+  },
+  "/ip/cidr": {
+    title: "CIDR calculator API: network, broadcast, hosts and netmask",
+    uses: ["Build firewall rules and allowlists", "Get the network and broadcast address, first and last usable host, netmask and address count", "Check whether a given IP falls inside the range"],
+    faq: [["IPv6 too?", "No, IPv4 networks in CIDR notation."]],
+  },
+  "/json/validate": {
+    title: "JSON validator API: check JSON with line and column errors",
+    uses: ["Check an LLM's or an API's output before parsing it", "Get the parsed value's type and size when it is valid", "Get the error message with line and column when it is not"],
+    faq: [["How much text?", "Up to 20,000 characters."], ["Can it fix the JSON?", "No; /json/repair fixes JSON as LLMs often write it."]],
+  },
+  "/csv/to-json": {
+    title: "CSV to JSON API: spreadsheet exports to a JSON array",
+    uses: ["Load spreadsheet exports into an agent", "Convert comma, semicolon, tab or pipe delimited CSV with quoted fields", "Turn numeric cells into numbers with numbers=true"],
+    faq: [["Do I have to name the delimiter?", "No, it is detected automatically; the first row becomes the keys."], ["Are numbers converted?", "They stay as text unless numbers=true."]],
+  },
+  "/json/to-csv": {
+    title: "JSON to CSV API: convert a JSON array of objects to CSV",
+    uses: ["Export API results to a spreadsheet", "Build a header row from all keys across the objects"],
+    faq: [["What happens to nested values?", "They are written as JSON inside the cell."], ["What input is accepted?", "A JSON array of objects; anything else returns 422, uncharged."]],
+  },
+  "/html/to-text": {
+    title: "HTML to plain text API: strip HTML for LLM input",
+    uses: ["Feed web content or emails to an LLM", "Remove scripts and styles, decode entities, keep line breaks and list bullets"],
+    faq: [["Does it fetch a URL?", "No, you send the HTML (up to 50,000 characters); /extract fetches a page by URL."]],
+  },
+  "/markdown/to-html": {
+    title: "Markdown to HTML API: safe HTML from agent-written Markdown",
+    uses: ["Publish agent-written Markdown on a web page", "Convert headings, bold, italic, strikethrough, links, images, code, lists, quotes and rules"],
+    faq: [["Is raw HTML in the input kept?", "No, it is escaped, so the output is safe to embed."]],
+  },
+  "/text/stats": {
+    title: "Text readability API: word count, reading time and Flesch score",
+    uses: ["Check the length and readability of a draft", "Count characters, words, sentences and paragraphs", "Estimate reading and speaking time"],
+    faq: [["Which readability scores?", "Flesch reading ease and Flesch-Kincaid grade level, for English text."]],
+  },
+  "/text/diff": {
+    title: "Text diff API: line-by-line comparison of two texts",
+    uses: ["See what changed between two versions of a document, config or prompt", "Get each line marked unchanged, removed or added, with counts"],
+    faq: [["Is it word-level?", "No, line by line."]],
+  },
+  "/text/extract": {
+    title: "Extract emails, URLs and phone numbers from text API",
+    uses: ["Pull contacts and links out of scraped pages or messages", "Get de-duplicated lists of emails, URLs, phone-number-like strings, hashtags, @mentions and numbers"],
+    faq: [["Does it fetch a URL?", "No, you send the text (up to 50,000 characters); /extract reads a page by URL."]],
+  },
+  "/units/convert": {
+    title: "Unit converter API: length, mass, volume, temperature, data size",
+    uses: ["Convert km to mi, lb to kg, floz to ml, mph to kn, kWh, psi and more", "Tell kB from KiB in data sizes", "Convert temperatures between c, f and k"],
+    faq: [["Which unit kinds?", "Length, mass, volume (incl. US cups and gallons), temperature, speed, area, data size, time, energy and pressure."]],
+  },
+  "/unix": {
+    title: "Unix timestamp converter API: epoch seconds to ISO date and back",
+    uses: ["Read timestamps in logs and APIs", "Convert an ISO date to a Unix timestamp", "Get the current time in both forms with no input"],
+    faq: [["Seconds or milliseconds?", "Either; it is detected automatically."]],
+  },
+  "/date/diff": {
+    title: "Date difference API: days, weeks and weekdays between two dates",
+    uses: ["Deadlines, ages and durations", "Get total days, weeks, hours, minutes and seconds plus a years-months-days breakdown", "Count the weekdays (Monday-Friday) in between"],
+    faq: [["What input does it take?", "Two dates or ISO timestamps, from and to."]],
+  },
+  "/date/add": {
+    title: "Date calculator API: add days, months or business days to a date",
+    uses: ["Compute due dates and expiries", "Add or subtract years, months, weeks, days, hours and minutes", "Add business days, skipping Saturdays and Sundays"],
+    faq: [["What about month ends?", "They are clamped: 31 Jan + 1 month = 28/29 Feb."], ["Are public holidays skipped?", "No, only Saturdays and Sundays; /holidays lists a country's holidays."]],
+  },
+  "/npm/downloads": {
+    title: "npm download stats API: daily, weekly and monthly counts",
+    uses: ["Judge how widely a dependency is used", "Read counts for the last day, week and month"],
+    faq: [["Where do the counts come from?", "The official npm registry API."]],
+  },
+  "/pypi": {
+    title: "PyPI package info API: latest version, licence and Python version",
+    uses: ["Check a Python dependency before installing it", "Read the latest version, summary, licence, required Python version and home page", "See the release date and number of releases"],
+    faq: [["Does it report vulnerabilities?", "No. /package and /package-audit add risk flags and advisories."]],
+  },
+  "/semver": {
+    title: "Semver compare API: which version is newer and the next bump",
+    uses: ["Decide whether an upgrade is a major change", "Compare versions with pre-releases like 2.0.0-rc.1 by the SemVer rules", "Get the next major, minor and patch of a version"],
+    faq: [["What does it take?", "Two semantic versions such as 1.10.0 and 1.9.3; pre-releases follow the SemVer rules."]],
+  },
+  "/jwt/decode": {
+    title: "JWT decoder API: read header, payload and expiry without a key",
+    uses: ["Debug auth flows", "See issued-at, not-before and expiry as dates and whether the token has expired"],
+    faq: [["Does it verify the signature?", "No. signatureVerified is always false; do not use the result to trust a token."], ["Is the token stored?", "No."]],
+  },
+  "/hash": {
+    title: "SHA-256 hash API: hash text with SHA-1, SHA-256, SHA-384 or SHA-512",
+    uses: ["Checksums, cache keys and deduplication", "Get the digest in hex and base64"],
+    faq: [["Which algorithm is the default?", "SHA-256; pass algorithm for sha1, sha384 or sha512. Input is UTF-8 text."]],
+  },
+  "/hmac": {
+    title: "HMAC signature API: SHA-256 webhook signature check",
+    uses: ["Check webhook signatures", "Compute an HMAC with SHA-256 (default), SHA-1, SHA-384 or SHA-512 in hex and base64"],
+    faq: [["Is my key stored?", "No. The key is used only for this call and is not stored."]],
+  },
+  "/keccak": {
+    title: "Keccak-256 hash API: Ethereum function selectors and event topics",
+    uses: ["Build or decode EVM calls", "Hash a function signature such as transfer(address,uint256) and get its 4-byte selector", "Hash 0x hex bytes for event topics and storage slots"],
+    faq: [["Text or bytes?", "Both: plain text, or 0x-prefixed hex bytes, up to 10,000 characters."]],
+  },
+  "/uuid": {
+    title: "UUID generator API: random version-4 UUIDs, up to 100 per call",
+    uses: ["IDs, idempotency keys and test data", "Generate 1 to 100 UUIDs in one call"],
+    faq: [["How random are they?", "Version-4 UUIDs from a cryptographic random source."]],
+  },
+  "/validate/isbn": {
+    title: "ISBN validator API: check ISBN-10 and ISBN-13, convert to ISBN-13",
+    uses: ["Check an ISBN before cataloguing or ordering books", "Convert a valid ISBN-10 to ISBN-13"],
+    faq: [["Does it look the book up?", "No, it checks the check digit; hyphens and spaces are ignored."]],
+  },
+  "/validate/luhn": {
+    title: "Luhn check API: validate card and IMEI numbers, compute check digit",
+    uses: ["Catch typos in card or ID numbers", "Compute the check digit to append to a number"],
+    faq: [["Does it check whether the card exists?", "No. Only the format (mod 10) is checked; nothing is looked up."]],
+  },
+  "/http/status": {
+    title: "HTTP status code lookup API: meaning and whether to retry",
+    uses: ["Handle API errors in an agent", "Explain 402 Payment Required, 429 Too Many Requests and other 1xx-5xx codes"],
+    faq: [["What comes back?", "The code's name, a plain-language meaning, its class and whether to retry."]],
+  },
+  "/url/parse": {
+    title: "URL parser API: host, path, query parameters and origin",
+    uses: ["Read query parameters as an object", "Check a link's protocol, host, port, path, hash and origin", "See whether the host is an IP address"],
+    faq: [["Does it fetch the URL?", "No, it only splits the URL you send."]],
+  },
+  "/url/encode": {
+    title: "URL encode API: percent-encode text for query strings and URLs",
+    uses: ["Build query strings safely", "Get both the query-value form (encodeURIComponent) and the full-URL form (encodeURI)"],
+    faq: [["Which form should I use?", "component for a query value, uri for a whole URL; both are returned."]],
+  },
+  "/url/decode": {
+    title: "URL decode API: decode percent-encoded text and form data",
+    uses: ["Read encoded links and form data", "Treat + as a space with plus=true (form encoding)"],
+    faq: [["What about a bad sequence?", "An invalid percent sequence returns 400, uncharged."]],
+  },
+  "/base64/encode": {
+    title: "Base64 encode API: standard and URL-safe base64 from text",
+    uses: ["Data URLs, headers and basic auth strings", "Get the standard and the URL-safe variant in one call"],
+    faq: [["What input is accepted?", "UTF-8 text."]],
+  },
+  "/base64/decode": {
+    title: "Base64 decode API: standard or URL-safe base64 to text",
+    uses: ["Read encoded headers, tokens and data URLs", "Decode standard or URL-safe base64"],
+    faq: [["Does padding matter?", "No, missing padding is tolerated; the output is UTF-8 text."]],
+  },
 };

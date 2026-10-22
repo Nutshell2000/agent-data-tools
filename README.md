@@ -4,7 +4,7 @@
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D)
 [![Install in VS Code Insiders](https://img.shields.io/badge/Install_in-VS_Code_Insiders-24bfa5?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%22%7D&quality=insiders)
 
-179 pay-per-call tools for AI agents over MCP and plain HTTP: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
+181 pay-per-call tools for AI agents over MCP and plain HTTP: payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.003** per successful call.
 
 ## Quick start
 
@@ -12,7 +12,7 @@
 2. **Try free:** every caller gets **25 free successful calls**; over MCP they are used automatically. Over HTTP add `trial=1`. Failed calls never count. AI, rendering and search tools are not included.
 3. **Then pay either way:**
    - **Card:** buy prepaid credits at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits) ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001) and send the key as `Authorization: Bearer adt_…` (or `X-API-Key`) on HTTP calls or in your MCP client's connection headers.
-   - **Crypto:** any x402 client pays per call in USDC on Base, Polygon, Arbitrum, Monad or World Chain.
+   - **Crypto:** any x402 client pays per call in USDC on Base, Polygon, Arbitrum or Solana; MPP clients pay on Tempo or Base.
 
 Failed calls are never charged. Free previews of every tool's output: add `sample=1`. Machine-readable catalog: [/openapi.json](https://agent-data-tools.revmesh2074.workers.dev/openapi.json), [/llms.txt](https://agent-data-tools.revmesh2074.workers.dev/llms.txt). Support: spellz111122@gmail.com.
 
@@ -22,7 +22,7 @@ Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Browse all 175 active tools and prices](https://agent-data-tools.revmesh2074.workers.dev/#tools)
+- [Browse all 181 tools and prices](https://agent-data-tools.revmesh2074.workers.dev/tools)
 - [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
