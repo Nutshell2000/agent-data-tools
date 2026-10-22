@@ -1,3 +1,4 @@
+const { getAddress } = require('viem');
 const assert = require('node:assert/strict');
 const { before, after, test } = require('node:test');
 const { build } = require('esbuild');
@@ -40,7 +41,7 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   for (const a of time.accepts) {
     assert.equal(a.scheme, 'exact');
     assert.equal(a.amount, '3000');
-    assert.equal(a.payTo, PAY_TO);
+    assert.equal(a.payTo, getAddress(PAY_TO), "payTo is quoted checksummed (EIP-55)");
     assert.match(a.asset, /^0x[0-9a-fA-F]{40}$/);
     assert.equal(a.maxTimeoutSeconds, 300);
     assert.equal(a.extra.version, '2');
