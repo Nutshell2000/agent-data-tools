@@ -10,7 +10,7 @@ const recipient='0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5';
 const ask={scheme:'exact',network:'eip155:8453',payTo:recipient,asset:'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',amount:'2000'};
 test('all catalog payment and discovery surfaces share the floor and bounded metadata',()=>{
   const api=discovery.openApi('https://api.test'),card=discovery.serviceCard('https://api.test',recipient,'eip155:8453'),mcp=discovery.mcpServerCard('https://api.test');
-  assert.equal(discovery.ENDPOINTS.length,241);assert.equal(mcp.serverInfo.version,'1.53.0');
+  assert.equal(discovery.ENDPOINTS.length,237);assert.equal(mcp.serverInfo.version,'1.52.0');
   for(const e of discovery.ENDPOINTS){assert.ok(Number(e.price.slice(1))>=0.001,e.path);assert.ok(e.description.length<=450,e.path);
     assert.equal(api.paths[e.path].get['x-payment-info'].price.amount,e.price.slice(1));assert.equal(card.endpoints.find(v=>v.url.endsWith(e.path)).price,e.price);assert.equal(mcp.tools.find(v=>v.name===e.path.slice(1).replace(/[/-]/g,'_')).price,e.price);
   }
