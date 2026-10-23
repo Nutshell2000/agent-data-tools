@@ -48,7 +48,7 @@ test('an unpaid POST /v1/responses is quoted like the chat tool, a large model a
   assert.equal(res.status, 402);
   assert.ok(res.headers.get('payment-required'));
   const quote = await res.json();
-  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
+  assert.equal(quote.accepts[0].maxAmountRequired, '2000');
   assert.equal(quote.accepts[0].resource, 'https://api.test/v1/responses');
   assert.equal(res.headers.get('x-tool'), '/ai/chat');
   const large = await (await mf.dispatchFetch('https://api.test/v1/responses', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'llama-3.3-70b', input: 'Hi' }) })).json();
@@ -64,7 +64,7 @@ test('an unpaid POST /v1/responses is quoted like the chat tool, a large model a
   assert.equal(bare.status, 402);
   await bare.arrayBuffer();
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
-  assert.deepEqual(api.paths['/v1/responses'].post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.01', max: '0.01' });
+  assert.deepEqual(api.paths['/v1/responses'].post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.002', max: '0.01' });
   assert.deepEqual(api.paths['/v1/responses'].get['x-payment-info'], api.paths['/v1/responses'].post['x-payment-info']);
   assert.equal(api.paths['/v1/responses'].get.parameters[0].name, 'input');
 });

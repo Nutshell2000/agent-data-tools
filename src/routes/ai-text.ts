@@ -74,8 +74,15 @@ export function keywordList(reply: string): string[] {
 const text = (q: Input, max = TEXT_MAX) => need(q, "text", max);
 const list = (raw: string) => raw.split(",").map((s) => s.trim()).filter(Boolean);
 
-const ai = (path: string, summary: string, description: string, tags: string[], params: Parameters<typeof entry>[4], example: Record<string, unknown>, run: Entry["run"]) =>
-  entry(path, summary, description, [...tags, ...T], params, example, run, AI_PRICE);
+const ai = (path: string, summary: string, description: string, tags: string[], params: Parameters<typeof entry>[4], example: Record<string, unknown>, run: Entry["run"], price = AI_PRICE) =>
+  entry(path, summary, description, [...tags, ...T], params, example, run, price);
+
+/**
+ * /ai/chat matches the busiest single resource on Base, BlockRun's chat completions at $0.002 (83k calls and 288 payers
+ * in 30 days, Bazaar 22 Oct 2026); Peter's decision of 23 Oct. The 8B model runs on the free Workers AI allowance, and
+ * when that is used up the call answers 503, uncharged.
+ */
+export const CHAT_PRICE = "$0.002";
 
 export const AI_TEXT: Entry[] = [
   ai("/ai/chat", "LLM chat completions: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
@@ -90,7 +97,7 @@ export const AI_TEXT: Entry[] = [
       const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
       const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }));
       return { model: MODELS.text, response };
-    }),
+    }, CHAT_PRICE),
   entry("/ai/chat-large", "Chat completion (Llama 3.3 70B or gpt-oss-120b)", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
     ["chat", "completion", "llama", "gpt-oss", ...T], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
