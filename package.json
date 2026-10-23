@@ -37,6 +37,7 @@
     "jose": "^6.2.12",
     "light-bolt11-decoder": "^3.2.0",
     "mppx": "^0.13.5",
+    "qrcode-generator": "2.0.4",
     "saxes": "6.0.0",
     "unpdf": "1.8.1",
     "viem": "^2.57.4",

@@ -25,7 +25,7 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 164);
+  assert.equal(families.length, 175);
   for (const { endpoint: e } of families) {
     assert.equal(e.price, e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
@@ -57,7 +57,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,187);
+  assert.equal(ENDPOINTS.length,198);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -168,6 +168,52 @@ test("Uniswap v3 sqrtPriceX96 converts to quote units per token in both token or
   assert.ok(Math.abs(priceFromSqrt(sqrt, true, 18, 6) - 2000) < 1e-6);
   // Same pool seen from USDC: 1 USDC = 1/2000 WETH.
   assert.ok(Math.abs(priceFromSqrt(sqrt, false, 6, 18) - 1 / 2000) < 1e-12);
+});
+
+test("calculators and converters: examples run offline and edge cases are refused or handled", async () => {
+  const calc = await loadTypeScript(require.resolve("../src/routes/calc.ts"));
+  for (const f of calc.CALC) {
+    const out = await f.run({}, inputFrom(f.endpoint.params));
+    assert.ok(out && typeof out === "object", f.endpoint.path);
+  }
+  const run = async (path, params) => calc.CALC.find((f) => f.endpoint.path === path).run({}, (n) => params[n]);
+  // QR: UTF-8 survives, an over-long text is a 400, the data URL is the SVG.
+  const qr = await run("/qr", { text: "Smörgåsbord ✓" });
+  assert.match(qr.svg, /^<svg/);
+  assert.equal(atob(qr.dataUrl.split(",")[1]), qr.svg);
+  // 1,000 two-byte characters are 2,000 bytes, more than version 40 holds at H (1,273).
+  await assert.rejects(run("/qr", { text: "é".repeat(1000), ecc: "H" }), (e) => e.status === 400);
+  // Money: a textbook mortgage, a 0% loan, compound growth with no rate.
+  assert.equal((await run("/calc/loan", { principal: "300000", rate: "4.5", years: "30" })).monthlyPayment, 1520.06);
+  const zero = await run("/calc/loan", { principal: "1200", rate: "0", months: "12", rows: "12" });
+  assert.equal(zero.monthlyPayment, 100); assert.equal(zero.totalInterest, 0); assert.equal(zero.schedule.at(-1).balance, 0);
+  const flat = await run("/calc/compound-interest", { principal: "1000", rate: "0", years: "2", monthly: "10" });
+  assert.equal(flat.futureValue, 1240); assert.equal(flat.interestEarned, 0);
+  assert.equal((await run("/calc/compound-interest", { principal: "1000", rate: "10", years: "1", compound: "yearly" })).futureValue, 1100);
+  // Dates and health.
+  const leap = await run("/calc/age", { birthdate: "2000-02-29", on: "2026-10-23" });
+  assert.equal(leap.years, 26); assert.equal(leap.nextBirthday, "2027-02-28");
+  await assert.rejects(run("/calc/age", { birthdate: "2030-01-01", on: "2026-10-23" }), (e) => e.status === 400);
+  await assert.rejects(run("/calc/age", { birthdate: "2026-02-30" }), (e) => e.status === 400);
+  const imperial = await run("/calc/bmi", { weight: "154", height: "69", units: "imperial" });
+  assert.equal(imperial.bmi, 22.7); assert.equal(imperial.normalWeightRange.unit, "lb");
+  assert.equal(calc.bmiCategory(31), "obesity class I");
+  assert.equal((await run("/calc/tip", { bill: "100", percent: "20", people: "3", roundUp: "true" })).perPerson, 40);
+  // Text.
+  assert.deepEqual(await run("/text/morse", { text: "... --- ... / .... . .-.. .--." }), { mode: "decode", result: "SOS HELP", unknown: [] });
+  assert.deepEqual((await run("/text/morse", { text: "hi #1" })).skipped, ["#"]);
+  assert.equal((await run("/text/caesar", { text: "Uryyb, Jbeyq!" })).result, "Hello, World!");
+  assert.equal((await run("/text/caesar", { text: "abc", shift: "3", decode: "true" })).result, "xyz");
+  const l1 = await run("/text/lorem", { paragraphs: "2", seed: "7" }), l2 = await run("/text/lorem", { paragraphs: "2", seed: "7" });
+  assert.deepEqual(l1, l2); assert.equal(l1.paragraphs.length, 2); assert.match(l1.paragraphs[0], /^Lorem ipsum dolor sit amet/);
+  // XML: no DOCTYPE (so no external entities), malformed input is a 400, CDATA and single children read naturally.
+  await assert.rejects(run("/xml/to-json", { xml: '<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>' }), (e) => e.status === 400);
+  await assert.rejects(run("/xml/to-json", { xml: "<a><b></a>" }), (e) => e.status === 400);
+  assert.deepEqual((await run("/xml/to-json", { xml: "<r><n><![CDATA[1 < 2]]></n><m k=\"v\"/></r>" })).json, { r: { n: "1 < 2", m: { "@k": "v" } } });
+  // JSON schema: array items merge, integer and number widen to number, keys missing in some items are optional.
+  const { schema } = await run("/json/schema", { json: '[{"a":1,"b":"x"},{"a":2.5}]' });
+  assert.deepEqual(schema.items, { type: "object", properties: { a: { type: "number" }, b: { type: "string" } }, required: ["a"] });
+  await assert.rejects(run("/json/schema", { json: "{nope" }), (e) => e.status === 400);
 });
 
 test("economic indicators answer from the World Bank snapshot without network access, by code, name or alias", async () => {

@@ -435,6 +435,19 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   within 3 minutes (GitHub started none for 1.50.3's merge c01b1cd; it was unblocked by pushing the commit to a scratch
   branch `ci/<sha>`, which the guard accepts because it filters by commit, not branch).
 
+## Calculators and converters (1.51.0, 23 Oct 2026; 198 tools)
+
+- Why more listings: on 22-23 Oct an outside buyer (0xec2a…d034, $103 across 456 sellers a week) paid one call to every
+  Bazaar-listed tool of ours, 166 calls / $1.57, and it revisits sellers (one with 62 listings got 554 calls in 9 days).
+  Every listing is therefore a payer and about $0.01 a visit, and the Bazaar ranks on payers.
+- `src/routes/calc.ts`, all local, no data source or account: `/qr` (qrcode-generator 2.0.4, MIT; UTF-8 is passed as
+  bytes because the library's own encoder keeps Latin-1 only), `/calc/loan`, `/calc/compound-interest`, `/calc/age`,
+  `/calc/bmi` (WHO adult categories, "not a diagnosis"), `/calc/tip`, `/text/lorem` (seeded), `/text/morse`,
+  `/text/caesar`, `/xml/to-json` (saxes, DOCTYPE refused so no external entity is ever resolved), `/json/schema`.
+  Each name is the searched phrase where the Bazaar #1 had 1-6 payers on 22 Oct. Not built: password strength (a
+  password in a GET query would land in request logs). Renamed: `/validate/luhn` "Credit card validation (Luhn)",
+  `/color` "Color converter, hex to RGB". Bundle gzip 2.38 MB of 3 MB.
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.
