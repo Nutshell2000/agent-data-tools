@@ -15,7 +15,9 @@
 param(
   [Parameter(Mandatory)][string]$Version,
   [Parameter(Mandatory)][string]$MessageFile,
-  [string]$ProofPath = '/time?zone=UTC',
+  # Staging proofs default to a $0.002 tool: the faucet-funded test wallet pays every proof (4 per release), and at $0.01 it ran
+  # dry after a day of releases (22 Oct 2026). Pass -ProofPath to prove a changed tool's own route.
+  [string]$ProofPath = '/btc-fees',
   [string]$StagingOrigin = 'https://agent-data-tools-staging.revmesh2074.workers.dev',
   [string]$Origin = 'https://agent-data-tools.revmesh2074.workers.dev',
   [string]$DiscoveryDist = 'C:\Users\peter\AppData\Local\npm-cache\_npx\6af1a5211e496a90\node_modules\@agentcash\discovery\dist\index.js',
@@ -196,7 +198,7 @@ RevertGenerated
 Proof 'proof-v2' @("$StagingOrigin$ProofPath")
 Proof 'proof-v1' @("$StagingOrigin$ProofPath", '--v1')
 Proof 'proof-mcp' @($StagingOrigin, '--mcp', 'btc_fees')
-Proof 'proof-mpp-evm' @("$StagingOrigin/time?zone=UTC", '--mpp-evm')
+Proof 'proof-mpp-evm' @("$StagingOrigin/btc-fees", '--mpp-evm')
 
 # ---- 4. production -------------------------------------------------------------------------------------------------
 $liveVersion = (Invoke-RestMethod "$Origin/.well-known/mcp/server-card.json" -TimeoutSec 60).serverInfo.version
