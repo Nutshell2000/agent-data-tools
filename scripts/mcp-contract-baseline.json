@@ -1,5 +1,5 @@
 {
-  "version": "1.50.6",
+  "version": "1.51.0",
   "tools": [
     {
       "name": "extract",
@@ -4322,7 +4322,7 @@
     },
     {
       "name": "validate_luhn",
-      "description": "Check whether a number passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Example: number=79927398713. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check whether a card number or other ID passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Example: number=79927398713. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4600,6 +4600,385 @@
         },
         "required": [
           "file"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "qr",
+      "description": "Generate a QR code for a URL or any text (UTF-8, up to 1,000 characters) as a scalable SVG plus a ready-to-embed data URL, at error correction L, M (default), Q or H. Use to put a link, Wi-Fi string or payment request on a page, label or ticket. Example: text=https://agent-data-tools.revmesh2074.workers.dev. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text or URL to encode"
+          },
+          "ecc": {
+            "type": "string",
+            "description": "Error correction: L, M (default), Q or H"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pixels per module, 1-20 (default 4)"
+          },
+          "margin": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Quiet zone in modules, 0-10 (default 4)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "calc_loan",
+      "description": "Monthly payment of an amortised loan or mortgage from the amount, the annual interest rate and the term, plus the total paid, the total interest and the first months of the repayment schedule (principal, interest and balance). Fixed rate, monthly payments. Use to compare loan offers or plan a mortgage. Example: principal=300000, rate=4.5. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "principal": {
+            "type": "number",
+            "description": "Amount borrowed"
+          },
+          "rate": {
+            "type": "number",
+            "description": "Annual interest rate in percent, 0-100"
+          },
+          "years": {
+            "type": "number",
+            "description": "Term in years (or give months)"
+          },
+          "months": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Term in months, instead of years"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Schedule rows to return, 0-60 (default 3)"
+          }
+        },
+        "required": [
+          "principal",
+          "rate"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "calc_compound_interest",
+      "description": "Future value of savings or an investment with compound interest: starting amount, annual rate, years, compounding (yearly, quarterly, monthly or daily) and an optional contribution at the end of each month. Returns the final balance, total contributed, interest earned and the balance after each year. Use for savings goals and investment what-ifs; rates are assumed constant. Example: principal=10000, rate=7, years=10. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "principal": {
+            "type": "number",
+            "description": "Starting amount (0 or more)"
+          },
+          "rate": {
+            "type": "number",
+            "description": "Annual interest rate in percent, -50 to 100"
+          },
+          "years": {
+            "type": "number",
+            "description": "Years, up to 100"
+          },
+          "compound": {
+            "type": "string",
+            "description": "yearly, quarterly, monthly (default) or daily"
+          },
+          "monthly": {
+            "type": "number",
+            "description": "Contribution at the end of each month (default 0)"
+          }
+        },
+        "required": [
+          "principal",
+          "rate",
+          "years"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "calc_age",
+      "description": "Exact age from a date of birth in years, months and days, total days lived, the weekday of birth, and the date of and days until the next birthday, measured today (UTC) or on any date you give. Use for age checks, forms and anniversaries. Example: birthdate=1990-05-17. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "birthdate": {
+            "type": "string",
+            "description": "Date of birth, YYYY-MM-DD"
+          },
+          "on": {
+            "type": "string",
+            "description": "Measure on this date, YYYY-MM-DD (default today)"
+          }
+        },
+        "required": [
+          "birthdate"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "calc_bmi",
+      "description": "Body mass index from weight and height in metric (kg, cm) or imperial (lb, in) units, its WHO adult category (underweight, normal weight, overweight, obesity class I-III) and the weight range that counts as normal for that height. For adults; a screening number, not a diagnosis. Use for health, fitness and nutrition apps. Example: weight=70, height=175. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "weight": {
+            "type": "number",
+            "description": "Weight in kg (or lb with units=imperial)"
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in cm (or inches with units=imperial)"
+          },
+          "units": {
+            "type": "string",
+            "description": "metric (default) or imperial"
+          }
+        },
+        "required": [
+          "weight",
+          "height"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "calc_tip",
+      "description": "Tip and total for a bill at a tip percentage, split between any number of people, optionally rounding each share up to the next whole amount. Use for receipts, expense apps and group payments. Example: bill=84.5. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "bill": {
+            "type": "number",
+            "description": "Bill amount before tip"
+          },
+          "percent": {
+            "type": "number",
+            "description": "Tip percent, 0-100 (default 15)"
+          },
+          "people": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "People sharing, 1-100 (default 1)"
+          },
+          "roundUp": {
+            "description": "true to round each share up to a whole amount",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "bill"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_lorem",
+      "description": "Lorem ipsum placeholder text: 1-20 paragraphs of 1-10 sentences, starting with the classic \"Lorem ipsum dolor sit amet\". The same seed always gives the same text. Use to fill mock-ups, templates and test data. Example: paragraphs=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "paragraphs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Paragraphs, 1-20 (default 1)"
+          },
+          "sentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Sentences per paragraph, 1-10 (default 4)"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seed for the word order (default 1)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_morse",
+      "description": "Translate text to international Morse code (letters separated by spaces, words by /) or Morse code back to text; the direction is detected automatically or set with mode. Letters, digits and common punctuation are supported; anything else is reported, not guessed. Use for puzzles, radio practice and fun messages. Example: text=SOS help. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, or Morse code made of . - spaces and /"
+          },
+          "mode": {
+            "type": "string",
+            "description": "auto (default), encode or decode"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_caesar",
+      "description": "Encode or decode text with a Caesar cipher: every letter A-Z shifted by 1-25 places (13, the default, is ROT13), case kept, digits and punctuation untouched. decode=true shifts back. Use for puzzles, spoiler hiding and teaching; it is not encryption. Example: text=Hello, World!. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text"
+          },
+          "shift": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Places to shift, -25 to 25 (default 13 = ROT13)"
+          },
+          "decode": {
+            "description": "true to shift back",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "xml_to_json",
+      "description": "Convert an XML document to JSON: attributes become \"@name\" keys, text becomes \"#text\" (or the value itself when an element only holds text), and repeated child elements become arrays. DOCTYPEs and external entities are refused, so nothing outside the document is ever loaded. Up to 100,000 characters. Use to read XML feeds, SOAP responses and config files in an agent. Example: xml=<order id=\"7\"><item sku=\"a1\">Pen</item><item sku=\"b2\">Ink</item></order>. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "xml": {
+            "type": "string",
+            "description": "The XML document"
+          }
+        },
+        "required": [
+          "xml"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "json_schema",
+      "description": "Infer a JSON Schema (draft 2020-12) from an example JSON value: types, nested object properties, required keys, array item shapes merged across all items, and string formats (date-time, date, email, uri, uuid). Use to document an API response or to validate later data against the same shape. Example: json={\"id\":1,\"email\":\"ada@example.com\",\"tags\":[\"a\",\"b\"],\"created\":\"2026-10-23T08:00:00Z\"}. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "string",
+            "description": "The example JSON"
+          }
+        },
+        "required": [
+          "json"
         ]
       },
       "price": "$0.01"
