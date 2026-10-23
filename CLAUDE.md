@@ -483,3 +483,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   storage, proxy (OpenZeppelin legacy slots) and call (totalSupply), Permit2 as the allowance spender.
 - Release train: a `smoke:examples` step (`--retry`, about a minute) runs every tool's published example before the PR;
   `-SkipSmoke` only when an outside source is down and the release does not touch it. `SMOKE_SHOW=700` prints answers.
+
+## Hyperliquid market data and block-number names (1.53.0, 23 Oct 2026; 241 tools)
+
+- `/hyperliquid/orderbook` (l2Book: levels, mid, spread in bps, depth), `/hyperliquid/candles` (candleSnapshot, 1m-1w,
+  up to 500 bars), `/hyperliquid/funding-history` (fundingHistory, up to 500 hours, average and APR) and
+  `/hyperliquid/prices` (allMids, perpetuals only; spot "@n" and outcome "#n" keys are dropped), same public info API and
+  approval as `/hyperliquid/market`. Coins resolve to Hyperliquid's own spelling (kPEPE) through the shared 15 s
+  metaAndAssetCtxs snapshot. Why: order books (207 payers) and candles (193) are the most-paid derivatives data after
+  funding on the Bazaar (23 Oct). Tests: tests/hyperliquid.test.cjs (mocked fetch).
+- `<chain>/block` is "<chain> block number and block details" (block-number listings had 55-354 payers); needs one
+  settlement each (Refresh) to show the new name. `/news` also carries the `crypto-news` tag.
