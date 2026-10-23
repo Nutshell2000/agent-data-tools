@@ -15,7 +15,7 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture',REVENUE_TOKEN:'owner-fixture-token'},outboundService:async r=>{
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture',REVENUE_TOKEN:'owner-fixture-token',FLUXA_PROXY_SECRET:'fluxa-fixture-secret-0123456789'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
     if(new URL(r.url).hostname==='api.stripe.com'){assert.equal(r.headers.get('authorization'),'Bearer rk_test_fixture');return path.endsWith('cs_test_unpaidSession01')?Response.json({mode:'payment',status:'open',payment_status:'unpaid'}):Response.json({mode:'payment',status:'complete',payment_status:'paid',currency:'usd',amount_total:500,metadata:{adt_credits:'5000'}});}
     if(new URL(r.url).hostname==='mempool.space'){const value=path.endsWith('recommended')?(feeScenario==='invalid'?{fastestFee:3}:{fastestFee:3,halfHourFee:2,hourFee:1,economyFee:1,minimumFee:1}):path.endsWith('height')?950000:{count:20,vsize:10000,total_fee:20000};return Response.json(value);}
@@ -36,6 +36,14 @@ before(async()=>{
   }}));
 });
 after(async()=>{await mf?.dispose();await mfFree?.dispose();});
+
+test("FluxA's proxy secret serves $0.01 tools unpaid; dearer tools and a wrong secret still get the 402",async()=>{
+  const fluxa=(path,secret='fluxa-fixture-secret-0123456789')=>mf.dispatchFetch('https://api.test'+path,{headers:{'x-fluxa-proxy-secret':secret,accept:'application/json'}});
+  const ok=await fluxa('/uuid?count=1');assert.equal(ok.status,200);assert.equal((await ok.json()).uuids.length,1);
+  const dear=await fluxa('/package-audit?ecosystem=npm&packages=left-pad');assert.equal(dear.status,402,'$0.20 tool behind a $0.01 FluxA endpoint');await dear.arrayBuffer();
+  const wrong=await fluxa('/uuid','x'.repeat(31));assert.equal(wrong.status,402);await wrong.arrayBuffer();
+  const rapidHeader=await mf.dispatchFetch('https://api.test/uuid',{headers:{'x-rapidapi-proxy-secret':'fluxa-fixture-secret-0123456789',accept:'application/json'}});assert.equal(rapidHeader.status,402,'the FluxA secret only works in its own header');await rapidHeader.arrayBuffer();
+});
 
 test('paused tools reject GET, HEAD and signed requests without payment or an upstream call',async()=>{
  const before=(await revenue()).settlements;
