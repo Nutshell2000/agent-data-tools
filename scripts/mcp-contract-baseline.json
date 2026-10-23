@@ -1,5 +1,5 @@
 {
-  "version": "1.51.4",
+  "version": "1.52.0",
   "tools": [
     {
       "name": "extract",
@@ -1785,6 +1785,226 @@
       "price": "$0.01"
     },
     {
+      "name": "base_nft_owner",
+      "description": "Owner of an NFT on Base: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use base_nft_balance, for the token's metadata base_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged. Example: contract=0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_nft_balance",
+      "description": "How many NFTs of one ERC-721 collection a wallet holds on Base (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use base_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "contract",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_nft_metadata",
+      "description": "NFT metadata on Base: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use base_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError. Example: contract=0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_storage",
+      "description": "Read one raw storage slot of a contract on Base (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use base_proxy. A malformed address or slot is rejected with 400, uncharged. Example: address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "slot": {
+            "type": "string",
+            "description": "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_proxy",
+      "description": "Find the implementation behind a proxy contract on Base: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged. Example: address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_call",
+      "description": "Read-only contract call on Base (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x contract address to call"
+          },
+          "data": {
+            "type": "string",
+            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+          },
+          "from": {
+            "type": "string",
+            "description": "Optional 0x sender address for calls that check msg.sender"
+          }
+        },
+        "required": [
+          "to",
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "base_estimate_gas",
+      "description": "Estimate the gas a transaction would use on Base (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use base_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x recipient or contract address"
+          },
+          "from": {
+            "type": "string",
+            "description": "0x sender address (default: an empty address)"
+          },
+          "value": {
+            "description": "Amount of ETH to send, in ETH (default 0)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "description": "Optional 0x calldata for a contract call"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "eth_balance",
       "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -2063,6 +2283,260 @@
         },
         "required": [
           "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_nft_owner",
+      "description": "Owner of an NFT on Ethereum: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use eth_nft_balance, for the token's metadata eth_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_nft_balance",
+      "description": "How many NFTs of one ERC-721 collection a wallet holds on Ethereum (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use eth_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "contract",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_nft_metadata",
+      "description": "NFT metadata on Ethereum: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use eth_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_storage",
+      "description": "Read one raw storage slot of a contract on Ethereum (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use eth_proxy. A malformed address or slot is rejected with 400, uncharged. Example: address=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "slot": {
+            "type": "string",
+            "description": "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_proxy",
+      "description": "Find the implementation behind a proxy contract on Ethereum: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged. Example: address=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_call",
+      "description": "Read-only contract call on Ethereum (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x contract address to call"
+          },
+          "data": {
+            "type": "string",
+            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+          },
+          "from": {
+            "type": "string",
+            "description": "Optional 0x sender address for calls that check msg.sender"
+          }
+        },
+        "required": [
+          "to",
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_estimate_gas",
+      "description": "Estimate the gas a transaction would use on Ethereum (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use eth_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x recipient or contract address"
+          },
+          "from": {
+            "type": "string",
+            "description": "0x sender address (default: an empty address)"
+          },
+          "value": {
+            "description": "Amount of ETH to send, in ETH (default 0)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "description": "Optional 0x calldata for a contract call"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_allowance",
+      "description": "ERC-20 token allowance on Ethereum: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use eth_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address"
+          },
+          "owner": {
+            "type": "string",
+            "description": "0x wallet that gave the approval"
+          },
+          "spender": {
+            "type": "string",
+            "description": "0x contract or wallet allowed to spend (the example is Uniswap Permit2)"
+          }
+        },
+        "required": [
+          "token",
+          "owner",
+          "spender"
         ]
       },
       "price": "$0.01"
@@ -2351,6 +2825,260 @@
       "price": "$0.01"
     },
     {
+      "name": "arb_nft_owner",
+      "description": "Owner of an NFT on Arbitrum One: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use arb_nft_balance, for the token's metadata arb_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_nft_balance",
+      "description": "How many NFTs of one ERC-721 collection a wallet holds on Arbitrum One (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use arb_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "contract",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_nft_metadata",
+      "description": "NFT metadata on Arbitrum One: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use arb_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_storage",
+      "description": "Read one raw storage slot of a contract on Arbitrum One (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use arb_proxy. A malformed address or slot is rejected with 400, uncharged. Example: address=0xaf88d065e77c8cC2239327C5EDb3A432268e5831. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "slot": {
+            "type": "string",
+            "description": "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_proxy",
+      "description": "Find the implementation behind a proxy contract on Arbitrum One: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged. Example: address=0xaf88d065e77c8cC2239327C5EDb3A432268e5831. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_call",
+      "description": "Read-only contract call on Arbitrum One (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xaf88d065e77c8cC2239327C5EDb3A432268e5831, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x contract address to call"
+          },
+          "data": {
+            "type": "string",
+            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+          },
+          "from": {
+            "type": "string",
+            "description": "Optional 0x sender address for calls that check msg.sender"
+          }
+        },
+        "required": [
+          "to",
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_estimate_gas",
+      "description": "Estimate the gas a transaction would use on Arbitrum One (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use arb_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x recipient or contract address"
+          },
+          "from": {
+            "type": "string",
+            "description": "0x sender address (default: an empty address)"
+          },
+          "value": {
+            "description": "Amount of ETH to send, in ETH (default 0)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "description": "Optional 0x calldata for a contract call"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arb_allowance",
+      "description": "ERC-20 token allowance on Arbitrum One: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use arb_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address"
+          },
+          "owner": {
+            "type": "string",
+            "description": "0x wallet that gave the approval"
+          },
+          "spender": {
+            "type": "string",
+            "description": "0x contract or wallet allowed to spend (the example is Uniswap Permit2)"
+          }
+        },
+        "required": [
+          "token",
+          "owner",
+          "spender"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "op_balance",
       "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -2634,6 +3362,260 @@
       "price": "$0.01"
     },
     {
+      "name": "op_nft_owner",
+      "description": "Owner of an NFT on Optimism: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use op_nft_balance, for the token's metadata op_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_nft_balance",
+      "description": "How many NFTs of one ERC-721 collection a wallet holds on Optimism (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use op_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "contract",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_nft_metadata",
+      "description": "NFT metadata on Optimism: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use op_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_storage",
+      "description": "Read one raw storage slot of a contract on Optimism (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use op_proxy. A malformed address or slot is rejected with 400, uncharged. Example: address=0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "slot": {
+            "type": "string",
+            "description": "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_proxy",
+      "description": "Find the implementation behind a proxy contract on Optimism: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged. Example: address=0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_call",
+      "description": "Read-only contract call on Optimism (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x contract address to call"
+          },
+          "data": {
+            "type": "string",
+            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+          },
+          "from": {
+            "type": "string",
+            "description": "Optional 0x sender address for calls that check msg.sender"
+          }
+        },
+        "required": [
+          "to",
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_estimate_gas",
+      "description": "Estimate the gas a transaction would use on Optimism (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use op_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x recipient or contract address"
+          },
+          "from": {
+            "type": "string",
+            "description": "0x sender address (default: an empty address)"
+          },
+          "value": {
+            "description": "Amount of ETH to send, in ETH (default 0)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "description": "Optional 0x calldata for a contract call"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "op_allowance",
+      "description": "ERC-20 token allowance on Optimism: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use op_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address"
+          },
+          "owner": {
+            "type": "string",
+            "description": "0x wallet that gave the approval"
+          },
+          "spender": {
+            "type": "string",
+            "description": "0x contract or wallet allowed to spend (the example is Uniswap Permit2)"
+          }
+        },
+        "required": [
+          "token",
+          "owner",
+          "spender"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "polygon_balance",
       "description": "Native POL balance (eth_getBalance) of any 0x wallet address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -2912,6 +3894,260 @@
         },
         "required": [
           "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_nft_owner",
+      "description": "Owner of an NFT on Polygon PoS: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use polygon_nft_balance, for the token's metadata polygon_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_nft_balance",
+      "description": "How many NFTs of one ERC-721 collection a wallet holds on Polygon PoS (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use polygon_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "contract",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_nft_metadata",
+      "description": "NFT metadata on Polygon PoS: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use polygon_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_storage",
+      "description": "Read one raw storage slot of a contract on Polygon PoS (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use polygon_proxy. A malformed address or slot is rejected with 400, uncharged. Example: address=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          },
+          "slot": {
+            "type": "string",
+            "description": "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_proxy",
+      "description": "Find the implementation behind a proxy contract on Polygon PoS: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged. Example: address=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x contract address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_call",
+      "description": "Read-only contract call on Polygon PoS (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x contract address to call"
+          },
+          "data": {
+            "type": "string",
+            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+          },
+          "from": {
+            "type": "string",
+            "description": "Optional 0x sender address for calls that check msg.sender"
+          }
+        },
+        "required": [
+          "to",
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_estimate_gas",
+      "description": "Estimate the gas a transaction would use on Polygon PoS (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and POL. Give to, plus value in POL and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use polygon_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "0x recipient or contract address"
+          },
+          "from": {
+            "type": "string",
+            "description": "0x sender address (default: an empty address)"
+          },
+          "value": {
+            "description": "Amount of POL to send, in POL (default 0)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "data": {
+            "type": "string",
+            "description": "Optional 0x calldata for a contract call"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_allowance",
+      "description": "ERC-20 token allowance on Polygon PoS: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use polygon_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address"
+          },
+          "owner": {
+            "type": "string",
+            "description": "0x wallet that gave the approval"
+          },
+          "spender": {
+            "type": "string",
+            "description": "0x contract or wallet allowed to spend (the example is Uniswap Permit2)"
+          }
+        },
+        "required": [
+          "token",
+          "owner",
+          "spender"
         ]
       },
       "price": "$0.01"

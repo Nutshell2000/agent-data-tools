@@ -43,8 +43,8 @@ const mf = new Miniflare(convertV4MiniflareOptions({
 }));
 
 const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
-const results = [];
-for (const e of tools) {
+let results = [];
+async function runExample(e) {
   const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)]));
   const url = `https://agent-data-tools.revmesh2074.workers.dev${e.path}${query.size ? `?${query}` : ""}`;
   const t0 = Date.now();
@@ -54,16 +54,26 @@ for (const e of tools) {
     status = res.status;
     const text = await res.text();
     if (status >= 400) error = text.slice(0, 160).replace(/\s+/g, " ");
+    else if (process.env.SMOKE_SHOW) console.log(`     ${text.slice(0, Number(process.env.SMOKE_SHOW) || 400)}`);
   } catch (err) {
     error = String(err?.message ?? err).slice(0, 160);
   }
   const ms = Date.now() - t0;
-  results.push({ path: e.path, price: e.price, status, ms, error, url });
   console.log(`${status >= 200 && status < 400 ? "ok  " : "FAIL"} ${String(status).padStart(3)} ${String(ms).padStart(6)}ms ${e.path}${error ? `  ${error}` : ""}`);
+  return { path: e.path, price: e.price, status, ms, error, url };
+}
+const isOk = (r) => r.status >= 200 && r.status < 400;
+for (const e of tools) results.push(await runExample(e));
+// --retry runs each failure once more after 5 s, so one upstream hiccup does not stop a release (scripts/release.ps1);
+// a failure that repeats is our bug or a dead source, and that tool's next first payment would fail too.
+if (args.includes("--retry") && results.some((r) => !isOk(r))) {
+  await new Promise((r) => setTimeout(r, 5_000));
+  console.log("\nretrying the failures once:");
+  for (let i = 0; i < results.length; i++) if (!isOk(results[i])) results[i] = await runExample(tools.find((e) => e.path === results[i].path));
 }
 await mf.dispose();
 
-const failed = results.filter((r) => !(r.status >= 200 && r.status < 400));
+const failed = results.filter((r) => !isOk(r));
 const slow = results.filter((r) => r.ms > 10_000 && !failed.includes(r));
 console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.filter((e) => CAPACITY_LIMITED.has(e.path) || e.path.startsWith("/ai/")).length} AI/rendering tools skipped (staging).`);
 if (jsonOut) await writeFile(jsonOut, JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));

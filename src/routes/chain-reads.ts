@@ -8,6 +8,7 @@ import { HttpError, type Env } from "../lib/env";
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
 import { EDGE_RPCS, LOG_RPCS, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
+import { fetchFile } from "../lib/fetch";
 
 interface ChainDef {
   slug: string;
@@ -306,7 +307,285 @@ function chainEntries(c: ChainDef): Entry[] {
           }),
         });
       }),
+    ...contractEntries(c),
   ];
+}
+
+// ---- NFTs, storage, proxies, calls, gas estimates and allowances (1.52.0) --------------------------------------------
+// The single reads with the most one-call payers on the Bazaar (onesource.io, 23 Oct 2026: nft-metadata 163 payers,
+// estimate-gas 150, allowance 144, code 137, call 133, nft-owner 100, proxy 86, storage 79) that we did not sell yet.
+
+/** Uniswap V3 position manager: an ERC-721 contract on all five networks; position #1 exists on each (checked 23 Oct). */
+const NFT_EXAMPLE: Record<string, `0x${string}`> = {
+  base: "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",
+  eth: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+  arb: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+  op: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+  polygon: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+};
+/** Uniswap's Permit2, deployed at one address on every network: a real spender for the allowance example. */
+const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const DEAD = "0x000000000000000000000000000000000000dEaD";
+const nftAbi = [
+  { type: "function", name: "ownerOf", stateMutability: "view", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ name: "", type: "address" }] },
+  { type: "function", name: "tokenURI", stateMutability: "view", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "owner", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  { type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "string" }] },
+] as const;
+const allowanceAbi = [{ type: "function", name: "allowance", stateMutability: "view", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ name: "", type: "uint256" }] }] as const;
+const beaconAbi = [{ type: "function", name: "implementation", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "address" }] }] as const;
+
+/** Proxy storage slots: EIP-1967 (implementation, beacon, admin), EIP-1822 UUPS and the older OpenZeppelin (zos) layout. */
+export const PROXY_SLOTS = {
+  eip1967: "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+  beacon: "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50",
+  admin: "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
+  eip1822: "0xc5f16f0fcc639fa48a6947836d9850f504798523bf8c9a3a87d5876cf622bcf7",
+  zos: "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3",
+  zosAdmin: "0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b",
+} as const;
+
+const tokenIdInput = (v: string | undefined) => {
+  const t = v?.trim();
+  if (!t) throw new HttpError(400, "tokenId is required: the NFT's token id, a whole number");
+  if (/^\d{1,78}$/.test(t)) return BigInt(t);
+  if (/^0x[0-9a-fA-F]{1,64}$/.test(t)) return BigInt(t);
+  throw new HttpError(400, "tokenId must be a whole number (decimal, or 0x hex up to 32 bytes)");
+};
+/** A 32-byte word as an address when its top 12 bytes are zero and the rest is not; otherwise null. */
+export const wordAddress = (word: string | undefined | null) => {
+  const w = (word ?? "0x").toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  if (!/^0{24}[0-9a-f]{40}$/.test(w) || /^0{64}$/.test(w)) return null;
+  return `0x${w.slice(24)}`;
+};
+/** Reverts and missing contracts are the caller's input (uncharged 4xx); node failures stay 502. */
+async function contractRead<T>(fn: () => Promise<T>, revert: string): Promise<T> {
+  try { return await fn(); }
+  catch (e) {
+    if (e instanceof HttpError) throw e;
+    const msg = String((e as Error)?.message ?? e);
+    if (/revert|execution reverted|returned no data|out of gas|invalid opcode/i.test(msg)) throw new HttpError(422, revert);
+    return rpc(() => Promise.reject(e));
+  }
+}
+const needCode = async (cl: PublicClient, a: `0x${string}`) => {
+  const code = await rpc(() => cl.getCode({ address: a }));
+  if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
+  return code;
+};
+const hexInput = (v: string | undefined, name: string, maxBytes: number, required = true) => {
+  const h = v?.trim();
+  if (!h) { if (required) throw new HttpError(400, `${name} is required: 0x-prefixed hex`); return undefined; }
+  if (!/^0x([0-9a-fA-F]{2})*$/.test(h)) throw new HttpError(400, `${name} must be 0x-prefixed hex with whole bytes`);
+  if ((h.length - 2) / 2 > maxBytes) throw new HttpError(400, `${name} is longer than ${maxBytes} bytes`);
+  return h.toLowerCase() as `0x${string}`;
+};
+/** Shortens long strings inside NFT metadata (on-chain SVG images run to tens of kilobytes). */
+function trimLong(v: unknown, depth = 0): unknown {
+  if (typeof v === "string") return v.length > 1_000 ? `${v.slice(0, 120)}… (${v.length} characters, shortened)` : v;
+  if (depth > 4 || v === null || typeof v !== "object") return v;
+  if (Array.isArray(v)) return v.slice(0, 50).map((x) => trimLong(x, depth + 1));
+  return Object.fromEntries(Object.entries(v as Record<string, unknown>).slice(0, 50).map(([k, x]) => [k, trimLong(x, depth + 1)]));
+}
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
+/** Reads tokenURI metadata: data: URIs locally, http(s) and ipfs:// through the public-URL fetcher (SSRF checks, 8 s). */
+export async function readMetadata(uri: string): Promise<{ metadata: unknown; source: string; error: string | null }> {
+  const data = /^data:([^,;]*)(;base64)?,(.*)$/s.exec(uri);
+  try {
+    if (data) {
+      const text = data[2] ? new TextDecoder().decode(Uint8Array.from(atob(data[3]), (ch) => ch.charCodeAt(0))) : decodeURIComponent(data[3]);
+      return { metadata: trimLong(JSON.parse(text)), source: "data-uri", error: null };
+    }
+    const url = /^ipfs:\/\//i.test(uri) ? `${IPFS_GATEWAY}${uri.replace(/^ipfs:\/\/(ipfs\/)?/i, "")}` : uri;
+    if (!/^https?:\/\//i.test(url)) return { metadata: null, source: "unsupported", error: "the token URI is not a data:, http(s) or ipfs:// address" };
+    const file = await fetchFile(url, /json|text|octet-stream|^$/i, 256 * 1024, "metadata", { cacheSeconds: 600 });
+    return { metadata: trimLong(JSON.parse(new TextDecoder().decode(file.bytes))), source: url, error: null };
+  } catch (e) {
+    const why = e instanceof HttpError ? e.message : e instanceof SyntaxError ? "the metadata is not valid JSON" : "the metadata could not be fetched";
+    return { metadata: null, source: data ? "data-uri" : uri, error: why };
+  }
+}
+
+function contractEntries(c: ChainDef): Entry[] {
+  const p = (op: string) => `/${c.slug}/${op}`;
+  const short = c.name.split(" ")[0];
+  const tags = (...t: string[]) => [c.slug === "eth" ? "ethereum" : c.name.toLowerCase().split(" ")[0], "blockchain", "evm", ...t];
+  const head = (extra: Record<string, unknown>) => ({ chain: c.name, chainId: c.chain.id, ...extra });
+  const nft = NFT_EXAMPLE[c.slug];
+  const list: Entry[] = [
+    entry(p("nft-owner"), `${short} NFT owner`,
+      `Owner of an NFT on ${c.name}: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use ${c.slug}_nft_balance, for the token's metadata ${c.slug}_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged.`,
+      tags("nft", "nft-owner", "erc721", "owner"), {
+        contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
+        tokenId: { type: "string", description: "Token id, a whole number", required: true, example: "1" },
+      },
+      head({ contract: nft, tokenId: "1", owner: "0x69e67aad5495a48c4ef3f770d93a99935e1dc90d", name: "Uniswap V3 Positions NFT-V1", symbol: "UNI-V3-POS" }),
+      async (env, q) => {
+        const contract = address(q("contract"), "contract");
+        const id = tokenIdInput(q("tokenId"));
+        const cl = client(env, c);
+        await needCode(cl, contract);
+        const [owner, name, symbol] = await Promise.all([
+          contractRead(() => cl.readContract({ address: contract, abi: nftAbi, functionName: "ownerOf", args: [id] }), "this token id does not exist in this collection, or the contract is not ERC-721"),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "name" }).catch(() => null),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "symbol" }).catch(() => null),
+        ]);
+        return head({ contract, tokenId: id.toString(), owner: owner.toLowerCase(), name, symbol });
+      }),
+
+    entry(p("nft-balance"), `${short} NFT balance`,
+      `How many NFTs of one ERC-721 collection a wallet holds on ${c.name} (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use ${c.slug}_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged.`,
+      tags("nft", "erc721", "balance", "wallet"), {
+        contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
+        address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
+      },
+      head({ contract: nft, address: EX_ADDR, balance: "2", name: "Uniswap V3 Positions NFT-V1", symbol: "UNI-V3-POS" }),
+      async (env, q) => {
+        const contract = address(q("contract"), "contract");
+        const a = address(q("address"));
+        const cl = client(env, c);
+        await needCode(cl, contract);
+        const [balance, name, symbol] = await Promise.all([
+          contractRead(() => cl.readContract({ address: contract, abi: nftAbi, functionName: "balanceOf", args: [a] }), "this contract does not answer ERC-721 balanceOf"),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "name" }).catch(() => null),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "symbol" }).catch(() => null),
+        ]);
+        return head({ contract, address: a, balance: balance.toString(), name, symbol });
+      }),
+
+    entry(p("nft-metadata"), `${short} NFT metadata`,
+      `NFT metadata on ${c.name}: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use ${c.slug}_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError.`,
+      tags("nft", "nft-metadata", "erc721", "metadata"), {
+        contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
+        tokenId: { type: "string", description: "Token id, a whole number", required: true, example: "1" },
+      },
+      head({ contract: nft, tokenId: "1", name: "Uniswap V3 Positions NFT-V1", symbol: "UNI-V3-POS", tokenUri: "data:application/json;base64,eyJuYW1lIjo… (14121 characters, shortened)", metadata: { name: "Uniswap - 0.3% - USDC/WETH - 1500<>2000", description: "This NFT represents a liquidity position…", image: "data:image/svg+xml;base64,… (shortened)" }, metadataSource: "data-uri", metadataError: null }),
+      async (env, q) => {
+        const contract = address(q("contract"), "contract");
+        const id = tokenIdInput(q("tokenId"));
+        const cl = client(env, c);
+        await needCode(cl, contract);
+        const [uri, name, symbol] = await Promise.all([
+          contractRead(() => cl.readContract({ address: contract, abi: nftAbi, functionName: "tokenURI", args: [id] }), "this token id does not exist in this collection, or the contract has no ERC-721 tokenURI"),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "name" }).catch(() => null),
+          cl.readContract({ address: contract, abi: nftAbi, functionName: "symbol" }).catch(() => null),
+        ]);
+        const meta = await readMetadata(uri);
+        return head({ contract, tokenId: id.toString(), name, symbol, tokenUri: trimLong(uri), metadata: meta.metadata, metadataSource: meta.source, metadataError: meta.error });
+      }),
+
+    entry(p("storage"), `${short} storage slot read`,
+      `Read one raw storage slot of a contract on ${c.name} (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use ${c.slug}_proxy. A malformed address or slot is rejected with 400, uncharged.`,
+      tags("storage", "contract", "chain-data"), {
+        address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] },
+        slot: { type: "string", description: "Slot: a decimal index (0, 1, 2…) or a 0x 32-byte key", example: PROXY_SLOTS.zos },
+      },
+      head({ address: USDC[c.slug], slot: PROXY_SLOTS.zos, value: "0x0000000000000000000000002ce6311ddae708829bc0784c967b7d77d19fd779", asNumber: "251560…", asAddress: "0x2ce6311ddae708829bc0784c967b7d77d19fd779", block: 123456789 }),
+      async (env, q) => {
+        const a = address(q("address"));
+        const raw = q("slot")?.trim() || "0";
+        let slot: `0x${string}`;
+        if (/^\d{1,78}$/.test(raw)) slot = `0x${BigInt(raw).toString(16).padStart(64, "0")}`;
+        else if (/^0x[0-9a-fA-F]{1,64}$/.test(raw)) slot = `0x${raw.slice(2).toLowerCase().padStart(64, "0")}`;
+        else throw new HttpError(400, "slot must be a decimal index or a 0x hex key of up to 32 bytes");
+        const cl = client(env, c);
+        const [value, block] = await rpc(() => Promise.all([cl.getStorageAt({ address: a, slot }), cl.getBlockNumber()]));
+        const v = (value ?? "0x").toLowerCase().replace(/^0x$/, `0x${"0".repeat(64)}`);
+        return head({ address: a, slot, value: v, asNumber: BigInt(v).toString(), asAddress: wordAddress(v), block: Number(block) });
+      }),
+
+    entry(p("proxy"), `${short} proxy implementation`,
+      `Find the implementation behind a proxy contract on ${c.name}: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged.`,
+      tags("proxy", "contract", "security", "upgradeable"), { address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] } },
+      head({ address: USDC[c.slug], isProxy: true, kind: "openzeppelin-legacy", implementation: "0x2ce6311ddae708829bc0784c967b7d77d19fd779", admin: "0x…", beacon: null, upgradeable: true }),
+      async (env, q) => {
+        const a = address(q("address"));
+        const cl = client(env, c);
+        const code = await needCode(cl, a);
+        const minimal = /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/i.exec(code);
+        if (minimal) return head({ address: a, isProxy: true, kind: "eip1167-minimal", implementation: `0x${minimal[1].toLowerCase()}`, admin: null, beacon: null, upgradeable: false });
+        const words = await rpc(() => Promise.all(Object.values(PROXY_SLOTS).map((slot) => cl.getStorageAt({ address: a, slot }))));
+        const [impl, beacon, admin, uups, zos, zosAdmin] = words.map(wordAddress);
+        let implementation = impl ?? uups ?? zos;
+        let beaconImpl: string | null = null;
+        if (!implementation && beacon) {
+          beaconImpl = await cl.readContract({ address: beacon as `0x${string}`, abi: beaconAbi, functionName: "implementation" }).then((x) => x.toLowerCase()).catch(() => null);
+          implementation = beaconImpl;
+        }
+        const kind = impl ? "eip1967" : beacon ? "eip1967-beacon" : uups ? "eip1822-uups" : zos ? "openzeppelin-legacy" : "none";
+        return head({ address: a, isProxy: kind !== "none", kind, implementation: implementation ?? null, admin: admin ?? zosAdmin ?? null, beacon: beacon ?? null, upgradeable: kind !== "none" });
+      }),
+
+    entry(p("call"), `${short} contract call`,
+      `Read-only contract call on ${c.name} (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
+      tags("eth-call", "contract", "read", "chain-data"), {
+        to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },
+        data: { type: "string", description: "0x ABI-encoded calldata: 4-byte selector plus arguments", required: true, example: "0x18160ddd" },
+        from: { type: "string", description: "Optional 0x sender address for calls that check msg.sender", example: EX_ADDR },
+      },
+      head({ to: USDC[c.slug], data: "0x18160ddd", result: "0x00000000000000000000000000000000000000000000000000038d7ea4c68000", resultBytes: 32, block: 123456789 }),
+      async (env, q) => {
+        const to = address(q("to"), "to").toLowerCase() as `0x${string}`;
+        const data = hexInput(q("data"), "data", 8_192)!;
+        const from = q("from")?.trim() ? address(q("from"), "from").toLowerCase() as `0x${string}` : undefined;
+        const cl = client(env, c);
+        const block = await rpc(() => cl.getBlockNumber());
+        const res = await contractRead(() => cl.call({ to, data, account: from, blockNumber: block }), "the call reverted");
+        const result = (res.data ?? "0x").toLowerCase();
+        return head({ to, data, from: from ?? null, result, resultBytes: (result.length - 2) / 2, block: Number(block) });
+      }),
+
+    entry(p("estimate-gas"), `${short} gas estimate`,
+      `Estimate the gas a transaction would use on ${c.name} (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ${c.symbol}. Give to, plus value in ${c.symbol} and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use ${c.slug}_gas. A transaction that would revert is 422 with the reason, uncharged.`,
+      tags("gas", "estimate-gas", "fees", "transaction"), {
+        to: { type: "string", description: "0x recipient or contract address", required: true, example: DEAD },
+        from: { type: "string", description: "0x sender address (default: an empty address)", example: EX_ADDR },
+        value: { type: "string", description: `Amount of ${c.symbol} to send, in ${c.symbol} (default 0)`, example: "0" },
+        data: { type: "string", description: "Optional 0x calldata for a contract call", example: "0x" },
+      },
+      head({ to: DEAD, from: EX_ADDR, value: "0", gas: "21000", gasPriceGwei: "0.012", cost: "0.000000252", symbol: c.symbol, block: 123456789 }),
+      async (env, q) => {
+        const to = address(q("to"), "to").toLowerCase() as `0x${string}`;
+        const from = q("from")?.trim() ? address(q("from"), "from").toLowerCase() as `0x${string}` : undefined;
+        const rawValue = q("value")?.trim() || "0";
+        if (!/^\d{1,12}(\.\d{1,18})?$/.test(rawValue)) throw new HttpError(400, `value must be an amount of ${c.symbol}, such as 0.01`);
+        const [whole, frac = ""] = rawValue.split(".");
+        const wei = BigInt(whole) * 10n ** 18n + BigInt((frac + "0".repeat(18)).slice(0, 18) || "0");
+        const data = hexInput(q("data"), "data", 8_192, false);
+        const cl = client(env, c);
+        const [gas, price, block] = await Promise.all([
+          contractRead(() => cl.estimateGas({ to, account: from, value: wei, data: data && data !== "0x" ? data : undefined }), "the transaction would revert or the sender cannot pay for it"),
+          rpc(() => cl.getGasPrice()),
+          rpc(() => cl.getBlockNumber()),
+        ]);
+        return head({ to, from: from ?? null, value: rawValue, gas: gas.toString(), gasPriceGwei: formatGwei(price), cost: formatEther(gas * price), symbol: c.symbol, block: Number(block) });
+      }),
+  ];
+  // Base already sells this read as /base-allowance (the published chain client promises that path and price).
+  if (c.slug !== "base") list.push(
+    entry(p("allowance"), `${short} ERC-20 allowance`,
+      `ERC-20 token allowance on ${c.name}: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use ${c.slug}_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged.`,
+      tags("erc20", "allowance", "approval", "token"), {
+        token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },
+        owner: { type: "string", description: "0x wallet that gave the approval", required: true, example: EX_ADDR },
+        spender: { type: "string", description: "0x contract or wallet allowed to spend (the example is Uniswap Permit2)", required: true, example: PERMIT2 },
+      },
+      head({ token: USDC[c.slug], symbol: "USDC", decimals: 6, owner: EX_ADDR, spender: PERMIT2, raw: "0", allowance: "0", unlimited: false }),
+      async (env, q) => {
+        const token = tokenInput(q("token"), c.slug);
+        const owner = address(q("owner"), "owner");
+        const spender = address(q("spender"), "spender");
+        const cl = client(env, c);
+        await needCode(cl, token);
+        const [raw, decimals, symbol] = await Promise.all([
+          contractRead(() => cl.readContract({ address: token, abi: allowanceAbi, functionName: "allowance", args: [owner, spender] }), "this contract does not behave like an ERC-20 token"),
+          contractRead(() => cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }), "this contract does not behave like an ERC-20 token"),
+          cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
+        ]);
+        return head({ token, symbol, decimals: Number(decimals), owner, spender, raw: raw.toString(), allowance: formatUnits(raw, Number(decimals)), unlimited: raw >= 2n ** 255n });
+      }));
+  return list;
 }
 
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
