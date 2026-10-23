@@ -12,8 +12,18 @@ async function loadTypeScript(entry) {
   return loaded.exports;
 }
 
-let viaMarketplace;
-before(async () => { ({ viaMarketplace } = await loadTypeScript(require.resolve("../src/lib/marketplace.ts"))); });
+let viaMarketplace, marketplaceOf;
+before(async () => { ({ viaMarketplace, marketplaceOf } = await loadTypeScript(require.resolve("../src/lib/marketplace.ts"))); });
+
+test("FluxA's proxy secret names the marketplace; each secret only works in its own header", () => {
+  const env = { RAPIDAPI_PROXY_SECRET: a, FLUXA_PROXY_SECRET: b };
+  assert.equal(marketplaceOf(env, a, undefined), "rapidapi");
+  assert.equal(marketplaceOf(env, undefined, b), "fluxa");
+  assert.equal(marketplaceOf(env, b, undefined), false, "the FluxA secret in the RapidAPI header");
+  assert.equal(marketplaceOf(env, undefined, a), false, "the RapidAPI secret in the FluxA header");
+  assert.equal(marketplaceOf({ RAPIDAPI_PROXY_SECRET: a }, undefined, b), false, "no FluxA secret configured");
+  assert.equal(marketplaceOf(env, undefined, b.slice(1)), false);
+});
 
 const a = "a".repeat(24), b = "b".repeat(32), c = "c".repeat(20);
 

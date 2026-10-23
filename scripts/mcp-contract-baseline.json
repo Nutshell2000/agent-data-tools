@@ -1,5 +1,5 @@
 {
-  "version": "1.51.0",
+  "version": "1.51.2",
   "tools": [
     {
       "name": "extract",
@@ -5820,7 +5820,7 @@
     },
     {
       "name": "ai_chat",
-      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large. Example: prompt=Explain x402 in one sentence.. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large. Example: prompt=Explain x402 in one sentence.. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5854,7 +5854,7 @@
           "prompt"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "ai_chat_large",
