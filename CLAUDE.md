@@ -455,6 +455,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `marketplaceOf()` (src/lib/marketplace.ts) skips our paywall when it equals the Worker secret FLUXA_PROXY_SECRET (copy in
   %LOCALAPPDATA%\agent-data-tools\fluxa-proxy-secret.txt, never in Git or chat). GET and non-capacity tools only, like RapidAPI.
   Listing is Peter's FluxA account; why: one FluxA buyer wallet paid 1,165 FluxA-listed sellers in 7 days (base-bots analysis).
+- FluxA lists us as one catch-all endpoint `/` at $0.01, so only tools priced at most $0.01 pass its proxy unpaid; dearer
+  tools (/package-audit, /trade-insight, /mev-simulator, the $0.02-0.03 risk checks) answer the normal 402, which FluxA's
+  proxy returns to its buyer uncharged (tests/payment-delivery-runtime.test.cjs).
 
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
