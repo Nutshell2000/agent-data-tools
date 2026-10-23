@@ -79,7 +79,7 @@ Lead with the OpenAI-compatible endpoints:
 **Body:**
 
 `POST /v1/chat/completions`, `/v1/responses` and `/v1/embeddings` at https://agent-data-tools.revmesh2074.workers.dev:
-- Llama 3.1 8B at $0.01 a call
+- Llama 3.1 8B at $0.002 a call
 - Llama 3.3 70B or gpt-oss-120b at $0.01
 - BGE-M3 embeddings at $0.01
 

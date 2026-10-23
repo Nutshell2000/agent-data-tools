@@ -1,6 +1,6 @@
 {
   "frozenUntil": "2026-11-08",
-  "note": "Prices of 22 Oct 2026 after Peter's decision that day to raise the common price from $0.003 to $0.01 (it supersedes the earlier freeze; /base-tx stays $0.003 for the published capped chain client). Frozen again until the 8 Nov stop-rule check. New paths may set their own price.",
+  "note": "Prices of 22 Oct 2026 after Peter's decision that day to raise the common price from $0.003 to $0.01 (it supersedes the earlier freeze; /base-tx stays $0.003 for the published capped chain client). Frozen again until the 8 Nov stop-rule check. New paths may set their own price. 23 Oct 2026: /ai/chat to $0.002 by Peter's decision (match BlockRun, the busiest chat seller on Base).",
   "prices": {
     "/extract": "$0.002",
     "/sitemap": "$0.002",
@@ -171,7 +171,7 @@
     "/ping": "$0.01",
     "/keccak": "$0.01",
     "/network": "$0.01",
-    "/ai/chat": "$0.01",
+    "/ai/chat": "$0.002",
     "/ai/chat-large": "$0.01",
     "/ai/summarize-text": "$0.01",
     "/ai/sentiment": "$0.01",
