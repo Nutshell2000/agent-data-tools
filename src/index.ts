@@ -29,7 +29,7 @@ import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { TOOLS } from "./tools";
-import { viaMarketplace } from "./lib/marketplace";
+import { marketplaceOf } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
@@ -139,7 +139,7 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
 app.use(buyAssetPreflight());
 
 // Counts requests after their response is decided; telemetry never delays or fails it.
-app.use(requestMetricsMiddleware(PAID_PATHS, viaMarketplace));
+app.use(requestMetricsMiddleware(PAID_PATHS, marketplaceOf));
 
 
 function buildPaywall(env: Env): MiddlewareHandler {
@@ -230,7 +230,7 @@ app.use(async (c, next) => {
   if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
-  if (trialable && c.req.method === "GET" && viaMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
+  if (trialable && c.req.method === "GET" && marketplaceOf(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
   // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;

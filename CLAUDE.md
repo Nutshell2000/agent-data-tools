@@ -448,6 +448,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   password in a GET query would land in request logs). Renamed: `/validate/luhn` "Credit card validation (Luhn)",
   `/color` "Color converter, hex to RGB". Bundle gzip 2.38 MB of 3 MB.
 
+## FluxA AgentMarket (1.51.2, 23 Oct 2026)
+
+- FluxA's proxy (proxy-monetize.fluxapay.xyz/api/<slug>/…) takes the buyer's x402 payment, settles it to the payout wallet
+  set in FluxA's Studio through FluxA's facilitator, and forwards the call with the static header X-FluxA-Proxy-Secret.
+  `marketplaceOf()` (src/lib/marketplace.ts) skips our paywall when it equals the Worker secret FLUXA_PROXY_SECRET (copy in
+  %LOCALAPPDATA%\agent-data-tools\fluxa-proxy-secret.txt, never in Git or chat). GET and non-capacity tools only, like RapidAPI.
+  Listing is Peter's FluxA account; why: one FluxA buyer wallet paid 1,165 FluxA-listed sellers in 7 days (base-bots analysis).
+
 ## Price move to $0.01 (22 Oct 2026, Peter)
 
 - Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.

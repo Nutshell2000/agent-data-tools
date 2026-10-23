@@ -17,8 +17,9 @@ export function mcpClientName(body: string): string | undefined {
   return undefined;
 }
 
-export function callerFamily(userAgent: string | undefined, marketplace = false): string {
-  if (marketplace) return "rapidapi";
+/** `marketplace` is the proxy's name ("rapidapi", "fluxa"), or true for RapidAPI (the original only one). */
+export function callerFamily(userAgent: string | undefined, marketplace: boolean | string = false): string {
+  if (marketplace) return typeof marketplace === "string" ? marketplace : "rapidapi";
   const ua = (userAgent ?? "").trim();
   if (!ua) return "none";
   const named = /compatible;\s*([A-Za-z][\w.-]{1,40})/.exec(ua)?.[1];
