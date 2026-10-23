@@ -23,7 +23,8 @@ param(
   [string]$DiscoveryDist = 'C:\Users\peter\AppData\Local\npm-cache\_npx\6af1a5211e496a90\node_modules\@agentcash\discovery\dist\index.js',
   [string]$DataDir = "$env:LOCALAPPDATA\agent-data-tools\release",
   [switch]$Dry,
-  [switch]$Resume
+  [switch]$Resume,
+  [switch]$SkipSmoke
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -126,6 +127,10 @@ Step 'update:mcp-contract' { npm run check:mcp-contract 2>&1 | Out-Null; if ($LA
 Step 'test' { $first = (npm test 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0) { $first } else { Write-Host '[retry] npm test failed once; running again' -ForegroundColor Yellow; npm test } } 'fail 0'
 Step 'check:mcp-contract' { npm run check:mcp-contract } 'matches version'
 Step 'tsc' { npx tsc --noEmit -p . }
+# Every paid tool on exactly its published example, live upstreams, paywall off (about a minute). The Bazaar listing payment
+# and a buyer's first call use that example, so a failing one is a listing lost (/calc/loan in 1.51.0). -SkipSmoke only when
+# an outside source is down and the release does not touch that tool.
+if (-not $SkipSmoke) { Step 'smoke:examples' { node scripts/smoke-examples.mjs --retry } ' 0 fail;' } else { Write-Host '[skip] smoke:examples (-SkipSmoke)' -ForegroundColor Yellow }
 RevertGenerated
 if ($Dry) { Write-Host "`nDry run complete: pins bumped and checks green; nothing committed." -ForegroundColor Green; exit 0 }
 
