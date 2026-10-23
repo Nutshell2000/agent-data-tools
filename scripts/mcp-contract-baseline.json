@@ -1,5 +1,5 @@
 {
-  "version": "1.51.3",
+  "version": "1.51.4",
   "tools": [
     {
       "name": "extract",
@@ -4667,7 +4667,7 @@
           },
           "years": {
             "type": "number",
-            "description": "Term in years (or give months)"
+            "description": "Term in years (default 30), or give months"
           },
           "months": {
             "type": "integer",
