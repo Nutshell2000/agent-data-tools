@@ -6,13 +6,14 @@ import { callerFamily } from "./caller";
 
 export function requestMetricsMiddleware(
   paidPaths: ReadonlySet<string>,
-  isMarketplace: (env: Env, sent: string | undefined) => boolean,
+  isMarketplace: (env: Env, rapid: string | undefined, fluxa: string | undefined) => boolean | string,
 ): MiddlewareHandler<{ Bindings: Env }> {
   return async (c, next) => {
     await next();
     if (!paidPaths.has(c.req.path) || !c.env.METRICS || c.req.method !== "GET") return;
     let outcome: Outcome;
     let revenueUsdMicros: number | undefined;
+    const market = isMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret"));
     // A payment attempt answered 402 is a refused payment, not a quote: counted apart by protocol version
     // (v2 clients send PAYMENT-SIGNATURE, v1 clients X-PAYMENT, MPP clients Authorization: Payment) so refusals
     // are visible among the quotes.
@@ -25,13 +26,13 @@ export function requestMetricsMiddleware(
     else if (c.res.headers.get("X-Sample") === "1") outcome = "sample";
     else if (c.res.headers.has("X-Free-Trial-Remaining")) outcome = "trial";
     else if (c.res.headers.has("X-Credits-Charged")) outcome = "credits";
-    else if (isMarketplace(c.env, c.req.header("x-rapidapi-proxy-secret"))) outcome = "marketplace";
+    else if (market) outcome = "marketplace";
     else {
       revenueUsdMicros = settledApiRevenueMicros(c.req.path, "paid", c.res.headers);
       outcome = revenueUsdMicros === undefined ? "unsettled" : "paid";
     }
     const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-    const caller = callerFamily(c.req.header("user-agent"), outcome === "marketplace");
+    const caller = callerFamily(c.req.header("user-agent"), outcome === "marketplace" ? market : false);
     queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros, caller);
   };
 }

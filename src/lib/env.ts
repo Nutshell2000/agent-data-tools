@@ -13,6 +13,8 @@ export interface Env {
   CDP_API_KEY_SECRET?: string;
   // Set once the API is listed on RapidAPI: the secret its proxy sends with every call.
   RAPIDAPI_PROXY_SECRET?: string;
+  // Secret FluxA's proxy sends as X-FluxA-Proxy-Secret (a static parameter in FluxA's Monetize Studio): lib/marketplace.ts.
+  FLUXA_PROXY_SECRET?: string;
   // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
