@@ -238,13 +238,13 @@ export const CALC: Entry[] = [
     ["loan-calculator", "mortgage-calculator", "finance", "interest", ...U], {
       principal: { type: "number", description: "Amount borrowed", required: true, example: 300000 },
       rate: { type: "number", description: "Annual interest rate in percent, 0-100", required: true, example: 4.5 },
-      years: { type: "number", description: "Term in years (or give months)", example: 30 },
+      years: { type: "number", description: "Term in years (default 30), or give months", example: 30 },
       months: { type: "integer", description: "Term in months, instead of years", example: 360 },
       rows: { type: "integer", description: "Schedule rows to return, 0-60 (default 3)", example: 3 },
     },
     { monthlyPayment: 1520.06, payments: 360, totalPaid: 547220.13, totalInterest: 247220.13, schedule: [{ month: 1, payment: 1520.06, principal: 395.06, interest: 1125, balance: 299604.94 }] },
     (_e, q) => {
-      const months = q("months")?.trim() ? num(q, "months", { min: 1, max: 1200, integer: true }) : Math.round(num(q, "years", { min: 1 / 12, max: 100 }) * 12);
+      const months = q("months")?.trim() ? num(q, "months", { min: 1, max: 1200, integer: true }) : Math.round(num(q, "years", { min: 1 / 12, max: 100, fallback: 30 }) * 12);
       return loanSchedule(num(q, "principal", { min: 0.01, max: 1e12 }), num(q, "rate", { min: 0, max: 100 }), months, num(q, "rows", { min: 0, max: 60, fallback: 3, integer: true }));
     }),
   entry("/calc/compound-interest", "Compound interest calculator: future value with monthly contributions",

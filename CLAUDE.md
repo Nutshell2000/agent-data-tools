@@ -444,6 +444,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   bytes because the library's own encoder keeps Latin-1 only), `/calc/loan`, `/calc/compound-interest`, `/calc/age`,
   `/calc/bmi` (WHO adult categories, "not a diagnosis"), `/calc/tip`, `/text/lorem` (seeded), `/text/morse`,
   `/text/caesar`, `/xml/to-json` (saxes, DOCTYPE refused so no external entity is ever resolved), `/json/schema`.
+  1.51.4: `/calc/loan`'s term defaults to 30 years. The published example (`exampleParams`) carries only required
+  inputs, so the listing payment of 23 Oct got "years is required" (400) and the tool stayed off the Bazaar. The
+  families test now runs every local tool on exactly its published example, not on all its parameter examples.
   Each name is the searched phrase where the Bazaar #1 had 1-6 payers on 22 Oct. Not built: password strength (a
   password in a GET query would land in request logs). Renamed: `/validate/luhn` "Credit card validation (Luhn)",
   `/color` "Color converter, hex to RGB". Bundle gzip 2.38 MB of 3 MB.
