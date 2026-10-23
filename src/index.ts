@@ -230,7 +230,10 @@ app.use(async (c, next) => {
   if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
-  if (trialable && c.req.method === "GET" && marketplaceOf(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret")) && !CAPACITY_LIMITED.has(c.req.path)) return next();
+  const market = trialable && c.req.method === "GET" && !CAPACITY_LIMITED.has(c.req.path) ? marketplaceOf(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret")) : false;
+  // FluxA lists us as one catch-all endpoint at $0.01, so only tools priced at most $0.01 pass its proxy unpaid; the
+  // dearer ones (/package-audit, /trade-insight, the risk checks) get the normal 402, which FluxA's proxy returns uncharged.
+  if (market === "rapidapi" || (market === "fluxa" && Number(endpoint?.price.slice(1) ?? Infinity) <= 0.01)) return next();
   // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;
