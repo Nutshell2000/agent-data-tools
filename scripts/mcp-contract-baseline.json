@@ -1,5 +1,5 @@
 {
-  "version": "1.52.0",
+  "version": "1.53.0",
   "tools": [
     {
       "name": "extract",
@@ -6682,6 +6682,112 @@
           "coin": {
             "type": "string",
             "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default: the 20 most traded markets)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_orderbook",
+      "description": "Live order book of a Hyperliquid perpetual (BTC, ETH, SOL, HYPE…): the best bid and ask levels with price, size and order count, the mid price, the spread in USD and basis points, and the summed depth on each side. Up to 20 levels a side (default 10). Read from Hyperliquid's public API. Use to judge liquidity and slippage before a trade, or for market-making and arbitrage checks. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          },
+          "levels": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Levels per side, 1-20 (default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_candles",
+      "description": "Historical price candles (OHLCV) of a Hyperliquid perpetual such as BTC, ETH or SOL: open, high, low, close, volume in coins and trade count per bar, newest last. Intervals 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w and more; up to 500 bars (default 50). Read from Hyperliquid's public API. Use for charts, backtests, volatility and trend checks, or as context for a trading agent. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Bar length: 1m, 3m, 5m, 15m, 30m, 1h (default), 2h, 4h, 8h, 12h, 1d, 3d or 1w"
+          },
+          "bars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of bars, 1-500 (default 50)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_funding_history",
+      "description": "Past hourly funding rates of a Hyperliquid perpetual (BTC, ETH, SOL…): each rate with its premium and time, plus the average rate and its annualised APR over the window. Up to 500 hours back (default 24). Read from Hyperliquid's public API. Use to compare carry over time, spot funding regime changes, or backtest basis and funding-arbitrage strategies; for the current rate use hyperliquid_market. Example: coin=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default ETH)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Hours of history, 1-500 (default 24)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_prices",
+      "description": "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market. Example: coins=BTC,ETH,SOL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coins": {
+            "type": "string",
+            "description": "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)"
           }
         }
       },
