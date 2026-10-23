@@ -468,3 +468,18 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `PRICE` (src/family.ts), `AI_PRICE` (src/routes/ai-text.ts), `ORDINARY_PRICE` and every explicit `"$0.003"` entry are now `$0.01`. Unchanged: the $0.002 entry tools (/extract, /btc-fees, /sitemap, /package, /base-gas, /base-allowance), the $0.005 and higher tools, and **/base-tx at $0.003**, which the published capped chain client (clients/chain, docs/chain-checks.md) promises.
 - tests/fixtures/price-freeze.json was regenerated at the new prices (freeze again until 8 Nov). Copy that quotes call counts uses $0.01 ($5 = 5,000 credits, about 500 calls).
 - The Bazaar shows each tool's last settled price until it sells again: Peter's `Refresh Bazaar names.cmd` can re-pay the repriced listings once (about $1.60). Run `scripts/update-402index-prices.mjs --dry` then for real after the deploy (the release train does not).
+
+## Contract reads on five networks (1.52.0, 23 Oct 2026; 237 tools)
+
+- Why: the single Bazaar resources with the most payers on 23 Oct are onesource.io's one-call chain reads (100-370
+  payers each); we sold 11 reads per network and lacked these. Every listing is also one more payer and about $0.01 per
+  visit of the sweeper buyer 0xec2a…d034, which pays one call to every Bazaar-listed tool of a seller.
+- `contractEntries()` in src/routes/chain-reads.ts adds, per network: `nft-owner`, `nft-balance`, `nft-metadata`
+  (tokenURI plus the JSON from data:, https or ipfs:// via ipfs.io through `fetchFile`; strings over 1,000 characters
+  shortened), `storage` (eth_getStorageAt), `proxy` (EIP-1967 implementation/beacon/admin, EIP-1822, OpenZeppelin legacy,
+  EIP-1167), `call` (eth_call, calldata up to 8 KB), `estimate-gas` and `allowance` (not on Base, which keeps
+  `/base-allowance` at $0.002 for the published chain client). Reverts are 422, missing contracts 404, both uncharged.
+- Examples are live on every network (checked 23 Oct): Uniswap V3 position manager token #1 for the NFT reads, USDC for
+  storage, proxy (OpenZeppelin legacy slots) and call (totalSupply), Permit2 as the allowance spender.
+- Release train: a `smoke:examples` step (`--retry`, about a minute) runs every tool's published example before the PR;
+  `-SkipSmoke` only when an outside source is down and the release does not touch it. `SMOKE_SHOW=700` prints answers.

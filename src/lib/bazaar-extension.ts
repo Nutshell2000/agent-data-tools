@@ -91,6 +91,12 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/text/diff": ["text-diff"], "/date/diff": ["date-difference"], "/validate/isbn": ["isbn"], "/color/contrast": ["color-contrast"],
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
+  // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
+  ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
+    [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
+    [`/${s}/storage`, ["storage-slot"]], [`/${s}/proxy`, ["proxy-implementation"]], [`/${s}/call`, ["eth-call", "contract-call"]],
+    [`/${s}/estimate-gas`, ["estimate-gas", "gas-estimate"]], ...(s === "base" ? [] : [[`/${s}/allowance`, ["token-allowance"]]]),
+  ])),
 });
 
 /** The tool's tags with its search-phrase tags first, without duplicates (the full list, for our own discovery index). */
