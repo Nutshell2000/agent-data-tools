@@ -87,6 +87,61 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Give an agent current information or sources from the open web in one call", "Get title, URL, snippet and page age for 1-20 results, then read one in full with /extract", "Ground an answer in live web results without an account or a monthly plan"],
     faq: [["Where do the results come from?", "The Brave Search API, one request per paid call. Results are for the caller's immediate use: no storing, resale or model training."], ["What if the search provider is down or the daily capacity is used up?", "The call answers 503 and nothing is charged."]],
   },
+  "/qr": {
+    title: "QR code generator API: SVG QR codes for any text or URL",
+    uses: ["Turn a link, Wi-Fi string or payment request into a QR code an agent can embed", "Get a scalable SVG plus a ready-to-use data URL in one call", "Pick error correction L, M, Q or H for print or screens"],
+    faq: [["Which characters work?", "Any UTF-8 text up to 1,000 characters; very long text at error correction H is refused with a 400, uncharged."], ["What format comes back?", "An SVG string and the same SVG as a base64 data URL."]],
+  },
+  "/calc/loan": {
+    title: "Loan and mortgage calculator API: monthly payment and schedule",
+    uses: ["Work out the monthly payment of a mortgage or loan from amount, rate and term", "Compare offers by total paid and total interest", "Show the first months of the repayment schedule"],
+    faq: [["Which loans does it model?", "Fixed-rate, amortised loans with monthly payments; a 0% rate divides the amount evenly."], ["Can I give the term in months?", "Yes, pass months instead of years."]],
+  },
+  "/calc/compound-interest": {
+    title: "Compound interest calculator API with monthly contributions",
+    uses: ["Project savings or an investment with yearly, quarterly, monthly or daily compounding", "Add a contribution at the end of every month", "Get the balance after each year for a chart"],
+    faq: [["Is the rate fixed?", "Yes, the calculation assumes a constant annual rate."], ["What does it return?", "The future value, total contributed, interest earned and the balance after each year."]],
+  },
+  "/calc/age": {
+    title: "Age calculator API: exact age from a date of birth",
+    uses: ["Get an exact age in years, months and days for forms and checks", "Find the next birthday and the days left until it", "Measure age on any date, not only today"],
+    faq: [["How are 29 February birthdays handled?", "In years without 29 February the next birthday falls on 28 February."], ["Which time zone counts as today?", "UTC, unless you pass the date to measure on."]],
+  },
+  "/calc/bmi": {
+    title: "BMI calculator API: body mass index and WHO category",
+    uses: ["Compute BMI from kg and cm or from pounds and inches", "Get the WHO adult category and the normal weight range for a height", "Add a BMI step to a health or fitness app"],
+    faq: [["Is this medical advice?", "No. It is a screening number for adults, not a diagnosis."], ["Which categories are used?", "The WHO adult categories, from underweight to obesity class III."]],
+  },
+  "/calc/tip": {
+    title: "Tip calculator API: tip, total and split per person",
+    uses: ["Add a tip percentage to a bill and get the total", "Split the total between several people", "Round each share up to a whole amount"],
+    faq: [["What is the default tip?", "15% unless you pass percent."], ["How many people can share?", "From 1 to 100."]],
+  },
+  "/text/lorem": {
+    title: "Lorem ipsum generator API: placeholder text for mock-ups",
+    uses: ["Fill templates, mock-ups and test data with placeholder paragraphs", "Get the same text every time for a given seed", "Choose 1-20 paragraphs of 1-10 sentences"],
+    faq: [["Does it start with the classic sentence?", "Yes, the first paragraph opens with \"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\""], ["Is it random?", "Reproducible: the same seed gives the same text."]],
+  },
+  "/text/morse": {
+    title: "Morse code translator API: text to Morse and back",
+    uses: ["Encode text as international Morse code", "Decode Morse made of dots, dashes, spaces and slashes", "Let the direction be detected automatically"],
+    faq: [["Which characters are supported?", "Letters, digits and common punctuation; anything else is reported, not guessed."], ["How are words separated?", "Letters by spaces and words by a slash."]],
+  },
+  "/text/caesar": {
+    title: "Caesar cipher and ROT13 API: shift letters by any amount",
+    uses: ["Apply ROT13 to hide spoilers or puzzle answers", "Encode or decode a Caesar cipher with any shift from 1 to 25", "Teach the basics of substitution ciphers"],
+    faq: [["Is this encryption?", "No, it is a simple letter shift and offers no security."], ["What happens to digits and punctuation?", "They are left unchanged; letters keep their case."]],
+  },
+  "/xml/to-json": {
+    title: "XML to JSON converter API",
+    uses: ["Read XML feeds, SOAP responses and config files as JSON in an agent", "Keep attributes as \"@name\" keys and repeated elements as arrays", "Convert documents up to 100,000 characters"],
+    faq: [["Is it safe with untrusted XML?", "DOCTYPE declarations are refused, so no external entity or file is ever loaded."], ["What happens with malformed XML?", "The call is refused with a 400 and nothing is charged."]],
+  },
+  "/json/schema": {
+    title: "JSON schema from example API: infer a JSON Schema",
+    uses: ["Turn an example API response into a JSON Schema (draft 2020-12)", "Merge the shapes of all items in an array, with optional keys left out of required", "Detect string formats such as date-time, email, uri and uuid"],
+    faq: [["Which JSON Schema version?", "Draft 2020-12."], ["How are mixed numbers handled?", "Integers and decimals in the same field widen to number."]],
+  },
   "/news": {
     title: "News search API for AI agents: latest headlines as JSON, pay per query",
     uses: ["Get the latest headlines on a topic with title, URL, snippet, publisher and age", "Limit results to the past day, week or month for a current-events answer", "Read a story in full afterwards with /extract"],
