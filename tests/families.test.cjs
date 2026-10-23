@@ -12,8 +12,9 @@ async function loadTypeScript(entry) {
   return loaded.exports;
 }
 
-let utils, fun, data, families;
+let utils, fun, data, families, exampleParams;
 before(async () => {
+  ({ exampleParams } = await loadTypeScript(require.resolve("../src/endpoints.ts")));
   utils = await loadTypeScript(require.resolve("../src/routes/utils.ts"));
   fun = await loadTypeScript(require.resolve("../src/routes/fun.ts"));
   data = await loadTypeScript(require.resolve("../src/routes/public-data.ts"));
@@ -21,6 +22,9 @@ before(async () => {
 });
 
 const inputFrom = (params) => (name) => (params[name] ? String(params[name].example) : undefined);
+// Exactly the inputs of the published example (the Bazaar `input` and the listing payment's URL): a tool that needs
+// more than its required inputs fails its first payment (/calc/loan without a term, 23 Oct 2026).
+const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParams(endpoint)); return (name) => (p[name] ? String(p[name].example) : undefined); };
 
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
@@ -38,6 +42,8 @@ test("every utility and fun endpoint runs on its own example input without netwo
   for (const f of [...utils.UTILS, ...fun.FUN]) {
     const out = await f.run({}, inputFrom(f.endpoint.params));
     assert.ok(out && typeof out === "object", f.endpoint.path);
+    const published = await f.run({}, publishedInput(f.endpoint));
+    assert.ok(published && typeof published === "object", `${f.endpoint.path} published example`);
   }
 });
 
@@ -175,7 +181,10 @@ test("calculators and converters: examples run offline and edge cases are refuse
   for (const f of calc.CALC) {
     const out = await f.run({}, inputFrom(f.endpoint.params));
     assert.ok(out && typeof out === "object", f.endpoint.path);
+    const published = await f.run({}, publishedInput(f.endpoint));
+    assert.ok(published && typeof published === "object", `${f.endpoint.path} published example`);
   }
+  assert.equal((await calc.CALC.find((f) => f.endpoint.path === "/calc/loan").run({}, publishedInput(calc.CALC.find((f) => f.endpoint.path === "/calc/loan").endpoint))).payments, 360, "the loan term defaults to 30 years");
   const run = async (path, params) => calc.CALC.find((f) => f.endpoint.path === path).run({}, (n) => params[n]);
   // QR: UTF-8 survives, an over-long text is a 400, the data URL is the SVG.
   const qr = await run("/qr", { text: "Smörgåsbord ✓" });
@@ -221,6 +230,7 @@ test("economic indicators answer from the World Bank snapshot without network ac
   for (const f of econ.ECON) {
     const out = await f.run({}, inputFrom(f.endpoint.params));
     assert.equal(out.country.code, "SWE", f.endpoint.path);
+    assert.ok(await f.run({}, publishedInput(f.endpoint)), `${f.endpoint.path} published example`);
     assert.match(out.source, /World Bank Open Data \(CC BY 4\.0\), snapshot \d{4}-\d{2}-\d{2}/);
     const series = Object.values(out).filter((v) => v && typeof v === "object" && "values" in v);
     assert.ok(series.length >= 1 && series.every((s) => s.latest && s.values.length >= 1 && s.values.length <= 5 && s.values[0].year >= s.values.at(-1).year), f.endpoint.path);
