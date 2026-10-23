@@ -65,7 +65,7 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
  * what the tool does.
  */
 export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  "/search": ["web-search"], "/news": ["news-headlines", "latest-news"],
+  "/search": ["web-search"],
   "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
   "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price"],
   "/sanctions/check": ["sanctions-check", "ofac-screening"], "/check/payee": ["payee-screening"],
@@ -91,6 +91,8 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/text/diff": ["text-diff"], "/date/diff": ["date-difference"], "/validate/isbn": ["isbn"], "/color/contrast": ["color-contrast"],
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
+  "/hyperliquid/orderbook": ["order-book"], "/hyperliquid/candles": ["ohlcv", "candles"], "/hyperliquid/funding-history": ["funding-history", "funding-rate"],
+  "/hyperliquid/prices": ["crypto-prices"], "/news": ["news-headlines", "latest-news", "crypto-news"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
