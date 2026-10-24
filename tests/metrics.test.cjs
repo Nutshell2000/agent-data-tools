@@ -444,3 +444,40 @@ test("payment attempts answered 402 are counted as v1_payment (X-PAYMENT) or v2_
   assert.equal(row.v2_payment, 1);
   assert.equal(row.challenged, 1);
 });
+
+test("failure reasons: counted per tool by kind, never with the caller's input, and shown in /status", async () => {
+  const { failureReason } = await loadTypeScript(require.resolve("../src/lib/failure-reason.ts"));
+  assert.equal(failureReason(422, "target responded with HTTP 404; check https://evil.example/x?q=secret is public"), "422 target responded with HTTP N; check <url> is public");
+  assert.equal(failureReason(404, "shop.example.com does not exist in DNS"), "404 <name> does not exist in DNS");
+  assert.equal(failureReason(400, 'unknown coin "MYSECRET" for alice@example.com at 0xdeadbeef01'), "400 unknown coin <value> for <email> at <hex>");
+  assert.equal(failureReason(502, undefined), "502 no message");
+  const { metrics } = createMetrics();
+  const app = new Hono();
+  app.use(requestMetricsMiddleware(new Set(["/pdf/text"]), () => false));
+  app.get("/pdf/text", (c) => {
+    const kind = c.req.query("kind");
+    if (kind === "html") return c.json({ error: "url must point to a PDF; got text/html" }, 415);
+    if (kind === "slow") return c.json({ error: "target did not respond within 8 seconds" }, 504);
+    if (kind === "page") return c.html("<p>error page</p>", 422);
+    return c.json({ ok: true });
+  });
+  const env = { METRICS: { idFromName: () => "global", get: () => metrics } };
+  const pending = [];
+  const executionCtx = { waitUntil: (p) => pending.push(p) };
+  for (const kind of ["html", "html", "slow", "page", "ok"]) await app.fetch(new Request(`https://x.test/pdf/text?kind=${kind}&url=https://a.example/b.pdf`), env, executionCtx);
+  await sendBatchNow(metrics); await Promise.all(pending);
+  const tool = (await metrics.status(["/pdf/text", "/weather"])).tools;
+  assert.deepEqual(tool[0].topFailures, [{ reason: "415 url must point to a PDF; got text/html", count: 2 }, { reason: "504 target did not respond within N seconds", count: 1 }]);
+  assert.equal(tool[1].topFailures, undefined, "no key for a tool without failures");
+  assert.deepEqual([tool[0].served, tool[0].buyerErrors, tool[0].serverErrors], [1, 3, 1]);
+  assert.equal((await metrics.report())[today]["#err /pdf/text 415 url must point to a PDF; got text/html"], undefined, "reasons stay out of the per-path report");
+});
+
+test("failure reasons are capped per day, the rest counted as other", async () => {
+  const { metrics } = createMetrics();
+  for (let i = 0; i < 230; i++) await metrics.bump(`#err /tool${i} 400 bad input`, "failed");
+  await metrics.alarm();
+  const status = await metrics.status(["/tool0", "/tool229"]);
+  assert.equal(status.tools[0].topFailures[0].count, 1);
+  assert.equal(status.tools[1].topFailures, undefined, "beyond the cap the reason is counted as other");
+});

@@ -664,3 +664,26 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   30, tech stack 28, seo toolkit 24, lead enrichment 21, domain intelligence 17. `/pack/crypto-market` has the
   market-sentiment tag (39) instead of a second, overlapping sentiment pack.
 
+
+## PDF speed, failure reasons, proof patience (1.67.0, 24 Oct 2026)
+
+- `readPdf` (src/routes/pdf.ts) reads only the requested pages with `doc.getPage(p).getTextContent()`, joining items as
+  unpdf does (str plus a newline on hasEOL). unpdf's `extractText` reads every page in parallel: IRS Pub 17 (142 pages)
+  took 6.6 s CPU for one page, now 0.4 s. Default `pages` is 20.
+- Failure reasons: request-metrics.ts queues `#err <path> <status> <message>` (src/lib/failure-reason.ts strips URLs,
+  e-mails, domains, hex, quoted values and digits) for failed/errored JSON answers; metrics.ts counts them in
+  `errors:<day>` (capped at 200 keys, rest "other"); `/status` shows `topFailures` (top 3 over 7 days). Read it before
+  guessing why a tool fails: Workers Logs need a token with log read access that only Peter can create.
+- release.ps1 proofs wait 8, 30, 60, 120, 240 s for the testnet relayer.
+
+## Answer quality pass, no new tools (1.67.0, 24 Oct 2026)
+
+- Method: run every pack's published example (`SMOKE_SHOW=4000 node scripts/smoke-examples.mjs /pack/`) and look for
+  `failed` sections and nulls, then run tools on real-world inputs. Fixes:
+  - `/pack/api-health` finds the OpenAPI document via `specCandidates()` (path prefixes, then root places), in parallel.
+  - `nameFromTitle()` gives domain-intel a company name when og:site_name is missing.
+  - Content-type gates removed where the bytes are checked anyway: `/pdf/text` (%PDF), `/image/metadata` (`imageInfo`),
+    `/describe` (`sniffImage`). Do not gate files on the server's content type when the parser can tell.
+  - `/geocode/reverse` label languages `LABEL_LANGUAGES`; a bare Q-id is never a name.
+  - `targetRefusal()` in src/lib/fetch.ts: 401/403/451 read "the site refused automated access", 404/410 "not found".
+

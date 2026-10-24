@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { queueMetricBump, settledApiRevenueMicros } from "./revenue";
 import type { Outcome } from "../metrics";
 import { callerFamily } from "./caller";
+import { FAILURE_PREFIX, failureReason } from "./failure-reason";
 
 export function requestMetricsMiddleware(
   paidPaths: ReadonlySet<string>,
@@ -34,5 +35,10 @@ export function requestMetricsMiddleware(
     const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
     const caller = callerFamily(c.req.header("user-agent"), outcome === "marketplace" ? market : false);
     queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros, caller);
+    // Why it failed, so /status can show it (the 21-23 Oct /pdf/text failures could not be diagnosed without logs).
+    if ((outcome === "failed" || outcome === "errored") && (c.res.headers.get("content-type") ?? "").includes("json")) {
+      const message = await c.res.clone().json().then((b) => (b as { error?: unknown } | null)?.error).catch(() => undefined);
+      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, message)}`, outcome);
+    }
   };
 }
