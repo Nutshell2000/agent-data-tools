@@ -131,7 +131,9 @@ export function seoAudit(html: string, pageUrl: string) {
 // ---------- keyword density ----------
 const STOP = new Set("a about above after again against all am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers herself him himself his how i if in into is it its itself just me more most my myself no nor not now of off on once only or other our ours ourselves out over own same she should so some such than that the their theirs them themselves then there these they this those through to too under until up very was we were what when where which while who whom why will with you your yours yourself yourselves also may one new us get use used using via per".split(" "));
 export function keywordDensity(text: string, top: number) {
-  const words = (text.toLowerCase().match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? []).map((w) => w.replace(/['’]s$/, ""));
+  // Links and e-mail addresses are not words: "https" and "com" would otherwise top the list.
+  const prose = text.replace(/\b(?:https?:\/\/|www\.)\S+/gi, " ").replace(/\S+@\S+\.\S+/g, " ");
+  const words = (prose.toLowerCase().match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? []).map((w) => w.replace(/['’]s$/, ""));
   const total = words.length;
   if (total === 0) throw new HttpError(422, "no words found in the text");
   const count = (items: string[]) => { const m = new Map<string, number>(); for (const k of items) m.set(k, (m.get(k) ?? 0) + 1); return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); };

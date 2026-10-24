@@ -16,12 +16,13 @@ import { GEO_IP } from "./geo-ip";
 import { HYPERLIQUID } from "./hyperliquid";
 import { LOOKUPS } from "./lookups";
 import { PRICES } from "./prices";
+import { PUBLIC_DATA } from "./public-data";
 import { SANCTIONS } from "./sanctions";
 import { tokenReport } from "./token-report";
 import { UTILS } from "./utils";
 import { dohQuery, RESOLVERS, WEB_CHECKS } from "./web-checks";
 
-const ALL: Entry[] = [...CHAIN_READS, ...CHECKS, ...FEAR_GREED, ...GEO_IP, ...HYPERLIQUID, ...LOOKUPS, ...PRICES, ...SANCTIONS, ...UTILS, ...WEB_CHECKS];
+const ALL: Entry[] = [...CHAIN_READS, ...CHECKS, ...FEAR_GREED, ...GEO_IP, ...HYPERLIQUID, ...LOOKUPS, ...PRICES, ...PUBLIC_DATA, ...SANCTIONS, ...UTILS, ...WEB_CHECKS];
 const byPath = new Map(ALL.map((e) => [e.endpoint.path, e]));
 /** Runs one of our tools in-process with the given inputs (the same handler the single tool's route uses). */
 export function call(env: Env, path: string, inputs: Record<string, string | number | undefined>) {
