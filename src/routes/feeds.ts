@@ -154,7 +154,7 @@ export const FEEDS: Entry[] = [
       return { url: page.finalUrl, format, title: feed.title, link: feed.link, description: feed.description, count: items.length, items };
     }, "$0.01"),
 
-  entry("/url/meta", "Link preview metadata for a page",
+  entry("/url/meta", "Website metadata, link preview: title, description and images of a page",
     "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it.",
     ["metadata", "opengraph", "web", "seo", "preview", "links"], {
       url: { type: "string", description: "Absolute public http(s) URL of the page", required: true, example: "https://github.com/" },

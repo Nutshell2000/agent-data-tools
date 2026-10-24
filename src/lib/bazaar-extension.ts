@@ -67,13 +67,13 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
 export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   "/search": ["web-search"],
   "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
-  "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price"],
+  "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price", "dex-price"],
   "/sanctions/check": ["sanctions-check", "ofac-screening"], "/check/payee": ["payee-screening"],
   "/wallet/balances": ["wallet-balance", "usdc-balance"], "/wallet-audit": ["wallet-risk"], "/extract/rendered": ["web-page-to-markdown"],
   "/extract": ["scrape-website", "web-scraping"], "/email": ["email-verification"], "/company": ["company-data"],
-  "/domain-report": ["domain-lookup"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price"],
+  "/domain-report": ["domain-lookup"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price", "gas-fee-estimate"],
   "/btc-fees": ["bitcoin-fees"], "/pdf/text": ["pdf-to-text"], "/geocode": ["geocoding"], "/sec/filings": ["sec-filings"],
-  "/token-report": ["honeypot-token-check"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
+  "/token-report": ["honeypot-token-check", "token-security"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
   "/ai/chat": ["chat-completions", "llm-chat-completion"], "/ai/embed": ["text-embeddings", "openai-compatible"],
   "/eth/balance": ["ethereum-balance"], "/hyperliquid/market": ["hyperliquid-funding"], "/airport/status": ["airport-delays"],
   "/fx": ["currency-exchange-rate", "forex", "exchange-rates"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],
@@ -81,8 +81,8 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/package": ["npm-package"], "/wikipedia": ["wikipedia-summary"], "/earthquakes": ["earthquakes"],
   "/holidays": ["public-holidays"], "/feed": ["rss-feed"], "/sitemap": ["sitemap"],
   "/text/prompt-injection": ["prompt-injection-detection"], "/json/repair": ["json-repair"],
-  "/validate/iban": ["iban-validation"], "/base/token-transfers": ["token-transfers"], "/ens": ["ens-name"],
-  "/liquidity-pool-audit": ["liquidity-pool"], "/check/counterparty": ["counterparty-risk"], "/base-gas": ["base-gas"],
+  "/validate/iban": ["iban-validation"], "/base/token-transfers": ["token-transfers"], "/ens": ["ens-resolver", "reverse-ens", "ens-name"],
+  "/liquidity-pool-audit": ["liquidity-pool"], "/check/counterparty": ["counterparty-risk"], "/base-gas": ["base-gas", "gas-fee-estimate"],
   "/btc-price": ["btc-price"], "/wallet/portfolio": ["portfolio-value"], "/papers": ["research-papers"],
   "/dictionary": ["dictionary-definition"],
   // Second pass, 66 more searches measured on 22 Oct evening (absent or below #5 where the #1 has 1-4 payers).
@@ -92,7 +92,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
   "/hyperliquid/orderbook": ["order-book"], "/hyperliquid/candles": ["ohlcv", "candles"], "/hyperliquid/funding-history": ["funding-history", "funding-rate"],
-  "/hyperliquid/prices": ["crypto-prices"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
+  "/hyperliquid/prices": ["crypto-prices"], "/http/security-headers": ["security-headers", "http-headers"], "/url/meta": ["website-metadata", "link-preview"], "/cron/next": ["cron-expression"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
