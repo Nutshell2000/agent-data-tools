@@ -589,3 +589,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   auto-decoding of encoded input), `/pack/json-toolbox` (validate with position, format, minify, schema, stats, YAML),
   $0.02 each. Why: the search "developer tools" summed 195 payers, led by toolbox endpoints (hash 35, JSON 28, encoding 21).
 
+
+## More packs (1.61.0, 24 Oct 2026)
+
+- src/routes/packs-more.ts: `/pack/tx-explain` $0.02 (tx + receipt via the chain client, calldata decoded with the common
+  signatures, now including EIP-3009 transferWithAuthorization/receiveWithAuthorization used by x402 settlements, every
+  Transfer/Approval/ApprovalForAll decoded with symbols and plain-English lines), `/pack/nft-analysis` $0.02 (owner,
+  metadata, owner's holdings, collection proxy), `/pack/location-brief` $0.02 (geocode, MET Norway weather via the core
+  `weather()`, sun times, country facts; Wikidata gives country names, mapped to ISO codes with Intl.DisplayNames; no
+  local time because nothing keyless maps coordinates to a time zone), `/pack/text-analysis` $0.02 (stats, keywords,
+  extracted contacts and links, prompt-injection scan).
+- `keywordDensity` strips URLs and e-mail addresses before counting ("https" and "com" topped the lists).
+- `/domain-report` carries a `trust-score` tag (search "trust score" summed 42 payers; the tool already gives a verdict).
+
