@@ -93,7 +93,7 @@ export function analyze(url: string, status: number, header: string | null, body
 }
 
 export const X402_CHECK: Entry[] = [
-  entry("/x402/check", "x402 seller check: decode an endpoint's payment terms and listing quality without paying",
+  entry("/x402/check", "x402 endpoint check: decode an endpoint's payment terms and listing quality without paying",
     "Check an x402 seller before you pay it: decode any public endpoint's 402 payment requirements without paying (v1 body or v2 header) into USD price for native USDC, network, asset, recipient, scheme and timeout, plus a listing-quality score for https resource URL, atomic amount, facilitator minimum, description, Bazaar metadata and output schema. Never signs. Use before buying from an unfamiliar seller or to audit your own x402 listing.",
     ["x402", "payments", "developer", "validation", "agents"], {
       url: { type: "string", description: "Absolute public https URL of the paid endpoint, with any query it needs", required: true, example: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees" },
