@@ -71,7 +71,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/sanctions/check": ["sanctions-check", "ofac-screening"], "/check/payee": ["payee-screening"],
   "/wallet/balances": ["wallet-balance", "usdc-balance"], "/wallet-audit": ["wallet-risk"], "/extract/rendered": ["web-page-to-markdown"],
   "/extract": ["scrape-website", "web-scraping"], "/email": ["email-verification"], "/company": ["company-data"],
-  "/domain-report": ["domain-lookup"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price", "gas-fee-estimate"],
+  "/domain-report": ["domain-lookup", "trust-score"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price", "gas-fee-estimate"],
   "/btc-fees": ["bitcoin-fees"], "/pdf/text": ["pdf-to-text"], "/geocode": ["geocoding"], "/sec/filings": ["sec-filings"],
   "/token-report": ["honeypot-token-check", "token-security"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
   "/ai/chat": ["chat-completions", "llm-chat-completion"], "/ai/embed": ["text-embeddings", "openai-compatible"],
@@ -86,13 +86,13 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/btc-price": ["btc-price"], "/wallet/portfolio": ["portfolio-value"], "/papers": ["research-papers"],
   "/dictionary": ["dictionary-definition"],
   // Second pass, 66 more searches measured on 22 Oct evening (absent or below #5 where the #1 has 1-4 payers).
-  "/time": ["timezone", "time-zone", "current-time"], "/hash": ["sha256", "hash"], "/uuid": ["uuid", "uuid-generator"],
+  "/time": ["timezone", "time-converter", "time-zone", "current-time"], "/hash": ["sha256", "hash"], "/uuid": ["uuid", "uuid-generator", "id-generator"],
   "/units/convert": ["unit-conversion"], "/text/stats": ["word-count", "readability"], "/slug": ["slugify"],
   "/text/diff": ["text-diff"], "/date/diff": ["date-difference"], "/validate/isbn": ["isbn"], "/color/contrast": ["color-contrast"],
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
   "/hyperliquid/orderbook": ["order-book"], "/hyperliquid/candles": ["ohlcv", "candles"], "/hyperliquid/funding-history": ["funding-history", "funding-rate"],
-  "/hyperliquid/prices": ["crypto-prices"], "/http/security-headers": ["security-headers", "http-headers"], "/url/meta": ["website-metadata", "link-preview"], "/cron/next": ["cron-expression"], "/keccak": ["keccak256", "function-selector"], "/crypto/fear-greed": ["fear-and-greed"], "/ip/lookup": ["ip-lookup"], "/geo/distance": ["distance-between"], "/date/info": ["week-number"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
+  "/hyperliquid/prices": ["crypto-prices"], "/http/security-headers": ["security-headers", "http-headers"], "/url/meta": ["website-metadata", "link-preview"], "/cron/next": ["cron-expression"], "/case": ["case-converter"], "/keccak": ["keccak256", "function-selector"], "/crypto/fear-greed": ["fear-and-greed"], "/ip/lookup": ["ip-lookup"], "/geo/distance": ["distance-between"], "/date/info": ["week-number"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
