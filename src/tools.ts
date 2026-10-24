@@ -92,17 +92,22 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
 export const normalizedInput = (sent: Input): Input => (name) => {
   const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => sent(alias)).find((v) => v !== undefined);
   const value = input(name);
-  if (value === undefined || !ADDRESS_INPUTS.has(name)) return value;
+  if (value === undefined || !ADDRESS_INPUTS.has(name) || (sent as { [KEEP_CASE]?: boolean })[KEEP_CASE]) return value;
   return value.split(",").map((part) => {
     const m = EVM_HEX.exec(part.trim());
     return m ? `0x${m[2].toLowerCase()}` : part;
   }).join(",");
 };
 
+const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
+const KEEP_CASE = Symbol("keepCase");
+const keepCase = (input: Input): Input => Object.assign((n: string) => input(n), { [KEEP_CASE]: true });
 // Both transports await this guard before their payment wrapper can settle.
 export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, handler]) => [
   path, async (env: Env, input: Input) => {
     if (Object.hasOwn(PAUSED_FAMILY_TOOLS, path)) throw new HttpError(503, PAUSED_FAMILY_TOOLS[path], "TOOL_PAUSED");
+    // /evm/checksum judges the case of the address it is given, so its input keeps its case (aliases still apply).
+    if (RAW_INPUT_PATHS.has(path)) input = keepCase(input);
     const result = await handler(env, normalizedInput(input));
     assertToolOutput(path as EndpointPath, result);
     return result;

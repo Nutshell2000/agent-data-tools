@@ -561,6 +561,29 @@ function contractEntries(c: ChainDef): Entry[] {
         ]);
         return head({ to, from: from ?? null, value: rawValue, gas: gas.toString(), gasPriceGwei: formatGwei(price), cost: formatEther(gas * price), symbol: c.symbol, block: Number(block) });
       }),
+
+    entry(p("gas-history"), `${short} gas price history`,
+      `Gas price history on ${c.name} (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ${c.slug}_gas.`,
+      tags("gas", "gas-history", "fees", "fee-history"), {
+        blocks: { type: "integer", description: "How many recent blocks, 5-100 (default 20)", example: 20 },
+      },
+      head({ fromBlock: 123456770, toBlock: 123456789, blocks: 20, baseFeeGwei: { low: 0.011, average: 0.012, high: 0.014, latest: 0.012, next: 0.012 }, priorityFeeGwei: { p10: 0.0005, p50: 0.001, p90: 0.01 }, history: [{ block: 123456789, baseFeeGwei: 0.012, gasUsedRatio: 0.48, priorityFeeGwei: [0.0005, 0.001, 0.01] }] }),
+      async (env, q) => {
+        const blocks = num(q, "blocks", { min: 5, max: 100, fallback: 20, integer: true });
+        const h = await rpc(() => client(env, c).getFeeHistory({ blockCount: blocks, rewardPercentiles: [10, 50, 90] }));
+        const gwei = (v: bigint) => Number(formatGwei(v));
+        const base = h.baseFeePerGas.slice(0, -1).map(gwei);
+        const first = Number(h.oldestBlock);
+        const rewards = (h.reward ?? []).map((r) => r.map(gwei));
+        const pct = (i: number) => { const xs = rewards.map((r) => r[i]).filter((x) => Number.isFinite(x)).sort((a, b) => a - b); return xs.length ? xs[Math.floor(xs.length / 2)] : null; };
+        const avg = base.length ? base.reduce((s, x) => s + x, 0) / base.length : null;
+        return head({
+          fromBlock: first, toBlock: first + base.length - 1, blocks: base.length,
+          baseFeeGwei: { low: base.length ? Math.min(...base) : null, average: avg === null ? null : Number(avg.toPrecision(6)), high: base.length ? Math.max(...base) : null, latest: base.at(-1) ?? null, next: h.baseFeePerGas.length ? gwei(h.baseFeePerGas.at(-1)!) : null },
+          priorityFeeGwei: { p10: pct(0), p50: pct(1), p90: pct(2) },
+          history: base.map((b, i) => ({ block: first + i, baseFeeGwei: b, gasUsedRatio: Math.round((h.gasUsedRatio[i] ?? 0) * 1000) / 1000, priorityFeeGwei: rewards[i] ?? null })),
+        });
+      }),
   ];
   // Base already sells this read as /base-allowance (the published chain client promises that path and price).
   if (c.slug !== "base") list.push(
