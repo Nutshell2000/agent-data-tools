@@ -838,7 +838,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/ens",
     price: "$0.01",
-    summary: "ENS name lookup: ENS name to address and address to ENS name",
+    summary: "ENS resolver, reverse ENS lookup: ENS name to address and address to ENS name",
     description:
       "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
     tags: ["ens", "ethereum", "identity", "address", "resolve"],

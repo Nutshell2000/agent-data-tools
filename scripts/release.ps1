@@ -121,7 +121,14 @@ Step 'sync-main' {
 Step 'bump' { node scripts/bump-version.mjs $Version }
 # Idempotent: a restarted run finds the baseline already at this version, and the update script refuses a same-version
 # update, so check first and update only when the baseline differs.
-Step 'update:mcp-contract' { npm run check:mcp-contract 2>&1 | Out-Null; if ($LASTEXITCODE -eq 0) { $global:LASTEXITCODE = 0; "contract baseline already matches $Version" } else { npm run update:mcp-contract } } 'contract baseline'
+# A rerun after a source change (a fixed example, 1.54.0) finds the baseline already at this version but stale; the updater
+# refuses a same-version update, so start again from main's baseline (the only file the train may take from main).
+Step 'update:mcp-contract' {
+  npm run check:mcp-contract 2>&1 | Out-Null
+  if ($LASTEXITCODE -eq 0) { $global:LASTEXITCODE = 0; "contract baseline already matches $Version"; return }
+  $out = (npm run update:mcp-contract 2>&1 | ForEach-Object { "$_" }) -join "`n"
+  if ($LASTEXITCODE -ne 0 -and $out -match 'must increase beyond baseline') { git checkout origin/main -- scripts/mcp-contract-baseline.json; npm run update:mcp-contract } else { $out }
+} 'contract baseline'
 # The full suite starts many Miniflare workers; a file-level flake (every test green, the file red) happens about once
 # in ten runs, so one rerun is allowed. A real failure fails twice.
 Step 'test' { $first = (npm test 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0) { $first } else { Write-Host '[retry] npm test failed once; running again' -ForegroundColor Yellow; npm test } } 'fail 0'
