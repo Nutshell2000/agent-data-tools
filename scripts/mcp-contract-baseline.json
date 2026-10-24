@@ -1,5 +1,5 @@
 {
-  "version": "1.65.0",
+  "version": "1.66.0",
   "tools": [
     {
       "name": "extract",
@@ -7677,6 +7677,131 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "tech_stack",
+      "description": "Detect the technologies behind a website from its home page HTML and response headers: CMS or site builder (WordPress, Shopify, Webflow…), JavaScript framework (Next.js, Nuxt, React…), analytics and ad pixels, support widgets, payments, captcha, CDN and hosting, web server and backend language, each with the evidence that matched. About 110 public fingerprints, server HTML only. Use for lead research, competitor analysis or sales prospecting. Example: url=https://vercel.com/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Website or page URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_evm_toolbox",
+      "description": "One call that works out what an EVM value is and converts it every useful way: an address gets its EIP-55 checksum and bytes32 form; a signature its 4-byte selector and event topic; calldata is decoded (ERC-20, NFT, permit, EIP-3009); a bytes32 becomes uint256, address and units; a number converts between wei, gwei, ether (or any decimals) and hex; text gets keccak256. Local, no network. Use for building or debugging contracts and agents. Example: input=transfer(address,uint256). Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "An address, signature, calldata, hex value, number or text"
+          },
+          "decimals": {
+            "description": "Token decimals for unit conversions (default 18)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_seo_toolkit",
+      "description": "One call for an on-page SEO analysis of a URL: the SEO audit (title and description lengths, canonical, headings, alt text, structured data, score, issues), the top keywords and two-word phrases with their density, the social preview (OpenGraph, Twitter card), the favicon, and robots.txt access with its sitemaps. Server HTML only. Cheaper than the tools one by one. Use before publishing, for an SEO report or to compare a competitor's page. Example: url=https://www.wikipedia.org/. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_gas_tracker",
+      "description": "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_domain_intel",
+      "description": "One call to enrich a company domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Cheaper than the tools bought one by one. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Company domain such as stripe.com (or a URL; its host is used)"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.03"
     },
     {
       "name": "holidays",
