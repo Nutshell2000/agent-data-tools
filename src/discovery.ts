@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.64.0";
+export const MCP_SERVER_VERSION = "1.65.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -97,6 +97,8 @@ const PATH_SYNONYMS: Record<string, string[]> = {
  * on ties, so a bot that guessed our URL scheme is sent to the paid tool instead of a dead end.
  */
 export function suggestTools(path: string, max = 3): string[] {
+  // Browsers asking for an icon or image of ours are not guessing at a tool (/favicon.ico would match /url/favicon).
+  if (/\.(ico|png|jpe?g|gif|svg|webp)$/i.test(path)) return [];
   const words = path.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 2 && !PATH_NOISE.has(w));
   for (const w of [...words]) words.push(...(PATH_SYNONYMS[w] ?? []));
   if (!words.length) return [];
@@ -204,7 +206,7 @@ function clientGuidance() {
 const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Prices and DeFi", (p) => /^\/(price\/|wallet\/portfolio|token|trade-insight|liquidity-pool-audit|mev-simulator|contract-risk|wallet-audit|btc-price|hyperliquid\/|crypto\/fear-greed|pack\/crypto-market|pack\/token-analysis|pack\/coin-research|fx$)/.test(p)],
   ["Chain data", (p) => /^\/(base|eth|arb|op|polygon|solana|evm)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|wallet\/balances|pack\/wallet-profile|pack\/tx-explain|pack\/nft-analysis|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
-  ["Web, documents and search", (p) => /^\/(extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|url\/redirects|url\/uptime|seo\/audit|robots|search|news|wikipedia|dictionary|papers)$/.test(p)],
+  ["Web, documents and search", (p) => /^\/(extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|url\/redirects|url\/uptime|url\/favicon|image\/metadata|seo\/audit|robots|search|news|wikipedia|dictionary|papers)$/.test(p)],
   ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|check\/counterparty|check\/payee|check\/x402-seller|domain|domain-report|email|package|package-audit|x402\/check|sec\/filings|text\/prompt-injection|http\/security-headers|dockerfile\/lint|dns\/lookup|dns\/propagation|ip\/lookup|pack\/api-health|openapi\/summary|mcp\/inspect|pack\/email-deliverability|pack\/website-audit|pack\/ip-intelligence)$/.test(p)],
   ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
   ["Everyday data", (p) => /^\/(weather|pack\/location-brief|geocode\/reverse|time|holidays|geocode|earthquakes|airport\/status|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/")],

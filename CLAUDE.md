@@ -639,3 +639,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/x402/check` is "x402 endpoint check" (the search "x402 endpoint" summed 37 payers; we were absent).
 - Demand: openapi 47, api health 38, mcp server check 35.
 
+
+## Image metadata, language detection, user agents and favicons (1.65.0, 24 Oct 2026)
+
+- src/routes/media-text.ts: `/image/metadata` (JPEG/PNG/GIF/WebP size; for JPEG the EXIF IFD0, Exif and GPS IFDs read by our
+  own parser `parseTiff`: camera, lens, date taken, exposure, ISO, focal length, orientation, GPS; up to 15 MB),
+  `/text/language` (franc-min 6.2.0, MIT, 82 languages, ISO 639-3/639-1 and English name, `und` below about 10
+  characters), `/useragent/parse` (local rules: browser, OS, device, and named crawlers incl. GPTBot, ClaudeBot,
+  PerplexityBot and HTTP libraries), `/url/favicon` (link icons, manifest, /favicon.ico, best icon: SVG then size, never
+  mask icons).
+- Demand (24 Oct probe, summed payers over the top 20): detect language 57, exif 55, favicon 38, image metadata 31, user
+  agent parser 28. Renames: `/email` "Email validation, verification", `/hash` "SHA256 hash, hash text (SHA-256)".
+
