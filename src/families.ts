@@ -26,6 +26,7 @@ import { TOOLBOXES } from "./routes/toolboxes";
 import { PACKS_MORE } from "./routes/packs-more";
 import { TOOLBOXES2 } from "./routes/toolboxes2";
 import { GEO_MORE } from "./routes/geo-more";
+import { AGENT_INFRA } from "./routes/agent-infra";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
@@ -34,4 +35,4 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
