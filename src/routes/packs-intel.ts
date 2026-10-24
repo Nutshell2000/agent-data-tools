@@ -236,6 +236,16 @@ const GAS_CHAINS = [["base", "Base", "ETH"], ["eth", "Ethereum", "ETH"], ["arb",
 const MAIL_PROVIDERS: [RegExp, string][] = [[/google\.com$|googlemail\.com$/i, "Google Workspace"], [/outlook\.com$|protection\.outlook/i, "Microsoft 365"], [/zoho\./i, "Zoho Mail"], [/protonmail\.ch$|proton\.me$/i, "Proton Mail"], [/mimecast/i, "Mimecast"], [/pphosted\.com$|ppe-hosted/i, "Proofpoint"], [/messagingengine\.com$/i, "Fastmail"], [/mailgun\.org$/i, "Mailgun"], [/amazonaws\.com$|amazonses/i, "Amazon SES"], [/yandex\./i, "Yandex Mail"], [/icloud\.com$/i, "iCloud Mail"], [/secureserver\.net$/i, "GoDaddy"], [/ovh\.net$/i, "OVH"], [/one\.com$/i, "one.com"], [/mx\.cloudflare\.net$/i, "Cloudflare Email Routing"], [/barracudanetworks\.com$/i, "Barracuda"]];
 export const mailProvider = (hosts: string[]) => { for (const h of hosts) for (const [re, name] of MAIL_PROVIDERS) if (re.test(h)) return name; return hosts.length ? "self-hosted or other" : null; };
 
+/** The company name when the page has no og:site_name: the title segment that contains the domain's own label. */
+export function nameFromTitle(title: unknown, domain: string) {
+  if (typeof title !== "string") return null;
+  const label = domain.split(".")[0].toLowerCase().replace(/-/g, "");
+  if (label.length < 2) return null;
+  const segments = title.split(/\s+[|·•–—-]\s+|:\s+/).map((s) => s.trim()).filter(Boolean);
+  const hit = segments.filter((s) => s.toLowerCase().replace(/[\s-]/g, "").includes(label) && s.length <= 40).sort((a, b) => a.length - b.length)[0];
+  return hit ?? null;
+}
+
 const hostOf = (raw: string) => {
   let v = raw.trim().toLowerCase();
   if (/^https?:\/\//.test(v)) { try { v = new URL(v).hostname; } catch { throw new HttpError(400, "domain must be a domain such as example.com or a URL"); } }
@@ -308,7 +318,7 @@ export const PACKS_INTEL: Entry[] = [
     "One call to enrich a company domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Cheaper than the tools bought one by one. Use for lead enrichment, company research, vendor checks or sales prospecting.",
     ["domain-intelligence", "company-enrichment", "lead-enrichment", "company-research", "pack", "web"],
     { domain: { type: "string", description: "Company domain such as stripe.com (or a URL; its host is used)", required: true, example: "stripe.com" } },
-    { pack: "domain-intel", domain: "stripe.com", site: { title: "Stripe | Financial Infrastructure to Grow Your Revenue", description: "Stripe is a suite of APIs…", siteName: null, logo: "https://images.stripeassets.com/…/favicon.svg" }, tech: { "JavaScript frameworks": ["Next.js"], "Web servers": ["Nginx"] }, email: { provider: "Google Workspace", spfPolicy: "~all", dmarcPolicy: "reject" }, hosting: { ip: "52.49.17.168", holder: "Amazon Data Services Ireland Limited", country: null }, registration: { registrar: "SafeNames Ltd.", registeredAt: "1995-09-12T04:00:00Z", ageDays: 11000, expiresAt: "2027-09-11T04:00:00Z" }, dns: { a: ["52.49.17.168"], mx: [{ priority: 10, host: "aspmx.l.google.com" }], ns: ["ns-1087.awsdns-07.org"] }, failed: {} },
+    { pack: "domain-intel", domain: "stripe.com", site: { title: "Stripe | Financial Infrastructure to Grow Your Revenue", description: "Stripe is a suite of APIs…", siteName: "Stripe", logo: "https://images.stripeassets.com/…/favicon.svg", twitter: "@stripe" }, tech: { "JavaScript frameworks": ["Next.js"], "Web servers": ["Nginx"] }, email: { provider: "Google Workspace", spfPolicy: "~all", dmarcPolicy: "reject" }, hosting: { ip: "52.49.17.168", holder: "Amazon Data Services Ireland Limited", country: null }, registration: { registrar: "SafeNames Ltd.", registeredAt: "1995-09-12T04:00:00Z", ageDays: 11000, expiresAt: "2027-09-11T04:00:00Z" }, dns: { a: ["52.49.17.168"], mx: [{ priority: 10, host: "aspmx.l.google.com" }], ns: ["ns-1087.awsdns-07.org"] }, failed: {} },
     async (env, q) => {
       const domain = hostOf(need(q, "domain", 300));
       const home = `https://${domain}/`;
@@ -325,7 +335,11 @@ export const PACKS_INTEL: Entry[] = [
       const host = data.hosting as { holder?: { name: string | null } | null; country?: string | null } | undefined;
       return {
         pack: "domain-intel", domain,
-        site: meta || data.favicon ? { title: meta?.title ?? null, description: meta?.description ?? null, siteName: meta?.siteName ?? null, logo: (data.favicon as { best?: string | null } | undefined)?.best ?? null } : null,
+        site: meta || data.favicon ? {
+          title: meta?.title ?? null, description: meta?.description ?? null, siteName: meta?.siteName ?? nameFromTitle(meta?.title, domain),
+          logo: (data.favicon as { best?: string | null } | undefined)?.best ?? null,
+          twitter: (meta?.twitter as Record<string, string> | undefined)?.["twitter:site"] ?? null,
+        } : null,
         tech: (data.tech as { byCategory?: unknown } | undefined)?.byCategory ?? null,
         email: { provider: mailProvider(dom.dns.mx.map((m) => m.host).filter((h) => h && h !== ".")), spfPolicy: dom.email.spfPolicy, dmarcPolicy: dom.email.dmarcPolicy },
         hosting: ip ? { ip, holder: host?.holder?.name ?? null, country: host?.country ?? null } : null,

@@ -8,6 +8,11 @@ import { call, runSections } from "./packs";
 
 const WDQS = "https://query.wikidata.org/sparql";
 type Binding = Record<string, { value: string } | undefined>;
+/**
+ * English first, then the multilingual label and widely used languages: a small place with no English label came back
+ * named by its bare Wikidata id (Q65194616, a Swedish locality, 24 Oct 2026).
+ */
+const LABEL_LANGUAGES = "en,mul,sv,no,da,fi,de,fr,es,it,nl,pt,pl,cs,ru,uk,tr,ar,ja,zh,ko,hi,id,vi";
 export function sparqlAround(lat: number, lon: number, radiusKm: number, limit: number) {
   return `SELECT ?place ?placeLabel ?placeDescription ?dist ?pop ?countryLabel ?iso ?adminLabel WHERE {
   SERVICE wikibase:around { ?place wdt:P625 ?loc . bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral .
@@ -15,7 +20,7 @@ export function sparqlAround(lat: number, lon: number, radiusKm: number, limit: 
   ?place wdt:P1082 ?pop .
   OPTIONAL { ?place wdt:P17 ?country . ?country wdt:P297 ?iso . }
   OPTIONAL { ?place wdt:P131 ?admin . }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}" . }
 } ORDER BY ?dist LIMIT ${limit}`;
 }
 export function shapePlaces(rows: Binding[]) {
@@ -26,7 +31,8 @@ export function shapePlaces(rows: Binding[]) {
     if (!id || seen.has(id)) continue;
     seen.add(id);
     places.push({
-      name: r.placeLabel?.value ?? id, description: r.placeDescription?.value ?? null, distanceKm: Math.round(Number(r.dist?.value ?? 0) * 100) / 100,
+      // The label service answers a bare id when an item has no label in any listed language: no name beats a fake one.
+      name: r.placeLabel?.value && !/^Q\d+$/.test(r.placeLabel.value) ? r.placeLabel.value : null, description: r.placeDescription?.value ?? null, distanceKm: Math.round(Number(r.dist?.value ?? 0) * 100) / 100,
       population: r.pop ? Math.round(Number(r.pop.value)) : null, region: r.adminLabel?.value ?? null, country: r.countryLabel?.value ?? null,
       countryCode: r.iso?.value ?? null, wikidataId: id,
     });
@@ -37,7 +43,7 @@ export function shapePlaces(rows: Binding[]) {
   const admin = /municipality|county|province|parish|district|region|state of|prefecture|oblast|kommun|commune|department/i;
   const settlements = places.filter((p) => !admin.test(`${p.name} ${p.description ?? ""}`));
   const largest = (settlements.length ? settlements : places).reduce<(typeof places)[number] | null>((best, p) => ((p.population ?? 0) > (best?.population ?? -1) ? p : best), null);
-  return { nearest: places[0] ?? null, largest, places };
+  return { nearest: places.find((p) => p.name) ?? places[0] ?? null, largest, places };
 }
 
 export const GEO_MORE: Entry[] = [

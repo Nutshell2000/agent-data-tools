@@ -194,9 +194,10 @@ function Proof([string]$Name, [string[]]$ProofArgs) {
   # proofs without arguments on the 1.48.1 release.
   $script:proofArgs = $ProofArgs
   # The testnet facilitator's relayer wallet gets stuck now and then ("nonce lower than the current nonce",
-  # "replacement transaction underpriced" on 22 Oct 2026, both its side); give it up to four tries over about two minutes.
+  # "replacement transaction underpriced" on 22 Oct 2026, both its side). Four tries over two minutes still stopped the
+  # 1.62.0 and 1.63.0 trains on 24 Oct, and a resume a few minutes later settled, so wait up to about eight minutes.
   Step $Name {
-    $waits = @(8, 30, 60)
+    $waits = @(8, 30, 60, 120, 240)
     for ($try = 0; ; $try++) {
       $out = (node scripts/pay-test.mjs @script:proofArgs 2>&1 | ForEach-Object { "$_" })
       if (($out -join "`n") -match $settled -or $try -ge $waits.Count) { $out; break }

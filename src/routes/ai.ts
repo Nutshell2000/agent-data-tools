@@ -73,10 +73,21 @@ export async function transcribe(env: Env, rawUrl: string | undefined) {
   };
 }
 
+/** The image type from the file's first bytes; storage hosts often label images binary/octet-stream or not at all. */
+export function sniffImage(b: Uint8Array): string | null {
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+
 export async function describeImage(env: Env, rawUrl: string | undefined, questionParam?: string) {
-  const file = await fetchFile(rawUrl, /^image\/(png|jpe?g|webp|gif)/i, 3 * MB, "a PNG, JPEG, WebP or GIF image");
+  const file = await fetchFile(rawUrl, /^image\/|octet-stream|^$/i, 3 * MB, "a PNG, JPEG, WebP or GIF image");
+  const type = sniffImage(file.bytes);
+  if (!type) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image (nothing was charged)");
   const question = questionParam?.trim().slice(0, 300) || "Describe this image in detail, including any text visible in it.";
-  const dataUri = `data:${file.contentType};base64,${Buffer.from(file.bytes).toString("base64")}`;
+  const dataUri = `data:${type};base64,${Buffer.from(file.bytes).toString("base64")}`;
   const out = await runAi<{ response?: string }>(env, MODELS.vision, {
     messages: [
       {
