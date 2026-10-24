@@ -1,5 +1,5 @@
 {
-  "version": "1.58.0",
+  "version": "1.59.0",
   "tools": [
     {
       "name": "extract",
@@ -6917,6 +6917,134 @@
         },
         "required": [
           "date"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "barcode",
+      "description": "Generate a barcode as an SVG image: Code 128 for any printable ASCII text (switching to the compact numeric set for runs of digits, with the mod-103 check symbol), or EAN-13 for 12 or 13 digits (the check digit is computed or verified). Set bar width and height and whether to print the text below. Returns the SVG and a data URL ready for an <img> tag. Use for shipping labels, product codes, tickets or inventory; for QR codes use qr. Example: text=AGENT-12345. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "What to encode: ASCII text for Code 128, or 12-13 digits for EAN-13"
+          },
+          "type": {
+            "type": "string",
+            "description": "code128 (default) or ean13"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Module (narrowest bar) width in pixels, 1-6 (default 2)"
+          },
+          "height": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Bar height in pixels, 20-300 (default 80)"
+          },
+          "label": {
+            "description": "true (default) to print the text below the bars",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "color_palette",
+      "description": "Build a colour palette from one hex colour: complementary, analogous, triadic, split-complementary and tetradic harmonies (hue rotations at the same saturation and lightness), plus six shades from light to dark, all as hex codes, with the base colour's HSL. Use for UI themes, charts, brand kits or slide decks; to check text readability on a colour use color_contrast. Example: color=#3366ff. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "Base colour as hex, such as #3366ff or 36f"
+          }
+        },
+        "required": [
+          "color"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "csv_to_markdown",
+      "description": "Convert CSV (comma, semicolon, tab or pipe, detected automatically; quoted fields supported) into a GitHub-flavoured Markdown table, with number columns right-aligned, pipes escaped and line breaks kept as <br>. Up to 100 KB. Use to show spreadsheet data in a README, chat reply, issue or report; for JSON use csv_to_json. Example: csv=tool,price,calls\nweather,0.01,120\nsearch,0.01,45. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "The CSV text (up to 100 KB)"
+          },
+          "header": {
+            "description": "true (default) if the first row holds the column names",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "csv"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "html_table_to_json",
+      "description": "Extract every table from an HTML fragment into JSON: header cells become keys and each body row an object (or raw arrays when there is no header row), with captions, colspans repeated and entities decoded. Give the HTML itself (up to 500 KB). Use to turn web or email tables into data an agent can sort and compute on; to fetch a page first use extract. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "HTML containing one or more <table> elements (up to 500 KB)"
+          }
+        },
+        "required": [
+          "html"
         ]
       },
       "price": "$0.01"
