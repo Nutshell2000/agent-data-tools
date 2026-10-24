@@ -1,5 +1,5 @@
 {
-  "version": "1.57.0",
+  "version": "1.58.0",
   "tools": [
     {
       "name": "extract",
@@ -4292,84 +4292,6 @@
       "price": "$0.005"
     },
     {
-      "name": "solana_balance",
-      "description": "SOL balance and SPL token balances of a Solana wallet, read live from mainnet: SOL in lamports and SOL, then every token account (classic Token and Token-2022 programs) with mint, symbol for well-known tokens (USDC, USDT, JUP, BONK…), decimals and amount, largest first, up to 50. Use to check what a Solana wallet holds before a payment or swap. An address that is not 32-byte base58 is 400, uncharged. Example: address=vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "address": {
-            "type": "string",
-            "description": "Solana wallet address (base58)"
-          }
-        },
-        "required": [
-          "address"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "solana_token",
-      "description": "Look up a Solana SPL token by its mint address, live from mainnet: decimals, total supply, whether a mint authority can still create more and whether a freeze authority can freeze holders (two common rug-pull risks), the token program, and, on request, the largest holder accounts with their share of supply. Use before buying or accepting an unknown Solana token. A mint that does not exist is 404, uncharged. Example: mint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "mint": {
-            "type": "string",
-            "description": "SPL token mint address (base58)"
-          },
-          "holders": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Largest holder accounts to list, 0-20 (default 0; best effort, the public node rate-limits this lookup)"
-          }
-        },
-        "required": [
-          "mint"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "solana_tx",
-      "description": "Look up a Solana transaction by signature, live from mainnet: success or the error, slot and block time, fee in SOL, compute units used, signers, the programs it called and SOL balance changes per account. Use to confirm a Solana payment landed or see what a transaction did. A signature that is not base58 is 400; an unknown or too old signature is 404, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "signature": {
-            "type": "string",
-            "description": "Transaction signature (base58, 64 bytes)"
-          }
-        },
-        "required": [
-          "signature"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
       "name": "price_token",
       "description": "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: symbol=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -6886,6 +6808,116 @@
             "description": "How many keywords and phrases to return, 1-50 (default 15)"
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "date_business_days",
+      "description": "Count business (working) days between two dates, skipping weekends and public holidays for the US, UK, Sweden, Germany, France, Norway, Denmark or Finland, and list the holidays skipped; or give add=N to get the date N business days after (or before) a date. Other countries count weekends only, and the answer says so. Use for delivery estimates, SLAs, payment terms and payroll dates. Example: from=2026-12-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Start date, YYYY-MM-DD"
+          },
+          "to": {
+            "type": "string",
+            "description": "End date, YYYY-MM-DD (inclusive; default: the last day of the start month); or use add"
+          },
+          "add": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Business days to add to from (negative to go back), instead of to"
+          },
+          "country": {
+            "type": "string",
+            "description": "Holiday calendar: US, GB, SE, DE, FR, NO, DK or FI (default: weekends only)"
+          }
+        },
+        "required": [
+          "from"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "math_stats",
+      "description": "Descriptive statistics for a list of numbers: count, sum, mean, median, mode, min, max, range, population and sample variance and standard deviation, quartiles with IQR, and the 90th, 95th and 99th percentiles (linear interpolation). Up to 10,000 numbers, comma or space separated. Use to summarise measurements, latencies, prices or scores without a spreadsheet. Example: values=12, 15, 15, 18, 21, 24, 30, 45. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "string",
+            "description": "Numbers separated by commas, spaces or new lines"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "math_evaluate",
+      "description": "Evaluate an arithmetic expression safely (parsed, never executed as code): + - * / % ^ and **, parentheses, factorial !, constants pi, e and tau, and functions sqrt, cbrt, abs, round, floor, ceil, exp, ln, log (base 10), log2, sin, cos, tan, asin, acos, atan (radians), min, max and pow. Up to 500 characters. Use when an agent needs exact arithmetic instead of guessing, for prices, unit maths or formulas. Example: expression=(1500 * 0.045 / 12) + sqrt(144) - 2^3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string",
+            "description": "The expression, such as (2+3)*4^2/sqrt(16)"
+          }
+        },
+        "required": [
+          "expression"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "date_zodiac",
+      "description": "Western (tropical) zodiac sign with its element, and the Chinese zodiac animal and element of a birth date. The Chinese year is counted from the Gregorian year, so dates in January and early February before Chinese New Year are flagged as possibly the previous animal. Use for profile enrichment, greeting cards, games or horoscope-style content. Example: date=1990-08-15. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Birth date, YYYY-MM-DD"
+          }
+        },
+        "required": [
+          "date"
+        ]
       },
       "price": "$0.01"
     },

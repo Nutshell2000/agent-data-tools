@@ -53,6 +53,7 @@ test('candles: newest last, capped to the bars asked, interval checked', async (
   assert.deepEqual(Object.keys(c.candles[0]), ['time', 'open', 'high', 'low', 'close', 'volume', 'trades']);
   assert.equal(seen.at(-1).req.interval, '1h');
   await assert.rejects(run('/hyperliquid/candles', { interval: '7m' }), (e) => e.status === 400);
+  await assert.rejects(run('/hyperliquid/candles', { interval: 'constructor' }), (e) => e.status === 400);
   await assert.rejects(run('/hyperliquid/candles', { bars: '501' }), (e) => e.status === 400);
 });
 
