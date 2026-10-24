@@ -1,5 +1,5 @@
 {
-  "version": "1.59.0",
+  "version": "1.60.0",
   "tools": [
     {
       "name": "extract",
@@ -7048,6 +7048,243 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "pack_crypto_market",
+      "description": "One call for a crypto market overview: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard. Example: coins=BTC,ETH,SOL. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coins": {
+            "type": "string",
+            "description": "Up to 3 coins for technical readings, comma separated (default BTC,ETH,SOL)"
+          }
+        }
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "pack_token_analysis",
+      "description": "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token. Example: token=0x4200000000000000000000000000000000000006. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC or a 0x ERC-20 contract address"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Network: base (default), eth, arb, op or polygon"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "pack_email_deliverability",
+      "description": "One call to check a domain's email setup: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "The sending domain, such as example.com (or a URL; its host is used)"
+          },
+          "email": {
+            "type": "string",
+            "description": "Optional address to check as well"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_website_audit",
+      "description": "One call to audit a website: is it up and how fast, the redirect chain (including whether plain http moves to https), the on-page SEO audit with its score and issues, HTTP security headers and their grade, robots.txt for the page, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Cheaper than the six tools bought one by one. Use before a launch, for a client report or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "pack_ip_intelligence",
+      "description": "One call for everything about an IP address: its type (public, private, loopback, carrier-grade NAT), the registry record (holding organisation, network name and range, registration country, abuse contact) and the reverse DNS name. IPv4 and IPv6. Registration country, not city geolocation. Cheaper than the tools bought one by one. Use to investigate an address in logs, a login or an abuse report. Example: ip=8.8.8.8. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IPv4 or IPv6 address"
+          }
+        },
+        "required": [
+          "ip"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_wallet_profile",
+      "description": "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "pack_hash_toolbox",
+      "description": "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems. Example: text=hello world. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to hash (up to 100,000 characters), or hex bytes with hex=true"
+          },
+          "hex": {
+            "description": "true to treat text as hex bytes (0x prefix optional)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_encoding_toolbox",
+      "description": "Every common encoding of one text in a single call: Base64 and Base64url, hex, URL component and full-URL encoding, HTML-escaped, ROT13, Unicode code points, UTF-8 byte count and Punycode for international domain names, plus automatic decoding when the input already looks like Base64, hex, URL or HTML encoding. Use to prepare data for headers, URLs and markup, or to work out what an encoded string says. Example: text=Café & <tags>. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text (up to 20,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_json_toolbox",
+      "description": "Everything about one JSON document in a single call: valid or not with the error's line and column, pretty-printed (optionally with sorted keys), minified with the bytes saved, an inferred JSON Schema, structure statistics (depth, objects, arrays, keys, value types) and the same data as YAML. Up to 200 KB. Cheaper than the separate JSON tools. Use to inspect API responses, clean model output or document a payload. Example: json={\"name\":\"agent\",\"tools\":[\"weather\",\"search\"],\"active\":true,\"limits\":{\"daily\":100}}. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "string",
+            "description": "The JSON text (up to 200 KB)"
+          },
+          "sortKeys": {
+            "description": "true to sort object keys in the formatted output",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "json"
+        ]
+      },
+      "price": "$0.02"
     },
     {
       "name": "holidays",

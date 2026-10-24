@@ -39,7 +39,9 @@ export function usdcRequirements(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "
 const SALES_FIRST = [
   "/check/payee", "/check/counterparty", "/check/x402-seller", "/search", "/news", "/sanctions/check", "/token-report", "/token", "/wallet-audit", "/contract-risk",
   "/liquidity-pool-audit", "/x402/check", "/price/token", "/price/tokens", "/wallet/portfolio", "/wallet/balances",
-  "/hyperliquid/market", "/sec/filings", "/airport/status", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
+  "/hyperliquid/market", "/sec/filings", "/airport/status",
+  // Packs (1.60.0): several tools in one paid call, cheaper than buying them one by one.
+  "/pack/token-analysis", "/pack/wallet-profile", "/pack/crypto-market", "/pack/website-audit", "/pack/email-deliverability", "/pack/ip-intelligence", "/pack/hash-toolbox", "/pack/json-toolbox", "/pack/encoding-toolbox", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
   "/base-gas", "/extract", "/extract/rendered", "/email", "/company", "/domain", "/domain-report", "/weather",
   "/econ/gdp", "/econ/inflation", "/econ/population", "/econ/unemployment", "/pdf/text", "/package", "/package-audit",
 ];
