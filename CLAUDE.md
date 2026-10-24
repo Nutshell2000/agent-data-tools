@@ -508,3 +508,18 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `/vin` (NHTSA vPIC DecodeVinValues, US federal data; local check digit) and `/robots` (robots.txt verdict by RFC 9309
   as Google applies it; 4xx robots.txt allows all). Demand probe: `business/agentic/base-bots/demand-probe.mjs "<phrase>"…`.
 - Worker bundle after 1.54.0: 2.50 MB gzip of the free plan's 3 MB (libphonenumber metadata is ~120 KB of it).
+## IP lookup, distances, fear and greed, EVM utilities and gas history (1.55.0, 24 Oct 2026; 258 tools)
+
+- Picked by `business/agentic/base-bots/demand-probe.mjs` (summed 30-day payers over the top 20 Bazaar results, no listing of
+  ours): ip lookup 49, distance between 43, fear and greed 64, decode calldata 38, signature verify 35, gas history 45,
+  address checksum 23; keccak256 41 and function selector 39 went to a rename of `/keccak`, which already returned both.
+- `/ip/lookup` (src/routes/geo-ip.ts): RDAP via rdap.org, holder, range, type, registration country, abuse e-mail;
+  private and reserved addresses 400. Registration country only, never called geolocation. `/geo/distance`: haversine.
+- `/crypto/fear-greed` (src/routes/fear-greed.ts): alternative.me allows commercial use with attribution next to each
+  display, so every answer carries `source` and `attribution`; fetches at least 31 days so the 30-day change is known.
+- `/evm/decode-calldata`, `/evm/verify-signature` (EIP-191; the example is signed with the public Hardhat test key #0),
+  `/evm/checksum` (src/routes/evm-tools.ts). The checksum tool needs the input's case, so `TOOLS` marks its input with
+  `keepCase` and `normalizedInput` skips lowercasing for it (`RAW_INPUT_PATHS` in src/tools.ts). The wrapper line
+  `const result = await handler(env, normalizedInput(input));` must stay verbatim: tests/output-contract.test.cjs patches it.
+- `<chain>/gas-history` on all five networks (eth_feeHistory: base fee per block, gas used ratio, 10/50/90th percentile
+  priority fees).
