@@ -651,3 +651,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Demand (24 Oct probe, summed payers over the top 20): detect language 57, exif 55, favicon 38, image metadata 31, user
   agent parser 28. Renames: `/email` "Email validation, verification", `/hash` "SHA256 hash, hash text (SHA-256)".
 
+
+## Tech stack and four more packs (1.66.0, 24 Oct 2026)
+
+- src/routes/packs-intel.ts: `/tech/stack` (our own ~110 fingerprints in `TECH_RULES`: headers, generator meta, cookie
+  names, script hosts; brand names in copy must not match, so rules use script hosts, not bare words),
+  `/pack/evm-toolbox` $0.02 (`evmToolbox()` classifies the input: address, signature, calldata, bytes32, hex number,
+  decimal or integer amount, text), `/pack/seo-toolkit` $0.02, `/pack/gas-tracker` $0.02 (no inputs, so it is in the
+  no-input list of tests/fields.test.cjs), `/pack/domain-intel` $0.03 ("Company enrichment, domain intel"; mail provider
+  from MX hosts via `mailProvider`). Tools packs.ts cannot reach (feeds, media-text, this module) run through `local()`.
+- Demand (24 Oct probe): developer utilities 173, seo analysis 37, multichain gas 34, gas tracker 29, company research
+  30, tech stack 28, seo toolkit 24, lead enrichment 21, domain intelligence 17. `/pack/crypto-market` has the
+  market-sentiment tag (39) instead of a second, overlapping sentiment pack.
+

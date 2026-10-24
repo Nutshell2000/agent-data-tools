@@ -37,6 +37,6 @@ test('every paid tool publishes an input schema; tools without inputs of their o
     if (names.length === 1 && names[0] === 'only') noInput.push(e.path);
     assert.deepEqual(endpoints.exampleParams(e).filter(([n]) => n === 'only'), [], `${e.path} example must not use only`);
   }
-  assert.deepEqual(noInput.sort(), ['/arb/gas', '/base-gas', '/btc-fees', '/btc-price', '/eth/gas', '/network', '/op/gas', '/ping', '/polygon/gas', '/yes-no']);
+  assert.deepEqual(noInput.sort(), ['/arb/gas', '/base-gas', '/btc-fees', '/btc-price', '/eth/gas', '/network', '/op/gas', '/pack/gas-tracker', '/ping', '/polygon/gas', '/yes-no']);
   assert.deepEqual(endpoints.exampleParams(endpoints.ENDPOINTS.find((e) => e.path === '/btc-fees')), [], 'the Bazaar-listed /btc-fees example stays input-free');
 });
