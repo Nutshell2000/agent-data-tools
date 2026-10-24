@@ -626,3 +626,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - smoke-examples.mjs drops content-encoding/content-length from proxied answers: Node's fetch already decompressed the
   body, and workerd failed with "Gzip decompression failed" on query.wikidata.org.
 
+
+## OpenAPI summary, MCP inspector, API health pack (1.64.0, 24 Oct 2026)
+
+- src/routes/agent-infra.ts: `/openapi/summary` (OpenAPI 3 or Swagger 2, JSON or YAML via the lazy yaml import, up to
+  2 MB: servers, auth schemes, operations by method, paid (402 or x-payment-info) and deprecated counts, 150 operations),
+  `/mcp/inspect` (streamable HTTP: initialize, notifications/initialized, tools/prompts/resources list with the session
+  id; SSE or JSON answers; 401/403 reported as authRequired with the challenge; never calls a tool) and
+  `/pack/api-health` $0.02 (three latency samples, redirects, security headers, x402 terms, /openapi.json). Redirects
+  are not followed; targets pass parseTarget. The pack runs /x402/check and /openapi/summary through a module-local
+  lookup because packs.ts importing this module would be circular.
+- `/x402/check` is "x402 endpoint check" (the search "x402 endpoint" summed 37 payers; we were absent).
+- Demand: openapi 47, api health 38, mcp server check 35.
+
