@@ -74,10 +74,16 @@ export const GEO_IP: Entry[] = [
       const v = ipKind(ip);
       if (!v) throw new HttpError(400, "ip must be an IPv4 or IPv6 address");
       if (isNonPublic(ip, v)) throw new HttpError(400, "this is a private or reserved address; registries hold no record for it (ip_info classifies it for free of network calls)");
-      let res: Response;
-      try {
-        res = await fetch(`https://rdap.org/ip/${encodeURIComponent(ip)}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(8_000) });
-      } catch { throw new HttpError(502, "the registry did not answer in time; try again"); }
+      // The address is validated above (hex digits, dots, colons), so it goes into the path as is: rdap.org refuses
+      // percent-encoded colons in IPv6 addresses (400). One retry covers its occasional 5xx (a 525 seen from Workers).
+      let res: Response | undefined;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          res = await fetch(`https://rdap.org/ip/${ip}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(6_000) });
+        } catch { if (attempt === 1) throw new HttpError(502, "the registry did not answer in time; try again"); continue; }
+        if (res.status < 500) break;
+      }
+      if (!res) throw new HttpError(502, "the registry did not answer in time; try again");
       if (res.status === 404) throw new HttpError(404, "no registry record for this address");
       if (!res.ok) throw new HttpError(502, `the registry answered HTTP ${res.status}; try again`);
       const d = (await res.json()) as RdapIp;
