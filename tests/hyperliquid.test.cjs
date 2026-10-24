@@ -76,3 +76,38 @@ test('prices: perpetuals only, named coins, unknown coins listed', async () => {
 test('listing names stay within 32 characters', () => {
   for (const { endpoint: e } of HL.filter((f) => f.endpoint.path !== '/hyperliquid/market')) assert.ok(e.summary.split(':')[0].length <= 32, e.summary);
 });
+
+test('indicator math: StockCharts RSI example, flat and rising series, EMA seed, Bollinger, ATR, volatility', async () => {
+  const b = await build({ entryPoints: ['src/routes/hyperliquid.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  const { rsi, sma, emaSeries, macd, bollinger, atr, realizedVol } = m.exports;
+  const classic = [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.42, 45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28];
+  assert.ok(Math.abs(rsi(classic) - 70.53) < 0.1, `RSI ${rsi(classic)}`);
+  assert.equal(rsi(Array(20).fill(5)), 50);
+  assert.equal(rsi(Array.from({ length: 20 }, (_, i) => i + 1)), 100);
+  assert.equal(rsi([1, 2, 3]), null);
+  assert.equal(sma([1, 2, 3, 4], 2), 3.5);
+  assert.equal(sma([1], 2), null);
+  const e = emaSeries([1, 2, 3, 4, 5], 3);
+  assert.deepEqual(e, [2, 3, 4]);
+  assert.equal(macd(Array(40).fill(10)).histogram, 0);
+  assert.equal(macd(Array(20).fill(10)), null);
+  const bb = bollinger(Array(25).fill(7));
+  assert.deepEqual([bb.upper, bb.middle, bb.lower, bb.percentB, bb.bandwidth], [7, 7, 7, null, 0]);
+  assert.equal(atr(Array.from({ length: 20 }, () => ({ high: 11, low: 9, close: 10 }))), 2);
+  assert.equal(realizedVol(Array(10).fill(3), 3600e3), 0);
+});
+
+test('indicators tool: closed bars only, readings, and too little history is an uncharged 404', async () => {
+  const out = await run('/hyperliquid/indicators', { coin: 'BTC', interval: '1h' });
+  assert.equal(out.bars, 60);
+  assert.equal(out.close, 1.5);
+  assert.ok(Array.isArray(out.readings) && out.readings[0].startsWith('RSI'));
+  assert.equal(out.sma['200'], null);
+  const saved = ANSWERS.candleSnapshot;
+  ANSWERS.candleSnapshot = saved.slice(0, 10);
+  await assert.rejects(run('/hyperliquid/indicators', { interval: '1h' }), (e) => e.status === 404);
+  ANSWERS.candleSnapshot = saved;
+  await assert.rejects(run('/hyperliquid/indicators', { interval: '2w' }), (e) => e.status === 400);
+});

@@ -50,6 +50,67 @@ async function coinInput(raw: string | undefined, fallback = "BTC") {
 const INTERVALS: Record<string, number> = { "1m": 60e3, "3m": 180e3, "5m": 300e3, "15m": 900e3, "30m": 1800e3, "1h": 3600e3, "2h": 7200e3, "4h": 14400e3, "8h": 28800e3, "12h": 43200e3, "1d": 86400e3, "3d": 259200e3, "1w": 604800e3 };
 const SOURCE = "Hyperliquid public info API";
 
+// ---- technical indicators (1.54.0), pure arithmetic on closed candles --------------------------------------------------
+const round = (v: number | null, d = 6) => (v === null || !Number.isFinite(v) ? null : Math.round(v * 10 ** d) / 10 ** d);
+export function sma(xs: number[], p: number): number | null {
+  if (xs.length < p) return null;
+  return xs.slice(-p).reduce((s, x) => s + x, 0) / p;
+}
+/** EMA series seeded with the SMA of the first `p` values (the usual convention). */
+export function emaSeries(xs: number[], p: number): number[] {
+  if (xs.length < p) return [];
+  const k = 2 / (p + 1);
+  const out = [xs.slice(0, p).reduce((s, x) => s + x, 0) / p];
+  for (let i = p; i < xs.length; i++) out.push(xs[i] * k + out[out.length - 1] * (1 - k));
+  return out;
+}
+/** Wilder's RSI. */
+export function rsi(xs: number[], p = 14): number | null {
+  if (xs.length <= p) return null;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= p; i++) { const d = xs[i] - xs[i - 1]; if (d > 0) gain += d; else loss -= d; }
+  gain /= p; loss /= p;
+  for (let i = p + 1; i < xs.length; i++) {
+    const d = xs[i] - xs[i - 1];
+    gain = (gain * (p - 1) + Math.max(d, 0)) / p;
+    loss = (loss * (p - 1) + Math.max(-d, 0)) / p;
+  }
+  if (loss === 0) return gain === 0 ? 50 : 100;
+  return 100 - 100 / (1 + gain / loss);
+}
+export function macd(xs: number[], fast = 12, slow = 26, signal = 9) {
+  const f = emaSeries(xs, fast), s = emaSeries(xs, slow);
+  if (!s.length) return null;
+  const line = s.map((v, i) => f[i + (slow - fast)] - v);
+  const sig = emaSeries(line, signal);
+  if (!sig.length) return null;
+  const m = line[line.length - 1], g = sig[sig.length - 1];
+  return { macd: m, signal: g, histogram: m - g };
+}
+export function bollinger(xs: number[], p = 20, k = 2) {
+  if (xs.length < p) return null;
+  const w = xs.slice(-p), mid = w.reduce((s, x) => s + x, 0) / p;
+  const sd = Math.sqrt(w.reduce((s, x) => s + (x - mid) ** 2, 0) / p);
+  const upper = mid + k * sd, lower = mid - k * sd, last = xs[xs.length - 1];
+  return { upper, middle: mid, lower, percentB: upper === lower ? null : (last - lower) / (upper - lower), bandwidth: mid ? (upper - lower) / mid : null };
+}
+/** Wilder's average true range. */
+export function atr(rows: { high: number; low: number; close: number }[], p = 14): number | null {
+  if (rows.length <= p) return null;
+  const tr = rows.slice(1).map((r, i) => Math.max(r.high - r.low, Math.abs(r.high - rows[i].close), Math.abs(r.low - rows[i].close)));
+  let a = tr.slice(0, p).reduce((s, x) => s + x, 0) / p;
+  for (let i = p; i < tr.length; i++) a = (a * (p - 1) + tr[i]) / p;
+  return a;
+}
+/** Annualised close-to-close volatility from log returns, in percent. */
+export function realizedVol(xs: number[], barMs: number): number | null {
+  if (xs.length < 3) return null;
+  const r = xs.slice(1).map((x, i) => Math.log(x / xs[i]));
+  const mean = r.reduce((s, x) => s + x, 0) / r.length;
+  const sd = Math.sqrt(r.reduce((s, x) => s + (x - mean) ** 2, 0) / (r.length - 1));
+  return sd * Math.sqrt((365 * 86400e3) / barMs) * 100;
+}
+
 const n = (v: string | null | undefined) => (v === null || v === undefined || v === "" ? null : Number(v));
 
 function market(u: Universe[number], c: Ctx) {
@@ -152,7 +213,45 @@ export const HYPERLIQUID: Entry[] = [
       return { coin, hours, count: rates.length, averageRateHourly: avg === null ? null : Math.round(avg * 1e12) / 1e12, averageAprPct: avg === null ? null : Math.round(avg * 24 * 365 * 100 * 100) / 100, rates, source: SOURCE };
     }),
 
-  entry("/hyperliquid/prices", "Crypto prices, all coins: Hyperliquid mid prices",
+  entry("/hyperliquid/indicators", "Crypto technical indicators: RSI, MACD, moving averages, Bollinger bands and ATR",
+    "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice.",
+    ["technical-indicators", "rsi", "macd", "moving-average", "hyperliquid", "crypto"], {
+      coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)", example: "BTC" },
+      interval: { type: "string", description: "Candle length: 1m, 5m, 15m, 30m, 1h, 4h (default), 1d, 1w and others", example: "4h" },
+    },
+    { coin: "BTC", interval: "4h", bars: 250, close: 81870, rsi14: 48.21, macd: { macd: -152.3, signal: -98.4, histogram: -53.9 }, sma: { "20": 82110, "50": 83340, "200": 79870 }, ema: { "12": 81990, "26": 82240, "50": 82900 }, bollinger: { upper: 83560, middle: 82110, lower: 80660, percentB: 0.42, bandwidth: 0.035 }, atr14: 812.5, realizedVolPct: 41.2, readings: ["RSI neutral (30-70)", "MACD below its signal line", "price below SMA 50", "price above SMA 200"], source: SOURCE },
+    async (_e, q) => {
+      const coin = await coinInput(q("coin"));
+      const interval = (q("interval")?.trim() || "4h").toLowerCase();
+      const step = INTERVALS[interval];
+      if (!step) throw new HttpError(400, `interval must be one of ${Object.keys(INTERVALS).join(", ")}`);
+      const end = Date.now();
+      const raw = await info<{ t: number; o: string; h: string; l: string; c: string }[]>({ type: "candleSnapshot", req: { coin, interval, startTime: end - step * 251, endTime: end } });
+      // The newest bar is still forming; indicators use closed bars only.
+      const rows = (raw ?? []).filter((r) => r.t + step <= end).slice(-250).map((r) => ({ high: Number(r.h), low: Number(r.l), close: Number(r.c) }));
+      if (rows.length < 30) throw new HttpError(404, `Hyperliquid has only ${rows.length} closed ${interval} candles for ${coin}; try a shorter interval`);
+      const closes = rows.map((r) => r.close), close = closes[closes.length - 1];
+      const r14 = rsi(closes), m = macd(closes), bb = bollinger(closes);
+      const s = { "20": sma(closes, 20), "50": sma(closes, 50), "200": sma(closes, 200) };
+      const last = (xs: number[]) => (xs.length ? xs[xs.length - 1] : null);
+      const e = { "12": last(emaSeries(closes, 12)), "26": last(emaSeries(closes, 26)), "50": last(emaSeries(closes, 50)) };
+      const readings: string[] = [];
+      if (r14 !== null) readings.push(r14 >= 70 ? "RSI overbought (70 or more)" : r14 <= 30 ? "RSI oversold (30 or less)" : "RSI neutral (30-70)");
+      if (m) readings.push(m.histogram >= 0 ? "MACD above its signal line" : "MACD below its signal line");
+      for (const p of ["50", "200"] as const) if (s[p] !== null) readings.push(`price ${close >= s[p]! ? "above" : "below"} SMA ${p}`);
+      if (bb?.percentB != null) { if (bb.percentB > 1) readings.push("close above the upper Bollinger band"); else if (bb.percentB < 0) readings.push("close below the lower Bollinger band"); }
+      const map = (o: Record<string, number | null>, d: number) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, round(v, d)]));
+      const dp = close >= 100 ? 2 : close >= 1 ? 4 : 8;
+      return {
+        coin, interval, bars: rows.length, close, rsi14: round(r14, 2),
+        macd: m ? { macd: round(m.macd, dp), signal: round(m.signal, dp), histogram: round(m.histogram, dp) } : null,
+        sma: map(s, dp), ema: map(e, dp),
+        bollinger: bb ? { upper: round(bb.upper, dp), middle: round(bb.middle, dp), lower: round(bb.lower, dp), percentB: round(bb.percentB, 4), bandwidth: round(bb.bandwidth, 4) } : null,
+        atr14: round(atr(rows), dp), realizedVolPct: round(realizedVol(closes, step), 2), readings, source: SOURCE,
+      };
+    }),
+
+  entry("/hyperliquid/prices","Crypto prices, all coins: Hyperliquid mid prices",
     "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market.",
     ["crypto-prices", "price-ticker", "hyperliquid", "crypto", "market-data", "prices"], {
       coins: { type: "string", description: "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)", example: "BTC,ETH,SOL" },
