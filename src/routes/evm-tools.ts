@@ -13,6 +13,9 @@ export const COMMON_SIGNATURES = [
   "safeTransferFrom(address,address,uint256,uint256,bytes)", "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)",
   "deposit()", "withdraw(uint256)", "mint(address,uint256)", "burn(uint256)", "multicall(bytes[])", "multicall(uint256,bytes[])",
   "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)", "increaseAllowance(address,uint256)", "decreaseAllowance(address,uint256)",
+  // EIP-3009, used by x402 settlements and USDC gasless transfers (v,r,s and packed-signature forms).
+  "transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)", "receiveWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)",
+  "transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes)",
 ];
 const fnItem = (sig: string): AbiFunction => {
   const s = sig.trim().replace(/^function\s+/, "");
