@@ -569,3 +569,23 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   columns right-aligned, pipes escaped), `/html/table-to-json` (htmlparser2; th rows become keys, colspan repeated,
   duplicate headers suffixed). The Code 128 table equals JsBarcode 3.11.6's BARS symbol for symbol (compared 24 Oct;
   their package was only read as data). Demand: barcode 36, color palette 37, markdown table 35, html table 33.
+
+## Tool packs (1.60.0, 24 Oct 2026)
+
+- src/routes/packs.ts: one paid call runs several of our tools on one input (`call()` runs the same in-process handler as
+  the single tool; `runSections()` runs them in parallel). A failing section is listed in `failed` and the rest answer;
+  only if every section fails is the call refused (502, uncharged). Packs and prices (always below the tools bought
+  one by one): `/pack/crypto-market` $0.03 (fear & greed, top 10 Hyperliquid perps, indicators for up to 3 coins,
+  BTC fees), `/pack/token-analysis` $0.03 (token info, Uniswap price, proxy, Base honeypot and contract risk),
+  `/pack/email-deliverability` $0.02 (MX, SPF, DMARC, DKIM at 9 common selectors, MTA-STS, TLS-RPT, BIMI, score/grade,
+  optional address check), `/pack/website-audit` $0.03 (uptime, redirects incl. http->https, SEO, security headers,
+  robots, domain DNS/registration), `/pack/ip-intelligence` $0.02 (type, RDAP, PTR), `/pack/wallet-profile` $0.03
+  (5-chain balances, contract check, nonces, Base USDC transfers, sanctions).
+- Demand (24 Oct probe, summed payers over the top 20): crypto market overview 50, token analysis 42 (#1 has 22),
+  email deliverability 36, security audit 36, ip intelligence 24, website audit 23, wallet profile 14. Packs sit right
+  after the data tools in SALES_FIRST (discovery order) and in the matching MCP bundles.
+- src/routes/toolboxes.ts: `/pack/hash-toolbox` (MD5 and CRC-32 implemented here and tested on RFC vectors, SHA via Web
+  Crypto, Keccak, SRI strings), `/pack/encoding-toolbox` (Base64/url, hex, URL, HTML, ROT13, code points, Punycode, and
+  auto-decoding of encoded input), `/pack/json-toolbox` (validate with position, format, minify, schema, stats, YAML),
+  $0.02 each. Why: the search "developer tools" summed 195 payers, led by toolbox endpoints (hash 35, JSON 28, encoding 21).
+
