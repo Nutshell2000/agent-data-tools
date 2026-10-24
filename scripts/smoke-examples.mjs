@@ -33,7 +33,14 @@ const mf = new Miniflare(convertV4MiniflareOptions({
     // Node's fetch rejects hop-by-hop and length headers that workerd sets itself (UND_ERR_INVALID_ARG on every POST).
     const headers = {};
     for (const [k, v] of request.headers) if (!/^(content-length|host|connection|transfer-encoding|expect|cf-.*)$/i.test(k)) headers[k] = v;
-    try { return await fetch(request.url, { method: request.method, headers, body, redirect: "manual" }); }
+    try {
+      const res = await fetch(request.url, { method: request.method, headers, body, redirect: "manual" });
+      // Node's fetch has already decompressed the body; passing content-encoding on would make workerd decompress it
+      // again ("Gzip decompression failed", seen with query.wikidata.org on 24 Oct 2026).
+      const out = new Headers(res.headers);
+      out.delete("content-encoding"); out.delete("content-length");
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers: out });
+    }
     catch (err) {
       const why = String(err?.cause?.code ?? err?.cause?.message ?? err?.message ?? err);
       if (process.env.SMOKE_DEBUG) console.error(`outbound ${request.method} ${request.url}: ${why}`);
