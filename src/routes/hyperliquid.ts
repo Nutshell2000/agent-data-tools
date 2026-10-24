@@ -188,7 +188,7 @@ export const HYPERLIQUID: Entry[] = [
     async (_e, q) => {
       const coin = await coinInput(q("coin"));
       const interval = (q("interval")?.trim() || "1h").toLowerCase().replace(/^1mo?$/, "1m");
-      const step = INTERVALS[interval];
+      const step = Object.hasOwn(INTERVALS, interval) ? INTERVALS[interval] : undefined;
       if (!step) throw new HttpError(400, `interval must be one of ${Object.keys(INTERVALS).join(", ")}`);
       const bars = num(q, "bars", { min: 1, max: 500, fallback: 50, integer: true });
       const end = Date.now();
@@ -223,7 +223,7 @@ export const HYPERLIQUID: Entry[] = [
     async (_e, q) => {
       const coin = await coinInput(q("coin"));
       const interval = (q("interval")?.trim() || "4h").toLowerCase();
-      const step = INTERVALS[interval];
+      const step = Object.hasOwn(INTERVALS, interval) ? INTERVALS[interval] : undefined;
       if (!step) throw new HttpError(400, `interval must be one of ${Object.keys(INTERVALS).join(", ")}`);
       const end = Date.now();
       const raw = await info<{ t: number; o: string; h: string; l: string; c: string }[]>({ type: "candleSnapshot", req: { coin, interval, startTime: end - step * 251, endTime: end } });
