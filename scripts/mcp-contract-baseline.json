@@ -1,5 +1,5 @@
 {
-  "version": "1.61.0",
+  "version": "1.62.0",
   "tools": [
     {
       "name": "extract",
@@ -7282,6 +7282,176 @@
         },
         "required": [
           "json"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_tx_explain",
+      "description": "Explain an EVM transaction in plain words: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting it or reporting it. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Network: base (default), eth, arb, op or polygon"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_nft_analysis",
+      "description": "One call to analyse an NFT: its current owner, its metadata (name, description, image, traits from data:, https or ipfs), how many NFTs of the collection that owner holds, and the collection contract (name, symbol, whether it is an upgradeable proxy). ERC-721 on Base, Ethereum, Arbitrum, Optimism or Polygon. Cheaper than the tools bought one by one. Use before buying, listing or verifying an NFT. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string",
+            "description": "0x ERC-721 collection contract address"
+          },
+          "tokenId": {
+            "description": "Token id, a whole number",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "chain": {
+            "type": "string",
+            "description": "Network: eth (default), base, arb, op or polygon"
+          }
+        },
+        "required": [
+          "contract",
+          "tokenId"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_location_brief",
+      "description": "One call for a place by name: its coordinates, country, region, population and elevation (Wikidata), the current weather and a short hourly forecast (MET Norway, CC BY 4.0), today's sunrise, sunset and day length, and facts about its country (capital, region, income level, population). Cheaper than the tools bought one by one. Use for travel planning, event and delivery context, or enriching a city name in a record. Example: place=Stockholm. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "string",
+            "description": "Place name, such as Stockholm or Lyon, France"
+          }
+        },
+        "required": [
+          "place"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_text_analysis",
+      "description": "One call to analyse a text: length, reading time and readability grade, the top keywords and repeated phrases with their density, the emails, links, phone numbers, hashtags and mentions it contains, and a prompt-injection scan for text an agent is about to act on. Up to 20,000 characters, local processing. Cheaper than the four tools bought one by one. Use to review drafts, triage inbound messages or vet scraped content. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text (up to 20,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_id_toolbox",
+      "description": "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data. Example: count=3. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many of each kind, 1-20 (default 3)"
+          },
+          "length": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Length of the random strings, 8-128 (default 24)"
+          },
+          "decode": {
+            "type": "string",
+            "description": "Optional ULID or UUID to read the timestamp from"
+          }
+        }
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "pack_string_toolbox",
+      "description": "Transform one string every common way at once: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, path/case, Title Case, Sentence case, upper and lower; a URL slug (accents removed); reversed; trimmed and whitespace-collapsed; and counts of characters, letters, digits, words and lines. Splits identifiers like userIDValue or XMLHttpRequest correctly. Use when naming fields, files and routes or cleaning user input. Example: text=Hello World, user profile ID 42. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The string (up to 10,000 characters)"
+          }
+        },
+        "required": [
+          "text"
         ]
       },
       "price": "$0.02"

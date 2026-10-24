@@ -602,3 +602,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `keywordDensity` strips URLs and e-mail addresses before counting ("https" and "com" topped the lists).
 - `/domain-report` carries a `trust-score` tag (search "trust score" summed 42 payers; the tool already gives a verdict).
 
+
+## ID and string toolboxes; case and time names (1.62.0, 24 Oct 2026)
+
+- src/routes/toolboxes2.ts: `/pack/id-toolbox` $0.02 (UUID v4, UUID v7 per RFC 9562, ULID in Crockford base32, NanoID,
+  unbiased base62/hex strings from crypto.getRandomValues; decodes the time in a ULID or UUID v7) and
+  `/pack/string-toolbox` $0.02 (11 case styles with XMLHttpRequest-style splitting, slug without accents, reversed,
+  collapsed whitespace, counts). Demand: id generator 262 (one listing has 232), case converter 41, string utilities 21.
+- Renames: `/case` "Case converter: camelCase, snake_case, kebab-case and more" (we were #5), `/time` "Timezone converter,
+  current time" (time converter 40, we were #11); tags case-converter, time-converter, id-generator on /uuid.
+- 1.61.0 shipped with only its version bump (the chaining script's patch was re-encoded by a PowerShell pipe and every hunk
+  failed unchecked); its four packs went out in 1.62.0. Write patches with `git diff --output` and check `git apply`'s exit.
+
