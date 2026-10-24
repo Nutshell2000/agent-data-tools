@@ -94,3 +94,12 @@ test('agent-eye fixes: date/add weeks, holidays UK, tickers on chain token reads
   assert.equal(allowedValue(' Base ', ['base', 'eth']), 'base');
   assert.equal(allowedValue('solana', ['base', 'eth']), undefined);
 });
+
+test('the address checksum tool sees the case it was sent; other tools still get lowercased addresses', async () => {
+  const { TOOLS } = await load('src/tools.ts');
+  const bad = await TOOLS['/evm/checksum']({}, (n) => (n === 'address' ? '0xD8dA6BF26964aF9D7eEd9e03E53415D37aA96045' : undefined));
+  assert.equal(bad.inputCase, 'mixed');
+  assert.equal(bad.valid, false);
+  const good = await TOOLS['/evm/checksum']({}, (n) => (n === 'address' ? '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045' : undefined));
+  assert.equal(good.checksumMatches, true);
+});

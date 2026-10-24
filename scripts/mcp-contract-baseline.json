@@ -1,5 +1,5 @@
 {
-  "version": "1.54.1",
+  "version": "1.55.0",
   "tools": [
     {
       "name": "extract",
@@ -2005,6 +2005,29 @@
       "price": "$0.01"
     },
     {
+      "name": "base_gas_history",
+      "description": "Gas price history on Base (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use base_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks, 5-100 (default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "eth_balance",
       "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -2504,6 +2527,29 @@
         "required": [
           "to"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "eth_gas_history",
+      "description": "Gas price history on Ethereum (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use eth_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks, 5-100 (default 20)"
+          }
+        }
       },
       "price": "$0.01"
     },
@@ -3045,6 +3091,29 @@
       "price": "$0.01"
     },
     {
+      "name": "arb_gas_history",
+      "description": "Gas price history on Arbitrum One (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use arb_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks, 5-100 (default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "arb_allowance",
       "description": "ERC-20 token allowance on Arbitrum One: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use arb_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -3582,6 +3651,29 @@
       "price": "$0.01"
     },
     {
+      "name": "op_gas_history",
+      "description": "Gas price history on Optimism (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use op_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks, 5-100 (default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "op_allowance",
       "description": "ERC-20 token allowance on Optimism: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use op_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -4115,6 +4207,29 @@
         "required": [
           "to"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polygon_gas_history",
+      "description": "Gas price history on Polygon PoS (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use polygon_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks, 5-100 (default 20)"
+          }
+        }
       },
       "price": "$0.01"
     },
@@ -6354,6 +6469,162 @@
       "price": "$0.01"
     },
     {
+      "name": "ip_lookup",
+      "description": "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "Public IPv4 or IPv6 address"
+          }
+        },
+        "required": [
+          "ip"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "geo_distance",
+      "description": "Great-circle distance between two latitude/longitude points (haversine on the mean earth radius) in kilometres, miles and nautical miles, plus the initial compass bearing and the midpoint. Accurate to about 0.5% against the ellipsoid. Use for delivery radius, travel and proximity checks, or sorting places by distance; for coordinates of a place name use geocode first. Example: lat1=59.3293, lon1=18.0686, lat2=51.5072, lon2=-0.1276. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat1": {
+            "type": "number",
+            "description": "Latitude of the first point (-90 to 90)"
+          },
+          "lon1": {
+            "type": "number",
+            "description": "Longitude of the first point (-180 to 180)"
+          },
+          "lat2": {
+            "type": "number",
+            "description": "Latitude of the second point"
+          },
+          "lon2": {
+            "type": "number",
+            "description": "Longitude of the second point"
+          }
+        },
+        "required": [
+          "lat1",
+          "lon1",
+          "lat2",
+          "lon2"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "evm_decode_calldata",
+      "description": "Decode EVM transaction calldata into the function and its arguments with viem: give the function signature (transfer(address,uint256)), or leave it out to try common ERC-20, ERC-721, ERC-1155, WETH, permit and multicall functions by selector. Numbers come back as decimal strings. Use to read what a pending or past transaction does before signing; get calldata from eth_tx. A selector that does not match is 422, uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "description": "0x calldata (selector plus ABI-encoded arguments), up to 8 KB"
+          },
+          "signature": {
+            "type": "string",
+            "description": "Optional function signature such as transfer(address,uint256)"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "evm_verify_signature",
+      "description": "Verify an Ethereum personal_sign (EIP-191) signature: recover the address that signed a message and, given an expected address, say whether it matches. Works for ordinary wallets (EOAs); smart-contract wallets sign by ERC-1271, which this offline check does not cover. Use for sign-in-with-wallet, proving wallet ownership or checking a signed order. A malformed signature is 400, uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The exact message that was signed (or 0x hex with raw=true)"
+          },
+          "signature": {
+            "type": "string",
+            "description": "0x signature, 65 bytes (130 hex characters)"
+          },
+          "address": {
+            "type": "string",
+            "description": "Optional expected signer address to compare"
+          },
+          "raw": {
+            "description": "true to treat a 0x message as raw bytes instead of text",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "signature"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "evm_checksum",
+      "description": "Validate an EVM address and return its EIP-55 checksummed form, saying whether the input was all lower case, all upper case, correctly checksummed or mixed case with a wrong checksum (a likely typo). Works for every EVM chain. Use before sending funds or storing an address; for whether it is a contract use <chain>_is_contract. Example: address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x address (40 hex characters)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "holidays",
       "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -6947,6 +7218,29 @@
           "coins": {
             "type": "string",
             "description": "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "crypto_fear_greed",
+      "description": "The Crypto Fear & Greed Index (0 = extreme fear, 100 = extreme greed) from alternative.me: today's value and label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and the daily history (up to 90 days, default 30). Updated once a day. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief; for live prices use price_token. Example: days=30. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days of history, 1-90 (default 30)"
           }
         }
       },
