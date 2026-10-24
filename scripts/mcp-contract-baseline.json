@@ -1,5 +1,5 @@
 {
-  "version": "1.64.0",
+  "version": "1.65.0",
   "tools": [
     {
       "name": "extract",
@@ -7581,6 +7581,102 @@
         ]
       },
       "price": "$0.02"
+    },
+    {
+      "name": "image_metadata",
+      "description": "Read an image's metadata from its URL: format (JPEG, PNG, GIF or WebP), width and height, and for JPEG photos the EXIF data: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded. Up to 15 MB. Use to check where and when a photo was taken, verify an upload, or strip-check images before publishing. Example: url=https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Public URL of the image"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_language",
+      "description": "Detect which language a text is written in: the most likely language with its ISO 639-3 and 639-1 codes and English name, plus the next candidates with relative scores, using trigram statistics for 82 major languages (franc-min). Works best above about 20 characters; very short or mixed text returns und (undetermined). Local, no outside service. Use to route messages, pick a translation target or filter content by language. Example: text=Det här är en mening skriven på svenska om väder och resor.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text (up to 10,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "useragent_parse",
+      "description": "Parse a User-Agent string into browser and version, operating system and version, device type (desktop, mobile, tablet or bot) and, for crawlers, which bot it is: Googlebot, Bingbot, GPTBot, ClaudeBot, PerplexityBot, social previewers, SEO crawlers and HTTP libraries such as curl or python-requests. Local rules, no outside service. Use to read access logs, segment traffic or spot AI crawlers. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ua": {
+            "type": "string",
+            "description": "The User-Agent string"
+          }
+        },
+        "required": [
+          "ua"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "url_favicon",
+      "description": "Find a website's icons: every <link rel=icon>, shortcut icon, apple-touch-icon and mask-icon on the page with its size and type, the web app manifest link, and whether /favicon.ico exists, all as absolute URLs, with the best icon picked (SVG, then the largest size; mask icons never). Use to show a site's logo next to a link, build bookmarks or enrich a company record. Example: url=https://github.com/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Page or site URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "holidays",
