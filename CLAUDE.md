@@ -561,3 +561,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   Cloudflare (a staging deploy) before building on it; a PC check is not enough.
 - Lookup tables keyed by user input must use Object.hasOwn, not `in` or bare indexing: `/hyperliquid/candles` and
   `/hyperliquid/indicators` accepted `interval=constructor` until 1.58.0.
+
+## Barcodes, palettes and tables (1.59.0, 24 Oct 2026; 273 tools)
+
+- src/routes/generators.ts: `/barcode` (Code 128 with set C for digit runs and the mod-103 check, or EAN-13 with its check
+  digit; SVG and data URL), `/color/palette` (HSL harmonies and six shades), `/csv/to-markdown` (GitHub table, numeric
+  columns right-aligned, pipes escaped), `/html/table-to-json` (htmlparser2; th rows become keys, colspan repeated,
+  duplicate headers suffixed). The Code 128 table equals JsBarcode 3.11.6's BARS symbol for symbol (compared 24 Oct;
+  their package was only read as data). Demand: barcode 36, color palette 37, markdown table 35, html table 33.
