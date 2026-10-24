@@ -12,6 +12,7 @@ import { CALC } from "./routes/calc";
 import { ECON } from "./routes/econ";
 import { GOV_DATA } from "./routes/gov-data";
 import { HYPERLIQUID } from "./routes/hyperliquid";
+import { LOOKUPS } from "./routes/lookups";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
@@ -20,4 +21,4 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FUN, ...BASICS, ...AI_TEXT];

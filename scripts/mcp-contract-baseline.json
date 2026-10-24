@@ -1,5 +1,5 @@
 {
-  "version": "1.53.0",
+  "version": "1.54.0",
   "tools": [
     {
       "name": "extract",
@@ -4435,7 +4435,7 @@
     },
     {
       "name": "feed",
-      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Example: url=https://github.blog/feed/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages. Example: url=https://blog.cloudflare.com/rss/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6220,6 +6220,140 @@
       "price": "$0.01"
     },
     {
+      "name": "yaml_to_json",
+      "description": "Convert a YAML document (config files, Kubernetes manifests, OpenAPI specs, front matter) into JSON, parsed by the yaml library with anchors and aliases resolved (alias expansion capped against billion-laughs documents) and duplicate keys refused. Up to 100 KB. Use before feeding YAML into a JSON-only tool or schema check; for the reverse use json_to_yaml. Invalid YAML is a 400 with the parser's message, uncharged. Example: yaml=name: agent\nports:\n  - 80\n  - 443\nenabled: true. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "description": "The YAML text (up to 100 KB)"
+          }
+        },
+        "required": [
+          "yaml"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "json_to_yaml",
+      "description": "Convert a JSON value into a YAML document (block style, no line folding), for config files, Kubernetes manifests, GitHub Actions or docs that humans edit. Up to 100 KB of JSON. Use when a tool or person wants YAML; for the reverse use yaml_to_json. Invalid JSON is a 400, uncharged. Example: json={\"name\":\"agent\",\"ports\":[80,443],\"enabled\":true}. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "string",
+            "description": "The JSON text (up to 100 KB)"
+          }
+        },
+        "required": [
+          "json"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "phone_validate",
+      "description": "Validate and format a phone number with the libphonenumber rules: whether it is valid and possible, the E.164 form, international and national formatting, country, calling code and line type (mobile, fixed-line, toll-free, VoIP…). Give +country code, or a national number and a two-letter country. Offline: nothing is sent and it does not say the line is in service. Use to clean contact lists or check a number before an SMS. Example: number=+1 650-253-0000. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Phone number, ideally with +country code"
+          },
+          "country": {
+            "type": "string",
+            "description": "Two-letter country for national numbers without +code (US, GB, SE…)"
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "vin",
+      "description": "Decode a 17-character vehicle identification number (VIN) with the US NHTSA vPIC database: make, manufacturer, model, model year, trim, body class, vehicle type, doors, drive, fuel and electrification, engine cylinders, displacement and horsepower, transmission, weight class and assembly plant, plus the check-digit test. Best for North American vehicles. Use for listings, insurance and fleet records. A malformed VIN is a 400, uncharged. Example: vin=1HGCM82633A004352. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "vin": {
+            "type": "string",
+            "description": "17-character VIN (letters I, O and Q never appear)"
+          },
+          "year": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Optional model year, which helps decode older or partial VINs"
+          }
+        },
+        "required": [
+          "vin"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "robots",
+      "description": "Read a site's robots.txt and say whether a crawler may fetch a URL, by RFC 9309 rules as Google applies them (most specific user-agent group, longest matching Allow or Disallow, Allow on ties, * and $ wildcards). Returns the deciding rule, the group used, the rule count and the sitemaps listed. A missing robots.txt (4xx) allows everything. Use before scraping or crawling a site politely; for the sitemap URLs themselves use sitemap. Example: url=https://www.google.com/search. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The page URL to check (its site's /robots.txt is read)"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Crawler user agent or product token (default *)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "holidays",
       "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -6767,6 +6901,31 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Hours of history, 1-500 (default 24)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_indicators",
+      "description": "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Candle length: 1m, 5m, 15m, 30m, 1h, 4h (default), 1d, 1w and others"
           }
         }
       },

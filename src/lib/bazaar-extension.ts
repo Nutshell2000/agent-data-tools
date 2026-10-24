@@ -92,7 +92,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
   "/hyperliquid/orderbook": ["order-book"], "/hyperliquid/candles": ["ohlcv", "candles"], "/hyperliquid/funding-history": ["funding-history", "funding-rate"],
-  "/hyperliquid/prices": ["crypto-prices"], "/news": ["news-headlines", "latest-news", "crypto-news"],
+  "/hyperliquid/prices": ["crypto-prices"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
