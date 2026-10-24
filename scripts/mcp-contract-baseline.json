@@ -1,5 +1,5 @@
 {
-  "version": "1.66.0",
+  "version": "1.67.0",
   "tools": [
     {
       "name": "extract",
@@ -4465,7 +4465,7 @@
     },
     {
       "name": "pdf_text",
-      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. arXiv abstract links are read as their PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4490,7 +4490,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many pages to read (1-200, default 50)"
+            "description": "How many pages to read (1-200, default 20)"
           },
           "maxChars": {
             "type": "integer",
@@ -7560,7 +7560,7 @@
     },
     {
       "name": "pack_api_health",
-      "description": "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at /openapi.json. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy. Example: url=https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at the usual places. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy. Example: url=https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

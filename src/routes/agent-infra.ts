@@ -61,6 +61,27 @@ async function mcpCall(url: URL, method: string, id: number, session: string | n
   return { status: r.res.status, session: r.res.headers.get("mcp-session-id") ?? session, auth: r.res.headers.get("www-authenticate"), body: rpcResult(r.text), contentType: r.res.headers.get("content-type") };
 }
 
+/**
+ * Where an API keeps its OpenAPI document: next to each prefix of the endpoint's path (/api/v3/openapi.json for
+ * /api/v3/pet), then the common root locations. The pack's own example (petstore3) keeps it at /api/v3/openapi.json,
+ * so looking only at /openapi.json reported a failure for it.
+ */
+export function specCandidates(endpoint: string) {
+  const u = new URL(endpoint);
+  const parts = u.pathname.split("/").filter(Boolean);
+  const prefixes = parts.slice(0, -1).map((_, i) => `/${parts.slice(0, parts.length - 1 - i).join("/")}`).slice(0, 3);
+  const paths = [...prefixes.flatMap((p) => [`${p}/openapi.json`, `${p}/swagger.json`]), "/openapi.json", "/swagger.json", "/v3/api-docs", "/openapi.yaml", "/.well-known/openapi.json"];
+  return [...new Set(paths)].slice(0, 9).map((p) => `${u.origin}${p}`);
+}
+/** Tries the candidates in parallel and keeps the first one, in candidate order, that reads as an OpenAPI document. */
+async function findSpec(env: Parameters<Entry["run"]>[0], endpoint: string) {
+  const tried = specCandidates(endpoint);
+  const results = await Promise.allSettled(tried.map((url) => local(env, "/openapi/summary", { url })));
+  const at = results.findIndex((r) => r.status === "fulfilled");
+  if (at < 0) return { found: false, tried: tried.map((t) => new URL(t).pathname) };
+  return { found: true, specUrl: tried[at], ...((results[at] as PromiseFulfilledResult<Record<string, unknown>>).value) };
+}
+
 /** Tools this module or /x402/check provide, run in-process (packs.ts cannot import this module: it would be circular). */
 function local(env: Parameters<Entry["run"]>[0], path: string, inputs: Record<string, string>) {
   const e = [...AGENT_INFRA, ...X402_CHECK].find((x) => x.endpoint.path === path);
@@ -122,9 +143,9 @@ export const AGENT_INFRA: Entry[] = [
     }),
 
   entry("/pack/api-health", "API health check pack: uptime, latency, headers, x402",
-    "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at /openapi.json. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy.",
+    "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at the usual places. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy.",
     ["api-health", "api-check", "x402-endpoint", "pack", "monitoring", "developer-tools"], { url: { type: "string", description: "The API endpoint URL", required: true, example: "https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available" } },
-    { pack: "api-health", url: "https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available", up: true, status: 200, latencyMs: { min: 180, median: 210, max: 260 }, redirects: 0, security: { grade: "C" }, x402: { paid: false }, openapi: { title: "Swagger Petstore - OpenAPI 3.0", operationCount: 19 }, failed: {} },
+    { pack: "api-health", url: "https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available", up: true, status: 200, latencyMs: { min: 180, median: 210, max: 260 }, redirects: 0, security: { grade: "C" }, x402: { paid: false }, openapi: { found: true, specUrl: "https://petstore3.swagger.io/api/v3/openapi.json", title: "Swagger Petstore - OpenAPI 3.0", operationCount: 19 }, failed: {} },
     async (env, q) => {
       const url = parseTarget(need(q, "url", 2_000)).href;
       const probe = () => call(env, "/url/uptime", { url }) as Promise<{ up: boolean; status: number | null; responseMs: number }>;
@@ -134,7 +155,7 @@ export const AGENT_INFRA: Entry[] = [
         redirects: call(env, "/url/redirects", { url }),
         security: call(env, "/http/security-headers", { url }),
         x402: local(env, "/x402/check", { url }),
-        openapi: local(env, "/openapi/summary", { url: `${origin}/openapi.json` }),
+        openapi: findSpec(env, url),
       });
       const s = (data.samples as { up: boolean; status: number | null; responseMs: number }[] | undefined) ?? [];
       const ms = s.map((x) => x.responseMs).sort((a, b) => a - b);
@@ -145,8 +166,8 @@ export const AGENT_INFRA: Entry[] = [
         latencyMs: ms.length ? { min: ms[0], median: ms[Math.floor(ms.length / 2)], max: ms.at(-1) } : null,
         redirects: (data.redirects as { redirects?: number } | undefined)?.redirects ?? null,
         security: data.security ? { grade: (data.security as { grade?: string }).grade ?? null, score: (data.security as { score?: number }).score ?? null } : null,
-        x402: x ? { paid: x.paywalled === true, version: x.x402Version ?? null, accepts: x.accepts ?? [], score: x.score ?? null } : null,
-        openapi: o ? { title: o.title, version: o.version, operationCount: o.operationCount, paidOperations: o.paidOperations } : null,
+        x402: x ? (x.paywalled === true ? { paid: true, version: x.x402Version ?? null, accepts: x.accepts ?? [], score: x.score ?? null } : { paid: false }) : null,
+        openapi: o ? (o.found ? { found: true, specUrl: o.specUrl, title: o.title, version: o.version, operationCount: o.operationCount, paidOperations: o.paidOperations } : { found: false, tried: o.tried }) : null,
         failed,
       };
     }, "$0.02"),

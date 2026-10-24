@@ -117,7 +117,8 @@ export const MEDIA_TEXT: Entry[] = [
     ["exif", "image-metadata", "gps", "photo", "image", ...U], { url: { type: "string", description: "Public URL of the image", required: true, example: "https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg" } },
     { url: "https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg", format: "jpeg", width: 640, height: 480, bytes: 161713, exif: { make: "NIKON", model: "COOLPIX P6000", takenAt: "2008:10:22 16:28:39", orientation: 1, software: "Nikon Transfer 1.1 W" }, gps: { lat: 43.467448, lon: 11.885127, altitudeM: null } },
     async (_e, q) => {
-      const file = await fetchFile(need(q, "url", 2_000), /^image\/|octet-stream|^$/i, 15 * 1024 * 1024, "image", { cacheSeconds: 600 });
+      // Any content type: imageInfo reads the format from the file's own bytes and refuses non-images (422, uncharged).
+      const file = await fetchFile(need(q, "url", 2_000), /^/, 15 * 1024 * 1024, "image", { cacheSeconds: 600 });
       return { url: file.url, ...imageInfo(file.bytes), bytes: file.bytes.length };
     }),
 

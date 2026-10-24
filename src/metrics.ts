@@ -6,6 +6,7 @@ import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
 import type { MetricsBatch } from "./lib/metrics-batch";
+import { FAILURE_PREFIX } from "./lib/failure-reason";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
@@ -63,7 +64,9 @@ function noteWriteError(err: unknown) {
 }
 const writesBlocked = () => Date.now() < writesBlockedUntil;
 export const __test = { writesBlocked, unblockWrites: () => { writesBlockedUntil = 0; } };
-const capFor = (key: string) => key.startsWith("callers:") || key.startsWith("mcpclients:") ? MAX_CALLERS : undefined;
+/** Distinct "path reason" failure keys kept per day; the rest count as "other" (one stored row stays far below 128 KiB). */
+const MAX_FAILURE_REASONS = 200;
+const capFor = (key: string) => key.startsWith("callers:") || key.startsWith("mcpclients:") ? MAX_CALLERS : key.startsWith("errors:") ? MAX_FAILURE_REASONS : undefined;
 
 /**
  * Counts requests per paid path per day, including gross revenue for x402 settlements.
@@ -246,6 +249,7 @@ export class Metrics extends DurableObject {
 
   private addBump(path: string, outcome: Outcome, revenueUsdMicros?: number, caller?: string) {
     if (typeof path !== "string" || typeof outcome !== "string") return;
+    if (path.startsWith(FAILURE_PREFIX)) return this.add(`errors:${today()}`, { [path.slice(FAILURE_PREFIX.length).slice(0, 160)]: 1 });
     const paid = outcome === "paid" && revenueUsdMicros !== undefined && Number.isSafeInteger(revenueUsdMicros) && revenueUsdMicros > 0;
     this.add(`day:${today()}`, { [path]: { [outcome]: 1, revenueUsdMicros: paid ? revenueUsdMicros : 0, trackedPaidCalls: paid ? 1 : 0 } });
     if (caller) this.add(`callers:${today()}`, { [caller]: { [outcome]: 1 } });
@@ -256,6 +260,17 @@ export class Metrics extends DurableObject {
   async status(paths: readonly string[]) {
     const days = [...(await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
     const last = await this.ctx.storage.list<string>({ prefix: "last:" });
+    // Failure reasons ("<path> <status> <message without the caller's input>"), summed over the same days.
+    const reasons = new Map<string, Map<string, number>>();
+    for (const day of (await this.listMerged<Record<string, number>>({ prefix: "errors:", reverse: true, limit: STATUS_DAYS })).values()) {
+      for (const [key, n] of Object.entries(day)) {
+        const at = key.indexOf(" ");
+        if (at < 1) continue;
+        const byReason = reasons.get(key.slice(0, at)) ?? new Map<string, number>();
+        byReason.set(key.slice(at + 1), (byReason.get(key.slice(at + 1)) ?? 0) + n);
+        reasons.set(key.slice(0, at), byReason);
+      }
+    }
     const rows = paths.map((path) => {
       let served = 0, serverErrors = 0, buyerErrors = 0;
       for (const day of days) {
@@ -265,7 +280,8 @@ export class Metrics extends DurableObject {
         buyerErrors += row.failed ?? 0;
       }
       const ran = served + serverErrors;
-      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null };
+      const top = [...(reasons.get(path) ?? [])].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([reason, count]) => ({ reason, count }));
+      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}) };
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };

@@ -57,6 +57,16 @@ const BUDGET_MS = 8_000;
 /** Bodies above this are served but not kept in the edge cache. */
 const CACHE_MAX_BYTES = 12 * 1024 * 1024;
 
+/**
+ * What a target's 4xx means for the caller. Medium, nytimes.com, Stack Overflow and Reuters answer automated readers
+ * 401/403 (checked 24 Oct 2026); "check that the URL is public and correct" sent agents to fix a URL that was fine.
+ */
+export function targetRefusal(status: number) {
+  if (status === 401 || status === 403 || status === 451) return `the site refused automated access (HTTP ${status}): it blocks bots or needs a login, so this URL cannot be read here (nothing was charged)`;
+  if (status === 404 || status === 410) return `the page was not found (HTTP ${status}); check the URL (nothing was charged)`;
+  return `target responded with HTTP ${status}; check that the URL is public and correct (nothing was charged)`;
+}
+
 export interface FetchPublicOptions {
   /** Keep a successful answer in the edge cache this long, keyed by final URL and Accept (0 = never). */
   cacheSeconds?: number;
@@ -122,9 +132,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
         const wait = retryDelayMs(res);
         if (wait !== null && Date.now() + wait < deadline) { retried = true; await sleep(wait); continue; }
       }
-      throw new HttpError(callerSide ? 422 : 502, callerSide
-        ? `target responded with HTTP ${res.status}; check that the URL is public and correct (nothing was charged)`
-        : `target responded with HTTP ${res.status}`);
+      throw new HttpError(callerSide ? 422 : 502, callerSide ? targetRefusal(res.status) : `target responded with HTTP ${res.status}`);
     }
     if (!res.body && !allowed) throw new HttpError(502, "target returned an empty body");
     if (cache && cacheKey && res.ok && res.body) {
