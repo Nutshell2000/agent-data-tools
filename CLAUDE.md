@@ -614,3 +614,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - 1.61.0 shipped with only its version bump (the chaining script's patch was re-encoded by a PowerShell pipe and every hunk
   failed unchecked); its four packs went out in 1.62.0. Write patches with `git diff --output` and check `git apply`'s exit.
 
+
+## Reverse geocoding, coin research pack, currency converter name (1.63.0, 24 Oct 2026)
+
+- src/routes/geo-more.ts: `/geocode/reverse` (Wikidata Query Service `wikibase:around` over items with a population, CC0;
+  2 s cold, 0.2 s warm; cached a day per point rounded to ~100 m; nearest place plus the largest non-administrative
+  place, since municipalities and counties carry bigger population figures than the city itself) and
+  `/pack/coin-research` $0.03 (market, 3-day funding, order-book depth, 4h and 1d indicators, Fear & Greed).
+  Check `/geocode/reverse` from production after release: WDQS is shared and may throttle Cloudflare egress.
+- `/fx` is "Currency converter, forex rates" (currency converter 27, we were #4).
+- smoke-examples.mjs drops content-encoding/content-length from proxied answers: Node's fetch already decompressed the
+  body, and workerd failed with "Gzip decompression failed" on query.wikidata.org.
+
