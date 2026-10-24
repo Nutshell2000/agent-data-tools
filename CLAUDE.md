@@ -548,3 +548,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   links, words, issues and score), `/text/keyword-density` (text or a page URL; stop words removed).
 - Demand (24 Oct probe, summed payers over the top 20): uptime check 51, redirect checker 41, seo audit 41, dns
   propagation 38, dns records 35, keyword density 60. Quad9 and OpenDNS refused JSON DoH from the PC; not used.
+
+## Business days, statistics, expressions, zodiac; Solana paused (1.58.0, 24 Oct 2026; 269 tools)
+
+- src/routes/math-date.ts: `/date/business-days` (weekends plus /holidays rules for US, GB, SE, DE, FR, NO, DK, FI; `add=N`
+  for a date N business days away; without `to` it counts to the end of the start month so the published example works),
+  `/math/stats` (population and sample spread, quartiles, p90/95/99), `/math/evaluate` (recursive-descent parser, never
+  eval; -2^2 = -4, 2^-1 = 0.5; names are looked up with Object.hasOwn so constructor/toString are refused), `/date/zodiac`.
+  `/date/info` is "Week number and date facts" (it already returned the ISO week).
+- Solana reads are in PAUSED_FAMILY_TOOLS: api.mainnet-beta.solana.com returns 403 to Workers (checked from production,
+  1.56.0), publicnode wants a token for token methods, drpc/ankr/onfinality need keys. Test any new upstream from
+  Cloudflare (a staging deploy) before building on it; a PC check is not enough.
+- Lookup tables keyed by user input must use Object.hasOwn, not `in` or bare indexing: `/hyperliquid/candles` and
+  `/hyperliquid/indicators` accepted `interval=constructor` until 1.58.0.
