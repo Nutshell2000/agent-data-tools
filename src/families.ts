@@ -21,6 +21,8 @@ import { BIC } from "./routes/bic";
 import { WEB_CHECKS } from "./routes/web-checks";
 import { MATH_DATE } from "./routes/math-date";
 import { GENERATORS } from "./routes/generators";
+import { PACKS } from "./routes/packs";
+import { TOOLBOXES } from "./routes/toolboxes";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
@@ -29,4 +31,4 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
