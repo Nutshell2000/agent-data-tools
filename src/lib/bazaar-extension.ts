@@ -73,7 +73,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/extract": ["scrape-website", "web-scraping"], "/email": ["email-verification"], "/company": ["company-data"],
   "/domain-report": ["domain-lookup", "trust-score"], "/domain": ["dns-lookup", "whois-lookup"], "/eth/gas": ["gas-price", "gas-fee-estimate"],
   "/btc-fees": ["bitcoin-fees"], "/pdf/text": ["pdf-to-text"], "/geocode": ["geocoding", "forward-geocoding"], "/sec/filings": ["sec-filings"],
-  "/token-report": ["honeypot-token-check", "token-security"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"],
+  "/token-report": ["honeypot-token-check", "token-security"], "/contract-risk": ["smart-contract-risk"], "/check/x402-seller": ["x402-audit"], "/x402/check": ["x402-endpoint", "x402-check"],
   "/ai/chat": ["chat-completions", "llm-chat-completion"], "/ai/embed": ["text-embeddings", "openai-compatible"],
   "/eth/balance": ["ethereum-balance"], "/hyperliquid/market": ["hyperliquid-funding"], "/airport/status": ["airport-delays"],
   "/fx": ["currency-converter", "currency-exchange-rate", "exchange-rates", "forex"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],

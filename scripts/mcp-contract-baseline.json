@@ -1,5 +1,5 @@
 {
-  "version": "1.63.0",
+  "version": "1.64.0",
   "tools": [
     {
       "name": "extract",
@@ -7509,6 +7509,78 @@
         }
       },
       "price": "$0.03"
+    },
+    {
+      "name": "openapi_summary",
+      "description": "Read an OpenAPI 3 or Swagger 2 document (JSON or YAML, up to 2 MB) from a URL and summarise it for an agent: title, version, description, servers, auth schemes, operation count by method, tags, which operations are paid (402 or x-payment-info) or deprecated, and up to 150 operations with method, path, summary and operationId. Use before calling an unfamiliar API, to pick an endpoint, or to compare APIs. Example: url=https://petstore3.swagger.io/api/v3/openapi.json. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the OpenAPI or Swagger document"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "mcp_inspect",
+      "description": "Inspect a remote MCP server over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy. Example: url=https://mcp.deepwiki.com/mcp. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The MCP server's streamable-HTTP URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_api_health",
+      "description": "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at /openapi.json. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy. Example: url=https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The API endpoint URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.02"
     },
     {
       "name": "holidays",
