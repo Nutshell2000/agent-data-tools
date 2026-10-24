@@ -1,5 +1,5 @@
 {
-  "version": "1.56.0",
+  "version": "1.57.0",
   "tools": [
     {
       "name": "extract",
@@ -6723,6 +6723,169 @@
         "required": [
           "bic"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "url_redirects",
+      "description": "Follow a URL's redirects hop by hop (up to 10) and return every hop's status code and Location, the final URL, total hops, timing and whether it loops. Expands short links (bit.ly, t.co…) to their destination without loading the page. Every hop is checked before it is requested; redirects to private addresses are reported, not followed. Use to unshorten a link, check an HTTPS or www redirect, or debug SEO redirect chains. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "url_uptime",
+      "description": "Check whether a website is up right now: one live request (following redirects) with the HTTP status, up or down, response time in ms, the final URL, content type, server header and page size, and optionally whether the page contains a given text. Timeouts and connection failures come back as down with the reason, not as an error. Use for uptime monitoring, health checks before calling an API, or to confirm a deploy. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL"
+          },
+          "contains": {
+            "type": "string",
+            "description": "Optional text that must appear in the page (first 500 KB)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "dns_lookup",
+      "description": "Look up DNS records of a domain over DNS-over-HTTPS (Cloudflare 1.1.1.1): A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY or HTTPS, with each answer's TTL, the response code (NOERROR, NXDOMAIN…) and whether DNSSEC validated. Use to check email (MX, SPF in TXT), verify a domain, or debug a DNS change; for whether the change has spread use dns_propagation. Example: name=example.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name (or a URL; its host is used)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Record type: A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY, HTTPS (default A)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "dns_propagation",
+      "description": "Check whether a DNS change has propagated: the same record queried at five public resolvers (Cloudflare, Google, AdGuard, AliDNS and DNSPod), each resolver's answers and TTLs, whether they all agree, and the majority answer. Record types A, AAAA, CNAME, MX, NS, TXT, CAA. Use to see where an old value is still cached after changing a record, moving hosting or setting up email; for one lookup use dns_lookup. Example: name=example.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name (or a URL; its host is used)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Record type: A, AAAA, CNAME, MX, NS, TXT or CAA (default A)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "seo_audit",
+      "description": "On-page SEO audit of one URL: title and meta description with their lengths, canonical, meta robots, H1s and H2 count, images without alt text, lang and viewport, Open Graph and Twitter card tags, JSON-LD blocks, internal and external link counts and word count, plus a list of issues and a 0-100 score. Reads the server's HTML (no JavaScript), up to 1 MB. Use to check a page before publishing or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_keyword_density",
+      "description": "Keyword density of a text or a web page: the most frequent words and two-word phrases (English stop words removed), each with its count and share of all words, plus total and unique word counts. Give text, or a URL whose readable text is used (HTML, up to 1 MB). Use for SEO copy checks, comparing a page against a target keyword, or summarising what a page is about; for readability use text_stats. Example: text=Agents pay per call. Agents pay with USDC. Pay per call tools for agents.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text (up to 50,000 characters); or give url instead"
+          },
+          "url": {
+            "type": "string",
+            "description": "A page URL to analyse instead of text"
+          },
+          "top": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many keywords and phrases to return, 1-50 (default 15)"
+          }
+        }
       },
       "price": "$0.01"
     },

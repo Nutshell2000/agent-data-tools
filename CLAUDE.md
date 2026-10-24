@@ -537,3 +537,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Ruled out on 24 Oct: Datamuse (customer-facing apps must contact them; key needed from Feb 2027), YouTube transcripts and
   Reddit search (platform terms), GitHub repo data (60 requests an hour per shared IP), EU VIES (unreachable from the PC;
   test from Cloudflare before building).
+
+## Website and DNS checks (1.57.0, 24 Oct 2026; 268 tools)
+
+- src/routes/web-checks.ts: `/url/redirects` (hop-by-hop chain, loop detection; a redirect to a private address is
+  reported and never requested), `/url/uptime` (up/down, status, ms, size, optional text check; failures are "down",
+  not errors), `/dns/lookup` (Cloudflare DoH, 13 record types, rcode and DNSSEC AD), `/dns/propagation` (Cloudflare,
+  Google, AdGuard, AliDNS, DNSPod JSON DoH; majority and agreement), `/seo/audit` (server HTML up to 1 MB: title/meta
+  lengths, canonical, robots, H1/H2, images without alt (a bare `alt` is valid), lang, viewport, OG/Twitter, JSON-LD,
+  links, words, issues and score), `/text/keyword-density` (text or a page URL; stop words removed).
+- Demand (24 Oct probe, summed payers over the top 20): uptime check 51, redirect checker 41, seo audit 41, dns
+  propagation 38, dns records 35, keyword density 60. Quad9 and OpenDNS refused JSON DoH from the PC; not used.
