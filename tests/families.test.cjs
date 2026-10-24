@@ -29,7 +29,7 @@ const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 235);
+  assert.equal(families.length, 239);
   for (const { endpoint: e } of families) {
     assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
@@ -63,7 +63,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,258);
+  assert.equal(ENDPOINTS.length,262);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

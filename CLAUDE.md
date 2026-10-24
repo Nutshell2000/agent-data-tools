@@ -523,3 +523,17 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `const result = await handler(env, normalizedInput(input));` must stay verbatim: tests/output-contract.test.cjs patches it.
 - `<chain>/gas-history` on all five networks (eth_feeHistory: base fee per block, gas used ratio, 10/50/90th percentile
   priority fees).
+
+## Solana reads and BIC check (1.56.0, 24 Oct 2026; 262 tools)
+
+- `/solana/balance`, `/solana/token`, `/solana/tx` (src/routes/solana.ts): keyless JSON-RPC, Solana Foundation mainnet
+  endpoint first (publicnode only for getBalance; it 403s token methods). Lamports above 2^53 are kept exact by quoting
+  big integers before JSON.parse. Known tokens sort first because exchange wallets hold thousands of spam mints.
+  `getTokenLargestAccounts` is rate-limited per method on the public node, so holders are opt-in (default 0) and become
+  `null` when refused. After deploying, check the three with a free trial from production: if Cloudflare's shared IPs
+  get 403/429 from the public node, pause them in PAUSED_FAMILY_TOOLS rather than leave a failing first payment listed.
+- `/bic/validate` (src/routes/bic.ts): ISO 9362 structure and a real country (Intl.DisplayNames; XK allowed; EU/UN/ZZ
+  refused), head office, test and passive flags. Structure only, never claims the bank exists.
+- Ruled out on 24 Oct: Datamuse (customer-facing apps must contact them; key needed from Feb 2027), YouTube transcripts and
+  Reddit search (platform terms), GitHub repo data (60 requests an hour per shared IP), EU VIES (unreachable from the PC;
+  test from Cloudflare before building).
