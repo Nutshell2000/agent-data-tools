@@ -139,12 +139,12 @@ export const FEEDS: Entry[] = [
   entry("/feed", "RSS feed reader: read an RSS or Atom feed",
     "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages.",
     ["rss", "atom", "feed", "news", "web", "monitoring"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the feed", required: true, example: "https://github.blog/feed/" },
+      url: { type: "string", description: "Absolute public http(s) URL of the feed", required: true, example: "https://blog.cloudflare.com/rss/" },
       limit: { type: "integer", description: "Items to return (1-50, default 20)", example: 10 },
     },
     {
-      url: "https://github.blog/feed/", format: "rss", title: "The GitHub Blog", link: "https://github.blog/", description: "Updates, ideas, and inspiration from GitHub…", count: 1,
-      items: [{ title: "An example post", link: "https://github.blog/…", date: "2026-10-17T16:00:00.000Z", summary: "A short plain-text summary…", author: "GitHub Staff", id: "https://github.blog/?p=1" }],
+      url: "https://blog.cloudflare.com/rss/", format: "rss", title: "Cloudflare Blog", link: "https://blog.cloudflare.com/", description: "Technical deep dives, product news and research…", count: 1,
+      items: [{ title: "An example post", link: "https://blog.cloudflare.com/…", date: "2026-10-17T16:00:00.000Z", summary: "A short plain-text summary…", author: "Cloudflare", id: "https://blog.cloudflare.com/…" }],
     },
     async (_env, q) => {
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });

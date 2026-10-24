@@ -494,3 +494,17 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   funding on the Bazaar (23 Oct). Tests: tests/hyperliquid.test.cjs (mocked fetch).
 - `<chain>/block` is "<chain> block number and block details" (block-number listings had 55-354 payers); needs one
   settlement each (Refresh) to show the new name. `/news` also carries the `crypto-news` tag.
+
+## Technical indicators, converters and validators (1.54.0, 24 Oct 2026; 247 tools)
+
+- `/hyperliquid/indicators` ($0.01): RSI 14 (Wilder), MACD 12/26/9, SMA 20/50/200, EMA 12/26/50 (SMA-seeded), Bollinger
+  20/2 with %B and bandwidth, ATR 14 (Wilder) and annualised close-to-close volatility, on up to 250 closed Hyperliquid
+  candles (the forming bar is dropped), plus plain readings ("RSI overbought", "price above SMA 200"). Fewer than 30
+  closed bars is an uncharged 404. The math helpers are exported and tested (StockCharts RSI example 70.53). One tool on
+  purpose: separate RSI/MACD/EMA listings would be the same computation listed several times.
+- `src/routes/lookups.ts`: `/yaml/to-json` and `/json/to-yaml` (yaml 2.9.1, ISC; alias expansion capped, duplicate keys
+  refused; imported lazily because yaml's Node build `require`s "process", which broke the scripts that bundle the
+  catalog for Node as ESM), `/phone/validate` (libphonenumber-js 1.13.15 /max, MIT; offline, line type included),
+  `/vin` (NHTSA vPIC DecodeVinValues, US federal data; local check digit) and `/robots` (robots.txt verdict by RFC 9309
+  as Google applies it; 4xx robots.txt allows all). Demand probe: `business/agentic/base-bots/demand-probe.mjs "<phrase>"…`.
+- Worker bundle after 1.54.0: 2.50 MB gzip of the free plan's 3 MB (libphonenumber metadata is ~120 KB of it).
