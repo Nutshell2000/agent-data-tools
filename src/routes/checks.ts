@@ -144,7 +144,7 @@ export const CHECKS: Entry[] = [
     { risk: "none", score: 0, findings: [], hiddenCharacters: { zeroWidth: 0, bidi: 0, tags: 0 } },
     (_env, q) => scanInjection(need(q, "text", 8_000))),
 
-  entry("/http/security-headers", "Audit a page's HTTP security headers",
+  entry("/http/security-headers", "HTTP security headers check: audit a page's security headers",
     "Fetch a public URL and grade its HTTP security headers: HSTS, Content-Security-Policy, framing protection, nosniff, Referrer-Policy and Permissions-Policy, plus version leaks (Server, X-Powered-By) and cookies missing Secure, HttpOnly or SameSite. Returns a grade A-F, a score and each check with its value. Use to review a site's basic web security; for DNS and email records use domain. Private hosts are refused with 400, uncharged.",
     ["security", "http", "headers", "web", "audit"],
     { url: { type: "string", description: "Public http(s) URL to check", required: true, example: "https://example.com" } },
