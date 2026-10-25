@@ -86,7 +86,7 @@ async function filerCik(name: string): Promise<string> {
 }
 
 export const GOV_MORE: Entry[] = [
-  entry("/sec/8k", "SEC 8-K filings, material events: by company",
+  entry("/sec/8k", "8-K filings, SEC material events: by company",
     "Latest Form 8-K current reports for a US-listed company by ticker, name or CIK: filing date, the reported items with their meaning (results of operations, executive departures, material agreements, cybersecurity incidents, bankruptcy and others), accession number and a direct link, newest first. Public SEC EDGAR data. Use to watch a company's material events or check what it disclosed recently.",
     ["8-k", "sec-8k", "material-events", "sec-filings", "edgar"], {
       ticker: { type: "string", description: "Stock ticker or company name, e.g. AAPL (or give cik)", example: "AAPL" },
