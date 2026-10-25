@@ -50,6 +50,18 @@ test('recent logs: windows never reach below the requested span', async () => {
   assert.equal(r.complete, true);
 });
 
+test('recent logs: a node that lags behind the newest block is stepped past, not reported as 404', async () => {
+  const { recentLogs } = await load();
+  const node = fakeNode(0);
+  const request = node.request;
+  // Production, 25 Oct 2026: a Base log node a few blocks behind answered "header not found" for the newest range.
+  node.request = async (args) => { if (BigInt(args.params[0].toBlock) > 997n) { node.calls.push(['lag']); throw new Error('header not found'); } return request(args); };
+  const r = await recentLogs(node, { address: '0x' + '1'.repeat(40) }, 1000n, 100n, 100);
+  assert.equal(r.complete, true);
+  assert.deepEqual(node.calls[0], ['lag']);
+  assert.ok(node.calls.slice(1).every((c) => c[1] <= 995), JSON.stringify(node.calls));
+});
+
 test('outside sources: one retry after a short 429/503, none when told to wait long', async () => {
   const b = await build({ entryPoints: ['src/family.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
   const m = { exports: {} };

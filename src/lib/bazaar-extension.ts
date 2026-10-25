@@ -104,6 +104,13 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/html/to-text": ["html-to-text", "strip-html"], "/http/status": ["http-status-code", "status-code-meaning"], "/url/uptime": ["http-status-check", "uptime-check"],
   "/moon": ["moon-phase"], "/country": ["country-info", "country-data"], "/npm/downloads": ["npm-downloads", "npm-stats"],
   "/date/add": ["date-calculator", "add-days"], "/trade-insight": ["token-risk", "wallet-risk"],
+  // Packs, 25 Oct 2026 probe: "developer tools" summed 181 payers and listed none of ours; "json tools", "hash generator",
+  // "evm tools", "domain intelligence", "transaction explainer" and "crypto research" listed ours below #1.
+  "/pack/hash-toolbox": ["hash-generator", "developer-tools"], "/pack/json-toolbox": ["json-tools", "developer-tools"],
+  "/pack/encoding-toolbox": ["encoding-tools", "developer-tools"], "/pack/string-toolbox": ["string-utilities", "developer-tools"],
+  "/pack/id-toolbox": ["id-generator", "ulid"], "/pack/evm-toolbox": ["evm-tools", "developer-utilities"],
+  "/pack/domain-intel": ["domain-intelligence", "company-enrichment"], "/pack/tx-explain": ["transaction-explainer", "explain-transaction"],
+  "/pack/coin-research": ["coin-research", "crypto-research"], "/pack/wallet-profile": ["wallet-profile", "wallet-analysis"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
