@@ -272,13 +272,15 @@ function chainEntries(c: ChainDef): Entry[] {
         const token = q("token") ? tokenInput(q("token"), c.slug) : USDC[c.slug];
         const span = BigInt(num(q, "blocks", { min: 1, max: 2000, fallback: 1000, integer: true }));
         const cl = client(env, c);
-        const latest = await rpc(() => cl.getBlockNumber());
+        // The newest block as the log nodes see it: the main client's node can be ahead of them, and the scan of its newest
+        // blocks then answered "header not found" (404 to buyers: 7 of 14 Base calls on 23-25 Oct, and a listing payment).
+        const logs = logsClient(env, c);
+        const latest = await rpc(() => logs.getBlockNumber());
         const fromBlock = latest - span + 1n;
         const padded = `0x${a.slice(2).toLowerCase().padStart(64, "0")}`;
         type Log = { address: string; blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string };
         // Sent and received Transfer events of this one token, newest first in growing windows (recentLogs): public nodes
         // refuse or time out on a single 1,000-block eth_getLogs, which made this tool fail about one call in four.
-        const logs = logsClient(env, c);
         const [sentScan, receivedScan] = await Promise.all([
           recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50),
           recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50),
@@ -639,7 +641,7 @@ export async function recentLogs(cl: PublicClient, filter: { address: `0x${strin
       // A log node a few blocks behind the node that gave `latest` answers "header not found" for the newest range, which
       // rpc() reads as 404. Production, 25 Oct 2026: every Base scan over ~200 blocks failed this way. Step back past the
       // newest blocks (up to 3 times, 5 blocks each) instead of failing the call.
-      if (e instanceof HttpError && e.status === 404 && logs.length === 0 && lagRetries < 3 && to - 5n >= floor) { lagRetries++; to -= 5n; continue; }
+      if (e instanceof HttpError && e.status === 404 && logs.length === 0 && lagRetries < 5 && to - 10n >= floor) { lagRetries++; to -= 10n; continue; }
       throw e;
     }
     logs = chunk.concat(logs);
