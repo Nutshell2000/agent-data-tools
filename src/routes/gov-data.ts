@@ -5,10 +5,10 @@
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 
-const SEC_UA = "AgentDataTools/1.0 (spellz111122@gmail.com)";
+export const SEC_UA = "AgentDataTools/1.0 (spellz111122@gmail.com)";
 
 /** GET from a government source with edge caching; failures and refusals are 502, never charged. */
-async function govFetch(url: string, cacheTtl: number, accept: string): Promise<Response> {
+export async function govFetch(url: string, cacheTtl: number, accept: string): Promise<Response> {
   let res: Response;
   try {
     res = await fetch(url, { headers: { "user-agent": SEC_UA, accept }, signal: AbortSignal.timeout(8000), cf: { cacheTtl, cacheEverything: true } });
@@ -39,7 +39,7 @@ export function secCompanyMatch<T extends { ticker: string; title: string }>(ent
 }
 
 /** The CIK for a ticker or a CIK given directly. */
-async function resolveCik(ticker?: string, cik?: string): Promise<string> {
+export async function resolveCik(ticker?: string, cik?: string): Promise<string> {
   if (cik) {
     if (!/^\d{1,10}$/.test(cik)) throw new HttpError(400, "cik must be the SEC's numeric company id, e.g. 320193");
     return cik.padStart(10, "0");
