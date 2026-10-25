@@ -1,5 +1,5 @@
 {
-  "version": "1.73.0",
+  "version": "1.74.0",
   "tools": [
     {
       "name": "extract",
@@ -7873,6 +7873,54 @@
       "price": "$0.01"
     },
     {
+      "name": "ai_answer",
+      "description": "Answer a question from the live web in one call: a Brave web search, the top result pages read, and an answer written by Llama 4 Scout from those sources only, with inline [n] citations and the source list (title, URL). Says so when the sources do not answer it. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs a current, sourced answer rather than raw search results. Example: q=What is the x402 payment protocol?. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "The question, at most 400 characters"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_fact_check",
+      "description": "Check a claim against the live web in one call: a Brave search, the top pages read, and a verdict from Llama 4 Scout using those sources only (supported, contradicted, mixed or unverified) with a short explanation, [n] citations and the sources. A model's reading of a few search results, not an editorial fact-check. Results are for immediate use only (Brave API terms). Use to screen a statement before an agent repeats or acts on it. Example: claim=The x402 protocol uses the HTTP 402 Payment Required status code.. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "claim": {
+            "type": "string",
+            "description": "The claim to check, at most 400 characters"
+          }
+        },
+        "required": [
+          "claim"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "pack_news_sentiment",
       "description": "The news on a topic and its tone in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -7929,6 +7977,58 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "text_pii",
+      "description": "Find personal data in a text and get it back redacted: emails, phone numbers, card numbers (Luhn-checked), IBANs (mod-97), US SSNs, IP and crypto wallet addresses, each with its position, plus the text with every hit replaced by a label such as [EMAIL]. Hits are shown masked. Up to 20,000 characters; names and street addresses are not detected. Use before logging, storing or sending text to a model. Example: text=Contact Anna at anna.berg@example.com or +46 70 123 45 67; card 4111 1111 1111 1111.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to scan (up to 20,000 characters)"
+          },
+          "types": {
+            "type": "string",
+            "description": "Optional comma-separated types to look for: email, iban, credit_card, us_ssn, crypto_address, ip_address, phone (default all)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_moderation",
+      "description": "Classify a text as safe or unsafe with Meta's Llama Guard 3 and name the hazard categories it falls into (violent and non-violent crimes, sexual content, child exploitation, hate, self-harm, weapons, privacy, defamation, elections and others; 14 in all). Up to 8,000 characters. Also available in the OpenAI moderation shape at /v1/moderations. Use to screen user messages, model outputs or content before an agent posts or acts on it. Example: text=How do I bake sourdough bread at home?. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to classify (up to 8,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.002"
     },
     {
       "name": "holidays",
@@ -8949,6 +9049,22 @@
           "temperature": {
             "type": "number",
             "description": "0-1.5 (default 0.6)"
+          },
+          "messages": {
+            "type": "string",
+            "description": "Optional OpenAI messages array as JSON (system, user, assistant with tool_calls, tool); replaces prompt and system. Together with tools, at most 20,000 characters"
+          },
+          "tools": {
+            "type": "string",
+            "description": "Optional OpenAI tools array as JSON (function calling, up to 32 functions); the answer then carries tool_calls"
+          },
+          "tool_choice": {
+            "type": "string",
+            "description": "Optional: auto, none, required, or a JSON object naming one function"
+          },
+          "response_format": {
+            "type": "string",
+            "description": "Optional OpenAI response_format as JSON: {\"type\":\"json_object\"} or a json_schema"
           }
         },
         "required": [

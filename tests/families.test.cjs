@@ -29,7 +29,7 @@ const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 291);
+  assert.equal(families.length, 295);
   for (const { endpoint: e } of families) {
     // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (Peter: the Bazaar sweeper pays only tools at or
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
@@ -68,7 +68,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,312);
+  assert.equal(ENDPOINTS.length,316);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
