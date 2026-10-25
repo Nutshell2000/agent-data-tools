@@ -919,3 +919,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   delete answer `saved/deleted: false, demo: true`) so published examples always answer. KV reads elsewhere may lag a write by
   up to 60 s (stated in every description). Privacy page (src/lib/legal.ts) names it; keep the two in step.
 
+
+## $1 pack, ChatGPT plugin server and API recommender (1.76.0, 25 Oct 2026)
+
+- $1 Stripe link (fZufZhdSGgq3bFU5MNbII06) leads `WEB_PACKS`. The Stripe account has Adaptive Pricing on: `verifyCheckout` reads
+  `currency_conversion` (source_currency usd) so buyers paying in local currency get their credits.
+- `/mcp/chatgpt`: signed-in server for the ChatGPT plugin listing (business/agentic/chatgpt-plugin holds the package). No
+  prices, payment methods, checkout links or request ids reach ChatGPT (plugin rules: no selling credits inside the app, no
+  links to checkout). `/.well-known/openai-apps-challenge` serves the domain token from `OPENAI_APPS_CHALLENGE` or KV key
+  `openai-apps-challenge` (`npx wrangler kv key put --binding TRIALS --remote openai-apps-challenge <token>`).
+- `/recommend` ($0.002): which of our tools to call for a task (src/routes/recommend.ts; lexical with stemming and synonyms,
+  then bge-reranker-base over the top 15). It recommends our own tools only.
+

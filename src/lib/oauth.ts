@@ -74,8 +74,8 @@ export async function grantFromRequest(env: Env, authorization: string | undefin
 }
 
 /** 401 that points MCP clients at the sign-in metadata (MCP authorization spec, RFC 9728 section 5.1). */
-export function unauthorized(c: C) {
-  c.header("WWW-Authenticate", `Bearer resource_metadata="${origin(c)}/.well-known/oauth-protected-resource/mcp/account"`);
+export function unauthorized(c: C, resourcePath = "/mcp/account") {
+  c.header("WWW-Authenticate", `Bearer resource_metadata="${origin(c)}/.well-known/oauth-protected-resource${resourcePath}"`);
   return c.json({ error: "unauthorized", error_description: "Sign in to use this endpoint. The open endpoint /mcp needs no sign-in." }, 401);
 }
 
@@ -133,6 +133,14 @@ export const oauth = new Hono<{ Bindings: Env }>();
 for (const path of ["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp/account"]) {
   oauth.get(path, (c) => c.json(protectedResourceMetadata(origin(c))));
 }
+// The ChatGPT plugin server (/mcp/chatgpt): same sign-in, its own resource.
+oauth.get("/.well-known/oauth-protected-resource/mcp/chatgpt", (c) => c.json(protectedResourceMetadata(origin(c), `${origin(c)}/mcp/chatgpt`)));
+// ChatGPT plugin domain verification: the exact token as plain text. Set without a release:
+// npx wrangler kv key put --binding TRIALS --remote openai-apps-challenge <token>
+oauth.get("/.well-known/openai-apps-challenge", async (c) => {
+  const token = (c.env.OPENAI_APPS_CHALLENGE ?? "").trim() || ((await c.env.TRIALS?.get("openai-apps-challenge").catch(() => null)) ?? "").trim();
+  return token ? c.text(token, 200, { "Cache-Control": "no-store" }) : c.text("not configured", 404);
+});
 oauth.get("/.well-known/oauth-protected-resource/mcp/account/:bundle", (c) =>
   c.json(protectedResourceMetadata(origin(c), `${origin(c)}/mcp/account/${c.req.param("bundle")}`)));
 for (const path of ["/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"]) {

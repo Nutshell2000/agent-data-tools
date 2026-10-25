@@ -44,6 +44,8 @@ export interface Env {
   BROWSER: Fetcher;
   // Holds trial counters and store orders.
   TRIALS?: KVNamespace;
+  /** ChatGPT plugin domain-verification token (public); the KV key openai-apps-challenge also works. */
+  OPENAI_APPS_CHALLENGE?: string;
   // Product files under public/. The Worker runs first, so they are never served directly.
   ASSETS: Fetcher;
   // This same Worker, for requests to its own public URL (a Worker cannot fetch its workers.dev host).

@@ -3,8 +3,8 @@ import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { apiKeyFrom, isCreditKey } from "./lib/credits";
-import { creditCharger, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
-import { freeCallNote } from "./lib/free-calls";
+import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
+import { FREE_CALLS_PER_CALLER, freeCallNote } from "./lib/free-calls";
 import { freeCallsPausedNote } from "./lib/browser-402";
 import { mppEnabled } from "./lib/mpp-credits";
 import { SERVICE_ICON_URL } from "./endpoints";
@@ -21,7 +21,7 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
 import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
-import { annotationsFor, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
+import { annotationsFor, directoryToolDescription, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
@@ -116,7 +116,7 @@ const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
-export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string, account?: { key: string | null; sub: string }) {
+export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string, account?: { key: string | null; sub: string }, directory = false) {
   if (urlKey !== undefined && !isCreditKey(urlKey)) return c.json({ error: "the key in this URL is not a valid API key; copy the connector URL again from your /credits/claim page" }, 401);
   // Stateless server: no server-to-client event stream. A GET would open an SSE stream that never
   // carries anything and hangs until the client gives up (monitors logged these as errors), so answer
@@ -130,7 +130,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // video and audio, so those two tools stay on the open /mcp and HTTP only.
   // Sales order, as in /discovery/resources: payee and risk checks first, toys last (tools/list and registration).
   const endpoints = salesOrdered(account ? catalog.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : catalog);
-  const listKey = account ? `${bundle}#account` : bundle;
+  // directory: the ChatGPT plugin server (/mcp/chatgpt). Same signed-in tools, but no prices, payment methods, links to
+  // our checkout or request ids in what ChatGPT shows (its plugin rules); credits are bought on our site, outside ChatGPT.
+  const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;
   const env = c.env;
   if (c.req.method === "POST" && env.METRICS) {
     // Which apps connect: counted on initialize only, by the client's self-reported name.
@@ -153,12 +155,12 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(Boolean(creditKey), endpoints.length) : mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
 
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
-      ? (args: Args) => creditCharger(env, creditKey, e.price, origin)(() => handler(args))
+      ? (args: Args) => creditCharger(env, creditKey, e.price, origin, directory)(() => handler(args))
       : x402
       ? async (args: Args, extra: unknown) => {
           const wrapped = paymentWrapperFor(e, await payment())(handler as never) as (args: Args, extra: unknown) => Promise<{
@@ -173,7 +175,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
           )(args, extra);
         }
       : freeOnly
-      ? async () => ({ isError: true, content: [{ type: "text", text: CAPACITY_LIMITED.has(e.path)
+      ? async () => ({ isError: true, content: [{ type: "text", text: directory
+          ? (CAPACITY_LIMITED.has(e.path) ? "This tool is not included in this account's free calls, so it is not available on the current plan. Nothing was charged." : "This account's free calls are used up, so this tool is not available on the current plan. Nothing was charged.")
+          : CAPACITY_LIMITED.has(e.path)
           ? `This tool is not included in the free calls. To use it, buy credits at ${origin}/credits, then reconnect and sign in with your key.`
           : `The free calls for this account are used up. To continue, buy credits at ${origin}/credits, then reconnect and sign in with your key.` }] })
       : handler;
@@ -186,7 +190,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         let freePaused = false;
         const free = (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }) : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
-        if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
+        if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Free calls are paused until 00:00 UTC because today's free-call capacity is used up. Nothing was charged and no free call was used." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
@@ -203,19 +207,20 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
         const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY))}` }]
-          : free && !result.isError ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
+          : free && !result.isError ? [{ type: "text", text: directory ? `Free call (${free.left} of ${FREE_CALLS_PER_CALLER} free calls left for this account).` : freeCallNote(free.left, origin) }] : [];
+        const requestMeta = directory ? {} : { requestId: trace?.requestId };
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;
-          return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}, ...hint], _meta:{...response._meta,requestId:trace?.requestId}};
+          return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}, ...hint], _meta:{...response._meta,...requestMeta}};
         }
-        return { ...result, ...(hint.length ? { content: [...(response.content ?? []), ...hint] } : {}), _meta: { ...result._meta, requestId: trace?.requestId } };
+        return { ...result, ...(hint.length ? { content: [...(response.content ?? []), ...hint] } : {}), _meta: { ...result._meta, ...requestMeta } };
       } catch (error) {
         throw error;
       }
     });
     mcp.tool(
       toolName(e),
-      toolDescription(e),
+      directory ? directoryToolDescription(e) : toolDescription(e),
       inputShapes.get(e.path) ?? (inputShapes.set(e.path, toolInputShape(e, z)), inputShapes.get(e.path)!),
       annotationsFor(e.path),
       tracked as never,
@@ -224,7 +229,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
 
   // SDK Zod conversion cannot represent the existing oneOf/not output contract.
   // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
-  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(listKey) ?? (listedTools.set(listKey, endpoints.map(protocolTool)), listedTools.get(listKey)!)}));
+  mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(listKey) ?? (listedTools.set(listKey, endpoints.map((e) => protocolTool(e, directory))), listedTools.get(listKey)!)}));
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   try {
