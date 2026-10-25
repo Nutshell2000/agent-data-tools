@@ -50,6 +50,7 @@ import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
+import { SEARCH_API_PATHS, searchApi, type SearchApiPath } from "./lib/search-api";
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
@@ -374,6 +375,7 @@ app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req)
 app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GET", "HEAD", "POST"], path, (c) => searchApi(c, path, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
 // Privacy policy, terms and support.

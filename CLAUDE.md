@@ -931,3 +931,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/recommend` ($0.002): which of our tools to call for a task (src/routes/recommend.ts; lexical with stemming and synonyms,
   then bge-reranker-base over the top 15). It recommends our own tools only.
 
+
+## Search-API request shape (1.77.0, 25 Oct 2026)
+
+- src/lib/search-api.ts: `/v1/search`, `/v1/contents`, `/v1/answer` take the neural-search SDK bodies and forward one GET to
+  /search, /contents or /ai/answer through the middleware (same pattern as the other /v1 fronts). `contents.text` on a search
+  reads the top 5 pages after the paid call. Brave's end-user terms travel in `terms`.
+- Measured 25 Oct, do not lower prices for the "fleet" wallets (0xe827, 0x2465, 0xb83b): 72% of their calls go to listings at
+  $0.002 or less across ~100 sellers at ~7 calls each per two days, so matching them would earn about $0.02/day while cutting the
+  sweeper's $0.01 payments by 80%. Agent402's router reads us as routerDispatchEligible on Base since 25 Oct.
+
