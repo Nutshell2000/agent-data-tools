@@ -2,7 +2,7 @@
 // Models and licences (all permit commercial use): Llama 3.1 8B (Llama 3.1 Community License),
 // DistilBERT SST-2 (Apache 2.0), M2M100 1.2B (MIT), BGE base/M3 (MIT).
 // The account's free daily Workers AI allowance is the only budget: when it runs out, runAi answers 503
-// (uncharged). These paths are capacity-limited and stay out of marketplace listings.
+// (uncharged). Since 25 Oct 2026 (Workers Paid) these paths are in the free calls and marketplace listings; AI_DAILY_CAP bounds the bill.
 import { keccak256, toBytes } from "viem";
 import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
