@@ -185,7 +185,7 @@ export const GENERATORS: Entry[] = [
     { base: "#3366ff", hsl: { h: 225, s: 100, l: 60 }, complementary: ["#3366ff", "#ffcc33"], analogous: ["#33ccff", "#3366ff", "#6633ff"], triadic: ["#3366ff", "#ff3366", "#66ff33"], splitComplementary: ["#3366ff", "#ff6633", "#ccff33"], tetradic: ["#3366ff", "#ff33cc", "#ffcc33", "#33ff66"], shades: ["#ccd9ff", "#809fff", "#3366ff", "#0039e6", "#002699", "#00134d"] },
     (_e, q) => palette(need(q, "color", 20))),
 
-  entry("/csv/to-markdown", "CSV to Markdown table: convert CSV into a GitHub table",
+  entry("/csv/to-markdown", "Markdown table from CSV: convert CSV into a GitHub table",
     "Convert CSV (comma, semicolon, tab or pipe, detected automatically; quoted fields supported) into a GitHub-flavoured Markdown table, with number columns right-aligned, pipes escaped and line breaks kept as <br>. Up to 100 KB. Use to show spreadsheet data in a README, chat reply, issue or report; for JSON use csv_to_json.",
     ["markdown-table", "csv-to-markdown", "csv", "markdown", ...U], {
       csv: { type: "string", description: "The CSV text (up to 100 KB)", required: true, example: "tool,price,calls\nweather,0.01,120\nsearch,0.01,45" },

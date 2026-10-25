@@ -113,7 +113,7 @@ export const COUNTERPARTY: Entry[] = [
           : [],
         note,
       };
-    }, "$0.03"),
+    }, "$0.01"),
   // At $0.005 it sits in Agent402's cheapest router tier and unproven lane (both cap the price). The job paying agents buy most at other sellers (21 Oct: "screen a payee before paying", sanctions plus
   // domain age): one SDN lookup and two RPC reads on one chain, no holdings or audits, so it answers in about a second.
   entry("/check/payee", "Payee screening: OFAC-screen an address before paying, plus account type and domain age",

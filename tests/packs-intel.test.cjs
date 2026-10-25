@@ -60,7 +60,7 @@ test('mail provider from MX hosts', () => {
   assert.equal(P.mailProvider([]), null);
 });
 
-test('inputs are checked before any request; names stay within 32 characters; packs cost $0.02-0.03', async () => {
+test('inputs are checked before any request; names stay within 32 characters; packs cost $0.01', async () => {
   const run = (path, inputs) => P.PACKS_INTEL.find((e) => e.endpoint.path === path).run({}, (n) => inputs[n]);
   await assert.rejects(Promise.resolve().then(() => run('/tech/stack', { url: 'http://127.0.0.1/' })), (e) => e.status === 400);
   await assert.rejects(Promise.resolve().then(() => run('/pack/seo-toolkit', { url: 'ftp://example.com/' })), (e) => e.status === 400);
@@ -68,6 +68,6 @@ test('inputs are checked before any request; names stay within 32 characters; pa
   for (const e of P.PACKS_INTEL) {
     assert.ok(e.endpoint.summary.split(':')[0].length <= 32, e.endpoint.summary);
     assert.ok(e.endpoint.description.length <= 450, e.endpoint.path);
-    if (e.endpoint.path.startsWith('/pack/')) assert.ok(['$0.02', '$0.03'].includes(e.endpoint.price), e.endpoint.path);
+    if (e.endpoint.path.startsWith('/pack/')) assert.equal(e.endpoint.price, '$0.01', e.endpoint.path);
   }
 });

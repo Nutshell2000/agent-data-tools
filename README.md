@@ -52,22 +52,22 @@ A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid 
 | `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.005 |
 | `GET /domain-report?name=` | Domain trust verdict and email-auth flags | $0.01 |
 | `GET /token?address=` | Base ERC-20 facts and risk flags | $0.01 |
-| `GET /token-report?address=` | Base token risks and live DEX market data | $0.02 |
+| `GET /token-report?address=` | Base token risks and live DEX market data | $0.01 |
 | `GET /wallet?address=` | Base wallet balances and account nonce | $0.005 |
 | `GET /summarize?url=` | Short summary and key points of a page | $0.01 |
-| `GET /screenshot?url=` | JPEG of the rendered page (base64) | $0.02 |
-| `GET /image?prompt=` | Generated 1024x1024 image (base64) | $0.02 |
-| `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.02 |
+| `GET /screenshot?url=` | JPEG of the rendered page (base64) | $0.01 |
+| `GET /image?prompt=` | Generated 1024x1024 image (base64) | $0.01 |
+| `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.01 |
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
 | `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.01 |
 | `GET /ln-invoice?invoice=` | Decoded Lightning invoice | | $0.002 |.003 |
-| `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.20 |
-| `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.02 |
-| `GET /contract-risk?address=` | Limited bytecode, EIP-1967 slot and zero-supply heuristics | $0.02 |
-| `GET /trade-insight?token=&wallet=` | Separate token and wallet risk indicators; no trade recommendation | $0.05 |
-| `GET /liquidity-pool-audit?address=` | Verified Base DEX pair details and reported market data | $0.03 |
-| `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.04 |
+| `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.01 |
+| `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.01 |
+| `GET /contract-risk?address=` | Limited bytecode, EIP-1967 slot and zero-supply heuristics | $0.01 |
+| `GET /trade-insight?token=&wallet=` | Separate token and wallet risk indicators; no trade recommendation | $0.01 |
+| `GET /liquidity-pool-audit?address=` | Verified Base DEX pair details and reported market data | $0.01 |
+| `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.01 |
 | `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | | $0.002 |.003 |
 | `GET /email?address=` | Email validation without sending mail | | $0.002 |.003 |
 | `GET /papers?query=` | Academic paper search | $0.01 |

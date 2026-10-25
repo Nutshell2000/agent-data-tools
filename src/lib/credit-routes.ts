@@ -6,7 +6,7 @@ import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 import {
-  CREDIT_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
+  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
@@ -22,12 +22,12 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};
  */
 export function creditsInfo(origin: string, agentPurchase = false, cardReady = true): Record<string, unknown> & { use: string; what: string; afterPayment: string; charging: string; refunds: string; agentPurchase?: string; packs: { price: string; credits: number; buy: string }[] } {
   return {
-    ...(agentPurchase ? { agentPurchase: `Agents with an MPP client and a Link agent wallet can buy a pack themselves, with no checkout page: GET ${origin}/credits/buy/5, /credits/buy/20 or /credits/buy/100 answers 402 with a Stripe card challenge; pay it and the response carries the API key. To top up a key you already have, send it as X-API-Key on the same request.` } : {}),
+    ...(agentPurchase ? { agentPurchase: `Agents with an MPP client and a Link agent wallet can buy a pack themselves, with no checkout page: GET ${origin}/credits/buy/1, /credits/buy/5, /credits/buy/20 or /credits/buy/100 answers 402 with a Stripe card challenge; pay it and the response carries the API key. To top up a key you already have, send it as X-API-Key on the same request.` } : {}),
     what: cardReady
       ? "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402."
       : "Card payments are being set up and are not available yet, so no pack can be bought here today. Pay per call with x402 (USDC) in the meantime.",
     cardReady,
-    packs: cardReady ? CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
+    packs: cardReady ? WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
     use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp). In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then.",
     charging: "The tool's price is taken before it runs and given back if the call fails (any 4xx or 5xx, or an MCP error). Responses carry X-Credits-Charged and X-Credits-Remaining.",
@@ -211,7 +211,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
 export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
   // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
   // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
-  const [starter] = CREDIT_PACKS;
+  const [starter] = WEB_PACKS;
   const card = cardReady
     ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${Math.floor(starter.credits / 10).toLocaleString("en-US")} calls at $0.01; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
     : `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}`;
