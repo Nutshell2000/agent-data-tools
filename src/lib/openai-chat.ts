@@ -26,7 +26,16 @@ const SYSTEM_LIMIT = 2000;
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 
-export interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS; tool?: string }
+/** OpenAI fields /ai/chat (Llama 4 Scout) takes as they are: the agent-loop request (tools, tool turns, JSON mode). */
+export interface NativeChat { messages: unknown[]; tools?: unknown[]; tool_choice?: unknown; response_format?: unknown }
+export interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS; tool?: string; native?: NativeChat }
+
+/** True when the request needs the model's own message handling: tools, tool-result turns, tool calls or JSON mode. */
+export function needsNative(b: Record<string, unknown>): boolean {
+  if (Array.isArray(b.tools) && b.tools.length) return true;
+  if (b.response_format && typeof b.response_format === "object" && (b.response_format as { type?: unknown }).type !== "text") return true;
+  return Array.isArray(b.messages) && b.messages.some((m) => m && typeof m === "object" && ((m as { role?: unknown }).role === "tool" || Array.isArray((m as { tool_calls?: unknown }).tool_calls)));
+}
 
 /**
  * Which tool (and large-model name) an OpenAI `model` string selects: a model with its own listing (/ai/model/<slug>)
@@ -60,6 +69,18 @@ export function toChatQuery(body: unknown): { query: ChatQuery } | { error: stri
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object with a messages array" };
   const b = body as Record<string, unknown>;
   if (!Array.isArray(b.messages) || b.messages.length === 0) return { error: "messages must be a non-empty array of { role, content }" };
+  if (needsNative(b)) {
+    const picked = toolFor(b.model);
+    if (picked.path !== CHAT_TOOL_PATH) return { error: `tools, tool messages and response_format are served by ${CHAT_MODEL} (the default model); omit model or use llama-4-scout` };
+    const last = [...b.messages].reverse().find((m) => m && typeof m === "object" && textOf((m as { content?: unknown }).content));
+    const query: ChatQuery = { prompt: textOf((last as { content?: unknown } | undefined)?.content) || "Continue.", native: { messages: b.messages, ...(Array.isArray(b.tools) && b.tools.length ? { tools: b.tools } : {}), ...(b.tool_choice !== undefined ? { tool_choice: b.tool_choice } : {}), ...(b.response_format ? { response_format: b.response_format } : {}) } };
+    const maxTokens = Number(b.max_completion_tokens ?? b.max_tokens);
+    if (Number.isFinite(maxTokens) && maxTokens > 0) query.maxTokens = Math.min(1024, Math.floor(maxTokens));
+    const temperature = Number(b.temperature);
+    if (Number.isFinite(temperature) && temperature >= 0) query.temperature = Math.min(1.5, temperature);
+    query.prompt = query.prompt.slice(-PROMPT_LIMIT);
+    return { query };
+  }
   const turns: { role: string; text: string }[] = [];
   const systems: string[] = [];
   for (const m of b.messages) {
@@ -96,27 +117,42 @@ export function toChatQuery(body: unknown): { query: ChatQuery } | { error: stri
  */
 export function toOpenAiStream(completion: ReturnType<typeof toOpenAiResponse>, includeUsage: boolean): string {
   const base = { id: completion.id, object: "chat.completion.chunk", created: completion.created, model: completion.model };
+  const { message, finish_reason } = completion.choices[0];
+  const calls = message.tool_calls ?? [];
   const chunks = [
     { ...base, choices: [{ index: 0, delta: { role: "assistant", content: "" }, finish_reason: null }] },
-    { ...base, choices: [{ index: 0, delta: { content: completion.choices[0].message.content }, finish_reason: null }] },
-    { ...base, choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+    ...(message.content ? [{ ...base, choices: [{ index: 0, delta: { content: message.content }, finish_reason: null }] }] : []),
+    ...(calls.length ? [{ ...base, choices: [{ index: 0, delta: { tool_calls: calls.map((t, index) => ({ index, ...t })) }, finish_reason: null }] }] : []),
+    { ...base, choices: [{ index: 0, delta: {}, finish_reason }] },
     ...(includeUsage ? [{ ...base, choices: [], usage: completion.usage }] : []),
   ];
   return chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("") + "data: [DONE]\n\n";
 }
 
-/** The OpenAI-shaped answer for one chat tool result. Token counts are estimates (about four characters per token). */
-export function toOpenAiResponse(query: ChatQuery, result: { model?: string; response?: string }, requestedModel?: string) {
+type ToolCall = { id: string; type: string; function: { name: string; arguments: string } };
+type ChatResult = { model?: string; response?: string; tool_calls?: ToolCall[]; finish_reason?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } };
+
+/**
+ * The OpenAI-shaped answer for one chat tool result. A native call (tools, JSON mode) carries the model's tool_calls and
+ * its own token counts; otherwise the counts are estimates (about four characters per token).
+ */
+export function toOpenAiResponse(query: ChatQuery, result: ChatResult, requestedModel?: string) {
   const text = String(result.response ?? "");
-  const promptTokens = Math.ceil((query.prompt.length + (query.system ?? "").length) / 4);
-  const completionTokens = Math.ceil(text.length / 4);
+  const calls = Array.isArray(result.tool_calls) ? result.tool_calls : [];
+  const counted = (result.usage?.prompt_tokens ?? 0) > 0;
+  const promptTokens = counted ? result.usage!.prompt_tokens! : Math.ceil((query.prompt.length + (query.system ?? "").length) / 4);
+  const completionTokens = counted ? result.usage!.completion_tokens ?? 0 : Math.ceil(text.length / 4);
   return {
     id: `chatcmpl-${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`,
     object: "chat.completion",
     created: Math.floor(Date.now() / 1000),
     model: result.model ?? requestedModel ?? CHAT_MODEL,
-    choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }],
-    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens, estimated: true },
+    choices: [{
+      index: 0,
+      message: calls.length ? { role: "assistant", content: text || null, tool_calls: calls } : { role: "assistant", content: text as string | null },
+      finish_reason: calls.length ? "tool_calls" : result.finish_reason === "length" ? "length" : "stop",
+    }] as { index: number; message: { role: string; content: string | null; tool_calls?: ToolCall[] }; finish_reason: string }[],
+    usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens, estimated: !counted },
   };
 }
 
@@ -171,7 +207,7 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
  * forwarded call. Shared by the chat-completions and Responses fronts, which only differ in the body and answer shapes.
  */
 export async function completeChat(c: C, forward: Forward, body: unknown): Promise<
-  { ok: true; answer: Response; query: ChatQuery; result: { model?: string; response?: string }; requestedModel?: string } | { ok: false; response: Response }
+  { ok: true; answer: Response; query: ChatQuery; result: ChatResult; requestedModel?: string } | { ok: false; response: Response }
 > {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   const mapped = toChatQuery(body);
@@ -193,6 +229,12 @@ export async function completeChat(c: C, forward: Forward, body: unknown): Promi
   if (query.system) inner.searchParams.set("system", query.system);
   if (query.maxTokens) inner.searchParams.set("maxTokens", String(query.maxTokens));
   if (query.temperature !== undefined) inner.searchParams.set("temperature", String(query.temperature));
+  if (query.native) {
+    inner.searchParams.set("messages", JSON.stringify(query.native.messages));
+    if (query.native.tools) inner.searchParams.set("tools", JSON.stringify(query.native.tools));
+    if (query.native.tool_choice !== undefined) inner.searchParams.set("tool_choice", typeof query.native.tool_choice === "string" ? query.native.tool_choice : JSON.stringify(query.native.tool_choice));
+    if (query.native.response_format) inner.searchParams.set("response_format", JSON.stringify(query.native.response_format));
+  }
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
   const headers = new Headers(c.req.raw.headers);
   headers.delete("content-type");
@@ -201,14 +243,17 @@ export async function completeChat(c: C, forward: Forward, body: unknown): Promi
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
   if (answer.status === 402) return { ok: false, response: await asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", toolPath) };
   if (answer.status !== 200) return { ok: false, response: answer }; // a refusal or an uncharged error, unchanged
-  const result = (await answer.json().catch(() => ({}))) as { model?: string; response?: string };
+  const result = (await answer.json().catch(() => ({}))) as ChatResult;
   return { ok: true, answer, query, result, requestedModel };
 }
 
 /** What the quote of each front says it sells; directories list a settled front under this name and text. */
 export const FRONT_DESCRIPTIONS: Record<string, string> = {
-  "/v1/chat/completions": "OpenAI-compatible chat completions, pay per request: Llama 4 Scout by default; Llama 3.3 70B, gpt-oss-20b/120b, Qwen3 30B, Qwen2.5 Coder, Mistral Small 3.1 or DeepSeek R1 by model name. POST an OpenAI messages body (stream true or false) and get the assistant message back. No account or API key; failed calls are not charged.",
+  "/v1/chat/completions": "OpenAI-compatible chat completions for agents, pay per request: Llama 4 Scout by default with function calling (tools, tool_calls), JSON mode and streaming; Llama 3.3 70B, gpt-oss-20b/120b, Qwen3 30B, Qwen2.5 Coder, Mistral Small 3.1 or DeepSeek R1 by model name. No account or API key; failed calls are not charged.",
   "/v1/responses": "OpenAI Responses API shape, pay per request: input text or messages, instructions and max_output_tokens in, one completed message and output_text out. Llama 4 Scout by default, Llama 3.3 70B or gpt-oss-120b by model name. No account or API key; failed calls are not charged.",
+  "/v1/moderations": "OpenAI-compatible moderation, pay per request: one input in, flagged and categories out (Llama Guard 3, 14 hazard categories mapped onto OpenAI names). No account or API key; failed calls are not charged.",
+  "/v1/messages": "Anthropic Messages API shape on open models, pay per request: Llama 4 Scout by default with tool_use and streaming, or an open model by name. Claude models are not served. No account or API key; failed calls are not charged.",
+  "/v1/images/generations": "OpenAI-compatible image generation, pay per image: a prompt in, one 1024x1024 FLUX.1 schnell JPEG out as b64_json. No account or API key; failed calls are not charged.",
   "/v1/embeddings": "OpenAI-compatible embeddings, pay per request: one input string in, a 1,024-dimension BGE-M3 vector out (multilingual, for search and RAG). No account or API key; failed calls are not charged.",
 };
 
@@ -312,7 +357,10 @@ export function openAiOpenApiPaths(origin: string, prices: { small: string; larg
                   messages: { type: "array", minItems: 1, items: { type: "object", required: ["role", "content"], properties: { role: { type: "string", enum: ["system", "user", "assistant"] }, content: { type: "string" } } } },
                   max_tokens: { type: "integer", minimum: 1, maximum: 1024, description: "Maximum output tokens (default 400)" },
                   temperature: { type: "number", minimum: 0, maximum: 1.5, description: "Default 0.6" },
-                  stream: { type: "boolean", description: "Must be false or absent" },
+                  stream: { type: "boolean", description: "true answers OpenAI server-sent events ending in [DONE]" },
+                  tools: { type: "array", description: "OpenAI function tools (Llama 4 Scout, the default model): the answer carries tool_calls", items: { type: "object" } },
+                  tool_choice: { description: "auto, none, required or one named function" },
+                  response_format: { type: "object", description: "{\"type\":\"json_object\"} or a json_schema" },
                 },
               },
               example: { model: CHAT_MODEL, messages: [{ role: "system", content: "You are a concise assistant." }, { role: "user", content: "Explain x402 in one sentence." }], max_tokens: 200 },

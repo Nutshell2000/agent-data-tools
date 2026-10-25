@@ -8,4 +8,4 @@ import { MODEL_PATHS } from "../routes/ai-text";
  */
 // The per-model chat endpoints (/ai/model/*) and /ai/chat-large cost more Workers AI per call than the 8B text tools,
 // so they stay paid-only: the free calls cover the cheap AI text tools.
-export const CAPACITY_LIMITED = new Set(["/summarize", "/screenshot", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/news", "/pack/web-research", "/pack/news-sentiment", "/ai/chat-large", ...MODEL_PATHS]);
+export const CAPACITY_LIMITED = new Set(["/summarize", "/screenshot", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", ...MODEL_PATHS]);

@@ -191,6 +191,14 @@ test('fourth batch: coin and interval spellings, SEC company names, airport ICAO
   assert.equal(normalizedInput((n) => ({ url: 'example.com/a?b=1' })[n])('url'), 'https://example.com/a?b=1');
   assert.equal(normalizedInput((n) => ({ url: 'https://example.com/' })[n])('url'), 'https://example.com/');
   assert.equal(normalizedInput((n) => ({ url: 'not a url' })[n])('url'), 'not a url');
+  // Search-agent request fields (25 Oct 2026): query, numResults, urls (first one), question, statement.
+  const sent = (o) => (n) => o[n];
+  assert.equal(normalizedInput(sent({ query: 'x402' }))('q'), 'x402');
+  assert.equal(normalizedInput(sent({ numResults: '5' }))('count'), '5');
+  assert.equal(normalizedInput(sent({ urls: 'https://a.example/,https://b.example/' }))('url'), 'https://a.example/');
+  assert.equal(normalizedInput(sent({ question: 'What is x402?' }))('q'), 'What is x402?');
+  assert.equal(normalizedInput(sent({ statement: 'The sky is blue' }))('claim'), 'The sky is blue');
+  assert.equal(normalizedInput(sent({ q: 'own', query: 'alias' }))('q'), 'own', 'the real input wins');
 });
 
 test('daily spend caps count calls per UTC day in KV and refuse, uncharged, over the cap', async () => {
