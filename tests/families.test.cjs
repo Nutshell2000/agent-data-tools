@@ -29,11 +29,13 @@ const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParam
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
-  assert.equal(families.length, 285);
+  assert.equal(families.length, 291);
   for (const { endpoint: e } of families) {
     // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (Peter: the Bazaar sweeper pays only tools at or
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
     if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
+    // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
+    else if (e.path.startsWith("/ai/model/") || e.path === "/ai/moderation") assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     else assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);
@@ -66,7 +68,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,306);
+  assert.equal(ENDPOINTS.length,312);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

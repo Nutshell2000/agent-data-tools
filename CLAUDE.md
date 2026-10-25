@@ -811,3 +811,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   absent, url safety #1 5p (we #10). Tests: tests/packs-research.test.cjs. Check both Brave packs on staging after the
   release (the PC smoke run skips capacity-limited tools).
 
+
+## Open models by name; streaming chat (1.73.0, 25 Oct 2026)
+
+- `MODEL_ENDPOINTS` (src/routes/ai-text.ts) generates `/ai/model/<slug>` for Qwen3 30B, GPT-OSS 20B and 120B,
+  Mistral Small 3.1, Qwen2.5 Coder 32B and DeepSeek R1 distill; `toolFor()` (src/lib/openai-chat.ts) routes OpenAI model
+  names to them (`ChatQuery.tool`). `chat()` reads the `choices` shape (Qwen3, Granite) and strips `<think>` blocks.
+  Availability and token prices checked with `%LOCALAPPDATA%\agent-data-tools\release\train\ai-model-probe.mjs <model ids>`
+  (wrangler OAuth token, one tiny billed call each); Gemma 3 is refused on this account (5018). Keep each price above the
+  per-call token cost at max output; all are in `CAPACITY_LIMITED` (paid only) with /ai/chat-large.
+- `toOpenAiStream()`: `stream: true` gets SSE chunks and `[DONE]`; usage chunk with `stream_options.include_usage`.
+- `CHAT_MODEL` (src/routes/ai-text.ts) is Llama 4 Scout since 25 Oct 2026 (2.4 s vs 5.9 s for the 8B on a real prompt); /ai/chat and the /v1 fronts use it, the other AI text tools keep `MODELS.text` (8B). The fleet wallets 0xe827…, 0x2465…, 0xb83b… pay BlockRun's chat ~75 times in two days each: `business/agentic/base-bots/payer-profile.mjs` shows them, `sweeper-price.mjs` shows payments per listing by price band (the sweeper pays one-cent listings 0.58 times a week, cheaper ones 0.8; one cent still earns most per listing).
+
