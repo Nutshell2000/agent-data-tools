@@ -72,7 +72,7 @@ test('actual HTTP paywall links successful payment to completed output and never
   // The body carries the same terms in x402 v1 shape for v1 clients (v2 clients read the header).
   const body=await q.json();assert.equal(body.x402Version,1);const v1base=body.accepts.find(a=>a.network==='base');assert.equal(v1base.maxAmountRequired,requirements.amount);assert.equal(v1base.payTo.toLowerCase(),requirements.payTo.toLowerCase());assert.equal(v1base.asset.toLowerCase(),requirements.asset.toLowerCase());assert.match(body.hint,/llms\.txt/);
   // Card payments are ready here, so a caller without a wallet gets the $5 Stripe checkout as one link.
-  assert.match(body.hint,/No wallet\? Pay \$5 by card in one step at https:\/\/buy\.stripe\.com\/bJe4gz5ma1v99xMa33bII02 \(5,000 credits, about 500 calls at \$0\.01; the key is shown right after payment/);
+  assert.match(body.hint,/No wallet\? Pay \$1 by card in one step at https:\/\/buy\.stripe\.com\/fZufZhdSGgq3bFU5MNbII06 \(1,000 credits, about 100 calls at \$0\.01; the key is shown right after payment/);
   // A free sample shows the documented example without running the tool or settling.
   const sample=await mf.dispatchFetch('https://api.test/extract?sample=1');assert.equal(sample.status,200);assert.equal(sample.headers.get('X-Sample'),'1');
   const preview=await sample.json();assert.equal(preview.sample,true);assert.equal(preview.price,'$0.002');assert.ok(preview.example.contentHash);
@@ -102,7 +102,7 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,323);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name).sort(),['btc_fees','extract','sitemap']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
+    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,324);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name).sort(),['btc_fees','extract','sitemap']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
@@ -210,7 +210,7 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  assert.equal(quote.isError,true);assert.ok(JSON.parse(quote.content[0].text).accepts.length>0);
  assert.match(quote.content.at(-1).text,/^PAYMENT NEEDED \(\$0\.002 .*https:\/\/api\.test\/credits/);
  // Card payments are ready here, so the assistant gets the $5 Stripe checkout as one link to show its user.
- assert.match(quote.content.at(-1).text,/pay \$5 by card in one step at https:\/\/buy\.stripe\.com\/bJe4gz5ma1v99xMa33bII02 \(Stripe; 5,000 credits, about 500 calls at \$0\.01; the key is shown right after payment/);assert.match(quote.content.at(-1).text,/connect to https:\/\/api\.test\/mcp\/account instead/);
+ assert.match(quote.content.at(-1).text,/pay \$1 by card in one step at https:\/\/buy\.stripe\.com\/fZufZhdSGgq3bFU5MNbII06 \(Stripe; 1,000 credits, about 100 calls at \$0\.01; the key is shown right after payment/);assert.match(quote.content.at(-1).text,/connect to https:\/\/api\.test\/mcp\/account instead/);
  const viaUrl=new Client({name:'credits-url-fixture',version:'1'});
  try{await viaUrl.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/k/'+first.apiKey),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));const r=await viaUrl.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.notEqual(r.isError,true);}finally{await viaUrl.close();}
  assert.equal((await mf.dispatchFetch('https://api.test/mcp/k/not-a-key',{method:'POST'})).status,401);

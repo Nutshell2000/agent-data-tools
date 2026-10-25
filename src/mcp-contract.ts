@@ -29,6 +29,13 @@ const exampleText = (endpoint: Endpoint) => {
   return parts.length && text.length <= 90 ? ` Example: ${text}.` : "";
 };
 
+/**
+ * The ChatGPT directory server (/mcp/chatgpt) shows no prices or payment methods: ChatGPT's plugin rules forbid pricing
+ * and checkout prompts inside the app. Credits are bought on our own site, outside ChatGPT.
+ */
+export const directoryToolDescription = (endpoint: Endpoint) =>
+  `${endpoint.description}${exampleText(endpoint)} Uses one of this account's free calls or credits per successful call; failed calls never count. ${Object.hasOwn(WRITE_TOOLS, endpoint.path) ? "Changes only what you saved in your own memory namespace." : "Reads or computes only and changes nothing."}`;
+
 export const toolDescription = (endpoint: Endpoint) =>
   `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${Object.hasOwn(WRITE_TOOLS, endpoint.path) ? "Changes only what you saved in your own memory namespace" : "Reads or computes only and changes nothing"}; each call is charged, so repeats are not free.`;
 
@@ -52,10 +59,10 @@ export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
   );
 
 /** Exact public output schema, shared with OpenAPI. Payment errors are MCP isError results. */
-export function protocolTool(endpoint: Endpoint) {
+export function protocolTool(endpoint: Endpoint, directory = false) {
   return {
     // Directories (Claude, ChatGPT) require a human-readable title on every tool and in its annotations.
-    name: toolName(endpoint), title: endpoint.summary, description: toolDescription(endpoint), annotations: { title: endpoint.summary, ...annotationsFor(endpoint.path) },
+    name: toolName(endpoint), title: endpoint.summary, description: directory ? directoryToolDescription(endpoint) : toolDescription(endpoint), annotations: { title: endpoint.summary, ...annotationsFor(endpoint.path) },
     inputSchema: z4mini.toJSONSchema(z.object(toolInputShape(endpoint, z)), {target:"draft-7",io:"input"}) as {type:"object";[key:string]:unknown},
     ...(endpoint.outputSchema ? {outputSchema: endpoint.outputSchema as {type:"object";[key:string]:unknown}} : {}),
     execution: {taskSupport:"forbidden" as const},
