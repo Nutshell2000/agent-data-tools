@@ -37,12 +37,35 @@ async function chat(env: Env, system: string, user: string, maxTokens = 400, tem
   const out = await runAi<{ response?: unknown; output?: { type?: string; content?: { type?: string; text?: string }[] }[] }>(env, model, responsesShape
     ? { input: [{ role: "system", content: system }, { role: "user", content: user }], reasoning: { effort: "low" }, max_output_tokens: maxTokens, temperature }
     : { messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: maxTokens, temperature });
-  // Llama models answer with `response`; the OpenAI open-weight models may answer in the Responses shape (`output`).
+  // Llama models answer with `response`; the OpenAI open-weight models may answer in the Responses shape (`output`);
+  // Qwen3 and Granite answer in the chat-completions shape (`choices`).
   const fromOutput = Array.isArray(out?.output) ? out.output.filter((o) => o?.type === "message").flatMap((o) => (o.content ?? []).map((c) => c?.text ?? "")).join("") : "";
-  const reply = String(typeof out?.response === "string" ? out.response : fromOutput).trim();
+  const fromChoices = (out as { choices?: { message?: { content?: unknown } }[] })?.choices?.[0]?.message?.content;
+  const raw = String(typeof out?.response === "string" ? out.response : typeof fromChoices === "string" ? fromChoices : fromOutput);
+  // Reasoning models (DeepSeek R1 distill, Qwen3) think inside <think>…</think> before they answer: the answer is what follows.
+  if (/<think>/i.test(raw) && !/<\/think>/i.test(raw)) throw new HttpError(502, "the model used every output token on its reasoning and gave no answer; raise maxTokens (nothing was charged)");
+  const reply = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   if (!reply) throw new HttpError(502, "the AI model returned an empty answer");
   return reply;
 }
+
+/**
+ * One listing per open model (25 Oct 2026): Bazaar buyers search inference by model name ("deepseek" 40 payers summed
+ * over the top 20, "llama" 43, "gpt-oss" 37, "qwen" 28, "mistral" 18), and each of those searches was won by a one-model
+ * listing with 2-5 payers while ours sat at #9-#10 or was absent. Every model here answered on this account that day and
+ * permits commercial use. Prices sit above the model's Workers AI token cost at 1,024 output tokens and an 8,000-character
+ * prompt (per million tokens in/out: Qwen3 30B $0.05/$0.34, GPT-OSS 20B $0.20/$0.30, Llama 4 Scout $0.27/$0.85, Mistral
+ * Small 3.1 $0.35/$0.56, Qwen2.5 Coder 32B $0.66/$1.00, GPT-OSS 120B $0.35/$0.75, DeepSeek R1 distill $0.50/$4.88).
+ */
+export const MODEL_ENDPOINTS = [
+  { slug: "qwen3-30b", id: "@cf/qwen/qwen3-30b-a3b-fp8", name: "Qwen3 30B chat API", maker: "Alibaba's Qwen3 30B-A3B mixture-of-experts model", licence: "Apache 2.0", price: "$0.002", tags: ["qwen", "qwen3"], maxTokens: 1024 },
+  { slug: "gpt-oss-20b", id: "@cf/openai/gpt-oss-20b", name: "GPT-OSS 20B chat API", maker: "OpenAI's open-weight gpt-oss-20b reasoning model", licence: "Apache 2.0", price: "$0.002", tags: ["gpt-oss", "openai"], maxTokens: 1024 },
+  { slug: "gpt-oss-120b", id: "@cf/openai/gpt-oss-120b", name: "GPT-OSS 120B chat API", maker: "OpenAI's open-weight gpt-oss-120b reasoning model", licence: "Apache 2.0", price: "$0.01", tags: ["gpt-oss", "openai"], maxTokens: 1024 },
+  { slug: "mistral-small", id: "@cf/mistralai/mistral-small-3.1-24b-instruct", name: "Mistral Small 3.1 chat API", maker: "Mistral AI's Mistral Small 3.1 24B model", licence: "Apache 2.0", price: "$0.005", tags: ["mistral", "mistral-small"], maxTokens: 1024 },
+  { slug: "qwen-coder", id: "@cf/qwen/qwen2.5-coder-32b-instruct", name: "Qwen2.5 Coder 32B, code LLM API", maker: "Alibaba's Qwen2.5 Coder 32B code model", licence: "Apache 2.0", price: "$0.005", tags: ["code-llm", "qwen", "coding"], maxTokens: 1024 },
+  { slug: "deepseek-r1", id: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b", name: "DeepSeek R1 reasoning model API", maker: "DeepSeek's R1 reasoning model distilled into Qwen 32B", licence: "MIT", price: "$0.01", tags: ["deepseek", "deepseek-r1", "reasoning-model"], maxTokens: 2048 },
+] as const;
+export const MODEL_PATHS = MODEL_ENDPOINTS.map((m) => `/ai/model/${m.slug}`);
 
 /** First JSON value in a model reply (models sometimes wrap it in prose or code fences). */
 function jsonFrom(reply: string): unknown {
@@ -83,22 +106,29 @@ const ai = (path: string, summary: string, description: string, tags: string[], 
  * when that is used up the call answers 503, uncharged.
  */
 export const CHAT_PRICE = "$0.002";
+/**
+ * /ai/chat's model since 25 Oct 2026: Llama 4 Scout answered a realistic prompt in 2.4 s against the 8B model's 5.9 s, and
+ * better. The buyers that matter here (a fleet of three wallets paying BlockRun's $0.002 chat 70-75 times in two days)
+ * tried ours once each and went back. Its token cost ($0.27/$0.85 per million) stays far below $0.002 for ordinary calls.
+ * The other AI text tools keep the cheaper 8B model (MODELS.text).
+ */
+export const CHAT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"; // Llama 4 Community License
 
 export const AI_TEXT: Entry[] = [
   // "chat completions" (the bigger search) lost us when ", inference" was appended on 24 Oct: #5 before, absent after. One
   // phrase per name when the tool has one main task; /ai/chat-large carries "LLM inference".
-  ai("/ai/chat", "LLM chat completions: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
-    ["chat", "completion", "llama"], {
+  ai("/ai/chat", "LLM chat completions: Llama 4 Scout", "Send a prompt, get an answer from Meta's Llama 4 Scout (17B active, 16 experts), with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Fast and cheap. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account; other open models by name at /v1/chat/completions, harder reasoning at ai_chat_large.",
+    ["chat", "completion", "llama", "llama-4"], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
       maxTokens: { type: "integer", description: "Maximum output tokens, 1-1024 (default 400)", example: 200 },
       temperature: { type: "number", description: "0-1.5 (default 0.6)", example: 0.6 },
-    }, { model: MODELS.text, response: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." },
+    }, { model: CHAT_MODEL, response: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." },
     async (env, q) => {
       const prompt = need(q, "prompt", 8000);
       const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
-      const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }));
-      return { model: MODELS.text, response };
+      const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }), CHAT_MODEL);
+      return { model: CHAT_MODEL, response };
     }, CHAT_PRICE),
   entry("/ai/chat-large", "LLM inference, large model: Llama 3.3 70B or gpt-oss-120b", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
     ["chat", "completion", "llama", "gpt-oss", ...T], {
@@ -117,6 +147,20 @@ export const AI_TEXT: Entry[] = [
       const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }), model);
       return { model, response };
     }, LARGE_CHAT_PRICE),
+  ...MODEL_ENDPOINTS.map((m) => entry(`/ai/model/${m.slug}`, `${m.name}: pay per call, no API key`,
+    `Chat with ${m.maker} (${m.licence}) through one paid HTTP call: send a prompt and an optional system prompt, get the answer, up to ${m.maxTokens.toLocaleString("en-US")} output tokens${m.slug === "deepseek-r1" || m.slug === "qwen3-30b" ? "; its reasoning is removed from the answer" : ""}. Also reachable as model "${m.slug}" on the OpenAI-compatible /v1/chat/completions. No account or provider key. Use when an agent wants this model by name.`,
+    [...m.tags, "llm", "chat-completions", "ai"], {
+      prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
+      system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
+      maxTokens: { type: "integer", description: `Maximum output tokens, 1-${m.maxTokens} (default ${m.slug === "deepseek-r1" ? 1500 : 400})`, example: 200 },
+      temperature: { type: "number", description: "0-1.5 (default 0.6)", example: 0.6 },
+    }, { model: m.id, response: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." },
+    async (env, q) => {
+      const prompt = need(q, "prompt", 8000);
+      const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
+      const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: m.maxTokens, fallback: m.slug === "deepseek-r1" ? 1500 : 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }), m.id);
+      return { model: m.id, response };
+    }, m.price)),
   ai("/ai/summarize-text", "Summarize text", "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize).",
     ["summary", "summarize"], { text: { type: "string", description: "Text to summarize, up to 12,000 characters", required: true, example: "x402 is an open protocol for internet-native payments. A server answers 402 Payment Required with the price; the client pays in stablecoins and retries. No accounts or API keys are needed." }, sentences: { type: "integer", description: "Summary length in sentences, 1-8 (default 3)", example: 2 } },
     { summary: "x402 lets clients pay per request with stablecoins after a 402 challenge, without accounts.", keyPoints: ["Server returns 402 with the price", "Client pays and retries"], model: MODELS.text },
