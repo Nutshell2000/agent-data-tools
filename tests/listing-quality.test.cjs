@@ -166,7 +166,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/check/x402-seller", ["x402 audit"]],
     ["/price/token", ["crypto price", "token price"]],
     ["/search", ["web search"]],
-    ["/news", ["news headlines", "latest news"]],
+    ["/news", ["crypto news", "news headlines"]], // 25 Oct: "latest news" is held by a 13-payer listing; "crypto news" #1 has 2
     ["/qr", ["qr code generator"]],
     ["/calc/loan", ["loan", "mortgage calculator"]],
     ["/calc/compound-interest", ["compound interest"]],

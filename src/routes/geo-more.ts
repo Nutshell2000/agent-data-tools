@@ -76,7 +76,7 @@ export const GEO_MORE: Entry[] = [
       return { lat, lon, radiusKm: radius, ...shaped, places: shaped.places.slice(0, 10), source: "Wikidata (CC0)" };
     }),
 
-  entry("/pack/coin-research", "Crypto coin research pack: price, funding, depth, signals",
+  entry("/pack/coin-research", "Crypto research, coin brief: price, funding, depth, signals",
     "One call to research a single coin traded on Hyperliquid (BTC, ETH, SOL, HYPE and about 200 more): price, 24-hour change, volume and open interest, the funding rate now and over the last 3 days, order-book depth and spread, technical readings on the 4-hour and daily charts (RSI, MACD, moving averages, Bollinger, volatility), and market-wide sentiment (Fear & Greed, attributed). Use before a trade or for a coin brief.",
     ["crypto-research", "token-research", "coin", "pack", "crypto", "trading"], { coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)", example: "ETH" } },
     { pack: "coin-research", coin: "ETH", market: { markPx: 2380.5, change24hPct: -0.9, dayVolumeUsd: 531266943, openInterestUsd: 2562637002, fundingAprPct: 3.38 }, funding3d: { averageAprPct: 8.15 }, depth: { spreadBps: 0.42, bidDepthUsd: 1200000, askDepthUsd: 980000 }, signals: { "4h": { rsi14: 40.8, readings: ["RSI neutral (30-70)"] }, "1d": { rsi14: 45.1, readings: ["price below SMA 200"] } }, sentiment: { value: 51, classification: "Neutral" }, failed: {} },
@@ -104,5 +104,5 @@ export const GEO_MORE: Entry[] = [
         signals: { "4h": sig(data.h4), "1d": sig(data.d1) },
         sentiment: s ? { value: s.value, classification: s.classification, attribution: s.attribution } : null, failed,
       };
-    }, "$0.03"),
+    }, "$0.01"),
 ];

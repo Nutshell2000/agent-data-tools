@@ -63,7 +63,7 @@ export function allCases(s: string) {
 export const slugify = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120);
 
 export const TOOLBOXES2: Entry[] = [
-  entry("/pack/id-toolbox", "ID generator: UUID v4, UUID v7, ULID, NanoID",
+  entry("/pack/id-toolbox", "ID generator, UUID, ULID: UUID v4, UUID v7, ULID, NanoID",
     "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data.",
     ["id-generator", "uuid", "ulid", "nanoid", ...T], {
       count: { type: "integer", description: "How many of each kind, 1-20 (default 3)", example: 3 },
@@ -81,7 +81,7 @@ export const TOOLBOXES2: Entry[] = [
         base62: many(() => randomString(len)), hex: many(() => randomString(len, "0123456789abcdef")),
         decoded: decode ? decodeId(decode) : null,
       };
-    }, "$0.02"),
+    }, "$0.01"),
 
   entry("/pack/string-toolbox", "String utilities: every case, slug, counts and more",
     "Transform one string every common way at once: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, path/case, Title Case, Sentence case, upper and lower; a URL slug (accents removed); reversed; trimmed and whitespace-collapsed; and counts of characters, letters, digits, words and lines. Splits identifiers like userIDValue or XMLHttpRequest correctly. Use when naming fields, files and routes or cleaning user input.",
@@ -94,5 +94,5 @@ export const TOOLBOXES2: Entry[] = [
         cases: allCases(text), slug: slugify(text), reversed: [...text].reverse().join(""), collapsed: text.replace(/\s+/g, " ").trim(),
         counts: { characters: [...text].length, letters: (text.match(/\p{L}/gu) ?? []).length, digits: (text.match(/\p{N}/gu) ?? []).length, words: (text.match(/\S+/g) ?? []).length, lines: text.split(/\r?\n/).length },
       };
-    }, "$0.02"),
+    }, "$0.01"),
 ];

@@ -6,8 +6,14 @@
 export const CREDIT_KEY_PREFIX = "adt_";
 export const MICROS_PER_CREDIT = 1000;
 
-/** What each pack costs and gives. The Stripe payment links carry metadata adt_credits with the same number. */
+/**
+ * What each pack costs and gives. The Stripe payment links carry metadata adt_credits with the same number.
+ * The $1 pack (25 Oct 2026, Peter's decision: a first card step cheaper than $5 for the people who land on a tool page) is
+ * sold over MPP at /credits/buy/1 at once; its web link appears when Peter creates the Stripe payment link ($1.00, metadata
+ * adt_credits=1000, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID}) and its URL is pasted here.
+ */
 export const CREDIT_PACKS = [
+  { usdCents: 100, credits: 1_000, url: "" },
   { usdCents: 500, credits: 5_000, url: "https://buy.stripe.com/bJe4gz5ma1v99xMa33bII02" },
   { usdCents: 2_000, credits: 22_000, url: "https://buy.stripe.com/eVq3cv01Q3Dh4dsdffbII03" },
   { usdCents: 10_000, credits: 125_000, url: "https://buy.stripe.com/cNi8wP5ma6Pt8tI1wxbII04" },
@@ -20,7 +26,9 @@ export const CREDIT_PACKS = [
  */
 export const topUpReference = (keyHash: string) => `topup_${keyHash}`;
 export const keyHashFromReference = (ref: unknown) => typeof ref === "string" && /^topup_[0-9a-f]{64}$/.test(ref) ? ref.slice(6) : undefined;
-export const topUpLinks = (keyHash: string) => CREDIT_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${p.url}?client_reference_id=${topUpReference(keyHash)}` }));
+/** The packs with a Stripe checkout page: what browsers, hints and top-up lists show. MPP sells every pack. */
+export const WEB_PACKS = CREDIT_PACKS.filter((p) => p.url !== "");
+export const topUpLinks = (keyHash: string) => WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${p.url}?client_reference_id=${topUpReference(keyHash)}` }));
 
 /** "$0.001" -> 1000 (USD micros). Throws on anything that is not a plain dollar price. */
 export function priceMicros(price: string): number {

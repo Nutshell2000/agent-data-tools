@@ -31,9 +31,10 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   assert.equal(new Set(paths).size, paths.length);
   assert.equal(families.length, 282);
   for (const { endpoint: e } of families) {
-    // Packs (several tools in one call) cost $0.02 or $0.03, always below their tools bought one by one.
-    if (e.path.startsWith("/pack/")) assert.ok(["$0.02", "$0.03"].includes(e.price), e.path);
-    else assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.03" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
+    // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (Peter: the Bazaar sweeper pays only tools at or
+    // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
+    if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
+    else assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);

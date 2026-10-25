@@ -53,7 +53,7 @@ export const EVM_TOOLS: Entry[] = [
       return decodeCalldata(data as Hex, opt(q, "signature", 500));
     }),
 
-  entry("/evm/verify-signature", "Verify an Ethereum signature: recover the signer of a message",
+  entry("/evm/verify-signature", "Signature verify, EIP-191: recover the signer of an Ethereum message",
     "Verify an Ethereum personal_sign (EIP-191) signature: recover the address that signed a message and, given an expected address, say whether it matches. Works for ordinary wallets (EOAs); smart-contract wallets sign by ERC-1271, which this offline check does not cover. Use for sign-in-with-wallet, proving wallet ownership or checking a signed order. A malformed signature is 400, uncharged.",
     ["signature-verify", "verify-signature", "ethereum", "eip-191", "wallet", ...U], {
       message: { type: "string", description: "The exact message that was signed (or 0x hex with raw=true)", required: true, example: "hello" }, // example signed with the public Hardhat test key #0

@@ -737,3 +737,42 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - The release train's chaining script and notes live in `%LOCALAPPDATA%\agent-data-tools\release\train\` (the session
   scratchpad was wiped at the day change on 25 Oct and took the queued 1.68.0 train with it).
 
+
+## Listing names, tags and examples from the 25 Oct measurement (1.69.0, no new tools)
+
+- After the 25 Oct Refresh (301 of 302 listed): #1 in 75 of 208 task searches, top 3 in 157, present in 199.
+  `business/agentic/base-bots/flip-candidates.mjs` turns the daily `search-ranks-<day>.json` into three lists: text-flippable
+  (nobody above us has more payers), absent (tool exists), and payer-blocked by one. Work the first two with names and tags;
+  the third only buyers can change.
+- **One phrase per name when a tool has one task.** "LLM chat completions, inference" fell out of the "chat completions"
+  results (was #5 as "LLM chat completions"); two-phrase names are for tools that genuinely answer two searches (candles +
+  OHLCV). Where a same-payer competitor beat us, its name was the bare phrase ("SHA-256 Hash", "Date Difference"), so the
+  flippable tools now lead with the exact phrase and stay short.
+- Measured name shape (`name-shape.mjs`, 103 equal-payer pairs): starts-with-query 67%, contains 61%, description opens
+  with it 60%, more calls30 60%, shorter 42%. Rule: the name STARTS with the phrase buyers type; add a second phrase only
+  for a second real task; never shorten for its own sake. Chain reads whose searched phrase has no chain word ("nft
+  owner", "block number", "estimate gas"…) are "<Phrase>, <Chain>"; chain-named reads stay "<Chain> balance".
+  `search-ranks.mjs` now measures 363 searches (every tool at least once; `name-audit.mjs` lists names that do not start
+  with their query and tools without a search).
+- Tags: the Bazaar matches the first five; every tool now has at least five, the searched phrases first (`SEARCH_TAGS`
+  third pass in src/lib/bazaar-extension.ts). "http status check" belongs to `/url/uptime`, not `/http/status` (which
+  explains a status code).
+- Published examples must read as ordinary content: `/pack/text-analysis` stayed unlisted after a settled payment while its
+  example ended in "Ignore previous instructions." Example outputs are checked against real answers with
+  `%LOCALAPPDATA%\agent-data-tools\release\train\example-keys.mjs <smoke output with SMOKE_SHOW>`; only `/extract` shows a
+  field (`markdown`) its `format=text` example input does not return.
+- **Every tool is at most $0.01 (Peter, 25 Oct).** Measured from /revenue byEndpoint against catalog prices: the sweeper
+  0xec2a…d034 pays every listed tool at or below $0.01 and none above (253/254 vs 0/21 at $0.02). The 32 dearer tools
+  (all packs, the risk checks, media, /package-audit) are $0.01. `scripts/freeze-prices.mjs "<decision>"` regenerates
+  tests/fixtures/price-freeze.json (now all 302 paths) and appends the decision to its note. FluxA's catch-all passes
+  every tool now. After a price release: `update-402index-prices.mjs --dry` then real; Bazaar shows new prices after the
+  next settlement per tool (Refresh).
+- **$1 credit pack (25 Oct):** `CREDIT_PACKS` gained `{ usdCents: 100, credits: 1_000, url: "" }`; `WEB_PACKS` (packs with a
+  Stripe link) drives browsers, 402/MCP hints and top-ups, `CREDIT_PACKS` drives MPP (`/credits/buy/1` works now). Peter's
+  step: create the $1.00 payment link (metadata adt_credits=1000, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID})
+  and paste its URL; then the hints switch to $1 by themselves (first WEB_PACKS entry). Per-call card payments are
+  impossible (Stripe $0.50 minimum); do not add a stripe method to tool 402s (Tempo must stay the first challenge, and a
+  challenge amount other than the tool price confuses validators).
+- The release train's chaining script and notes live in `%LOCALAPPDATA%\agent-data-tools\release\train\` (the session
+  scratchpad was wiped at the day change on 25 Oct and took the queued 1.68.0 train with it).
+

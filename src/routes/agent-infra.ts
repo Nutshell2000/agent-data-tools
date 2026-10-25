@@ -110,7 +110,7 @@ export const AGENT_INFRA: Entry[] = [
       return { url: url.href, ...summariseSpec(spec) };
     }),
 
-  entry("/mcp/inspect", "MCP server inspector: tools, auth and protocol check",
+  entry("/mcp/inspect", "MCP server check, inspector: tools, auth and protocol",
     "Inspect a remote MCP server over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy.",
     ["mcp-server-check", "mcp", "mcp-inspector", "agents", "developer-tools", "utility"], { url: { type: "string", description: "The MCP server's streamable-HTTP URL", required: true, example: "https://mcp.deepwiki.com/mcp" } },
     { url: "https://mcp.deepwiki.com/mcp", reachable: true, status: 200, authRequired: false, server: { name: "DeepWiki", version: "2.14.3" }, protocolVersion: "2025-06-18", capabilities: ["prompts", "resources", "tools"], transport: "sse", toolCount: 3, tools: [{ name: "read_wiki_structure", title: null, description: "Get a list of documentation topics for a GitHub repository", params: ["repoName"], required: ["repoName"] }], promptCount: 0, resourceCount: 0 },
@@ -142,7 +142,7 @@ export const AGENT_INFRA: Entry[] = [
       };
     }),
 
-  entry("/pack/api-health", "API health check pack: uptime, latency, headers, x402",
+  entry("/pack/api-health", "API health check: uptime, latency, headers, x402",
     "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at the usual places. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy.",
     ["api-health", "api-check", "x402-endpoint", "pack", "monitoring", "developer-tools"], { url: { type: "string", description: "The API endpoint URL", required: true, example: "https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available" } },
     { pack: "api-health", url: "https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available", up: true, status: 200, latencyMs: { min: 180, median: 210, max: 260 }, redirects: 0, security: { grade: "C" }, x402: { paid: false }, openapi: { found: true, specUrl: "https://petstore3.swagger.io/api/v3/openapi.json", title: "Swagger Petstore - OpenAPI 3.0", operationCount: 19 }, failed: {} },
@@ -170,5 +170,5 @@ export const AGENT_INFRA: Entry[] = [
         openapi: o ? (o.found ? { found: true, specUrl: o.specUrl, title: o.title, version: o.version, operationCount: o.operationCount, paidOperations: o.paidOperations } : { found: false, tried: o.tried }) : null,
         failed,
       };
-    }, "$0.02"),
+    }, "$0.01"),
 ];

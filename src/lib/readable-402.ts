@@ -7,14 +7,14 @@ import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import type { Endpoint } from "../endpoints";
 import { relatedList } from "./related";
-import { CREDIT_PACKS } from "./credits";
+import { WEB_PACKS } from "./credits";
 
 /**
  * The card route for callers without a wallet. While card payments can issue keys it is the $5 Stripe checkout as one
  * link (22 Oct: nobody reached /credits, and a page in between is one step too many for a person an agent is helping).
  */
 function cardHint(origin: string, cardReady: boolean) {
-  const [starter] = CREDIT_PACKS;
+  const [starter] = WEB_PACKS;
   return cardReady
     ? `No wallet? Pay $${starter.usdCents / 100} by card in one step at ${starter.url} (${starter.credits.toLocaleString("en-US")} credits, about ${Math.floor(starter.credits / 10).toLocaleString("en-US")} calls at $0.01; the key is shown right after payment; other packs at ${origin}/credits), then send the key as Authorization: Bearer adt_….`
     : `No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_….`;
