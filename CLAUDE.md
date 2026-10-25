@@ -789,3 +789,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   the catastrophic shapes; the 30 s CPU limit bounds the rest. Paused tools left: Solana reads, /base/gas and /base/tx
   twins, and the sources without commercial terms (air-quality, uv, elevation, crypto/price, iss, hackernews/top).
 
+
+## Packs as the upsell (1.71.0, 25 Oct 2026, no new tools)
+
+- `PACK_OF` (src/lib/related.ts) maps about 90 tools to the pack that runs them; `relatedTools()` puts that pack first, so the
+  Link header, the 402 body's `related` list and the tool page offer it. All tools and packs are $0.01, so a pack is the
+  better buy for any bot that wanted one of its tools. Keep the map in step when a pack gains or loses a section.
+- 25 Oct pack probe: #1 for wallet analysis, ip intelligence, nft analysis, encoding tools, seo toolkit, gas tracker, api
+  health, text analysis, location data, string utilities, id generator; payer-blocked for token analysis (23p), crypto
+  market overview (5-9p), json tools (32p), developer tools (Cult OS 32p). Packs got their first sweep payers only after
+  the one-cent price (1.69.0); expect them to climb on payers, not names.
+

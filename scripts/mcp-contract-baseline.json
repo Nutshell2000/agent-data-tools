@@ -1,5 +1,5 @@
 {
-  "version": "1.70.0",
+  "version": "1.71.0",
   "tools": [
     {
       "name": "extract",
@@ -7814,7 +7814,7 @@
     },
     {
       "name": "pack_domain_intel",
-      "description": "Domain intelligence in one call to enrich a company domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Company enrichment in one call for any domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
