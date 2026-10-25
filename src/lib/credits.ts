@@ -9,11 +9,11 @@ export const MICROS_PER_CREDIT = 1000;
 /**
  * What each pack costs and gives. The Stripe payment links carry metadata adt_credits with the same number.
  * The $1 pack (25 Oct 2026, Peter's decision: a first card step cheaper than $5 for the people who land on a tool page) is
- * sold over MPP at /credits/buy/1 at once; its web link appears when Peter creates the Stripe payment link ($1.00, metadata
- * adt_credits=1000, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID}) and its URL is pasted here.
+ * sold over MPP at /credits/buy/1; its Stripe payment link ($1.00 USD, metadata adt_credits=1000, success URL
+ * /credits/claim?session_id={CHECKOUT_SESSION_ID}, automatic tax off so the total stays $1.00) was created on 25 Oct.
  */
 export const CREDIT_PACKS = [
-  { usdCents: 100, credits: 1_000, url: "" },
+  { usdCents: 100, credits: 1_000, url: "https://buy.stripe.com/fZufZhdSGgq3bFU5MNbII06" },
   { usdCents: 500, credits: 5_000, url: "https://buy.stripe.com/bJe4gz5ma1v99xMa33bII02" },
   { usdCents: 2_000, credits: 22_000, url: "https://buy.stripe.com/eVq3cv01Q3Dh4dsdffbII03" },
   { usdCents: 10_000, credits: 125_000, url: "https://buy.stripe.com/cNi8wP5ma6Pt8tI1wxbII04" },
@@ -27,7 +27,7 @@ export const CREDIT_PACKS = [
 export const topUpReference = (keyHash: string) => `topup_${keyHash}`;
 export const keyHashFromReference = (ref: unknown) => typeof ref === "string" && /^topup_[0-9a-f]{64}$/.test(ref) ? ref.slice(6) : undefined;
 /** The packs with a Stripe checkout page: what browsers, hints and top-up lists show. MPP sells every pack. */
-export const WEB_PACKS = CREDIT_PACKS.filter((p) => p.url !== "");
+export const WEB_PACKS = CREDIT_PACKS.filter((p) => (p.url as string) !== "");
 export const topUpLinks = (keyHash: string) => WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${p.url}?client_reference_id=${topUpReference(keyHash)}` }));
 
 /** "$0.001" -> 1000 (USD micros). Throws on anything that is not a plain dollar price. */
@@ -194,9 +194,13 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
   }
   if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
   if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
-  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null };
+  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null; currency_conversion?: { amount_total?: number; source_currency?: string } | null };
   if (s.mode !== "payment" || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
-  const pack = CREDIT_PACKS.find((p) => p.usdCents === s.amount_total && String(p.credits) === s.metadata?.adt_credits);
-  if (s.currency !== "usd" || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
+  // Adaptive Pricing (on for the account): a buyer outside the US pays in their own currency, and the session then
+  // carries that currency at the top level and the USD price in currency_conversion. Judge the pack on the USD price.
+  const cc = s.currency_conversion;
+  const usdTotal = cc?.source_currency === "usd" && typeof cc.amount_total === "number" ? cc.amount_total : s.currency === "usd" ? s.amount_total : undefined;
+  const pack = CREDIT_PACKS.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits);
+  if (usdTotal === undefined || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
   return { ...pack, topUpKeyHash: keyHashFromReference(s.client_reference_id) };
 }

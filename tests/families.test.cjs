@@ -34,14 +34,14 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
     if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
     // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
-    else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
+    else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     else assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 302);
+  assert.equal(families.length, 303);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -69,7 +69,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,323);
+  assert.equal(ENDPOINTS.length,324);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

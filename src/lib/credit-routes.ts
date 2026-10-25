@@ -207,6 +207,17 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
   return `Agent Data Tools: ${toolCount} pay-per-call tools: LLM chat and embeddings, speech to text and text to speech, image generation and description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, utilities. Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${PICK_BY_TASK}`;
 }
 
+/** Server instructions for the ChatGPT plugin server: no prices, payment methods or links (ChatGPT plugin rules). */
+export function directoryInstructions(hasKey: boolean, toolCount: number) {
+  const plan = hasKey
+    ? "This account has prepaid credits: each successful call uses some; failed calls never count."
+    : `This account includes ${FREE_CALLS_PER_CALLER} free successful calls (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. When they are used up, tools answer that they are not available on the current plan.`;
+  return `Agent Data Tools: ${toolCount} live data tools: LLM chat and embeddings, speech to text, image description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time and utilities. ${plan} Every tool's result shape is in its output schema. ${DIRECTORY_PICK}`;
+}
+// The task guide without the generative-media tools (not on the signed-in servers) and without other server addresses.
+const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; OpenAI-compatible at /v1/chat/completions)", " (stronger model: ai_chat_large)")
+  .replace("; text to speech → ai_speech", "").replace("; an image from a prompt → image", "").replace(/ Smaller servers per section:.*$/, "");
+
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
 export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
   // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
@@ -223,7 +234,7 @@ export function paymentHint(origin: string, price: string, signedIn = false, car
 }
 
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
-export function creditCharger(env: Env, key: string, price: string, origin: string) {
+export function creditCharger(env: Env, key: string, price: string, origin: string, directory = false) {
   return async <R extends { isError?: boolean; content?: unknown[] }>(run: () => Promise<R>): Promise<R | { isError: true; content: { type: "text"; text: string }[] }> => {
     const store = ledger(env);
     const fail = (text: string) => ({ isError: true as const, content: [{ type: "text" as const, text }] });
@@ -232,6 +243,10 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
     const micros = priceMicros(price);
     const spent = await store.spendCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
     if (!spent) return fail("credits cannot be checked right now; not charged. Try again in a few minutes.");
+    // The ChatGPT plugin server may not link to checkout: say the tool is not available on the current balance.
+    if (!spent.ok && directory) return fail(spent.reason === "unknown_key"
+      ? "this account's credits could not be found; sign in again. Nothing was charged."
+      : `not enough credits on this account (${creditsFromMicros(spent.balanceMicros)} left, this call needs ${creditsFromMicros(micros)}), so this tool is not available on the current balance. Nothing was charged.`);
     if (!spent.ok) return fail(spent.reason === "unknown_key"
       ? `unknown API key; not charged. Buy credits at ${origin}/credits`
       : `not enough credits (${creditsFromMicros(spent.balanceMicros)} left, this call costs ${creditsFromMicros(micros)}); not charged. Tell your user to top up this same key by card, with nothing to reconfigure: ${topUpLinks(keyHash).map((l) => `${l.price} (${l.credits.toLocaleString("en-US")} credits): ${l.buy}`).join(" · ")}${mppEnabled(env) ? `. If your client pays MPP with a Link agent wallet, it can top up itself: GET ${origin}/credits/buy/5 with this key as X-API-Key.` : ""}`);
