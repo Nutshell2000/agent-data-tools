@@ -776,3 +776,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - The release train's chaining script and notes live in `%LOCALAPPDATA%\agent-data-tools\release\train\` (the session
   scratchpad was wiped at the day change on 25 Oct and took the queued 1.68.0 train with it).
 
+
+## Workers Paid and the AI text tools in the free calls (1.70.0, 25 Oct 2026)
+
+- Peter bought Workers Paid ($5/month) on 25 Oct ~11:30 UTC: no 100k requests/day cap, Paid Durable Object limits, CPU
+  limit 30 s per request instead of 10 ms (no `cpu_ms` in wrangler.jsonc), Workers AI and Browser Rendering billed per
+  use (AI_DAILY_CAP and BROWSER_DAILY_CAP stay). Releases may run at any hour; one directory registration a day stays.
+- `CAPACITY_LIMITED` (src/lib/capacity.ts) no longer holds the AI text paths, so /ai/chat and the other text models are in
+  the 25 free calls, on the FluxA/RapidAPI proxies and in the marketplace OpenAPI. Tests that needed a "not free" tool use
+  /image (pages) and `search` (on /mcp/account, which omits /image).
+- `/regex/test` unpaused (303 tools): a nested-quantifier/backreference guard in the handler (src/routes/utils.ts) refuses
+  the catastrophic shapes; the 30 s CPU limit bounds the rest. Paused tools left: Solana reads, /base/gas and /base/tx
+  twins, and the sources without commercial terms (air-quality, uv, elevation, crypto/price, iss, hackernews/top).
+

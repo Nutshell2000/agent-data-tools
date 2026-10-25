@@ -1,5 +1,5 @@
 {
-  "version": "1.69.0",
+  "version": "1.70.0",
   "tools": [
     {
       "name": "extract",
@@ -5364,6 +5364,39 @@
       "price": "$0.01"
     },
     {
+      "name": "regex_test",
+      "description": "Run a JavaScript regular expression against a text and return every match with its index and capture groups (named groups included). Pattern up to 300 characters, text up to 5,000; patterns with nested quantifiers such as (a+)+ are refused as unsafe, uncharged. Use to check a pattern before using it in code. Example: pattern=(\\d{4})-(\\d{2}), text=2026-10 and 2027-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "The pattern without slashes"
+          },
+          "text": {
+            "type": "string",
+            "description": "The text to search"
+          },
+          "flags": {
+            "type": "string",
+            "description": "Flags such as g, i, m, s, u (g is always added)"
+          }
+        },
+        "required": [
+          "pattern",
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "cron_next",
       "description": "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it. Example: expr=*/15 9-17 * * MON-FRI. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -8794,7 +8827,7 @@
     },
     {
       "name": "ai_chat",
-      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large. Example: prompt=Explain x402 in one sentence.. Price $0.002/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large. Example: prompt=Explain x402 in one sentence.. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8832,7 +8865,7 @@
     },
     {
       "name": "ai_chat_large",
-      "description": "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A. Example: prompt=Explain x402 in one sentence.. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A. Example: prompt=Explain x402 in one sentence.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8878,7 +8911,7 @@
     },
     {
       "name": "ai_summarize_text",
-      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Summarize up to 12,000 characters of text you send into a few sentences plus bullet key points. Use for long emails, documents, transcripts and tool outputs (for a web page by URL, use /summarize). Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8908,7 +8941,7 @@
     },
     {
       "name": "ai_sentiment",
-      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8932,7 +8965,7 @@
     },
     {
       "name": "ai_classify",
-      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Zero-shot classification: give text and 2-20 candidate labels, get the best label, a short reason and a ranking. Use for routing tickets, tagging content, intent detection and moderation queues. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8961,7 +8994,7 @@
     },
     {
       "name": "ai_keywords",
-      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "The most important keywords and key phrases of a text, most relevant first. Use for tagging, SEO, search indexing and topic detection. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8991,7 +9024,7 @@
     },
     {
       "name": "ai_rewrite",
-      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Example: text=hey, cant make it tmrw, can we move to thu?. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Rewrite text to be more formal, casual, simpler, shorter, friendlier, more professional or more persuasive, keeping the meaning and language. Use to polish emails, replies, product copy and messages. Example: text=hey, cant make it tmrw, can we move to thu?. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9028,7 +9061,7 @@
     },
     {
       "name": "ai_outline",
-      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Example: text=How small businesses can accept stablecoin payments. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "A structured Markdown outline (headings and bullet points) of a text you send, or a suggested outline for a topic. Use to plan articles, reports, talks and documentation. Example: text=How small businesses can accept stablecoin payments. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9058,7 +9091,7 @@
     },
     {
       "name": "ai_translate",
-      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9091,7 +9124,7 @@
     },
     {
       "name": "ai_embed",
-      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Example: text=pay-per-call APIs for AI agents. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication. Example: text=pay-per-call APIs for AI agents. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9115,7 +9148,7 @@
     },
     {
       "name": "ai_extract_json",
-      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9144,7 +9177,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

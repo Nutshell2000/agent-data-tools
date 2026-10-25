@@ -85,7 +85,7 @@ test('"Try it with your own inputs": a GET form with the example prefilled on th
   const own = await (await mf.dispatchFetch('https://api.test/sanctions/check?address=0x1234567890abcdef1234567890abcdef12345678', { headers: browser })).text();
   assert.match(own, /name="address" type="text" value="0x1234567890abcdef1234567890abcdef12345678"/);
   // Capacity-limited tools are outside the free calls: no form.
-  assert.doesNotMatch(await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text(), /<form class="try"/);
+  assert.doesNotMatch(await (await mf.dispatchFetch('https://api.test/tools/image')).text(), /<form class="try"/); // AI media stays outside the free calls; AI text joined them 25 Oct 2026
 });
 
 test('a browser trial result offers another run; refused inputs come back as a page with the reason and the form', async () => {
@@ -166,9 +166,11 @@ test('search copy: every TOOL_SEO entry is a real tool page with a short title, 
     assert.match(html, /<h2>When to use it<\/h2>/, path);
     assert.match(html, /How do I pay\?/, path);
   }
-  // The AI chat page must not promise free calls (AI tools are outside the free allowance).
+  // AI media pages must not promise free calls (outside the allowance); AI text pages do (since 25 Oct 2026).
+  const image = await (await mf.dispatchFetch('https://api.test/tools/image')).text();
+  assert.match(image, /This tool is not in the free calls/);
   const chat = await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text();
-  assert.match(chat, /This tool is not in the free calls/);
+  assert.match(chat, /The first 25 calls are free/);
 });
 
 test('a POST with a flat JSON body is the GET with those fields: quoted, not refused with 405', async () => {
