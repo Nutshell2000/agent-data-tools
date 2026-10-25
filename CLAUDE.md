@@ -687,3 +687,53 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - `/geocode/reverse` label languages `LABEL_LANGUAGES`; a bare Q-id is never a name.
   - `targetRefusal()` in src/lib/fetch.ts: 401/403/451 read "the site refused automated access", 404/410 "not found".
 
+
+## Inputs as agents send them; names for searched phrases (1.68.0, 24 Oct 2026, no new tools)
+
+- Method: a scratch script ran one tool's handler in Node on several real-world inputs. Fixes:
+  - `normalizeZone()` (src/routes/time.ts): `CITY_ZONES` table, spaces to underscores, "UTC+2" to Etc/GMT-2 (sign
+    inverted), minutes to an offset zone ("-05:30"), canonical spelling from `resolvedOptions().timeZone`; `at` takes
+    Unix seconds or milliseconds; `INPUT_ALIASES` maps time/timestamp/datetime/when to `at`.
+  - `domainInput()` (src/routes/domain.ts): URL, port, path and Unicode (via `new URL().hostname`, punycode); `HOSTNAME`
+    accepts xn-- top-level labels.
+  - `discoverFeed()` (src/routes/feeds.ts): `<link rel=alternate type=application/rss+xml|atom+xml>` from a page; `/feed`
+    follows it once. `PAGE_BYTES` is 1 MB (YouTube's head is at 770-780 KB); `parseMeta` falls back to meta name=title.
+  - `/btc-address` lower-cases an all-upper bech32 address.
+- Renames: candles "Crypto candles, OHLCV", prices "All crypto prices, Hyperliquid", indicators "Technical indicators,
+  RSI, MACD", `<chain>/call` "<Chain> eth call, contract call". Most of the analyzer's "absent from 18 searches" list
+  were tools whose names already carry the phrase but are not Bazaar-listed yet (Refresh click), not name problems.
+- Release cadence: one a day, queued for 00:10 UTC (Worker requests hit the 100k cap at 13:00 UTC on 24 Oct from
+  release-triggered crawls).
+
+## ENS everywhere, unit and currency names, relative dates (1.68.0, 24 Oct 2026, no new tools)
+
+- `withEnsResolved()` in src/tools.ts resolves `*.eth` in any ADDRESS_INPUTS value (comma lists too) through `ensLookup`
+  before `normalizedInput`; skipped for /ens itself. A 404 from ENS becomes a 400. The wrapper line
+  `const result = await handler(env, normalizedInput(input));` stays verbatim for tests/output-contract.
+- `unitKey()` (src/routes/utils.ts): `UNIT_ALIASES` (full names, symbols, kph, cups…), then a singular of a plural,
+  but only when the form as sent is unknown ("ms" is never "m"). Object.hasOwn on every table.
+- `CURRENCY_ALIASES`/`currencyCode()` in src/routes/rates.ts; `parseDate()` in src/lib/relative-date.ts (today, now,
+  tomorrow, yesterday; used by utils.ts dates and public-data.ts); `countryCode()`/`countryName()` in
+  src/lib/country-code.ts (Intl region names plus UK/USA/Holland… aliases; checked before Intl, which maps UK to
+  itself), shared by /holidays and packs-more.
+- `/company` with a domain searches its label and prefers the candidate whose P856 host is that domain.
+- `/weather` qualifiers: a non-country qualifier asks Wikidata with the whole phrase first; a country qualifier keeps
+  the table (tests/discovery-conformance pins "london, UK" to zero Wikidata calls).
+- Third batch (same release): `/hash` and `/case` normalise the style name through a wrapped Input before `pick`;
+  `CRON_MACROS`; `num()` strips a leading currency sign; `NAMED_COLOURS` (148 CSS keywords) and alpha hex in
+  `parseColour` (exported); `/jwt/decode` strips "Bearer"; `/json/validate` unwraps a ```json fence; `/url/parse`
+  assumes https for a scheme-less host (`assumedScheme: true`); `/mime` reverse-looks-up a type; `/package` defaults
+  to npm and treats "latest" as no version.
+- 24 Oct, 13:00 UTC: the free plan's 100k Worker requests/day ran out (167k by 14:30); every route, staging and the
+  funwords.eu apex answered 429/1027 until 00:00 UTC. One release a day until Workers Paid (Peter's decision).
+- Fourth batch (same release): `SCHEMELESS_URL` in src/tools.ts `normalizedInput` prepends https:// to any `url` input without a scheme; `coinKey()`/`intervalKey()` in hyperliquid.ts (names, pair suffixes, k-prefixed markets); `secCompanyMatch()` in gov-data.ts (ticker, then title); `quakeFeed()` in public-data.ts (largest USGS feed at or below the requested magnitude, then filter); markdown tables and task lists in `markdownToHtml`; `/text/extract` blanks dates, hex, URLs and e-mails before reading phones and numbers; `slugify` falls back to Unicode letters.
+- Inference and media first (24 Oct, market income by seller: dTelecom STT/TTS $36k, KORUS $22k, Venice and BlockRun
+  inference; one-call utilities earn cents): `SALES_FIRST` opens with /ai/chat, /ai/chat-large, /ai/embed, /transcribe,
+  /ai/speech, /image, /describe, /search, /news; `PICK_BY_TASK` (credit-routes.ts), the MCP summary and the OpenAPI
+  `GUIDANCE` (endpoints.ts) lead with them too. Names: "LLM chat completions, inference", "LLM inference, large model",
+  "Speech to text, transcribe audio", "Image generation, generate image". tests/discovery-index and discovery-order pin
+  the new head.
+- Spend caps: `takeDailyBudget()` in src/lib/daily-cap.ts (KV `cap:<kind>:<day>`), used by `runAi` (AI_DAILY_CAP, default 1000) and `withBrowserPage` (BROWSER_DAILY_CAP, default 60); both in wrangler.jsonc. Peter (24 Oct): Workers Paid only after $5 earned; remind him at $10 external income (the daily report prints it).
+- The release train's chaining script and notes live in `%LOCALAPPDATA%\agent-data-tools\release\train\` (the session
+  scratchpad was wiped at the day change on 25 Oct and took the queued 1.68.0 train with it).
+

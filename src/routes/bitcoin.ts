@@ -65,7 +65,9 @@ interface Stats {
 }
 
 export async function bitcoinAddress(input: string) {
-  const address = input.trim();
+  // Bech32 (bc1…) is valid in all lower or all upper case (BIP 173, QR codes use upper); explorers take the lower form.
+  const trimmed = input.trim();
+  const address = /^BC1[0-9A-Z]+$/.test(trimmed) ? trimmed.toLowerCase() : trimmed;
   if (!ADDRESS.test(address)) throw new HttpError(400, "address must be a Bitcoin mainnet address (1..., 3... or bc1...)");
   const a = await mempool<{ chain_stats: Stats; mempool_stats: Stats }>(`/address/${address}`);
   const confirmed = a.chain_stats.funded_txo_sum - a.chain_stats.spent_txo_sum;

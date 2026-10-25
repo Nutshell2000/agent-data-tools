@@ -24,7 +24,8 @@ const ALIASES: Record<string, Record<string, string>> = {
 
 /** A 0x address as given, or the address of a known ticker on this network; 400 lists the tickers otherwise. */
 export function tokenAddress(input: string, slug: string): Address {
-  const v = input.trim();
+  // "$ETH" is how tickers are written in chat; the dollar sign is not part of the ticker.
+  const v = input.trim().replace(/^\$(?=[A-Za-z])/, "");
   if (/^0x[0-9a-fA-F]{40}$/.test(v)) return getAddress(v);
   const key = v.toUpperCase();
   const hit = TICKERS[slug]?.[ALIASES[slug]?.[key] ?? key];

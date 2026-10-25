@@ -1,5 +1,5 @@
 {
-  "version": "1.67.0",
+  "version": "1.68.0",
   "tools": [
     {
       "name": "extract",
@@ -4563,7 +4563,7 @@
         "properties": {
           "url": {
             "type": "string",
-            "description": "Absolute public http(s) URL of the feed"
+            "description": "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed"
           },
           "limit": {
             "type": "integer",
@@ -4580,7 +4580,7 @@
     },
     {
       "name": "url_meta",
-      "description": "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it. Example: url=https://github.com/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 1 MB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it. Example: url=https://github.com/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5859,7 +5859,7 @@
     },
     {
       "name": "markdown_to_html",
-      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Example: markdown=# Title\nSome **bold** text and a [link](https://example.com).. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists and task lists, tables, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page. Example: markdown=# Title\nSome **bold** text and a [link](https://example.com).. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7900,10 +7900,10 @@
         "properties": {
           "period": {
             "type": "string",
-            "description": "day (default) or week"
+            "description": "hour, day (default), week or month"
           },
           "minMagnitude": {
-            "description": "2.5 (default), 4.5 or significant",
+            "description": "Smallest magnitude to include, 0-10 (default 2.5), or significant",
             "type": [
               "string",
               "number",

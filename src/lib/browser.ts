@@ -1,5 +1,6 @@
 import puppeteer from "@cloudflare/puppeteer";
 import { HttpError, type Env } from "./env";
+import { takeDailyBudget } from "./daily-cap";
 import { parseTarget } from "./fetch";
 
 export type BrowserPage = Awaited<ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>["newPage"]>>;
@@ -16,6 +17,9 @@ export async function withBrowserPage<T>(
   use: (page: BrowserPage, status: number | null) => Promise<T>,
 ): Promise<T> {
   if (!env.BROWSER) throw new HttpError(503, "the hosted browser is not available in this environment");
+  // Browser Rendering is billed per browser-hour on Workers Paid (10 hours a month included): 60 launches a day of a few
+  // seconds each stays inside the included time, so the plan's price is the whole bill.
+  await takeDailyBudget(env, "browser", env.BROWSER_DAILY_CAP, 60, "hosted browser");
   let browser: Awaited<ReturnType<typeof puppeteer.launch>>;
   let blockedNavigation = false;
   try {
