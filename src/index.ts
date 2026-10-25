@@ -28,7 +28,7 @@ import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
-import { TOOLS } from "./tools";
+import { ALIAS_OF, TOOLS } from "./tools";
 import { marketplaceOf } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
@@ -46,6 +46,9 @@ import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingNa
 import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
+import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
+import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
+import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
@@ -91,7 +94,10 @@ app.use(async (c, next) => {
   const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
   if (body && typeof body === "object" && !Array.isArray(body)) {
     for (const [name, value] of Object.entries(body)) {
-      if (!(name in endpoint.params) && !["only", "trial", "sample"].includes(name)) continue;
+      // A field the tool knows under another name (Exa-style `query`, `numResults`, `urls`) is kept; the tool reads it
+      // through INPUT_ALIASES. Nested objects (Exa's `contents`) are dropped as before.
+      const aliased = ALIAS_OF[name]?.some((input) => input in endpoint.params);
+      if (!(name in endpoint.params) && !aliased && !["only", "trial", "sample"].includes(name)) continue;
       if (["string", "number", "boolean"].includes(typeof value)) target.searchParams.set(name, String(value));
       else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.join(","));
     }
@@ -357,6 +363,9 @@ app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c
 app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
 // Privacy policy, terms and support.

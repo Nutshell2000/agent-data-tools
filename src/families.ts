@@ -30,6 +30,7 @@ import { AGENT_INFRA } from "./routes/agent-infra";
 import { MEDIA_TEXT } from "./routes/media-text";
 import { PACKS_INTEL } from "./routes/packs-intel";
 import { PACKS_RESEARCH } from "./routes/packs-research";
+import { SAFETY } from "./routes/safety";
 import { PDF } from "./routes/pdf";
 import { PRICES } from "./routes/prices";
 import { PUBLIC_DATA } from "./routes/public-data";
@@ -38,4 +39,4 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 
-export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
+export const FAMILIES: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...SAFETY, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];

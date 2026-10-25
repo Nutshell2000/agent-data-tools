@@ -46,7 +46,16 @@ test('maps OpenAI messages onto the /ai/chat query', () => {
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], max_tokens: 5000 }).query.maxTokens, 1024, 'clamped to the tool limit');
   assert.match(lib.toChatQuery({}).error, /messages/);
   assert.match(lib.toChatQuery({ messages: [{ role: 'assistant', content: 'Hello' }] }).error, /last message must be from the user/);
-  assert.match(lib.toChatQuery({ messages: [{ role: 'tool', content: 'x' }] }).error, /unsupported message role/);
+  assert.match(lib.toChatQuery({ messages: [{ role: 'function', content: 'x' }] }).error, /unsupported message role/);
+  // Tool turns, tools and JSON mode go to the model as they are (25 Oct 2026, Llama 4 Scout does function calling).
+  const tools = [{ type: 'function', function: { name: 'get_weather', parameters: { type: 'object', properties: { city: { type: 'string' } } } } }];
+  const native = lib.toChatQuery({ messages: [{ role: 'user', content: 'Weather in Stockholm?' }], tools, tool_choice: 'auto' }).query;
+  assert.deepEqual(native.native, { messages: [{ role: 'user', content: 'Weather in Stockholm?' }], tools, tool_choice: 'auto' });
+  assert.equal(native.prompt, 'Weather in Stockholm?');
+  assert.ok(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }, { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'f', arguments: '{}' } }] }, { role: 'tool', tool_call_id: 'c1', content: '{}' }] }).query.native);
+  assert.ok(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], response_format: { type: 'json_object' } }).query.native);
+  assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], response_format: { type: 'text' } }).query.native, undefined);
+  assert.match(lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }], tools }).error, /served by/);
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], stream: true }).query.prompt, 'x', 'stream: true is accepted (answered as server-sent events)');
   const long = lib.toChatQuery({ messages: [{ role: 'user', content: 'a'.repeat(9000) }] });
   assert.equal(long.query.prompt.length, 8000);
@@ -85,6 +94,44 @@ test('an unpaid POST for a large model is quoted at the /ai/chat-large price', a
   assert.equal(deepseek.status, 402);
   assert.equal(deepseek.headers.get('x-tool'), '/ai/model/deepseek-r1');
   await deepseek.arrayBuffer();
+});
+
+test('tool calls come back in the OpenAI shape, with the model token counts, in JSON and in the stream', () => {
+  const call = { id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Stockholm"}' } };
+  const out = lib.toOpenAiResponse({ prompt: 'Weather?' }, { model: 'm', response: '', tool_calls: [call], finish_reason: 'tool_calls', usage: { prompt_tokens: 120, completion_tokens: 18, total_tokens: 138 } });
+  assert.deepEqual(out.choices[0].message, { role: 'assistant', content: null, tool_calls: [call] });
+  assert.equal(out.choices[0].finish_reason, 'tool_calls');
+  assert.deepEqual(out.usage, { prompt_tokens: 120, completion_tokens: 18, total_tokens: 138, estimated: false });
+  const chunks = lib.toOpenAiStream(out, false).trim().split('\n\n').slice(0, -1).map((e) => JSON.parse(e.replace(/^data: /, '')));
+  const delta = chunks.find((c) => c.choices[0]?.delta?.tool_calls)?.choices[0].delta.tool_calls;
+  assert.deepEqual(delta, [{ index: 0, ...call }]);
+  assert.equal(chunks.at(-1).choices[0].finish_reason, 'tool_calls');
+});
+
+test('/ai/chat native mode: messages, tools and JSON mode passed to the model as they are, answer normalized', async () => {
+  const b = await esbuild.build({ entryPoints: ['src/routes/ai-text.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  const { nativeChatInput, nativeChat, CHAT_MODEL } = m.exports;
+  const q = (o) => (n) => o[n];
+  assert.equal(nativeChatInput(q({ prompt: 'x' })), null);
+  assert.throws(() => nativeChatInput(q({ messages: 'not json' })), (e) => e.status === 400);
+  assert.throws(() => nativeChatInput(q({ messages: '[{"role":"function","content":"x"}]' })), (e) => e.status === 400);
+  assert.throws(() => nativeChatInput(q({ messages: JSON.stringify([{ role: 'user', content: 'a'.repeat(21000) }]) })), (e) => e.status === 400);
+  const input = nativeChatInput(q({ messages: '[{"role":"developer","content":"Be brief."},{"role":"user","content":"Weather?"}]', tools: '[{"type":"function","function":{"name":"get_weather"}}]', tool_choice: 'auto', response_format: '{"type":"json_object"}' }));
+  assert.equal(input.messages[0].role, 'system');
+  assert.equal(input.tool_choice, 'auto');
+  let sent;
+  const env = { AI: { run: async (model, body) => { sent = { model, body }; return { choices: [{ finish_reason: 'tool_calls', message: { content: null, tool_calls: [{ id: 'chatcmpl-tool-1', type: 'function', function: { name: 'get_weather', arguments: '{"city": "Stockholm"}' } }] } }], usage: { prompt_tokens: 120, completion_tokens: 18, total_tokens: 138 } }; } } };
+  const out = await nativeChat(env, input, 200, 0.2);
+  assert.equal(sent.model, CHAT_MODEL);
+  assert.deepEqual(Object.keys(sent.body).sort(), ['max_tokens', 'messages', 'response_format', 'temperature', 'tool_choice', 'tools']);
+  assert.deepEqual(out.tool_calls, [{ id: 'chatcmpl-tool-1', type: 'function', function: { name: 'get_weather', arguments: '{"city": "Stockholm"}' } }]);
+  assert.equal(out.finish_reason, 'tool_calls');
+  assert.equal(out.response, '');
+  assert.deepEqual(out.usage, { prompt_tokens: 120, completion_tokens: 18, total_tokens: 138 });
+  const json = await nativeChat({ AI: { run: async () => ({ response: { capital: 'Stockholm' }, tool_calls: [], usage: {} }) } }, input, 200, 0);
+  assert.equal(json.response, '{"capital":"Stockholm"}');
 });
 
 test('stream: true is answered as OpenAI server-sent events ending in [DONE]', () => {
