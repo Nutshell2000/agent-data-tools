@@ -49,6 +49,7 @@ import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embedding
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
+import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
@@ -99,7 +100,8 @@ app.use(async (c, next) => {
       const aliased = ALIAS_OF[name]?.some((input) => input in endpoint.params);
       if (!(name in endpoint.params) && !aliased && !["only", "trial", "sample"].includes(name)) continue;
       if (["string", "number", "boolean"].includes(typeof value)) target.searchParams.set(name, String(value));
-      else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.join(","));
+      // Items that hold a comma or a line break travel as a JSON array, so list inputs (listInput in routes/retrieval.ts) can split them back exactly.
+      else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.some((v) => /[,\n]/.test(String(v))) ? JSON.stringify(value) : value.join(","));
     }
   }
   const headers = new Headers(c.req.raw.headers);
@@ -366,6 +368,7 @@ app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
 // Privacy policy, terms and support.

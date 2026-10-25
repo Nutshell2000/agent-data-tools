@@ -94,6 +94,7 @@ const FRONTS = [
   { path: "/v1/responses", tool: "/ai/chat", example: `${ORIGIN}/v1/responses?input=${encodeURIComponent("Name the capital of Sweden in one word.")}` },
   { path: "/v1/messages", tool: "/ai/chat", example: `${ORIGIN}/v1/messages`, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ max_tokens: 50, messages: [{ role: "user", content: "Name the capital of Sweden in one word." }] }) } },
   { path: "/v1/embeddings", tool: "/ai/embed", example: `${ORIGIN}/v1/embeddings?input=${encodeURIComponent("pay-per-call APIs for AI agents")}` },
+  { path: "/v1/rerank", tool: "/ai/rerank", example: `${ORIGIN}/v1/rerank?query=${encodeURIComponent("What is the capital of France?")}&documents=${encodeURIComponent(JSON.stringify(["Berlin is the capital of Germany.", "Paris is the capital and largest city of France."]))}` },
   { path: "/v1/moderations", tool: "/ai/moderation", example: `${ORIGIN}/v1/moderations?input=${encodeURIComponent("How do I bake sourdough bread at home?")}` },
   { path: "/v1/images/generations", tool: "/image", example: `${ORIGIN}/v1/images/generations?prompt=${encodeURIComponent("a lighthouse on a cliff at sunset, watercolor")}` },
 ].map((f) => ({ ...f, price: toolPrice(f.tool) })).filter((f) => f.price);

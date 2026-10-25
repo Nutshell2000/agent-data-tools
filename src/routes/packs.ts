@@ -109,7 +109,7 @@ export const PACKS: Entry[] = [
       };
     }, "$0.01"),
 
-  entry("/pack/token-analysis", "Token analysis: price, supply, proxy and risk checks",
+  entry("/pack/token-analysis", "Token analysis, token security: price, supply, proxy and risk checks",
     "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token.",
     ["token-analysis", "token-research", "token-security", "erc20", "pack", "crypto"], {
       token: { type: "string", description: "Token: a ticker such as USDC or a 0x ERC-20 contract address", required: true, example: "0x4200000000000000000000000000000000000006" },
