@@ -56,6 +56,12 @@
     // from prepaid credits and gives free credits each month; 120 a day (about $18 a month) stays inside them, and
     // the tool answers 503, uncharged, above the cap or when the credits are gone. The key is the secret SEARCH_API_KEY.
     "SEARCH_DAILY_CAP": "120",
+    // Spend caps that matter on Workers Paid, where Workers AI and Browser Rendering are billed per use (on the free plan
+    // the platform's own daily allowances stop them first). Workers AI calls per UTC day: 1,000 of the 8B chat model cost
+    // about $0.30-1.00 and earn $10 at $0.01 a call. Hosted-browser launches per UTC day: 60 short sessions stay inside the
+    // 10 browser-hours a month the paid plan includes. Over a cap the tool answers 503, uncharged (src/lib/daily-cap.ts).
+    "AI_DAILY_CAP": "1000",
+    "BROWSER_DAILY_CAP": "60",
     // Stripe profile (@spellzz) for MPP card payments of credit packs; the key is the secret STRIPE_MPP_KEY.
     "STRIPE_PROFILE_ID": "profile_61VXy8TZgWPaLVrUgA6VXy8TRdQCmC1PKY56LWKJkVfM"
   }

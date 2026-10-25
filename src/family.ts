@@ -59,8 +59,9 @@ export function num(q: Input, name: string, { min = -Infinity, max = Infinity, f
     if (fallback !== undefined) return fallback;
     throw new HttpError(400, `${name} is required`);
   }
-  // Thousands separators as agents write them: "1,000", "1 000", "1_000".
-  const n = Number(/^\s*-?\d{1,3}([,_ ]\d{3})+(\.\d+)?\s*$/.test(raw) ? raw.replace(/[,_ ]/g, "") : raw);
+  // Thousands separators as agents write them: "1,000", "1 000", "1_000"; a leading currency sign ("$1234", "€ 50") is not part of the number.
+  const bare = raw.trim().replace(/^(-?)\s*[$€£¥]\s*/, "$1");
+  const n = Number(/^\s*-?\d{1,3}([,_ ]\d{3})+(\.\d+)?\s*$/.test(bare) ? bare.replace(/[,_ ]/g, "") : bare);
   if (!Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) {
     throw new HttpError(400, `${name} must be ${integer ? "a whole number" : "a number"}${Number.isFinite(min) ? ` from ${min}` : ""}${Number.isFinite(max) ? ` to ${max}` : ""}`);
   }

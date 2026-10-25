@@ -21,6 +21,22 @@ async function govFetch(url: string, cacheTtl: number, accept: string): Promise<
 }
 
 type TickerMap = Record<string, { cik_str: number; ticker: string; title: string }>;
+/**
+ * The SEC entry for a ticker ("AAPL", "brk.b" as SEC's "BRK-B") or a company name ("Apple", "Berkshire Hathaway"): the
+ * ticker first, then the title that starts with the words, then any title containing them (24 Oct 2026: "Apple" was 404).
+ */
+export function secCompanyMatch<T extends { ticker: string; title: string }>(entries: T[], query: string): T | undefined {
+  const symbol = query.trim().toUpperCase().replace(/\./g, "-");
+  const byTicker = entries.find((c) => c.ticker.toUpperCase() === symbol);
+  if (byTicker) return byTicker;
+  const words = query.trim().toLowerCase().replace(/[.,&']/g, " ").split(/\s+/).filter(Boolean);
+  if (!words.length) return undefined;
+  const norm = (t: string) => t.toLowerCase().replace(/[.,&']/g, " ").replace(/\s+/g, " ").trim();
+  const starts = entries.filter((c) => norm(c.title).startsWith(words.join(" ")));
+  const pool = starts.length ? starts : entries.filter((c) => words.every((w) => norm(c.title).includes(w)));
+  // The SEC lists companies roughly by market size, so the first match is the one most people mean.
+  return pool[0];
+}
 
 /** The CIK for a ticker or a CIK given directly. */
 async function resolveCik(ticker?: string, cik?: string): Promise<string> {
@@ -28,11 +44,11 @@ async function resolveCik(ticker?: string, cik?: string): Promise<string> {
     if (!/^\d{1,10}$/.test(cik)) throw new HttpError(400, "cik must be the SEC's numeric company id, e.g. 320193");
     return cik.padStart(10, "0");
   }
-  const symbol = (ticker ?? "").toUpperCase();
-  if (!/^[A-Z0-9.\-]{1,10}$/.test(symbol)) throw new HttpError(400, "ticker must be a stock ticker such as AAPL (or pass cik)");
+  const query = (ticker ?? "").trim();
+  if (!/^[A-Za-z0-9 .,&'\-]{1,60}$/.test(query)) throw new HttpError(400, "ticker must be a stock ticker such as AAPL or a company name (or pass cik)");
   const map = (await (await govFetch("https://www.sec.gov/files/company_tickers.json", 86_400, "application/json")).json()) as TickerMap;
-  const hit = Object.values(map).find((c) => c.ticker.toUpperCase() === symbol);
-  if (!hit) throw new HttpError(404, `no SEC-registered company with ticker ${symbol}`);
+  const hit = secCompanyMatch(Object.values(map), query);
+  if (!hit) throw new HttpError(404, `no SEC-registered company with ticker or name ${query.toUpperCase()}`);
   return String(hit.cik_str).padStart(10, "0");
 }
 
@@ -56,7 +72,7 @@ export const GOV_DATA: Entry[] = [
       source: "SEC EDGAR (public information)",
     },
     async (_e, q) => {
-      const ticker = opt(q, "ticker", 12), cikInput = opt(q, "cik", 12);
+      const ticker = opt(q, "ticker", 60), cikInput = opt(q, "cik", 12);
       if (!ticker && !cikInput) throw new HttpError(400, "send ticker (e.g. AAPL) or cik (e.g. 320193)");
       const form = opt(q, "form", 12)?.toUpperCase();
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 10, integer: true });
@@ -91,8 +107,9 @@ export const GOV_DATA: Entry[] = [
       closures: [], source: "FAA National Airspace System Status",
     },
     async (_e, q) => {
-      const code = opt(q, "airport", 4)?.toUpperCase();
-      if (code && !/^[A-Z0-9]{3,4}$/.test(code)) throw new HttpError(400, "airport must be a 3-letter IATA code such as LGA");
+      // A US ICAO code is K plus the IATA code (KJFK is JFK); FAA's feed names airports by IATA code.
+      const code = opt(q, "airport", 40)?.trim().toUpperCase().replace(/^K([A-Z]{3})$/, "$1");
+      if (code && !/^[A-Z0-9]{3,4}$/.test(code)) throw new HttpError(400, `airport must be a 3-letter IATA code such as LGA, not "${code.slice(0, 20)}"`);
       const xml = await (await govFetch("https://nasstatus.faa.gov/api/airport-status-information", 60, "application/xml")).text();
       const groups = all(xml, "Delay_type");
       const items = (list: string, item: string) => groups.flatMap((g) => all(g, list).flatMap((l) => all(l, item)));

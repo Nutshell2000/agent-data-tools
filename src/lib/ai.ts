@@ -1,4 +1,11 @@
 import { HttpError, type Env } from "./env";
+import { takeDailyBudget } from "./daily-cap";
+
+/**
+ * Workers AI calls per UTC day when AI_DAILY_CAP is unset. The free plan's 10,000 neurons stop earlier for most models;
+ * on Workers Paid 1,000 calls of the 8B chat model cost about $0.30-1.00, far below what they earn at $0.01 a call.
+ */
+const DEFAULT_AI_DAILY_CAP = 1000;
 
 export const MODELS = {
   image: "@cf/black-forest-labs/flux-1-schnell",
@@ -12,6 +19,7 @@ export const MODELS = {
  * so running out is reported as 503 and the caller is not charged.
  */
 export async function runAi<T>(env: Env, model: string, input: Record<string, unknown>): Promise<T> {
+  await takeDailyBudget(env, "ai", env.AI_DAILY_CAP, DEFAULT_AI_DAILY_CAP, "AI");
   try {
     return (await env.AI.run(model as Parameters<Ai["run"]>[0], input as never)) as T;
   } catch (e) {
