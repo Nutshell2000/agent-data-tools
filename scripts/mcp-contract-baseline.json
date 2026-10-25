@@ -1,5 +1,5 @@
 {
-  "version": "1.74.0",
+  "version": "1.75.0",
   "tools": [
     {
       "name": "extract",
@@ -8026,6 +8026,252 @@
         },
         "required": [
           "text"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "contents",
+      "description": "Read one to five public web pages in one call and get each one's clean text (or Markdown), title, author and published date where the page declares them, in the request shape search APIs use (urls as a list). Pages are read in parallel; one that cannot be read is listed in statuses with its reason and the rest still answer. Static HTML, Markdown and plain text, up to 20,000 characters a page. Use to read search results in one call. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "One to five page URLs: comma-separated, one per line, or a JSON array"
+          },
+          "maxChars": {
+            "description": "Characters per page, 500 to 20000 (default 4000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "text (default) or markdown"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_rerank",
+      "description": "Order up to 50 documents by how well each answers a query, with a relevance score from 0 to 1 (BAAI bge-reranker-base, a cross-encoder). Send documents as a JSON array or one per line; each is read up to 2,000 characters, 40,000 in all. Returns the original index, score and text, best first; top_n keeps only the best. Also available in the Cohere-style shape at /v1/rerank. Use to pick what a model reads after search or vector retrieval. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "What the documents should answer (up to 2,000 characters)"
+          },
+          "documents": {
+            "type": "string",
+            "description": "Up to 50 documents: a JSON array of strings, or one per line"
+          },
+          "top_n": {
+            "description": "Keep only the best N results (default all)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "query",
+          "documents"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "whale_transfers",
+      "description": "Large stablecoin transfers in the last minutes, read live from the network: every USDC and USDT transfer of at least min USD (default 100,000) on Ethereum, Base, Arbitrum, Optimism or Polygon, largest first, with sender, receiver, transaction and block, mints and burns marked. Covers up to 15 minutes on Ethereum and 3 on Base (busiest). Addresses are not labelled. Use to watch whale flows, treasury moves or stablecoin mints. Example: chain=ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          },
+          "token": {
+            "type": "string",
+            "description": "USDC, USDT or stablecoins (both, default)"
+          },
+          "min": {
+            "description": "Smallest transfer in USD, 10000 or more (default 100000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "minutes": {
+            "description": "How far back, 1 to 15 minutes (default 5; Base covers at most 3)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "memory_set",
+      "description": "Save a value (up to 8,000 characters of text or JSON) under a key in your own namespace, so an agent can remember facts, preferences or task state between runs. Overwrites an existing key; expires after 1 to 30 days (default 30). Values are kept until they expire (at most 30 days) or are deleted; reads anywhere may lag a write made elsewhere by up to a minute. Use to persist what an agent learned for a later call to memory_get. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Changes only what you saved in your own memory namespace; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Your namespace: a secret of 16 to 128 letters, digits, - or _ that you choose and reuse. Anyone who knows it can read and write it, so treat it like a password; send it in a POST body to keep it out of URLs."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key, up to 200 characters"
+          },
+          "value": {
+            "type": "string",
+            "description": "The text or JSON to save, up to 8,000 characters"
+          },
+          "days": {
+            "description": "Days to keep it, 1 to 30 (default 30)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "namespace",
+          "key",
+          "value"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "memory_get",
+      "description": "Read the value saved under a key in your namespace with /memory/set, with when it was saved and when it expires. A key that was never saved or has expired is a 404 and is not charged. Values are kept until they expire (at most 30 days) or are deleted; reads anywhere may lag a write made elsewhere by up to a minute. Use to recall what an agent saved in an earlier run. Example: namespace=demo-agent-memory-7f3c9a21, key=user-preferences. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Your namespace: a secret of 16 to 128 letters, digits, - or _ that you choose and reuse. Anyone who knows it can read and write it, so treat it like a password; send it in a POST body to keep it out of URLs."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key, up to 200 characters"
+          }
+        },
+        "required": [
+          "namespace",
+          "key"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "memory_list",
+      "description": "List up to 100 keys saved in your namespace, optionally only those starting with a prefix, with their size, save time and expiry; pass the returned cursor for the next page. Values are not included (read them with /memory/get). Values are kept until they expire (at most 30 days) or are deleted; reads anywhere may lag a write made elsewhere by up to a minute. Use to see what an agent has saved. Example: namespace=demo-agent-memory-7f3c9a21. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Your namespace: a secret of 16 to 128 letters, digits, - or _ that you choose and reuse. Anyone who knows it can read and write it, so treat it like a password; send it in a POST body to keep it out of URLs."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Only keys that start with this text"
+          },
+          "cursor": {
+            "type": "string",
+            "description": "The cursor from the previous page of this list"
+          }
+        },
+        "required": [
+          "namespace"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "memory_delete",
+      "description": "Delete the value saved under a key in your namespace now, before it expires. Answers deleted: false when there was nothing to delete. Values are kept until they expire (at most 30 days) or are deleted; reads anywhere may lag a write made elsewhere by up to a minute. Use to forget a fact or clear task state. Example: namespace=demo-agent-memory-7f3c9a21, key=user-preferences. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Changes only what you saved in your own memory namespace; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Your namespace: a secret of 16 to 128 letters, digits, - or _ that you choose and reuse. Anyone who knows it can read and write it, so treat it like a password; send it in a POST body to keep it out of URLs."
+          },
+          "key": {
+            "type": "string",
+            "description": "The key, up to 200 characters"
+          }
+        },
+        "required": [
+          "namespace",
+          "key"
         ]
       },
       "price": "$0.002"

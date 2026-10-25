@@ -36,7 +36,7 @@ export function buildContract(endpoints, version, helpers) {
       return {
         name,
         description: helpers.toolDescription(endpoint),
-        annotations: helpers.toolAnnotations,
+        annotations: helpers.annotationsFor ? helpers.annotationsFor(endpoint.path) : helpers.toolAnnotations,
         inputSchema: z4mini.toJSONSchema(z.object(helpers.toolInputShape(endpoint, z)), {
           target: "draft-7",
           io: "input",

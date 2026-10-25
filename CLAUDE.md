@@ -901,3 +901,21 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   release costs about 25 minutes of CI, staging proofs, deploy and live checks.
 
 
+
+## Get contents, rerank and whale alert (1.75.0, 25 Oct 2026)
+
+- src/routes/retrieval.ts: `/contents` (`contents()`: up to 5 URLs through `extract()` in parallel, `statuses` per URL,
+  502 uncharged when none reads) and `/ai/rerank` (`RERANK_MODEL` @cf/baai/bge-reranker-base, `rerank()` takes the AI runner
+  as a parameter so tests need no Workers AI). `listInput()` reads a JSON array, lines, or a comma list.
+- src/lib/cohere-rerank.ts: `/v1/rerank` front (same pattern as /v1/moderations; model name ignored).
+- src/routes/whale.ts: `/whale/transfers`. `PACE` per network (seconds per block, getLogs window, most blocks per call):
+  Base USDC carries ~270 transfers a block, so Base covers 3 minutes, Ethereum up to 15. A failing later window keeps what
+  was read (`complete: false`); the first failing window is a 502.
+- index.ts POST flattener: arrays whose items hold a comma or line break are passed as JSON (`listInput` splits them back).
+- Not built on 25 Oct: OCR on Llama 4 Scout vision (two test calls timed out after 72 and 143 s; /describe uses the same
+  path, check its /status before relying on it), Llama 3.2 Vision (needs a licence acceptance on the account: Peter's
+  decision), token counting (small demand: 31 payers).
+- src/routes/memory.ts: agent memory on KV `TRIALS` under `mem:<sha256(agent-memory:ns)>:<key>`; `DEMO_NS` is read-only (set and
+  delete answer `saved/deleted: false, demo: true`) so published examples always answer. KV reads elsewhere may lag a write by
+  up to 60 s (stated in every description). Privacy page (src/lib/legal.ts) names it; keep the two in step.
+

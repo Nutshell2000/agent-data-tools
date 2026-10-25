@@ -21,7 +21,7 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
 import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
-import { protocolTool, toolAnnotations, toolDescription, toolInputShape, toolName } from "./mcp-contract";
+import { annotationsFor, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { TOOLS } from "./tools";
 import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
@@ -217,7 +217,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       toolName(e),
       toolDescription(e),
       inputShapes.get(e.path) ?? (inputShapes.set(e.path, toolInputShape(e, z)), inputShapes.get(e.path)!),
-      toolAnnotations,
+      annotationsFor(e.path),
       tracked as never,
     );
   }

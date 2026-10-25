@@ -11,6 +11,12 @@ export const toolName = (endpoint: Endpoint) => mcpName(endpoint.path);
 // sense; the per-call charge is billing, stated in the description. Not idempotent: a repeat is charged again.
 // (Before 1.35.1 readOnlyHint was false, which the Claude directory and Glama flagged as a mismatch.)
 export const toolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true };
+// The agent memory tools (1.75.0) are the exception: saving and deleting change what the caller has stored with us, so
+// they are not read-only, delete is destructive, both are idempotent (same key, same result) and closed-world.
+const WRITE_TOOLS: Readonly<Record<string, { destructive: boolean }>> = { "/memory/set": { destructive: false }, "/memory/delete": { destructive: true } };
+export const annotationsFor = (path: string) => Object.hasOwn(WRITE_TOOLS, path)
+  ? { readOnlyHint: false, destructiveHint: WRITE_TOOLS[path].destructive, idempotentHint: true, openWorldHint: false }
+  : toolAnnotations;
 
 /**
  * A short "Example: name=value" from the published example call (directories score descriptions with examples). It is
@@ -24,7 +30,7 @@ const exampleText = (endpoint: Endpoint) => {
 };
 
 export const toolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.`;
+  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${Object.hasOwn(WRITE_TOOLS, endpoint.path) ? "Changes only what you saved in your own memory namespace" : "Reads or computes only and changes nothing"}; each call is charged, so repeats are not free.`;
 
 export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
   Object.fromEntries(
@@ -49,7 +55,7 @@ export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
 export function protocolTool(endpoint: Endpoint) {
   return {
     // Directories (Claude, ChatGPT) require a human-readable title on every tool and in its annotations.
-    name: toolName(endpoint), title: endpoint.summary, description: toolDescription(endpoint), annotations: { title: endpoint.summary, ...toolAnnotations },
+    name: toolName(endpoint), title: endpoint.summary, description: toolDescription(endpoint), annotations: { title: endpoint.summary, ...annotationsFor(endpoint.path) },
     inputSchema: z4mini.toJSONSchema(z.object(toolInputShape(endpoint, z)), {target:"draft-7",io:"input"}) as {type:"object";[key:string]:unknown},
     ...(endpoint.outputSchema ? {outputSchema: endpoint.outputSchema as {type:"object";[key:string]:unknown}} : {}),
     execution: {taskSupport:"forbidden" as const},
