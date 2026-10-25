@@ -85,7 +85,7 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   address: ["wallet", "addr", "account"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
   lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input"],
-  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"],
+  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"], urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
   from: ["from_currency"], to: ["to_currency"],
   // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).

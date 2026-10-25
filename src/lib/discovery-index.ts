@@ -43,7 +43,7 @@ const SALES_FIRST = [
   "/ai/chat", "/ai/chat-large", "/ai/embed", "/transcribe", "/ai/speech", "/image", "/describe", "/search", "/pack/web-research", "/news", "/ai/summarize-text", "/ai/translate", "/ai/extract-json",
   "/check/payee", "/check/counterparty", "/ai/answer", "/ai/fact-check", "/check/x402-seller", "/sanctions/check", "/pack/news-sentiment", "/pack/url-safety", "/token-report", "/token", "/wallet-audit", "/contract-risk",
   "/liquidity-pool-audit", "/x402/check", "/price/token", "/price/tokens", "/wallet/portfolio", "/wallet/balances",
-  "/hyperliquid/market", "/sec/filings", "/airport/status",
+  "/hyperliquid/market", "/sec/filings", "/contents", "/ai/rerank", "/memory/set", "/memory/get", "/whale/transfers", "/airport/status",
   // Packs (1.60.0): several tools in one paid call, cheaper than buying them one by one.
   "/pack/token-analysis", "/pack/wallet-profile", "/pack/crypto-market", "/pack/website-audit", "/pack/email-deliverability", "/pack/ip-intelligence", "/pack/hash-toolbox", "/pack/json-toolbox", "/pack/encoding-toolbox",
   "/pack/tx-explain", "/pack/nft-analysis", "/pack/text-analysis", "/pack/location-brief", "/pack/id-toolbox", "/pack/string-toolbox", "/pack/coin-research", "/pack/api-health", "/openapi/summary", "/mcp/inspect", "/text/language", "/image/metadata", "/url/favicon", "/useragent/parse", "/pack/evm-toolbox", "/pack/seo-toolkit", "/pack/gas-tracker", "/pack/domain-intel", "/tech/stack", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
