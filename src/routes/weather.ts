@@ -1,5 +1,6 @@
 import { HttpError } from "../lib/env";
 import { placeCoordinates } from "../lib/wikidata";
+import { countryCode } from "../lib/country-code";
 
 // MET Norway asks callers to identify themselves and to reuse answers instead of asking again.
 const HEADERS = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
@@ -60,8 +61,18 @@ const CITIES: Record<string, [string, number, number]> = Object.fromEntries(([
 
 /** A city's coordinates: the built-in table first, then Wikidata's best match. */
 async function cityCoordinates(city: string) {
-  const known = CITIES[city.toLowerCase().replace(/\s+/g, " ").replace(/,.*$/, "").trim()];
-  return known ? { name: known[0], lat: known[1], lon: known[2] } : placeCoordinates(city);
+  const tidy = city.toLowerCase().replace(/\s+/g, " ").trim();
+  const bare = tidy.replace(/,.*$/, "").trim();
+  const known = Object.hasOwn(CITIES, bare) ? CITIES[bare] : undefined;
+  // "Paris, TX" must not become Paris, France: a qualifier that is not a country (a state or region) sends the whole
+  // phrase to Wikidata first (it finds "Paris, Texas"). A country qualifier ("London, UK", "Stockholm, Sweden") keeps
+  // the table's answer without a network call; Wikidata finds nothing for "Stockholm, Sweden" anyway.
+  const qualifier = bare !== tidy ? tidy.slice(bare.length + 1).trim() : "";
+  if (qualifier && (!known || !countryCode(qualifier))) {
+    const qualified = await placeCoordinates(city).catch(() => null);
+    if (qualified) return qualified;
+  }
+  return known ? { name: known[0], lat: known[1], lon: known[2] } : placeCoordinates(bare === tidy ? city : bare);
 }
 
 export async function weather(latInput?: string, lonInput?: string, hoursInput?: string, cityInput?: string) {

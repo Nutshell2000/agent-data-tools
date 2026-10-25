@@ -37,17 +37,34 @@ async function info<T>(body: Record<string, unknown>): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Coin names agents send instead of the ticker (24 Oct 2026: "Bitcoin", "ETH-PERP", "ETHUSDT" were refused). */
+const COIN_NAMES: Record<string, string> = { BITCOIN: "BTC", ETHEREUM: "ETH", ETHER: "ETH", SOLANA: "SOL", DOGECOIN: "DOGE", RIPPLE: "XRP", CARDANO: "ADA", AVALANCHE: "AVAX", CHAINLINK: "LINK", POLKADOT: "DOT", LITECOIN: "LTC", POLYGON: "POL", MATIC: "POL", BINANCE: "BNB", "BINANCE COIN": "BNB", UNISWAP: "UNI", ARBITRUM: "ARB", OPTIMISM: "OP", SUI: "SUI", APTOS: "APT", NEAR: "NEAR", HYPERLIQUID: "HYPE", TON: "TON", TRON: "TRX", STELLAR: "XLM", WORLDCOIN: "WLD", PEPE: "PEPE", SHIBA: "SHIB", "SHIBA INU": "SHIB", BONK: "BONK" };
+/** The bare ticker in a pair or contract name: ETH-PERP, ETHUSDT, ETH/USD, BTC-USDC, $ETH all mean the coin itself. */
+export function coinKey(raw: string): string {
+  let s = raw.trim().toUpperCase().replace(/^\$/, "");
+  if (Object.hasOwn(COIN_NAMES, s)) s = COIN_NAMES[s];
+  s = s.replace(/[-_/:\s]?(PERP|PERPETUAL|USDT|USDC|USD)$/, "").replace(/[-_/:\s]?(PERP|PERPETUAL)$/, "");
+  return s;
+}
 /** A perp coin symbol (BTC, ETH, kPEPE…); Hyperliquid's own names are case-sensitive, so the listed spelling is used. */
 async function coinInput(raw: string | undefined, fallback = "BTC") {
-  const want = (raw?.trim() || fallback).toUpperCase();
+  const want = coinKey(raw?.trim() || fallback);
   if (!/^[A-Z0-9]{1,20}$/.test(want)) throw new HttpError(400, "coin must be a symbol such as BTC or ETH");
   const { universe } = await markets();
-  const hit = universe.find((u) => !u.isDelisted && u.name.toUpperCase() === want);
+  // Hyperliquid lists some coins per thousand (kPEPE, kSHIB, kBONK): "PEPE" means that market.
+  const hit = universe.find((u) => !u.isDelisted && u.name.toUpperCase() === want) ?? universe.find((u) => !u.isDelisted && u.name.toUpperCase() === `K${want}`);
   if (!hit) throw new HttpError(404, `no Hyperliquid perpetual for ${want}`);
   return hit.name;
 }
 
 const INTERVALS: Record<string, number> = { "1m": 60e3, "3m": 180e3, "5m": 300e3, "15m": 900e3, "30m": 1800e3, "1h": 3600e3, "2h": 7200e3, "4h": 14400e3, "8h": 28800e3, "12h": 43200e3, "1d": 86400e3, "3d": 259200e3, "1w": 604800e3 };
+/** Interval spellings agents send: "1H", "60m", "hourly", "daily", "1day", "D", "W". */
+export function intervalKey(raw: string | undefined, fallback: string): string {
+  const s = (raw?.trim() || fallback).toLowerCase().replace(/\s+/g, "");
+  const words: Record<string, string> = { minute: "1m", "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m", "60m": "1h", "60min": "1h", hour: "1h", hourly: "1h", "1hour": "1h", "4hour": "4h", "4hours": "4h", h: "1h", day: "1d", daily: "1d", "1day": "1d", d: "1d", "24h": "1d", week: "1w", weekly: "1w", "1week": "1w", w: "1w", "7d": "1w" };
+  if (Object.hasOwn(words, s)) return words[s];
+  return s.replace(/^1mo?$/, "1m");
+}
 const SOURCE = "Hyperliquid public info API";
 
 // ---- technical indicators (1.54.0), pure arithmetic on closed candles --------------------------------------------------
@@ -135,12 +152,13 @@ export const HYPERLIQUID: Entry[] = [
       source: "Hyperliquid public info API",
     },
     async (_e, q) => {
-      const coin = opt(q, "coin", 20)?.toUpperCase();
+      const coinRaw = opt(q, "coin", 40);
+      const coin = coinRaw ? coinKey(coinRaw) : undefined;
       if (coin && !/^[A-Z0-9]{1,20}$/.test(coin)) throw new HttpError(400, "coin must be a symbol such as BTC or ETH");
       const { universe, ctxs } = await markets();
       const live = universe.map((u, i) => ({ u, c: ctxs[i] })).filter(({ u, c }) => c && !u.isDelisted);
       if (coin) {
-        const hit = live.find(({ u }) => u.name.toUpperCase() === coin);
+        const hit = live.find(({ u }) => u.name.toUpperCase() === coin) ?? live.find(({ u }) => u.name.toUpperCase() === `K${coin}`);
         if (!hit) {
           const close = live.filter(({ u }) => u.name.toUpperCase().startsWith(coin.slice(0, 2))).slice(0, 8).map(({ u }) => u.name);
           throw new HttpError(404, `no Hyperliquid perpetual for ${coin}${close.length ? `; similar: ${close.join(", ")}` : ""}`);
@@ -177,7 +195,7 @@ export const HYPERLIQUID: Entry[] = [
       };
     }),
 
-  entry("/hyperliquid/candles", "Crypto OHLCV candles: open, high, low, close and volume of Hyperliquid perps",
+  entry("/hyperliquid/candles", "Crypto candles, OHLCV: open, high, low, close and volume of Hyperliquid perps",
     "Historical price candles (OHLCV) of a Hyperliquid perpetual such as BTC, ETH or SOL: open, high, low, close, volume in coins and trade count per bar, newest last. Intervals 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w and more; up to 500 bars (default 50). Read from Hyperliquid's public API. Use for charts, backtests, volatility and trend checks, or as context for a trading agent.",
     ["ohlcv", "candles", "hyperliquid", "price-history", "crypto", "market-data"], {
       coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)", example: "BTC" },
@@ -187,7 +205,7 @@ export const HYPERLIQUID: Entry[] = [
     { coin: "BTC", interval: "1h", count: 1, candles: [{ time: "2026-10-23T08:00:00.000Z", open: 81574, high: 81916, low: 81543, close: 81761, volume: 575.87267, trades: 9106 }], source: SOURCE },
     async (_e, q) => {
       const coin = await coinInput(q("coin"));
-      const interval = (q("interval")?.trim() || "1h").toLowerCase().replace(/^1mo?$/, "1m");
+      const interval = intervalKey(q("interval"), "1h");
       const step = Object.hasOwn(INTERVALS, interval) ? INTERVALS[interval] : undefined;
       if (!step) throw new HttpError(400, `interval must be one of ${Object.keys(INTERVALS).join(", ")}`);
       const bars = num(q, "bars", { min: 1, max: 500, fallback: 50, integer: true });
@@ -213,7 +231,7 @@ export const HYPERLIQUID: Entry[] = [
       return { coin, hours, count: rates.length, averageRateHourly: avg === null ? null : Math.round(avg * 1e12) / 1e12, averageAprPct: avg === null ? null : Math.round(avg * 24 * 365 * 100 * 100) / 100, rates, source: SOURCE };
     }),
 
-  entry("/hyperliquid/indicators", "Crypto technical indicators: RSI, MACD, moving averages, Bollinger bands and ATR",
+  entry("/hyperliquid/indicators", "Technical indicators, RSI, MACD: moving averages, Bollinger bands and ATR for crypto",
     "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice.",
     ["technical-indicators", "rsi", "macd", "moving-average", "hyperliquid", "crypto"], {
       coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)", example: "BTC" },
@@ -222,7 +240,7 @@ export const HYPERLIQUID: Entry[] = [
     { coin: "BTC", interval: "4h", bars: 250, close: 81870, rsi14: 48.21, macd: { macd: -152.3, signal: -98.4, histogram: -53.9 }, sma: { "20": 82110, "50": 83340, "200": 79870 }, ema: { "12": 81990, "26": 82240, "50": 82900 }, bollinger: { upper: 83560, middle: 82110, lower: 80660, percentB: 0.42, bandwidth: 0.035 }, atr14: 812.5, realizedVolPct: 41.2, readings: ["RSI neutral (30-70)", "MACD below its signal line", "price below SMA 50", "price above SMA 200"], source: SOURCE },
     async (_e, q) => {
       const coin = await coinInput(q("coin"));
-      const interval = (q("interval")?.trim() || "4h").toLowerCase();
+      const interval = intervalKey(q("interval"), "4h");
       const step = Object.hasOwn(INTERVALS, interval) ? INTERVALS[interval] : undefined;
       if (!step) throw new HttpError(400, `interval must be one of ${Object.keys(INTERVALS).join(", ")}`);
       const end = Date.now();
@@ -251,7 +269,7 @@ export const HYPERLIQUID: Entry[] = [
       };
     }),
 
-  entry("/hyperliquid/prices","Crypto prices, all coins: Hyperliquid mid prices",
+  entry("/hyperliquid/prices","All crypto prices, Hyperliquid: mid prices of every perpetual",
     "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market.",
     ["crypto-prices", "price-ticker", "hyperliquid", "crypto", "market-data", "prices"], {
       coins: { type: "string", description: "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)", example: "BTC,ETH,SOL" },

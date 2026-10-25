@@ -9,11 +9,9 @@ import { decodeCalldata } from "./evm-tools";
 import { call, runSections } from "./packs";
 import { weather } from "./weather";
 
-/** ISO alpha-2 code for an English country name (Wikidata gives names, the country tool takes codes). */
-const REGION = typeof Intl !== "undefined" && "DisplayNames" in Intl ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
-const NAME_TO_CODE = new Map<string, string>();
-if (REGION) for (let a = 65; a <= 90; a++) for (let b = 65; b <= 90; b++) { const code = String.fromCharCode(a, b); try { const n = REGION.of(code); if (n && n !== code && !/^Unknown/i.test(n)) NAME_TO_CODE.set(n.toLowerCase(), code); } catch { /* not a region */ } }
-export const countryCode = (name: unknown) => (typeof name === "string" ? NAME_TO_CODE.get(name.toLowerCase()) ?? null : null);
+// ISO alpha-2 code for an English country name (Wikidata gives names, the country tool takes codes); shared with /holidays.
+import { countryCode } from "../lib/country-code";
+export { countryCode };
 
 const CHAIN_SLUGS = ["base", "eth", "arb", "op", "polygon"] as const;
 const EVENTS = parseAbi([

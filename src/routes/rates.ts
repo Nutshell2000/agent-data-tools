@@ -2,6 +2,22 @@ import { HttpError } from "../lib/env";
 
 const HEADERS = { "user-agent": "AgentDataTools/1.0" };
 const CODE = /^[A-Z]{3}$/;
+/** Currency names and signs agents send instead of ISO codes (24 Oct 2026: "US dollar", "euro", "$" were refused). */
+const CURRENCY_ALIASES: Record<string, string> = {
+  $: "USD", dollar: "USD", dollars: "USD", "us dollar": "USD", "us dollars": "USD", "u.s. dollar": "USD", "american dollar": "USD", usd$: "USD", us$: "USD",
+  "€": "EUR", euro: "EUR", euros: "EUR", "£": "GBP", pound: "GBP", pounds: "GBP", "pound sterling": "GBP", sterling: "GBP", "british pound": "GBP", "¥": "JPY", yen: "JPY", "japanese yen": "JPY",
+  krona: "SEK", kronor: "SEK", "swedish krona": "SEK", "swedish kronor": "SEK", "norwegian krone": "NOK", "norwegian kroner": "NOK", "danish krone": "DKK", "danish kroner": "DKK",
+  franc: "CHF", "swiss franc": "CHF", "swiss francs": "CHF", yuan: "CNY", renminbi: "CNY", rmb: "CNY", "chinese yuan": "CNY", rupee: "INR", rupees: "INR", "indian rupee": "INR", "₹": "INR",
+  won: "KRW", "korean won": "KRW", "₩": "KRW", real: "BRL", reais: "BRL", "brazilian real": "BRL", "r$": "BRL", "canadian dollar": "CAD", "canadian dollars": "CAD", "c$": "CAD", ca$: "CAD",
+  "australian dollar": "AUD", "australian dollars": "AUD", a$: "AUD", au$: "AUD", "new zealand dollar": "NZD", nz$: "NZD", "hong kong dollar": "HKD", hk$: "HKD", "singapore dollar": "SGD", s$: "SGD",
+  zloty: "PLN", "polish zloty": "PLN", "zł": "PLN", forint: "HUF", "hungarian forint": "HUF", koruna: "CZK", "czech koruna": "CZK", "czech crown": "CZK", rand: "ZAR", "south african rand": "ZAR",
+  lira: "TRY", "turkish lira": "TRY", "₺": "TRY", shekel: "ILS", "israeli shekel": "ILS", "₪": "ILS", baht: "THB", "thai baht": "THB", "฿": "THB", ringgit: "MYR", "malaysian ringgit": "MYR", rupiah: "IDR", "indonesian rupiah": "IDR",
+  peso: "MXN", "mexican peso": "MXN", "mexican pesos": "MXN", "philippine peso": "PHP", "₱": "PHP", leu: "RON", "romanian leu": "RON", lev: "BGN", "bulgarian lev": "BGN", "icelandic krona": "ISK",
+};
+const currencyCode = (raw: string) => {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, " ");
+  return CURRENCY_ALIASES[s] ?? s.toUpperCase();
+};
 
 async function getJson<T>(url: string, source: string, notFound: string): Promise<T> {
   let res: Response;
@@ -17,13 +33,13 @@ async function getJson<T>(url: string, source: string, notFound: string): Promis
 
 /** European Central Bank reference rates, published once per working day. */
 export async function exchangeRates(fromInput: string, toInput?: string, amountInput?: string) {
-  const from = fromInput.trim().toUpperCase();
-  if (!CODE.test(from)) throw new HttpError(400, "from must be a three-letter currency code such as USD");
+  const from = currencyCode(fromInput);
+  if (!CODE.test(from)) throw new HttpError(400, "from must be a three-letter currency code such as USD (or a currency name such as euro)");
   const to = (toInput ?? "")
     .split(",")
-    .map((c) => c.trim().toUpperCase())
+    .map(currencyCode)
     .filter(Boolean);
-  if (to.some((c) => !CODE.test(c))) throw new HttpError(400, "to must be three-letter currency codes separated by commas, e.g. EUR,GBP");
+  if (to.some((c) => !CODE.test(c))) throw new HttpError(400, "to must be three-letter currency codes separated by commas, e.g. EUR,GBP (currency names also work)");
   const amount = amountInput === undefined || amountInput === "" ? 1 : Number(amountInput);
   if (!Number.isFinite(amount) || amount <= 0) throw new HttpError(400, "amount must be a positive number");
 

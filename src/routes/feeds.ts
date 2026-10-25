@@ -7,7 +7,20 @@ import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 
 const FEED_BYTES = 2 * 1024 * 1024;
-const PAGE_BYTES = 512 * 1024;
+// 1 MB: YouTube's head (title, og:*, description) sits at 770-780 KB behind inline player data, so a 512 KB read saw none of
+// it. The parser stops at </head>, so the extra bytes cost only the download.
+const PAGE_BYTES = 1024 * 1024;
+
+/** The first RSS or Atom feed a web page advertises in its head (<link rel="alternate" type="application/rss+xml">). */
+export function discoverFeed(html: string, base: string): string | null {
+  for (const tag of html.slice(0, PAGE_BYTES).match(/<link\b[^>]*>/gi) ?? []) {
+    const attr = (n: string) => new RegExp(`\\b${n}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag)?.slice(2).find((x) => x !== undefined) ?? "";
+    if (!/\balternate\b/i.test(attr("rel")) || !/application\/(rss|atom)\+xml|application\/feed\+json/i.test(attr("type"))) continue;
+    const href = absolute(attr("href"), base);
+    if (href) return href;
+  }
+  return null;
+}
 
 const clean = (s: string, max: number) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 const absolute = (href: string | undefined, base: string) => {
@@ -121,7 +134,7 @@ export function parseMeta(html: string, base: string) {
   const og = Object.fromEntries(Object.entries(meta).filter(([k]) => k.startsWith("og:")).slice(0, 30));
   const tw = Object.fromEntries(Object.entries(meta).filter(([k]) => k.startsWith("twitter:")).slice(0, 20));
   return {
-    title: clean(meta["og:title"] ?? title, 300) || null,
+    title: clean(meta["og:title"] ?? title ?? "", 300) || clean(meta.title ?? meta["twitter:title"] ?? "", 300) || null,
     description: clean(meta.description ?? meta["og:description"] ?? meta["twitter:description"] ?? "", 1000) || null,
     siteName: meta["og:site_name"] ?? null,
     type: meta["og:type"] ?? null,
@@ -139,7 +152,7 @@ export const FEEDS: Entry[] = [
   entry("/feed", "RSS feed reader: read an RSS or Atom feed",
     "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages.",
     ["rss", "atom", "feed", "news", "web", "monitoring"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the feed", required: true, example: "https://blog.cloudflare.com/rss/" },
+      url: { type: "string", description: "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed", required: true, example: "https://blog.cloudflare.com/rss/" },
       limit: { type: "integer", description: "Items to return (1-50, default 20)", example: 10 },
     },
     {
@@ -148,14 +161,23 @@ export const FEEDS: Entry[] = [
     },
     async (_env, q) => {
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });
-      const page = await fetchText(q("url"), "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1", FEED_BYTES);
+      const accept = "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1";
+      let page = await fetchText(q("url"), accept, FEED_BYTES);
+      let discoveredFrom: string | null = null;
+      // Agents often send the site, not the feed: follow the feed the page's head advertises (one extra fetch).
+      if (/html/i.test(page.contentType) || /^\s*<(!doctype html|html)/i.test(page.text.slice(0, 200))) {
+        const feedUrl = discoverFeed(page.text, page.finalUrl);
+        if (!feedUrl) throw new HttpError(422, "url is a web page that advertises no RSS or Atom feed in its head; pass the feed URL itself");
+        discoveredFrom = page.finalUrl;
+        page = await fetchText(feedUrl, accept, FEED_BYTES);
+      }
       const { format, feed, items } = parseFeed(page.text, page.finalUrl, limit);
       if (!format || (!items.length && !feed.title)) throw new HttpError(422, `url is not an RSS or Atom feed (content type ${page.contentType || "unknown"})`);
-      return { url: page.finalUrl, format, title: feed.title, link: feed.link, description: feed.description, count: items.length, items };
+      return { url: page.finalUrl, ...(discoveredFrom ? { discoveredFrom } : {}), format, title: feed.title, link: feed.link, description: feed.description, count: items.length, items };
     }, "$0.01"),
 
   entry("/url/meta", "Website metadata, link preview: title, description and images of a page",
-    "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 512 KB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it.",
+    "Fetch a public web page's head and return link-preview metadata: title, description, site name, type, preview image, canonical URL, language, author, published time, favicon, theme colour, and every OpenGraph and Twitter-card field. Reads at most 1 MB and never runs JavaScript. Use to build link previews, label citations or check how a URL will unfurl before sharing it.",
     ["metadata", "opengraph", "web", "seo", "preview", "links"], {
       url: { type: "string", description: "Absolute public http(s) URL of the page", required: true, example: "https://github.com/" },
     },

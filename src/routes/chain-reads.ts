@@ -517,7 +517,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ address: a, isProxy: kind !== "none", kind, implementation: implementation ?? null, admin: admin ?? zosAdmin ?? null, beacon: beacon ?? null, upgradeable: kind !== "none" });
       }),
 
-    entry(p("call"), `${short} contract call`,
+    entry(p("call"), `${short} eth call, contract call`,
       `Read-only contract call on ${c.name} (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
       tags("eth-call", "contract", "read", "chain-data"), {
         to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },

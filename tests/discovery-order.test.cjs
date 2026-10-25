@@ -30,7 +30,8 @@ before(async () => {
 // which tools come first, or the one it reads shows toys and chain reads before the payee checks.
 test("every discovery surface lists the same first 15 tools in sales order", () => {
   const expected = index.discoveryResources(ENV, ORIGIN).items.slice(0, 15).map((i) => i.resource.slice(ORIGIN.length));
-  assert.deepEqual(expected.slice(0, 2), ["/check/payee", "/check/counterparty"]);
+  assert.deepEqual(expected.slice(0, 2), ["/ai/chat", "/ai/chat-large"]);
+  assert.ok(expected.includes("/check/payee") && expected.includes("/check/counterparty"), "payee checks in the first 15");
   const card = discovery.serviceCard(ORIGIN, ENV.PAY_TO, ENV.NETWORK).endpoints.slice(0, 15).map((e) => e.url.slice(ORIGIN.length));
   assert.deepEqual(card, expected, "service card");
   const toolNames = expected.map((p) => contract.mcpName(p));

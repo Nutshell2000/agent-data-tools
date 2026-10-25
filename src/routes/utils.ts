@@ -2,6 +2,7 @@
 // Inputs are size-capped to stay well inside a Worker's CPU budget.
 import { entry, flag, need, num, opt, pick, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
+import { parseDate } from "../lib/relative-date";
 
 const MAX = 20_000;
 
@@ -149,8 +150,11 @@ export function convertCase(t: string, to: string) {
   }
 }
 export function slugify(t: string, sep = "-") {
-  return t.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[æÆ]/g, "ae").replace(/[øØ]/g, "o")
-    .toLowerCase().replace(/[^a-z0-9]+/g, sep).replace(new RegExp(`^\\${sep}+|\\${sep}+$`, "g"), "");
+  const base = t.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[æÆ]/g, "ae").replace(/[øØ]/g, "o").toLowerCase();
+  const trim = (s: string) => s.replace(new RegExp(`^\\${sep}+|\\${sep}+$`, "g"), "");
+  const ascii = trim(base.replace(/[^a-z0-9]+/g, sep));
+  // Scripts with no Latin form (日本語, عربي) have no ASCII slug; keep their letters and digits, as URLs allow, instead of "".
+  return ascii || trim(base.replace(/[^\p{L}\p{N}]+/gu, sep));
 }
 
 // ---------- Numbers ----------
@@ -226,9 +230,9 @@ export function isbnCheck(raw: string) {
 // ---------- Dates ----------
 function date(q: Input, name: string, fallbackNow = false): Date {
   const v = q(name)?.trim();
-  if (!v) { if (fallbackNow) return new Date(); throw new HttpError(400, `${name} is required (ISO date like 2026-10-18)`); }
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00Z`) : new Date(v);
-  if (Number.isNaN(d.getTime())) throw new HttpError(400, `${name} is not a valid date`);
+  if (!v) { if (fallbackNow) return new Date(); throw new HttpError(400, `${name} is required (ISO date like 2026-10-18, or today)`); }
+  const d = parseDate(v);
+  if (!d) throw new HttpError(400, `${name} is not a valid date (use an ISO date like 2026-10-18, or today, tomorrow, yesterday)`);
   return d;
 }
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
@@ -242,9 +246,12 @@ function isoWeek(d: Date) {
 }
 
 /** Next run times of a 5-field cron expression (minute hour day month weekday), in UTC. */
+/** The standard macros (crontab(5), used by Vixie cron and most schedulers), as their 5-field forms. */
+const CRON_MACROS: Record<string, string> = { "@yearly": "0 0 1 1 *", "@annually": "0 0 1 1 *", "@monthly": "0 0 1 * *", "@weekly": "0 0 * * 0", "@daily": "0 0 * * *", "@midnight": "0 0 * * *", "@hourly": "0 * * * *" };
 export function cronNext(expr: string, from: Date, count: number): string[] {
-  const fields = expr.trim().split(/\s+/);
-  if (fields.length !== 5) throw new HttpError(400, "cron must have 5 fields: minute hour day-of-month month day-of-week");
+  const macro = expr.trim().toLowerCase();
+  const fields = (Object.hasOwn(CRON_MACROS, macro) ? CRON_MACROS[macro] : expr.trim()).split(/\s+/);
+  if (fields.length !== 5) throw new HttpError(400, "cron must have 5 fields: minute hour day-of-month month day-of-week (or @hourly, @daily, @weekly, @monthly, @yearly)");
   const ranges: [number, number][] = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 6]];
   const names = [null, null, null, ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"], ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]];
   const sets = fields.map((f, idx) => {
@@ -292,24 +299,61 @@ const UNITS: Record<string, Record<string, number>> = {
   energy: { j: 1, kj: 1e3, cal: 4.184, kcal: 4184, wh: 3600, kwh: 3.6e6 },
   pressure: { pa: 1, kpa: 1e3, bar: 1e5, psi: 6894.757293168, atm: 101325, mmhg: 133.322387415 },
 };
+/** Names, plurals and symbols agents send, mapped onto the table's keys (24 Oct 2026: feet, kilometers, kph, cups and acre were refused). */
+const UNIT_ALIASES: Record<string, string> = {
+  millimeter: "mm", millimetre: "mm", centimeter: "cm", centimetre: "cm", meter: "m", metre: "m", kilometer: "km", kilometre: "km", inch: "in", inches: "in",
+  foot: "ft", feet: "ft", yard: "yd", mile: "mi", "nautical mile": "nmi", milligram: "mg", gram: "g", kilogram: "kg", kilo: "kg", tonne: "t", ton: "t", "metric ton": "t",
+  ounce: "oz", pound: "lb", lbs: "lb", stone: "st", milliliter: "ml", millilitre: "ml", liter: "l", litre: "l", "cubic meter": "m3", "cubic metre": "m3", teaspoon: "tsp",
+  tablespoon: "tbsp", "fluid ounce": "floz", "fl oz": "floz", pint: "pt", quart: "qt", gallon: "gal", kph: "km/h", kmh: "km/h", kmph: "km/h", "km/hr": "km/h",
+  "kilometers per hour": "km/h", "kilometres per hour": "km/h", "meters per second": "m/s", "metres per second": "m/s", mps: "m/s", "miles per hour": "mph", knot: "kn", kt: "kn",
+  "feet per second": "ft/s", fps: "ft/s", "square millimeter": "mm2", "square centimeter": "cm2", "square meter": "m2", "square metre": "m2", sqm: "m2", hectare: "ha",
+  "square kilometer": "km2", "square kilometre": "km2", "square inch": "in2", "square foot": "ft2", "square feet": "ft2", sqft: "ft2", "square yard": "yd2", "square mile": "mi2",
+  byte: "b", kilobyte: "kb", megabyte: "mb", gigabyte: "gb", terabyte: "tb", kibibyte: "kib", mebibyte: "mib", gibibyte: "gib", tebibyte: "tib",
+  millisecond: "ms", second: "s", sec: "s", minute: "min", hour: "h", hr: "h", day: "d", week: "wk", joule: "j", kilojoule: "kj", calorie: "cal", kilocalorie: "kcal",
+  "watt hour": "wh", "kilowatt hour": "kwh", pascal: "pa", kilopascal: "kpa", atmosphere: "atm", celsius: "c", centigrade: "c", "°c": "c", degc: "c", "degrees celsius": "c",
+  "degree celsius": "c", fahrenheit: "f", "°f": "f", degf: "f", "degrees fahrenheit": "f", "degree fahrenheit": "f", kelvin: "k",
+};
+const TEMPERATURES = new Set(["c", "f", "k"]);
+const knownUnit = (k: string) => TEMPERATURES.has(k) || Object.values(UNITS).some((table) => Object.hasOwn(table, k));
+/** The table key for a unit as sent: aliases, then the singular of a plural ("miles", "hours", "square meters"). */
+export function unitKey(raw: string): string | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, " ").replace(/\.$/, "");
+  const direct = Object.hasOwn(UNIT_ALIASES, s) ? UNIT_ALIASES[s] : s;
+  if (knownUnit(direct)) return direct;
+  if (s.endsWith("s")) {
+    const singular = s.slice(0, -1);
+    const viaSingular = Object.hasOwn(UNIT_ALIASES, singular) ? UNIT_ALIASES[singular] : singular;
+    if (knownUnit(viaSingular)) return viaSingular;
+  }
+  return null;
+}
 function temperature(v: number, from: string, to: string) {
   const c = from === "c" ? v : from === "f" ? (v - 32) * (5 / 9) : v - 273.15;
   return to === "c" ? c : to === "f" ? c * (9 / 5) + 32 : c + 273.15;
 }
 export function convertUnit(value: number, fromRaw: string, toRaw: string) {
-  const from = fromRaw.toLowerCase(), to = toRaw.toLowerCase();
-  if (["c", "f", "k"].includes(from) && ["c", "f", "k"].includes(to)) return { kind: "temperature", result: temperature(value, from, to) };
+  const from = unitKey(fromRaw), to = unitKey(toRaw);
+  if (!from || !to) {
+    const unknown = !from ? fromRaw : toRaw;
+    throw new HttpError(400, `unknown unit "${unknown.slice(0, 30)}"; known kinds: length (mm, cm, m, km, in, ft, yd, mi, nmi), mass (mg, g, kg, t, oz, lb, st), volume (ml, l, m3, tsp, tbsp, floz, cup, pt, qt, gal), speed (m/s, km/h, mph, kn, ft/s), area (m2, ha, km2, ft2, acre, mi2…), data (b, kb, mb, gb, tb, kib, mib, gib, tib), time (ms, s, min, h, d, wk), energy (j, kj, cal, kcal, wh, kwh), pressure (pa, kpa, bar, psi, atm, mmhg), temperature (c, f, k); full names and plurals work`);
+  }
+  if (TEMPERATURES.has(from) && TEMPERATURES.has(to)) return { kind: "temperature", result: temperature(value, from, to) };
   for (const [kind, table] of Object.entries(UNITS)) {
-    if (from in table && to in table) return { kind, result: (value * table[from]) / table[to] };
+    if (Object.hasOwn(table, from) && Object.hasOwn(table, to)) return { kind, result: (value * table[from]) / table[to] };
   }
   throw new HttpError(400, `cannot convert ${fromRaw} to ${toRaw}; units must be of the same kind`);
 }
 
 // ---------- Colours ----------
-function parseColour(s: string) {
+/** The 148 CSS colour keywords (CSS Color Module Level 4), name:hex. */
+const CSS_COLOURS = "aliceblue:f0f8ff,antiquewhite:faebd7,aqua:00ffff,aquamarine:7fffd4,azure:f0ffff,beige:f5f5dc,bisque:ffe4c4,black:000000,blanchedalmond:ffebcd,blue:0000ff,blueviolet:8a2be2,brown:a52a2a,burlywood:deb887,cadetblue:5f9ea0,chartreuse:7fff00,chocolate:d2691e,coral:ff7f50,cornflowerblue:6495ed,cornsilk:fff8dc,crimson:dc143c,cyan:00ffff,darkblue:00008b,darkcyan:008b8b,darkgoldenrod:b8860b,darkgray:a9a9a9,darkgreen:006400,darkgrey:a9a9a9,darkkhaki:bdb76b,darkmagenta:8b008b,darkolivegreen:556b2f,darkorange:ff8c00,darkorchid:9932cc,darkred:8b0000,darksalmon:e9967a,darkseagreen:8fbc8f,darkslateblue:483d8b,darkslategray:2f4f4f,darkslategrey:2f4f4f,darkturquoise:00ced1,darkviolet:9400d3,deeppink:ff1493,deepskyblue:00bfff,dimgray:696969,dimgrey:696969,dodgerblue:1e90ff,firebrick:b22222,floralwhite:fffaf0,forestgreen:228b22,fuchsia:ff00ff,gainsboro:dcdcdc,ghostwhite:f8f8ff,gold:ffd700,goldenrod:daa520,gray:808080,green:008000,greenyellow:adff2f,grey:808080,honeydew:f0fff0,hotpink:ff69b4,indianred:cd5c5c,indigo:4b0082,ivory:fffff0,khaki:f0e68c,lavender:e6e6fa,lavenderblush:fff0f5,lawngreen:7cfc00,lemonchiffon:fffacd,lightblue:add8e6,lightcoral:f08080,lightcyan:e0ffff,lightgoldenrodyellow:fafad2,lightgray:d3d3d3,lightgreen:90ee90,lightgrey:d3d3d3,lightpink:ffb6c1,lightsalmon:ffa07a,lightseagreen:20b2aa,lightskyblue:87cefa,lightslategray:778899,lightslategrey:778899,lightsteelblue:b0c4de,lightyellow:ffffe0,lime:00ff00,limegreen:32cd32,linen:faf0e6,magenta:ff00ff,maroon:800000,mediumaquamarine:66cdaa,mediumblue:0000cd,mediumorchid:ba55d3,mediumpurple:9370db,mediumseagreen:3cb371,mediumslateblue:7b68ee,mediumspringgreen:00fa9a,mediumturquoise:48d1cc,mediumvioletred:c71585,midnightblue:191970,mintcream:f5fffa,mistyrose:ffe4e1,moccasin:ffe4b5,navajowhite:ffdead,navy:000080,oldlace:fdf5e6,olive:808000,olivedrab:6b8e23,orange:ffa500,orangered:ff4500,orchid:da70d6,palegoldenrod:eee8aa,palegreen:98fb98,paleturquoise:afeeee,palevioletred:db7093,papayawhip:ffefd5,peachpuff:ffdab9,peru:cd853f,pink:ffc0cb,plum:dda0dd,powderblue:b0e0e6,purple:800080,rebeccapurple:663399,red:ff0000,rosybrown:bc8f8f,royalblue:4169e1,saddlebrown:8b4513,salmon:fa8072,sandybrown:f4a460,seagreen:2e8b57,seashell:fff5ee,sienna:a0522d,silver:c0c0c0,skyblue:87ceeb,slateblue:6a5acd,slategray:708090,slategrey:708090,snow:fffafa,springgreen:00ff7f,steelblue:4682b4,tan:d2b48c,teal:008080,thistle:d8bfd8,tomato:ff6347,turquoise:40e0d0,violet:ee82ee,wheat:f5deb3,white:ffffff,whitesmoke:f5f5f5,yellow:ffff00,yellowgreen:9acd32";
+const NAMED_COLOURS: Record<string, string> = Object.fromEntries(CSS_COLOURS.split(",").map((pair) => pair.split(":") as [string, string]));
+export function parseColour(s: string) {
   const t = s.trim().toLowerCase();
-  let m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(t);
-  if (m) { const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1]; return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+  // Named colours ("navy") and hex with an alpha channel (#rrggbbaa, #rgba): the alpha is dropped.
+  const named = Object.hasOwn(NAMED_COLOURS, t.replace(/\s+/g, "")) ? `#${NAMED_COLOURS[t.replace(/\s+/g, "")]}` : t;
+  let m = /^#?([0-9a-f]{3}|[0-9a-f]{6})(?:[0-9a-f]{2}|[0-9a-f])?$/.exec(named);
+  if (m && (named.replace(/^#/, "").length !== 5 && named.replace(/^#/, "").length !== 7)) { const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1]; return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
   m = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/.exec(t);
   if (m) return m.slice(1, 4).map(Number).map((v) => Math.min(255, v));
   m = /^hsl\(\s*(\d{1,3}(?:\.\d+)?)\s*,\s*(\d{1,3}(?:\.\d+)?)%\s*,\s*(\d{1,3}(?:\.\d+)?)%\s*\)$/.exec(t);
@@ -318,7 +362,7 @@ function parseColour(s: string) {
     const f = (n: number) => { const k = (n + h * 12) % 12; const a = sat * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
     return [f(0), f(8), f(4)];
   }
-  throw new HttpError(400, "colour must be #rgb, #rrggbb, rgb(r,g,b) or hsl(h,s%,l%)");
+  throw new HttpError(400, "colour must be #rgb, #rrggbb, #rrggbbaa, rgb(r,g,b), hsl(h,s%,l%) or a CSS colour name such as navy");
 }
 function colourInfo(rgb: number[]) {
   const [r, g, b] = rgb.map((v) => v / 255);
@@ -423,10 +467,24 @@ export function markdownToHtml(md: string) {
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     if (h) { out.push(`<h${h[1].length}>${inlineMd(h[2])}</h${h[1].length}>`); i++; continue; }
     if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { out.push("<hr>"); i++; continue; }
+    // GitHub-flavoured table: a row of cells, then a separator row of dashes (with optional alignment colons).
+    if (line.includes("|") && i + 1 < lines.length && /\|/.test(lines[i + 1]) && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(lines[i + 1])) {
+      const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|"));
+      const align = cells(lines[i + 1]).map((c) => (/^:-+:$/.test(c) ? "center" : /^-+:$/.test(c) ? "right" : /^:-+$/.test(c) ? "left" : null));
+      const attr = (k: number) => (align[k] ? ` style="text-align:${align[k]}"` : "");
+      const head = cells(line).map((c, k) => `<th${attr(k)}>${inlineMd(c)}</th>`).join("");
+      i += 2;
+      const body: string[] = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) body.push(`<tr>${cells(lines[i++]).map((c, k) => `<td${attr(k)}>${inlineMd(c)}</td>`).join("")}</tr>`);
+      out.push(`<table><thead><tr>${head}</tr></thead>${body.length ? `<tbody>${body.join("")}</tbody>` : ""}</table>`);
+      continue;
+    }
     if (/^\s*[-*+]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) {
       const ordered = /^\s*\d/.test(line);
       const items: string[] = [];
-      while (i < lines.length && (ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/).test(lines[i])) items.push(`<li>${inlineMd(lines[i++].replace(/^\s*(?:[-*+]|\d+[.)])\s+/, ""))}</li>`);
+      // Task-list items ("- [ ] todo", "- [x] done") render as disabled checkboxes.
+      const item = (text: string) => { const task = /^\[([ xX])\]\s+(.*)$/.exec(text); return task ? `<input type="checkbox" disabled${task[1] !== " " ? " checked" : ""}> ${inlineMd(task[2])}` : inlineMd(text); };
+      while (i < lines.length && (ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/).test(lines[i])) items.push(`<li>${item(lines[i++].replace(/^\s*(?:[-*+]|\d+[.)])\s+/, ""))}</li>`);
       out.push(`<${ordered ? "ol" : "ul"}>${items.join("")}</${ordered ? "ol" : "ul"}>`);
       continue;
     }
@@ -468,7 +526,7 @@ const U = ["utility", "text"];
 export const UTILS: Entry[] = [
   entry("/json/validate", "Validate JSON", "Check whether text is valid JSON. Returns valid true/false, the parsed value's type and size, and for invalid input the error message with line and column. Use before parsing an LLM's or an API's output.",
     ["json", ...U], { text: T('{"a":1}', "The JSON text to check (up to 20,000 characters)") }, { valid: true, type: "object", keys: 1 },
-    (_e, q) => { const t = need(q, "text", MAX); const r = parseJson(t); return r.ok ? { valid: true, type: Array.isArray(r.value) ? "array" : r.value === null ? "null" : typeof r.value, keys: r.value && typeof r.value === "object" ? Object.keys(r.value).length : null } : { valid: false, error: r.error, line: r.line, column: r.column }; }),
+    (_e, q) => { const raw = need(q, "text", MAX); const fence = /^\s*```[a-z]*\s*\r?\n([\s\S]*?)\r?\n\s*```\s*$/i.exec(raw); const t = fence ? fence[1] : raw; const r = parseJson(t); return r.ok ? { valid: true, type: Array.isArray(r.value) ? "array" : r.value === null ? "null" : typeof r.value, keys: r.value && typeof r.value === "object" ? Object.keys(r.value).length : null } : { valid: false, error: r.error, line: r.line, column: r.column }; }),
   entry("/json/format", "Pretty-print JSON", "Format JSON with indentation (2 or 4 spaces, or tabs) and optionally sorted keys. Returns the formatted text. Use to make machine JSON readable or to normalise it for diffs.",
     ["json", ...U], { text: T('{"b":2,"a":1}', "The JSON text"), indent: { type: "string", description: "2 (default), 4 or tab", example: "2" }, sortKeys: { type: "string", description: "true to sort object keys", example: "true" } }, { formatted: '{\n  "a": 1,\n  "b": 2\n}' },
     (_e, q) => { const r = parseJson(need(q, "text", MAX)); if (!r.ok) throw new HttpError(422, `not valid JSON: ${r.error}`); const ind = q("indent") === "tab" ? "\t" : Number(q("indent") ?? 2) === 4 ? 4 : 2; const sort = (v: unknown): unknown => Array.isArray(v) ? v.map(sort) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sort((v as Record<string, unknown>)[k])])) : v; return { formatted: JSON.stringify(flag(q, "sortKeys") ? sort(r.value) : r.value, null, ind) }; }),
@@ -498,14 +556,27 @@ export const UTILS: Entry[] = [
     (_e, q) => { const t = need(q, "text", MAX); try { return { text: decodeURIComponent(flag(q, "plus") ? t.replace(/\+/g, " ") : t) }; } catch { throw new HttpError(400, "text contains an invalid percent sequence"); } }),
   entry("/url/parse", "Parse a URL", "Split a URL into protocol, host, port, path, query parameters (as an object), hash and origin, and report whether the host is an IP address. Use to read query parameters or check a link's host.",
     ["url", ...U], { url: T("https://example.com:8080/a/b?x=1&y=2#top", "The URL to parse") }, { protocol: "https:", host: "example.com", port: "8080", path: "/a/b", query: { x: "1", y: "2" }, hash: "#top", origin: "https://example.com:8080", isIp: false },
-    (_e, q) => { let u: URL; try { u = new URL(need(q, "url", 4000)); } catch { throw new HttpError(400, "url is not a valid absolute URL"); } const query: Record<string, string | string[]> = {}; u.searchParams.forEach((v, k) => { query[k] = k in query ? [...[query[k]].flat(), v] : v; }); return { protocol: u.protocol, host: u.hostname, port: u.port || null, path: u.pathname, query, hash: u.hash || null, origin: u.origin, isIp: /^\d+\.\d+\.\d+\.\d+$|^\[/.test(u.hostname) }; }),
+    (_e, q) => {
+      const raw = need(q, "url", 4000).trim();
+      // "example.com/a?b=1" has no scheme; read it as https and say so.
+      const assumedScheme = !/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) && /^(localhost|[a-z0-9-]+(\.[a-z0-9-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]|$)/i.test(raw);
+      let u: URL; try { u = new URL(assumedScheme ? `https://${raw}` : raw); } catch { throw new HttpError(400, "url is not a valid absolute URL"); }
+      const query: Record<string, string | string[]> = {}; u.searchParams.forEach((v, k) => { query[k] = Object.hasOwn(query, k) ? [...[query[k]].flat(), v] : v; });
+      return { protocol: u.protocol, host: u.hostname, port: u.port || null, path: u.pathname, query, hash: u.hash || null, origin: u.origin, isIp: /^\d+\.\d+\.\d+\.\d+$|^\[/.test(u.hostname), ...(assumedScheme ? { assumedScheme: true } : {}) };
+    }),
   entry("/hash", "SHA256 hash, hash text (SHA-256)", "Hash UTF-8 text with SHA-256 (default), SHA-1, SHA-384 or SHA-512 and return the digest in hex and base64. Use for checksums, cache keys and deduplication.",
     ["hash", "crypto", ...U], { text: T("hello", "The text to hash"), algorithm: { type: "string", description: "sha256 (default), sha1, sha384 or sha512", example: "sha256" } }, { algorithm: "sha256", hex: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", base64: "LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=" },
-    async (_e, q) => { const algo = pick(q, "algorithm", ["sha256", "sha1", "sha384", "sha512"] as const, "sha256"); const d = await crypto.subtle.digest(ALGOS[algo], new TextEncoder().encode(need(q, "text", MAX))); return { algorithm: algo, hex: hex(d), base64: btoa(String.fromCharCode(...new Uint8Array(d))) }; }),
+    async (_e, q) => {
+      // "SHA-256", "sha_256" and "SHA256" are the same algorithm.
+      const tidyQ: Input = (n) => (n === "algorithm" && q(n) ? q(n)!.toLowerCase().replace(/[^a-z0-9]/g, "") : q(n));
+      const algo = pick(tidyQ, "algorithm", ["sha256", "sha1", "sha384", "sha512"] as const, "sha256");
+      const d = await crypto.subtle.digest(ALGOS[algo], new TextEncoder().encode(need(q, "text", MAX)));
+      return { algorithm: algo, hex: hex(d), base64: btoa(String.fromCharCode(...new Uint8Array(d))) };
+    }),
   entry("/hmac", "HMAC signature", "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored.",
     ["hmac", "crypto", "webhook", ...U], { message: T("hello", "The message"), key: T("secret", "The key"), algorithm: { type: "string", description: "sha256 (default), sha1, sha384 or sha512", example: "sha256" } }, { algorithm: "sha256", hex: "88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b" },
     async (_e, q) => { const algo = pick(q, "algorithm", ["sha256", "sha1", "sha384", "sha512"] as const, "sha256"); const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(need(q, "key", 1000)), { name: "HMAC", hash: ALGOS[algo] }, false, ["sign"]); const s = await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(need(q, "message", MAX))); return { algorithm: algo, hex: hex(s), base64: btoa(String.fromCharCode(...new Uint8Array(s))) }; }),
-  entry("/uuid", "UUID generator", "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data.",
+  entry("/uuid", "UUID generator, ID generator", "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data.",
     ["uuid", "random", ...U], { count: { type: "integer", description: "How many (1-100, default 1)", example: 3 } }, { uuids: ["3b241101-e2bb-4255-8caf-4136c566a962"] },
     (_e, q) => ({ uuids: Array.from({ length: num(q, "count", { min: 1, max: 100, fallback: 1, integer: true }) }, () => crypto.randomUUID()) })),
   entry("/slug", "Slugify, make a URL slug", "Turn any text into a URL-friendly slug: accents removed (é→e, ß→ss), lower case, non-alphanumerics replaced by a separator (- by default). Use for file names, URLs and IDs.",
@@ -513,13 +584,29 @@ export const UTILS: Entry[] = [
     (_e, q) => ({ slug: slugify(need(q, "text", 2000), q("separator") === "_" ? "_" : "-") })),
   entry("/case", "Case converter: camelCase, snake_case, kebab-case and more", "Convert text or identifiers between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, Title Case, Sentence case, UPPER and lower. Handles mixed input like 'userID_value'. Use when renaming fields or generating code identifiers.",
     ["case", ...U], { text: T("user profile id", "The text"), to: T("camel", "camel, pascal, snake, kebab, constant, title, sentence, upper or lower") }, { result: "userProfileId" },
-    (_e, q) => ({ result: convertCase(need(q, "text", MAX), pick(q, "to", ["camel", "pascal", "snake", "kebab", "constant", "title", "sentence", "upper", "lower"] as const)) })),
+    (_e, q) => {
+      // "snake_case", "Title Case", "UPPERCASE", "SCREAMING_SNAKE": the style's own spelling of its name.
+      const styles: Record<string, string> = { camelcase: "camel", pascalcase: "pascal", snakecase: "snake", kebabcase: "kebab", constantcase: "constant", screamingsnake: "constant", screamingsnakecase: "constant", macrocase: "constant", titlecase: "title", sentencecase: "sentence", uppercase: "upper", lowercase: "lower", capitalcase: "title" };
+      const tidyQ: Input = (n) => { const v = q(n); if (n !== "to" || !v) return v; const key = v.toLowerCase().replace(/[^a-z]/g, ""); return Object.hasOwn(styles, key) ? styles[key] : v; };
+      return { result: convertCase(need(q, "text", MAX), pick(tidyQ, "to", ["camel", "pascal", "snake", "kebab", "constant", "title", "sentence", "upper", "lower"] as const)) };
+    }),
   entry("/text/stats", "Word count and readability", "Count characters, words, sentences and paragraphs, estimate reading and speaking time, and compute the Flesch reading-ease score and grade level for English text. Use to check the length and readability of a draft.",
     ["text", "readability", ...U], { text: T("The quick brown fox jumps over the lazy dog. It was not amused.", "The text") }, { characters: 63, words: 13, sentences: 2, paragraphs: 1, readingSeconds: 3, speakingSeconds: 6, fleschReadingEase: 94.3, fleschKincaidGrade: 2.3 },
     (_e, q) => { const t = need(q, "text", 50_000); const w = words(t); const sentences = Math.max(1, (t.match(/[.!?]+(\s|$)/g) ?? []).length); const syl = w.reduce((a, x) => a + syllables(x), 0); const wc = Math.max(1, w.length); return { characters: t.length, charactersNoSpaces: t.replace(/\s/g, "").length, words: w.length, sentences, paragraphs: t.split(/\n\s*\n/).filter((p) => p.trim()).length, readingSeconds: Math.round((w.length / 238) * 60), speakingSeconds: Math.round((w.length / 140) * 60), fleschReadingEase: Math.round((206.835 - 1.015 * (wc / sentences) - 84.6 * (syl / wc)) * 10) / 10, fleschKincaidGrade: Math.round((0.39 * (wc / sentences) + 11.8 * (syl / wc) - 15.59) * 10) / 10 }; }),
   entry("/text/extract", "Extract emails, URLs and more", "Find all email addresses, URLs, phone-number-like strings, hashtags, @mentions and numbers in a text, each list de-duplicated. Use to pull contacts and links out of scraped pages or messages.",
     ["text", "extract", "email", "url", ...U], { text: T("Mail ada@example.com or see https://example.com #news @ada +46 70 123 45 67", "The text") }, { emails: ["ada@example.com"], urls: ["https://example.com"], phones: ["+46 70 123 45 67"], hashtags: ["#news"], mentions: ["@ada"] },
-    (_e, q) => { const t = need(q, "text", 50_000); const u = (re: RegExp) => [...new Set(t.match(re) ?? [])]; return { emails: u(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g), urls: u(/https?:\/\/[^\s<>"')\]]+/g).map((x) => x.replace(/[.,;:!?]+$/, "")), phones: u(/\+?\d[\d ()-]{7,}\d/g).map((x) => x.trim()), hashtags: u(/(?<![\w#])#[\p{L}\p{N}_]+/gu), mentions: u(/(?<![\w@])@[A-Za-z0-9_]{2,}/g), numbers: u(/-?\d+(?:[.,]\d+)?/g).slice(0, 200) }; }),
+    (_e, q) => {
+      const t = need(q, "text", 50_000);
+      const u = (re: RegExp, s = t) => [...new Set(s.match(re) ?? [])];
+      const emails = u(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g);
+      const urls = u(/(?:https?:\/\/|www\.)[^\s<>"')\]]+/g).map((x) => x.replace(/[.,;:!?]+$/, ""));
+      // Phones are read from text with dates, URLs, e-mails and hex addresses blanked out, so 2026-12-24 or the digits of
+      // a wallet address never count as a phone number; the plain number list skips the same.
+      const blanked = t.replace(/\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?)?\b|0x[0-9a-fA-F]{6,}|(?:https?:\/\/|www\.)[^\s<>"')\]]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, (m) => " ".repeat(m.length));
+      const phones = u(/\+?\d[\d ()-]{7,}\d/g, blanked).map((x) => x.trim()).filter((x) => (x.match(/\d/g) ?? []).length >= 7);
+      const numbers = u(/(?<![\w.-])-?\d{1,3}(?:[,.]\d{3})*(?:\.\d+)?(?![\w-])|(?<![\w.-])-?\d+(?:\.\d+)?(?![\w-])/g, blanked.replace(/\+?\d[\d ()-]{7,}\d/g, (m) => " ".repeat(m.length))).slice(0, 200);
+      return { emails, urls, phones, hashtags: u(/(?<![\w#])#[\p{L}\p{N}_]+/gu), mentions: u(/(?<![\w@])@[A-Za-z0-9_]{2,}/g), numbers };
+    }),
   entry("/text/diff", "Text diff, compare two texts", "Line-by-line difference between two texts: each line marked as unchanged, removed or added, with counts. Use to see what changed between two versions of a document, config or prompt.",
     ["text", "diff", ...U], { a: T("one\ntwo\nthree", "The original text"), b: T("one\n2\nthree\nfour", "The new text") }, { added: 2, removed: 1, unchanged: 2, lines: [{ op: "=", line: "one" }, { op: "-", line: "two" }, { op: "+", line: "2" }] },
     (_e, q) => { const d = lineDiff(need(q, "a", MAX), need(q, "b", MAX)); return { added: d.filter((x) => x.op === "+").length, removed: d.filter((x) => x.op === "-").length, unchanged: d.filter((x) => x.op === "=").length, lines: d }; }),
@@ -543,7 +630,7 @@ export const UTILS: Entry[] = [
     (_e, q) => { const v = q("value")?.trim(); let d: Date; if (!v) d = new Date(); else if (/^-?\d+(\.\d+)?$/.test(v)) { const n = Number(v); d = new Date(Math.abs(n) > 1e11 ? n : n * 1000); } else d = new Date(v); if (Number.isNaN(d.getTime())) throw new HttpError(400, "value is not a timestamp or date"); return { unix: Math.floor(d.getTime() / 1000), unixMs: d.getTime(), iso: d.toISOString() }; }),
   entry("/units/convert", "Unit conversion", "Convert between units of length, mass, volume (incl. US cups and gallons), temperature (c, f, k), speed, area, data size (kB vs KiB), time, energy and pressure. Example units: km, mi, lb, kg, floz, ml, mph, kn, acre, gib, kwh, psi. Use when exact conversions matter.",
     ["units", "convert", "math", ...U], { value: { type: "number", description: "The amount", required: true, example: 10 }, from: T("km", "Unit to convert from"), to: T("mi", "Unit to convert to") }, { value: 10, from: "km", to: "mi", kind: "length", result: 6.2137119224 },
-    (_e, q) => { const v = num(q, "value"); const from = need(q, "from", 10), to = need(q, "to", 10); const r = convertUnit(v, from, to); return { value: v, from, to, kind: r.kind, result: Math.round(r.result * 1e10) / 1e10 }; }),
+    (_e, q) => { const v = num(q, "value"); const from = need(q, "from", 40), to = need(q, "to", 40); const r = convertUnit(v, from, to); return { value: v, from, to, kind: r.kind, result: Math.round(r.result * 1e10) / 1e10 }; }),
   entry("/number/words", "Number to English words", "Write a whole number (up to trillions, negatives allowed) out in English words, e.g. for cheques and invoices. Also returns the cheque form with 'and' cents when given a decimal amount. Use when amounts must be written out in full.",
     ["number", "words", "invoice", ...U], { number: { type: "number", description: "The number, decimals allowed", required: true, example: 1234.5 } }, { words: "one thousand two hundred thirty-four", cheque: "one thousand two hundred thirty-four and 50/100" },
     (_e, q) => { const n = num(q, "number", { min: -1e15, max: 1e15 }); const whole = Math.trunc(n); const cents = Math.round(Math.abs(n - whole) * 100); return { words: numberToWords(whole), cheque: `${numberToWords(whole)} and ${String(cents).padStart(2, "0")}/100` }; }),
@@ -576,8 +663,8 @@ export const UTILS: Entry[] = [
     (_e, q) => { const a = need(q, "a", 100), b = need(q, "b", 100); const c = semverCompare(a, b); const v = semver(a); return { a, b, comparison: c, newer: c >= 0 ? a : b, nextMajor: `${v.major + 1}.0.0`, nextMinor: `${v.major}.${v.minor + 1}.0`, nextPatch: `${v.major}.${v.minor}.${v.patch + 1}` }; }),
   entry("/jwt/decode", "JWT decode", "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows.",
     ["jwt", "auth", "dev", ...U], { token: T("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJleHAiOjE3OTIyODE2MDB9.sig", "The JWT") }, { header: { alg: "HS256", typ: "JWT" }, payload: { sub: "123", exp: 1792281600 }, expiresAt: "2026-10-18T00:00:00.000Z", expired: true, signatureVerified: false },
-    (_e, q) => { const parts = need(q, "token", 10_000).trim().split("."); if (parts.length < 2) throw new HttpError(400, "token must have header.payload.signature"); const dec = (s: string) => { try { return JSON.parse(b64decode(s)); } catch { throw new HttpError(400, "token parts are not base64url JSON"); } }; const payload = dec(parts[1]); const t = (k: string) => (typeof payload?.[k] === "number" ? new Date(payload[k] * 1000).toISOString() : null); return { header: dec(parts[0]), payload, issuedAt: t("iat"), notBefore: t("nbf"), expiresAt: t("exp"), expired: typeof payload?.exp === "number" ? payload.exp * 1000 < Date.now() : null, signatureVerified: false }; }),
-  entry("/markdown/to-html", "Markdown to HTML", "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page.",
+    (_e, q) => { const parts = need(q, "token", 10_000).trim().replace(/^bearer\s+/i, "").replace(/^["']|["']$/g, "").split("."); if (parts.length < 2) throw new HttpError(400, "token must have header.payload.signature"); const dec = (s: string) => { try { return JSON.parse(b64decode(s)); } catch { throw new HttpError(400, "token parts are not base64url JSON"); } }; const payload = dec(parts[1]); const t = (k: string) => (typeof payload?.[k] === "number" ? new Date(payload[k] * 1000).toISOString() : null); return { header: dec(parts[0]), payload, issuedAt: t("iat"), notBefore: t("nbf"), expiresAt: t("exp"), expired: typeof payload?.exp === "number" ? payload.exp * 1000 < Date.now() : null, signatureVerified: false }; }),
+  entry("/markdown/to-html", "Markdown to HTML", "Convert Markdown (headings, paragraphs, bold, italic, strikethrough, links, images, inline and fenced code, lists and task lists, tables, quotes, rules) to HTML. Raw HTML in the input is escaped, so the output is safe to embed. Use to publish agent-written Markdown on a web page.",
     ["markdown", "html", ...U], { markdown: T("# Title\nSome **bold** text and a [link](https://example.com).", "The Markdown") }, { html: '<h1>Title</h1>\n<p>Some <strong>bold</strong> text and a <a href="https://example.com">link</a>.</p>' },
     (_e, q) => ({ html: markdownToHtml(need(q, "markdown", MAX)) })),
   entry("/html/to-text", "HTML to plain text", "Strip HTML to readable plain text: scripts and styles removed, block elements become line breaks, list items get bullets, entities decoded. Use to feed web content or emails to an LLM.",
@@ -588,5 +675,19 @@ export const UTILS: Entry[] = [
     (_e, q) => { const c = num(q, "code", { min: 100, max: 599, integer: true }); const known = HTTP_STATUS[c]; const cls = ["", "informational", "success", "redirect", "client error", "server error"][Math.floor(c / 100)]; return { code: c, name: known?.[0] ?? null, meaning: known?.[1] ?? `An unlisted ${cls} code.`, class: cls, retry: c === 408 || c === 429 || c >= 500 }; }),
   entry("/mime", "MIME type for a file", "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files.",
     ["mime", "files", "dev", ...U], { file: T("report.xlsx", "File name or extension") }, { extension: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", inline: false },
-    (_e, q) => { const ext = need(q, "file", 300).toLowerCase().split(".").pop()!.trim(); const mime = MIME[ext]; if (!mime) throw new HttpError(404, `unknown extension .${ext}`); return { extension: ext, mime, inline: /^(text|image|audio|video)\/|application\/(pdf|json)/.test(mime) }; }),
+    (_e, q) => {
+      const file = need(q, "file", 300).toLowerCase().trim();
+      const inline = (mime: string) => /^(text|image|audio|video)\/|application\/(pdf|json)/.test(mime);
+      // A MIME type ("application/json") looks the other way: which extensions carry it.
+      if (file.includes("/")) {
+        const type = file.split(";")[0].trim();
+        const extensions = Object.entries(MIME).filter(([, m]) => m === type).map(([e]) => e);
+        if (!extensions.length) throw new HttpError(404, `unknown MIME type ${type}`);
+        return { extension: extensions[0], mime: type, inline: inline(type), extensions };
+      }
+      const ext = file.split(".").pop()!.trim();
+      const mime = Object.hasOwn(MIME, ext) ? MIME[ext] : undefined;
+      if (!mime) throw new HttpError(404, `unknown extension .${ext}`);
+      return { extension: ext, mime, inline: inline(mime) };
+    }),
 ];

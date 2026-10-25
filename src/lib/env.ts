@@ -19,6 +19,9 @@ export interface Env {
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
+  /** Workers AI calls per UTC day (default 1000) and hosted-browser launches per UTC day (default 60): the spend caps on Workers Paid. */
+  AI_DAILY_CAP?: string;
+  BROWSER_DAILY_CAP?: string;
   // Restricted Stripe key that can only read Checkout Sessions; /credits/claim uses it to confirm card payments.
   STRIPE_READ_KEY?: string;
   /** Owner-only bearer token for private sales figures on /revenue (card-credit totals). Optional secret. */
