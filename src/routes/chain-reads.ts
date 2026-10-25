@@ -629,9 +629,19 @@ export async function recentLogs(cl: PublicClient, filter: { address: `0x${strin
   let logs: RawLog[] = [];
   let to = latest;
   let size = 10n;
+  let lagRetries = 0;
   while (to >= floor) {
     const from = to - size + 1n > floor ? to - size + 1n : floor;
-    const chunk = await rpc(() => cl.request({ method: "eth_getLogs", params: [{ ...filter, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] })) as RawLog[];
+    let chunk: RawLog[];
+    try {
+      chunk = await rpc(() => cl.request({ method: "eth_getLogs", params: [{ ...filter, fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] })) as RawLog[];
+    } catch (e) {
+      // A log node a few blocks behind the node that gave `latest` answers "header not found" for the newest range, which
+      // rpc() reads as 404. Production, 25 Oct 2026: every Base scan over ~200 blocks failed this way. Step back past the
+      // newest blocks (up to 3 times, 5 blocks each) instead of failing the call.
+      if (e instanceof HttpError && e.status === 404 && logs.length === 0 && lagRetries < 3 && to - 5n >= floor) { lagRetries++; to -= 5n; continue; }
+      throw e;
+    }
     logs = chunk.concat(logs);
     if (logs.length >= want || from === floor) return { logs, fromBlock: from, complete: from === floor };
     to = from - 1n;

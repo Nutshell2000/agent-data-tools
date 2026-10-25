@@ -103,7 +103,7 @@ function errorPosition(text: string, message: string) {
 }
 
 export const TOOLBOXES: Entry[] = [
-  entry("/pack/hash-toolbox", "Hash toolbox: MD5, SHA-256, SHA-512, Keccak, CRC32 and SRI",
+  entry("/pack/hash-toolbox", "Hash generator, hash toolbox: MD5, SHA-256, SHA-512, Keccak, CRC32 and SRI",
     "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems.",
     ["hash", ...T, "sha256", "md5", "checksum"], {
       text: { type: "string", description: "Text to hash (up to 100,000 characters), or hex bytes with hex=true", required: true, example: "hello world" },

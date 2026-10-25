@@ -231,7 +231,8 @@ export const PACKS: Entry[] = [
         contract: call(env, "/base/is-contract", { address }),
         baseNonce: call(env, "/base/nonce", { address }),
         ethNonce: call(env, "/eth/nonce", { address }),
-        transfers: call(env, "/base/token-transfers", { address, blocks: 2000 }),
+        // 1,000 blocks (about 33 minutes on Base): the published example took 11.9 s at 2,000, past many buyers' patience.
+        transfers: call(env, "/base/token-transfers", { address, blocks: 1000 }),
         sanctions: call(env, "/sanctions/check", { address }),
       });
       const tr = data.transfers as { count: number; transfers: Record<string, unknown>[] } | undefined;
