@@ -42,6 +42,11 @@ export function companyFacts(candidates: Entity[], labels: Record<string, string
   };
 }
 
+/** The registrable-looking host of a domain or URL, without www. */
+function domainOf(raw: string) {
+  try { return new URL(/^https?:\/\//i.test(raw) ? raw : `http://${raw}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return raw.toLowerCase(); }
+}
+
 /** Linked items whose labels the answer needs. */
 function linkedIds(e: Entity): string[] {
   const ids = ["P17", "P159", "P452", "P169", "P112", "P749", "P414"].flatMap((p) => itemIds(e, p));
@@ -68,11 +73,16 @@ export const COMPANY: Entry[] = [
       const name = opt(q, "name", 200)?.trim();
       if (!rawId && !name) throw new HttpError(400, "name or id is required");
       if (rawId && !/^Q\d{1,12}$/.test(rawId)) throw new HttpError(400, "id must be a Wikidata item ID such as Q689141");
-      const ids = rawId ? [rawId] : await searchItems(name!, 7);
-      if (!ids.length) throw new HttpError(404, "no Wikidata item matches this name");
+      // A domain or URL ("stripe.com", "https://www.stripe.com/pricing"): search its label and prefer the company whose
+      // official website (P856) is on that domain. Wikidata's text search finds nothing for a bare domain.
+      const domain = name && !/\s/.test(name) && /^(https?:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(name) ? domainOf(name) : null;
+      const query = domain ? domain.split(".").slice(0, -1).join(" ").replace(/^www /, "") || domain : name!;
+      const ids = rawId ? [rawId] : await searchItems(query, domain ? 10 : 7);
+      if (!ids.length) throw new HttpError(404, domain ? `no Wikidata item matches the domain ${domain}` : "no Wikidata item matches this name");
       const entities = await getEntities(ids);
       const candidates = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e?.claims));
-      const best = candidates.find(isCompany);
+      const onDomain = (e: Entity) => { try { return new URL(firstString(e, "P856") ?? "http://-").hostname.replace(/^www\./, "") === domain; } catch { return false; } };
+      const best = (domain ? candidates.find((e) => isCompany(e) && onDomain(e)) : undefined) ?? candidates.find(isCompany);
       if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : "no company found under this name");
       const labels = await labelsOf(linkedIds(best));
       return companyFacts([best], labels)!;

@@ -64,8 +64,10 @@ test('without a limit the first page holds every tool, best sellers first and to
   const page = await (await mf.dispatchFetch('https://api.test/discovery/resources')).json();
   assert.equal(page.items.length, page.pagination.total, 'one page, the whole catalog');
   const paths = page.items.map((i) => new URL(i.resource).pathname);
-  assert.deepEqual(paths.slice(0, 3), ['/check/payee', '/check/counterparty', '/check/x402-seller']);
-  assert.ok(paths.indexOf('/hyperliquid/market') < 20 && paths.indexOf('/sec/filings') < 20, 'demanded data tools near the top');
+  // 24 Oct 2026: inference, speech and media first (the Bazaar categories whose buyers call thousands of times), then the payee checks.
+  assert.deepEqual(paths.slice(0, 3), ['/ai/chat', '/ai/chat-large', '/ai/embed']);
+  assert.ok(paths.indexOf('/check/payee') < 15 && paths.indexOf('/check/counterparty') < 15, 'payee checks right after the media tools');
+  assert.ok(paths.indexOf('/hyperliquid/market') < 35 && paths.indexOf('/sec/filings') < 35, 'demanded data tools near the top');
   const firstToy = paths.findIndex((p) => /^\/(coin|dice|random\/|magic-8-ball|yes-no|echo|ping)/.test(p));
   assert.ok(firstToy > paths.length - 15, `toys at the end (first at ${firstToy})`);
   assert.equal(new Set(paths).size, paths.length, 'no tool twice');

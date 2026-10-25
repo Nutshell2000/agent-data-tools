@@ -2,6 +2,8 @@
 // Outside failures are 502 (not charged); "not found" answers are 404 (not charged).
 import { entry, getJson, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { countryCode, countryName } from "../lib/country-code";
+import { parseDate } from "../lib/relative-date";
 import { COUNTRIES, holidaysFor } from "./holidays";
 import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
@@ -55,12 +57,27 @@ export function moonPhase(date: Date) {
 function dateParam(q: Parameters<Entry["run"]>[1]) {
   const v = q("date")?.trim();
   if (!v) return new Date();
-  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T12:00:00Z` : v);
-  if (Number.isNaN(d.getTime())) throw new HttpError(400, "date is not valid");
+  const d = parseDate(v, "T12:00:00Z");
+  if (!d) throw new HttpError(400, "date is not valid (use an ISO date like 2026-10-18, or today, tomorrow, yesterday)");
   return d;
 }
 
 const P = ["data"];
+
+/**
+ * USGS publishes feeds at 1.0, 2.5, 4.5, "significant" and all magnitudes; any requested minimum ("6") reads the largest
+ * feed at or below it and filters (24 Oct 2026: minMagnitude=6 was refused). Returns the feed name and the filter.
+ */
+export function quakeFeed(raw: string | undefined): { feed: string; min: number | null } {
+  const s = (raw ?? "").trim().toLowerCase();
+  if (!s) return { feed: "2.5", min: 2.5 };
+  if (s === "significant") return { feed: "significant", min: null };
+  if (s === "all") return { feed: "all", min: 0 };
+  const n = Number(s.replace(/^m/, ""));
+  if (!Number.isFinite(n) || n < 0 || n > 10) throw new HttpError(400, "minMagnitude must be a magnitude from 0 to 10, or significant");
+  const feed = n >= 4.5 ? "4.5" : n >= 2.5 ? "2.5" : n >= 1 ? "1.0" : "all";
+  return { feed, min: n };
+}
 
 export const PUBLIC_DATA: Entry[] = [
   entry("/holidays", "Public holidays by country", "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths.",
@@ -68,12 +85,13 @@ export const PUBLIC_DATA: Entry[] = [
     { country: "SE", countryName: "Sweden", year: 2026, count: 13, holidays: [{ date: "2026-01-01", localName: "Nyårsdagen", name: "New Year's Day", nationwide: true, types: ["Public"], observed: null }], note: "Computed from statutory rules; nationwide holidays only. Regional holidays and one-off proclamations are not included." },
     async (_e, q) => {
       // What agents type: "UK" (the description's own word), "USA" or the country's English name.
-      const typed = need(q, "country", 40).trim().toUpperCase().replace(/[^A-Z ]/g, "");
-      const country = ({ UK: "GB", "UNITED KINGDOM": "GB", ENGLAND: "GB", USA: "US", "UNITED STATES": "US", SWEDEN: "SE", GERMANY: "DE", FRANCE: "FR", NORWAY: "NO", DENMARK: "DK", FINLAND: "FI" } as Record<string, string>)[typed] ?? typed;
-      if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, `country must be a 2-letter ISO code such as GB, US or SE (got "${typed.slice(0, 40)}")`);
+      const typed = need(q, "country", 60).trim();
+      // Any English country name or code resolves ("Japan" used to be refused as "not a 2-letter code" rather than as unsupported).
+      const country = countryCode(typed) ?? typed.toUpperCase();
+      if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, `country must be a 2-letter ISO code such as GB, US or SE, or a country name (got "${typed.slice(0, 40)}")`);
       const year = num(q, "year", { min: 2024, max: 2100, fallback: new Date().getUTCFullYear(), integer: true });
       const out = holidaysFor(country, year);
-      if (!out) throw new HttpError(404, `no holiday rules for ${country}; supported: ${Object.keys(COUNTRIES).join(", ")}`);
+      if (!out) throw new HttpError(404, `no holiday rules for ${countryName(country) ?? country} (${country}); supported: ${Object.keys(COUNTRIES).join(", ")}`);
       return out;
     }),
 
@@ -91,25 +109,35 @@ export const PUBLIC_DATA: Entry[] = [
     ["dictionary", "language", "english", ...P], { word: { type: "string", description: "An English word", required: true, example: "serendipity" } },
     { word: "serendipity", meanings: [{ partOfSpeech: "Noun", definitions: [{ definition: "An unsought, unintended, and/or unexpected, but fortunate, discovery.", example: null }] }], url: "https://en.wiktionary.org/wiki/serendipity", licence: "CC BY-SA 4.0", attribution: "Definitions from the Wiktionary entry \"serendipity\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
-      const word = need(q, "word", 60).trim();
+      const typed = need(q, "word", 60).trim();
       type Sense = { definition?: string; examples?: string[] };
-      const r = await getJson<Record<string, Array<{ partOfSpeech: string; definitions: Sense[] }>>>(`https://en.wiktionary.org/api/rest_v1/page/definition/${enc(word.replaceAll(" ", "_"))}`, { notFound: "word not found" });
-      const meanings = (r.en ?? []).slice(0, 8).map((m) => ({
-        partOfSpeech: m.partOfSpeech,
-        definitions: m.definitions.map((d) => ({ definition: stripHtml(d.definition ?? ""), example: d.examples?.[0] ? stripHtml(d.examples[0]) : null })).filter((d) => d.definition).slice(0, 4),
-      })).filter((m) => m.definitions.length);
+      type Meaning = { partOfSpeech: string; definitions: { definition: string; example: string | null }[] };
+      const lookup = async (w: string) => {
+        const r = await getJson<Record<string, Array<{ partOfSpeech: string; definitions: Sense[] }>>>(`https://en.wiktionary.org/api/rest_v1/page/definition/${enc(w.replaceAll(" ", "_"))}`, { notFound: "word not found" });
+        return (r.en ?? []).slice(0, 8).map((m): Meaning => ({
+          partOfSpeech: m.partOfSpeech,
+          definitions: m.definitions.map((d) => ({ definition: stripHtml(d.definition ?? ""), example: d.examples?.[0] ? stripHtml(d.examples[0]) : null })).filter((d) => d.definition).slice(0, 4),
+        })).filter((m) => m.definitions.length);
+      };
+      // Wiktionary entries are case-sensitive: "Running" is only a surname, "running" the verb. A capitalised word is looked
+      // up in lower case first; the spelling as typed is tried when that has no entry (proper nouns, acronyms stay as sent).
+      const lower = typed.toLowerCase();
+      let word = typed, meanings: Meaning[] = [];
+      if (typed !== lower && typed !== typed.toUpperCase()) { meanings = await lookup(lower).catch(() => []); if (meanings.length) word = lower; }
+      if (!meanings.length) meanings = await lookup(typed);
       if (!meanings.length) throw new HttpError(404, "no English definitions for this word");
       return { word, meanings, url: `https://en.wiktionary.org/wiki/${enc(word.replaceAll(" ", "_"))}`, licence: "CC BY-SA 4.0", attribution: `Definitions from the Wiktionary entry "${word}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
   entry("/earthquakes", "Recent earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
-    ["earthquakes", "geo", "science", ...P], { period: { type: "string", description: "day (default) or week", example: "day" }, minMagnitude: { type: "string", description: "2.5 (default), 4.5 or significant", example: "4.5" } },
+    ["earthquakes", "geo", "science", ...P], { period: { type: "string", description: "hour, day (default), week or month", example: "day" }, minMagnitude: { type: "string", description: "Smallest magnitude to include, 0-10 (default 2.5), or significant", example: "4.5" } },
     { period: "day", minMagnitude: "4.5", count: 8, earthquakes: [{ magnitude: 5.1, place: "100 km S of …", time: "2026-10-18T03:12:00.000Z", depthKm: 10, lat: -6.1, lon: 130.2, tsunami: false, url: "https://earthquake.usgs.gov/…" }] },
     async (_e, q) => {
-      const period = pick(q, "period", ["day", "week"] as const, "day");
-      const mag = pick(q, "minMagnitude", ["2.5", "4.5", "significant"] as const, "2.5");
-      const r = await getJson<{ features: Array<{ properties: { mag: number; place: string; time: number; tsunami: number; url: string }; geometry: { coordinates: [number, number, number] } }> }>(`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${mag}_${period}.geojson`);
-      return { period, minMagnitude: mag, count: r.features.length, earthquakes: r.features.slice(0, 100).map((f) => ({ magnitude: f.properties.mag, place: f.properties.place, time: new Date(f.properties.time).toISOString(), depthKm: f.geometry.coordinates[2], lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], tsunami: f.properties.tsunami === 1, url: f.properties.url })) };
+      const period = pick(q, "period", ["hour", "day", "week", "month"] as const, "day");
+      const { feed, min } = quakeFeed(q("minMagnitude"));
+      const r = await getJson<{ features: Array<{ properties: { mag: number; place: string; time: number; tsunami: number; url: string }; geometry: { coordinates: [number, number, number] } }> }>(`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}_${period}.geojson`);
+      const features = min === null ? r.features : r.features.filter((f) => typeof f.properties.mag === "number" && f.properties.mag >= min);
+      return { period, minMagnitude: min === null ? "significant" : String(min), count: features.length, earthquakes: features.slice(0, 100).map((f) => ({ magnitude: f.properties.mag, place: f.properties.place, time: new Date(f.properties.time).toISOString(), depthKm: f.geometry.coordinates[2], lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], tsunami: f.properties.tsunami === 1, url: f.properties.url })) };
     }),
 
   entry("/air-quality", "Air quality now", "Current air quality at a point: European and US air-quality index, PM2.5, PM10, ozone, nitrogen dioxide, sulphur dioxide and carbon monoxide (Open-Meteo, CAMS model data). Use for health, outdoor-activity and travel decisions.",

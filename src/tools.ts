@@ -84,20 +84,50 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  */
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   address: ["wallet", "addr", "account"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
-  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone"], date: ["day"], text: ["input"],
+  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input"],
   name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link"],
   from: ["from_currency"], to: ["to_currency"],
 };
 
+/** A host with an optional port, path, query or fragment and no scheme: "example.com/a?b=1", "localhost:8080", "10.0.0.1/x". */
+const SCHEMELESS_URL = /^(localhost|[a-z0-9-]+(\.[a-z0-9-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]|$)/i;
 export const normalizedInput = (sent: Input): Input => (name) => {
   const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => sent(alias)).find((v) => v !== undefined);
   const value = input(name);
+  // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
+  // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.
+  if (name === "url" && value && !/^[a-z][a-z0-9+.-]*:/i.test(value.trim()) && SCHEMELESS_URL.test(value.trim())) return `https://${value.trim()}`;
   if (value === undefined || !ADDRESS_INPUTS.has(name) || (sent as { [KEEP_CASE]?: boolean })[KEEP_CASE]) return value;
   return value.split(",").map((part) => {
     const m = EVM_HEX.exec(part.trim());
     return m ? `0x${m[2].toLowerCase()}` : part;
   }).join(",");
 };
+
+const ENS_NAME = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i;
+/**
+ * An ENS name where an address is expected (address=vitalik.eth, also in comma lists) is resolved on Ethereum mainnet
+ * before the tool runs, so every chain read, balance, screen and pack takes the name agents test with. One RPC call,
+ * only when a name was sent. A name with no address is a 400 (uncharged), never a silent "pass" or 404.
+ */
+async function withEnsResolved(input: Input): Promise<Input> {
+  const resolved = new Map<string, string>();
+  for (const name of ADDRESS_INPUTS) {
+    const value = input(name);
+    if (!value || !/\.eth\b/i.test(value)) continue;
+    const parts = value.split(",");
+    if (!parts.some((p) => ENS_NAME.test(p.trim()))) continue;
+    const out = await Promise.all(parts.map(async (p) => {
+      const t = p.trim();
+      if (!ENS_NAME.test(t)) return p;
+      try { return (await ensLookup(t)).address as string; }
+      catch (e) { throw e instanceof HttpError && e.status === 404 ? new HttpError(400, `${t} is not a registered ENS name with an address; pass the 0x address`) : e; }
+    }));
+    resolved.set(name, out.join(","));
+  }
+  if (!resolved.size) return input;
+  return Object.assign((n: string) => resolved.get(n) ?? input(n), input);
+}
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
 const KEEP_CASE = Symbol("keepCase");
@@ -108,6 +138,7 @@ export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, han
     if (Object.hasOwn(PAUSED_FAMILY_TOOLS, path)) throw new HttpError(503, PAUSED_FAMILY_TOOLS[path], "TOOL_PAUSED");
     // /evm/checksum judges the case of the address it is given, so its input keeps its case (aliases still apply).
     if (RAW_INPUT_PATHS.has(path)) input = keepCase(input);
+    if (path !== "/ens") input = await withEnsResolved(input);
     const result = await handler(env, normalizedInput(input));
     assertToolOutput(path as EndpointPath, result);
     return result;

@@ -85,7 +85,7 @@ const ai = (path: string, summary: string, description: string, tags: string[], 
 export const CHAT_PRICE = "$0.002";
 
 export const AI_TEXT: Entry[] = [
-  ai("/ai/chat", "LLM chat completions: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
+  ai("/ai/chat", "LLM chat completions, inference: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
     ["chat", "completion", "llama"], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
@@ -98,7 +98,7 @@ export const AI_TEXT: Entry[] = [
       const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }));
       return { model: MODELS.text, response };
     }, CHAT_PRICE),
-  entry("/ai/chat-large", "Chat completion (Llama 3.3 70B or gpt-oss-120b)", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
+  entry("/ai/chat-large", "LLM inference, large model: Llama 3.3 70B or gpt-oss-120b", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
     ["chat", "completion", "llama", "gpt-oss", ...T], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       model: { type: "string", description: "llama-3.3-70b (default) or gpt-oss-120b", example: "llama-3.3-70b", enum: ["llama-3.3-70b", "gpt-oss-120b"] },

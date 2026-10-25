@@ -56,17 +56,20 @@ export async function packageInfo(
   versionParam?: string,
   options?: PackageInfoOptions,
 ) {
-  const system = SYSTEMS[ecosystemParam.trim().toLowerCase()];
+  // No ecosystem means npm, the one agents ask about most; "latest" or an empty version means the latest release.
+  const ecosystem = ecosystemParam.trim().toLowerCase() || "npm";
+  const system = Object.hasOwn(SYSTEMS, ecosystem) ? SYSTEMS[ecosystem] : undefined;
   if (!system) throw new HttpError(400, `ecosystem must be one of: ${Object.keys(SYSTEMS).join(", ")}`);
   const name = nameParam.trim();
   if (!name || name.length > 214 || /\s/.test(name)) throw new HttpError(400, "name must be a package name without spaces");
+  if (versionParam !== undefined && /^\s*(latest)?\s*$/i.test(versionParam)) versionParam = undefined;
   const requestedVersion = versionParam?.trim();
   if (
     versionParam !== undefined &&
     (!requestedVersion ||
       requestedVersion.length > 128 ||
       /[\s*^~<>|=,\[\]()]/.test(requestedVersion) ||
-      ["latest", "next"].includes(requestedVersion.toLowerCase()))
+      ["next"].includes(requestedVersion.toLowerCase()))
   ) {
     throw new HttpError(400, "version must be an exact version, not a range or tag");
   }

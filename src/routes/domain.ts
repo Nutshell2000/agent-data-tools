@@ -2,7 +2,8 @@ import { HttpError } from "../lib/env";
 
 const DOH = "https://cloudflare-dns.com/dns-query";
 const RDAP = "https://rdap.org/domain/";
-const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+// The top-level label may be punycode (xn--zckzah for テスト), which carries digits and hyphens.
+const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+([a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
 
 interface DohAnswer {
   name: string;
@@ -58,9 +59,21 @@ async function rdapLookup(name: string): Promise<{ domain: string; data: Rdap } 
   return null;
 }
 
+/**
+ * The host of whatever the caller sent: a bare domain, a URL (agents pass https://www.stripe.com/pricing), a domain
+ * with a path or port, or a Unicode name (例え.テスト becomes its punycode form, which DNS and RDAP take).
+ */
+export function domainInput(raw: string) {
+  let name = raw.trim().toLowerCase().replace(/\.$/, "");
+  if (name && !/\s/.test(name)) {
+    try { name = new URL(/^[a-z][a-z0-9+.-]*:\/\//.test(name) ? name : `http://${name}`).hostname.replace(/\.$/, ""); } catch { /* checked below */ }
+  }
+  if (!HOSTNAME.test(name)) throw new HttpError(400, "name must be a valid domain such as example.com (a URL is fine; its host is used)");
+  return name;
+}
+
 export async function domainInfo(input: string) {
-  const name = input.trim().toLowerCase().replace(/\.$/, "");
-  if (!HOSTNAME.test(name)) throw new HttpError(400, "name must be a valid domain such as example.com");
+  const name = domainInput(input);
 
   const [a, aaaa, mx, ns, txt, caa, dmarcTxt, rdap] = await Promise.all([
     doh(name, "A"),
