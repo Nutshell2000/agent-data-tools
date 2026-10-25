@@ -21,12 +21,13 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Request processing logs.</strong> Our host, Cloudflare, records request logs (including IP address, user agent, URL and timing) for operations and debugging, kept for Cloudflare's standard retention period. Tool inputs passed in the URL appear in those logs.</li>
 <li><strong>Free calls.</strong> A one-way hash of your IP address and a count of free calls used. The IP address itself is not stored for this.</li>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
+<li><strong>Agent memory.</strong> What you save with the memory tools (/memory/set), under a one-way hash of the namespace you choose, until it expires (at most 30 days) or you delete it with /memory/delete. Anyone who knows a namespace can read it.</li>
 <li><strong>Card credits.</strong> A one-way hash of your API key with its balance and purchase history, and the Stripe Checkout or payment reference that created it. The key itself is kept with that reference only so that reopening your claim link shows the same key. Card details are handled by Stripe and never reach us.</li>
 </ul>
 <h2>What we do not do</h2>
 <ul>
 <li>We do not sell or share data with advertisers, and we do not track you across other sites. The pages set no cookies.</li>
-<li>We do not keep the content you ask a tool to read or compute, beyond the request logs above.</li>
+<li>We do not keep the content you ask a tool to read or compute, beyond the request logs above and what you save with the memory tools.</li>
 <li>Tools that read the web fetch the public URL you give them; that site sees a request from our servers.</li>
 </ul>
 <h2>Third parties</h2>
