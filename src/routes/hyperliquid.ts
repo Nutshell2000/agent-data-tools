@@ -141,7 +141,7 @@ function market(u: Universe[number], c: Ctx) {
 }
 
 export const HYPERLIQUID: Entry[] = [
-  entry("/hyperliquid/market", "Hyperliquid perp funding rate, open interest and price",
+  entry("/hyperliquid/market", "Hyperliquid funding rate, perps: open interest and price",
     "Live Hyperliquid perpetual futures data for a coin (BTC, ETH, SOL, HYPE…): mark, oracle and mid price, hourly funding rate and its APR, premium, open interest in coins and USD, 24-hour volume and price change, and max leverage. Without a coin, the 20 most traded markets by 24-hour volume. Read from Hyperliquid's public API. Use for funding-rate checks, basis trades, derivatives dashboards and market context.",
     ["hyperliquid", "perps", "funding-rate", "derivatives", "crypto", "market-data"], {
       coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default: the 20 most traded markets)", example: "BTC" },

@@ -37,10 +37,10 @@ before(async()=>{
 });
 after(async()=>{await mf?.dispose();await mfFree?.dispose();});
 
-test("FluxA's proxy secret serves $0.01 tools unpaid; dearer tools and a wrong secret still get the 402",async()=>{
+test("FluxA's proxy secret serves tools priced at most $0.01 unpaid; a wrong secret still gets the 402",async()=>{
   const fluxa=(path,secret='fluxa-fixture-secret-0123456789')=>mf.dispatchFetch('https://api.test'+path,{headers:{'x-fluxa-proxy-secret':secret,accept:'application/json'}});
   const ok=await fluxa('/uuid?count=1');assert.equal(ok.status,200);assert.equal((await ok.json()).uuids.length,1);
-  const dear=await fluxa('/package-audit?ecosystem=npm&packages=left-pad');assert.equal(dear.status,402,'$0.20 tool behind a $0.01 FluxA endpoint');await dear.arrayBuffer();
+  // Since 25 Oct 2026 every tool is at most $0.01, so nothing is refused on price; the gate itself stays in marketplaceOf() (src/lib/marketplace.ts).
   const wrong=await fluxa('/uuid','x'.repeat(31));assert.equal(wrong.status,402);await wrong.arrayBuffer();
   const rapidHeader=await mf.dispatchFetch('https://api.test/uuid',{headers:{'x-rapidapi-proxy-secret':'fluxa-fixture-secret-0123456789',accept:'application/json'}});assert.equal(rapidHeader.status,402,'the FluxA secret only works in its own header');await rapidHeader.arrayBuffer();
 });

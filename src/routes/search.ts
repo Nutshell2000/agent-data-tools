@@ -72,8 +72,8 @@ export const SEARCH: Entry[] = [
 
   // Same provider, key, daily cap and terms as /search: the Brave News endpoint. Bazaar search on 22 Oct 2026: "news
   // headlines" (13 results, #1 with 13 payers) and "latest news" (12 results) with no listing of ours.
-  entry("/news", "News headlines, latest news: search current news articles (Brave)",
-    "Search current news and get the latest headlines as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted capacity return 503, uncharged. Use when an agent needs current news on a topic.",
+  entry("/news", "Crypto news, news headlines: search current news articles (Brave)",
+    "Search current news on any topic, crypto included, and get the latest headlines as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures return 503, uncharged. Use when an agent needs current news on a topic.",
     ["news", "headlines", "search", "web", "research"], {
       q: { type: "string", description: "News search query, at most 400 characters", required: true, example: "bitcoin ETF" },
       count: { type: "integer", description: "Number of results (1-20, default 10)", example: 10 },

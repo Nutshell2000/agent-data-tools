@@ -231,7 +231,7 @@ export const WEB_CHECKS: Entry[] = [
       return { name, type, propagated: tally.size === 1, agreeing: tally.get(best)!, answered: answered.length, majority: answered.find((r) => key(r) === best)!.answers, resolvers: rows };
     }),
 
-  entry("/seo/audit", "SEO audit of a page: title, meta, headings, links and issues",
+  entry("/seo/audit", "SEO audit, on-page: title, meta, headings, links and issues",
     "On-page SEO audit of one URL: title and meta description with their lengths, canonical, meta robots, H1s and H2 count, images without alt text, lang and viewport, Open Graph and Twitter card tags, JSON-LD blocks, internal and external link counts and word count, plus a list of issues and a 0-100 score. Reads the server's HTML (no JavaScript), up to 1 MB. Use to check a page before publishing or to compare competitors.",
     ["seo-audit", "seo", "meta-tags", "website", ...U], { url: { type: "string", description: "Absolute http(s) URL of the page", required: true, example: "https://www.wikipedia.org/" } },
     { url: "https://www.wikipedia.org/", finalUrl: "https://www.wikipedia.org/", status: 200, score: 64, issues: ["no canonical link"], title: "Wikipedia", titleLength: 9, description: "Wikipedia is a free online encyclopedia…", descriptionLength: 120, canonical: null, robots: null, h1: ["Wikipedia The Free Encyclopedia"], h2Count: 1, images: 2, imagesWithoutAlt: 0, lang: "en", viewport: true, openGraph: { title: null, description: null, image: null }, twitterCard: null, jsonLdBlocks: 0, links: { internal: 30, external: 300 }, wordCount: 1500 },

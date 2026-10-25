@@ -152,7 +152,10 @@ function chainEntries(c: ChainDef): Entry[] {
         return head({ token, name, symbol, decimals: Number(decimals), totalSupply: formatUnits(supply, Number(decimals)), totalSupplyRaw: supply.toString() });
       }),
 
-    entry(p("block"), `${c.name} block number and block details`,
+    // 25 Oct 2026: inside a payer tier a name that STARTS with the searched phrase wins 67% of ties (name-shape.mjs), so the
+    // generic-phrase reads lead with the phrase and name the chain after it; chain-named searches ("base balance") keep
+    // the chain first.
+    entry(p("block"), `Block number, ${c.name}`,
       `Latest block number and block details on ${c.name}, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use ${c.slug}_gas. A block that does not exist yet returns 404, uncharged.`,
       tags("block", "chain-data"), { number: { type: "string", description: "Block number, or 'latest' (default)", example: "latest" } },
       head({ number: 123456789, hash: "0xabc…", timestamp: "2026-10-18T12:00:00.000Z", transactions: 154, gasUsed: "21000000", gasLimit: "30000000", baseFeeGwei: "0.012", miner: "0x…" }),
@@ -256,7 +259,7 @@ function chainEntries(c: ChainDef): Entry[] {
         });
       }),
 
-    entry(p("token-transfers"), `${c.name} wallet token transfers`,
+    entry(p("token-transfers"), `Token transfers, ${c.name}`,
       `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
       tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
         address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
@@ -414,7 +417,7 @@ function contractEntries(c: ChainDef): Entry[] {
   const head = (extra: Record<string, unknown>) => ({ chain: c.name, chainId: c.chain.id, ...extra });
   const nft = NFT_EXAMPLE[c.slug];
   const list: Entry[] = [
-    entry(p("nft-owner"), `${short} NFT owner`,
+    entry(p("nft-owner"), `NFT owner, ${short}`,
       `Owner of an NFT on ${c.name}: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use ${c.slug}_nft_balance, for the token's metadata ${c.slug}_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged.`,
       tags("nft", "nft-owner", "erc721", "owner"), {
         contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
@@ -434,7 +437,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ contract, tokenId: id.toString(), owner: owner.toLowerCase(), name, symbol });
       }),
 
-    entry(p("nft-balance"), `${short} NFT balance`,
+    entry(p("nft-balance"), `NFT balance, ${short}`,
       `How many NFTs of one ERC-721 collection a wallet holds on ${c.name} (balanceOf), with the collection's name and symbol. Use to check a holder before a token-gated action or to see whether a wallet still holds a collection; for who holds one token id use ${c.slug}_nft_owner. Both inputs are 0x addresses; a missing contract is 404, a contract that is not ERC-721 422, both uncharged.`,
       tags("nft", "erc721", "balance", "wallet"), {
         contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
@@ -454,7 +457,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ contract, address: a, balance: balance.toString(), name, symbol });
       }),
 
-    entry(p("nft-metadata"), `${short} NFT metadata`,
+    entry(p("nft-metadata"), `NFT metadata, ${short}`,
       `NFT metadata on ${c.name}: the token URI of one ERC-721 token id (tokenURI) and the JSON it points to (name, description, image, attributes), read from data: URIs, https or ipfs:// (through ipfs.io). Strings over 1,000 characters, such as on-chain SVG images, are shortened. Use to show or check what an NFT is; for its owner use ${c.slug}_nft_owner. A token that does not exist is 422, uncharged; unreachable metadata is reported in metadataError.`,
       tags("nft", "nft-metadata", "erc721", "metadata"), {
         contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
@@ -475,7 +478,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ contract, tokenId: id.toString(), name, symbol, tokenUri: trimLong(uri), metadata: meta.metadata, metadataSource: meta.source, metadataError: meta.error });
       }),
 
-    entry(p("storage"), `${short} storage slot read`,
+    entry(p("storage"), `Storage slot read, ${short}`,
       `Read one raw storage slot of a contract on ${c.name} (eth_getStorageAt): the 32-byte word, as a number and, when it holds one, as an address. Slot is a decimal index or a 0x 32-byte key (mapping and proxy slots). Use to inspect contract state that has no getter, owners or implementation pointers; for proxies use ${c.slug}_proxy. A malformed address or slot is rejected with 400, uncharged.`,
       tags("storage", "contract", "chain-data"), {
         address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] },
@@ -495,7 +498,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ address: a, slot, value: v, asNumber: BigInt(v).toString(), asAddress: wordAddress(v), block: Number(block) });
       }),
 
-    entry(p("proxy"), `${short} proxy implementation`,
+    entry(p("proxy"), `Proxy implementation, ${short}`,
       `Find the implementation behind a proxy contract on ${c.name}: reads the EIP-1967 implementation, beacon and admin slots, EIP-1822 (UUPS), the older OpenZeppelin layout and EIP-1167 minimal-proxy bytecode, and names the kind found. Use before trusting or decoding a contract whose code can be swapped by its admin; for a fuller risk verdict use contract_risk. A malformed address is 400; an address without code is 404, both uncharged.`,
       tags("proxy", "contract", "security", "upgradeable"), { address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] } },
       head({ address: USDC[c.slug], isProxy: true, kind: "openzeppelin-legacy", implementation: "0x2ce6311ddae708829bc0784c967b7d77d19fd779", admin: "0x…", beacon: null, upgradeable: true }),
@@ -517,7 +520,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ address: a, isProxy: kind !== "none", kind, implementation: implementation ?? null, admin: admin ?? zosAdmin ?? null, beacon: beacon ?? null, upgradeable: kind !== "none" });
       }),
 
-    entry(p("call"), `${short} eth call, contract call`,
+    entry(p("call"), `Eth call, ${short} contract call`,
       `Read-only contract call on ${c.name} (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
       tags("eth-call", "contract", "read", "chain-data"), {
         to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },
@@ -536,7 +539,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ to, data, from: from ?? null, result, resultBytes: (result.length - 2) / 2, block: Number(block) });
       }),
 
-    entry(p("estimate-gas"), `${short} gas estimate`,
+    entry(p("estimate-gas"), `Estimate gas, ${short}`,
       `Estimate the gas a transaction would use on ${c.name} (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ${c.symbol}. Give to, plus value in ${c.symbol} and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use ${c.slug}_gas. A transaction that would revert is 422 with the reason, uncharged.`,
       tags("gas", "estimate-gas", "fees", "transaction"), {
         to: { type: "string", description: "0x recipient or contract address", required: true, example: DEAD },
@@ -562,7 +565,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ to, from: from ?? null, value: rawValue, gas: gas.toString(), gasPriceGwei: formatGwei(price), cost: formatEther(gas * price), symbol: c.symbol, block: Number(block) });
       }),
 
-    entry(p("gas-history"), `${short} gas price history`,
+    entry(p("gas-history"), `Gas history, ${short} gas price`,
       `Gas price history on ${c.name} (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ${c.slug}_gas.`,
       tags("gas", "gas-history", "fees", "fee-history"), {
         blocks: { type: "integer", description: "How many recent blocks, 5-100 (default 20)", example: 20 },
@@ -587,7 +590,7 @@ function contractEntries(c: ChainDef): Entry[] {
   ];
   // Base already sells this read as /base-allowance (the published chain client promises that path and price).
   if (c.slug !== "base") list.push(
-    entry(p("allowance"), `${short} ERC-20 allowance`,
+    entry(p("allowance"), `Token allowance, ${short} ERC-20`,
       `ERC-20 token allowance on ${c.name}: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use ${c.slug}_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged.`,
       tags("erc20", "allowance", "approval", "token"), {
         token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },

@@ -26,7 +26,7 @@ export function summarise(rows: Row[], days = rows.length) {
 }
 
 export const FEAR_GREED: Entry[] = [
-  entry("/crypto/fear-greed", "Crypto fear and greed index: today's value and history",
+  entry("/crypto/fear-greed", "Fear and greed index, crypto: today's value and history",
     "The Crypto Fear & Greed Index (0 = extreme fear, 100 = extreme greed) from alternative.me: today's value and label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and the daily history (up to 90 days, default 30). Updated once a day. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief; for live prices use price_token.",
     ["fear-and-greed", "crypto-sentiment", "market-sentiment", "crypto", "bitcoin", "data"], {
       days: { type: "integer", description: "Days of history, 1-90 (default 30)", example: 30 },

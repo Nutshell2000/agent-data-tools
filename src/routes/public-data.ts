@@ -95,7 +95,7 @@ export const PUBLIC_DATA: Entry[] = [
       return out;
     }),
 
-  entry("/wikipedia", "Wikipedia summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",
+  entry("/wikipedia", "Wikipedia article summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",
     ["wikipedia", "knowledge", ...P], { title: { type: "string", description: "Article title", required: true, example: "Stockholm" }, lang: { type: "string", description: "Language code (default en)", example: "en" } },
     { title: "Stockholm", description: "Capital of Sweden", extract: "Stockholm is the capital and most populous city of Sweden…", url: "https://en.wikipedia.org/wiki/Stockholm", thumbnail: "https://upload.wikimedia.org/…", licence: "CC BY-SA 4.0", attribution: "Text from the Wikipedia article \"Stockholm\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
@@ -105,7 +105,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { title: r.title, description: r.description ?? null, extract: r.extract, type: r.type, url: r.content_urls?.desktop?.page ?? null, thumbnail: r.thumbnail?.source ?? null, licence: "CC BY-SA 4.0", attribution: `Text from the Wikipedia article "${r.title}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
-  entry("/dictionary", "Dictionary definition lookup: English words", "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games.",
+  entry("/dictionary", "Dictionary definition: English words", "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games.",
     ["dictionary", "language", "english", ...P], { word: { type: "string", description: "An English word", required: true, example: "serendipity" } },
     { word: "serendipity", meanings: [{ partOfSpeech: "Noun", definitions: [{ definition: "An unsought, unintended, and/or unexpected, but fortunate, discovery.", example: null }] }], url: "https://en.wiktionary.org/wiki/serendipity", licence: "CC BY-SA 4.0", attribution: "Definitions from the Wiktionary entry \"serendipity\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
@@ -129,7 +129,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { word, meanings, url: `https://en.wiktionary.org/wiki/${enc(word.replaceAll(" ", "_"))}`, licence: "CC BY-SA 4.0", attribution: `Definitions from the Wiktionary entry "${word}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
-  entry("/earthquakes", "Recent earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
+  entry("/earthquakes", "Recent earthquakes, USGS data", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
     ["earthquakes", "geo", "science", ...P], { period: { type: "string", description: "hour, day (default), week or month", example: "day" }, minMagnitude: { type: "string", description: "Smallest magnitude to include, 0-10 (default 2.5), or significant", example: "4.5" } },
     { period: "day", minMagnitude: "4.5", count: 8, earthquakes: [{ magnitude: 5.1, place: "100 km S of …", time: "2026-10-18T03:12:00.000Z", depthKm: 10, lat: -6.1, lon: 130.2, tsunami: false, url: "https://earthquake.usgs.gov/…" }] },
     async (_e, q) => {
@@ -202,7 +202,7 @@ export const PUBLIC_DATA: Entry[] = [
     { date: "2026-10-18", phase: "Waning Crescent", illuminationPercent: 12.4, ageDays: 26.3, nextNewMoon: "2026-10-21T…", nextFullMoon: "2026-11-05T…" },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...moonPhase(d) }; }),
 
-  entry("/country", "Country facts", "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data.",
+  entry("/country", "Country info, country facts", "Facts about a country by ISO code (SE, SWE, US…): official World Bank name, ISO-2 and ISO-3 codes, region, income level, capital city and its coordinates, and the latest population figure with its year (World Bank open data). Use to enrich records with country data.",
     ["country", "geo", "reference", ...P], { country: { type: "string", description: "ISO 3166 alpha-2 or alpha-3 code", required: true, example: "SE" } },
     { name: "Sweden", iso2: "SE", iso3: "SWE", region: "Europe & Central Asia", incomeLevel: "High income", capital: "Stockholm", capitalLat: 59.3327, capitalLon: 18.0645, population: 10596620, populationYear: 2025, source: "World Bank" },
     async (_e, q) => {

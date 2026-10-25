@@ -63,7 +63,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/sitemap",
     price: "$0.002",
-    summary: "Sitemap URL extractor: documentation URLs from a bounded XML sitemap",
+    summary: "Sitemap parser, URL extractor: documentation URLs from a bounded XML sitemap",
     description: "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Maximum 512 KiB expanded input and 1000 entries. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract.",
     details: "XML only: 512 KiB compressed and expanded, 1000 entries, 8000 XML elements, depth 16, locations up to 2048 characters. DTD declarations are rejected. contains is a case-insensitive substring of source-reported URLs, not semantic search. Pagination counts distinct reported loc values before public-URL validation of the selected page. Returned URLs are not probed; dates are not verified. Index entries are child sitemaps, not pages. DNS-resolution limitations of the public-fetch guard remain.",
     tags: ["web", "sitemap", "discovery", "research"],
@@ -167,7 +167,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/token-report",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Honeypot token check, token risk: red flags plus live DEX liquidity for a Base token before a swap",
     description:
       "Check a Base token before you swap into it: a high/medium/low risk verdict with named red flags (paused transfers, blacklist, owner-set fees or tax, a mint selector with a live owner, upgradeable proxy, no or thin liquidity, a pair under 7 days old, buys but no sells as a honeypot sign) plus live DexScreener price, liquidity, volume and FDV. Heuristic screening, not a safety guarantee. Use before swapping into an unfamiliar Base token.",
@@ -243,7 +243,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/screenshot",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Website screenshot: capture a web page as an image",
     description:
       "Render any public web page in a real headless Chrome browser, with JavaScript executed, and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and page title. Set fullPage=true to capture up to 4000 px of page height. Use for visual checks, page previews, monitoring and feeding pages to vision models.",
@@ -265,7 +265,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/image",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Image generation, generate image from a text prompt",
     description:
       "Text-to-image generation with FLUX.1 schnell. Send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds. Use for illustrations, thumbnails, mockups, avatars and social media images. Optional steps parameter (1-8, default 4) trades speed for detail.",
@@ -284,7 +284,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/transcribe",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Speech to text, transcribe audio: Whisper transcription of an audio file",
     description:
       "Transcribe speech from an audio file at a public URL using Whisper large-v3-turbo. Returns the transcript text, detected language, duration and word count. Accepts common formats such as MP3, WAV, M4A and OGG up to 5 MB. Use for voice notes, podcast clips, meeting snippets and voice messages.",
@@ -393,7 +393,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/package-audit",
-    price: "$0.20",
+    price: "$0.01",
     summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
     description:
       "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies.",
@@ -490,7 +490,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/wallet-audit",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Wallet risk check: fresh-wallet risk tier, flags, balances and nonce for a Base address",
     description:
       "Screen a Base address for fresh or throwaway-wallet signals: a high/medium/low heuristic risk tier with named flags (no or one outgoing transaction, a near-empty balance with few transactions), plus ETH, USDC, WETH, cbBTC and DAI balances and the account nonce. Address type is reported separately and does not affect the tier; token contracts are not audited. Use to screen a Base address; OFAC and other chains: check_counterparty.",
@@ -521,7 +521,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/contract-risk",
-    price: "$0.02",
+    price: "$0.01",
     summary: "Smart contract risk check: proxy, bytecode and supply red flags for a Base contract before approving it",
     description:
       "Check a Base contract before you approve or call it: a low to critical risk tier with named flags (proxy, proxy with no implementation, tiny bytecode, zero token supply), plus bytecode size, the EIP-1967 implementation slot and ERC-20 owner, renounced and paused reads. Unreadable reads are null; EOAs return not-applicable. Limited heuristics, not a full security audit. Use before approving a spender or calling an unfamiliar Base contract.",
@@ -558,7 +558,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/trade-insight",
-    price: "$0.05",
+    price: "$0.01",
     summary: "Sourced token and wallet risk indicators with market facts",
     description:
       "Combines the Base token-report risk tier and flags, available DEX market data, and wallet-audit risk tier, flags, account nonce, and native balance. Returns the underlying indicators separately; it does not generate buy/sell recommendations or calibrated confidence, and does not evaluate holder concentration. The account nonce is not full transaction, token-transfer, or trading history. Use as one input before a Base trade.",
@@ -583,7 +583,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/liquidity-pool-audit",
-    price: "$0.03",
+    price: "$0.01",
     summary: "Liquidity pool check: a Base DEX pair's liquidity, volume, trades and age before trading",
     description:
       "Check a Base DEX pool before you trade: give a pair address and get the verified DEX, both tokens, reported liquidity, 24h volume and trades, and pair age from DexScreener, or read on Base when it is unavailable, with source and retrieval time. Missing fields are null; an unknown pair returns 404. Market data only, no risk assessment. Use to confirm a pair is real and deep enough before trading; token red flags: token_report.",
@@ -612,7 +612,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/mev-simulator",
-    price: "$0.04",
+    price: "$0.01",
     summary: "Base gas-cost estimates under priority-fee scenarios",
     description:
       "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction.",
@@ -674,7 +674,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/email",
     price: "$0.01",
-    summary: "Email validation, verification: verify an address with syntax, MX and disposable-address checks, no mail sent",
+    summary: "Email verification, validation: verify an address with syntax, MX and disposable-address checks, no mail sent",
     description:
       "Check email syntax, DNS and MX records, disposable providers, role addresses, free providers and SPF/DMARC presence. Returns likely-deliverable, risky, undeliverable or invalid with reasons. No message is sent and the mail server is not contacted. These are DNS and syntax signals, not proof that a mailbox exists or accepts delivery. Use before sending mail or saving a signup.",
     tags: ["email", "validation", "verification", "leads", "deliverability"],
@@ -699,7 +699,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/papers",
     price: "$0.01",
-    summary: "Research papers search: academic papers",
+    summary: "Research papers, Crossref: academic papers search",
     description:
       "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
     tags: ["research", "papers", "academic", "search", "citations"],
@@ -760,7 +760,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/base-gas",
     price: "$0.002",
-    summary: "Base network gas price and fee estimate",
+    summary: "Base gas price and fee estimate",
     description:
       "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
     tags: ["base", "gas", "fees", "ethereum", "onchain"],
@@ -838,7 +838,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/ens",
     price: "$0.01",
-    summary: "ENS resolver, reverse ENS lookup: ENS name to address and address to ENS name",
+    summary: "ENS name resolver, reverse ENS: ENS name to address and address to ENS name",
     description:
       "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
     tags: ["ens", "ethereum", "identity", "address", "resolve"],
@@ -968,7 +968,7 @@ export function exampleParams(e: Pick<Endpoint, "params">): [string, Endpoint["p
 
 /** Plain-language usage notes for agents, published in the OpenAPI document. */
 export const GUIDANCE =
-  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header and a WWW-Authenticate: Payment challenge; pay with any x402 client (exact scheme, USDC on Base, Polygon, Arbitrum or Solana) or any MPP client (mppx: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Inference and media: /ai/chat (OpenAI-compatible at /v1/chat/completions, /v1/embeddings, /v1/responses), /ai/chat-large, /ai/embed, /transcribe (speech to text), /ai/speech (text to speech), /image (generation), /describe (vision). Current information: /search, /news. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.01: JSON, CSV, encodings, hashes, dates, cron, units and validators. Packs at $0.02-0.03 run several tools in one call: /pack/token-analysis, /pack/wallet-profile, /pack/website-audit, /pack/email-deliverability and more. Paused and not charged: /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
+  "Every tool is a GET with query parameters that returns JSON, at /<tool> over HTTP or as an MCP tool at /mcp (same name with / replaced by _), or a smaller MCP server per section: /mcp/prices, chain, web, compliance, ai, everyday, utilities. An unpaid request returns 402 with a PAYMENT-REQUIRED header and a WWW-Authenticate: Payment challenge; pay with any x402 client (exact scheme, USDC on Base, Polygon, Arbitrum or Solana) or any MPP client (mppx: evm/charge with USDC on Base, or tempo/charge with USDC.e on Tempo) and retry. Add sample=1 to any tool for a free static example of its output. Failed calls (4xx/5xx) are not charged; AI and screenshot tools return an uncharged 503 when their daily allowance is used up. Per-tool reliability for the last 7 days: /status. Pick by task. Inference and media: /ai/chat (OpenAI-compatible at /v1/chat/completions, /v1/embeddings, /v1/responses), /ai/chat-large, /ai/embed, /transcribe (speech to text), /ai/speech (text to speech), /image (generation), /describe (vision). Current information: /search, /news. Token or wallet value: /price/token, /price/tokens (up to 20), /wallet/portfolio. Chain state on base, eth, arb, op or polygon: /<chain>/balance, token-balance, token-info, block, gas, tx, receipt, nonce, is-contract, logs. Counterparty checks: /check/counterparty (one call: OFAC SDN, wallet or contract risk and holdings, with a block/review/pass verdict), /sanctions/check (OFAC SDN), /token, /token-report, /wallet-audit, /contract-risk, /x402/check (inspect another x402 seller without paying). Read the web: /extract (page as text or Markdown), /extract/rendered (same, for pages built with JavaScript), /pdf/text, /feed (RSS or Atom), /url/meta (link preview), /sitemap, /summarize, /screenshot. Companies and domains: /company, /domain, /domain-report, /email, /package, /package-audit. Everyday data: /fx, /btc-price, /btc-fees, /weather, /time, /holidays, /geocode, /wikipedia, /dictionary, /papers, /country. AI text: /ai/chat, /ai/summarize-text, /ai/classify, /ai/translate, /ai/embed, /ai/extract-json and more. Utilities at $0.01: JSON, CSV, encodings, hashes, dates, cron, units and validators. Packs at $0.01 run several tools in one call: /pack/token-analysis, /pack/wallet-profile, /pack/website-audit, /pack/email-deliverability and more. Paused and not charged: /air-quality, /uv, /elevation, /crypto/price, /iss, /hackernews/top, /regex/test.";
 
 /** Extra links shown on the home page and in llms.txt. */
 export const EXTRA_LINKS: { href: string; label: string }[] = [{ href: "/guides/web-reading", label: "Read documentation: real examples, free quote and capped CLI" }];
