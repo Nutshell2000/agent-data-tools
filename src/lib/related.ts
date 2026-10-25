@@ -37,6 +37,9 @@ const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntri
   ["/pack/tx-explain", ["/eth/tx", "/eth/receipt", "/base-tx", "/base/receipt", "/arb/tx", "/op/tx", "/polygon/tx"]],
   ["/pack/nft-analysis", ["/eth/nft-owner", "/eth/nft-metadata", "/base/nft-owner", "/base/nft-metadata", "/polygon/nft-owner", "/polygon/nft-metadata"]],
   ["/pack/api-health", ["/x402/check", "/openapi/summary", "/mcp/inspect"]],
+  ["/pack/web-research", ["/search", "/extract", "/summarize"]],
+  ["/pack/news-sentiment", ["/news", "/ai/sentiment"]],
+  ["/pack/url-safety", ["/url/redirects", "/domain-report", "/text/prompt-injection"]],
 ] as const).flatMap(([pack, tools]) => tools.map((t) => [t, pack]))));
 
 export function packOf(path: string): Endpoint | undefined {

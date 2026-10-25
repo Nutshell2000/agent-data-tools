@@ -1,5 +1,5 @@
 {
-  "version": "1.71.0",
+  "version": "1.72.0",
   "tools": [
     {
       "name": "extract",
@@ -7832,6 +7832,100 @@
         },
         "required": [
           "domain"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_web_research",
+      "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "What to research, at most 400 characters"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many top results to read in full (1-5, default 3)"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Characters of text per page (500-10000, default 3000)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_news_sentiment",
+      "description": "The news on a topic and its tone in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "News topic, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of articles (1-10, default 5)"
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Only articles from the past day, week or month (default: week)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_url_safety",
+      "description": "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The link to check (http or https)"
+          }
+        },
+        "required": [
+          "url"
         ]
       },
       "price": "$0.01"
