@@ -1,5 +1,5 @@
 {
-  "version": "1.77.0",
+  "version": "1.78.0",
   "tools": [
     {
       "name": "extract",
@@ -8307,6 +8307,316 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "sec_8k",
+      "description": "Latest Form 8-K current reports for a US-listed company by ticker, name or CIK: filing date, the reported items with their meaning (results of operations, executive departures, material agreements, cybersecurity incidents, bankruptcy and others), accession number and a direct link, newest first. Public SEC EDGAR data. Use to watch a company's material events or check what it disclosed recently. Example: ticker=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker or company name, e.g. AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "description": "Filings to return, 1-40 (default 10)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "sec_insider",
+      "description": "Recent insider trades in a US-listed company from its SEC Form 4 filings: who traded (name and role: director, officer title, 10% owner), date, buy or sell (open-market purchase, sale, award, option exercise, tax withholding), shares, price, dollar value, holding afterwards and whether it was under a 10b5-1 plan. Up to 10 filings, newest first. Public SEC EDGAR data. Use to see whether insiders are buying or selling. Example: ticker=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker or company name, e.g. AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key of the company (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "description": "Form 4 filings to read, 1-10 (default 5)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "sec_13f",
+      "description": "The latest 13F-HR holdings of an institutional investment manager (hedge fund, mutual fund family, bank) from SEC EDGAR: each position's issuer, class, CUSIP, value in USD, shares and portfolio weight, largest first, plus the report period, total value and position count. Give the filer by name (e.g. Berkshire Hathaway) or CIK. Public SEC data, filed quarterly up to 45 days after the quarter. Use to see what a fund owns. Example: filer=Berkshire Hathaway. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "filer": {
+            "type": "string",
+            "description": "Fund manager's name, e.g. Berkshire Hathaway (or give cik)"
+          },
+          "cik": {
+            "description": "The filer's SEC CIK, e.g. 1067983 (instead of filer)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "description": "Positions to return, 1-200 (default 25)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "gov_federal_register",
+      "description": "Search the US Federal Register: final rules, proposed rules, notices and presidential documents, newest first, with title, type, agencies, abstract, publication date, comment deadline, effective date and links. Filter by type and agency. From the Federal Register API (US government work). Use to track new regulations or open comment periods on a topic. Example: q=artificial intelligence. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search words, e.g. artificial intelligence"
+          },
+          "type": {
+            "type": "string",
+            "description": "rule, proposed_rule, notice or presidential (default all)"
+          },
+          "agency": {
+            "type": "string",
+            "description": "Agency slug, e.g. securities-and-exchange-commission (optional)"
+          },
+          "limit": {
+            "description": "Documents to return, 1-20 (default 10)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "gov_clinical_trials",
+      "description": "Search ClinicalTrials.gov studies by condition, intervention or any words, optionally only recruiting ones: NCT id, title, status, phase, conditions, interventions, sponsor, enrollment, start and completion dates, number of locations and countries, and a link. From the ClinicalTrials.gov API (US National Library of Medicine). Information only, not medical advice. Use to find trials for a condition or drug. Example: condition=type 1 diabetes. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "condition": {
+            "type": "string",
+            "description": "Condition or disease, e.g. type 1 diabetes"
+          },
+          "intervention": {
+            "type": "string",
+            "description": "Drug or intervention, e.g. semaglutide (optional)"
+          },
+          "q": {
+            "type": "string",
+            "description": "Any other words (optional)"
+          },
+          "status": {
+            "type": "string",
+            "description": "recruiting, active, completed or all (default recruiting)"
+          },
+          "limit": {
+            "description": "Studies to return, 1-20 (default 10)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stablecoin_supply",
+      "description": "Live total supply of USDC and USDT on Ethereum, Base, Arbitrum, Optimism and Polygon, read from each token contract (totalSupply), per network and summed per token, plus the grand total. A network whose nodes do not answer is listed with an error instead of failing the call. Use to track stablecoin issuance, liquidity on a chain or mints and burns over time. Example: token=both. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "USDC, USDT or both (default both)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "token_supply",
+      "description": "Total supply of any ERC-20 token on Ethereum, Base, Arbitrum, Optimism or Polygon, read live from the contract: raw and decimal-adjusted supply, decimals, name and symbol. Give a 0x address or a known ticker (USDC, USDT, WETH, DAI…). Use to check a token's circulating maximum or compare supply across chains. Example: token=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token 0x address or ticker"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "contract_abi",
+      "description": "The verified ABI of a smart contract on Ethereum, Base, Arbitrum, Optimism or Polygon from Sourcify's open verification repository: contract name, compiler, match quality, every function and event signature, the full ABI, and for proxies the implementation contract with its ABI. Optional source=true adds the main source file (up to 20,000 characters). Unverified contracts are an uncharged 404. Use before calling or decoding a contract. Example: address=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Contract 0x address"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          },
+          "source": {
+            "description": "true to include the main source file",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "uniswap_pool",
+      "description": "Uniswap v3 pools for a token pair on Ethereum, Base, Arbitrum, Optimism or Polygon, read live from the factory and each pool: pool address per fee tier (0.01%, 0.05%, 0.3%, 1%), price of each token in the other, current tick, in-range liquidity and both token balances held, deepest pool first. Tokens by 0x address or ticker. Use to find the right pool, check depth before a swap or read a spot price. Example: tokenA=WETH, tokenB=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "tokenA": {
+            "type": "string",
+            "description": "First token: 0x address or ticker"
+          },
+          "tokenB": {
+            "type": "string",
+            "description": "Second token: 0x address or ticker"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          }
+        },
+        "required": [
+          "tokenA",
+          "tokenB"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "holidays",
