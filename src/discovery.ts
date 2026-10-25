@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.69.0";
+export const MCP_SERVER_VERSION = "1.70.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -502,7 +502,7 @@ export function marketplaceOpenApi(origin: string, trialsEnabled = false) {
     },
     servers: doc.servers,
     paths: Object.fromEntries(
-      // Tools only: the OpenAI-style /v1 paths are a front for the capacity-limited /ai/chat and stay out too.
+      // Tools only: the OpenAI-style /v1 paths are a front for /ai/chat and stay out too.
       (Object.entries(doc.paths) as unknown as [string, { get: { "x-payment-info"?: unknown; responses: Record<string, unknown>; [key: string]: unknown } }][])
         .filter(([path]) => !CAPACITY_LIMITED.has(path) && !path.startsWith("/v1/"))
         .map(([path, item]) => {

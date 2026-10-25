@@ -17,7 +17,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "302 pay-per-call tools for AI agents over HTTP or MCP, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "303 pay-per-call tools for AI agents over HTTP or MCP, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Monad, World Chain) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -924,7 +924,6 @@ export type EndpointPath = CoreEndpointPath | (string & {});
 
 /** Everything this service sells per call. Discovery, the paywall and MCP are generated from this list. */
 export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.freeze({
-  "/regex/test": "Bounded regex execution is not yet available.",
   // The Solana Foundation's public RPC answers 403 to Cloudflare's egress IPs (checked from production on 24 Oct 2026, 1.56.0),
   // and publicnode refuses token methods without a personal token. Paused until a keyless node that serves Workers is found.
   "/solana/balance": "Solana reads are paused: the public Solana node refuses requests from our hosting.",
