@@ -47,7 +47,7 @@ test('maps OpenAI messages onto the /ai/chat query', () => {
   assert.match(lib.toChatQuery({}).error, /messages/);
   assert.match(lib.toChatQuery({ messages: [{ role: 'assistant', content: 'Hello' }] }).error, /last message must be from the user/);
   assert.match(lib.toChatQuery({ messages: [{ role: 'tool', content: 'x' }] }).error, /unsupported message role/);
-  assert.match(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], stream: true }).error, /streaming/);
+  assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], stream: true }).query.prompt, 'x', 'stream: true is accepted (answered as server-sent events)');
   const long = lib.toChatQuery({ messages: [{ role: 'user', content: 'a'.repeat(9000) }] });
   assert.equal(long.query.prompt.length, 8000);
 });
@@ -59,6 +59,15 @@ test('the model string picks the tool: large names go to /ai/chat-large, everyth
   assert.deepEqual(lib.toolFor('llama-3.3-70b'), { path: '/ai/chat-large', model: 'llama-3.3-70b' });
   assert.deepEqual(lib.toolFor('@cf/meta/llama-3.3-70b-instruct-fp8-fast'), { path: '/ai/chat-large', model: 'llama-3.3-70b' });
   assert.deepEqual(lib.toolFor('gpt-oss-120b'), { path: '/ai/chat-large', model: 'gpt-oss-120b' });
+  // Models with their own listing (25 Oct 2026), by slug, Workers AI id or family name.
+  assert.deepEqual(lib.toolFor('gpt-oss-20b'), { path: '/ai/model/gpt-oss-20b' });
+  assert.deepEqual(lib.toolFor('@cf/qwen/qwen3-30b-a3b-fp8'), { path: '/ai/model/qwen3-30b' });
+  assert.deepEqual(lib.toolFor('qwen2.5-coder-32b'), { path: '/ai/model/qwen-coder' });
+  assert.deepEqual(lib.toolFor('deepseek-r1'), { path: '/ai/model/deepseek-r1' });
+  assert.deepEqual(lib.toolFor('mistral-small-3.1'), { path: '/ai/model/mistral-small' });
+  assert.deepEqual(lib.toolFor('llama-4-scout'), { path: '/ai/chat' }, 'Llama 4 Scout is the /ai/chat model since 25 Oct 2026');
+  assert.deepEqual(lib.toolFor('gpt-4.1-mini'), { path: '/ai/chat' });
+  assert.equal(lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }] }).query.tool, '/ai/model/deepseek-r1');
   assert.equal(lib.toChatQuery({ model: 'llama-3.3-70b', messages: [{ role: 'user', content: 'x' }] }).query.model, 'llama-3.3-70b');
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }] }).query.model, undefined);
 });
@@ -70,7 +79,25 @@ test('an unpaid POST for a large model is quoted at the /ai/chat-large price', a
   assert.equal(quote.accepts[0].maxAmountRequired, '10000');
   assert.equal(res.headers.get('x-tool'), '/ai/chat-large');
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
-  assert.deepEqual(models.data.map((m) => m.id), ['@cf/meta/llama-3.1-8b-instruct-fp8', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
+  assert.deepEqual(models.data.map((m) => m.id).slice(0, 3), ['@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
+  assert.ok(models.data.some((m) => m.id === '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b' && m.tool === '/ai/model/deepseek-r1'));
+  const deepseek = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'Hi' }] }) });
+  assert.equal(deepseek.status, 402);
+  assert.equal(deepseek.headers.get('x-tool'), '/ai/model/deepseek-r1');
+  await deepseek.arrayBuffer();
+});
+
+test('stream: true is answered as OpenAI server-sent events ending in [DONE]', () => {
+  const completion = lib.toOpenAiResponse({ prompt: 'Hi' }, { model: '@cf/meta/llama-3.1-8b-instruct-fp8', response: 'Hello!' });
+  const sse = lib.toOpenAiStream(completion, true);
+  const events = sse.trim().split('\n\n').map((e) => e.replace(/^data: /, ''));
+  assert.equal(events.at(-1), '[DONE]');
+  const chunks = events.slice(0, -1).map((e) => JSON.parse(e));
+  assert.ok(chunks.every((c) => c.object === 'chat.completion.chunk' && c.id === completion.id));
+  assert.equal(chunks.map((c) => c.choices[0]?.delta?.content ?? '').join(''), 'Hello!');
+  assert.equal(chunks[2].choices[0].finish_reason, 'stop');
+  assert.deepEqual(chunks[3].usage, completion.usage);
+  assert.equal(lib.toOpenAiStream(completion, false).trim().split('\n\n').length, 4, 'no usage chunk unless asked');
 });
 
 test('shapes the answer like OpenAI and estimates usage', () => {
@@ -152,7 +179,7 @@ test('a GET carries the same inputs in the query: a bare GET is quoted, prompt= 
 test('/v1/models is free; OpenAPI declares the POST, the GET variant and the model list', async () => {
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
   assert.equal(models.object, 'list');
-  assert.equal(models.data[0].id, '@cf/meta/llama-3.1-8b-instruct-fp8');
+  assert.equal(models.data[0].id, '@cf/meta/llama-4-scout-17b-16e-instruct');
   const api = await (await mf.dispatchFetch('https://api.test/openapi.json')).json();
   const post = api.paths['/v1/chat/completions'].post;
   assert.deepEqual(post['x-payment-info'].price, { mode: 'dynamic', currency: 'USD', min: '0.002', max: '0.01' });

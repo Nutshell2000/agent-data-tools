@@ -4,7 +4,7 @@
 import type { Context } from "hono";
 import type { Env } from "./env";
 import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openApiGetVariant, requestBody, toolFor, type ChatQuery } from "./openai-chat";
-import { MODELS } from "./ai";
+import { CHAT_MODEL } from "../routes/ai-text";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_RESPONSES_PATH = "/v1/responses";
@@ -52,7 +52,7 @@ export function toResponsesAnswer(query: ChatQuery, result: { model?: string; re
     object: "response",
     created_at: Math.floor(Date.now() / 1000),
     status: "completed",
-    model: result.model ?? requestedModel ?? MODELS.text,
+    model: result.model ?? requestedModel ?? CHAT_MODEL,
     output: [{ type: "message", id: `msg_${id.slice(24)}${id.slice(0, 16)}`, status: "completed", role: "assistant", content: [{ type: "output_text", text, annotations: [] }] }],
     output_text: text,
     usage: { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: inputTokens + outputTokens, estimated: true },
@@ -98,7 +98,7 @@ export function openAiResponsesOpenApiPath(origin: string, prices: { small: stri
         {
           input: { type: "string", description: "The user message (up to 8,000 characters)" },
           instructions: { type: "string", description: "Optional system prompt" },
-          model: { type: "string", description: `${MODELS.text} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
+          model: { type: "string", description: `${CHAT_MODEL} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
           max_output_tokens: { type: "integer", minimum: 1, maximum: 1024, description: "Maximum output tokens (default 400)" },
           temperature: { type: "number", minimum: 0, maximum: 1.5, description: "Default 0.6" },
         },
@@ -119,7 +119,7 @@ export function openAiResponsesOpenApiPath(origin: string, prices: { small: stri
                 type: "object",
                 required: ["input"],
                 properties: {
-                  model: { type: "string", description: `${MODELS.text} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
+                  model: { type: "string", description: `${CHAT_MODEL} (default, ${prices.small}), or llama-3.3-70b / gpt-oss-120b (${prices.large})` },
                   input: { description: "A string, or a list of { role, content } items (content a string or input_text parts)", oneOf: [{ type: "string" }, { type: "array", items: { type: "object", properties: { role: { type: "string", enum: ["system", "user", "assistant"] }, content: {} } } }] },
                   instructions: { type: "string", description: "Optional system prompt" },
                   max_output_tokens: { type: "integer", minimum: 1, maximum: 1024 },
@@ -127,12 +127,12 @@ export function openAiResponsesOpenApiPath(origin: string, prices: { small: stri
                   stream: { type: "boolean", description: "Must be false or absent" },
                 },
               },
-              example: { model: MODELS.text, instructions: "You are a concise assistant.", input: "Explain x402 in one sentence.", max_output_tokens: 200 },
+              example: { model: CHAT_MODEL, instructions: "You are a concise assistant.", input: "Explain x402 in one sentence.", max_output_tokens: 200 },
             },
           },
         },
         responses: {
-          "200": { description: "Completed response", content: { "application/json": { example: { id: "resp_0123456789abcdef01234567", object: "response", created_at: 1792400000, status: "completed", model: MODELS.text, output: [{ type: "message", id: "msg_0123456789abcdef", status: "completed", role: "assistant", content: [{ type: "output_text", text: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge.", annotations: [] }] }], output_text: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge.", usage: { input_tokens: 12, output_tokens: 24, total_tokens: 36, estimated: true } } } } },
+          "200": { description: "Completed response", content: { "application/json": { example: { id: "resp_0123456789abcdef01234567", object: "response", created_at: 1792400000, status: "completed", model: CHAT_MODEL, output: [{ type: "message", id: "msg_0123456789abcdef", status: "completed", role: "assistant", content: [{ type: "output_text", text: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge.", annotations: [] }] }], output_text: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge.", usage: { input_tokens: 12, output_tokens: 24, total_tokens: 36, estimated: true } } } } },
           "400": { description: "Invalid request body (not charged)" },
           "402": { description: "Payment Required" },
           "503": { description: "Daily AI capacity used up (not charged)" },
