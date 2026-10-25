@@ -97,7 +97,7 @@ test("converts catalog prices to exact USD micro-units", () => {
 
 test("tracks only successful settled x402 catalog calls and product purchases", () => {
   const headers = new Headers({ "PAYMENT-RESPONSE": successfulSettlement });
-  assert.equal(settledApiRevenueMicros("/package-audit", "paid", headers), 200_000);
+  assert.equal(settledApiRevenueMicros("/package-audit", "paid", headers), 10_000); // $0.01 since 25 Oct 2026
   assert.equal(settledApiRevenueMicros("/buy/x402-seller-kit", "paid", headers), 1_900_000);
   assert.equal(settledApiRevenueMicros("/package-audit", "paid", new Headers()), undefined);
   assert.equal(settledApiRevenueMicros("/buy/x402-seller-kit", "paid", new Headers()), undefined);
@@ -119,7 +119,7 @@ test("tracks only successful settled x402 catalog calls and product purchases", 
 
 test("tracks MCP revenue only from successful structured settlements", () => {
   const meta = { "x402/payment-response": { success: true } };
-  assert.equal(settledMcpRevenueMicros("/package-audit", { _meta: meta }), 200_000);
+  assert.equal(settledMcpRevenueMicros("/package-audit", { _meta: meta }), 10_000);
   assert.equal(settledMcpRevenueMicros("/package-audit", {}), undefined);
   assert.equal(settledMcpRevenueMicros("/package-audit", { _meta: { "x402/payment-response": { success: false } } }), undefined);
   assert.equal(settledMcpRevenueMicros("/package-audit", { isError: true, _meta: meta }), undefined);
@@ -225,7 +225,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   trackHttp("/package-audit", new Headers({ "PAYMENT-RESPONSE": successfulSettlement }));
   await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   let row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
-  assert.equal(row.revenueUsdMicros, 200_000);
+  assert.equal(row.revenueUsdMicros, 10_000);
   assert.equal(row.trackedPaidCalls, 1);
 
   const mcpCallback = withMcpRevenue(
@@ -237,7 +237,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   await mcpCallback();
   await sendBatchNow(metrics); await Promise.all(pending.splice(0)); // sending ends the batch's self-send wait
   row = (await sendBatchNow(metrics), await metrics.report())[today]["/package-audit"];
-  assert.equal(row.revenueUsdMicros, 400_000);
+  assert.equal(row.revenueUsdMicros, 20_000);
   assert.equal(row.trackedPaidCalls, 2);
   assert.equal(row.paid, 2);
 
@@ -275,7 +275,7 @@ test("records HTTP and MCP settlements once and excludes non-settled outcomes", 
   assert.equal(row.failed, 1);
   assert.equal(row.paid, 2);
   assert.equal(row.unsettled, 1);
-  assert.equal(row.revenueUsdMicros, 400_000);
+  assert.equal(row.revenueUsdMicros, 20_000);
   assert.equal(row.trackedPaidCalls, 2);
 });
 

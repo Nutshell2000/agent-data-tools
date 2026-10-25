@@ -29,7 +29,7 @@ export function bicInfo(raw: string) {
 }
 
 export const BIC: Entry[] = [
-  entry("/bic/validate", "BIC/SWIFT code check: structure, country and branch",
+  entry("/bic/validate", "SWIFT code, BIC validation: structure, country and branch",
     "Check a BIC (SWIFT code) against the ISO 9362 structure: institution code, a real country code with its name, location code, branch code, whether it is the head office (XXX or 8 characters), a test BIC or a passive participant, and the 11-character form. Computed locally; it checks the format and country, not whether the bank exists. Use before an international transfer or to clean payment data; for account numbers use validate_iban.",
     ["swift-code", "bic", "swift", "banking", "validation", "utility"], { bic: { type: "string", description: "BIC / SWIFT code, 8 or 11 characters", required: true, example: "DEUTDEFF500" } },
     { input: "DEUTDEFF500", bic: "DEUTDEFF500", valid: true, institutionCode: "DEUT", countryCode: "DE", country: "Germany", locationCode: "FF", branchCode: "500", headOffice: false, testBic: false, passiveParticipant: false, bic11: "DEUTDEFF500", note: "structure check only (ISO 9362); it does not confirm the bank exists" },

@@ -11,7 +11,7 @@ before(async () => {
   loaded._compile(built.outputFiles[0].text, entry); guide = loaded.exports;
 });
 const origin = 'https://api.example.test', recipient = '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5';
-const quote = { scheme: 'exact', network: 'eip155:8453', payTo: recipient, asset: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', amount: '200000' };
+const quote = { scheme: 'exact', network: 'eip155:8453', payTo: recipient, asset: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', amount: '10000' }; // $0.01 since 25 Oct 2026
 const decode = s => s.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 
 test('HTML and machine guide contain the same current, compilable client and free quote URL', async () => {
@@ -20,7 +20,7 @@ test('HTML and machine guide contain the same current, compilable client and fre
   const markdownClient = markdown.match(/```typescript\n([\s\S]*?)\n```/)[1];
   assert.equal(htmlClient, markdownClient);
   assert.equal(htmlClient, guide.auditBuyingGuide(origin, recipient).client);
-  assert.match(htmlClient, /maxUsdcAtomic = 200000n/);
+  assert.match(htmlClient, /maxUsdcAtomic = 10000n/); // /package-audit is $0.01 since 25 Oct 2026
   assert.match(html, /Opening it does not pay or run an audit/);
   assert.match(markdown, /Repeated|repeated invocations can each incur a charge/);
   const request = new URL(guide.auditBuyingGuide(origin, recipient).request);
@@ -65,12 +65,12 @@ test('the published example accepts its exact price and makes one mocked audit r
   await fixture.run();
   assert.equal(fixture.calls.length, 1);
   assert.equal(new URL(fixture.calls[0]).pathname, '/package-audit');
-  assert.equal(fixture.controls[0].maxAmountPerPayment, '$0.20');
+  assert.equal(fixture.controls[0].maxAmountPerPayment, '$0.01');
   assert.equal(fixture.output[0].checked, 2);
 });
 
 test('the published example refuses excess price, wrong recipient, asset, network and malformed amounts', async () => {
-  for (const change of [{ amount: '200001' }, { amount: '0.20' }, { payTo: '0x' + '9'.repeat(40) },
+  for (const change of [{ amount: '10001' }, { amount: '0.01' }, { payTo: '0x' + '9'.repeat(40) },
     { network: 'eip155:1' }, { asset: '0x' + '9'.repeat(40) }, { scheme: 'different' }]) {
     const fixture = await executeExample({ ...quote, ...change });
     await assert.rejects(() => fixture.run(), /quote refused/);

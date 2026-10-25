@@ -85,7 +85,9 @@ const ai = (path: string, summary: string, description: string, tags: string[], 
 export const CHAT_PRICE = "$0.002";
 
 export const AI_TEXT: Entry[] = [
-  ai("/ai/chat", "LLM chat completions, inference: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
+  // "chat completions" (the bigger search) lost us when ", inference" was appended on 24 Oct: #5 before, absent after. One
+  // phrase per name when the tool has one main task; /ai/chat-large carries "LLM inference".
+  ai("/ai/chat", "LLM chat completions: Llama 3.1 8B", "Send a prompt, get an answer from Llama 3.1 8B Instruct, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account. For harder reasoning use ai_chat_large.",
     ["chat", "completion", "llama"], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
@@ -226,7 +228,7 @@ export const BASICS: Entry[] = [
     (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.01"),
   entry("/ping", "Ping", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
     ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.01"),
-  entry("/keccak", "Keccak256, function selector: Keccak-256 hash, 4-byte selector and event topic", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
+  entry("/keccak", "Keccak hash, keccak256: Keccak-256 hash, 4-byte function selector and event topic", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
     { input: "transfer(address,uint256)", inputType: "text", keccak256: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b", selector: "0xa9059cbb" },
     (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.01"),

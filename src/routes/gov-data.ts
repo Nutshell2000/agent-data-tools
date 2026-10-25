@@ -94,7 +94,7 @@ export const GOV_DATA: Entry[] = [
       };
     }),
 
-  entry("/airport/status", "US airport delays, ground stops and closures",
+  entry("/airport/status", "Airport delays, US ground stops and closures",
     "Live FAA National Airspace System status for US airports: ground stops, ground delay programs, arrival and departure delays (with minimum, maximum and trend) and closures, each with its reason. Give an IATA code such as LGA for one airport (normal when nothing is reported), or nothing for the whole country. Public FAA data, refreshed about every minute. Use before travel planning, logistics or customer notices.",
     ["airport", "flights", "travel", "delays", "faa", "data"], {
       airport: { type: "string", description: "IATA airport code such as LGA, SFO or ORD (default: all US airports with events)", example: "LGA" },

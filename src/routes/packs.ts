@@ -82,8 +82,8 @@ export function reverseName(ip: string) {
 }
 
 export const PACKS: Entry[] = [
-  entry("/pack/crypto-market", "Crypto market overview pack: sentiment, prices, funding and signals",
-    "One call for a crypto market overview: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard.",
+  entry("/pack/crypto-market", "Crypto market overview: sentiment, prices, funding and signals",
+    "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard.",
     ["crypto-market-overview", "market-brief", "crypto", "pack", "sentiment", "data"], {
       coins: { type: "string", description: "Up to 3 coins for technical readings, comma separated (default BTC,ETH,SOL)", example: "BTC,ETH,SOL" },
     },
@@ -107,9 +107,9 @@ export const PACKS: Entry[] = [
         bitcoinFees: fees?.fees ? { nextBlock: fees.fees.nextBlock, hour: fees.fees.hour, unit: fees.unit ?? "sat/vB" } : null,
         failed,
       };
-    }, "$0.03"),
+    }, "$0.01"),
 
-  entry("/pack/token-analysis", "Token analysis pack: price, supply, proxy and risk checks",
+  entry("/pack/token-analysis", "Token analysis: price, supply, proxy and risk checks",
     "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token.",
     ["token-analysis", "token-research", "token-security", "erc20", "pack", "crypto"], {
       token: { type: "string", description: "Token: a ticker such as USDC or a 0x ERC-20 contract address", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -132,9 +132,9 @@ export const PACKS: Entry[] = [
         risk: data.risk ?? null, contract: data.contract ?? null,
         ...(chain === "base" ? {} : { note: "honeypot and contract risk checks cover Base only" }), failed,
       };
-    }, "$0.03"),
+    }, "$0.01"),
 
-  entry("/pack/email-deliverability", "Email deliverability check pack: MX, SPF, DMARC, DKIM and score",
+  entry("/pack/email-deliverability", "Email deliverability check: MX, SPF, DMARC, DKIM and score",
     "One call to check a domain's email setup: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain.",
     ["email-deliverability", "spf", "dmarc", "dkim", "pack", "email"], {
       domain: { type: "string", description: "The sending domain, such as example.com (or a URL; its host is used)", required: true, example: "github.com" },
@@ -163,9 +163,9 @@ export const PACKS: Entry[] = [
       const flags = { mtaSts: has("mtaSts", /v=STSv1/i), tlsRpt: has("tlsRpt", /v=TLSRPTv1/i), bimi: has("bimi", /v=BIMI1/i) };
       const scored = emailScore({ mx: mx.length, ...d.email, dkim, ...flags });
       return { pack: "email-deliverability", domain, ...scored, mx, spf: d.email.spf, spfPolicy: d.email.spfPolicy, dmarc: d.email.dmarc, dmarcPolicy: d.email.dmarcPolicy, dkimSelectors: dkim, ...flags, address: data.address ?? null, failed };
-    }, "$0.02"),
+    }, "$0.01"),
 
-  entry("/pack/website-audit", "Website audit pack: uptime, SEO, security headers, redirects and DNS",
+  entry("/pack/website-audit", "Website audit, security audit: uptime, SEO, security headers, redirects and DNS",
     "One call to audit a website: is it up and how fast, the redirect chain (including whether plain http moves to https), the on-page SEO audit with its score and issues, HTTP security headers and their grade, robots.txt for the page, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Cheaper than the six tools bought one by one. Use before a launch, for a client report or to compare competitors.",
     ["website-audit", "site-audit", "security-audit", "seo-audit", "pack", "web"], { url: { type: "string", description: "Absolute http(s) URL of the page", required: true, example: "https://www.wikipedia.org/" } },
     { pack: "website-audit", url: "https://www.wikipedia.org/", uptime: { up: true, status: 200, responseMs: 135 }, httpsRedirect: true, redirects: 0, seo: { score: 73, issues: ["no canonical link"] }, security: { grade: "B", missing: ["permissions-policy"] }, robots: { allowed: true }, domain: { registeredAt: "2001-01-13T00:12:14Z", ageDays: 9050, spfPolicy: "~all", dmarcPolicy: "reject" }, failed: {} },
@@ -197,9 +197,9 @@ export const PACKS: Entry[] = [
         domain: dom ? { ...(dom.registration ? pick2(dom.registration, ["registrar", "registeredAt", "expiresAt", "ageDays"]) : {}), spfPolicy: dom.email?.spfPolicy ?? null, dmarcPolicy: dom.email?.dmarcPolicy ?? null } : null,
         failed,
       };
-    }, "$0.03"),
+    }, "$0.01"),
 
-  entry("/pack/ip-intelligence", "IP intelligence pack: owner, network, reverse DNS and type",
+  entry("/pack/ip-intelligence", "IP intelligence: owner, network, reverse DNS and type",
     "One call for everything about an IP address: its type (public, private, loopback, carrier-grade NAT), the registry record (holding organisation, network name and range, registration country, abuse contact) and the reverse DNS name. IPv4 and IPv6. Registration country, not city geolocation. Cheaper than the tools bought one by one. Use to investigate an address in logs, a login or an abuse report.",
     ["ip-intelligence", "ip-lookup", "reverse-dns", "pack", "network", "security"], { ip: { type: "string", description: "IPv4 or IPv6 address", required: true, example: "8.8.8.8" } },
     { pack: "ip-intelligence", ip: "8.8.8.8", type: { version: 4, public: true, private: false }, registry: { holder: "Google LLC", network: "GOGL", range: "8.8.8.0 - 8.8.8.255", country: "US", abuseEmail: "network-abuse@google.com", registry: "ARIN" }, reverseDns: ["dns.google"], failed: {} },
@@ -217,9 +217,9 @@ export const PACKS: Entry[] = [
         registry: reg ? { holder: reg.holder?.name ?? null, network: reg.network?.name ?? null, range: reg.network?.start ? `${reg.network.start} - ${reg.network.end}` : null, country: reg.country ?? null, abuseEmail: reg.abuseEmail ?? null, registry: reg.registry ?? null } : null,
         reverseDns: data.reverseDns ?? null, failed,
       };
-    }, "$0.02"),
+    }, "$0.01"),
 
-  entry("/pack/wallet-profile", "Wallet profile pack: balances, activity, contract check and sanctions",
+  entry("/pack/wallet-profile", "Wallet profile: balances, activity, contract check and sanctions",
     "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty.",
     ["wallet-profile", "wallet-analysis", "wallet", "pack", "sanctions", "crypto"], { address: { type: "string", description: "0x wallet address", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" } },
     { pack: "wallet-profile", address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045", isContract: false, balances: { usdcTotal: "12.5", networks: [{ chain: "Base", native: "0.0123", usdc: "12.5" }] }, activity: { baseNonce: 120, ethNonce: 1204 }, recentUsdc: { count: 2, transfers: [{ direction: "in", amount: "2.5", counterparty: "0x…" }] }, sanctions: { verdict: "pass" }, failed: {} },
@@ -244,5 +244,5 @@ export const PACKS: Entry[] = [
         sanctions: data.sanctions ? pick2(data.sanctions, ["verdict", "listed", "matches", "source"]) : null,
         failed,
       };
-    }, "$0.03"),
+    }, "$0.01"),
 ];

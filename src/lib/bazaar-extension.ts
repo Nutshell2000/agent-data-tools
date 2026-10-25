@@ -78,8 +78,8 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/eth/balance": ["ethereum-balance"], "/hyperliquid/market": ["hyperliquid-funding"], "/airport/status": ["airport-delays"],
   "/fx": ["currency-converter", "currency-exchange-rate", "exchange-rates", "forex"], "/screenshot": ["website-screenshot"], "/ai/translate": ["translate-text"],
   "/ai/summarize-text": ["summarize-text"], "/image": ["image-generation"], "/transcribe": ["speech-to-text"],
-  "/package": ["npm-package"], "/wikipedia": ["wikipedia-summary"], "/earthquakes": ["earthquakes"],
-  "/holidays": ["public-holidays"], "/feed": ["rss-feed"], "/sitemap": ["sitemap"],
+  "/package": ["npm-package"], "/wikipedia": ["wikipedia-summary", "wikipedia-article-summary"], "/earthquakes": ["earthquakes", "earthquake-data", "usgs"],
+  "/holidays": ["public-holidays"], "/feed": ["rss-feed"], "/sitemap": ["sitemap", "sitemap-parser"],
   "/text/prompt-injection": ["prompt-injection-detection"], "/json/repair": ["json-repair"],
   "/validate/iban": ["iban-validation"], "/base/token-transfers": ["token-transfers"], "/ens": ["ens-resolver", "reverse-ens", "ens-name"],
   "/liquidity-pool-audit": ["liquidity-pool"], "/check/counterparty": ["counterparty-risk"], "/base-gas": ["base-gas", "gas-fee-estimate"],
@@ -93,6 +93,17 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/ai/classify": ["text-classification"], "/ai/keywords": ["keyword-extraction"], "/ai/extract-json": ["extract-json"],
   "/hyperliquid/orderbook": ["order-book"], "/hyperliquid/candles": ["ohlcv", "candles"], "/hyperliquid/funding-history": ["funding-history", "funding-rate"],
   "/hyperliquid/prices": ["crypto-prices"], "/http/security-headers": ["security-headers", "http-headers"], "/url/meta": ["website-metadata", "link-preview"], "/cron/next": ["cron-expression"], "/case": ["case-converter"], "/image/metadata": ["exif"], "/text/language": ["language-detection"], "/useragent/parse": ["user-agent-parser"], "/pack/crypto-market": ["market-sentiment"], "/keccak": ["keccak256", "function-selector"], "/crypto/fear-greed": ["fear-and-greed"], "/ip/lookup": ["ip-lookup"], "/geo/distance": ["distance-between"], "/date/info": ["week-number"], "/hyperliquid/indicators": ["technical-indicators", "rsi", "macd"], "/news": ["news-headlines", "latest-news", "crypto-news"],
+  // Third pass, 25 Oct 2026: the 28 tools that carried fewer than 5 tags (the Bazaar matches the first 5), with the phrase
+  // the demand probe found buyers searching (business/agentic/base-bots/demand-probe.mjs; we sat #2-#13 or absent).
+  "/json/validate": ["json-validator", "validate-json"], "/json/format": ["json-formatter", "pretty-print"], "/json/minify": ["json-minifier", "minify-json"],
+  "/json/to-csv": ["json-to-csv", "csv-export"], "/csv/to-json": ["csv-to-json", "csv-parser"],
+  "/base64/encode": ["base64-encode", "base64-encoder"], "/base64/decode": ["base64-decode", "base64-decoder"],
+  "/url/encode": ["url-encode", "url-encoder"], "/url/decode": ["url-decode", "url-decoder"], "/url/parse": ["url-parser", "parse-url"],
+  "/number/roman": ["roman-numerals", "roman-numeral-converter"], "/validate/luhn": ["luhn-check", "credit-card-validation"],
+  "/color": ["hex-to-rgb", "color-converter"], "/ip/info": ["ip-address-info", "ip-address"], "/markdown/to-html": ["markdown-to-html", "markdown-converter"],
+  "/html/to-text": ["html-to-text", "strip-html"], "/http/status": ["http-status-code", "status-code-meaning"], "/url/uptime": ["http-status-check", "uptime-check"],
+  "/moon": ["moon-phase"], "/country": ["country-info", "country-data"], "/npm/downloads": ["npm-downloads", "npm-stats"],
+  "/date/add": ["date-calculator", "add-days"], "/trade-insight": ["token-risk", "wallet-risk"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
     [`/${s}/nft-owner`, ["nft-owner"]], [`/${s}/nft-balance`, ["nft-balance"]], [`/${s}/nft-metadata`, ["nft-metadata"]],
