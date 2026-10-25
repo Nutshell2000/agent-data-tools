@@ -800,3 +800,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   market overview (5-9p), json tools (32p), developer tools (Cult OS 32p). Packs got their first sweep payers only after
   the one-cent price (1.69.0); expect them to climb on payers, not names.
 
+
+## Research packs (1.72.0, 25 Oct 2026; 306 tools)
+
+- src/routes/packs-research.ts: `/pack/web-research` (Brave /search, then `extract()` on the top 1-5 pages in parallel),
+  `/pack/news-sentiment` (Brave /news, then /ai/sentiment per headline through `runSections`), `/pack/url-safety`
+  (/url/redirects, `domainReport()` on the final host, /http/security-headers, plus `urlSignals()`: heuristic signals only,
+  never a blocklist claim). Web research and news sentiment are in `CAPACITY_LIMITED` (each costs a Brave request and up
+  to 10 AI calls). Bazaar search 25 Oct: web research #1 1p (we #11), news sentiment #1 2p (absent), scam/phishing check
+  absent, url safety #1 5p (we #10). Tests: tests/packs-research.test.cjs. Check both Brave packs on staging after the
+  release (the PC smoke run skips capacity-limited tools).
+
