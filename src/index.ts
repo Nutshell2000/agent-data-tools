@@ -348,6 +348,11 @@ app.all("/mcp/account", async (c) => {
   const grant = await grantFromRequest(c.env, c.req.header("authorization"));
   return grant ? handleMcp(c, "", undefined, grant) : unauthorized(c);
 });
+// The ChatGPT plugin listing (1.77.0): the signed-in tools without prices, payment methods or checkout links (mcp.ts).
+app.all("/mcp/chatgpt", async (c) => {
+  const grant = await grantFromRequest(c.env, c.req.header("authorization"));
+  return grant ? handleMcp(c, "", undefined, grant, true) : unauthorized(c, "/mcp/chatgpt");
+});
 app.all("/mcp/account/:bundle", async (c) => {
   const grant = await grantFromRequest(c.env, c.req.header("authorization"));
   return grant ? handleMcp(c, c.req.param("bundle"), undefined, grant) : unauthorized(c);

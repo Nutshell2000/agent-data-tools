@@ -1,5 +1,5 @@
 {
-  "version": "1.75.0",
+  "version": "1.76.0",
   "tools": [
     {
       "name": "extract",
@@ -8272,6 +8272,38 @@
         "required": [
           "namespace",
           "key"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "recommend",
+      "description": "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 320 tools (web search and page reading, LLM chat, token prices and chain reads on 5 networks, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one. Example: need=current gas price on Base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "need": {
+            "type": "string",
+            "description": "The task in plain words, up to 300 characters"
+          },
+          "count": {
+            "description": "How many picks, 1 to 5 (default 3)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "need"
         ]
       },
       "price": "$0.002"

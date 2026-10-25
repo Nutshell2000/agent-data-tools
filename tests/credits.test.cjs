@@ -107,6 +107,11 @@ test('only a paid, complete credits checkout with matching amount and pack is ac
   await reject({ ...paid, amount_total: 500 }, 200, 400);
   await reject({ ...paid, metadata: {} }, 200, 400);
   await reject({ ...paid, currency: 'sek' }, 200, 400);
+  // Adaptive Pricing: paid in SEK, the USD price sits in currency_conversion.
+  const sek = { ...paid, currency: 'sek', amount_total: 21950, currency_conversion: { amount_total: paid.amount_total, source_currency: 'usd', fx_rate: '10.97' } };
+  assert.equal((await credits.verifyCheckout('rk_test_key', id, stripeFetch(sek))).credits, 22000);
+  await reject({ ...sek, currency_conversion: { amount_total: 100, source_currency: 'usd' } }, 200, 400);
+  await reject({ ...sek, currency_conversion: { amount_total: paid.amount_total, source_currency: 'eur' } }, 200, 400);
   await reject({}, 404, 404);
   await assert.rejects(credits.verifyCheckout(undefined, id), (e) => e.status === 503);
   await assert.rejects(credits.verifyCheckout('rk_test_key', '../../v1/charges'), (e) => e.status === 400);
@@ -156,7 +161,7 @@ test('paywall charges a key per successful call and refunds failed calls', async
   const balance = await res.json();
   const { since, topUp, ...rest } = balance;
   assert.deepEqual(rest, { balanceCredits: 1, purchasedCredits: 5, spentCredits: 4, calls: 2 });
-  assert.equal(topUp.length, 3);
+  assert.equal(topUp.length, 4);
   for (const l of topUp) assert.ok(l.buy.endsWith(`?client_reference_id=topup_${await credits.hashCreditKey(key)}`));
 
   assert.equal((await fetch('/tool')).status, 402);
@@ -171,11 +176,11 @@ test('/credits offers no pack while claims cannot issue keys (STRIPE_READ_KEY un
   assert.doesNotMatch(html, /buy\.stripe\.com/);
 });
 
-test('/credits lists the three packs as JSON for agents', async () => {
+test('/credits lists the four packs as JSON for agents', async () => {
   const res = await app({ STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits', { accept: 'application/json' });
   const body = await res.json();
   assert.equal(body.cardReady, true);
-  assert.deepEqual(body.packs.map((p) => [p.price, p.credits]), [['$5', 5000], ['$20', 22000], ['$100', 125000]]);
+  assert.deepEqual(body.packs.map((p) => [p.price, p.credits]), [['$1', 1000], ['$5', 5000], ['$20', 22000], ['$100', 125000]]);
   for (const p of body.packs) assert.match(p.buy, /^https:\/\/buy\.stripe\.com\//);
 });
 
