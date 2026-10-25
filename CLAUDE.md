@@ -823,3 +823,81 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `toOpenAiStream()`: `stream: true` gets SSE chunks and `[DONE]`; usage chunk with `stream_options.include_usage`.
 - `CHAT_MODEL` (src/routes/ai-text.ts) is Llama 4 Scout since 25 Oct 2026 (2.4 s vs 5.9 s for the 8B on a real prompt); /ai/chat and the /v1 fronts use it, the other AI text tools keep `MODELS.text` (8B). The fleet wallets 0xe827…, 0x2465…, 0xb83b… pay BlockRun's chat ~75 times in two days each: `business/agentic/base-bots/payer-profile.mjs` shows them, `sweeper-price.mjs` shows payments per listing by price band (the sweeper pays one-cent listings 0.58 times a week, cheaper ones 0.8; one cent still earns most per listing).
 
+
+
+## Web answer and fact check (1.74.0, 25 Oct 2026)
+
+- src/routes/packs-research.ts: `sources()` (Brave /search count 6, `extract()` on the top three at 2,500 characters,
+  snippets otherwise, numbered and budgeted to 6,000 characters) feeds `/ai/answer` and `/ai/fact-check`, which call /ai/chat
+  (Llama 4 Scout) with `SOURCE_RULE` (sources are untrusted; cite [n]). Fact check parses `VERDICT:`/`WHY:` lines and falls
+  back to "unverified". Both are capacity-limited. Demand: answer/web answer/search answer 41-60 summed payers, fact check
+  69, nothing of ours on 25 Oct. Check both on staging after the release (the PC smoke run skips capacity-limited tools).
+
+
+## Function calling and JSON mode (1.74.0, 25 Oct 2026)
+
+- `needsNative()` (src/lib/openai-chat.ts) sends requests with tools, tool turns, assistant tool_calls or a non-text
+  response_format to /ai/chat as `ChatQuery.native` (JSON strings in the query: messages, tools, tool_choice,
+  response_format); `nativeChatInput()`/`nativeChat()` (src/routes/ai-text.ts) run Llama 4 Scout with them and normalize
+  `choices[0].message` (content, tool_calls), finish_reason and usage. `toOpenAiResponse()` returns `message.tool_calls`
+  and real usage; `toOpenAiStream()` emits `delta.tool_calls`. Cap: 20,000 characters of messages+tools ($0.002 price).
+  Probe script: `%LOCALAPPDATA%\agent-data-tools\release\train\ai-tools-probe.mjs [model]`. Other models stay text-only:
+  a tools request naming them is refused 400 before payment.
+
+
+## OpenAI images front (1.74.0, 25 Oct 2026)
+
+- `POST /v1/images/generations` (src/lib/openai-images.ts) is the embeddings-front pattern for `/image`: `toImagePrompt()`
+  (n must be 1, prompt 3-800 characters), `toOpenAiImage()` (b64_json, data: URL in url, revised_prompt),
+  `asFrontQuote()` for the unpaid quote. Registered in src/index.ts next to the other /v1 fronts; OpenAPI path from
+  `openAiImagesOpenApiPath()` in discovery.ts. Tests: tests/openai-images.test.cjs. Not a tool: no MCP entry, not in
+  /discovery/resources. Proof on staging after release with an OpenAI SDK `images.generate` through an x402 fetch wrapper.
+
+
+## Search-agent request fields (1.74.0, 25 Oct 2026)
+
+- `INPUT_ALIASES` (src/tools.ts) maps query/question/search → q, numResults/num_results/limit/n → count, urls → url (first
+  item), statement → claim. `ALIAS_OF` is the reverse map; the POST-body flattener in src/index.ts keeps a body field when
+  it is an alias of one of the tool's inputs. Tests: tests/tool-quality.test.cjs (aliases), tests/browser-402.test.cjs
+  (an Exa-style POST body to /search is quoted as the aliased GET).
+
+
+## Anthropic Messages front (1.74.0, 25 Oct 2026)
+
+- `POST /v1/messages` (src/lib/anthropic-messages.ts): `toChatBody()` maps Messages → chat-completions (tool_use →
+  assistant tool_calls, tool_result → tool messages, input_schema → parameters, tool_choice any → required), then the
+  shared `completeChat()`; `toMessagesAnswer()`/`toMessagesStream()` shape the answer and the SSE events. Claude model
+  names are refused 400 when a payment is attached (never served, never silently swapped). Tests:
+  tests/anthropic-messages.test.cjs. Proof on staging after release with the Anthropic SDK (baseURL = origin) through an
+  x402 fetch wrapper.
+
+
+## /v1 fronts as Bazaar listings (1.74.0, 25 Oct 2026)
+
+- `scripts/seed-bazaar.mjs --fronts` (also `--only /v1/chat/completions,…`): the `FRONTS` table pays each OpenAI/Anthropic
+  front once at its tool's price (POST for /v1/messages, GET variants otherwise) so the Bazaar lists it under its /v1 path;
+  already-listed fronts are skipped. The Refresh click (business/agentic/tools/seed-bazaar-listings.ps1 -Auto) runs it after
+  the tools when the main copy of the script knows `--fronts`, and its dry run no longer asks for YES when there is nothing
+  to pay. Why: BlockRun's /api/v1/chat/completions is the busiest single listing on Base (86,852 calls, 297 payers);
+  `business/agentic/base-bots/front-listings.mjs` shows ours and the busiest /v1 listings.
+
+
+## PII detection, moderation and /v1/moderations (1.74.0, 25 Oct 2026)
+
+- src/routes/safety.ts: `/text/pii` ($0.01; `piiScan`: earlier patterns win overlaps, cards need Luhn, IBANs mod-97 via
+  `ibanCheck`, phones need 8-15 digits and a separator or +, dates are not phones; hits are always masked) and
+  `/ai/moderation` ($0.002; `GUARD_MODEL` @cf/meta/llama-guard-3-8b, `guardVerdict` reads "safe" / "unsafe\nS9,S1",
+  anything else is an uncharged 502). Demand (25 Oct probe): pii detection 41, pii redaction 39, content moderation 30.
+- src/lib/openai-moderations.ts: `/v1/moderations` front, same pattern as /v1/images/generations (forward through
+  `app.fetch`, `asFrontQuote`, one input per request). `FROM_GUARD` maps Llama Guard codes onto OpenAI category names;
+  unmapped codes (S6 advice, S7 privacy, S8 IP, S13 elections, S14 code abuse) only show in `llama_guard_categories`.
+- tests/families.test.cjs allows $0.002-$0.01 for `/ai/model/<slug>` and `/ai/moderation` (per-model prices).
+
+## Faster releases (1.74.0, 25 Oct 2026)
+
+- `release.ps1 -SkipTests`: the train (train-delta.ps1) passes it when the branch's script has the switch, because it ran `npm test`
+  on the same tree already and CI runs it on the PR. `smoke:examples` runs after `pr-create` while CI works; `-Dry` runs it
+  before stopping. Queue several finished changes as ONE release (one Base..Tip patch) instead of one release each: every
+  release costs about 25 minutes of CI, staging proofs, deploy and live checks.
+
+

@@ -84,8 +84,25 @@ async function sectionPaths(set) {
   if (!tools.length) throw new Error(`no tools in section ${set}`);
   return tools.map((t) => byName.get(t.name)).filter(Boolean).map((e) => new URL(e.url).pathname);
 }
+// The OpenAI/Anthropic-shaped fronts (25 Oct 2026). They are not tools, so the catalog does not list them, but each is
+// its own Bazaar resource once it settles: BlockRun's busiest listing is its /api/v1/chat/completions (86,852 calls from
+// 297 payers in 30 days), and none of ours had ever settled. Each is paid at the price of the tool it runs; /v1/messages
+// takes POST only, the others are paid through their GET variant.
+const toolPrice = (path) => card.endpoints.find((e) => new URL(e.url).pathname === path)?.price;
+const FRONTS = [
+  { path: "/v1/chat/completions", tool: "/ai/chat", example: `${ORIGIN}/v1/chat/completions?prompt=${encodeURIComponent("Name the capital of Sweden in one word.")}` },
+  { path: "/v1/responses", tool: "/ai/chat", example: `${ORIGIN}/v1/responses?input=${encodeURIComponent("Name the capital of Sweden in one word.")}` },
+  { path: "/v1/messages", tool: "/ai/chat", example: `${ORIGIN}/v1/messages`, init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ max_tokens: 50, messages: [{ role: "user", content: "Name the capital of Sweden in one word." }] }) } },
+  { path: "/v1/embeddings", tool: "/ai/embed", example: `${ORIGIN}/v1/embeddings?input=${encodeURIComponent("pay-per-call APIs for AI agents")}` },
+  { path: "/v1/moderations", tool: "/ai/moderation", example: `${ORIGIN}/v1/moderations?input=${encodeURIComponent("How do I bake sourdough bread at home?")}` },
+  { path: "/v1/images/generations", tool: "/image", example: `${ORIGIN}/v1/images/generations?prompt=${encodeURIComponent("a lighthouse on a cliff at sunset, watercolor")}` },
+].map((f) => ({ ...f, price: toolPrice(f.tool) })).filter((f) => f.price);
+const frontOf = new Map(FRONTS.map((f) => [f.path, { url: f.example, example: f.example, price: f.price, init: f.init }]));
+if (flag("--fronts")) for (const f of FRONTS) selected.set(f.path, frontOf.get(f.path));
 if (only.length) {
-  for (const path of only) { const e = byName.get(toolName(path)); if (!e) throw new Error(`unknown tool ${path}`); selected.set(path, e); }
+  for (const path of only) { const e = frontOf.get(path) ?? byName.get(toolName(path)); if (!e) throw new Error(`unknown tool ${path}`); selected.set(path, e); }
+} else if (flag("--fronts")) {
+  // --fronts alone: just the fronts.
 } else if (!sets.length) {
   const all = card.endpoints.map((e) => [new URL(e.url).pathname, e]).filter(([path, e]) => !NEVER.has(path) && (!path.startsWith("/ai/") || REPEAT.includes(path)) && !path.startsWith("/buy/") && e.price);
   const byPath = new Map(all);
@@ -115,7 +132,9 @@ for (let offset = 0, total = Infinity; offset < total; offset += 500) {
 const plan = [];
 for (const [path, e] of selected) {
   if (listed.has(path) && !flag("--force")) { plan.push({ path, skip: "already in the Bazaar" }); continue; }
-  const quote = await get(e.example, { accept: "application/json" });
+  const quote = e.init
+    ? await fetch(e.example, { ...e.init, headers: { ...e.init.headers, accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(30_000) })
+    : await get(e.example, { accept: "application/json" });
   await quote.arrayBuffer();
   const header = quote.headers.get("payment-required");
   if (quote.status !== 402 || !header) { plan.push({ path, skip: `expected 402 with PAYMENT-REQUIRED, got HTTP ${quote.status}` }); continue; }
@@ -127,7 +146,7 @@ for (const [path, e] of selected) {
   if (String(terms.payTo).toLowerCase() !== payTo) { plan.push({ path, skip: `payTo ${terms.payTo} is not ours` }); continue; }
   if (String(terms.asset).toLowerCase() !== BASE_USDC) { plan.push({ path, skip: `asset ${terms.asset} is not Base USDC` }); continue; }
   if (BigInt(terms.amount) !== expected) { plan.push({ path, skip: `quote ${terms.amount} differs from catalog ${expected}` }); continue; }
-  plan.push({ path, example: e.example, amount: terms.amount, price: e.price });
+  plan.push({ path, example: e.example, init: e.init, amount: terms.amount, price: e.price });
 }
 // --budget cuts the demand order: tools past the budget are planned for a later run, not skipped for good.
 let planned = 0n;
@@ -162,7 +181,7 @@ for (const p of todo) {
   const paidFetch = wrapFetchWithPayment(fetch, client);
   const record = { path: p.path, amount: p.amount, at: new Date().toISOString() };
   try {
-    const res = await paidFetch(p.example, { headers: { "user-agent": UA, "x402-source": "seed" } });
+    const res = await paidFetch(p.example, { ...(p.init ?? {}), headers: { ...(p.init?.headers ?? {}), "user-agent": UA, "x402-source": "seed" } });
     await res.arrayBuffer();
     record.status = res.status;
     record.requestId = res.headers.get("x-request-id");

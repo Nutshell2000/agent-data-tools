@@ -178,6 +178,10 @@ test('a POST with a flat JSON body is the GET with those fields: quoted, not ref
   assert.equal(post.status, 402);
   const terms = JSON.parse(Buffer.from(post.headers.get('payment-required'), 'base64').toString());
   assert.equal(terms.resource.url, 'https://api.test/weather?city=London&hours=6', 'known fields become the query; unknown and nested ones are dropped');
+  // A search agent's body (Exa-style query, numResults, nested contents) keeps the aliased fields, drops the nested one.
+  const exa = await mf.dispatchFetch('https://api.test/search', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query: 'x402 payments', numResults: 5, contents: { text: true } }) });
+  assert.equal(exa.status, 402);
+  assert.equal(JSON.parse(Buffer.from(exa.headers.get('payment-required'), 'base64').toString()).resource.url, 'https://api.test/search?query=x402+payments&numResults=5');
   for (const body of ['', 'not json', '[1,2]']) {
     const res = await mf.dispatchFetch('https://api.test/time', { method: 'POST', headers: { 'content-type': 'application/json' }, body });
     assert.equal(res.status, 402, `body ${JSON.stringify(body)} still gets the quote`);

@@ -24,7 +24,10 @@ param(
   [string]$DataDir = "$env:LOCALAPPDATA\agent-data-tools\release",
   [switch]$Dry,
   [switch]$Resume,
-  [switch]$SkipSmoke
+  [switch]$SkipSmoke,
+  # The release train (train-delta.ps1) has already run the full suite on this exact tree, and CI runs it again on the
+  # PR, so a third local run only costs about four minutes.
+  [switch]$SkipTests
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -131,14 +134,18 @@ Step 'update:mcp-contract' {
 } 'contract baseline'
 # The full suite starts many Miniflare workers; a file-level flake (every test green, the file red) happens about once
 # in ten runs, so one rerun is allowed. A real failure fails twice.
-Step 'test' { $first = (npm test 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0) { $first } else { Write-Host '[retry] npm test failed once; running again' -ForegroundColor Yellow; npm test } } 'fail 0'
+if (-not $SkipTests) { Step 'test' { $first = (npm test 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0) { $first } else { Write-Host '[retry] npm test failed once; running again' -ForegroundColor Yellow; npm test } } 'fail 0' } else { Write-Host '[skip] test (-SkipTests: the train ran the suite on this tree; CI runs it on the PR)' -ForegroundColor Yellow }
 Step 'check:mcp-contract' { npm run check:mcp-contract } 'matches version'
 Step 'tsc' { npx tsc --noEmit -p . }
 # Every paid tool on exactly its published example, live upstreams, paywall off (about a minute). The Bazaar listing payment
 # and a buyer's first call use that example, so a failing one is a listing lost (/calc/loan in 1.51.0). -SkipSmoke only when
 # an outside source is down and the release does not touch that tool.
-if (-not $SkipSmoke) { Step 'smoke:examples' { node scripts/smoke-examples.mjs --retry } ' 0 fail;' } else { Write-Host '[skip] smoke:examples (-SkipSmoke)' -ForegroundColor Yellow }
-RevertGenerated
+#   A real release runs it after the PR is open, while CI works (about two minutes saved); a dry run runs it here.
+function SmokeExamples {
+  if (-not $SkipSmoke) { $null = Step 'smoke:examples' { node scripts/smoke-examples.mjs --retry } ' 0 fail;' } else { Write-Host '[skip] smoke:examples (-SkipSmoke)' -ForegroundColor Yellow }
+  RevertGenerated
+}
+if ($Dry) { SmokeExamples } else { RevertGenerated }
 if ($Dry) { Write-Host "`nDry run complete: pins bumped and checks green; nothing committed." -ForegroundColor Green; exit 0 }
 
 # ---- 2. PR, CI, merge ----------------------------------------------------------------------------------------------
@@ -153,6 +160,8 @@ if (-not $merged) {
     $pr = [pscustomobject]@{ number = [int]([regex]::Match($created, 'pull/(\d+)').Groups[1].Value) }
   }
   Write-Host "PR #$($pr.number)"
+  # Smoke runs on the pushed feature branch while CI checks the PR; a failure stops the release before the merge.
+  SmokeExamples
   WaitFor "PR #$($pr.number) checks" {
     $checks = gh pr checks $pr.number --json name,bucket 2>$null | ConvertFrom-Json
     if (-not $checks) { return 'wait' }

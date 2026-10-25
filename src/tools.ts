@@ -85,14 +85,22 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   address: ["wallet", "addr", "account"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
   lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input"],
-  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link"],
+  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"],
   from: ["from_currency"], to: ["to_currency"],
+  // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
+  // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).
+  q: ["query", "question", "search"], count: ["numResults", "num_results", "limit", "n"], claim: ["statement", "query", "q"],
 };
+/** Every alias, with the input it stands for (the POST-body flattener in src/index.ts keeps aliased fields). */
+export const ALIAS_OF: Readonly<Record<string, readonly string[]>> = Object.freeze(Object.entries(INPUT_ALIASES).reduce((acc, [input, aliases]) => {
+  for (const a of aliases) (acc[a] ??= []).push(input);
+  return acc;
+}, {} as Record<string, string[]>));
 
 /** A host with an optional port, path, query or fragment and no scheme: "example.com/a?b=1", "localhost:8080", "10.0.0.1/x". */
 const SCHEMELESS_URL = /^(localhost|[a-z0-9-]+(\.[a-z0-9-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]|$)/i;
 export const normalizedInput = (sent: Input): Input => (name) => {
-  const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => sent(alias)).find((v) => v !== undefined);
+  const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => (alias === "urls" ? sent(alias)?.split(",")[0]?.trim() || undefined : sent(alias))).find((v) => v !== undefined);
   const value = input(name);
   // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
   // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.

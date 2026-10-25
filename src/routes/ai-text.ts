@@ -67,6 +67,59 @@ export const MODEL_ENDPOINTS = [
 ] as const;
 export const MODEL_PATHS = MODEL_ENDPOINTS.map((m) => `/ai/model/${m.slug}`);
 
+/**
+ * Native chat for agent loops (25 Oct 2026): Llama 4 Scout on Workers AI does OpenAI-style function calling, tool-result
+ * turns and JSON mode itself (checked on this account that day), so /ai/chat passes OpenAI messages, tools, tool_choice and
+ * response_format straight through and answers with tool_calls, finish_reason and the model's own token counts. Agent
+ * frameworks send exactly these; a text-only chat could not serve them. Input is capped at 20,000 characters so a call
+ * stays within its $0.002 price.
+ */
+type NativeInput = { messages: unknown[]; tools?: unknown[]; tool_choice?: unknown; response_format?: unknown };
+const NATIVE_MAX = 20_000;
+const NATIVE_ROLES = new Set(["system", "developer", "user", "assistant", "tool"]);
+function parseJson(raw: string, name: string): unknown {
+  try { return JSON.parse(raw); } catch { throw new HttpError(400, `${name} must be valid JSON`); }
+}
+export function nativeChatInput(q: Input): NativeInput | null {
+  const rawMessages = q("messages")?.trim();
+  if (!rawMessages) return null;
+  const rawTools = q("tools")?.trim(), rawChoice = q("tool_choice")?.trim(), rawFormat = q("response_format")?.trim();
+  if (rawMessages.length + (rawTools?.length ?? 0) > NATIVE_MAX) throw new HttpError(400, `messages and tools together must be at most ${NATIVE_MAX.toLocaleString("en-US")} characters`);
+  const messages = parseJson(rawMessages, "messages");
+  if (!Array.isArray(messages) || !messages.length || messages.length > 64) throw new HttpError(400, "messages must be a JSON array of 1 to 64 messages");
+  for (const m of messages) {
+    const role = (m as { role?: unknown })?.role;
+    if (typeof role !== "string" || !NATIVE_ROLES.has(role)) throw new HttpError(400, `unsupported message role "${String(role)}"; use system, user, assistant or tool`);
+  }
+  const out: NativeInput = { messages: messages.map((m) => ((m as { role: string }).role === "developer" ? { ...(m as object), role: "system" } : m)) };
+  if (rawTools) {
+    const tools = parseJson(rawTools, "tools");
+    if (!Array.isArray(tools) || tools.length > 32) throw new HttpError(400, "tools must be a JSON array of at most 32 functions");
+    out.tools = tools;
+  }
+  if (rawChoice) out.tool_choice = /^(auto|none|required)$/.test(rawChoice) ? rawChoice : parseJson(rawChoice, "tool_choice");
+  if (rawFormat) out.response_format = parseJson(rawFormat, "response_format");
+  return out;
+}
+export async function nativeChat(env: Env, input: NativeInput, maxTokens: number, temperature: number) {
+  const out = await runAi<{ choices?: { finish_reason?: string; message?: { content?: unknown; tool_calls?: unknown[] } }[]; response?: unknown; tool_calls?: unknown[]; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } }>(
+    env, CHAT_MODEL, { ...input, max_tokens: maxTokens, temperature });
+  const choice = out?.choices?.[0];
+  const content = choice?.message?.content ?? out?.response;
+  const toolCalls = (choice?.message?.tool_calls ?? out?.tool_calls ?? []).map((t, i) => {
+    const call = t as { id?: string; function?: { name?: string; arguments?: unknown }; name?: string; arguments?: unknown };
+    const args = call.function?.arguments ?? call.arguments ?? {};
+    return { id: call.id ?? `call_${i}`, type: "function", function: { name: String(call.function?.name ?? call.name ?? ""), arguments: typeof args === "string" ? args : JSON.stringify(args) } };
+  }).filter((t) => t.function.name);
+  const response = typeof content === "string" ? content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim() : content == null ? "" : JSON.stringify(content);
+  if (!response && !toolCalls.length) throw new HttpError(502, "the AI model returned an empty answer");
+  const u = out?.usage;
+  return {
+    model: CHAT_MODEL, response, tool_calls: toolCalls, finish_reason: toolCalls.length ? "tool_calls" : choice?.finish_reason ?? "stop",
+    usage: { prompt_tokens: u?.prompt_tokens ?? 0, completion_tokens: u?.completion_tokens ?? 0, total_tokens: u?.total_tokens ?? (u?.prompt_tokens ?? 0) + (u?.completion_tokens ?? 0) },
+  };
+}
+
 /** First JSON value in a model reply (models sometimes wrap it in prose or code fences). */
 function jsonFrom(reply: string): unknown {
   const m = /[[{][\s\S]*[\]}]/.exec(reply.replace(/```(?:json)?/g, ""));
@@ -123,12 +176,20 @@ export const AI_TEXT: Entry[] = [
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
       maxTokens: { type: "integer", description: "Maximum output tokens, 1-1024 (default 400)", example: 200 },
       temperature: { type: "number", description: "0-1.5 (default 0.6)", example: 0.6 },
-    }, { model: CHAT_MODEL, response: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." },
+      messages: { type: "string", description: "Optional OpenAI messages array as JSON (system, user, assistant with tool_calls, tool); replaces prompt and system. Together with tools, at most 20,000 characters", example: "[{\"role\":\"user\",\"content\":\"What is the weather in Stockholm?\"}]" },
+      tools: { type: "string", description: "Optional OpenAI tools array as JSON (function calling, up to 32 functions); the answer then carries tool_calls", example: "[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}}}}}]" },
+      tool_choice: { type: "string", description: "Optional: auto, none, required, or a JSON object naming one function", example: "auto" },
+      response_format: { type: "string", description: "Optional OpenAI response_format as JSON: {\"type\":\"json_object\"} or a json_schema", example: "{\"type\":\"json_object\"}" },
+    }, { model: CHAT_MODEL, response: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge.", tool_calls: [], finish_reason: "stop", usage: { prompt_tokens: 24, completion_tokens: 22, total_tokens: 46 } },
     async (env, q) => {
+      const maxTokens = num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true });
+      const temperature = num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 });
+      const native = nativeChatInput(q);
+      if (native) return nativeChat(env, native, maxTokens, temperature);
       const prompt = need(q, "prompt", 8000);
       const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
-      const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }), CHAT_MODEL);
-      return { model: CHAT_MODEL, response };
+      const response = await chat(env, system, prompt, maxTokens, temperature, CHAT_MODEL);
+      return { model: CHAT_MODEL, response, tool_calls: [], finish_reason: "stop", usage: { prompt_tokens: Math.ceil((prompt.length + system.length) / 4), completion_tokens: Math.ceil(response.length / 4), total_tokens: Math.ceil((prompt.length + system.length + response.length) / 4) } };
     }, CHAT_PRICE),
   entry("/ai/chat-large", "LLM inference, large model: Llama 3.3 70B or gpt-oss-120b", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
     ["chat", "completion", "llama", "gpt-oss", ...T], {
@@ -270,7 +331,7 @@ export const BASICS: Entry[] = [
   entry("/echo", "Echo a message", "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end.",
     ["echo", "testing", ...B], { message: { type: "string", description: "Message, up to 2,000 characters", required: true, example: "hello" } }, { message: "hello", length: 5, receivedAt: "2026-10-18T12:00:00.000Z" },
     (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.01"),
-  entry("/ping", "Ping", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
+  entry("/ping", "Ping, x402 payment test", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
     ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.01"),
   entry("/keccak", "Keccak hash, keccak256: Keccak-256 hash, 4-byte function selector and event topic", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
