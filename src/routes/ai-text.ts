@@ -333,7 +333,7 @@ export const BASICS: Entry[] = [
     (_e, q) => { const message = need(q, "message", 2000); return { message, length: message.length, receivedAt: new Date().toISOString() }; }, "$0.01"),
   entry("/ping", "Ping, x402 payment test", "A paid round-trip check: returns pong and the server time. Use to test that an x402 wallet, client or MCP setup can pay and receive a result.",
     ["ping", "testing", ...B], {}, { pong: true, time: "2026-10-18T12:00:00.000Z" }, () => ({ pong: true, time: new Date().toISOString() }), "$0.01"),
-  entry("/keccak", "Keccak hash, keccak256: Keccak-256 hash, 4-byte function selector and event topic", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
+  entry("/keccak", "Keccak256, function selector: Keccak-256 hash, 4-byte selector and event topic", "Keccak-256 hash (the Ethereum hash) of text or of 0x hex bytes, as used for function selectors, event topics and storage slots. Use when building or decoding EVM calls.",
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
     { input: "transfer(address,uint256)", inputType: "text", keccak256: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b", selector: "0xa9059cbb" },
     (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.01"),
