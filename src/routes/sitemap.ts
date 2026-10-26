@@ -141,6 +141,34 @@ function bounded(
     );
   return value;
 }
+const XML_ACCEPT = "application/xml,text/xml,application/gzip,application/octet-stream;q=0.8,text/plain;q=0.5";
+const XML_TYPES = ["application/xml", "text/xml", "text/plain", "application/octet-stream", "application/gzip", "application/x-gzip"];
+const typeOf = (r: Response) => (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+/** The sitemap of a site given by its home page: robots.txt "Sitemap:" lines on the same host first, then the usual paths. */
+async function discoverSitemap(home: URL): Promise<{ url: URL; response: Response } | null> {
+  const candidates: URL[] = [];
+  try {
+    const robots = await fetchPublic(new URL("/robots.txt", home), "text/plain", [], { cacheSeconds: 600 });
+    if (robots.ok && robots.body) {
+      const text = new TextDecoder().decode(await new Response(capBytes(robots.body, 256 * 1024, () => {})).arrayBuffer());
+      for (const m of text.matchAll(/^\s*sitemap\s*:\s*(\S+)/gim)) {
+        try {
+          const u = parseTarget(m[1]);
+          if (u.hostname === home.hostname && candidates.length < 3) candidates.push(u);
+        } catch { /* a bad line is skipped */ }
+      }
+    } else await robots.body?.cancel();
+  } catch { /* no robots.txt */ }
+  candidates.push(new URL("/sitemap.xml", home), new URL("/sitemap_index.xml", home));
+  for (const url of candidates) {
+    try {
+      const response = await fetchPublic(url, XML_ACCEPT, [], { cacheSeconds: 600 });
+      if (response.ok && XML_TYPES.includes(typeOf(response))) return { url, response };
+      await response.body?.cancel();
+    } catch { /* try the next one */ }
+  }
+  return null;
+}
 async function sha256(value: string) {
   return (
     "sha256:" +
@@ -159,7 +187,7 @@ export async function sitemap(
   maxParam?: string,
   offsetParam?: string,
 ) {
-  const target = parseTarget(rawUrl);
+  let target = parseTarget(rawUrl);
   if (contains.length > 200 || /[\u0000-\u001f\u007f]/.test(contains))
     throw new HttpError(
       400,
@@ -168,16 +196,26 @@ export async function sitemap(
   const maxUrls = bounded(maxParam, 25, 1, 100, "maxUrls");
   const offset = bounded(offsetParam, 0, 0, 1000, "offset");
   // Sitemaps change rarely: a repeat read within 10 minutes is served from the edge cache instead of asking the host again.
-  const response = await fetchPublic(
+  let response = await fetchPublic(
     target,
     "application/xml,text/xml,application/gzip,application/octet-stream;q=0.8,text/plain;q=0.5",
     [],
     { cacheSeconds: 600 },
   );
-  const contentType = (response.headers.get("content-type") ?? "")
-    .split(";")[0]
-    .trim()
-    .toLowerCase();
+  // A site's home page instead of its sitemap (url=https://www.cloudflare.com in the 26 Oct 2026 probe): find the sitemap
+  // the way crawlers do, from robots.txt "Sitemap:" lines on the same host, else /sitemap.xml and /sitemap_index.xml.
+  if (typeOf(response) === "text/html" && target.pathname === "/") {
+    await response.body?.cancel();
+    const found = await discoverSitemap(target);
+    if (!found)
+      throw new HttpError(
+        404,
+        "no sitemap found for this site: its robots.txt names none and /sitemap.xml and /sitemap_index.xml are missing; pass the sitemap URL itself",
+        "SITEMAP_NOT_FOUND",
+      );
+    ({ url: target, response } = found);
+  }
+  const contentType = typeOf(response);
   if (
     ![
       "application/xml",

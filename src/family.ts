@@ -52,6 +52,7 @@ export function opt(q: Input, name: string, max = 10_000): string | undefined {
 /** A yes/no input: true, 1, yes or on, in any case. */
 export const flag = (q: Input, name: string) => /^(true|1|yes|on)$/i.test(q(name)?.trim() ?? "");
 
+const CLAMPED_INPUTS: ReadonlySet<string> = new Set(["maxChars", "limit", "count", "pages", "blocks", "hours", "days", "top"]);
 /** Number input with range checks; `fallback` makes it optional. */
 export function num(q: Input, name: string, { min = -Infinity, max = Infinity, fallback, integer = false }: { min?: number; max?: number; fallback?: number; integer?: boolean } = {}): number {
   const raw = q(name);
@@ -61,7 +62,10 @@ export function num(q: Input, name: string, { min = -Infinity, max = Infinity, f
   }
   // Thousands separators as agents write them: "1,000", "1 000", "1_000"; a leading currency sign ("$1234", "€ 50") is not part of the number.
   const bare = raw.trim().replace(/^(-?)\s*[$€£¥]\s*/, "$1");
-  const n = Number(/^\s*-?\d{1,3}([,_ ]\d{3})+(\.\d+)?\s*$/.test(bare) ? bare.replace(/[,_ ]/g, "") : bare);
+  const parsed = Number(/^\s*-?\d{1,3}([,_ ]\d{3})+(\.\d+)?\s*$/.test(bare) ? bare.replace(/[,_ ]/g, "") : bare);
+  // How-much inputs (limit=500 on a 50-item tool, maxChars=300 under a 1,000 floor) are held to the range instead of
+  // refused (26 Oct 2026 probe: the commonest refusals agents got). Values whose meaning would change stay strict.
+  const n = CLAMPED_INPUTS.has(name) && Number.isFinite(parsed) && (!integer || Number.isInteger(parsed)) ? Math.min(max, Math.max(min, parsed)) : parsed;
   if (!Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) {
     throw new HttpError(400, `${name} must be ${integer ? "a whole number" : "a number"}${Number.isFinite(min) ? ` from ${min}` : ""}${Number.isFinite(max) ? ` to ${max}` : ""}`);
   }
