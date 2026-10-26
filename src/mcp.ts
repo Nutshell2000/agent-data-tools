@@ -25,6 +25,7 @@ import { annotationsFor, directoryToolDescription, protocolTool, toolDescription
 import { TOOLS } from "./tools";
 import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
+import { EXTRA_CHAIN_PATHS } from "./routes/chain-reads";
 
 type Args = Record<string, unknown>;
 type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
@@ -129,7 +130,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // The signed-in server is what app directories list; their policy excludes AI generation of images,
   // video and audio, so those two tools stay on the open /mcp and HTTP only.
   // Sales order, as in /discovery/resources: payee and risk checks first, toys last (tools/list and registration).
-  const endpoints = salesOrdered(account ? catalog.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : catalog);
+  // The extra networks' ~200 chain reads (chain-reads.ts EXTRA_CHAINS) are served over HTTP and in the /mcp/chain bundle only:
+  // the main and signed-in servers would otherwise list over 500 tools, more than MCP clients handle well.
+  const sized = bundle === "chain" ? catalog : catalog.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path));
+  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : sized);
   // directory: the ChatGPT plugin server (/mcp/chatgpt). Same signed-in tools, but no prices, payment methods, links to
   // our checkout or request ids in what ChatGPT shows (its plugin rules); credits are bought on our site, outside ChatGPT.
   const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;

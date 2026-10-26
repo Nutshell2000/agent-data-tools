@@ -10,7 +10,8 @@ import { usdMicros } from "./revenue";
 
 /** When this isolate started; the catalog changes only with a deploy. */
 const LAST_UPDATED = new Date().toISOString();
-export const DISCOVERY_PAGE_LIMIT = 500;
+// 1,000 since 1.82.0 (564 tools): crawlers that read only the first page must still see the whole catalog.
+export const DISCOVERY_PAGE_LIMIT = 1000;
 
 /** x402 v2 "exact" requirements for one price on every EVM network we accept with a known USDC domain. */
 export function usdcRequirements(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "PAY_TO" | "SOLANA_PAY_TO">, price: string) {
