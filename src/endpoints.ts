@@ -746,7 +746,7 @@ export const CORE_ENDPOINTS = [
     description:
       "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade.",
     tags: ["bitcoin", "price", "btc", "crypto", "market"],
-    params: {},
+    params: { currency: { type: "string", description: "Optional: also price BTC in this currency; the seven listed ones come from the source, others (SEK, NOK, INR, BRL and about 25 more) are converted from USD at the ECB reference rate", example: "SEK" } },
     outputExample: {
       asset: "BTC",
       prices: { USD: 83463, EUR: 74624, GBP: 63152, CAD: 118855, CHF: 69423, AUD: 119532, JPY: 13210661 },
