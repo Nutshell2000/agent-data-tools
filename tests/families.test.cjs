@@ -12,13 +12,13 @@ async function loadTypeScript(entry) {
   return loaded.exports;
 }
 
-let utils, fun, data, families, exampleParams;
+let utils, fun, data, families, localPaths, exampleParams;
 before(async () => {
   ({ exampleParams } = await loadTypeScript(require.resolve("../src/endpoints.ts")));
   utils = await loadTypeScript(require.resolve("../src/routes/utils.ts"));
   fun = await loadTypeScript(require.resolve("../src/routes/fun.ts"));
   data = await loadTypeScript(require.resolve("../src/routes/public-data.ts"));
-  ({ FAMILIES: families } = await loadTypeScript(require.resolve("../src/families.ts")));
+  ({ FAMILIES: families, LOCAL_PATHS: localPaths } = await loadTypeScript(require.resolve("../src/families.ts")));
 });
 
 const inputFrom = (params) => (name) => (params[name] ? String(params[name].example) : undefined);
@@ -32,7 +32,9 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   for (const { endpoint: e } of families) {
     // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (Peter: the Bazaar sweeper pays only tools at or
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
-    if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
+    // Price test part 2, 26 Oct to 2 Nov 2026 (LOCAL_TEST_PRICE in families.ts): pure-computation tools, toolboxes included.
+    if (localPaths.has(e.path)) assert.equal(e.price, "$0.002", e.path);
+    else if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
     // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     // One-week price test, 26 Oct to 2 Nov 2026 (READ_TEST_PRICE in chain-reads.ts): single-network chain reads and /price/token.
