@@ -16,7 +16,7 @@ import { packageInfo } from "./routes/package";
 import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
 import { searchPapers } from "./routes/papers";
-import { bitcoinPrice, exchangeRates } from "./routes/rates";
+import { bitcoinPriceIn, exchangeRates } from "./routes/rates";
 import { timeInZone } from "./routes/time";
 import { tradeInsight } from "./routes/trade-insight";
 import { weather } from "./routes/weather";
@@ -58,7 +58,7 @@ const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown
   "/email": (_env, q) => emailCheck(q("address") ?? ""),
   "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
   "/fx": (_env, q) => exchangeRates(q("from") ?? "", q("to"), q("amount")),
-  "/btc-price": () => bitcoinPrice(),
+  "/btc-price": (_env, q) => bitcoinPriceIn(q("currency")),
   "/base-gas": (env) => baseGas(env),
   "/weather": (_env, q) => weather(q("lat"), q("lon"), q("hours"), q("city")),
   "/base-tx": (env, q) => baseTransaction(env, q("hash") ?? ""),
@@ -84,7 +84,7 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  */
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
-  address: ["wallet", "addr", "account", "email"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
+  address: ["wallet", "addr", "account", "email", "pool"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
   lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value"],
   // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
   // More names agents send (26 Oct 2026 utility probe): cron expression, number lists, phone numbers, QR data, loan amounts, semver pairs.

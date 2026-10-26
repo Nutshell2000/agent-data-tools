@@ -94,6 +94,26 @@ async function readBitcoinPrice() {
   }
 }
 
+/**
+ * /btc-price with an optional currency: the seven mempool.space currencies as they are, any other ECB currency (SEK,
+ * NOK, INR, BRL…) converted from the USD price at the ECB reference rate. currency=SEK used to be ignored silently
+ * (26 Oct 2026 probe).
+ */
+export async function bitcoinPriceIn(currencyInput?: string) {
+  const value = await bitcoinPrice();
+  const wanted = currencyInput?.trim() ? currencyCode(currencyInput) : "";
+  if (!wanted || Object.hasOwn(value.prices, wanted)) return value;
+  if (!CODE.test(wanted)) throw new HttpError(400, "currency must be a three-letter currency code such as SEK (or a currency name)");
+  const fx = await exchangeRates("USD", wanted);
+  const rate = fx.rates[wanted];
+  if (!rate) throw new HttpError(404, `no ECB reference rate for ${wanted}`);
+  return {
+    ...value,
+    prices: { ...value.prices, [wanted]: Math.round(value.prices.USD! * rate * 100) / 100 },
+    converted: { currency: wanted, fromUsdRate: rate, rateDate: fx.rateDate, source: "European Central Bank reference rate" },
+  };
+}
+
 export async function bitcoinPrice({ fresh = false } = {}) {
   if (!fresh && btcSnapshot && Date.now() - btcSnapshot.at < BTC_SNAPSHOT_MS) return btcSnapshot.value;
   const value = await readBitcoinPrice();
