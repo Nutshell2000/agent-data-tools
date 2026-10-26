@@ -72,8 +72,11 @@ test('/mcp/chatgpt lists the signed-in tools with no prices, payment methods or 
       assert.doesNotMatch(t.description, /\$\d|\/credits|buy\.stripe|via x402|card key/i, t.name);
       for (const k of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof t.annotations[k], 'boolean', `${t.name} ${k}`);
     }
-    assert.equal(tools.find((t) => t.name === 'memory_set').annotations.readOnlyHint, false);
-    assert.equal(tools.find((t) => t.name === 'memory_delete').annotations.destructiveHint, true);
+    // Flagged by OpenAI's plugin scan on 26 Oct 2026, so left out of this server (DIRECTORY_EXCLUDED in src/mcp.ts).
+    for (const name of ['base_call', 'eth_call', 'validate_luhn', 'text_pii', 'mev_simulator', 'liquidity_pool_audit', 'memory_set', 'memory_delete']) {
+      assert.ok(!tools.some((t) => t.name === name), `${name} is not offered to ChatGPT`);
+    }
+    assert.ok(tools.some((t) => t.name === 'sanctions_check') && tools.some((t) => t.name === 'base_balance'));
     const instructions = client.getInstructions();
     assert.doesNotMatch(instructions, /\$\d|x402|USDC|\/credits|https?:\/\//);
     assert.doesNotMatch(instructions, /ai_speech|→ image\b|\/mcp\//);
