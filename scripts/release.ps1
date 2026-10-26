@@ -261,7 +261,11 @@ function Once([string]$Registry, [scriptblock]$Run, [string]$Expect = '') {
   $out = Step "register-$Registry" $Run $Expect -Optional
   if ($out -ne $null -and ($Expect -eq '' -or $out -match $Expect)) { $stamps[$Registry] = $today; $stamps | ConvertTo-Json | Set-Content -Encoding utf8 $stampFile }
 }
-Once 'x402scan' { npx --yes agentcash register $Origin } '"success":\s*true'
+# The stock agentcash CLI aborts after 30 s, but x402scan takes about 3 minutes to probe 570+ tools, so every
+# registration from 22 to 26 Oct timed out and AgentCash search never indexed the catalog. A local copy with the
+# fetch timeout raised to 15 min (DEFAULT_USER_FETCH_TIMEOUT = 9e5) is used when present.
+$agentcashLong = Join-Path $env:LOCALAPPDATA 'agent-data-tools\agentcash-long\node_modules\agentcash\dist\esm\index.js'
+Once 'x402scan' { if (Test-Path $agentcashLong) { node $agentcashLong register $Origin } else { npx --yes agentcash register $Origin } } '"success":\s*true'
 Once 'agent402' { (Invoke-RestMethod -Method Post 'https://agent402.tools/api/index/register' -ContentType 'application/json' -Body (@{ origin = $Origin } | ConvertTo-Json) -TimeoutSec 120 | ConvertTo-Json -Compress -Depth 2) } '"listed":\s*true'
 Once 'zero' { node scripts/register-zero.mjs $Origin } '-> 20\d'
 Once '402index' { $dry = node scripts/register-402index.mjs --dry 2>&1 | Out-String; $dry; if ($dry -match '(\d+) to register' -and [int]$Matches[1] -gt 0) { Start-Process node -ArgumentList 'scripts/register-402index.mjs' -WorkingDirectory $Repo -WindowStyle Hidden; "started background registration of $($Matches[1]) paths" } } 'to register'

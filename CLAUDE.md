@@ -941,3 +941,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   $0.002 or less across ~100 sellers at ~7 calls each per two days, so matching them would earn about $0.02/day while cutting the
   sweeper's $0.01 payments by 80%. Agent402's router reads us as routerDispatchEligible on Base since 25 Oct.
 
+## x402scan registration and the default Bazaar order (1.82.1, 26 Oct 2026)
+
+- `npx agentcash register` timed out at 30 s on every release from 23 to 26 Oct (x402scan probes 570+ tools in about 3 min), so AgentCash search never indexed the catalog. release.ps1 uses `%LOCALAPPDATA%\agent-data-tools\agentcash-long` (a copy of agentcash 0.17.1 with `DEFAULT_USER_FETCH_TIMEOUT = 9e5` in chunk-RAS5DZPQ.js) when present. Rebuild it after an agentcash upgrade.
+- The CDP Bazaar default list (`/platform/v2/x402/discovery/resources`) is bands by 30-day payers plus calls, each band sorted by last settlement. Metadata (output schema, name) only separates the bottom band. Names and tags cannot lift a listing; distinct outside payers settling x402 through CDP can. Card credits, free calls, Tempo and FluxA never reach those counters.
+
