@@ -12,9 +12,12 @@ export function extractOptions(
   sectionParam?: string,
 ) {
   const target = parseTarget(rawUrl);
-  const maxChars = maxCharsParam === undefined ? 20000 : Number(maxCharsParam);
-  if (!Number.isInteger(maxChars) || maxChars < 500 || maxChars > 100000)
+  const asked = maxCharsParam === undefined ? 20000 : Number(maxCharsParam);
+  if (!Number.isInteger(asked) || asked < 1)
     throw new HttpError(400, "maxChars must be an integer from 500 to 100000");
+  // Agents ask for small previews (maxChars=300 in the 26 Oct 2026 probe) and big dumps; a refused call wins nobody, so
+  // whole numbers outside the range are held to it.
+  const maxChars = Math.min(100000, Math.max(500, asked));
   if (!["text", "markdown", "both"].includes(formatParam))
     throw new HttpError(400, "format must be text, markdown or both");
   if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))

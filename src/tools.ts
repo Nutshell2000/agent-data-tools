@@ -83,9 +83,12 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  * send it under its own name, so an input a tool really has is never overridden.
  */
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
-  address: ["wallet", "addr", "account"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
-  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input"],
-  name: ["q", "query"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"], urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
+  // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
+  address: ["wallet", "addr", "account", "email"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
+  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input", "json", "yaml", "xml", "csv", "content"],
+  // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
+  json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
+  name: ["q", "query", "domain", "host", "company"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"], urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
   from: ["from_currency"], to: ["to_currency"],
   // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).
