@@ -125,8 +125,8 @@ test('MCP bundles serve one catalog section each and quote like /mcp', async () 
       await client.close();
     }
     const all = Object.values(counts).flat();
-    assert.equal(all.length, 333, 'every tool is in exactly one bundle');
-    assert.equal(new Set(all).size, 333);
+    assert.equal(all.length, 564, 'every tool is in exactly one bundle');
+    assert.equal(new Set(all).size, 564);
     const unknown = await f.mf.dispatchFetch('https://api.test/mcp/nope', { method: 'POST' });
     assert.equal(unknown.status, 404); await unknown.body?.cancel();
   } finally { await f.mf.dispose(); }

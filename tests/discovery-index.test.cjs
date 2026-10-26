@@ -23,7 +23,7 @@ before(async () => {
 after(async () => { await mf?.dispose(); });
 
 test('/discovery/resources lists every tool in the Bazaar item shape, with exact USDC terms per network', async () => {
-  const res = await mf.dispatchFetch('https://api.test/discovery/resources?limit=500');
+  const res = await mf.dispatchFetch('https://api.test/discovery/resources?limit=1000');
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.x402Version, 2);
@@ -78,9 +78,9 @@ test('paging and the manifest aliases', async () => {
   assert.equal(page.items.length, 2);
   assert.deepEqual(page.pagination, { limit: 2, offset: 3, total: page.pagination.total });
   const all = await (await mf.dispatchFetch('https://api.test/discovery/resources?limit=9999')).json();
-  assert.equal(all.pagination.limit, 500);
+  assert.equal(all.pagination.limit, 1000);
   const bad = await (await mf.dispatchFetch('https://api.test/discovery/resources?limit=abc&offset=-5')).json();
-  assert.equal(bad.pagination.limit, 500);
+  assert.equal(bad.pagination.limit, 1000);
   assert.equal(bad.pagination.offset, 0);
   const json = await (await mf.dispatchFetch('https://api.test/.well-known/x402.json')).json();
   const plain = await (await mf.dispatchFetch('https://api.test/.well-known/x402')).json();

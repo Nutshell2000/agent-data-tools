@@ -1,7 +1,7 @@
 // Plain blockchain reads on five EVM networks, generated from one table.
 // These "boring chain reads" are the most-paid category in the Coinbase Bazaar (crawl of 13 Oct 2026).
 import { createPublicClient, fallback, formatEther, formatGwei, formatUnits, http, isHash, type Chain, type PublicClient } from "viem";
-import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
+import { arbitrum, avalanche, base, berachain, celo, gnosis, hyperEvm, ink, linea, mainnet, mantle, optimism, polygon, scroll, sei, sonic, unichain, zksync } from "viem/chains";
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
@@ -25,6 +25,29 @@ export const CHAINS: ChainDef[] = [
   { slug: "arb", name: "Arbitrum One", chain: arbitrum, symbol: "ETH", rpcs: [...EDGE_RPCS.arb] },
   { slug: "op", name: "Optimism", chain: optimism, symbol: "ETH", rpcs: [...EDGE_RPCS.op] },
   { slug: "polygon", name: "Polygon PoS", chain: polygon, symbol: "POL", rpcs: [...EDGE_RPCS.polygon] },
+];
+
+/**
+ * More EVM networks for the same per-network reads (1.81.0, 26 Oct 2026). Every node, the USDC contract, an example
+ * transaction, the NFT example and the block time were checked from the PC that day (release/train/chain-probe.mjs).
+ * Free public nodes first, rate-limited drpc last. Left out: BNB Smart Chain (its free node refuses receipts older than
+ * a few seconds as "archive" requests) and Blast (no USDC, only USDB). These networks are not in the multi-network
+ * wallet and stablecoin tools, and the signed-in MCP servers leave them out (EXTRA_CHAIN_PATHS) to keep tools/list short.
+ */
+export const EXTRA_CHAINS: ChainDef[] = [
+  { slug: "avax", name: "Avalanche", chain: avalanche, symbol: "AVAX", rpcs: ["https://avalanche-c-chain-rpc.publicnode.com", "https://api.avax.network/ext/bc/C/rpc", "https://avalanche.drpc.org"] },
+  { slug: "gnosis", name: "Gnosis", chain: gnosis, symbol: "xDAI", rpcs: ["https://gnosis-rpc.publicnode.com", "https://rpc.gnosischain.com", "https://gnosis.drpc.org"] },
+  { slug: "linea", name: "Linea", chain: linea, symbol: "ETH", rpcs: ["https://linea-rpc.publicnode.com", "https://rpc.linea.build", "https://linea.drpc.org"] },
+  { slug: "zksync", name: "zkSync Era", chain: zksync, symbol: "ETH", rpcs: ["https://mainnet.era.zksync.io", "https://zksync.drpc.org"] },
+  { slug: "scroll", name: "Scroll", chain: scroll, symbol: "ETH", rpcs: ["https://scroll-rpc.publicnode.com", "https://rpc.scroll.io", "https://scroll.drpc.org"] },
+  { slug: "mantle", name: "Mantle", chain: mantle, symbol: "MNT", rpcs: ["https://mantle-rpc.publicnode.com", "https://rpc.mantle.xyz", "https://mantle.drpc.org"] },
+  { slug: "celo", name: "Celo", chain: celo, symbol: "CELO", rpcs: ["https://celo-rpc.publicnode.com", "https://forno.celo.org", "https://celo.drpc.org"] },
+  { slug: "sonic", name: "Sonic", chain: sonic, symbol: "S", rpcs: ["https://sonic-rpc.publicnode.com", "https://rpc.soniclabs.com", "https://sonic.drpc.org"] },
+  { slug: "unichain", name: "Unichain", chain: unichain, symbol: "ETH", rpcs: ["https://unichain-rpc.publicnode.com", "https://mainnet.unichain.org", "https://unichain.drpc.org"] },
+  { slug: "hyperevm", name: "HyperEVM", chain: hyperEvm, symbol: "HYPE", rpcs: ["https://rpc.hyperliquid.xyz/evm", "https://hyperliquid.drpc.org"] },
+  { slug: "bera", name: "Berachain", chain: berachain, symbol: "BERA", rpcs: ["https://berachain-rpc.publicnode.com", "https://rpc.berachain.com", "https://berachain.drpc.org"] },
+  { slug: "ink", name: "Ink", chain: ink, symbol: "ETH", rpcs: ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com", "https://ink.drpc.org"] },
+  { slug: "sei", name: "Sei", chain: sei, symbol: "SEI", rpcs: ["https://evm-rpc.sei-apis.com", "https://sei.drpc.org"] },
 ];
 
 export function client(env: Env, c: ChainDef): PublicClient {
@@ -64,7 +87,9 @@ const address = (v: string | undefined, name = "address") => {
   return a;
 };
 /** What 2,000 blocks cover per chain (Base, Optimism and Polygon 2 s blocks, Arbitrum 0.25 s, Ethereum 12 s). */
-const BLOCK_WINDOW: Record<string, string> = { base: "67 minutes", op: "67 minutes", polygon: "67 minutes", arb: "8 minutes", eth: "6.7 hours" };
+const BLOCK_WINDOW: Record<string, string> = { base: "67 minutes", op: "67 minutes", polygon: "67 minutes", arb: "8 minutes", eth: "6.7 hours",
+  avax: "32 minutes", gnosis: "2.8 hours", linea: "2.4 hours", zksync: "33 minutes", scroll: "4.3 hours", mantle: "67 minutes", celo: "33 minutes",
+  sonic: "64 minutes", unichain: "33 minutes", hyperevm: "33 minutes", bera: "67 minutes", ink: "33 minutes", sei: "15 minutes" };
 
 /** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
 const tokenInput = (v: string | undefined, slug: string) => {
@@ -85,6 +110,12 @@ export const USDC: Record<string, `0x${string}`> = {
   arb: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
   op: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
   polygon: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+  // USDC (or Circle-bridged USDC.e) per extra network, checked with symbol() and decimals() on 26 Oct 2026.
+  avax: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", gnosis: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0", linea: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+  zksync: "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4", scroll: "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", mantle: "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9",
+  celo: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C", sonic: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", unichain: "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
+  hyperevm: "0xb88339CB7199b77E23DB6E890353E22632Ba630f", bera: "0x549943e04f40284185054145c6E4e9568C1D3241", ink: "0xF1815bd50389c46847f0Bda824eC8da914045D14",
+  sei: "0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392",
 };
 const EX_TX: Record<string, string> = {
   base: "0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0",
@@ -93,6 +124,14 @@ const EX_TX: Record<string, string> = {
   arb: "0xf03682db039f7b1b72ddf4d17572738f142cf63ecb36c90afa570430ea9774c4",
   op: "0x721f3e9a996da49e2a8929bd2dd42e0f51344c11d7ca7bc3328fda349cdfae89",
   polygon: "0x23e86c30c46638b2e9798692fe89327a66aa8569a5d4a566125f655aeb8f80c7",
+  // Successful transactions picked from recent blocks on 26 Oct 2026 (chain-probe.mjs).
+  avax: "0x186570f66bdbd9565ee4f5fe7ef9fc110ec5417f5838c3e7e322967cd1a7d3e2", gnosis: "0x2b56c1dabbef9c9a07d0f94c6ff931c3e1f93cc398fa06296ff79770d4a4487f",
+  linea: "0x638169f15ccab7f5491b46b3a883fa1aa5b5399ba5c56fa0110355d47a526a93", zksync: "0xc0003ffe194dfc1be40e1b1e6dfdf7609f89cc1393ff774dcd657f226558c5b3",
+  scroll: "0x0176fb42be8ea0058d1ac56cb253f0df883ba4b564489e71b83fb7e27e912abd", mantle: "0xa93012fcae16a5b4b9d6f7c7469ed2838cd27eb387b28e7334678add918d174f",
+  celo: "0xc6a38b860427aa5bd7f65f8a879a7d369e77b3767200c68cde4002014ad50444", sonic: "0xcc6a5594962b5211496391d0e1e9082f5060f218fad60f907a23e85a7b02bf85",
+  unichain: "0xefe004f02c8907dc61735fe378eb5d2f3730d66cd8d4f385ef13076ad1eacdce", hyperevm: "0xdcf371c993312e793176e32cdfa78af2101b4aa54df88f8f0051c3fe463e374a",
+  bera: "0x19db8c305092673a73e777b690469a0962145d4289a2608e8f62881c3a9ac18a", ink: "0x31e16195b9b6d9da5303988095e0dd5ee278693cb920de7d09fcee624c4f4733",
+  sei: "0x51ee2bca2ed878b0f576071a0cd21c0f8f129d4de4a545c5a7b3511fa6d048bb",
 };
 
 function chainEntries(c: ChainDef): Entry[] {
@@ -327,6 +366,9 @@ const NFT_EXAMPLE: Record<string, `0x${string}`> = {
   arb: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
   op: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
   polygon: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+  // Uniswap v3 position managers where token #1 exists (26 Oct 2026); networks without one get no NFT tools.
+  avax: "0x655C406EBFa14EE2006250925e54ec43AD184f8B", zksync: "0x0616e5762c1E7Dc3723c50663dF10a162D690a86",
+  celo: "0x3d79EdAaBC0EaB6F08ED885C05Fc0B014290D95A", unichain: "0x943e6e07a7E8E791dAFC44083e54041D743C46E9",
 };
 /** Uniswap's Permit2, deployed at one address on every network: a real spender for the allowance example. */
 const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
@@ -522,7 +564,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ address: a, isProxy: kind !== "none", kind, implementation: implementation ?? null, admin: admin ?? zosAdmin ?? null, beacon: beacon ?? null, upgradeable: kind !== "none" });
       }),
 
-    entry(p("call"), `Eth call, ${short} contract call`,
+    entry(p("call"), `Eth call, ${short} contract call`.length <= 32 ? `Eth call, ${short} contract call` : `Eth call, contract call, ${short}`.length <= 32 ? `Eth call, contract call, ${short}` : `Eth call, ${short}`,
       `Read-only contract call on ${c.name} (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
       tags("eth-call", "contract", "read", "chain-data"), {
         to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },
@@ -592,7 +634,7 @@ function contractEntries(c: ChainDef): Entry[] {
   ];
   // Base already sells this read as /base-allowance (the published chain client promises that path and price).
   if (c.slug !== "base") list.push(
-    entry(p("allowance"), `Token allowance, ${short} ERC-20`,
+    entry(p("allowance"), `Token allowance, ${short} ERC-20`.length <= 32 ? `Token allowance, ${short} ERC-20` : `Token allowance, ${short}`,
       `ERC-20 token allowance on ${c.name}: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use ${c.slug}_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract is 404 and a non-ERC-20 422, both uncharged.`,
       tags("erc20", "allowance", "approval", "token"), {
         token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },
@@ -613,7 +655,8 @@ function contractEntries(c: ChainDef): Entry[] {
         ]);
         return head({ token, symbol, decimals: Number(decimals), owner, spender, raw: raw.toString(), allowance: formatUnits(raw, Number(decimals)), unlimited: raw >= 2n ** 255n });
       }));
-  return list;
+  // No verified NFT example on this network: leave the three NFT reads out rather than list a failing example.
+  return nft ? list : list.filter((e) => !/\/nft-/.test(e.endpoint.path));
 }
 
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
@@ -678,4 +721,12 @@ const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance, USDC b
   },
   "$0.005");
 
-export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries), WALLET_BALANCES];
+/**
+ * Reads whose published example fails on that network (smoke run, 26 Oct 2026): zkSync estimates need a sender holding ETH
+ * there, and HyperEVM's public node refuses the wider log ranges the transfer scan uses. Left out rather than listed broken.
+ */
+const EXTRA_SKIP: ReadonlySet<string> = new Set(["/zksync/estimate-gas", "/hyperevm/token-transfers"]);
+const EXTRA_READS: Entry[] = EXTRA_CHAINS.flatMap(chainEntries).filter((e) => !EXTRA_SKIP.has(e.endpoint.path));
+export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries), WALLET_BALANCES, ...EXTRA_READS];
+/** The extra networks' tool paths: HTTP and the /mcp/chain bundle only (mcp.ts). */
+export const EXTRA_CHAIN_PATHS: ReadonlySet<string> = new Set(EXTRA_READS.map((e) => e.endpoint.path));
