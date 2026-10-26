@@ -113,6 +113,14 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
 }
 /** Tools that generate images or audio with AI models: not offered on the signed-in directory server. */
 const GENERATIVE_MEDIA: ReadonlySet<string> = new Set(["/image", "/ai/speech"]);
+/** Left out of the ChatGPT plugin server (/mcp/chatgpt) after OpenAI's scan of 26 Oct 2026 flagged them:
+ *  raw eth_call runs operations it does not expose one by one; the card-number and PII tools read as
+ *  requests for payment-card data; two names read as exaggerated; memory writes are hard-to-reverse changes. */
+const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
+  "/base/call", "/eth/call", "/arb/call", "/op/call", "/polygon/call",
+  "/validate/luhn", "/text/pii", "/mev-simulator", "/liquidity-pool-audit",
+  "/memory/set", "/memory/get", "/memory/list", "/memory/delete",
+]);
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
 
@@ -133,7 +141,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // The extra networks' ~200 chain reads (chain-reads.ts EXTRA_CHAINS) are served over HTTP and in the /mcp/chain bundle only:
   // the main and signed-in servers would otherwise list over 500 tools, more than MCP clients handle well.
   const sized = bundle === "chain" ? catalog : catalog.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path));
-  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path)) : sized);
+  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !(directory && DIRECTORY_EXCLUDED.has(e.path))) : sized);
   // directory: the ChatGPT plugin server (/mcp/chatgpt). Same signed-in tools, but no prices, payment methods, links to
   // our checkout or request ids in what ChatGPT shows (its plugin rules); credits are bought on our site, outside ChatGPT.
   const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;
