@@ -43,7 +43,7 @@ function point(step: Step) {
 
 /** Current weather and an hourly forecast for a point on Earth. */
 /** Major cities by name, so the common lookups (and the published example) need no Wikidata call. */
-const CITIES: Record<string, [string, number, number]> = Object.fromEntries(([
+export const CITIES: Record<string, [string, number, number]> = Object.fromEntries(([
   ["London", 51.5074, -0.1278], ["New York", 40.7128, -74.006], ["Tokyo", 35.6762, 139.6503], ["Paris", 48.8566, 2.3522],
   ["Berlin", 52.52, 13.405], ["Stockholm", 59.3293, 18.0686], ["San Francisco", 37.7749, -122.4194], ["Los Angeles", 34.0522, -118.2437],
   ["Chicago", 41.8781, -87.6298], ["Singapore", 1.3521, 103.8198], ["Hong Kong", 22.3193, 114.1694], ["Sydney", -33.8688, 151.2093],
