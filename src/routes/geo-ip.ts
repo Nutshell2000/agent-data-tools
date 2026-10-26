@@ -4,8 +4,29 @@
 // type and registration country. It is not city-level geolocation, and the copy says so. /geo/distance is local math.
 import { entry, need, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { CITIES } from "./weather";
 
 const U = ["utility", "data"];
+
+/**
+ * One end of /geo/distance: lat<n>/lon<n>, or `from`/`to` as "59.33,18.07" or a major city by name (the weather tool's
+ * built-in table). Agents asked for "Stockholm to Paris" in the 26 Oct 2026 probe and got "lat1 is required". The
+ * published inputs stay lat/lon; anything else needs geocode first, and the 400 says so.
+ */
+function point(q: (name: string) => string | undefined, n: 1 | 2, alt: string): [number, number] {
+  if (q(`lat${n}`) !== undefined || q(`lon${n}`) !== undefined) return [num(q, `lat${n}`, { min: -90, max: 90 }), num(q, `lon${n}`, { min: -180, max: 180 })];
+  const raw = q(alt)?.trim();
+  if (!raw) throw new HttpError(400, `lat${n} and lon${n} are required (or ${alt}= as "lat,lon" or a major city name)`);
+  const pair = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/.exec(raw);
+  if (pair) {
+    const [lat, lon] = [Number(pair[1]), Number(pair[2])];
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new HttpError(400, `${alt} must be a latitude from -90 to 90 and a longitude from -180 to 180`);
+    return [lat, lon];
+  }
+  const key = raw.toLowerCase().replace(/\s+/g, " ").replace(/,.*$/, "").trim();
+  if (Object.hasOwn(CITIES, key)) return [CITIES[key][1], CITIES[key][2]];
+  throw new HttpError(400, `${alt}="${raw.slice(0, 40)}" is not a "lat,lon" pair or a city this tool knows; look its coordinates up with geocode first`);
+}
 
 // ---------- IP lookup (RDAP) ----------
 const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
@@ -107,8 +128,7 @@ export const GEO_IP: Entry[] = [
     },
     { km: 1432.79, miles: 890.29, nauticalMiles: 773.64, bearing: 240.6, compass: "WSW", midpoint: { lat: 55.7531, lon: 8.0606 } },
     (_e, q) => {
-      const lat1 = num(q, "lat1", { min: -90, max: 90 }), lon1 = num(q, "lon1", { min: -180, max: 180 });
-      const lat2 = num(q, "lat2", { min: -90, max: 90 }), lon2 = num(q, "lon2", { min: -180, max: 180 });
+      const [lat1, lon1] = point(q, 1, "from"), [lat2, lon2] = point(q, 2, "to");
       const g = greatCircle(lat1, lon1, lat2, lon2);
       return { km: r(g.km, 2), miles: r(g.km / 1.609344, 2), nauticalMiles: r(g.km / 1.852, 2), bearing: r(g.bearing, 1), compass: COMPASS[Math.round(g.bearing / 22.5) % 16], midpoint: { lat: r(g.midLat, 4), lon: r(g.midLon, 4) } };
     }),
