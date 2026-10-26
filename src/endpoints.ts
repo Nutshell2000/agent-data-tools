@@ -365,7 +365,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/ln-invoice",
-    price: "$0.01",
+    price: "$0.002",
     summary: "Decode a Lightning invoice",
     description:
       "Decode a BOLT11 Lightning Network invoice without paying it: network, amount in sats and BTC, description, payment hash, creation time, expiry time and whether it has already expired. Use to check what an invoice asks for before an agent pays it.",
