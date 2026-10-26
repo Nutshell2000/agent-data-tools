@@ -491,6 +491,8 @@ for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/re
 // Product walkthrough: one stable demo link on our own domain (src/lib/demo-page.ts, recording in public/demo.gif).
 app.get("/demo", c => c.html(demoPage(origin(c.req.url), ENDPOINTS.length)));
 app.on(["GET", "HEAD"], "/demo.gif", c => c.env.ASSETS.fetch(c.req.raw));
+// ChatGPT plugin review walkthrough (recorded 26 Oct 2026 in ChatGPT with the custom MCP plugin): OpenAI's reviewers open it from the submission.
+app.on(["GET", "HEAD"], "/review/chatgpt-demo.gif", c => c.env.ASSETS.fetch(c.req.raw));
 /**
  * The report routes read the Metrics object. While it is out of its daily free-plan quota (resets 00:00 UTC) every
  * call to it throws: answer a retryable 503 that says the tools still work, not a bare 500 that a directory health
