@@ -5,7 +5,7 @@ import { getAddress, type PublicClient } from "viem";
 import { entry, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
-import { CHAINS, USDC, client, rpc } from "./chain-reads";
+import { CHAINS, USDC, client, rpc, testPriced } from "./chain-reads";
 import { DEFAULT_TOKENS } from "./wallet";
 import { tokenAddress } from "../lib/tickers";
 
@@ -101,7 +101,7 @@ export { tokenAddress };
 
 const poolOut = (p: PoolQuote | null) => p && { address: p.pool, feeTier: p.feeTier, quoteReserve: sig(p.quoteReserve), quoteReserveUsd: sig(p.quoteReserveUsd) };
 
-export const PRICES: Entry[] = [
+const PRICE_TOOLS: Entry[] = [
   entry("/price/token", "Crypto price and token price: USD price of a token from Uniswap v3 pools",
     "Crypto token USD price by ticker (ETH, BTC, USDC, AERO, ARB, OP, LINK…) or by any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live from the chain. Returns the pool, its fee tier, the quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
@@ -251,3 +251,5 @@ export const PRICES: Entry[] = [
       };
     }, "$0.005"),
 ];
+// /price/token and /price/tokens are in the chain-read price test (READ_TEST_PRICE in chain-reads.ts, until 2 Nov 2026).
+export const PRICES: Entry[] = PRICE_TOOLS.map((e) => (e.endpoint.path.startsWith("/price/") ? testPriced(e) : e));

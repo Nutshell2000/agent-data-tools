@@ -35,6 +35,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     if (e.path.startsWith("/pack/")) assert.equal(e.price, "$0.01", e.path);
     // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
+    // One-week price test, 26 Oct to 2 Nov 2026 (READ_TEST_PRICE in chain-reads.ts): single-network chain reads and /price/token.
+    else if (/^\/(base|eth|arb|op|polygon|avax|gnosis|linea|zksync|scroll|mantle|celo|sonic|unichain|hyperevm|bera|ink|sei)\/[a-z-]+$/.test(e.path) || e.path === "/price/token") assert.equal(e.price, "$0.003", e.path);
     else assert.equal(e.price, e.path === "/ai/chat" ? "$0.002" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/pdf/text", "/sanctions/check", "/price/tokens", "/wallet/portfolio", "/wallet/balances"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);

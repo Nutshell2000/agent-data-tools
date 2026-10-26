@@ -2,7 +2,7 @@
 // These "boring chain reads" are the most-paid category in the Coinbase Bazaar (crawl of 13 Oct 2026).
 import { createPublicClient, fallback, formatEther, formatGwei, formatUnits, http, isHash, type Chain, type PublicClient } from "viem";
 import { arbitrum, avalanche, base, berachain, celo, gnosis, hyperEvm, ink, linea, mainnet, mantle, optimism, polygon, scroll, sei, sonic, unichain, zksync } from "viem/chains";
-import { entry, num, opt, type Entry } from "../family";
+import { PRICE, entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
@@ -727,6 +727,14 @@ const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance, USDC b
  */
 const EXTRA_SKIP: ReadonlySet<string> = new Set(["/zksync/estimate-gas", "/hyperevm/token-transfers"]);
 const EXTRA_READS: Entry[] = EXTRA_CHAINS.flatMap(chainEntries).filter((e) => !EXTRA_SKIP.has(e.endpoint.path));
-export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries), WALLET_BALANCES, ...EXTRA_READS];
+/**
+ * One-week price test, 26 Oct to 2 Nov 2026 (Peter's choice): the repeat-buying bots on Base pay $0.002-0.003 a call
+ * (Claw402's chain reads at $0.003 drew 161k calls from 72 payers in a week) and almost never $0.01. Single-network reads
+ * that cost $0.01 go to $0.003; the sweeper still pays every listing at or below $0.01. Keep it if repeat payers and calls
+ * come; revert to PRICE if they do not (business/agentic/base-bots/payments-to-us.mjs, payer-profile.mjs).
+ */
+export const READ_TEST_PRICE = "$0.003";
+export const testPriced = (e: Entry): Entry => (e.endpoint.price === PRICE ? { ...e, endpoint: { ...e.endpoint, price: READ_TEST_PRICE } } : e);
+export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries).map(testPriced), WALLET_BALANCES, ...EXTRA_READS.map(testPriced)];
 /** The extra networks' tool paths: HTTP and the /mcp/chain bundle only (mcp.ts). */
 export const EXTRA_CHAIN_PATHS: ReadonlySet<string> = new Set(EXTRA_READS.map((e) => e.endpoint.path));
