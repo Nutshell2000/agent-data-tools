@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
 
-const UPDATED = "19 October 2026";
+const UPDATED = "26 October 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
 function page(title: string, body: string) {
@@ -23,6 +23,16 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
 <li><strong>Agent memory.</strong> What you save with the memory tools (/memory/set), under a one-way hash of the namespace you choose, until it expires (at most 30 days) or you delete it with /memory/delete. Anyone who knows a namespace can read it.</li>
 <li><strong>Card credits.</strong> A one-way hash of your API key with its balance and purchase history, and the Stripe Checkout or payment reference that created it. The key itself is kept with that reference only so that reopening your claim link shows the same key. Card details are handled by Stripe and never reach us.</li>
+<li><strong>Sign-in from apps (OAuth, for example ChatGPT).</strong> The app's registration (its name and redirect addresses) and one-way hashes of the access and refresh tokens issued to it, linked to your account. Tokens stop working when they expire.</li>
+</ul>
+<h2>Why we keep it</h2>
+<p>Only to run the service: to answer and bill tool calls, to count and limit free calls, to keep a payment and credit record, to sign apps in, and to find and fix failures. Nothing is used for advertising or profiling.</p>
+<h2>How long we keep it</h2>
+<ul>
+<li>Request logs: Cloudflare's standard retention (days, not months).</li>
+<li>Agent memory: until you delete it, at most 30 days.</li>
+<li>Sign-in tokens: until they expire.</li>
+<li>Request counts, free-call counts, payment and card-credit records: while the service runs, because they are the accounting record. You can ask us to delete card-credit records (see below).</li>
 </ul>
 <h2>What we do not do</h2>
 <ul>
@@ -31,7 +41,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li>Tools that read the web fetch the public URL you give them; that site sees a request from our servers.</li>
 </ul>
 <h2>Third parties</h2>
-<p>Cloudflare (hosting), Stripe (card payments), Coinbase Developer Platform (x402 payment settlement), and the public data sources each tool names in its description.</p>
+<p>Cloudflare (hosting, and the AI models behind the AI tools: the text you send to an AI tool is processed by Cloudflare Workers AI to produce the answer), Brave (the query you send to the web and news search tools), Stripe (card payments), Coinbase Developer Platform (x402 payment settlement), and the public data sources each tool names in its description. They receive only what is needed to answer that call.</p>
 <h2>Your choices</h2>
 <p>To ask what we hold about an API key or wallet, or to have card-credit records deleted (this ends the key's balance), write to ${mail}.</p>`);
 
