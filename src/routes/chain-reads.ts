@@ -47,7 +47,7 @@ export const EXTRA_CHAINS: ChainDef[] = [
   { slug: "hyperevm", name: "HyperEVM", chain: hyperEvm, symbol: "HYPE", rpcs: ["https://rpc.hyperliquid.xyz/evm", "https://hyperliquid.drpc.org"] },
   { slug: "bera", name: "Berachain", chain: berachain, symbol: "BERA", rpcs: ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com", "https://berachain.drpc.org"] },
   { slug: "ink", name: "Ink", chain: ink, symbol: "ETH", rpcs: ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com", "https://ink.drpc.org"] },
-  { slug: "sei", name: "Sei", chain: sei, symbol: "SEI", rpcs: ["https://evm-rpc.sei-apis.com", "https://sei.drpc.org"] },
+  { slug: "sei", name: "Sei", chain: sei, symbol: "SEI", rpcs: ["https://sei-evm-rpc.publicnode.com", "https://sei.drpc.org", "https://evm-rpc.sei-apis.com"] },
 ];
 
 export function client(env: Env, c: ChainDef): PublicClient {
