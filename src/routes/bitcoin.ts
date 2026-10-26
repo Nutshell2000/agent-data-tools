@@ -6,12 +6,19 @@ const SATS = 100_000_000;
 const ADDRESS = /^(bc1[a-z0-9]{11,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/;
 
 async function mempool<T>(path: string): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(API + path, { signal: AbortSignal.timeout(8_000), headers: { "user-agent": "AgentDataTools/1.0" } });
-  } catch {
-    throw new HttpError(502, "the Bitcoin data source did not respond");
+  // One retry after a network error, timeout, 429 or 5xx: /btc-fees fans out three requests and failed 2 of 6 paid calls
+  // in the week to 26 Oct when one of them did not answer. Two tries of 4 s keep the old 8 s budget.
+  let res: Response | undefined;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      res = await fetch(API + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": "AgentDataTools/1.0" } });
+    } catch {
+      res = undefined;
+    }
+    if (res && res.status !== 429 && res.status < 500) break;
+    if (attempt === 0) { await res?.body?.cancel().catch(() => {}); await new Promise((r) => setTimeout(r, 300)); }
   }
+  if (!res) throw new HttpError(502, "the Bitcoin data source did not respond");
   if (res.status === 400 || res.status === 404) throw new HttpError(404, "not found on the Bitcoin network");
   if (!res.ok) throw new HttpError(502, `the Bitcoin data source returned HTTP ${res.status}`);
   try { return await res.json() as T; }

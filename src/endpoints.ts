@@ -394,7 +394,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/package-audit",
     price: "$0.01",
-    summary: "Audit up to 10 dependencies, with exact-version advisories and fixes",
+    summary: "Dependency audit: up to 10 packages, exact-version advisories and fixes",
     description:
       "Check up to 10 public dependencies, optionally pinned to exact versions, for advisory IDs, OSV affected/fixed ranges and dated FIRST EPSS CVE estimates. Scoped npm names supported. Detail and subrequest caps apply; omitted details and incomplete coverage are explicit. Missing evidence is unknown, not zero risk. Automated signals, not a safety guarantee. See the buying guide for limits. Use before installing or upgrading dependencies.",
     details: "Audit up to 10 ecosystem:name items, optionally pinned to exact versions; scoped npm names are supported. npm downloads are not queried, unversioned deps.dev detail is capped at one advisory per package, pinned deps.dev detail is skipped, and OSV detail is capped at 15 per request. Batch advisory IDs/counts remain available; omitted details and EPSS coverage are reported. Exact versions add OSV ranges and dated FIRST EPSS estimates for CVE aliases (up to 50 CVEs). EPSS is not a safety guarantee; missing scores are unknown, not zero. Verdicts are bounded signals. Example timestamps are illustrative; bad input is not charged.",
