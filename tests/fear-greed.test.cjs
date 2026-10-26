@@ -35,7 +35,9 @@ test('fear and greed: value, deltas, range, attribution on every answer, days bo
   assert.equal(out.nextUpdateSeconds, 600);
   const short = await (answer = () => new Response(JSON.stringify({ data: [day(0, 70, 'Greed')] })), run({ days: '1' }));
   assert.equal(short.change.vs7d, null);
-  await assert.rejects(run({ days: '91' }), (e) => e.status === 400);
+  // days above the range is held to it (num() clamps how-much inputs since 26 Oct 2026); a non-number is still refused.
+  assert.ok((await run({ days: '91' })).history.length <= 90);
+  await assert.rejects(run({ days: 'many' }), (e) => e.status === 400);
   answer = () => new Response('{}', { status: 500 });
   await assert.rejects(run(), (e) => e.status === 502);
   answer = () => new Response(JSON.stringify({ data: [], metadata: { error: null } }));

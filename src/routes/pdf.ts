@@ -96,7 +96,7 @@ export const PDF: Entry[] = [
       const maxChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
       // Any content type: servers label PDFs binary/octet-stream, application/download or nothing at all, and readPdf
       // checks the %PDF signature itself, so the type check only refused real PDFs.
-      const file = await fetchFile(pdfUrl(q("url")), /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600 });
+      const file = await fetchFile(pdfUrl(q("url")), /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
       return { url: file.url, ...(await readPdf(file.bytes, firstPage, want, maxChars)) };
     }, "$0.005"),
 ];

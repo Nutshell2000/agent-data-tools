@@ -70,6 +70,9 @@ export function targetRefusal(status: number) {
 export interface FetchPublicOptions {
   /** Keep a successful answer in the edge cache this long, keyed by final URL and Accept (0 = never). */
   cacheSeconds?: number;
+  /** Total time for the request, redirects, retry and body (default 8 s). Large files need more: arXiv sends a 2.2 MB
+   *  paper in about 8 s (26 Oct 2026), so /pdf/text timed out on it. */
+  budgetMs?: number;
 }
 
 /**
@@ -80,9 +83,9 @@ export interface FetchPublicOptions {
  * caller's input and are never retried. With `cacheSeconds`, a 2xx body is kept in the edge cache so repeated reads
  * of the same document do not spend the target's limit again (never for `allowStatus` answers).
  */
-export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = [], { cacheSeconds = 0 }: FetchPublicOptions = {}): Promise<Response> {
+export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = [], { cacheSeconds = 0, budgetMs = BUDGET_MS }: FetchPublicOptions = {}): Promise<Response> {
   let current = parseTarget(target.href);
-  const deadline = Date.now() + BUDGET_MS;
+  const deadline = Date.now() + budgetMs;
   const cache = cacheSeconds > 0 && typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
   const cacheKey = cache ? new Request(`https://fetch-cache.internal/?u=${encodeURIComponent(current.href)}&a=${encodeURIComponent(accept)}`) : undefined;
   if (cache && cacheKey) {
@@ -93,7 +96,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     }
   }
   // One signal for the whole budget: redirects and the one retry share the same 8 s deadline.
-  const signal = AbortSignal.timeout(BUDGET_MS);
+  const signal = AbortSignal.timeout(budgetMs);
   let retried = false;
   for (let redirects = 0; redirects <= 5;) {
 
@@ -106,7 +109,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     } catch (e) {
       const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");
       if (!timedOut && !retried && Date.now() + 700 < deadline) { retried = true; await sleep(700); continue; }
-      throw new HttpError(timedOut ? 504 : 502, timedOut ? "target did not respond within 8 seconds" : "could not reach target URL");
+      throw new HttpError(timedOut ? 504 : 502, timedOut ? `target did not respond within ${Math.round(budgetMs / 1000)} seconds` : "could not reach target URL");
     }
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const location = res.headers.get("location");
