@@ -5,10 +5,17 @@ import { HttpError } from "../lib/env";
 import { countryCode, countryName } from "../lib/country-code";
 import { parseDate } from "../lib/relative-date";
 import { COUNTRIES, holidaysFor } from "./holidays";
+import { CITIES } from "./weather";
 import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
-const lat = (q: Parameters<Entry["run"]>[1]) => num(q, "lat", { min: -90, max: 90 });
-const lon = (q: Parameters<Entry["run"]>[1]) => num(q, "lon", { min: -180, max: 180 });
+// city=, place= or location= as a major city name (the weather tool's built-in table) when lat/lon are not given:
+// /sun?city=Stockholm answered "lat is required" in the 26 Oct 2026 probe.
+const knownCity = (q: Parameters<Entry["run"]>[1]) => {
+  const key = (q("city") ?? q("place") ?? q("location"))?.toLowerCase().replace(/\s+/g, " ").replace(/,.*$/, "").trim();
+  return key && Object.hasOwn(CITIES, key) ? CITIES[key] : undefined;
+};
+const lat = (q: Parameters<Entry["run"]>[1]) => (q("lat") === undefined && knownCity(q) ? knownCity(q)![1] : num(q, "lat", { min: -90, max: 90 }));
+const lon = (q: Parameters<Entry["run"]>[1]) => (q("lon") === undefined && knownCity(q) ? knownCity(q)![2] : num(q, "lon", { min: -180, max: 180 }));
 const LATLON = {
   lat: { type: "number" as const, description: "Latitude (-90 to 90)", required: true, example: 59.33 },
   lon: { type: "number" as const, description: "Longitude (-180 to 180)", required: true, example: 18.07 },
@@ -206,8 +213,10 @@ export const PUBLIC_DATA: Entry[] = [
     ["country", "geo", "reference", ...P], { country: { type: "string", description: "ISO 3166 alpha-2 or alpha-3 code", required: true, example: "SE" } },
     { name: "Sweden", iso2: "SE", iso3: "SWE", region: "Europe & Central Asia", incomeLevel: "High income", capital: "Stockholm", capitalLat: 59.3327, capitalLon: 18.0645, population: 10596620, populationYear: 2025, source: "World Bank" },
     async (_e, q) => {
-      const code = need(q, "country", 3).trim().toUpperCase();
-      if (!/^[A-Z]{2,3}$/.test(code)) throw new HttpError(400, "country must be a 2- or 3-letter ISO code");
+      // An English country name too ("Sweden", "UK"), as agents send it (26 Oct 2026 probe); World Bank takes ISO2 or ISO3.
+      const sent = need(q, "country", 80).trim();
+      const code = /^[A-Za-z]{2,3}$/.test(sent) ? sent.toUpperCase() : (countryCode(sent) ?? "");
+      if (!/^[A-Z]{2,3}$/.test(code)) throw new HttpError(400, "country must be a 2- or 3-letter ISO code or an English country name");
       type WB<T> = [unknown, T[] | null] | [{ message: unknown }];
       const info = await getJson<WB<{ id: string; iso2Code: string; name: string; region: { value: string }; incomeLevel: { value: string }; capitalCity: string; latitude: string; longitude: string }>>(`https://api.worldbank.org/v2/country/${code}?format=json`);
       const c = Array.isArray(info) && info.length > 1 ? (info[1] as Array<{ id: string; iso2Code: string; name: string; region: { value: string }; incomeLevel: { value: string }; capitalCity: string; latitude: string; longitude: string }> | null)?.[0] : undefined;

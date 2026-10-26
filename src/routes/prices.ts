@@ -118,7 +118,8 @@ const PRICE_TOOLS: Entry[] = [
       method: "Uniswap v3 spot price from the pool with the largest USDC or WETH reserve",
     },
     async (env, q) => {
-      const raw = (q("address") ?? q("symbol"))?.trim();
+      // token= and ticker= as agents send them (26 Oct 2026 probe: /price/token?token=0x… was refused).
+      const raw = (q("address") ?? q("symbol") ?? q("token") ?? q("ticker") ?? q("coin"))?.trim();
       if (!raw) throw new HttpError(400, "symbol (e.g. ETH) or address (a 0x token address) is required");
       const slug = pick(q, "chain", SLUGS, "base");
       const token = tokenAddress(raw, slug);
