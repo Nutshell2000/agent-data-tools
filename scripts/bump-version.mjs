@@ -23,17 +23,18 @@ export const PINS = {
     [/(serverInfo\.version,')(\d+\.\d+\.\d+)(')/, "version", 1],
   ],
   "tests/families.test.cjs": [[/(assert\.equal\(ENDPOINTS\.length,)(\d+)(\))/, "count", 1]],
+  // The main /mcp server leaves out the extra networks' chain reads (1.82.0), so its tools/list pins are "mcpCount".
   "tests/gateway-startup.test.cjs": [
-    [/(\.tools\.length, )(\d+)(\))/, "count", 1],
+    [/(\.tools\.length, )(\d+)(\))/, "mcpCount", 1],
     [/(assert\.equal\(all\.length, )(\d+)(,)/, "count", 1],
     [/(new Set\(all\)\.size, )(\d+)(\))/, "count", 1],
   ],
-  "tests/payment-delivery-runtime.test.cjs": [[/(assert\.equal\(listed\.length,)(\d+)(\))/, "count", 1]],
+  "tests/payment-delivery-runtime.test.cjs": [[/(assert\.equal\(listed\.length,)(\d+)(\))/, "mcpCount", 1]],
   "src/endpoints.ts": [[/(")(\d+)( pay-per-call tools)/, "count", 1]],
 };
 
 /** Pure: returns the rewritten texts and what changed; throws when a pin is missing or ambiguous. */
-export function applyBump(files, { version, count }) {
+export function applyBump(files, { version, count, mcpCount = count }) {
   if (!SEMVER.test(version)) throw new Error(`version must be x.y.z, got ${version}`);
   if (!Number.isInteger(count) || count < 1) throw new Error(`count must be a positive integer, got ${count}`);
   const out = {}, changes = [];
@@ -43,7 +44,7 @@ export function applyBump(files, { version, count }) {
     for (const [re, kind, expected] of pins) {
       const matches = text.match(new RegExp(re.source, "g")) ?? [];
       if (matches.length !== expected) throw new Error(`${file}: expected ${expected} match(es) for ${re}, found ${matches.length}`);
-      const value = kind === "version" ? version : String(count);
+      const value = kind === "version" ? version : kind === "mcpCount" ? String(mcpCount) : String(count);
       text = text.replace(re, (_m, a, old, b) => { if (old !== value) changes.push(`${file}: ${kind} ${old} -> ${value}`); return `${a}${value}${b}`; });
     }
     out[file] = text;
@@ -60,10 +61,11 @@ export function currentPins(files) {
   return { version, count };
 }
 
-async function liveCount() {
-  const built = await build({ entryPoints: ["src/endpoints.ts"], bundle: true, platform: "node", format: "esm", write: false });
-  const { ENDPOINTS } = await import("data:text/javascript;base64," + Buffer.from(built.outputFiles[0].text).toString("base64"));
-  return ENDPOINTS.length;
+async function liveCounts() {
+  const built = await build({ stdin: { contents: 'export { ENDPOINTS } from "./src/endpoints"; export { EXTRA_CHAIN_PATHS } from "./src/routes/chain-reads";', resolveDir: process.cwd(), sourcefile: "bump-entry.ts", loader: "ts" }, bundle: true, platform: "node", format: "esm", write: false });
+  const { ENDPOINTS, EXTRA_CHAIN_PATHS } = await import("data:text/javascript;base64," + Buffer.from(built.outputFiles[0].text).toString("base64"));
+  const count = ENDPOINTS.length;
+  return { count, mcpCount: ENDPOINTS.filter((e) => !EXTRA_CHAIN_PATHS?.has(e.path)).length };
 }
 
 async function main() {
@@ -75,8 +77,11 @@ async function main() {
   const files = Object.fromEntries(await Promise.all(Object.keys(PINS).map(async (f) => [f, await readFile(f, "utf8")])));
   // --count sets the count pins to a given number instead of the catalog's (release.ps1 uses it to match main's pins
   // before merging); without it the count is read from ENDPOINTS.
-  const count = countAt > 0 ? Number(args[countAt + 1]) : await liveCount();
-  const { files: next, changes } = applyBump(files, { version, count });
+  const live = await liveCounts();
+  const count = countAt > 0 ? Number(args[countAt + 1]) : live.count;
+  // With --count the main-server count keeps the catalog's difference (the extra networks' reads).
+  const mcpCount = count - (live.count - live.mcpCount);
+  const { files: next, changes } = applyBump(files, { version, count, mcpCount });
   if (flag === "--check") {
     if (changes.length) throw new Error(`pins out of date:\n  ${changes.join("\n  ")}`);
     console.log(`pins match ${version} and ${count} tools`);
