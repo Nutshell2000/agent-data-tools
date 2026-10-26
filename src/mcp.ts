@@ -2,7 +2,7 @@ import { pickFields } from "./lib/fields";
 import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { apiKeyFrom, isCreditKey } from "./lib/credits";
+import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
 import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
 import { FREE_CALLS_PER_CALLER, freeCallNote } from "./lib/free-calls";
 import { freeCallsPausedNote } from "./lib/browser-402";
@@ -111,6 +111,16 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
   }
   return factory;
 }
+/**
+ * The one-step card offer for a signed-in person whose free calls ran out. People on /mcp/account ran out several times a
+ * day (24-26 Oct 2026: airport status 17 times in a day, company lookups, dictionary) and were sent to a /credits page to
+ * find a pack themselves; nobody bought. The $1 checkout link is the same one the open /mcp payment hint shows.
+ */
+function cardStep(origin: string, cardReady: boolean) {
+  const [starter] = WEB_PACKS;
+  if (!cardReady || !starter) return `To continue, buy credits at ${origin}/credits, then reconnect and sign in with your key.`;
+  return `To continue, tell your user: pay $${starter.usdCents / 100} by card at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about 100 calls at $0.01 or 500 at $0.002; failed calls are never charged). The key appears right after payment; then reconnect this connector and choose "Sign in with key". Other packs: ${origin}/credits.`;
+}
 /** Tools that generate images or audio with AI models: not offered on the signed-in directory server. */
 const GENERATIVE_MEDIA: ReadonlySet<string> = new Set(["/image", "/ai/speech"]);
 /** Left out of the ChatGPT plugin server (/mcp/chatgpt) after OpenAI's scan of 26 Oct 2026 flagged them:
@@ -192,9 +202,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       : freeOnly
       ? async () => ({ isError: true, content: [{ type: "text", text: directory
           ? (CAPACITY_LIMITED.has(e.path) ? "This tool is not included in this account's free calls, so it is not available on the current plan. Nothing was charged." : "This account's free calls are used up, so this tool is not available on the current plan. Nothing was charged.")
-          : CAPACITY_LIMITED.has(e.path)
-          ? `This tool is not included in the free calls. To use it, buy credits at ${origin}/credits, then reconnect and sign in with your key.`
-          : `The free calls for this account are used up. To continue, buy credits at ${origin}/credits, then reconnect and sign in with your key.` }] })
+          : `${CAPACITY_LIMITED.has(e.path) ? "This tool is not included in the free calls." : "The free calls for this account are used up."} ${cardStep(origin, Boolean(env.STRIPE_READ_KEY))}` }] })
       : handler;
     const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
       const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
