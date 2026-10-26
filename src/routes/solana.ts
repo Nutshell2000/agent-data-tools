@@ -62,25 +62,26 @@ export async function solRpc<T>(method: string, params: unknown[], methods: "all
 type ParsedAccount = { pubkey: string; account: { data: { parsed: { info: { mint: string; tokenAmount: { amount: string; decimals: number; uiAmountString: string } } } }; owner: string } };
 
 export const SOLANA: Entry[] = [
-  entry("/solana/balance", "Solana balance: SOL and SPL token balances of a wallet",
-    "SOL balance and SPL token balances of a Solana wallet, read live from mainnet: SOL in lamports and SOL, then every token account (classic Token and Token-2022 programs) with mint, symbol for well-known tokens (USDC, USDT, JUP, BONK…), decimals and amount, largest first, up to 50. Use to check what a Solana wallet holds before a payment or swap. An address that is not 32-byte base58 is 400, uncharged.",
+  entry("/solana/balance", "Solana balance: SOL balance of a wallet",
+    "SOL balance of a Solana wallet, read live from mainnet in lamports and SOL, plus its SPL token accounts (mint, symbol for well-known tokens, decimals, amount) when the public node serves them; otherwise tokens is null with a note. Use to check a Solana wallet before a payment. An address that is not 32-byte base58 is 400, uncharged.",
     ["solana-balance", "solana", "spl-token", "wallet", "balance", "data"], { address: { type: "string", description: "Solana wallet address (base58)", required: true, example: "vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg" } },
     { address: "vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg", sol: "0.039869364", lamports: "39869364", tokenCount: 6, tokens: [{ mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", symbol: "USDC", decimals: 6, amount: "12.5", raw: "12500000", program: "token" }], slot: 460750950 },
     async (_e, q) => {
       const address = pubkey(q("address"), "address");
       const [bal, classic, t22] = await Promise.all([
         solRpc<{ context: { slot: number }; value: number | string }>("getBalance", [address], "basic"),
-        solRpc<{ value: ParsedAccount[] }>("getTokenAccountsByOwner", [address, { programId: TOKEN_PROGRAM }, { encoding: "jsonParsed" }]),
+        // Token accounts need the Foundation node, which refuses Cloudflare (26 Oct 2026); the SOL balance never waits on them.
+        solRpc<{ value: ParsedAccount[] }>("getTokenAccountsByOwner", [address, { programId: TOKEN_PROGRAM }, { encoding: "jsonParsed" }]).catch(() => null),
         solRpc<{ value: ParsedAccount[] }>("getTokenAccountsByOwner", [address, { programId: TOKEN_2022 }, { encoding: "jsonParsed" }]).catch(() => ({ value: [] as ParsedAccount[] })),
       ]);
-      const rows = [...classic.value.map((a) => ({ a, program: "token" })), ...t22.value.map((a) => ({ a, program: "token-2022" }))]
+      const rows = classic === null ? null : [...classic.value.map((a) => ({ a, program: "token" })), ...t22.value.map((a) => ({ a, program: "token-2022" }))]
         .map(({ a, program }) => { const i = a.account.data.parsed.info; return { mint: i.mint, symbol: KNOWN_MINTS[i.mint] ?? null, decimals: i.tokenAmount.decimals, amount: i.tokenAmount.uiAmountString, raw: i.tokenAmount.amount, program }; })
         .filter((t) => t.raw !== "0")
         // Well-known tokens first (wallets collect spam airdrops with huge amounts), then by amount.
         .sort((x, y) => Number(!!y.symbol) - Number(!!x.symbol) || Number(y.amount) - Number(x.amount));
       const lamports = BigInt(bal.value);
       const frac = (lamports % 1_000_000_000n).toString().padStart(9, "0").replace(/0+$/, "");
-      return { address, sol: `${lamports / 1_000_000_000n}${frac ? `.${frac}` : ""}`, lamports: lamports.toString(), tokenCount: rows.length, tokens: rows.slice(0, 50), slot: bal.context.slot };
+      return { address, sol: `${lamports / 1_000_000_000n}${frac ? `.${frac}` : ""}`, lamports: lamports.toString(), tokenCount: rows?.length ?? null, tokens: rows?.slice(0, 50) ?? null, ...(rows === null ? { tokensNote: "token balances could not be read from the public Solana node this time; the SOL balance is exact" } : {}), slot: bal.context.slot };
     }),
 
   entry("/solana/token", "Solana token info: supply, decimals, mint and freeze authority",
@@ -93,7 +94,7 @@ export const SOLANA: Entry[] = [
     async (_e, q) => {
       const mint = pubkey(q("mint"), "mint");
       const holders = num(q, "holders", { min: 0, max: 20, fallback: 0, integer: true });
-      const info = await solRpc<{ context: { slot: number }; value: null | { owner: string; data: { parsed?: { type: string; info: { decimals: number; supply: string; mintAuthority: string | null; freezeAuthority: string | null } } } } }>("getAccountInfo", [mint, { encoding: "jsonParsed" }]);
+      const info = await solRpc<{ context: { slot: number }; value: null | { owner: string; data: { parsed?: { type: string; info: { decimals: number; supply: string; mintAuthority: string | null; freezeAuthority: string | null } } } } }>("getAccountInfo", [mint, { encoding: "jsonParsed" }], "basic");
       if (!info.value) throw new HttpError(404, "no account at this address on Solana mainnet");
       const parsed = info.value.data.parsed;
       if (!parsed || parsed.type !== "mint") throw new HttpError(422, "this address is not an SPL token mint");
@@ -115,7 +116,7 @@ export const SOLANA: Entry[] = [
       const sig = need(q, "signature", 100).trim();
       if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig) || base58Length(sig) !== 64) throw new HttpError(400, "signature must be a base58 Solana transaction signature (64 bytes)");
       type Tx = { slot: number; blockTime: number | null; meta: { err: unknown; fee: number; computeUnitsConsumed?: number; preBalances: number[]; postBalances: number[] } | null; transaction: { message: { accountKeys: { pubkey: string; signer: boolean }[]; instructions: { programId: string }[] } } };
-      const tx = await solRpc<Tx | null>("getTransaction", [sig, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }]);
+      const tx = await solRpc<Tx | null>("getTransaction", [sig, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }], "basic");
       if (!tx) throw new HttpError(404, "no such transaction on Solana mainnet (or it is older than the node keeps)");
       const keys = tx.transaction.message.accountKeys;
       const changes = keys.map((k, i) => ({ account: k.pubkey, changeSol: tx.meta ? (tx.meta.postBalances[i] - tx.meta.preBalances[i]) / LAMPORTS : 0 })).filter((c) => c.changeSol !== 0).slice(0, 20);

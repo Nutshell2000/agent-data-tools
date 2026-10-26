@@ -1,5 +1,5 @@
 {
-  "version": "1.82.11",
+  "version": "1.82.12",
   "tools": [
     {
       "name": "extract",
@@ -10641,6 +10641,84 @@
         ]
       },
       "price": "$0.003"
+    },
+    {
+      "name": "solana_balance",
+      "description": "SOL balance of a Solana wallet, read live from mainnet in lamports and SOL, plus its SPL token accounts (mint, symbol for well-known tokens, decimals, amount) when the public node serves them; otherwise tokens is null with a note. Use to check a Solana wallet before a payment. An address that is not 32-byte base58 is 400, uncharged. Example: address=vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Solana wallet address (base58)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "solana_token",
+      "description": "Look up a Solana SPL token by its mint address, live from mainnet: decimals, total supply, whether a mint authority can still create more and whether a freeze authority can freeze holders (two common rug-pull risks), the token program, and, on request, the largest holder accounts with their share of supply. Use before buying or accepting an unknown Solana token. A mint that does not exist is 404, uncharged. Example: mint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "mint": {
+            "type": "string",
+            "description": "SPL token mint address (base58)"
+          },
+          "holders": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Largest holder accounts to list, 0-20 (default 0; best effort, the public node rate-limits this lookup)"
+          }
+        },
+        "required": [
+          "mint"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "solana_tx",
+      "description": "Look up a Solana transaction by signature, live from mainnet: success or the error, slot and block time, fee in SOL, compute units used, signers, the programs it called and SOL balance changes per account. Use to confirm a Solana payment landed or see what a transaction did. A signature that is not base58 is 400; an unknown or too old signature is 404, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string",
+            "description": "Transaction signature (base58, 64 bytes)"
+          }
+        },
+        "required": [
+          "signature"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "price_token",

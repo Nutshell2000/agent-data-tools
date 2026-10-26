@@ -24,12 +24,30 @@ const ALIASES: Record<string, Record<string, string>> = {
   polygon: { ETH: "WETH", BTC: "WBTC", POL: "WPOL", MATIC: "WPOL" },
 };
 
+/**
+ * CoinGecko-style coin ids and plain coin names, as shopper bots send them to other price APIs ("coingecko:bitcoin",
+ * "ethereum", "usd-coin"; the fleet wallets bought openverbs /v1/price that way about 600 times in the week to 26 Oct
+ * 2026). Mapped onto our tickers; anything else falls through to the ticker table as before.
+ */
+const COIN_IDS: Readonly<Record<string, string>> = {
+  bitcoin: "BTC", ethereum: "ETH", ether: "ETH", "usd-coin": "USDC", tether: "USDT", solana: "SOL", ripple: "XRP",
+  "wrapped-bitcoin": "WBTC", "coinbase-wrapped-btc": "CBBTC", weth: "WETH", chainlink: "LINK", uniswap: "UNI", aave: "AAVE",
+  arbitrum: "ARB", optimism: "OP", "matic-network": "POL", polygon: "POL", "polygon-ecosystem-token": "POL", dai: "DAI",
+  binancecoin: "BNB", "euro-coin": "EURC", degen: "DEGEN", "degen-base": "DEGEN", "virtual-protocol": "VIRTUAL",
+  "aerodrome-finance": "AERO", brett: "BRETT", "based-brett": "BRETT", toshi: "TOSHI", zora: "ZORA", morpho: "MORPHO",
+  moonwell: "WELL", "moonwell-artemis": "WELL", kaito: "KAITO", "wrapped-steth": "WSTETH", gmx: "GMX",
+};
+export const coinIdTicker = (input: string): string | undefined => {
+  const id = input.trim().toLowerCase().replace(/^coingecko:/, "");
+  return Object.hasOwn(COIN_IDS, id) ? COIN_IDS[id] : undefined;
+};
+
 /** A 0x address as given, or the address of a known ticker on this network; 400 lists the tickers otherwise. */
 export function tokenAddress(input: string, slug: string): Address {
   // "$ETH" is how tickers are written in chat; the dollar sign is not part of the ticker.
   const v = input.trim().replace(/^\$(?=[A-Za-z])/, "");
   if (/^0x[0-9a-fA-F]{40}$/.test(v)) return getAddress(v);
-  const key = v.toUpperCase();
+  const key = coinIdTicker(v) ?? v.toUpperCase();
   const hit = TICKERS[slug]?.[ALIASES[slug]?.[key] ?? key];
   if (hit) return getAddress(hit);
   const known = [...Object.keys(ALIASES[slug] ?? {}), ...Object.keys(TICKERS[slug] ?? {})].join(", ");
