@@ -85,8 +85,11 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
   address: ["wallet", "addr", "account", "email"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
-  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input", "json", "yaml", "xml", "csv", "content"],
+  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value"],
   // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
+  // More names agents send (26 Oct 2026 utility probe): cron expression, number lists, phone numbers, QR data, loan amounts, semver pairs.
+  expr: ["expression", "cron", "schedule"], values: ["numbers", "data", "nums", "list"], number: ["phone", "phone_number", "tel"], principal: ["amount", "loan", "loan_amount"],
+  a: ["version", "v1", "from"], b: ["other", "v2", "compare", "to"],
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
   name: ["q", "query", "domain", "host", "company"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"], urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
   from: ["from_currency"], to: ["to_currency"],
