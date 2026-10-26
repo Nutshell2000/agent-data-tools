@@ -55,7 +55,10 @@
     // /search: at most this many Brave Search API requests per UTC day (src/routes/search.ts). Brave bills $5 per 1,000
     // from prepaid credits and gives free credits each month; 120 a day (about $18 a month) stays inside them, and
     // the tool answers 503, uncharged, above the cap or when the credits are gone. The key is the secret SEARCH_API_KEY.
-    "SEARCH_DAILY_CAP": "120",
+    // Raised to 1,000 on 27 Oct 2026 (owner: "fix it all"): web search is the biggest paid category on the Bazaar
+    // (StableEnrich exa/search: 161 payers, 30k calls/30 days) and 120 a day would turn away a repeat buyer on day one.
+    // Every search-backed tool is paid (CAPACITY_LIMITED: no free calls), so each call nets about $0.004 after Brave.
+    "SEARCH_DAILY_CAP": "1000",
     // Spend caps that matter on Workers Paid, where Workers AI and Browser Rendering are billed per use (on the free plan
     // the platform's own daily allowances stop them first). Workers AI calls per UTC day: 1,000 of the 8B chat model cost
     // about $0.30-1.00 and earn $10 at $0.01 a call. Hosted-browser launches per UTC day: 60 short sessions stay inside the
