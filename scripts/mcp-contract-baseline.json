@@ -1,5 +1,5 @@
 {
-  "version": "1.82.9",
+  "version": "1.82.10",
   "tools": [
     {
       "name": "extract",
@@ -1360,7 +1360,7 @@
     },
     {
       "name": "btc_price",
-      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Example: currency=SEK. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1371,9 +1371,9 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "only": {
+          "currency": {
             "type": "string",
-            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+            "description": "Optional: also price BTC in this currency; the seven listed ones come from the source, others (SEK, NOK, INR, BRL and about 25 more) are converted from USD at the ECB reference rate"
           }
         }
       },
