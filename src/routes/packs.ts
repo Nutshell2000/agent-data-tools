@@ -118,7 +118,8 @@ export const PACKS: Entry[] = [
     { pack: "token-analysis", chain: "base", token: "0x4200000000000000000000000000000000000006", info: { name: "Wrapped Ether", symbol: "WETH", decimals: 18, totalSupply: "180000.5" }, price: { usd: 3920.15, source: "Uniswap v3" }, proxy: { isProxy: false, kind: "none", implementation: null }, risk: { verdict: "low", flags: [] }, contract: { tier: "low", flags: [] }, failed: {} },
     async (env, q) => {
       const chain = pick(q, "chain", CHAINS, "base");
-      const token = need(q, "token", 64).trim();
+      // address= and contract= as agents send them (26 Oct 2026 probe); a global alias would be wrong for tools that take both.
+      const token = need((n) => q(n) ?? (n === "token" ? q("address") ?? q("contract") ?? q("symbol") : undefined), "token", 64).trim();
       const info = await call(env, `/${chain}/token-info`, { token: /^0x[0-9a-f]{40}$/i.test(token) ? token.toLowerCase() : token }) as { token: string; name: string | null; symbol: string | null; decimals: number; totalSupply: string };
       const address = info.token.toLowerCase();
       const { data, failed } = await runSections({
