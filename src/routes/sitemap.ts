@@ -3,6 +3,8 @@ import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 
 const NS = "http://www.sitemaps.org/schemas/sitemap/0.9";
+// cloudflare.com declares the namespace with https (26 Oct 2026); same schema, so it is accepted too.
+const NS_HTTPS = "https://www.sitemaps.org/schemas/sitemap/0.9";
 const LIMIT = 512 * 1024;
 const BAD_XML = () =>
   new HttpError(422, "Invalid or unsupported sitemap XML", "SITEMAP_INVALID");
@@ -37,7 +39,8 @@ export function parseSitemap(source: string) {
     );
   });
   parser.on("opentag", (tag) => {
-    if (++nodes > 8000 || stack.length >= 16)
+    // 60,000: entries with ~20 hreflang alternates each (cloudflare.com) used 8,000 up in 400 entries; input stays capped at 512 KiB.
+    if (++nodes > 60000 || stack.length >= 16)
       throw new HttpError(
         422,
         "Sitemap XML exceeds structural limits",
@@ -46,7 +49,7 @@ export function parseSitemap(source: string) {
     if (!stack.length) {
       if (
         !["urlset", "sitemapindex"].includes(tag.local) ||
-        (tag.uri !== NS && tag.uri !== "")
+        (tag.uri !== NS && tag.uri !== NS_HTTPS && tag.uri !== "")
       )
         throw BAD_XML();
       kind = tag.local as typeof kind;
@@ -141,7 +144,25 @@ function bounded(
     );
   return value;
 }
-const XML_ACCEPT = "application/xml,text/xml,application/gzip,application/octet-stream;q=0.8,text/plain;q=0.5";
+/**
+ * The start of a sitemap as a complete document: up to `max` whole entries, then the root closed again. Used when the
+ * input was cut at 512 KiB (`mustClose`) or holds more than `max` entries; otherwise the source is returned unchanged.
+ */
+export function firstEntries(source: string, max: number, mustClose: boolean): { source: string; cut: boolean } {
+  const root = /<\s*((?:[\w.-]+:)?)(urlset|sitemapindex)\b/.exec(source);
+  if (!root) return { source, cut: false };
+  const prefix = root[1].replace(/[.]/g, "\\.");
+  const close = new RegExp(`</\\s*${prefix}${root[2] === "urlset" ? "url" : "sitemap"}\\s*>`, "g");
+  let count = 0, end = -1;
+  for (let m = close.exec(source); m; m = count === max ? null : close.exec(source)) {
+    count++;
+    end = m.index + m[0].length;
+  }
+  const more = count === max && close.exec(source) !== null;
+  if ((!mustClose && !more) || end < 0) return { source, cut: false };
+  return { source: `${source.slice(0, end)}</${root[1]}${root[2]}>`, cut: true };
+}
+const XML_ACCEPT ="application/xml,text/xml,application/gzip,application/octet-stream;q=0.8,text/plain;q=0.5";
 const XML_TYPES = ["application/xml", "text/xml", "text/plain", "application/octet-stream", "application/gzip", "application/x-gzip"];
 const typeOf = (r: Response) => (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
 /** The sitemap of a site given by its home page: robots.txt "Sitemap:" lines on the same host first, then the usual paths. */
@@ -233,28 +254,29 @@ export async function sitemap(
       "SITEMAP_REQUIRED",
     );
   }
-  if (Number(response.headers.get("content-length")) > LIMIT) {
-    await response.body?.cancel();
-    throw new HttpError(
-      422,
-      "Sitemap input exceeds 512 KiB",
-      "SITEMAP_TOO_LARGE",
-    );
-  }
+  // Large sitemaps (cloudflare.com, vercel.com: most real company sites) are read from the start: the first 512 KiB, then
+  // only complete entries, at most 1000 of them, with a warning. They used to be refused whole (26 Oct 2026 probe).
   let clipped = false;
-  const input = new Uint8Array(
+  let input = new Uint8Array(
     await new Response(
       capBytes(response.body!, LIMIT + 1, () => {
         clipped = true;
       }),
     ).arrayBuffer(),
   );
-  if (clipped || input.length > LIMIT)
-    throw new HttpError(
-      422,
-      "Sitemap input exceeds 512 KiB",
-      "SITEMAP_TOO_LARGE",
-    );
+  const gzipped = input[0] === 0x1f && input[1] === 0x8b;
+  let truncatedInput = false;
+  if (clipped || input.length > LIMIT) {
+    // A cut gzip stream cannot be decompressed reliably: those stay refused, with the child-sitemap advice.
+    if (gzipped)
+      throw new HttpError(
+        422,
+        "Compressed sitemap input exceeds 512 KiB; choose a smaller child sitemap",
+        "SITEMAP_TOO_LARGE",
+      );
+    input = input.slice(0, LIMIT);
+    truncatedInput = true;
+  }
   let bytes: Uint8Array = input;
   if (input[0] === 0x1f && input[1] === 0x8b) {
     try {
@@ -269,12 +291,10 @@ export async function sitemap(
           }),
         ).arrayBuffer(),
       );
-      if (expandedClipped || bytes.length > LIMIT)
-        throw new HttpError(
-          422,
-          "Expanded sitemap exceeds 512 KiB",
-          "SITEMAP_TOO_LARGE",
-        );
+      if (expandedClipped || bytes.length > LIMIT) {
+        bytes = bytes.slice(0, LIMIT);
+        truncatedInput = true;
+      }
     } catch (error) {
       if (error instanceof HttpError) throw error;
       throw new HttpError(
@@ -286,7 +306,8 @@ export async function sitemap(
   }
   let source: string;
   try {
-    source = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(
+    // A cut input may end inside a multi-byte character; that tail is dropped with the incomplete entry below.
+    source = new TextDecoder("utf-8", { fatal: !truncatedInput, ignoreBOM: false }).decode(
       bytes,
     );
   } catch {
@@ -296,7 +317,16 @@ export async function sitemap(
       "SITEMAP_ENCODING",
     );
   }
+  const head = firstEntries(source, 1000, truncatedInput);
+  if (truncatedInput && !head.cut)
+    throw new HttpError(
+      422,
+      "The first 512 KiB of this sitemap hold no complete entry; choose a smaller child sitemap",
+      "SITEMAP_TOO_LARGE",
+    );
+  source = head.source;
   const parsed = parseSitemap(source);
+  if (head.cut) parsed.warnings.push("large_sitemap_read_from_start_first_512_kib_or_1000_entries");
   const needle = contains.toLowerCase();
   const matched = parsed.locations.filter((entry) =>
     entry.location.toLowerCase().includes(needle),
