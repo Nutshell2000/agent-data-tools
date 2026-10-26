@@ -73,7 +73,7 @@ test('/mcp/chatgpt lists the signed-in tools with no prices, payment methods or 
       for (const k of ['readOnlyHint', 'destructiveHint', 'openWorldHint']) assert.equal(typeof t.annotations[k], 'boolean', `${t.name} ${k}`);
     }
     // Flagged by OpenAI's plugin scan on 26 Oct 2026, so left out of this server (DIRECTORY_EXCLUDED in src/mcp.ts).
-    for (const name of ['base_call', 'eth_call', 'validate_luhn', 'text_pii', 'mev_simulator', 'liquidity_pool_audit', 'memory_set', 'memory_delete']) {
+    for (const name of ['base_call', 'eth_call', 'validate_luhn', 'text_pii', 'mev_simulator', 'liquidity_pool_audit', 'memory_set', 'memory_delete', 'search', 'news', 'ai_answer']) {
       assert.ok(!tools.some((t) => t.name === name), `${name} is not offered to ChatGPT`);
     }
     assert.ok(tools.some((t) => t.name === 'sanctions_check') && tools.some((t) => t.name === 'base_balance'));
@@ -92,7 +92,7 @@ test('/mcp/chatgpt free calls answer without links or request ids; tools outside
     assert.match(note, /free calls left for this account/);
     assert.doesNotMatch(note, /\/credits|x402|https?:\/\//);
     assert.equal(ok._meta?.requestId, undefined);
-    const capped = await client.callTool({ name: 'search', arguments: { q: 'x402' } });
+    const capped = await client.callTool({ name: 'screenshot', arguments: { url: 'https://example.com' } });
     assert.equal(capped.isError, true);
     const text = capped.content.map((c) => c.text).join(' ');
     assert.match(text, /not available on the current plan/);
