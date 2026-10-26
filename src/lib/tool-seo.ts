@@ -424,7 +424,7 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
   "/sitemap": {
     title: "Sitemap URL extractor API: list the pages of a docs site",
     uses: ["Find which pages of a documentation site to read before calling /extract", "Filter URLs by a substring and page through large sitemaps", "Read source-reported last-modified dates"],
-    faq: [["Does it crawl the pages?", "No. It reads one XML sitemap or sitemap index (gzip supported); child sitemaps are not followed and URLs are not probed."], ["What are the limits?", "512 KiB expanded input and 1,000 entries. Invalid XML is not charged; a valid empty match is."]],
+    faq: [["Does it crawl the pages?", "No. It reads one XML sitemap or sitemap index (gzip supported); child sitemaps are not followed and URLs are not probed."], ["What are the limits?", "Larger sitemaps are read from the start: the first 512 KiB and 1,000 entries, with a warning. Invalid XML is not charged; a valid empty match is."]],
   },
   "/summarize": {
     title: "Web page summarizer API: summary and key points from a URL",

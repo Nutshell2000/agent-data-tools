@@ -63,9 +63,15 @@ test('duplicates and prohibited output URLs are omitted with truthful per-page c
   assert.ok(r.warnings.includes('counts_describe_reported_locations_before_public_url_validation'));
 });
 test('invalid XML, DTD, oversized expansion, complexity and unsupported types fail with no secondary requests', async () => {
-  for(const [path,status,code] of [['/malformed',422,'SITEMAP_INVALID'],['/dtd',422,'SITEMAP_DTD'],['/bomb',422,'SITEMAP_TOO_LARGE'],['/large',422,'SITEMAP_TOO_LARGE'],['/many',422,'SITEMAP_ENTRY_LIMIT'],['/depth',422,'SITEMAP_COMPLEXITY'],['/html',415,'SITEMAP_REQUIRED'],['/private',400,undefined]]){
+  for(const [path,status,code] of [['/malformed',422,'SITEMAP_INVALID'],['/dtd',422,'SITEMAP_DTD'],['/bomb',422,'SITEMAP_TOO_LARGE'],['/large',422,'SITEMAP_TOO_LARGE'],['/depth',422,'SITEMAP_COMPLEXITY'],['/html',415,'SITEMAP_REQUIRED'],['/private',400,undefined]]){
     const before=requests.length,r=await call(path),body=await r.json();assert.equal(r.status,status,path+JSON.stringify(body));if(code)assert.equal(body.code,code);assert.equal(requests.length,before+1,path);
   }
+});
+test('a sitemap with more than 1000 entries is read from the start: the first 1000, with a warning', async () => {
+  const r = await call('/many'), body = await r.json();
+  assert.equal(r.status, 200, JSON.stringify(body).slice(0, 300));
+  assert.equal(body.reportedEntries, 1000);
+  assert.ok(body.warnings.includes('large_sitemap_read_from_start_first_512_kib_or_1000_entries'));
 });
 test('invalid options fail before source fetching', async () => {
   for(const extra of [{maxUrls:'0'},{maxUrls:'101'},{offset:'-1'},{offset:'1001'},{contains:'x'.repeat(201)}]){const before=requests.length;const r=await call('/source.xml',extra);assert.equal(r.status,400);await r.body?.cancel();assert.equal(requests.length,before);}
