@@ -139,7 +139,10 @@ export const CHAIN_MORE: Entry[] = [
     { chain: "Base", tokenA: { address: "0x4200000000000000000000000000000000000006", symbol: "WETH" }, tokenB: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC" }, pools: [{ address: "0xd0b53D9277642d899DF5C87A3966A349A798F224", feeTier: 500, priceAinB: 2338.2, priceBinA: 0.000427679, tick: -199500, liquidity: "1234567890123", balanceA: 5100.2, balanceB: 9800000.5 }], source: "Uniswap v3 factory and pool contracts, read live" },
     async (env, q) => {
       const slug = chainSlug(opt(q, "chain", 30));
-      const a = tokenInput(need(q, "tokenA", 60), slug), b = tokenInput(need(q, "tokenB", 60), slug);
+      // pair=WETH/USDC as agents write it (26 Oct 2026 probe), when tokenA/tokenB are not given.
+      const pair = q("pair")?.split(/[/\s,:-]+/).filter(Boolean);
+      const pq = (n: string) => q(n) ?? (pair?.length === 2 ? pair[n === "tokenA" ? 0 : 1] : undefined);
+      const a = tokenInput(need(pq, "tokenA", 60), slug), b = tokenInput(need(pq, "tokenB", 60), slug);
       if (a.toLowerCase() === b.toLowerCase()) throw new HttpError(400, "tokenA and tokenB must differ");
       const cl = client(env, def(slug));
       const meta = async (t: `0x${string}`) => {
