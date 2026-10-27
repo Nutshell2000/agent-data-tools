@@ -252,5 +252,5 @@ const PRICE_TOOLS: Entry[] = [
       };
     }, "$0.005"),
 ];
-// /price/token and /price/tokens are in the chain-read price test (READ_TEST_PRICE in chain-reads.ts, until 2 Nov 2026).
+// /price/token and /price/tokens follow the chain-read price test (READ_TEST_PRICE in chain-reads.ts; ended 27 Oct 2026).
 export const PRICES: Entry[] = PRICE_TOOLS.map((e) => (e.endpoint.path.startsWith("/price/") ? testPriced(e) : e));

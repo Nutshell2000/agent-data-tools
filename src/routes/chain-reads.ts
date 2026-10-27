@@ -732,8 +732,11 @@ const EXTRA_READS: Entry[] = EXTRA_CHAINS.flatMap(chainEntries).filter((e) => !E
  * (Claw402's chain reads at $0.003 drew 161k calls from 72 payers in a week) and almost never $0.01. Single-network reads
  * that cost $0.01 go to $0.003; the sweeper still pays every listing at or below $0.01. Keep it if repeat payers and calls
  * come; revert to PRICE if they do not (business/agentic/base-bots/payments-to-us.mjs, payer-profile.mjs).
+ * Ended 27 Oct 2026 (Peter): the sweeper, our main payer, pays each listing at its live price about 1.3 times a week
+ * whatever the price, so the test cut its income on the 403 repriced tools by about 70% (~$3.5 a week), and the shopper
+ * bots had not bought. Equal to PRICE, testPriced changes nothing; set it again to rerun the test.
  */
-export const READ_TEST_PRICE = "$0.003";
+export const READ_TEST_PRICE = PRICE;
 export const testPriced = (e: Entry): Entry => (e.endpoint.price === PRICE ? { ...e, endpoint: { ...e.endpoint, price: READ_TEST_PRICE } } : e);
 export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries).map(testPriced), WALLET_BALANCES, ...EXTRA_READS.map(testPriced)];
 /** The extra networks' tool paths: HTTP and the /mcp/chain bundle only (mcp.ts). */
