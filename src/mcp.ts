@@ -154,7 +154,9 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // The extra networks' ~200 chain reads (chain-reads.ts EXTRA_CHAINS) are served over HTTP and in the /mcp/chain bundle only:
   // the main and signed-in servers would otherwise list over 500 tools, more than MCP clients handle well.
   const sized = bundle === "chain" ? catalog : catalog.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path));
-  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !(directory && DIRECTORY_EXCLUDED.has(e.path))) : sized);
+  // Both directory servers (Claude's /mcp/account, ChatGPT's /mcp/chatgpt) leave out the tools OpenAI's scan flagged: the
+  // same rules (third-party API rights, payment-card data, hard-to-reverse writes) are in Anthropic's directory review (27 Oct 2026).
+  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path)) : sized);
   // directory: the ChatGPT plugin server (/mcp/chatgpt). Same signed-in tools, but no prices, payment methods, links to
   // our checkout or request ids in what ChatGPT shows (its plugin rules); credits are bought on our site, outside ChatGPT.
   const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;

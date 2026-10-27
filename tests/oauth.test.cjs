@@ -128,7 +128,9 @@ test('signed-in without a key: no crypto payment request, a neutral message once
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(`${O}/mcp/account`), { requestInit: { headers: { authorization: `Bearer ${tokens.access_token}` } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
     assert.doesNotMatch(client.getInstructions(), /x402|USDC|payment request/);
-    const ai = await client.callTool({ name: 'search', arguments: { q: 'x402' } }); // paid search stays outside the free calls (AI text joined them 25 Oct 2026; /image is not on /mcp/account)
+    // The larger chat model stays outside the free calls (AI text joined them 25 Oct 2026; /image and, since 27 Oct, the Brave
+    // search tools are not on /mcp/account).
+    const ai = await client.callTool({ name: 'ai_chat_large', arguments: { prompt: 'Say hi' } });
     assert.equal(ai.isError, true);
     const text = ai.content.map((c) => c.text).join(' ');
     assert.match(text, /not included in the free calls/);
