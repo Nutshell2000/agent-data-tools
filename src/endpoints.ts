@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "567 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "566 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -927,6 +927,9 @@ export type EndpointPath = CoreEndpointPath | (string & {});
 export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.freeze({
   // Solana reads are back since 1.82.12 (26 Oct 2026): publicnode serves balances, accounts and transactions; only token
   // listings need the Foundation node, which refuses Cloudflare, so /solana/balance gives SOL and tokens when it can.
+  // /solana/tx paused 27 Oct 2026: publicnode keeps under 3 days of transactions and the Foundation node rate-limits Cloudflare
+  // (429), so any published example stops working within days and older signatures always answer 404.
+  "/solana/tx": "Solana transaction lookups need an archive node this service does not have yet; it would only find transactions from the last 2-3 days.",
   // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
   "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
   "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",

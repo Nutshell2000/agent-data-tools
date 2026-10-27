@@ -1,5 +1,5 @@
 {
-  "version": "1.82.17",
+  "version": "1.82.18",
   "tools": [
     {
       "name": "extract",
@@ -10692,30 +10692,6 @@
         },
         "required": [
           "mint"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "solana_tx",
-      "description": "Look up a Solana transaction by signature, live from mainnet: success or the error, slot and block time, fee in SOL, compute units used, signers, the programs it called and SOL balance changes per account. Use to confirm a Solana payment landed or see what a transaction did. A signature that is not base58 is 400; an unknown or too old signature is 404, both uncharged. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "signature": {
-            "type": "string",
-            "description": "Transaction signature (base58, 64 bytes)"
-          }
-        },
-        "required": [
-          "signature"
         ]
       },
       "price": "$0.01"
