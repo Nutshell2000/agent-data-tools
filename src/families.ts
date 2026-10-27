@@ -54,8 +54,9 @@ const CATALOG: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PD
  * hash, JSON, encoding, UUID and IP tools elsewhere at $0.001-0.002 hundreds of times and ours once. $0.002, not
  * $0.001: CDP charges $0.001 a settlement above 1,000 a month, so $0.001 would net nothing. Revert to PRICE if they
  * do not come (business/agentic/base-bots/payments-to-us.mjs).
+ * Ended 27 Oct 2026 with the chain-read test (READ_TEST_PRICE in routes/chain-reads.ts): back at PRICE.
  */
-export const LOCAL_TEST_PRICE = "$0.002";
+export const LOCAL_TEST_PRICE = PRICE;
 const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENERATORS, TOOLBOXES, TOOLBOXES2, FUN];
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
