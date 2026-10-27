@@ -927,6 +927,9 @@ export type EndpointPath = CoreEndpointPath | (string & {});
 export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.freeze({
   // Solana reads are back since 1.82.12 (26 Oct 2026): publicnode serves balances, accounts and transactions; only token
   // listings need the Foundation node, which refuses Cloudflare, so /solana/balance gives SOL and tokens when it can.
+  // /solana/tx paused 27 Oct 2026: publicnode keeps under 3 days of transactions and the Foundation node rate-limits Cloudflare
+  // (429), so any published example stops working within days and older signatures always answer 404.
+  "/solana/tx": "Solana transaction lookups need an archive node this service does not have yet; it would only find transactions from the last 2-3 days.",
   // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
   "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
   "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",
