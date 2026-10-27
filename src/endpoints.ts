@@ -7,6 +7,7 @@ import { SITEMAP_OUTPUT_EXAMPLE } from "./lib/sitemap-example";
 // Everything in discovery.ts, the HTTP routes and the MCP tools is generated from this file.
 import { EXTRACT_OUTPUT_SCHEMA } from "./lib/extract-contract";
 import { EXTRACT_OUTPUT_EXAMPLE } from "./lib/extract-example";
+import { SUMMARY_DETAILS } from "./lib/summary-details";
 
 /** Machine name: used for the MCP server and its registry entry. */
 export const SERVICE_ID = "agent-data-tools";
@@ -943,6 +944,8 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
 for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
+// Short listing names get their task sentence after the colon (lib/summary-details.ts); the name before the colon is unchanged.
+for (const e of ENDPOINTS) if (!e.summary.includes(":") && Object.hasOwn(SUMMARY_DETAILS, e.path)) (e as { summary: string }).summary = `${e.summary}: ${SUMMARY_DETAILS[e.path]}`;
 
 /**
  * The inputs of a tool's published example (service card, Bazaar discovery input, 402 Index URL): its required
