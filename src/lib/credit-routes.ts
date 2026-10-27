@@ -204,7 +204,9 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
       + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
-  return `Agent Data Tools: ${toolCount} pay-per-call tools: LLM chat and embeddings, speech to text and text to speech, image generation and description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, utilities. Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${PICK_BY_TASK}`;
+  // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
+  const kinds = signedIn ? DIRECTORY_KINDS : "LLM chat and embeddings, speech to text and text to speech, image generation and description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, utilities";
+  return `Agent Data Tools: ${toolCount} pay-per-call tools: ${kinds}. Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${signedIn ? DIRECTORY_PICK : PICK_BY_TASK}`;
 }
 
 /** Server instructions for the ChatGPT plugin server: no prices, payment methods or links (ChatGPT plugin rules). */
@@ -212,11 +214,13 @@ export function directoryInstructions(hasKey: boolean, toolCount: number) {
   const plan = hasKey
     ? "This account has prepaid credits: each successful call uses some; failed calls never count."
     : `This account includes ${FREE_CALLS_PER_CALLER} free successful calls (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. When they are used up, tools answer that they are not available on the current plan.`;
-  return `Agent Data Tools: ${toolCount} live data tools: LLM chat and embeddings, speech to text, image description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time and utilities. ${plan} Every tool's result shape is in its output schema. ${DIRECTORY_PICK}`;
+  return `Agent Data Tools: ${toolCount} live data tools: ${DIRECTORY_KINDS}. ${plan} Every tool's result shape is in its output schema. ${DIRECTORY_PICK}`;
 }
-// The task guide without the generative-media tools (not on the signed-in servers) and without other server addresses.
+// What the signed-in directory servers offer (mcp.ts leaves out generative media and the Brave search tools there).
+const DIRECTORY_KINDS = "LLM chat and embeddings, speech to text, image description, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time and utilities";
+// The task guide without the tools the signed-in servers leave out and without other server addresses.
 const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; OpenAI-compatible at /v1/chat/completions)", " (stronger model: ai_chat_large)")
-  .replace("; text to speech → ai_speech", "").replace("; an image from a prompt → image", "").replace(/ Smaller servers per section:.*$/, "");
+  .replace("; text to speech → ai_speech", "").replace("; an image from a prompt → image", "").replace("; current information from the web → search, news", "").replace(/ Smaller servers per section:.*$/, "");
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
 export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
