@@ -1,0 +1,15 @@
+{
+  "name": "agent-data-tools",
+  "version": "1.0.0",
+  "description": "Data tools for AI agents, one call each: PDF to text, web page to Markdown, web search, news, token prices, OFAC sanctions checks, chain reads, IP geolocation, hosted pages. 25 free calls, then card credits or x402.",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "bin": { "agent-data-tools": "./cli.mjs" },
+  "files": ["index.mjs", "cli.mjs", "examples", "README.md"],
+  "engines": { "node": ">=20" },
+  "license": "MIT",
+  "homepage": "https://agent-data-tools.revmesh2074.workers.dev/",
+  "repository": { "type": "git", "url": "git+https://github.com/Nutshell2000/agent-data-tools.git", "directory": "clients/agent-data-tools" },
+  "keywords": ["ai-agent", "agent-tools", "function-calling", "openai-tools", "mcp", "x402", "pdf-to-text", "web-scraping", "html-to-markdown", "web-search", "news-api", "token-price", "crypto-price", "ofac", "sanctions-screening", "ip-geolocation", "llm-tools"]
+}

@@ -19,6 +19,8 @@ export interface Env {
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
+  /** Origin in the URL /page/publish answers with; staging sets its own, production uses the public origin. */
+  PAGE_ORIGIN?: string;
   /** Workers AI calls per UTC day (default 1000) and hosted-browser launches per UTC day (default 60): the spend caps on Workers Paid. */
   AI_DAILY_CAP?: string;
   BROWSER_DAILY_CAP?: string;

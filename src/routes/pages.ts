@@ -103,6 +103,6 @@ export const PAGES: Entry[] = [
     },
     { id: "k7m2p9qxw4rt", url: `${PUBLIC_ORIGIN}/p/k7m2p9qxw4rt`, title: "Weekly report", bytes: 131, expiresAt: "2026-11-07T12:00:00.000Z", days: 7, removed: ["script", "style", "iframe", "form", "event handlers", "javascript: links"], notice: "Published for the publisher's own use; noindex; removal requests to the support address on /support." },
     async (env, q) => publishPage(env.TRIALS ?? null, { html: need(q, "html", MAX_HTML), title: opt(q, "title", MAX_TITLE), days: num(q, "days", { min: 1, max: MAX_DAYS, fallback: MAX_DAYS, integer: true }) },
-      async (text) => guardVerdict(String((await runAi<{ response?: unknown }>(env, GUARD_MODEL, { messages: [{ role: "user", content: text }] }))?.response ?? ""))),
+      async (text) => guardVerdict(String((await runAi<{ response?: unknown }>(env, GUARD_MODEL, { messages: [{ role: "user", content: text }] }))?.response ?? "")), env.PAGE_ORIGIN ?? PUBLIC_ORIGIN),
     "$0.01"), // every tool is at most $0.01 (Peter, 25 Oct 2026)
 ];
