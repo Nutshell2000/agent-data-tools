@@ -39,11 +39,16 @@ export function priceMicros(price: string): number {
 
 export const creditsFromMicros = (micros: number) => Math.round(micros / MICROS_PER_CREDIT * 1000) / 1000;
 
-/** The API key from `Authorization: Bearer adt_…` (or a bare `adt_…`) or `X-API-Key: adt_…`, when it has our shape. */
-export function apiKeyFrom(header: (name: string) => string | undefined): string | undefined {
+/**
+ * The API key from `Authorization: Bearer adt_…` (or a bare `adt_…`) or `X-API-Key: adt_…`, when it has our shape; with
+ * `query`, also from `?api_key=adt_…`. The query form exists for clients that can only fetch a URL (31 Oct 2026: Keenable's
+ * and Exa's page readers made 1,200 free /pdf/text and /extract calls a day for their agents and then hit the limit with no
+ * way to send a header). A key in a URL can land in logs, so /credits says to rotate a key that was shared.
+ */
+export function apiKeyFrom(header: (name: string) => string | undefined, query?: (name: string) => string | undefined): string | undefined {
   // MCP clients pass the Authorization value as typed, so accept the key with or without "Bearer ".
   const auth = /^(?:Bearer\s+)?(adt_\S+)$/i.exec((header("authorization") ?? "").trim())?.[1];
-  const key = auth ?? header("x-api-key")?.trim();
+  const key = auth ?? header("x-api-key")?.trim() ?? query?.("api_key")?.trim();
   return key && isCreditKey(key) ? key : undefined;
 }
 

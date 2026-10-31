@@ -65,7 +65,7 @@ export const CORE_ENDPOINTS = [
     path: "/sitemap",
     price: "$0.002",
     summary: "Sitemap parser, URL extractor: documentation URLs from a bounded XML sitemap",
-    description: "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Larger sitemaps are read from the start: the first 512 KiB and at most 1000 entries, with a warning. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract.",
+    description: "Sitemap parser: reads one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Large sitemaps are read from the start (512 KiB, 1000 entries at most, with a warning). Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract.",
     details: "XML only: the first 512 KiB (a compressed file must itself be under 512 KiB) and at most 1000 entries are read, 60000 XML elements, depth 16, locations up to 2048 characters. DTD declarations are rejected. contains is a case-insensitive substring of source-reported URLs, not semantic search. Pagination counts distinct reported loc values before public-URL validation of the selected page. Returned URLs are not probed; dates are not verified. Index entries are child sitemaps, not pages. DNS-resolution limitations of the public-fetch guard remain.",
     tags: ["web", "sitemap", "discovery", "research"],
     params: {
@@ -305,7 +305,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/describe",
     price: "$0.01",
-    summary: "Describe or question an image",
+    summary: "Describe image, ask about it",
     description:
       "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB. Use for alt text, OCR-style reading of screenshots, chart reading and content checks.",
     tags: ["vision", "image", "ocr", "caption", "ai"],
@@ -347,7 +347,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Bitcoin address balance and activity",
     description:
-      "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring.",
+      "Bitcoin address balance and activity for any mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring.",
     tags: ["bitcoin", "address", "balance", "btc", "onchain"],
     params: {
       address: { type: "string", description: "Bitcoin mainnet address (1..., 3... or bc1...)", required: true, example: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" },
@@ -702,7 +702,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Research papers, Crossref: academic papers search",
     description:
-      "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
+      "Research papers search across journals, conferences, preprints and books (Crossref): title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation.",
     tags: ["research", "papers", "academic", "search", "citations"],
     params: {
       query: { type: "string", description: "Search terms, a title or a research question (3-300 characters)", required: true, example: "CRISPR off-target effects" },

@@ -4,6 +4,7 @@ import { queueMetricBump, settledApiRevenueMicros } from "./revenue";
 import type { Outcome } from "../metrics";
 import { callerFamily } from "./caller";
 import { FAILURE_PREFIX, failureReason } from "./failure-reason";
+import { TARGET_UNAVAILABLE } from "./fetch";
 
 export function requestMetricsMiddleware(
   paidPaths: ReadonlySet<string>,
@@ -18,10 +19,15 @@ export function requestMetricsMiddleware(
     // A payment attempt answered 402 is a refused payment, not a quote: counted apart by protocol version
     // (v2 clients send PAYMENT-SIGNATURE, v1 clients X-PAYMENT, MPP clients Authorization: Payment) so refusals
     // are visible among the quotes.
+    const json = c.res.status >= 400 && (c.res.headers.get("content-type") ?? "").includes("json");
+    const body = json ? await c.res.clone().json().then((b) => b as { error?: unknown; code?: unknown } | null).catch(() => null) : null;
     if (c.res.status === 402 && c.req.header("payment-signature")) outcome = "v2_payment";
     else if (c.res.status === 402 && c.req.header("x-payment")) outcome = "v1_payment";
     else if (c.res.status === 402 && /(^|,)\s*Payment\s/i.test(c.req.header("authorization") ?? "")) outcome = "mpp_payment";
     else if (c.res.status === 402) outcome = "challenged";
+    // A target URL the caller named that was down, slow or broken (lib/fetch.ts TARGET_UNAVAILABLE) is the caller's input,
+    // like a 404 target: counted as failed, not as our server error.
+    else if (c.res.status >= 500 && body?.code === TARGET_UNAVAILABLE) outcome = "failed";
     else if (c.res.status >= 500) outcome = "errored";
     else if (c.res.status >= 400) outcome = "failed";
     else if (c.res.headers.get("X-Sample") === "1") outcome = "sample";
@@ -36,9 +42,8 @@ export function requestMetricsMiddleware(
     const caller = callerFamily(c.req.header("user-agent"), outcome === "marketplace" ? market : false);
     queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros, caller);
     // Why it failed, so /status can show it (the 21-23 Oct /pdf/text failures could not be diagnosed without logs).
-    if ((outcome === "failed" || outcome === "errored") && (c.res.headers.get("content-type") ?? "").includes("json")) {
-      const message = await c.res.clone().json().then((b) => (b as { error?: unknown } | null)?.error).catch(() => undefined);
-      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, message)}`, outcome);
+    if ((outcome === "failed" || outcome === "errored") && json) {
+      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, body?.error)}`, outcome);
     }
   };
 }

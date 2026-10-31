@@ -111,7 +111,7 @@ export const AGENT_INFRA: Entry[] = [
     }),
 
   entry("/mcp/inspect", "MCP server check, inspector: tools, auth and protocol",
-    "Inspect a remote MCP server over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy.",
+    "MCP server check over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy.",
     ["mcp-server-check", "mcp", "mcp-inspector", "agents", "developer-tools", "utility"], { url: { type: "string", description: "The MCP server's streamable-HTTP URL", required: true, example: "https://mcp.deepwiki.com/mcp" } },
     { url: "https://mcp.deepwiki.com/mcp", reachable: true, status: 200, authRequired: false, server: { name: "DeepWiki", version: "2.14.3" }, protocolVersion: "2025-06-18", capabilities: ["prompts", "resources", "tools"], transport: "sse", toolCount: 3, tools: [{ name: "read_wiki_structure", title: null, description: "Get a list of documentation topics for a GitHub repository", params: ["repoName"], required: ["repoName"] }], promptCount: 0, resourceCount: 0 },
     async (_e, q) => {
