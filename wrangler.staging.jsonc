@@ -24,6 +24,7 @@
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     // Base Sepolia only: no mainnet network is offered here, so nothing real can ever be paid to staging.
     "NETWORK": "eip155:84532",
+    "PAGE_ORIGIN": "https://agent-data-tools-staging.revmesh2074.workers.dev",
     "EXTRA_NETWORKS": "",
     "SOLANA_PAY_TO": "",
     // Coinbase's keyless testnet facilitator: verifies and settles Base Sepolia without CDP secrets.

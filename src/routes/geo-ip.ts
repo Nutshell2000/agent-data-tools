@@ -4,7 +4,37 @@
 // type and registration country. It is not city-level geolocation, and the copy says so. /geo/distance is local math.
 import { entry, need, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { countryName } from "../lib/country-code";
+import { bigToIp, findInShard, isReservedIp, parseIp, shardIndex, shardKey } from "../lib/ip-geo";
 import { CITIES } from "./weather";
+
+// ---------- IP geolocation (DB-IP City Lite in KV, 1.84.1) ----------
+// Zero.xyz demand on 31 Oct 2026: "ip geolocation" 22 buyers in 90 days with 6 sellers; Bazaar "ip lookup" 49 payers.
+// The data is DB-IP's free City Lite (CC BY 4.0): attribution and a link back travel in every answer. Sharded into KV by
+// scripts/build-ip-geo.mjs; one KV read (edge-cached a day), no outside request. City-level accuracy is the Lite set's.
+type GeoKv = Pick<KVNamespace, "get">;
+const CONTINENTS: Record<string, string> = { AF: "Africa", AN: "Antarctica", AS: "Asia", EU: "Europe", NA: "North America", OC: "Oceania", SA: "South America" };
+export const DBIP_ATTRIBUTION = "IP Geolocation by DB-IP (https://db-ip.com), IP to City Lite, CC BY 4.0";
+export async function geolocate(kv: GeoKv | null, raw: string) {
+  const ip = parseIp(raw);
+  if (!ip) throw new HttpError(400, "ip must be a public IPv4 or IPv6 address");
+  if (isReservedIp(ip.v, ip.n)) throw new HttpError(400, "private, loopback, link-local, multicast and other reserved addresses have no location");
+  if (!kv) throw new HttpError(503, "the geolocation data is not available right now; nothing was charged");
+  const metaText = await kv.get("ipgeo:meta", { type: "text", cacheTtl: 86_400 });
+  if (!metaText) throw new HttpError(503, "the geolocation data is being loaded; try again later, nothing was charged");
+  const meta = JSON.parse(metaText) as { month: string; v4: string[]; v6: string[] };
+  const i = shardIndex(ip.v === 4 ? meta.v4 : meta.v6, ip.n);
+  const shard = i < 0 ? null : await kv.get(shardKey(meta.month, ip.v, i), { type: "arrayBuffer", cacheTtl: 86_400 });
+  const hit = shard ? findInShard(ip.v, shard, ip.n) : null;
+  if (!hit) throw new HttpError(404, `no location record for ${bigToIp(ip.v, ip.n)}; nothing was charged`);
+  const [continent, country, region, city, latitude, longitude] = hit.loc;
+  return {
+    ip: bigToIp(ip.v, ip.n), version: ip.v, country, countryName: countryName(country), region: region || null, city: city || null, latitude, longitude,
+    continent, continentName: CONTINENTS[continent] ?? null, range: `${bigToIp(ip.v, hit.start)}-${bigToIp(ip.v, hit.end)}`,
+    accuracy: "city level at best; the free Lite data set, updated monthly", dataMonth: meta.month,
+    attribution: DBIP_ATTRIBUTION, attributionUrl: "https://db-ip.com",
+  };
+}
 
 const U = ["utility", "data"];
 
@@ -86,6 +116,14 @@ const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "
 const r = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
 export const GEO_IP: Entry[] = [
+  entry("/ip/geolocate", "IP geolocation: city, region, country and coordinates",
+    "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup.",
+    ["ip-geolocation", "ip-location", "geoip", "ip-to-city", "ip-address", "geo"], {
+      ip: { type: "string", description: "Public IPv4 or IPv6 address", required: true, example: "8.8.8.8" },
+    },
+    { ip: "8.8.8.8", version: 4, country: "US", countryName: "United States", region: "California", city: "Mountain View", latitude: 37.4056, longitude: -122.0775, continent: "NA", continentName: "North America", range: "8.8.8.0-8.8.8.255", accuracy: "city level at best; the free Lite data set, updated monthly", dataMonth: "2026-10", attribution: DBIP_ATTRIBUTION, attributionUrl: "https://db-ip.com" },
+    (env, q) => geolocate(env.TRIALS ?? null, need(q, "ip", 60))),
+
   entry("/ip/lookup", "IP lookup: owner, network range and country (RDAP)",
     "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged.",
     ["ip-lookup", "ip", "rdap", "whois", "network", ...U], { ip: { type: "string", description: "Public IPv4 or IPv6 address", required: true, example: "8.8.8.8" } },
