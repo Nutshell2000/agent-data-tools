@@ -1,9 +1,10 @@
 import type { MiddlewareHandler } from "hono";
+import { decodePaymentRequiredHeader } from "@x402/core/http";
 import type { Env } from "./env";
 import { queueMetricBump, settledApiRevenueMicros } from "./revenue";
 import type { Outcome } from "../metrics";
 import { callerFamily } from "./caller";
-import { FAILURE_PREFIX, failureReason } from "./failure-reason";
+import { FAILURE_PREFIX, failureReason, refusalReason } from "./failure-reason";
 import { TARGET_UNAVAILABLE } from "./fetch";
 
 export function requestMetricsMiddleware(
@@ -45,5 +46,16 @@ export function requestMetricsMiddleware(
     if ((outcome === "failed" || outcome === "errored") && json) {
       queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, body?.error)}`, outcome);
     }
+    // Why a buyer's payment was refused: until 1.84.2 this reached only wrangler tail, so lost buyers could not be explained.
+    if (outcome === "v2_payment" || outcome === "v1_payment" || outcome === "mpp_payment") {
+      const reason = outcome === "v2_payment" ? decodedChallengeError(c.res.headers.get("payment-required")) : body?.error;
+      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${refusalReason(reason)}`, outcome);
+    }
   };
+}
+
+/** The refusal message a v2 402 carries in its PAYMENT-REQUIRED header. */
+export function decodedChallengeError(header: string | null): string {
+  if (!header) return "no PAYMENT-REQUIRED header";
+  try { return String(decodePaymentRequiredHeader(header).error ?? "payment refused").slice(0, 160); } catch { return "unreadable PAYMENT-REQUIRED header"; }
 }

@@ -6,7 +6,7 @@ import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary
 import { takeFreeCall, refundFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
 import type { MetricsBatch } from "./lib/metrics-batch";
-import { FAILURE_PREFIX } from "./lib/failure-reason";
+import { FAILURE_PREFIX, REFUSED_PAYMENT } from "./lib/failure-reason";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
@@ -280,8 +280,10 @@ export class Metrics extends DurableObject {
         buyerErrors += row.failed ?? 0;
       }
       const ran = served + serverErrors;
-      const top = [...(reasons.get(path) ?? [])].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([reason, count]) => ({ reason, count }));
-      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}) };
+      const counted = [...(reasons.get(path) ?? [])].sort((a, b) => b[1] - a[1]);
+      const topOf = (refused: boolean) => counted.filter(([reason]) => reason.startsWith(`${REFUSED_PAYMENT} `) === refused).slice(0, 3).map(([reason, count]) => ({ reason, count }));
+      const top = topOf(false), refusals = topOf(true);
+      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}), ...(refusals.length ? { paymentRefusals: refusals } : {}) };
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };

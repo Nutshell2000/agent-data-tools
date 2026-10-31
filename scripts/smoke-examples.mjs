@@ -49,7 +49,9 @@ const mf = new Miniflare(convertV4MiniflareOptions({
   },
 }));
 
-const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
+// Reads KV shards that only production and staging hold, so this local run cannot answer it; prove it on staging.
+const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate"]);
+const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
 let results = [];
 async function runExample(e) {
   const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)]));

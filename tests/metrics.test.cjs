@@ -475,6 +475,36 @@ test("failure reasons: counted per tool by kind, never with the caller's input, 
   assert.equal((await metrics.report())[today]["#err /pdf/text 415 url must point to a PDF; got text/html"], undefined, "reasons stay out of the per-path report");
 });
 
+test("refused payments show their reason on /status, apart from tool failures and without the caller's values", async () => {
+  const { refusalReason, failureReason } = await loadTypeScript(require.resolve("../src/lib/failure-reason.ts"));
+  assert.equal(refusalReason("network my-secret-chain is not accepted; use one of: base, polygon"), "402 network is not accepted");
+  assert.equal(refusalReason("the authorization must pay at least 10000 atomic USDC to 0xdeadbeef01 (got 5 to attacker text)"), "402 the authorization must pay at least N atomic USDC to <hex>");
+  assert.equal(failureReason(400, "bad"), "400 bad");
+  const { metrics } = createMetrics();
+  const app = new Hono();
+  app.use(requestMetricsMiddleware(new Set(["/extract/rendered"]), () => false));
+  app.get("/extract/rendered", (c) => {
+    if (c.req.header("x-payment")) return c.json({ error: "X-PAYMENT is not valid base64 JSON" }, 402);
+    if (c.req.header("authorization")) return c.json({ error: "payment invalid: challenge expired" }, 402);
+    if (c.req.header("payment-signature")) return c.json({}, 402, { "PAYMENT-REQUIRED": btoa(JSON.stringify({ x402Version: 2, error: "invalid_exact_evm_insufficient_balance", resource: { url: "https://x.test/" }, accepts: [] })) });
+    if (c.req.query("bad")) return c.json({ error: "url is required" }, 400);
+    return c.json({ error: "payment required" }, 402);
+  });
+  const env = { METRICS: { idFromName: () => "global", get: () => metrics } };
+  const pending = [];
+  const executionCtx = { waitUntil: (p) => pending.push(p) };
+  const call = (headers, query = "") => app.fetch(new Request(`https://x.test/extract/rendered${query}`, { headers }), env, executionCtx);
+  await call({ "x-payment": "x" }); await call({ "x-payment": "x" });
+  await call({ authorization: "Payment x" });
+  await call({ "payment-signature": "x" });
+  await call({}, "?bad=1");
+  await call({}); // a plain quote is not a refusal
+  await sendBatchNow(metrics); await Promise.all(pending);
+  const [tool] = (await metrics.status(["/extract/rendered"])).tools;
+  assert.deepEqual(tool.paymentRefusals, [{ reason: "402 X-PAYMENT is not valid baseN JSON", count: 2 }, { reason: "402 payment invalid: challenge expired", count: 1 }, { reason: "402 invalid_exact_evm_insufficient_balance", count: 1 }]);
+  assert.deepEqual(tool.topFailures, [{ reason: "400 url is required", count: 1 }]);
+});
+
 test("failure reasons are capped per day, the rest counted as other", async () => {
   const { metrics } = createMetrics();
   for (let i = 0; i < 230; i++) await metrics.bump(`#err /tool${i} 400 bad input`, "failed");

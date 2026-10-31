@@ -7,6 +7,7 @@
 import { createReadStream, mkdirSync, writeFileSync } from "node:fs";
 import { createGunzip } from "node:zlib";
 import { createInterface } from "node:readline";
+import { basename } from "node:path";
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 
@@ -18,7 +19,8 @@ const m = { exports: {} };
 new Function("module", "exports", "require", built.outputFiles[0].text)(m, m.exports, require);
 const { parseIp, shardKey, encodeShard } = m.exports;
 
-const month = /(\d{4}-\d{2})/.exec(input)?.[1];
+// The file name only: a folder name can hold digits that look like a month (a session id gave "4291-84" on 31 Oct 2026).
+const month = /(?:^|[^\d])(20\d{2}-(?:0[1-9]|1[0-2]))(?=[^\d]|$)/.exec(basename(input))?.[1];
 if (!month) { console.error("the file name must hold the month (YYYY-MM)"); process.exit(2); }
 const SHARD_BYTES = 256 * 1024, FILE_KEYS = 200; // 200 keys x 256 KiB x 4/3 (base64) stays under wrangler's 100 MB a request
 const REC = { 4: 10, 6: 34 };
