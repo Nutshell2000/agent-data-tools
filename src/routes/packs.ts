@@ -3,7 +3,7 @@
 // overview 50, token analysis 42 (the #1 there has 22 payers), email deliverability 36, security audit 36, website audit 23,
 // ip intelligence 24, wallet profile 14. Every section runs the same code as the single tool; a section that fails is
 // reported in `failed` and the rest still answer. Only when every section fails is the call refused (502, uncharged).
-import { entry, need, opt, pick, type Entry, type Input } from "../family";
+import { entry, need, opt, pick, type Entry, type Input, PACK_PRICE } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { bitcoinFees } from "./bitcoin";
 import { CHAIN_READS } from "./chain-reads";
@@ -107,7 +107,7 @@ export const PACKS: Entry[] = [
         bitcoinFees: fees?.fees ? { nextBlock: fees.fees.nextBlock, hour: fees.fees.hour, unit: fees.unit ?? "sat/vB" } : null,
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/token-analysis", "Token analysis, token security: price, supply, proxy and risk checks",
     "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token.",
@@ -133,7 +133,7 @@ export const PACKS: Entry[] = [
         risk: data.risk ?? null, contract: data.contract ?? null,
         ...(chain === "base" ? {} : { note: "honeypot and contract risk checks cover Base only" }), failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/email-deliverability", "Email deliverability check: MX, SPF, DMARC, DKIM and score",
     "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain.",
@@ -164,7 +164,7 @@ export const PACKS: Entry[] = [
       const flags = { mtaSts: has("mtaSts", /v=STSv1/i), tlsRpt: has("tlsRpt", /v=TLSRPTv1/i), bimi: has("bimi", /v=BIMI1/i) };
       const scored = emailScore({ mx: mx.length, ...d.email, dkim, ...flags });
       return { pack: "email-deliverability", domain, ...scored, mx, spf: d.email.spf, spfPolicy: d.email.spfPolicy, dmarc: d.email.dmarc, dmarcPolicy: d.email.dmarcPolicy, dkimSelectors: dkim, ...flags, address: data.address ?? null, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/website-audit", "Website audit, security audit: uptime, SEO, security headers, redirects and DNS",
     "One call to audit a website: is it up and how fast, the redirect chain (including whether plain http moves to https), the on-page SEO audit with its score and issues, HTTP security headers and their grade, robots.txt for the page, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Cheaper than the six tools bought one by one. Use before a launch, for a client report or to compare competitors.",
@@ -198,7 +198,7 @@ export const PACKS: Entry[] = [
         domain: dom ? { ...(dom.registration ? pick2(dom.registration, ["registrar", "registeredAt", "expiresAt", "ageDays"]) : {}), spfPolicy: dom.email?.spfPolicy ?? null, dmarcPolicy: dom.email?.dmarcPolicy ?? null } : null,
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/ip-intelligence", "IP intelligence: owner, network, reverse DNS and type",
     "One call for everything about an IP address: its type (public, private, loopback, carrier-grade NAT), the registry record (holding organisation, network name and range, registration country, abuse contact) and the reverse DNS name. IPv4 and IPv6. Registration country, not city geolocation. Cheaper than the tools bought one by one. Use to investigate an address in logs, a login or an abuse report.",
@@ -218,7 +218,7 @@ export const PACKS: Entry[] = [
         registry: reg ? { holder: reg.holder?.name ?? null, network: reg.network?.name ?? null, range: reg.network?.start ? `${reg.network.start} - ${reg.network.end}` : null, country: reg.country ?? null, abuseEmail: reg.abuseEmail ?? null, registry: reg.registry ?? null } : null,
         reverseDns: data.reverseDns ?? null, failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/wallet-profile", "Wallet profile: balances, activity, contract check and sanctions",
     "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty.",
@@ -246,5 +246,5 @@ export const PACKS: Entry[] = [
         sanctions: data.sanctions ? pick2(data.sanctions, ["verdict", "listed", "matches", "source"]) : null,
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

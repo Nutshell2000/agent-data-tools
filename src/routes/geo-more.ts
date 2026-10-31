@@ -2,7 +2,7 @@
 // top 20: reverse geocoding 48 (ours was #10 with a forward-only tool), token research 26, crypto research 14.
 // Reverse geocoding asks the Wikidata Query Service (CC0 data) for populated places around a point; answers are cached at
 // the edge for a day per rounded point because the service is shared and slow when cold (about 2 s, then 0.2 s).
-import { entry, num, opt, type Entry } from "../family";
+import { entry, num, opt, type Entry, PACK_PRICE } from "../family";
 import { HttpError } from "../lib/env";
 import { call, runSections } from "./packs";
 
@@ -104,5 +104,5 @@ export const GEO_MORE: Entry[] = [
         signals: { "4h": sig(data.h4), "1d": sig(data.d1) },
         sentiment: s ? { value: s.value, classification: s.classification, attribution: s.attribution } : null, failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

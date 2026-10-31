@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.84.2";
+export const MCP_SERVER_VERSION = "1.84.3";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -228,7 +228,7 @@ export function paymentClientExample(origin: string, payTo: string, path = "/ext
 
 function clientGuidance() {
   const cap = exampleSpendCap().price;
-  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at ${cap}, the ordinary per-call price, so it pays for every tool priced at ${cap} or less. Every tool costs at most ${cap}, so that cap pays all of them.`;
+  return `Start with /guides/web-reading and the bundled Node CLI at /clients/reader/${READER_VERSION}/reader-client.mjs; quote needs no key and never signs, while buy requires an explicit cap. Cached examples: /examples/extract/manifest.json. The homepage and llms.txt also include a TypeScript x402 client example pinned to Base, this service's PAY_TO recipient and Base USDC. It caps each payment at ${cap}, the ordinary per-call price, so it pays for every tool priced at ${cap} or less. Most tools cost ${cap}; packs cost $0.03 and /dex/new-pools $0.05, so raise that cap to call those.`;
 }
 
 /** Catalog sections for people browsing: first matching rule wins, everything else is a utility. */
@@ -389,7 +389,7 @@ ${rows}
     <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
-<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Every tool costs at most $0.01, so a cap of $0.01 pays all of them.</p>
+<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Most tools cost $0.01, so a cap of $0.01 pays them; packs cost $0.03 and /dex/new-pools $0.05.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
 <p class="note"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></p>
@@ -595,7 +595,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     "## Advanced TypeScript x402 client",
     "",
-    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at ${exampleSpendCap().price}, the ordinary per-call price, so it pays for every tool priced at ${exampleSpendCap().price} or less (/extract costs ${catalogEndpoint("/extract").price}). Every tool costs at most ${exampleSpendCap().price}, so this cap pays all of them. It never sends trial=1.`,
+    `The example below pins Base, this service's PAY_TO recipient and Base USDC, and caps each payment at ${exampleSpendCap().price}, the ordinary per-call price, so it pays for every tool priced at ${exampleSpendCap().price} or less (/extract costs ${catalogEndpoint("/extract").price}). Most tools cost ${exampleSpendCap().price}; packs cost $0.03 and /dex/new-pools $0.05, so raise the cap to call those. It never sends trial=1.`,
     "",
     "Install with `npm install @x402/fetch @x402/evm viem` and `npm install --save-dev typescript tsx @types/node`. Save as `client.ts` and run `npx tsx client.ts`. Set `X402_PRIVATE_KEY` in a secret manager or process environment; never paste it into source or commit it.",
     "",

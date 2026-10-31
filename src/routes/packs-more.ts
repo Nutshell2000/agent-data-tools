@@ -1,7 +1,7 @@
 // More packs (1.61.0). Bazaar search on 24 Oct 2026, summed 30-day payers over the top 20: transaction decoder 18 and explain
 // transaction 21 (Base Tx Explain has 5), nft analysis 33, location data 25 and place information 32, text analysis 29.
 import { decodeEventLog, formatEther, formatGwei, formatUnits, isHash, parseAbi, type Hex } from "viem";
-import { entry, need, pick, type Entry } from "../family";
+import { entry, need, pick, type Entry, PACK_PRICE } from "../family";
 import { HttpError } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { CHAINS, client, rpc } from "./chain-reads";
@@ -89,7 +89,7 @@ export const PACKS_MORE: Entry[] = [
         summary: [...(tx.value > 0n ? [`${formatEther(tx.value)} ${c.symbol} sent from ${short(tx.from)} to ${short(tx.to ?? "0x")}`] : []), ...describeEvents(events.slice(0, 50), meta)],
         logs: receipt.logs.length, block: Number(receipt.blockNumber),
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/nft-analysis", "NFT analysis: owner, metadata, holdings and collection",
     "One call to analyse an NFT: its current owner, its metadata (name, description, image, traits from data:, https or ipfs), how many NFTs of the collection that owner holds, and the collection contract (name, symbol, whether it is an upgradeable proxy). ERC-721 on Base, Ethereum, Arbitrum, Optimism or Polygon. Cheaper than the tools bought one by one. Use before buying, listing or verifying an NFT.",
@@ -117,7 +117,7 @@ export const PACKS_MORE: Entry[] = [
         metadata: md?.metadata ?? null, tokenUri: md?.tokenUri ?? null, metadataError: md?.metadataError ?? null,
         proxy: data.proxy ? { isProxy: (data.proxy as { isProxy: boolean }).isProxy, kind: (data.proxy as { kind: string }).kind } : null, failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/location-brief", "Location data, place brief: weather, sunrise and country facts",
     "One call for a place by name: its coordinates, country, region, population and elevation (Wikidata), the current weather and a short hourly forecast (MET Norway, CC BY 4.0), today's sunrise, sunset and day length, and facts about its country (capital, region, income level, population). Cheaper than the tools bought one by one. Use for travel planning, event and delivery context, or enriching a city name in a record.",
@@ -138,7 +138,7 @@ export const PACKS_MORE: Entry[] = [
         ...(code ? { country: call(env, "/country", { country: code }) } : {}),
       });
       return { pack: "location-brief", place: first, weather: data.weather ?? null, sun: data.sun ?? null, country: data.country ?? null, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/text-analysis", "Text analysis: readability, keywords, entities and safety",
     "One call to analyse a text: length, reading time and readability grade, the top keywords and repeated phrases with their density, the emails, links, phone numbers, hashtags and mentions it contains, and a prompt-injection scan for text an agent is about to act on. Up to 20,000 characters, local processing. Cheaper than the four tools bought one by one. Use to review drafts, triage inbound messages or vet scraped content.",
@@ -158,5 +158,5 @@ export const PACKS_MORE: Entry[] = [
       });
       const kw = data.keywords as { keywords?: unknown[]; phrases?: unknown[] } | undefined;
       return { pack: "text-analysis", stats: data.stats ?? null, keywords: kw?.keywords ?? null, phrases: kw?.phrases ?? null, extracted: data.extracted ?? null, injection: data.injection ?? null, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

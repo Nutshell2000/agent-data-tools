@@ -22,13 +22,13 @@ test('url safety signals: bare IPs, punycode, new domains, plain HTTP, user@host
   assert.ok(urlSignals(u('https://a.example/'), u('https://d.example/'), ['a.example', 'b.example', 'c.example', 'd.example'], 900).signals.some((s) => s.code === 'cross_domain_redirects'));
 });
 
-test('research packs: names within 32 characters, descriptions within 450, one cent, inputs checked before any request', async () => {
+test('research packs: names within 32 characters, descriptions within 450, price, inputs checked before any request', async () => {
   const { PACKS_RESEARCH } = await load();
   assert.deepEqual(PACKS_RESEARCH.map((e) => e.endpoint.path), ['/pack/web-research', '/ai/answer', '/ai/fact-check', '/pack/news-sentiment', '/pack/url-safety']);
   for (const e of PACKS_RESEARCH) {
     assert.ok(e.endpoint.summary.split(':')[0].length <= 32, e.endpoint.summary);
     assert.ok(e.endpoint.description.length <= 450, `${e.endpoint.path} ${e.endpoint.description.length}`);
-    assert.equal(e.endpoint.price, '$0.01');
+    assert.equal(e.endpoint.price, e.endpoint.path.startsWith('/pack/') ? '$0.03' : '$0.01');
     await assert.rejects(Promise.resolve().then(() => e.run({}, () => undefined)), (err) => err.status === 400, e.endpoint.path);
   }
   await assert.rejects(Promise.resolve().then(() => PACKS_RESEARCH[2].run({}, (n) => (n === 'url' ? 'http://127.0.0.1/' : undefined))), (err) => err.status === 400);
