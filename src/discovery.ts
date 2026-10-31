@@ -1,15 +1,16 @@
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
+import { listingName as bazaarName } from "./lib/bazaar-extension";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
 import { TASK_GUIDES } from "./guides/task-guides";
-import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
+import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, PAUSED_FAMILY_TOOLS, SERVICE_ICON_URL, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 import { salesOrdered } from "./lib/discovery-index";
 
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.83.4";
+export const MCP_SERVER_VERSION = "1.84.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -63,6 +64,34 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
       alternatives: [{ method: "card-credits", buy: `${origin}/credits`, header: "Authorization: Bearer adt_…", query: "api_key=adt_…", balance: `${origin}/credits/balance` }],
     },
     tools: salesOrdered(ENDPOINTS).map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
+  };
+}
+
+/**
+ * A2A agent card (/.well-known/agent.json, 1.84.0): the Agent2Agent discovery file that A2A registries and the FluxA
+ * AgentMarket crawl. We are a tool provider, not a conversational agent, so every skill is one paid HTTP call, and the
+ * card points at the x402 payment terms and the MCP endpoint instead of an A2A task endpoint.
+ */
+export function agentCard(origin: string, networks: readonly string[] = ["eip155:8453"]) {
+  const lead = salesOrdered(ENDPOINTS).filter((e) => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path)).slice(0, 60);
+  return {
+    name: SERVICE_NAME,
+    description: SERVICE_SUMMARY,
+    url: origin,
+    provider: { organization: "SpellzCode", url: origin },
+    version: MCP_SERVER_VERSION,
+    documentationUrl: `${origin}/llms.txt`,
+    iconUrl: SERVICE_ICON_URL,
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false },
+    defaultInputModes: ["text/plain", "application/json"],
+    defaultOutputModes: ["application/json"],
+    securitySchemes: {
+      x402: { type: "http", scheme: "x402", description: `HTTP 402 per call; pay USDC on ${networks.join(", ")} with any x402 client, or MPP. Terms in each tool's 402 body.` },
+      apiKey: { type: "apiKey", in: "header", name: "Authorization", description: `Prepaid card credits from ${origin}/credits: "Bearer adt_…" (or api_key=adt_… in the URL).` },
+    },
+    payment: { protocol: "x402", asset: "USDC", networks, freeCalls: FREE_CALLS_PER_CALLER, credits: `${origin}/credits` },
+    interfaces: { openapi: `${origin}/openapi.json`, mcp: `${origin}/mcp`, llms: `${origin}/llms.txt`, discovery: `${origin}/discovery/resources` },
+    skills: lead.map((e) => ({ id: mcpName(e.path), name: bazaarName(e.summary), description: e.description, tags: e.tags.slice(0, 5), price: e.price, examples: [`${origin}${e.path}?${exampleQuery(e)}`], inputModes: ["application/json"], outputModes: ["application/json"] })),
   };
 }
 
@@ -206,7 +235,7 @@ function clientGuidance() {
 const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Prices and DeFi", (p) => /^\/(price\/|wallet\/portfolio|token|trade-insight|liquidity-pool-audit|mev-simulator|contract-risk|wallet-audit|btc-price|hyperliquid\/|crypto\/fear-greed|pack\/crypto-market|pack\/token-analysis|pack\/coin-research|fx$)/.test(p)],
   ["Chain data", (p) => /^\/(base|eth|arb|op|polygon|solana|evm|avax|gnosis|linea|zksync|scroll|mantle|celo|sonic|unichain|hyperevm|bera|ink|sei)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|wallet\/balances|pack\/wallet-profile|pack\/tx-explain|pack\/nft-analysis|pack\/evm-toolbox|pack\/gas-tracker|whale\/transfers|stablecoin\/supply|token\/supply|contract\/abi|uniswap\/pool|dex\/new-pools|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
-  ["Web, documents and search", (p) => /^\/(contents|extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|url\/redirects|url\/uptime|url\/favicon|image\/metadata|tech\/stack|pack\/seo-toolkit|seo\/audit|robots|search|news|wikipedia|dictionary|papers|pack\/web-research|pack\/news-sentiment)$/.test(p)],
+  ["Web, documents and search", (p) => /^\/(contents|page\/publish|extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|url\/redirects|url\/uptime|url\/favicon|image\/metadata|tech\/stack|pack\/seo-toolkit|seo\/audit|robots|search|news|wikipedia|dictionary|papers|pack\/web-research|pack\/news-sentiment)$/.test(p)],
   ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|check\/counterparty|check\/payee|check\/x402-seller|domain|domain-report|email|package|package-audit|x402\/check|sec\/filings|sec\/8k|sec\/insider|sec\/13f|gov\/federal-register|text\/prompt-injection|text\/pii|http\/security-headers|dockerfile\/lint|dns\/lookup|dns\/propagation|ip\/lookup|pack\/api-health|openapi\/summary|mcp\/inspect|pack\/email-deliverability|pack\/website-audit|pack\/ip-intelligence|pack\/domain-intel|pack\/url-safety)$/.test(p)],
   ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
   ["Everyday data", (p) => /^\/(weather|pack\/location-brief|geocode\/reverse|time|holidays|geocode|earthquakes|airport\/status|gov\/clinical-trials|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/")],
