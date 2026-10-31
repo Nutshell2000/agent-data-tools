@@ -34,7 +34,7 @@ import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
-import { pageHtml, readPage } from "./routes/pages";
+import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
@@ -589,6 +589,8 @@ for (const path of ["/.well-known/agent.json", "/.well-known/agent-card.json"]) 
 }
 // Pages published through /page/publish (1.84.0): sanitised HTML from KV, noindex, strict CSP, gone after at most 7 days.
 app.get("/p/:id", async (c) => {
+  // Other people's pages never appear under the owner's puzzle domain, which only runs the indexing test.
+  if (new URL(c.req.url).hostname === INDEXING_TEST_HOST) return c.notFound();
   const page = await readPage(c.env.TRIALS ?? null, c.req.param("id"));
   if (!page) return c.html("<!doctype html><meta charset=utf-8><meta name=robots content=noindex><title>Page not found</title><p>This page does not exist or has expired. Pages published through Agent Data Tools stay online for at most 7 days.</p>", 404);
   return c.html(pageHtml(page, SUPPORT_EMAIL), 200, {
