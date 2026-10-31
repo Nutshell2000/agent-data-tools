@@ -1,5 +1,5 @@
 {
-  "version": "1.83.4",
+  "version": "1.84.0",
   "tools": [
     {
       "name": "extract",
@@ -14507,6 +14507,42 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "page_publish",
+      "description": "Publish an HTML page and get a public URL for it (valid up to 7 days): send the HTML (up to 200,000 characters) and an optional title; the page is sanitised (no scripts, styles, frames, forms or event handlers; links and https images stay), screened by content moderation, stored, and served at /p/<id> with noindex. Use to hand a person a report, table or summary your agent produced, or to share results between agents. Removal requests: /support. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string",
+            "description": "The HTML to publish (body content or a full document), up to 200,000 characters"
+          },
+          "title": {
+            "type": "string",
+            "description": "Page title (default: the first line of text)"
+          },
+          "days": {
+            "description": "Days the page stays online, 1 to 7 (default 7)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "html"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "whale_transfers",
