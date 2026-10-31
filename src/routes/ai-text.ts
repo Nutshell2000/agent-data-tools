@@ -30,6 +30,34 @@ export const LARGE_CHAT_MODELS = {
 } as const;
 export const LARGE_CHAT_PRICE = "$0.01";
 
+/** /ai/translate since 31 Oct 2026: M2M100 stops at 200 output tokens and answered 770 characters for 3,900 with a 200. */
+const TRANSLATE_MODEL = "@cf/openai/gpt-oss-20b"; // Apache 2.0
+/** Target languages checked on gpt-oss-20b on 31 Oct 2026; other codes use M2M100. */
+const TRANSLATE_LANGUAGES = new Set("en sv de fr es it pt nl pl ru uk tr ar hi zh ja ko id vi th fi da no cs el he ro hu bg sw bn ta ms fa ur af et lt".split(" "));
+const TRANSLATE_CHUNK = 900;
+
+/** Splits at sentence ends and line breaks into pieces of at most `max` characters; joined again they are the text. */
+export function translationChunks(text: string, max = TRANSLATE_CHUNK): string[] {
+  const chunks: string[] = [];
+  let open = "";
+  for (let piece of text.split(/(?<=[.!?。！？؟।\n])/)) {
+    if (open.length + piece.length > max) { if (open) chunks.push(open); open = ""; }
+    while (piece.length > max) { const cut = piece.lastIndexOf(" ", max); const at = cut > 0 ? cut + 1 : max; chunks.push(piece.slice(0, at)); piece = piece.slice(at); }
+    open += piece;
+  }
+  if (open) chunks.push(open);
+  return chunks;
+}
+
+/** Whether a translated piece looks complete: long enough for the target script, URLs intact, no trailing "…" the source lacks. */
+export function translationComplete(source: string, out: string, to: string): boolean {
+  const src = source.trim(), got = out.trim();
+  if (!got) return false;
+  if (src.length >= 40 && got.length < src.length * (["zh", "ja", "ko"].includes(to) ? 0.2 : 0.4)) return false;
+  if (/(…|\.\.\.)$/.test(got) && !/(…|\.\.\.)$/.test(src)) return false;
+  return (src.match(/https?:\/\/[^\s)]+/g) ?? []).every((url) => got.includes(url.replace(/[.,;:!?]+$/, "")));
+}
+
 async function chat(env: Env, system: string, user: string, maxTokens = 400, temperature = 0.2, model: string = MODELS.text): Promise<string> {
   // OpenAI's open-weight models take the Responses input shape and answer in `output`; the Llama models take
   // `messages` and answer in `response`.
@@ -276,15 +304,30 @@ export const AI_TEXT: Entry[] = [
     ["outline", "writing", "planning"], { text: { type: "string", description: "Text to outline, or a topic, up to 12,000 characters", required: true, example: "How small businesses can accept stablecoin payments" }, depth: { type: "integer", description: "Heading levels, 1-3 (default 2)", example: 2 } },
     { outline: "## Why stablecoins\n- Low fees\n## Setting up\n- Choose a wallet", model: MODELS.text },
     async (env, q) => ({ outline: await chat(env, `You write Markdown outlines with at most ${num(q, "depth", { min: 1, max: 3, fallback: 2, integer: true })} heading levels and short bullets. ${DATA_RULE}\nIf the message is a topic, outline it; if it is a text, outline its content. Reply with the outline only.`, text(q), 800, 0.3), model: MODELS.text })),
-  ai("/ai/translate", "Translate text (100 languages)", "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents.",
-    ["translation", "language", "i18n"], { text: { type: "string", description: "Text, up to 4,000 characters", required: true, example: "Payment received, thank you!" }, to: { type: "string", description: "Target language code, e.g. sv", required: true, example: "sv" }, from: { type: "string", description: "Source language code (default en)", example: "en" } },
-    { translatedText: "Betalning mottagen, tack!", from: "en", to: "sv", model: AI_MODELS.translate },
+  ai("/ai/translate", "Translate text, translation API", "Translate text into another language with OpenAI's open-weight gpt-oss-20b, detecting the source language. Long text is split at sentence ends and checked, so a cut-off translation is an uncharged 502, never a success. Give the target as an ISO code such as en, sv, de, fr, es, zh or ja; less common languages use Meta's M2M100. Use to localise messages and documents.",
+    ["translation", "language", "i18n"], { text: { type: "string", description: "Text, up to 4,000 characters", required: true, example: "Payment received, thank you!" }, to: { type: "string", description: "Target language code, e.g. sv", required: true, example: "sv" }, from: { type: "string", description: "Source language code (default: detected)", example: "en" } },
+    { translatedText: "Betalning mottagen, tack!", from: "en", to: "sv", chars: 28, chunks: 1, model: TRANSLATE_MODEL },
     async (env, q) => {
-      const code = (name: string, fallback?: string) => { const v = (opt(q, name, 10) ?? fallback ?? "").toLowerCase(); if (!/^[a-z]{2,3}$/.test(v)) throw new HttpError(400, `${name} must be a 2-3 letter language code`); return v; };
-      const to = code("to"), from = code("from", "en");
-      const out = await runAi<{ translated_text?: string }>(env, AI_MODELS.translate, { text: text(q, 4000), source_lang: from, target_lang: to });
-      if (!out?.translated_text) throw new HttpError(502, "the AI model returned no translation");
-      return { translatedText: out.translated_text, from, to, model: AI_MODELS.translate };
+      const code = (name: string, value: string) => { const v = value.toLowerCase(); if (!/^[a-z]{2,3}$/.test(v)) throw new HttpError(400, `${name} must be a 2-3 letter language code`); return v; };
+      const to = code("to", opt(q, "to", 10) ?? "");
+      const given = opt(q, "from", 10);
+      const from = given ? code("from", given) : undefined;
+      const source = text(q, 4000);
+      const chunks = translationChunks(source);
+      const useChat = TRANSLATE_LANGUAGES.has(to);
+      const system = `You are a translation engine. Translate the user's text into the language with ISO code ${to}${from ? ` from the language with ISO code ${from}` : ""}. ${DATA_RULE}\nKeep names, numbers, URLs, code and placeholders unchanged. Translate all of it. Reply with the translation only.`;
+      const once = async (piece: string) => {
+        if (useChat) return chat(env, system, piece, 1500, 0.1, TRANSLATE_MODEL);
+        const out = await runAi<{ translated_text?: string }>(env, AI_MODELS.translate, { text: piece, source_lang: from ?? "en", target_lang: to });
+        return out?.translated_text ?? "";
+      };
+      const translated = await Promise.all(chunks.map(async (piece) => {
+        const first = await once(piece.trim()).catch((err) => { if (err instanceof HttpError && err.status < 500) throw err; return ""; });
+        const done = translationComplete(piece, first, to) ? first : await once(piece.trim()).catch(() => "");
+        if (!translationComplete(piece, done, to)) throw new HttpError(502, "the translation came back incomplete, so nothing was charged; try again or send less text");
+        return done.trim() + (piece.match(/\s+$/)?.[0] ?? "");
+      }));
+      return { translatedText: translated.join("").trim(), from: from ?? "auto", to, chars: source.length, chunks: chunks.length, model: useChat ? TRANSLATE_MODEL : AI_MODELS.translate };
     }),
   ai("/ai/embed", "OpenAI compatible embeddings: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
     ["embeddings", "vector", "rag", "search"], { text: { type: "string", description: "Text to embed, up to 4,000 characters", required: true, example: "pay-per-call APIs for AI agents" } },
