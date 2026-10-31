@@ -17,3 +17,15 @@ export function failureReason(status: number, message: unknown): string {
     .replace(/\s+/g, " ").trim().slice(0, 100);
   return `${status} ${clean || "no message"}`;
 }
+
+/** Status of a refused payment in a failure reason: /status lists these apart from tool failures, as paymentRefusals. */
+export const REFUSED_PAYMENT = 402;
+
+/**
+ * Why a payment attempt was refused. Our v1 messages echo unquoted values from the caller's payment (network, version,
+ * amount), which must not reach the public /status, so those parts go before the usual clean-up.
+ */
+export function refusalReason(message: unknown): string {
+  const text = typeof message === "string" ? message : "";
+  return failureReason(REFUSED_PAYMENT, text.replace(/\s*\(got [^)]*\)/g, "").replace(/^network .*? is not accepted.*$/s, "network is not accepted"));
+}

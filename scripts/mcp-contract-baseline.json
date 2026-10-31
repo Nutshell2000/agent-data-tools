@@ -1,5 +1,5 @@
 {
-  "version": "1.84.1",
+  "version": "1.84.2",
   "tools": [
     {
       "name": "extract",
@@ -12908,7 +12908,7 @@
     },
     {
       "name": "ip_geolocate",
-      "description": "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
