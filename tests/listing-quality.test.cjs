@@ -154,7 +154,8 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/package", ["package", "risk"]],
     ["/price/token", ["crypto", "token", "price"]],
     ["/extract", ["scrape website", "page to markdown"]],
-    ["/ai/chat", ["llm chat completion", "chat completions"]],
+    // 31 Oct 2026: "Chat completions" (equal payers) sat above "LLM chat completions" for "chat completions": the phrase first.
+    ["/ai/chat", ["chat completions", "llm"]],
     ["/ai/embed", ["embeddings", "openai compatible"]],
     // Bazaar search (22 Oct 2026) found "Domain lookup (DNS, WHOIS)" for "domain lookup" but not for "dns lookup",
     // and "Crypto token price" for "token price" but not for "crypto price": the task phrase must appear as written.
@@ -166,7 +167,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/check/x402-seller", ["x402 audit"]],
     ["/price/token", ["crypto price", "token price"]],
     ["/search", ["web search"]],
-    ["/news", ["crypto news", "news headlines"]], // 25 Oct: "latest news" is held by a 13-payer listing; "crypto news" #1 has 2
+    ["/news", ["news headlines", "latest news"]], // 31 Oct: /news is the first tool real shoppers bought repeatedly; "crypto news" stays a tag
     ["/qr", ["qr code generator"]],
     ["/calc/loan", ["loan", "mortgage calculator"]],
     ["/calc/compound-interest", ["compound interest"]],
@@ -178,7 +179,7 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/text/caesar", ["caesar cipher", "rot13"]],
     ["/xml/to-json", ["xml to json"]],
     ["/json/schema", ["json schema"]],
-    ["/validate/luhn", ["credit card validation"]],
+    ["/validate/luhn", ["luhn check", "card validation"]],
     ["/color", ["hex to rgb", "color"]],
     ["/time", ["timezone", "current time"]],
     ["/hyperliquid/candles", ["crypto candles", "ohlcv"]],

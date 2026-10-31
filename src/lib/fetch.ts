@@ -61,6 +61,14 @@ const CACHE_MAX_BYTES = 12 * 1024 * 1024;
  * What a target's 4xx means for the caller. Medium, nytimes.com, Stack Overflow and Reuters answer automated readers
  * 401/403 (checked 24 Oct 2026); "check that the URL is public and correct" sent agents to fix a URL that was fine.
  */
+/**
+ * Error code on failures of the target the caller named (down, slow, broken redirects, 5xx): uncharged, and counted
+ * as the caller's input in /status rather than as our server errors (31 Oct 2026: agents' page readers sent dead URLs
+ * to /extract and /pdf/text and took the success rate from 98% to 95%).
+ */
+export const TARGET_UNAVAILABLE = "TARGET_UNAVAILABLE";
+const targetDown = (status: 502 | 504, message: string) => new HttpError(status, message, TARGET_UNAVAILABLE);
+
 export function targetRefusal(status: number) {
   if (status === 401 || status === 403 || status === 451) return `the site refused automated access (HTTP ${status}): it blocks bots or needs a login, so this URL cannot be read here (nothing was charged)`;
   if (status === 404 || status === 410) return `the page was not found (HTTP ${status}); check the URL (nothing was charged)`;
@@ -109,16 +117,16 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     } catch (e) {
       const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");
       if (!timedOut && !retried && Date.now() + 700 < deadline) { retried = true; await sleep(700); continue; }
-      throw new HttpError(timedOut ? 504 : 502, timedOut ? `target did not respond within ${Math.round(budgetMs / 1000)} seconds` : "could not reach target URL");
+      throw targetDown(timedOut ? 504 : 502, timedOut ? `target did not respond within ${Math.round(budgetMs / 1000)} seconds` : "could not reach target URL");
     }
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const location = res.headers.get("location");
       await res.body?.cancel().catch(() => {});
-      if (!location) throw new HttpError(502, "target redirect has no location");
-      if (redirects === 5) throw new HttpError(502, "target exceeded the five redirect limit");
+      if (!location) throw targetDown(502, "target redirect has no location");
+      if (redirects === 5) throw targetDown(502, "target exceeded the five redirect limit");
       let next: URL;
       try { next = new URL(location, current); }
-      catch { throw new HttpError(502, "target redirect location is invalid"); }
+      catch { throw targetDown(502, "target redirect location is invalid"); }
       // Validate BEFORE making the redirected request, never after automatic follow.
       current = parseTarget(next.href);
       redirects++;
@@ -135,9 +143,9 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
         const wait = retryDelayMs(res);
         if (wait !== null && Date.now() + wait < deadline) { retried = true; await sleep(wait); continue; }
       }
-      throw new HttpError(callerSide ? 422 : 502, callerSide ? targetRefusal(res.status) : `target responded with HTTP ${res.status}`);
+      throw callerSide ? new HttpError(422, targetRefusal(res.status)) : targetDown(502, `target responded with HTTP ${res.status}`);
     }
-    if (!res.body && !allowed) throw new HttpError(502, "target returned an empty body");
+    if (!res.body && !allowed) throw targetDown(502, "target returned an empty body");
     if (cache && cacheKey && res.ok && res.body) {
       const bytes = await res.arrayBuffer();
       const headers = new Headers(res.headers);

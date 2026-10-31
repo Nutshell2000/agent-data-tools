@@ -54,6 +54,11 @@ test('keys are read from Bearer or X-API-Key and must have our shape', () => {
   assert.equal(credits.apiKeyFrom((n) => ({ authorization: key })[n]), key);
   assert.equal(credits.apiKeyFrom((n) => ({ authorization: 'Bearer sk_live_x' })[n]), undefined);
   assert.equal(credits.apiKeyFrom(() => undefined), undefined);
+  // Fetch-only clients (31 Oct 2026): the key in the URL as api_key=, same shape rules; a header wins over the query.
+  assert.equal(credits.apiKeyFrom(() => undefined, (n) => ({ api_key: key })[n]), key);
+  assert.equal(credits.apiKeyFrom(() => undefined, (n) => ({ api_key: 'adt_short' })[n]), undefined);
+  assert.equal(credits.apiKeyFrom(() => undefined, (n) => ({ key: key })[n]), undefined, 'only api_key, never the HMAC tool input key');
+  assert.equal(credits.apiKeyFrom((n) => ({ authorization: `Bearer ${key}` })[n], () => 'adt_' + 'z'.repeat(43)), key);
 });
 
 test('a checkout session grants credits once; a repeat claim returns the same key', async () => {
@@ -120,7 +125,7 @@ test('only a paid, complete credits checkout with matching amount and pack is ac
 function app(env) {
   const a = new Hono();
   a.use('/tool', async (c, next) => {
-    const key = credits.apiKeyFrom((n) => c.req.header(n));
+    const key = credits.apiKeyFrom((n) => c.req.header(n), (n) => c.req.query(n));
     if (key) return routes.chargeCredits(c, '$0.002', key, next);
     return c.json({}, 402);
   });
@@ -147,7 +152,12 @@ test('paywall charges a key per successful call and refunds failed calls', async
   assert.equal(res.headers.get('X-Credits-Charged'), '0');
   assert.equal(res.headers.get('X-Credits-Remaining'), '3');
 
-  assert.equal((await fetch('/tool', auth)).status, 200);
+  // The same key in the URL (fetch-only clients) is charged like the header.
+  res = await fetch(`/tool?api_key=${key}`);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('X-Credits-Charged'), '2');
+  assert.equal(res.headers.get('X-Credits-Remaining'), '1');
+  assert.equal((await fetch('/tool?api_key=adt_notakey')).status, 402, 'a key of the wrong shape is ignored');
   res = await fetch('/tool', auth);
   assert.equal(res.status, 402);
   const short = await res.json();

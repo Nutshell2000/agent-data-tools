@@ -1,5 +1,5 @@
 {
-  "version": "1.82.18",
+  "version": "1.83.0",
   "tools": [
     {
       "name": "extract",
@@ -461,7 +461,7 @@
     },
     {
       "name": "sitemap",
-      "description": "Read one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Larger sitemaps are read from the start: the first 512 KiB and at most 1000 entries, with a warning. Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Example: url=https://www.sitemaps.org/sitemap.xml. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Sitemap parser: reads one public XML sitemap or sitemap index as structured URLs and source-reported dates. Supports gzip, substring filtering and pagination. Large sitemaps are read from the start (512 KiB, 1000 entries at most, with a warning). Does not crawl pages or follow child sitemaps. Invalid XML and execution errors are not charged; a valid empty match is charged. Use to find which pages of a docs site to read before calling /extract. Example: url=https://www.sitemaps.org/sitemap.xml. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1036,7 +1036,7 @@
     },
     {
       "name": "btc_address",
-      "description": "Balance and activity of any Bitcoin mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring. Example: address=bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Bitcoin address balance and activity for any mainnet address (legacy, P2SH or bech32): confirmed balance in sats and BTC, unconfirmed pending amount, total received and sent, and transaction counts. Use for payment verification, checking whether a deposit arrived, and wallet monitoring. Example: address=bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1292,7 +1292,7 @@
     },
     {
       "name": "papers",
-      "description": "Search scholarly literature across journals, conferences, preprints and books: title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation. Example: query=CRISPR off-target effects. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Research papers search across journals, conferences, preprints and books (Crossref): title, authors, year, venue, citation count, DOI link and abstract where available. Optional fromYear filter and up to 20 results per call. Use for research agents, literature reviews, fact-checking a claim against published work, and finding the DOI for a citation. Example: query=CRISPR off-target effects. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10836,7 +10836,7 @@
     },
     {
       "name": "news",
-      "description": "Search current news on any topic, crypto included, and get the latest headlines as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures return 503, uncharged. Use when an agent needs current news on a topic. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "News headlines on any topic, crypto included, as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures return 503, uncharged. Use when an agent needs current news on a topic. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11552,7 +11552,7 @@
     },
     {
       "name": "hash",
-      "description": "Hash UTF-8 text with SHA-256 (default), SHA-1, SHA-384 or SHA-512 and return the digest in hex and base64. Use for checksums, cache keys and deduplication. Example: text=hello. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "SHA256 hash of UTF-8 text (SHA-256 by default; SHA-1, SHA-384 or SHA-512 on request), returned as a digest in hex and base64. Use for checksums, cache keys and deduplication. Example: text=hello. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12111,7 +12111,7 @@
     },
     {
       "name": "validate_luhn",
-      "description": "Check whether a card number or other ID passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Example: number=79927398713. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Luhn check: whether a card number or other ID passes the Luhn (mod 10) algorithm used by card numbers, IMEI numbers and many IDs, and compute the check digit to append. Only the format is checked; nothing is looked up. Use to catch typos in card or ID numbers. Example: number=79927398713. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12244,7 +12244,7 @@
     },
     {
       "name": "semver",
-      "description": "Compare two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules) and get which is newer, plus the next major, minor and patch versions of the first. Use to decide whether an upgrade is a major change. Example: a=1.10.0, b=1.9.3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Semver compare of two semantic versions (1.2.3, pre-releases like 2.0.0-rc.1 handled by the SemVer rules): which is newer, plus the next major, minor and patch versions of the first. Use to decide whether an upgrade is a major change. Example: a=1.10.0, b=1.9.3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12273,7 +12273,7 @@
     },
     {
       "name": "jwt_decode",
-      "description": "Decode a JSON Web Token's header and payload without verifying the signature, and report issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows. Example: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJleHAiOjE3OTIyODE2MDB9.sig. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "JWT decode without a key: the header and payload of a JSON Web Token (the signature is not verified), with issued-at, not-before and expiry as dates and whether it has expired. The token is not stored. Do not use the result to trust a token. Use to debug auth flows. Example: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJleHAiOjE3OTIyODE2MDB9.sig. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12480,7 +12480,7 @@
     },
     {
       "name": "calc_compound_interest",
-      "description": "Future value of savings or an investment with compound interest: starting amount, annual rate, years, compounding (yearly, quarterly, monthly or daily) and an optional contribution at the end of each month. Returns the final balance, total contributed, interest earned and the balance after each year. Use for savings goals and investment what-ifs; rates are assumed constant. Example: principal=10000, rate=7, years=10. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Compound interest on savings or an investment: starting amount, annual rate, years, compounding (yearly, quarterly, monthly or daily) and an optional contribution at the end of each month. Returns the future value, total contributed, interest earned and the balance after each year. Use for savings goals and investment what-ifs; rates are assumed constant. Example: principal=10000, rate=7, years=10. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12726,7 +12726,7 @@
     },
     {
       "name": "xml_to_json",
-      "description": "Convert an XML document to JSON: attributes become \"@name\" keys, text becomes \"#text\" (or the value itself when an element only holds text), and repeated child elements become arrays. DOCTYPEs and external entities are refused, so nothing outside the document is ever loaded. Up to 100,000 characters. Use to read XML feeds, SOAP responses and config files in an agent. Example: xml=<order id=\"7\"><item sku=\"a1\">Pen</item><item sku=\"b2\">Ink</item></order>. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "XML to JSON for any XML document: attributes become \"@name\" keys, text becomes \"#text\" (or the value itself when an element only holds text), and repeated child elements become arrays. DOCTYPEs and external entities are refused, so nothing outside the document is ever loaded. Up to 100,000 characters. Use to read XML feeds, SOAP responses and config files in an agent. Example: xml=<order id=\"7\"><item sku=\"a1\">Pen</item><item sku=\"b2\">Ink</item></order>. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13040,7 +13040,7 @@
     },
     {
       "name": "evm_checksum",
-      "description": "Validate an EVM address and return its EIP-55 checksummed form, saying whether the input was all lower case, all upper case, correctly checksummed or mixed case with a wrong checksum (a likely typo). Works for every EVM chain. Use before sending funds or storing an address; for whether it is a contract use <chain>_is_contract. Example: address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Address checksum for any EVM address: validates it and returns the EIP-55 checksummed form, saying whether the input was all lower case, all upper case, correctly checksummed or mixed case with a wrong checksum (a likely typo). Works for every EVM chain. Use before sending funds or storing an address; for whether it is a contract use <chain>_is_contract. Example: address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13538,7 +13538,7 @@
     },
     {
       "name": "pack_email_deliverability",
-      "description": "One call to check a domain's email setup: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13974,7 +13974,7 @@
     },
     {
       "name": "mcp_inspect",
-      "description": "Inspect a remote MCP server over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy. Example: url=https://mcp.deepwiki.com/mcp. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "MCP server check over streamable HTTP: whether it answers initialize, its name, version, protocol version and capabilities, whether it needs sign-in (OAuth or another 401 challenge), and its tools with names, titles, descriptions and input parameters, plus prompt and resource counts. Read-only: it lists, never calls a tool. Use to vet an MCP server before adding it to an agent, or to check your own after a deploy. Example: url=https://mcp.deepwiki.com/mcp. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14046,7 +14046,7 @@
     },
     {
       "name": "text_language",
-      "description": "Detect which language a text is written in: the most likely language with its ISO 639-3 and 639-1 codes and English name, plus the next candidates with relative scores, using trigram statistics for 82 major languages (franc-min). Works best above about 20 characters; very short or mixed text returns und (undetermined). Local, no outside service. Use to route messages, pick a translation target or filter content by language. Example: text=Det här är en mening skriven på svenska om väder och resor.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Language detection for a text: the most likely language with its ISO 639-3 and 639-1 codes and English name, plus the next candidates with relative scores, using trigram statistics for 82 major languages (franc-min). Works best above about 20 characters; very short or mixed text returns und (undetermined). Local, no outside service. Use to route messages, pick a translation target or filter content by language. Example: text=Det här är en mening skriven på svenska om väder och resor.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15083,7 +15083,7 @@
     },
     {
       "name": "dictionary",
-      "description": "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games. Example: word=serendipity. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Dictionary definition of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games. Example: word=serendipity. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

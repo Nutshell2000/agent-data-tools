@@ -458,18 +458,20 @@ test("failure reasons: counted per tool by kind, never with the caller's input, 
     const kind = c.req.query("kind");
     if (kind === "html") return c.json({ error: "url must point to a PDF; got text/html" }, 415);
     if (kind === "slow") return c.json({ error: "target did not respond within 8 seconds" }, 504);
+    // The target the caller named was down (lib/fetch.ts TARGET_UNAVAILABLE): the caller's input, not our server error.
+    if (kind === "down") return c.json({ error: "target responded with HTTP 503", code: "TARGET_UNAVAILABLE" }, 502);
     if (kind === "page") return c.html("<p>error page</p>", 422);
     return c.json({ ok: true });
   });
   const env = { METRICS: { idFromName: () => "global", get: () => metrics } };
   const pending = [];
   const executionCtx = { waitUntil: (p) => pending.push(p) };
-  for (const kind of ["html", "html", "slow", "page", "ok"]) await app.fetch(new Request(`https://x.test/pdf/text?kind=${kind}&url=https://a.example/b.pdf`), env, executionCtx);
+  for (const kind of ["html", "html", "slow", "down", "page", "ok"]) await app.fetch(new Request(`https://x.test/pdf/text?kind=${kind}&url=https://a.example/b.pdf`), env, executionCtx);
   await sendBatchNow(metrics); await Promise.all(pending);
   const tool = (await metrics.status(["/pdf/text", "/weather"])).tools;
-  assert.deepEqual(tool[0].topFailures, [{ reason: "415 url must point to a PDF; got text/html", count: 2 }, { reason: "504 target did not respond within N seconds", count: 1 }]);
+  assert.deepEqual(tool[0].topFailures, [{ reason: "415 url must point to a PDF; got text/html", count: 2 }, { reason: "504 target did not respond within N seconds", count: 1 }, { reason: "502 target responded with HTTP N", count: 1 }]);
   assert.equal(tool[1].topFailures, undefined, "no key for a tool without failures");
-  assert.deepEqual([tool[0].served, tool[0].buyerErrors, tool[0].serverErrors], [1, 3, 1]);
+  assert.deepEqual([tool[0].served, tool[0].buyerErrors, tool[0].serverErrors], [1, 4, 1]);
   assert.equal((await metrics.report())[today]["#err /pdf/text 415 url must point to a PDF; got text/html"], undefined, "reasons stay out of the per-path report");
 });
 

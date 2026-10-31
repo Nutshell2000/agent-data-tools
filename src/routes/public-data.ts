@@ -112,7 +112,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { title: r.title, description: r.description ?? null, extract: r.extract, type: r.type, url: r.content_urls?.desktop?.page ?? null, thumbnail: r.thumbnail?.source ?? null, licence: "CC BY-SA 4.0", attribution: `Text from the Wikipedia article "${r.title}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
-  entry("/dictionary", "Dictionary definition: English words", "Definitions of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games.",
+  entry("/dictionary", "Dictionary definition: English words", "Dictionary definition of an English word from Wiktionary, grouped by part of speech, with example sentences where Wiktionary gives them, plus the page link and the CC BY-SA attribution to show. Use for writing help, vocabulary, translation checks and word games.",
     ["dictionary", "language", "english", ...P], { word: { type: "string", description: "An English word", required: true, example: "serendipity" } },
     { word: "serendipity", meanings: [{ partOfSpeech: "Noun", definitions: [{ definition: "An unsought, unintended, and/or unexpected, but fortunate, discovery.", example: null }] }], url: "https://en.wiktionary.org/wiki/serendipity", licence: "CC BY-SA 4.0", attribution: "Definitions from the Wiktionary entry \"serendipity\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
