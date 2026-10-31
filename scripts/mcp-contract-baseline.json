@@ -1,5 +1,5 @@
 {
-  "version": "1.83.2",
+  "version": "1.83.3",
   "tools": [
     {
       "name": "extract",
@@ -15020,6 +15020,47 @@
           "tokenA",
           "tokenB"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "dex_new_pools",
+      "description": "Newest liquidity pools on Uniswap v3, Uniswap v2 and (on Base) Aerodrome, read live from the factories' PoolCreated and PairCreated events on Base, Ethereum, Arbitrum, Optimism or Polygon: pool address, both tokens with symbol and decimals, fee tier or stable flag, block, transaction and approximate age, newest first. Use to spot new token listings, watch pool launches or feed a new-pair screener; check token_report before trading. Example: chain=base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "base (default), ethereum, arbitrum, optimism or polygon"
+          },
+          "dex": {
+            "type": "string",
+            "description": "all (default), uniswap-v3, uniswap-v2 or aerodrome (Base only)"
+          },
+          "blocks": {
+            "description": "How many recent blocks to scan, 100 to 20000 (default 3000: about 100 minutes on Base, 10 hours on Ethereum)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "description": "Most pools to return, 1 to 30 (default 20)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
       },
       "price": "$0.01"
     },
