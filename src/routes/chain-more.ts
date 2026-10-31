@@ -236,5 +236,5 @@ export const CHAIN_MORE: Entry[] = [
         pools: pools.map((p) => ({ ...p, token0: { address: p.token0, ...meta.get(p.token0 as `0x${string}`) }, token1: { address: p.token1, ...meta.get(p.token1 as `0x${string}`) }, approxAgeMinutes: sig6((Number(latest) - p.block) * secs / 60) })),
         source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live",
       };
-    }),
+    }, "$0.05"), // price test until 14 Nov 2026 (owner, 31 Oct); the one measured buyer paid a competitor $0.10
 ];

@@ -23,14 +23,14 @@ test('ABI summary lists function, event and error signatures', async () => {
   assert.deepEqual(s.errors, ['Unauthorized()']);
 });
 
-test('chain tools: names within 32 characters, descriptions within 450, "Use" guidance, one cent', async () => {
+test('chain tools: names within 32 characters, descriptions within 450, "Use" guidance, price', async () => {
   const { CHAIN_MORE } = await load();
   assert.deepEqual(CHAIN_MORE.map((e) => e.endpoint.path), ['/stablecoin/supply', '/token/supply', '/contract/abi', '/uniswap/pool', '/dex/new-pools']);
   for (const { endpoint: e } of CHAIN_MORE) {
     assert.ok(e.summary.split(':')[0].length <= 32, e.summary);
     assert.ok(e.description.length <= 450, `${e.path} ${e.description.length}`);
     assert.match(e.description, /(^|\. )Use (when|to|for|before|as) /, e.path);
-    assert.equal(e.price, '$0.01');
+    assert.equal(e.price, e.path === '/dex/new-pools' ? '$0.05' : '$0.01'); // price test until 14 Nov 2026
   }
 });
 

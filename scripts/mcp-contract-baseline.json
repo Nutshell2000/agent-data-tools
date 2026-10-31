@@ -1,5 +1,5 @@
 {
-  "version": "1.84.2",
+  "version": "1.84.3",
   "tools": [
     {
       "name": "extract",
@@ -13513,7 +13513,7 @@
     },
     {
       "name": "pack_crypto_market",
-      "description": "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard. Example: coins=BTC,ETH,SOL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard. Example: coins=BTC,ETH,SOL. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13530,11 +13530,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_token_analysis",
-      "description": "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token. Example: token=0x4200000000000000000000000000000000000006. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token. Example: token=0x4200000000000000000000000000000000000006. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13558,11 +13558,11 @@
           "token"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_email_deliverability",
-      "description": "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13586,11 +13586,11 @@
           "domain"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_website_audit",
-      "description": "One call to audit a website: is it up and how fast, the redirect chain (including whether plain http moves to https), the on-page SEO audit with its score and issues, HTTP security headers and their grade, robots.txt for the page, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Cheaper than the six tools bought one by one. Use before a launch, for a client report or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to audit a website: is it up and how fast, the redirect chain (including whether plain http moves to https), the on-page SEO audit with its score and issues, HTTP security headers and their grade, robots.txt for the page, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Cheaper than the six tools bought one by one. Use before a launch, for a client report or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13610,11 +13610,11 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_ip_intelligence",
-      "description": "One call for everything about an IP address: its type (public, private, loopback, carrier-grade NAT), the registry record (holding organisation, network name and range, registration country, abuse contact) and the reverse DNS name. IPv4 and IPv6. Registration country, not city geolocation. Cheaper than the tools bought one by one. Use to investigate an address in logs, a login or an abuse report. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for everything about an IP address: its type (public, private, loopback, carrier-grade NAT), the registry record (holding organisation, network name and range, registration country, abuse contact) and the reverse DNS name. IPv4 and IPv6. Registration country, not city geolocation. Cheaper than the tools bought one by one. Use to investigate an address in logs, a login or an abuse report. Example: ip=8.8.8.8. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13634,11 +13634,11 @@
           "ip"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_wallet_profile",
-      "description": "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13658,11 +13658,11 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_hash_toolbox",
-      "description": "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems. Example: text=hello world. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems. Example: text=hello world. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13690,11 +13690,11 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_encoding_toolbox",
-      "description": "Every common encoding of one text in a single call: Base64 and Base64url, hex, URL component and full-URL encoding, HTML-escaped, ROT13, Unicode code points, UTF-8 byte count and Punycode for international domain names, plus automatic decoding when the input already looks like Base64, hex, URL or HTML encoding. Use to prepare data for headers, URLs and markup, or to work out what an encoded string says. Example: text=Café & <tags>. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Every common encoding of one text in a single call: Base64 and Base64url, hex, URL component and full-URL encoding, HTML-escaped, ROT13, Unicode code points, UTF-8 byte count and Punycode for international domain names, plus automatic decoding when the input already looks like Base64, hex, URL or HTML encoding. Use to prepare data for headers, URLs and markup, or to work out what an encoded string says. Example: text=Café & <tags>. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13714,11 +13714,11 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_json_toolbox",
-      "description": "Everything about one JSON document in a single call: valid or not with the error's line and column, pretty-printed (optionally with sorted keys), minified with the bytes saved, an inferred JSON Schema, structure statistics (depth, objects, arrays, keys, value types) and the same data as YAML. Up to 200 KB. Cheaper than the separate JSON tools. Use to inspect API responses, clean model output or document a payload. Example: json={\"name\":\"agent\",\"tools\":[\"weather\",\"search\"],\"active\":true,\"limits\":{\"daily\":100}}. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Everything about one JSON document in a single call: valid or not with the error's line and column, pretty-printed (optionally with sorted keys), minified with the bytes saved, an inferred JSON Schema, structure statistics (depth, objects, arrays, keys, value types) and the same data as YAML. Up to 200 KB. Cheaper than the separate JSON tools. Use to inspect API responses, clean model output or document a payload. Example: json={\"name\":\"agent\",\"tools\":[\"weather\",\"search\"],\"active\":true,\"limits\":{\"daily\":100}}. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13746,11 +13746,11 @@
           "json"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_tx_explain",
-      "description": "Explain an EVM transaction in plain words: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting it or reporting it. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Explain an EVM transaction in plain words: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting it or reporting it. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13774,11 +13774,11 @@
           "hash"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_nft_analysis",
-      "description": "One call to analyse an NFT: its current owner, its metadata (name, description, image, traits from data:, https or ipfs), how many NFTs of the collection that owner holds, and the collection contract (name, symbol, whether it is an upgradeable proxy). ERC-721 on Base, Ethereum, Arbitrum, Optimism or Polygon. Cheaper than the tools bought one by one. Use before buying, listing or verifying an NFT. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to analyse an NFT: its current owner, its metadata (name, description, image, traits from data:, https or ipfs), how many NFTs of the collection that owner holds, and the collection contract (name, symbol, whether it is an upgradeable proxy). ERC-721 on Base, Ethereum, Arbitrum, Optimism or Polygon. Cheaper than the tools bought one by one. Use before buying, listing or verifying an NFT. Example: contract=0xC36442b4a4522E871399CD717aBDD847Ab11FE88, tokenId=1. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13811,11 +13811,11 @@
           "tokenId"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_location_brief",
-      "description": "One call for a place by name: its coordinates, country, region, population and elevation (Wikidata), the current weather and a short hourly forecast (MET Norway, CC BY 4.0), today's sunrise, sunset and day length, and facts about its country (capital, region, income level, population). Cheaper than the tools bought one by one. Use for travel planning, event and delivery context, or enriching a city name in a record. Example: place=Stockholm. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for a place by name: its coordinates, country, region, population and elevation (Wikidata), the current weather and a short hourly forecast (MET Norway, CC BY 4.0), today's sunrise, sunset and day length, and facts about its country (capital, region, income level, population). Cheaper than the tools bought one by one. Use for travel planning, event and delivery context, or enriching a city name in a record. Example: place=Stockholm. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13835,11 +13835,11 @@
           "place"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_text_analysis",
-      "description": "One call to analyse a text: length, reading time and readability grade, the top keywords and repeated phrases with their density, the emails, links, phone numbers, hashtags and mentions it contains, and a prompt-injection scan for text an agent is about to act on. Up to 20,000 characters, local processing. Cheaper than the four tools bought one by one. Use to review drafts, triage inbound messages or vet scraped content. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to analyse a text: length, reading time and readability grade, the top keywords and repeated phrases with their density, the emails, links, phone numbers, hashtags and mentions it contains, and a prompt-injection scan for text an agent is about to act on. Up to 20,000 characters, local processing. Cheaper than the four tools bought one by one. Use to review drafts, triage inbound messages or vet scraped content. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13859,11 +13859,11 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_id_toolbox",
-      "description": "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data. Example: count=3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data. Example: count=3. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13892,11 +13892,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_string_toolbox",
-      "description": "Transform one string every common way at once: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, path/case, Title Case, Sentence case, upper and lower; a URL slug (accents removed); reversed; trimmed and whitespace-collapsed; and counts of characters, letters, digits, words and lines. Splits identifiers like userIDValue or XMLHttpRequest correctly. Use when naming fields, files and routes or cleaning user input. Example: text=Hello World, user profile ID 42. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Transform one string every common way at once: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, path/case, Title Case, Sentence case, upper and lower; a URL slug (accents removed); reversed; trimmed and whitespace-collapsed; and counts of characters, letters, digits, words and lines. Splits identifiers like userIDValue or XMLHttpRequest correctly. Use when naming fields, files and routes or cleaning user input. Example: text=Hello World, user profile ID 42. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13916,7 +13916,7 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "geocode_reverse",
@@ -13953,7 +13953,7 @@
     },
     {
       "name": "pack_coin_research",
-      "description": "One call to research a single coin traded on Hyperliquid (BTC, ETH, SOL, HYPE and about 200 more): price, 24-hour change, volume and open interest, the funding rate now and over the last 3 days, order-book depth and spread, technical readings on the 4-hour and daily charts (RSI, MACD, moving averages, Bollinger, volatility), and market-wide sentiment (Fear & Greed, attributed). Use before a trade or for a coin brief. Example: coin=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to research a single coin traded on Hyperliquid (BTC, ETH, SOL, HYPE and about 200 more): price, 24-hour change, volume and open interest, the funding rate now and over the last 3 days, order-book depth and spread, technical readings on the 4-hour and daily charts (RSI, MACD, moving averages, Bollinger, volatility), and market-wide sentiment (Fear & Greed, attributed). Use before a trade or for a coin brief. Example: coin=ETH. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13970,7 +13970,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "openapi_summary",
@@ -14022,7 +14022,7 @@
     },
     {
       "name": "pack_api_health",
-      "description": "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at the usual places. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy. Example: url=https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to health-check an API endpoint: up or down with status and response time over three requests (min, median, max), the redirect chain, HTTP security headers, whether it is a paid x402 endpoint and what its payment terms are, and the API's OpenAPI document when one is found at the usual places. Cheaper than the tools bought one by one. Use for API monitoring, before integrating a third-party API, or to check your own after a deploy. Example: url=https://petstore3.swagger.io/api/v3/pet/findByStatus?status=available. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14042,7 +14042,7 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "image_metadata",
@@ -14166,7 +14166,7 @@
     },
     {
       "name": "pack_evm_toolbox",
-      "description": "One call that works out what an EVM value is and converts it every useful way: an address gets its EIP-55 checksum and bytes32 form; a signature its 4-byte selector and event topic; calldata is decoded (ERC-20, NFT, permit, EIP-3009); a bytes32 becomes uint256, address and units; a number converts between wei, gwei, ether (or any decimals) and hex; text gets keccak256. Local, no network. Use for building or debugging contracts and agents. Example: input=transfer(address,uint256). Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call that works out what an EVM value is and converts it every useful way: an address gets its EIP-55 checksum and bytes32 form; a signature its 4-byte selector and event topic; calldata is decoded (ERC-20, NFT, permit, EIP-3009); a bytes32 becomes uint256, address and units; a number converts between wei, gwei, ether (or any decimals) and hex; text gets keccak256. Local, no network. Use for building or debugging contracts and agents. Example: input=transfer(address,uint256). Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14194,11 +14194,11 @@
           "input"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_seo_toolkit",
-      "description": "One call for an on-page SEO analysis of a URL: the SEO audit (title and description lengths, canonical, headings, alt text, structured data, score, issues), the top keywords and two-word phrases with their density, the social preview (OpenGraph, Twitter card), the favicon, and robots.txt access with its sitemaps. Server HTML only. Cheaper than the tools one by one. Use before publishing, for an SEO report or to compare a competitor's page. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for an on-page SEO analysis of a URL: the SEO audit (title and description lengths, canonical, headings, alt text, structured data, score, issues), the top keywords and two-word phrases with their density, the social preview (OpenGraph, Twitter card), the favicon, and robots.txt access with its sitemaps. Server HTML only. Cheaper than the tools one by one. Use before publishing, for an SEO report or to compare a competitor's page. Example: url=https://www.wikipedia.org/. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14218,11 +14218,11 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_gas_tracker",
-      "description": "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14239,11 +14239,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_domain_intel",
-      "description": "Company enrichment in one call for any domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Company enrichment in one call for any domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14263,11 +14263,11 @@
           "domain"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_web_research",
-      "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14299,7 +14299,7 @@
           "q"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "ai_answer",
@@ -14351,7 +14351,7 @@
     },
     {
       "name": "pack_news_sentiment",
-      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14381,11 +14381,11 @@
           "q"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "pack_url_safety",
-      "description": "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.03/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14405,7 +14405,7 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.03"
     },
     {
       "name": "text_pii",
@@ -15085,7 +15085,7 @@
     },
     {
       "name": "dex_new_pools",
-      "description": "Newest liquidity pools on Uniswap v3, Uniswap v2 and (on Base) Aerodrome, read live from the factories' PoolCreated and PairCreated events on Base, Ethereum, Arbitrum, Optimism or Polygon: pool address, both tokens with symbol and decimals, fee tier or stable flag, block, transaction and approximate age, newest first. Use to spot new token listings, watch pool launches or feed a new-pair screener; check token_report before trading. Example: chain=base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Newest liquidity pools on Uniswap v3, Uniswap v2 and (on Base) Aerodrome, read live from the factories' PoolCreated and PairCreated events on Base, Ethereum, Arbitrum, Optimism or Polygon: pool address, both tokens with symbol and decimals, fee tier or stable flag, block, transaction and approximate age, newest first. Use to spot new token listings, watch pool launches or feed a new-pair screener; check token_report before trading. Example: chain=base. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15122,7 +15122,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.05"
     },
     {
       "name": "holidays",

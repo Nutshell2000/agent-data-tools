@@ -954,3 +954,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - The log line `Route "GET /…" has an invalid bazaar extension: Schema validation failed: JSON Schema compilation is unavailable` is the deliberate Ajv stub (src/lib/ajv-unavailable.ts). Live quotes carry the full extension (compared on 31 Oct for /evm/verify-signature, /evm/checksum, /time). Ignore it.
 - `/ip/geolocate` is free-call eligible; `NEEDS_REMOTE_DATA` in scripts/smoke-examples.mjs skips it locally because the shards exist only in remote KV.
 
+
+
+## Price test until 14 Nov 2026 (1.84.3, owner's go-ahead 31 Oct)
+
+- `PACK_PRICE` ($0.03, src/family.ts) on all 24 packs and $0.05 on `/dex/new-pools`; everything else is unchanged. This overrides the 25 Oct "every tool at most $0.01" rule for these tools only, so comments elsewhere that say so are history. FluxA's one-cent catch-all no longer passes these tools: they answer the normal 402. The Bazaar shows each listing's last settled price until it settles again.
+- To revert: set `PACK_PRICE` and the `/dex/new-pools` price back, restore the copy in src/discovery.ts ("Most tools cost"), the test pins (families, chain-more, discovery-client, packs-intel, packs-research) and run `scripts/freeze-prices.mjs`, then `update-402index-prices.mjs`.
+

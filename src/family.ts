@@ -13,6 +13,8 @@ export interface Entry {
 
 /** Price for the families: Coinbase's facilitator minimum, the band with the most distinct payers (Peter approved 2026-10-18). */
 export const PRICE = "$0.01";
+/** Price test until 14 Nov 2026 (owner, 31 Oct): half of shopper spend is above one cent, and the sweeper the one-cent cap served is gone. */
+export const PACK_PRICE = "$0.03";
 
 export function entry(
   path: string,

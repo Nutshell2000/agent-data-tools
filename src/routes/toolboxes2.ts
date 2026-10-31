@@ -1,6 +1,6 @@
 // ID and string toolboxes (1.62.0). Bazaar search on 24 Oct 2026, summed 30-day payers over the top 20: id generator 262
 // (one listing has 232; ours was #11), ulid 24, nanoid 17, case converter 41 (ours #5), string utilities 21. Local only.
-import { entry, need, num, opt, type Entry } from "../family";
+import { entry, need, num, opt, type Entry, PACK_PRICE } from "../family";
 import { HttpError } from "../lib/env";
 
 const T = ["developer-tools", "utility", "dev"];
@@ -81,7 +81,7 @@ export const TOOLBOXES2: Entry[] = [
         base62: many(() => randomString(len)), hex: many(() => randomString(len, "0123456789abcdef")),
         decoded: decode ? decodeId(decode) : null,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/string-toolbox", "String utilities: every case, slug, counts and more",
     "Transform one string every common way at once: camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, path/case, Title Case, Sentence case, upper and lower; a URL slug (accents removed); reversed; trimmed and whitespace-collapsed; and counts of characters, letters, digits, words and lines. Splits identifiers like userIDValue or XMLHttpRequest correctly. Use when naming fields, files and routes or cleaning user input.",
@@ -94,5 +94,5 @@ export const TOOLBOXES2: Entry[] = [
         cases: allCases(text), slug: slugify(text), reversed: [...text].reverse().join(""), collapsed: text.replace(/\s+/g, " ").trim(),
         counts: { characters: [...text].length, letters: (text.match(/\p{L}/gu) ?? []).length, digits: (text.match(/\p{N}/gu) ?? []).length, words: (text.match(/\S+/g) ?? []).length, lines: text.split(/\r?\n/).length },
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];
