@@ -9,4 +9,5 @@ import { MODEL_PATHS } from "../routes/ai-text";
 // The per-model chat endpoints (/ai/model/*) and /ai/chat-large cost more Workers AI per call than the 8B text tools,
 // so they stay paid-only: the free calls cover the cheap AI text tools.
 // /page/publish stores content and runs a moderation model per call: paid only, never on marketplaces (1.84.0).
-export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/screenshot", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", ...MODEL_PATHS]);
+// /ip/geolocate reads KV shards that only production and staging hold, so the local smoke run cannot prove its example (1.84.1).
+export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/ip/geolocate", "/screenshot", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", ...MODEL_PATHS]);
