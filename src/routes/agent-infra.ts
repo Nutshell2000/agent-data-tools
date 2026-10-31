@@ -1,7 +1,7 @@
 // Checks for agent infrastructure (1.64.0). Bazaar search on 24 Oct 2026, summed 30-day payers over the top 20, nothing of
 // ours: openapi 47, api health 38, mcp server check 35 (and x402 endpoint 37, which /x402/check now answers by name).
 // Every target goes through parseTarget (no private, loopback or credentialed hosts) and redirects are not followed.
-import { entry, need, type Entry, type Input } from "../family";
+import { entry, need, type Entry, type Input, PACK_PRICE } from "../family";
 import { HttpError } from "../lib/env";
 import { capBytes, parseTarget } from "../lib/fetch";
 import { call, runSections } from "./packs";
@@ -170,5 +170,5 @@ export const AGENT_INFRA: Entry[] = [
         openapi: o ? (o.found ? { found: true, specUrl: o.specUrl, title: o.title, version: o.version, operationCount: o.operationCount, paidOperations: o.paidOperations } : { found: false, tried: o.tried }) : null,
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

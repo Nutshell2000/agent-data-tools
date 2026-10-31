@@ -2,7 +2,7 @@
 // (#1 has 1 payer; we were #11), "news sentiment" (#1 2 payers; absent), "scam check" / "phishing check" (absent) and
 // "url safety" (#1 5 payers; we were #10). The busiest search resource on Base, an Exa-search resale, sold 20,708 calls to
 // 162 payers in a week: agents pay to search and read. Each pack runs the same code as our single tools.
-import { entry, need, num, opt, type Entry, type Input } from "../family";
+import { entry, need, num, opt, type Entry, type Input, PACK_PRICE } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { parseTarget } from "../lib/fetch";
 import { AI_TEXT } from "./ai-text";
@@ -81,7 +81,7 @@ export const PACKS_RESEARCH: Entry[] = [
       }));
       const failed = Object.fromEntries(read.filter((p) => p.error).map((p) => [p.url, p.error as string]));
       return { pack: "web-research", query, pages: read, otherResults: found.results.slice(pages).map((r) => ({ title: r.title, url: r.url })), terms: found.terms, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   // 25 Oct 2026 probe, summed 30-day payers over the top 20, nothing of ours: "answer" 60, "search answer" 51, "web answer"
   // 49, "ai answer" 41, "grounded answer" 41 (most #1s have 2-3 payers; BlockRun's answer endpoint sold 4,953 calls to 18).
@@ -146,7 +146,7 @@ export const PACKS_RESEARCH: Entry[] = [
       const positive = scored.filter((a) => a.sentiment === "POSITIVE").length, negative = scored.length - positive;
       const tone = avg == null ? null : avg > 0.5 ? "positive" : avg < -0.5 ? "negative" : avg > 0.1 ? "mixed, leaning positive" : avg < -0.1 ? "mixed, leaning negative" : "mixed";
       return { pack: "news-sentiment", query, summary: { articles: articles.length, positive, negative, averageScore: avg, tone }, articles, terms: found.terms, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/url-safety", "URL safety check, scam signals: domain age, redirects and HTTPS",
     "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website.",
@@ -176,5 +176,5 @@ export const PACKS_RESEARCH: Entry[] = [
         security: { https: final ? final.protocol === "https:" : input.protocol === "https:", score: h?.score ?? null, grade: h?.grade ?? null },
         failed: redirects ? failed : { ...failed, redirects: "the link could not be followed" },
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

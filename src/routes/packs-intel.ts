@@ -3,7 +3,7 @@
 // multichain gas 34 and gas tracker 29, company research 30, lead enrichment 21 and domain intelligence 17, tech stack 28.
 // The detection rules below are our own list of public fingerprints (script hosts, headers, generator tags, cookies).
 import { formatUnits, getAddress, hexToBigInt, isHex, keccak256, parseUnits, toBytes, toFunctionSelector, toHex, type Hex } from "viem";
-import { entry, need, num, opt, type Entry, type Input } from "../family";
+import { entry, need, num, opt, type Entry, type Input, PACK_PRICE } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { fetchPublic, parseTarget } from "../lib/fetch";
 import { bitcoinFees } from "./bitcoin";
@@ -263,7 +263,7 @@ export const PACKS_INTEL: Entry[] = [
       decimals: { type: "string", description: "Token decimals for unit conversions (default 18)", example: "6" },
     },
     { pack: "evm-toolbox", input: "transfer(address,uint256)", kind: "signature", canonical: "transfer(address,uint256)", functionSelector: "0xa9059cbb", eventTopic: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b" },
-    (_e, q) => ({ pack: "evm-toolbox", ...evmToolbox(need(q, "input", 20_000), num(q, "decimals", { min: 0, max: 36, fallback: 18, integer: true })) }), "$0.01"),
+    (_e, q) => ({ pack: "evm-toolbox", ...evmToolbox(need(q, "input", 20_000), num(q, "decimals", { min: 0, max: 36, fallback: 18, integer: true })) }), PACK_PRICE),
 
   entry("/pack/seo-toolkit", "SEO analysis, SEO toolkit: audit, keywords, social preview",
     "One call for an on-page SEO analysis of a URL: the SEO audit (title and description lengths, canonical, headings, alt text, structured data, score, issues), the top keywords and two-word phrases with their density, the social preview (OpenGraph, Twitter card), the favicon, and robots.txt access with its sitemaps. Server HTML only. Cheaper than the tools one by one. Use before publishing, for an SEO report or to compare a competitor's page.",
@@ -291,7 +291,7 @@ export const PACKS_INTEL: Entry[] = [
         robots: data.robots ? pick2(data.robots, ["allowed", "matchedRule", "sitemaps"]) : null,
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/gas-tracker", "Gas tracker, multichain gas: 5 EVM chains and Bitcoin fees",
     "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet.",
@@ -312,7 +312,7 @@ export const PACKS_INTEL: Entry[] = [
       }).sort((a, b) => (a.transferUsd ?? Infinity) - (b.transferUsd ?? Infinity));
       const fees = data.bitcoin as { fees?: { nextBlock: number; hour: number }; unit?: string } | undefined;
       return { pack: "gas-tracker", ethUsd, chains, cheapest: chains.find((c) => c.transferUsd !== null)?.chain ?? null, bitcoin: fees?.fees ? { nextBlock: fees.fees.nextBlock, hour: fees.fees.hour, unit: fees.unit ?? "sat/vB" } : null, failed };
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/domain-intel", "Domain intelligence, enrichment: who runs a domain and on what",
     "Company enrichment in one call for any domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting.",
@@ -347,5 +347,5 @@ export const PACKS_INTEL: Entry[] = [
         dns: { a: dom.dns.a, aaaa: dom.dns.aaaa, mx: dom.dns.mx, ns: dom.dns.ns },
         failed,
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];
