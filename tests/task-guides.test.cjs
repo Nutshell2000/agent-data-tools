@@ -29,6 +29,12 @@ const GUIDES = [
   ['describe-image-api', 'Describe image API', '/describe', 'describe'],
   ['chat-completions-api', 'Chat completions API, pay per call', '/ai/chat', 'ai_chat'],
   ['token-price-api', 'Token price API', '/price/token', 'price_token'],
+  // Data-only guides: lead and uses come from the tool's description and search copy.
+  ['web-search-api', 'Web search API, pay per call', '/search', 'search'],
+  ['weather-forecast-api', 'Weather forecast API', '/weather', 'weather'],
+  ['email-verification-api', 'Email verification API', '/email', 'email'],
+  ['gas-price-api', 'Gas price API', '/base-gas', 'base_gas'],
+  ['token-honeypot-check-api', 'Token honeypot check API', '/token-report', 'token_report'],
 ];
 
 test('every task guide is a 200 page titled as the query, with the free, card-key (header and URL), x402 and MCP ways to call', async () => {
@@ -69,6 +75,17 @@ test('the guides are reachable: index page, homepage, tool pages, llms.txt and t
   assert.equal(index.status, 200);
   const indexHtml = await index.text();
   for (const [slug] of GUIDES) assert.match(indexHtml, new RegExp(`href="/guides/${slug}"`));
+  // Every guide on the index resolves, is titled as its phrase and names a real tool (data-only guides included).
+  const slugs = [...indexHtml.matchAll(/href="\/guides\/([a-z0-9-]+)"/g)].map((m) => m[1]).filter((s) => s.endsWith('-api'));
+  assert.ok(slugs.length >= 25, `guides on the index: ${slugs.length}`);
+  for (const slug of slugs) {
+    const page = await mf.dispatchFetch(`https://api.test/guides/${slug}`);
+    assert.equal(page.status, 200, slug);
+    const html = await page.text();
+    assert.match(html, /<h1>[^<]+<\/h1>/, slug);
+    assert.match(html, /&amp;api_key=adt_/, slug);
+    assert.match(html, /href="\/tools\/[a-z0-9-]+"/, slug);
+  }
   assert.match(indexHtml, /href="\/guides\/web-reading"/, 'the older buying guides stay listed');
   const home = await (await mf.dispatchFetch('https://api.test/', { headers: { accept: 'text/html' } })).text();
   assert.match(home, /href="\/guides\/pdf-to-text-api"/);

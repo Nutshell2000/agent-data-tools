@@ -20,12 +20,14 @@ export interface TaskGuide {
   phrase: string;
   /** The tools that do the job, main one first. */
   tools: string[];
-  /** One sentence on what comes back, restating the tool's description. */
-  lead: string;
-  /** When an agent wants this. */
-  uses: string[];
+  /** One sentence on what comes back, restating the tool's description (default: the main tool's description). */
+  lead?: string;
+  /** When an agent wants this (default: the main tool's TOOL_SEO uses). */
+  uses?: string[];
   faq?: [string, string][];
 }
+const leadOf = (g: TaskGuide, main: Endpoint) => g.lead ?? main.description;
+const usesOf = (g: TaskGuide, main: Endpoint) => g.uses ?? TOOL_SEO[main.path]?.uses ?? [];
 
 export const TASK_GUIDES: readonly TaskGuide[] = [
   { slug: "pdf-to-text-api", phrase: "PDF to text API", tools: ["/pdf/text"],
@@ -56,6 +58,26 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
     lead: "Get a token's USD price read from its Uniswap v3 pools on chain at call time, by ticker, address or CoinGecko-style id, on Base, Ethereum, Arbitrum, Optimism or Polygon; up to 20 tokens in one call.",
     uses: ["Price long-tail tokens that central feeds do not list", "Value a wallet or a trade inside an agent", "Price several tokens in one call"],
     faq: [["Where does the price come from?", "The token's Uniswap v3 pools on the chosen chain, read on chain when you call."], ["Which inputs work?", "A ticker such as WETH, a 0x address, a CoinGecko id such as coingecko:bitcoin or a coin name."]] },
+  // Data-only guides (lead and uses come from the tool's description and TOOL_SEO): the other jobs agents search for,
+  // picked from the Bazaar demand probes of 22-25 Oct and the shopper purchases of 28-31 Oct 2026.
+  { slug: "web-search-api", phrase: "Web search API, pay per call", tools: ["/search", "/ai/answer"] },
+  { slug: "weather-forecast-api", phrase: "Weather forecast API", tools: ["/weather", "/pack/location-brief"] },
+  { slug: "company-lookup-api", phrase: "Company lookup API", tools: ["/company", "/pack/domain-intel"] },
+  { slug: "email-verification-api", phrase: "Email verification API", tools: ["/email", "/pack/email-deliverability"] },
+  { slug: "domain-whois-dns-lookup-api", phrase: "Domain WHOIS and DNS lookup API", tools: ["/domain", "/dns/lookup", "/domain-report"] },
+  { slug: "wallet-balance-api", phrase: "Wallet balance API, multi-chain", tools: ["/eth/balance", "/wallet/balances", "/wallet/portfolio"] },
+  { slug: "gas-price-api", phrase: "Gas price API", tools: ["/base-gas", "/eth/gas", "/pack/gas-tracker"] },
+  { slug: "sec-filings-api", phrase: "SEC filings API", tools: ["/sec/filings", "/sec/insider"] },
+  { slug: "hyperliquid-funding-rate-api", phrase: "Hyperliquid funding rate API", tools: ["/hyperliquid/market", "/hyperliquid/funding-history"] },
+  { slug: "currency-exchange-rate-api", phrase: "Currency exchange rate API", tools: ["/fx", "/btc-price"] },
+  { slug: "public-holidays-api", phrase: "Public holidays API", tools: ["/holidays", "/date/business-days"] },
+  { slug: "website-screenshot-api", phrase: "Website screenshot API", tools: ["/screenshot", "/extract/rendered"] },
+  { slug: "speech-to-text-api", phrase: "Speech to text API", tools: ["/transcribe"] },
+  { slug: "text-embeddings-api", phrase: "Text embeddings API", tools: ["/ai/embed", "/ai/rerank"] },
+  { slug: "sitemap-parser-api", phrase: "Sitemap parser API", tools: ["/sitemap", "/robots"] },
+  { slug: "crypto-fear-and-greed-index-api", phrase: "Crypto fear and greed index API", tools: ["/crypto/fear-greed", "/pack/crypto-market"] },
+  { slug: "bitcoin-fee-estimate-api", phrase: "Bitcoin fee estimate API", tools: ["/btc-fees", "/btc-address"] },
+  { slug: "token-honeypot-check-api", phrase: "Token honeypot check API", tools: ["/token-report", "/token", "/contract-risk"] },
 ];
 
 const BY_SLUG = new Map(TASK_GUIDES.map((g) => [g.slug, g]));
@@ -105,16 +127,17 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
   const main = tools[0];
   const title = `${g.phrase}: from ${main.price} per call, no signup · ${SERVICE_NAME}`;
   const url = `${origin}/guides/${g.slug}`;
+  const lead = leadOf(g, main), uses = usesOf(g, main);
   const seoFaq = TOOL_SEO[main.path]?.faq ?? [];
   const faq: [string, string][] = [...(g.faq ?? []), ...seoFaq.filter(([q]) => !(g.faq ?? []).some(([gq]) => gq === q)),
     ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && !CAPACITY_LIMITED.has(main.path) ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
-  const ld = { "@context": "https://schema.org", "@type": "TechArticle", headline: `${g.phrase}`, description: g.lead, url, author: { "@type": "Organization", name: SERVICE_NAME, url: origin }, about: tools.map((e) => ({ "@type": "WebAPI", name: e.summary, url: `${origin}/tools/${toolSlug(e.path)}`, offers: { "@type": "Offer", price: e.price.replace(/^\$/, ""), priceCurrency: "USD" } })) };
+  const ld = { "@context": "https://schema.org", "@type": "TechArticle", headline: `${g.phrase}`, description: lead, url, author: { "@type": "Organization", name: SERVICE_NAME, url: origin }, about: tools.map((e) => ({ "@type": "WebAPI", name: e.summary, url: `${origin}/tools/${toolSlug(e.path)}`, offers: { "@type": "Offer", price: e.price.replace(/^\$/, ""), priceCurrency: "USD" } })) };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="${esc(g.lead.slice(0, 300))}">
+<meta name="description" content="${esc(lead.slice(0, 300))}">
 <link rel="canonical" href="${esc(url)}"><link rel="alternate" type="text/markdown" href="${esc(url)}.md">
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(g.lead.slice(0, 300))}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(lead.slice(0, 300))}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>
@@ -122,8 +145,8 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/guides">Guides</a></nav>
 <h1>${esc(g.phrase)}</h1>
 <p class="meta">From ${esc(main.price)} per successful call · failed calls are never charged · no account needed · Markdown version: <a href="${esc(`/guides/${g.slug}.md`)}">${esc(`/guides/${g.slug}.md`)}</a></p>
-<p>${esc(g.lead)}</p>
-<h2>When an agent wants this</h2><ul>${g.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>
+<p>${esc(lead)}</p>
+${uses.length ? `<h2>When an agent wants this</h2><ul>${uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${tools.map((e) => toolBlock(e, origin, freeCalls, false)).join("\n")}
 <h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 <footer><a href="/guides">All guides</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
@@ -134,7 +157,8 @@ export function taskGuideMarkdown(slug: string, origin: string, freeCalls: boole
   const g = BY_SLUG.get(slug);
   if (!g) return undefined;
   const tools = g.tools.map((p) => byPath.get(p)).filter((e): e is Endpoint => Boolean(e));
-  return [`# ${g.phrase}`, g.lead, `## When an agent wants this`, g.uses.map((u) => `- ${u}`).join("\n"),
+  const uses = usesOf(g, tools[0]);
+  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
     ...tools.map((e) => `## ${e.summary}\n\n${toolBlock(e, origin, freeCalls, true)}`),
     `## Questions`, ...(g.faq ?? []).map(([q, a]) => `**${q}** ${a}`),
     `Docs for agents: ${origin}/llms.txt · OpenAPI: ${origin}/openapi.json · All guides: ${origin}/guides`].join("\n\n") + "\n";
@@ -146,7 +170,7 @@ export function guidesIndexHtml(origin: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Guides: pay-per-call data tools for AI agents · ${esc(SERVICE_NAME)}</title><meta name="description" content="How to do common agent jobs with Agent Data Tools: PDF to text, URL to Markdown, OFAC wallet screening, news headlines, image description, chat completions and token prices, pay per call with a free trial."><link rel="canonical" href="${esc(origin)}/guides"><link rel="icon" href="/favicon.ico"><style>${STYLE}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › Guides</nav><h1>Guides</h1>
 <p>One page per job, with the request in every way an agent can make it: free trial, card key, x402 or MPP, MCP.</p>
-<ul>${TASK_GUIDES.map((g) => { const e = byPath.get(g.tools[0]); return `<li><a href="/guides/${esc(g.slug)}">${esc(g.phrase)}</a>${e ? ` · from ${esc(e.price)}` : ""}: ${esc(g.lead)}</li>`; }).join("")}</ul>
+<ul>${TASK_GUIDES.map((g) => { const e = byPath.get(g.tools[0]); return `<li><a href="/guides/${esc(g.slug)}">${esc(g.phrase)}</a>${e ? ` · from ${esc(e.price)}: ${esc(leadOf(g, e).slice(0, 160))}` : ""}</li>`; }).join("")}</ul>
 <h2>Buying guides and clients</h2><ul>${older.map(([h, t]) => `<li><a href="${esc(h)}">${esc(t)}</a></li>`).join("")}</ul>
 <footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a></footer></main></body></html>`;
 }
