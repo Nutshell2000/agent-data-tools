@@ -65,7 +65,7 @@ credits.get("/credits", (c) => {
   const calls = (credits: number) => Math.floor(credits / 10).toLocaleString("en-US");
   const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.01</small></a>`).join("");
   const previews = [...CARD_JOBS, ...AGENT_JOBS].map(({ path, job }) => `<li><a href="${path}?sample=1">${esc(job)}</a> <code>${path}</code></li>`).join("");
-  const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job.toLowerCase())}</li>`).join("");
+  const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job)}</li>`).join("");
   return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try ${FREE_CALLS_PER_CALLER} calls free first on most tools; no card needed for those. ${esc(info.what)}</p><p>${packs}</p>
 <h2>Use it in your AI app</h2><ul>
 <li><b>Claude or ChatGPT:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and sign in with your key.</li>
