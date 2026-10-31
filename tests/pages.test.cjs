@@ -11,6 +11,14 @@ async function load(entry) {
 const fakeKv = () => { const data = new Map(); return { data, async put(k, v, o) { data.set(k, { v, ttl: o?.expirationTtl }); }, async get(k) { return data.has(k) ? data.get(k).v : null; } }; };
 const safe = async () => ({ flagged: false, categories: [] });
 
+test('the indexing test host keeps workers.dev on and does not serve hosted pages', () => {
+  const fs = require('node:fs');
+  const config = fs.readFileSync(require.resolve('../wrangler.jsonc'), 'utf8');
+  assert.match(config, /"workers_dev": true/, 'adding routes without this switches workers.dev off');
+  assert.match(config, /"pattern": "tools\.funwords\.eu", "custom_domain": true/);
+  assert.match(fs.readFileSync(require.resolve('../src/index.ts'), 'utf8'), /=== INDEXING_TEST_HOST\) return c\.notFound\(\)/);
+});
+
 test('pages: the sanitiser keeps content tags and drops scripts, styles, frames, forms, handlers and javascript links', async () => {
   const { sanitizeHtml } = await load('src/routes/pages.ts');
   const r = sanitizeHtml('<html><head><title>x</title><style>p{}</style></head><body><h1 onclick="evil()">Hi</h1><script>alert(1)</script><p style="color:red">Text <a href="javascript:evil()">bad</a> <a href="https://example.com/a?b=1">ok</a> <img src="http://x/y.png" alt="no"> <img src="https://x/y.png" alt="yes" width="10"></p><iframe src="https://x"></iframe><form><input></form><table><tr><td colspan="2">c</td></tr></table></body></html>');
