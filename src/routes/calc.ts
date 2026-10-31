@@ -248,7 +248,7 @@ export const CALC: Entry[] = [
       return loanSchedule(num(q, "principal", { min: 0.01, max: 1e12 }), num(q, "rate", { min: 0, max: 100 }), months, num(q, "rows", { min: 0, max: 60, fallback: 3, integer: true }));
     }),
   entry("/calc/compound-interest", "Compound interest calculator: future value with monthly contributions",
-    "Future value of savings or an investment with compound interest: starting amount, annual rate, years, compounding (yearly, quarterly, monthly or daily) and an optional contribution at the end of each month. Returns the final balance, total contributed, interest earned and the balance after each year. Use for savings goals and investment what-ifs; rates are assumed constant.",
+    "Compound interest on savings or an investment: starting amount, annual rate, years, compounding (yearly, quarterly, monthly or daily) and an optional contribution at the end of each month. Returns the future value, total contributed, interest earned and the balance after each year. Use for savings goals and investment what-ifs; rates are assumed constant.",
     ["compound-interest", "finance", "savings", "investment", ...U], {
       principal: { type: "number", description: "Starting amount (0 or more)", required: true, example: 10000 },
       rate: { type: "number", description: "Annual interest rate in percent, -50 to 100", required: true, example: 7 },
@@ -330,7 +330,7 @@ export const CALC: Entry[] = [
     { result: "Uryyb, Jbeyq!", shift: 13 },
     (_e, q) => { const s = num(q, "shift", { min: -25, max: 25, fallback: 13, integer: true }) * (flag(q, "decode") ? -1 : 1); return { result: caesar(need(q, "text", 20_000), s), shift: s }; }),
   entry("/xml/to-json", "XML to JSON converter",
-    "Convert an XML document to JSON: attributes become \"@name\" keys, text becomes \"#text\" (or the value itself when an element only holds text), and repeated child elements become arrays. DOCTYPEs and external entities are refused, so nothing outside the document is ever loaded. Up to 100,000 characters. Use to read XML feeds, SOAP responses and config files in an agent.",
+    "XML to JSON for any XML document: attributes become \"@name\" keys, text becomes \"#text\" (or the value itself when an element only holds text), and repeated child elements become arrays. DOCTYPEs and external entities are refused, so nothing outside the document is ever loaded. Up to 100,000 characters. Use to read XML feeds, SOAP responses and config files in an agent.",
     ["xml-to-json", "xml", "json", "convert", ...U], { xml: T('<order id="7"><item sku="a1">Pen</item><item sku="b2">Ink</item></order>', "The XML document") },
     { root: "order", json: { order: { "@id": "7", item: [{ "@sku": "a1", "#text": "Pen" }, { "@sku": "b2", "#text": "Ink" }] } } },
     (_e, q) => xmlToJson(need(q, "xml", 100_000))),

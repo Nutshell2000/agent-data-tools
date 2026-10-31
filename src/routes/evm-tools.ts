@@ -77,7 +77,7 @@ export const EVM_TOOLS: Entry[] = [
     }),
 
   entry("/evm/checksum", "Address checksum (EIP-55): validate and format an EVM address",
-    "Validate an EVM address and return its EIP-55 checksummed form, saying whether the input was all lower case, all upper case, correctly checksummed or mixed case with a wrong checksum (a likely typo). Works for every EVM chain. Use before sending funds or storing an address; for whether it is a contract use <chain>_is_contract.",
+    "Address checksum for any EVM address: validates it and returns the EIP-55 checksummed form, saying whether the input was all lower case, all upper case, correctly checksummed or mixed case with a wrong checksum (a likely typo). Works for every EVM chain. Use before sending funds or storing an address; for whether it is a contract use <chain>_is_contract.",
     ["address-checksum", "eip-55", "address", "evm", "validation", ...U], { address: { type: "string", description: "0x address (40 hex characters)", required: true, example: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045" } },
     { input: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045", valid: true, checksummed: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", inputCase: "lower", checksumMatches: null },
     (_e, q) => {

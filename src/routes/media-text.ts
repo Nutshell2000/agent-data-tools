@@ -112,7 +112,7 @@ export function parseUserAgent(ua: string) {
 const attr = (tag: string, name: string) => new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag)?.slice(2).find((x) => x !== undefined) ?? null;
 
 export const MEDIA_TEXT: Entry[] = [
-  entry("/image/metadata", "Image metadata, EXIF: camera, date, GPS and size",
+  entry("/image/metadata", "EXIF, image metadata: camera, date, GPS and size",
     "Read an image's metadata from its URL: format (JPEG, PNG, GIF or WebP), width and height, and for JPEG photos the EXIF data: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded. Up to 15 MB. Use to check where and when a photo was taken, verify an upload, or strip-check images before publishing.",
     ["exif", "image-metadata", "gps", "photo", "image", ...U], { url: { type: "string", description: "Public URL of the image", required: true, example: "https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg" } },
     { url: "https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg", format: "jpeg", width: 640, height: 480, bytes: 161713, exif: { make: "NIKON", model: "COOLPIX P6000", takenAt: "2008:10:22 16:28:39", orientation: 1, software: "Nikon Transfer 1.1 W" }, gps: { lat: 43.467448, lon: 11.885127, altitudeM: null } },
@@ -123,7 +123,7 @@ export const MEDIA_TEXT: Entry[] = [
     }),
 
   entry("/text/language", "Language detection: detect the language of a text",
-    "Detect which language a text is written in: the most likely language with its ISO 639-3 and 639-1 codes and English name, plus the next candidates with relative scores, using trigram statistics for 82 major languages (franc-min). Works best above about 20 characters; very short or mixed text returns und (undetermined). Local, no outside service. Use to route messages, pick a translation target or filter content by language.",
+    "Language detection for a text: the most likely language with its ISO 639-3 and 639-1 codes and English name, plus the next candidates with relative scores, using trigram statistics for 82 major languages (franc-min). Works best above about 20 characters; very short or mixed text returns und (undetermined). Local, no outside service. Use to route messages, pick a translation target or filter content by language.",
     ["language-detection", "detect-language", "language", "text", "nlp", ...U], { text: { type: "string", description: "The text (up to 10,000 characters)", required: true, example: "Det här är en mening skriven på svenska om väder och resor." } },
     { language: { iso6393: "swe", iso6391: "sv", name: "Swedish" }, confident: true, candidates: [{ iso6393: "swe", name: "Swedish", score: 1 }, { iso6393: "nld", name: "Dutch", score: 0.726 }], characters: 59 },
     (_e, q) => {
