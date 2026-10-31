@@ -12,6 +12,8 @@ import { GUARD_MODEL, guardVerdict } from "./safety";
 
 // Not imported from endpoints.ts: that module imports this one through families.ts, so its constants are not set yet here.
 export const PUBLIC_ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
+/** Free test (owner, 31 Oct 2026; review 15 Dec): does Google crawl these pages on a domain with some standing? */
+export const INDEXING_TEST_HOST = "tools.funwords.eu";
 export const MAX_HTML = 200_000, MAX_DAYS = 7, MAX_TITLE = 120;
 const ALLOWED = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr", "ul", "ol", "li", "b", "strong", "i", "em", "u", "s", "code", "pre", "blockquote", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "a", "img", "span", "div", "small", "sup", "sub", "dl", "dt", "dd", "figure", "figcaption", "mark", "kbd", "section", "article", "header", "footer", "main", "nav", "aside", "time", "abbr", "cite", "q", "details", "summary"]);
 const VOID = new Set(["br", "hr", "img"]);

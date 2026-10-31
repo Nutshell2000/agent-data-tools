@@ -5,6 +5,10 @@
   "build": { "command": "npm run build:reader" },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // workers_dev must stay on: without it a deploy that has routes switches the workers.dev address off.
+  "workers_dev": true,
+  // Free indexing test on a domain with some standing (owner, 31 Oct 2026; review 15 Dec).
+  "routes": [{ "pattern": "tools.funwords.eu", "custom_domain": true }],
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
   // fails at once instead of spending ~300 ms of CPU per cold start (see src/lib/ajv-unavailable.ts).
   "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
