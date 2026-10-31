@@ -12,7 +12,6 @@ import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { demoPage } from "./lib/demo-page";
-import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
@@ -22,7 +21,7 @@ import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { guidesIndexHtml, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
-import { requestMetricsMiddleware } from "./lib/request-metrics";
+import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { callerFamily } from "./lib/caller";
 import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
@@ -323,11 +322,6 @@ app.use(async (c, next) => {
 });
 
 /** The `error` the v2 library put in a 402's PAYMENT-REQUIRED header, for logs; never the request's payment data. */
-function decodedChallengeError(header: string | null): string {
-  if (!header) return "no PAYMENT-REQUIRED header";
-  try { return String(decodePaymentRequiredHeader(header).error ?? "payment refused").slice(0, 160); } catch { return "unreadable PAYMENT-REQUIRED header"; }
-}
-
 for (const e of ENDPOINTS) {
   app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => c.req.query(name)), c.req.query("only"))));
 }

@@ -946,3 +946,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `npx agentcash register` timed out at 30 s on every release from 23 to 26 Oct (x402scan probes 570+ tools in about 3 min), so AgentCash search never indexed the catalog. release.ps1 uses `%LOCALAPPDATA%\agent-data-tools\agentcash-long` (a copy of agentcash 0.17.1 with `DEFAULT_USER_FETCH_TIMEOUT = 9e5` in chunk-RAS5DZPQ.js) when present. Rebuild it after an agentcash upgrade.
 - The CDP Bazaar default list (`/platform/v2/x402/discovery/resources`) is bands by 30-day payers plus calls, each band sorted by last settlement. Metadata (output schema, name) only separates the bottom band. Names and tags cannot lift a listing; distinct outside payers settling x402 through CDP can. Card credits, free calls, Tempo and FluxA never reach those counters.
 
+
+
+## Payment refusals on /status, /ip/geolocate free (1.84.2, 31 Oct 2026)
+
+- `/status` lists `paymentRefusals` per tool: `requestMetricsMiddleware` queues the reason of every 402 answered to a request carrying a payment (`refusalReason` in src/lib/failure-reason.ts), and `Metrics.status` keeps 402 reasons apart from `topFailures`. Read it before guessing why a buyer did not complete. Our messages must not put caller-chosen values on it: `refusalReason` strips the ones we echo today, so extend it when adding a refusal message that echoes input.
+- The log line `Route "GET /…" has an invalid bazaar extension: Schema validation failed: JSON Schema compilation is unavailable` is the deliberate Ajv stub (src/lib/ajv-unavailable.ts). Live quotes carry the full extension (compared on 31 Oct for /evm/verify-signature, /evm/checksum, /time). Ignore it.
+- `/ip/geolocate` is free-call eligible; `NEEDS_REMOTE_DATA` in scripts/smoke-examples.mjs skips it locally because the shards exist only in remote KV.
+
