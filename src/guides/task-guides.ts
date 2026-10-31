@@ -78,6 +78,7 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
   { slug: "crypto-fear-and-greed-index-api", phrase: "Crypto fear and greed index API", tools: ["/crypto/fear-greed", "/pack/crypto-market"] },
   { slug: "bitcoin-fee-estimate-api", phrase: "Bitcoin fee estimate API", tools: ["/btc-fees", "/btc-address"] },
   { slug: "token-honeypot-check-api", phrase: "Token honeypot check API", tools: ["/token-report", "/token", "/contract-risk"] },
+  { slug: "new-dex-pools-api", phrase: "New DEX pools API, new token pairs", tools: ["/dex/new-pools", "/uniswap/pool", "/token-report"] },
 ];
 
 const BY_SLUG = new Map(TASK_GUIDES.map((g) => [g.slug, g]));

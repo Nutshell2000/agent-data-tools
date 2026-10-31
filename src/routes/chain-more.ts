@@ -2,11 +2,11 @@
 // Bazaar searches that day with nothing of ours: "stablecoin supply" (36 payers summed over the top 20), "contract abi" (34),
 // "uniswap pool" (30), "token supply" (26), "abi" (26) and "verified contract" (25); each #1 had 2 to 6 payers.
 import { formatUnits, getAddress, type PublicClient } from "viem";
-import { entry, need, opt, type Entry } from "../family";
+import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, client, rpc } from "./chain-reads";
+import { CHAINS, client, recentLogs, rpc } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -49,6 +49,36 @@ const FACTORY: Record<string, `0x${string}`> = { base: "0x33128a8fC17869897dcE68
 const FEES = [100, 500, 3000, 10000] as const;
 const ZERO = "0x0000000000000000000000000000000000000000";
 const sig6 = (n: number) => Number(n.toPrecision(6));
+
+// New-pool feeds (1.83.3, 31 Oct 2026). A task shopper paid a competitor $0.10 a call, 82 times, for new and trending DEX
+// pools (business/agentic/base-bots/buyer-wants.mjs); nothing of ours answered "new pools" or "new pairs". The factories'
+// creation events are the primary source: Uniswap v3 PoolCreated on five networks, Uniswap v2 PairCreated on the same
+// five, Aerodrome PoolCreated on Base. Every address below was checked live on 31 Oct 2026 by counting recent events.
+type Dex = "uniswap-v3" | "uniswap-v2" | "aerodrome";
+type DexFactory = { dex: Dex; address: `0x${string}`; topic: `0x${string}` };
+const V3_CREATED = "0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118" as const; // PoolCreated(address,address,uint24,int24,address)
+const V2_CREATED = "0x0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9" as const; // PairCreated(address,address,address,uint256)
+const AERO_CREATED = "0x2128d88d14c80cb081c1252a5acff7a264671bf199ce226b53788fb26065005e" as const; // PoolCreated(address,address,bool,address,uint256)
+const V2_FACTORY: Record<string, `0x${string}`> = { eth: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f", base: "0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6", arb: "0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9", op: "0x0c3c1c532F1e39EdF36BE9Fe0bE1410313E074Bf", polygon: "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C" };
+export const DEX_FACTORIES: Record<string, DexFactory[]> = Object.fromEntries(Object.keys(FACTORY).map((slug) => [slug, [
+  { dex: "uniswap-v3" as Dex, address: FACTORY[slug], topic: V3_CREATED },
+  { dex: "uniswap-v2" as Dex, address: V2_FACTORY[slug], topic: V2_CREATED },
+  ...(slug === "base" ? [{ dex: "aerodrome" as Dex, address: "0x420DD381b31aEf6683db6B902084cB0FFECe40Da" as `0x${string}`, topic: AERO_CREATED }] : []),
+]]));
+const BLOCK_SECONDS: Record<string, number> = { eth: 12, base: 2, arb: 0.25, op: 2, polygon: 2 };
+const topicAddr = (t: string) => getAddress("0x" + t.slice(26));
+const word = (data: string, i: number) => data.slice(2 + 64 * i, 2 + 64 * (i + 1));
+
+export type NewPool = { dex: Dex; pool: string; token0: string; token1: string; feeTier: number | null; stable: boolean | null; block: number; txHash: string };
+/** One factory creation event as a plain record; null when the log is not the shape the factory emits. */
+export function decodePoolCreated(log: { blockNumber: string; transactionHash: string; topics: string[]; data: string }, dex: Dex): NewPool | null {
+  const t = log.topics;
+  const base = { dex, block: Number(BigInt(log.blockNumber)), txHash: log.transactionHash };
+  if (dex === "uniswap-v3" && t.length === 4 && log.data.length >= 2 + 128) return { ...base, token0: topicAddr(t[1]), token1: topicAddr(t[2]), feeTier: Number(BigInt(t[3])), stable: null, pool: getAddress("0x" + word(log.data, 1).slice(24)) };
+  if (dex === "uniswap-v2" && t.length === 3 && log.data.length >= 2 + 64) return { ...base, token0: topicAddr(t[1]), token1: topicAddr(t[2]), feeTier: 3000, stable: null, pool: getAddress("0x" + word(log.data, 0).slice(24)) };
+  if (dex === "aerodrome" && t.length === 4 && log.data.length >= 2 + 64) return { ...base, token0: topicAddr(t[1]), token1: topicAddr(t[2]), feeTier: null, stable: BigInt(t[3]) === 1n, pool: getAddress("0x" + word(log.data, 0).slice(24)) };
+  return null;
+}
 
 export const CHAIN_MORE: Entry[] = [
   entry("/stablecoin/supply", "Stablecoin supply: USDC and USDT on 5 networks",
@@ -167,5 +197,44 @@ export const CHAIN_MORE: Entry[] = [
       })))).filter((p): p is NonNullable<typeof p> => p !== null).sort((x, y) => y.balanceB - x.balanceB);
       if (!pools.length) throw new HttpError(404, `no Uniswap v3 pool for this pair on ${def(slug).name}; nothing was charged`);
       return { chain: def(slug).name, tokenA: { address: getAddress(a), symbol: ma.symbol }, tokenB: { address: getAddress(b), symbol: mb.symbol }, pools, source: "Uniswap v3 factory and pool contracts, read live" };
+    }),
+
+  entry("/dex/new-pools", "New pools, new token pairs: Uniswap and Aerodrome",
+    "Newest liquidity pools on Uniswap v3, Uniswap v2 and (on Base) Aerodrome, read live from the factories' PoolCreated and PairCreated events on Base, Ethereum, Arbitrum, Optimism or Polygon: pool address, both tokens with symbol and decimals, fee tier or stable flag, block, transaction and approximate age, newest first. Use to spot new token listings, watch pool launches or feed a new-pair screener; check token_report before trading.",
+    ["new-pools", "new-pairs", "new-tokens", "dex", "uniswap", "aerodrome", "liquidity-pool", "token-launch"], {
+      chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
+      dex: { type: "string", description: "all (default), uniswap-v3, uniswap-v2 or aerodrome (Base only)", example: "all" },
+      blocks: { type: "string", description: "How many recent blocks to scan, 100 to 20000 (default 3000: about 100 minutes on Base, 10 hours on Ethereum)", example: "3000" },
+      limit: { type: "string", description: "Most pools to return, 1 to 30 (default 20)", example: "20" },
+    },
+    { chain: "Base", blocksScanned: 3000, fromBlock: 37000000, toBlock: 37002999, count: 2, pools: [{ dex: "uniswap-v2", pool: "0x1111111111111111111111111111111111111111", token0: { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18 }, token1: { address: "0x2222222222222222222222222222222222222222", symbol: "NEW", decimals: 18 }, feeTier: 3000, stable: null, block: 37002990, txHash: "0xabc", approxAgeMinutes: 0.3 }], source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live" },
+    async (env, q) => {
+      const slug = chainSlug(opt(q, "chain", 30) ?? "base");
+      const want = (opt(q, "dex", 20) ?? "all").toLowerCase();
+      const factories = DEX_FACTORIES[slug].filter((f) => want === "all" || f.dex === want);
+      if (!factories.length) throw new HttpError(400, want === "aerodrome" ? "aerodrome is on Base only" : "dex must be all, uniswap-v3, uniswap-v2 or aerodrome");
+      const span = BigInt(num(q, "blocks", { min: 100, max: 20_000, fallback: 3000, integer: true }));
+      const limit = num(q, "limit", { min: 1, max: 30, fallback: 20, integer: true });
+      const cl = client(env, def(slug));
+      const latest = await rpc(() => cl.getBlockNumber());
+      const scans = await Promise.all(factories.map(async (f) => ({ f, ...(await recentLogs(cl, { address: f.address, topics: [f.topic] }, latest, span, limit)) })));
+      const found = scans.flatMap((s) => s.logs.map((l) => decodePoolCreated(l, s.f.dex)).filter((p): p is NewPool => p !== null));
+      found.sort((x, y) => y.block - x.block);
+      const pools = found.slice(0, limit);
+      const tokens = [...new Set(pools.flatMap((p) => [p.token0, p.token1]))] as `0x${string}`[];
+      const meta = new Map(await Promise.all(tokens.map(async (t) => {
+        const [symbol, decimals] = await Promise.all([
+          (cl.readContract({ address: t, abi: erc20Abi, functionName: "symbol" }) as Promise<string>).catch(() => null),
+          (cl.readContract({ address: t, abi: erc20Abi, functionName: "decimals" }) as Promise<number>).then(Number).catch(() => null),
+        ]);
+        return [t, { symbol, decimals }] as const;
+      })));
+      const fromBlock = Number(scans.reduce((m, s) => (s.fromBlock < m ? s.fromBlock : m), latest));
+      const secs = BLOCK_SECONDS[slug];
+      return {
+        chain: def(slug).name, blocksScanned: Number(latest) - fromBlock + 1, fromBlock, toBlock: Number(latest), count: pools.length,
+        pools: pools.map((p) => ({ ...p, token0: { address: p.token0, ...meta.get(p.token0 as `0x${string}`) }, token1: { address: p.token1, ...meta.get(p.token1 as `0x${string}`) }, approxAgeMinutes: sig6((Number(latest) - p.block) * secs / 60) })),
+        source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live",
+      };
     }),
 ];
