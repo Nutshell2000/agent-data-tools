@@ -9,7 +9,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.83.1";
+export const MCP_SERVER_VERSION = "1.83.2";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -346,7 +346,7 @@ Claude Code: <code>${esc(install.claudeCode)}</code>. Claude.ai and ChatGPT: add
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base and four more chains) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
 ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
-<p><strong>Guides by job:</strong> ${TASK_GUIDES.map((g) => `<a href="/guides/${g.slug}">${esc(g.phrase)}</a>`).join(" · ")} · <a href="/guides">all guides</a></p>
+<p><strong>Guides by job:</strong> ${TASK_GUIDES.slice(0, 8).map((g) => `<a href="/guides/${g.slug}">${esc(g.phrase)}</a>`).join(" · ")} · <a href="/guides">all ${TASK_GUIDES.length} guides</a></p>
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
 <h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
