@@ -2,7 +2,7 @@
 // tools" summed 195 payers over the top 20 on 24 Oct 2026, led by toolbox endpoints (hash & integrity 35, JSON toolbox 28,
 // encoding toolbox 21). All local: Web Crypto, viem's keccak, and small MD5 and CRC-32 routines tested on standard vectors.
 import { keccak256 } from "viem";
-import { entry, flag, need, type Entry } from "../family";
+import { entry, flag, need, type Entry, PACK_PRICE } from "../family";
 import { HttpError } from "../lib/env";
 import { inferSchema } from "./calc";
 import { jsonToYaml } from "./lookups";
@@ -119,13 +119,13 @@ export const TOOLBOXES: Entry[] = [
         bytes = Uint8Array.from((h.match(/../g) ?? []).map((x) => parseInt(x, 16)));
       } else bytes = new TextEncoder().encode(text);
       return hashAll(bytes);
-    }, "$0.01"),
+    }, PACK_PRICE),
 
   entry("/pack/encoding-toolbox", "Encoding toolbox: Base64, hex, URL, HTML and Unicode",
     "Every common encoding of one text in a single call: Base64 and Base64url, hex, URL component and full-URL encoding, HTML-escaped, ROT13, Unicode code points, UTF-8 byte count and Punycode for international domain names, plus automatic decoding when the input already looks like Base64, hex, URL or HTML encoding. Use to prepare data for headers, URLs and markup, or to work out what an encoded string says.",
     ["encoding", ...T, "base64", "url-encode", "hex"], { text: { type: "string", description: "The text (up to 20,000 characters)", required: true, example: "Café & <tags>" } },
     { characters: 13, utf8Bytes: 14, base64: "Q2Fmw6kgJiA8dGFncz4=", base64url: "Q2Fmw6kgJiA8dGFncz4", hex: "436166c3a92026203c746167733e", urlComponent: "Caf%C3%A9%20%26%20%3Ctags%3E", url: "Caf%C3%A9%20&%20%3Ctags%3E", html: "Café &amp; &lt;tags&gt;", rot13: "Pnsé & <gntf>", codePoints: ["U+0043", "U+0061"], punycode: null, decoded: {} },
-    (_e, q) => encodings(need(q, "text", 20_000)), "$0.01"),
+    (_e, q) => encodings(need(q, "text", 20_000)), PACK_PRICE),
 
   entry("/pack/json-toolbox", "JSON toolbox: validate, format, minify, schema and YAML",
     "Everything about one JSON document in a single call: valid or not with the error's line and column, pretty-printed (optionally with sorted keys), minified with the bytes saved, an inferred JSON Schema, structure statistics (depth, objects, arrays, keys, value types) and the same data as YAML. Up to 200 KB. Cheaper than the separate JSON tools. Use to inspect API responses, clean model output or document a payload.",
@@ -148,5 +148,5 @@ export const TOOLBOXES: Entry[] = [
         formatted: formatted.length > 100_000 ? `${formatted.slice(0, 100_000)}… (truncated)` : formatted, minified,
         schema: inferSchema(value as Parameters<typeof inferSchema>[0]), stats: jsonStats(value), yaml: await jsonToYaml(minified),
       };
-    }, "$0.01"),
+    }, PACK_PRICE),
 ];

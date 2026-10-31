@@ -69,8 +69,8 @@ test("publishes the same safely capped client example on homepage and llms.txt",
   assert.doesNotMatch(example, /0x[0-9a-fA-F]{64}/, "the example must not contain a private-key literal");
   assert.match(homepage, /npm install @x402\/fetch @x402\/evm viem/);
   assert.match(llms, /npm install --save-dev typescript tsx @types\/node/);
-  assert.match(homepage, /Every tool costs at most \$0\.01/); // since 25 Oct 2026 no tool is above the cap
-  assert.match(llms, /Every tool costs at most \$0\.01/);
+  assert.match(homepage, /Most tools cost \$0\.01/); // packs and /dex/new-pools cost more: price test until 14 Nov 2026
+  assert.match(llms, /Most tools cost \$0\.01/);
   assert.match(homepage, /Free trials are disabled/);
   assert.match(llms, /Free trials are disabled/);
   assert.doesNotMatch(llms, /Free trials are disabled by default, and the example/);
@@ -83,7 +83,7 @@ test("OpenAPI discovery keeps package-audit price and default-off trial guidance
   const guidance = api.info["x-guidance"];
 
   assert.equal(api.paths["/package-audit"].get["x-payment-info"].price.amount, "0.01");
-  assert.match(guidance, /Every tool costs at most \$0\.01/);
+  assert.match(guidance, /Most tools cost \$0\.01/);
   assert.match(guidance, /Free trials are disabled/);
 });
 
