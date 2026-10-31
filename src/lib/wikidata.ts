@@ -8,6 +8,7 @@ export interface Claim { rank?: string; mainsnak: Snak; qualifiers?: Record<stri
 export interface Entity {
   id: string;
   labels?: Record<string, { value: string }>;
+  aliases?: Record<string, { value: string }[]>;
   descriptions?: Record<string, { value: string }>;
   claims?: Record<string, Claim[]>;
   sitelinks?: Record<string, { title: string }>;
@@ -48,7 +49,7 @@ export async function searchItems(text: string, limit: number): Promise<string[]
 /** Entities with English labels, descriptions, claims and the English Wikipedia link. */
 export async function getEntities(ids: string[]): Promise<Record<string, Entity>> {
   const got = await getJson<{ entities?: Record<string, Entity> }>(
-    `${WIKIDATA_API}?action=wbgetentities&format=json&languages=en&props=labels|descriptions|claims|sitelinks&sitefilter=enwiki&ids=${ids.join("|")}`,
+    `${WIKIDATA_API}?action=wbgetentities&format=json&languages=en&props=labels|aliases|descriptions|claims|sitelinks&sitefilter=enwiki&ids=${ids.join("|")}`,
   );
   return got.entities ?? {};
 }
