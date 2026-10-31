@@ -53,7 +53,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
-<a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
+<a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
 ${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
@@ -158,7 +158,7 @@ ${again ? TRY_FORM_CSS : ""}
 <h1>${esc(endpoint.summary)}</h1>
 <p class="meta">Free call: ${left} of your free calls left. After that, ${esc(endpoint.price)} per call; failed calls are never charged.</p>
 <pre><code>${esc(shown)}</code></pre>
-<div class="actions"><a class="btn primary" href="/credits">Buy credits by card (from $5)</a><a class="btn" href="/">All tools</a></div>
+<div class="actions"><a class="btn primary" href="/credits">Buy credits by card (from $1)</a><a class="btn" href="/">All tools</a></div>
 ${again}
 <p>From code or an AI agent, the same request returns this JSON. Add <code>${esc(endpoint.path)}</code> to Claude, Cursor or any MCP client through <code>/mcp</code>.</p>
 </main></body></html>`;

@@ -6,7 +6,7 @@ import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 import {
-  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
+  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
 } from "./credits";
 import { prefersHtml } from "./negotiate";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
@@ -37,6 +37,20 @@ export function creditsInfo(origin: string, agentPurchase = false, cardReady = t
   };
 }
 
+/** What people buy elsewhere, with each tool's price in credits (tests/credit-jobs pins these to the catalog). */
+export const CARD_JOBS = [
+  { path: "/pdf/text", job: "Read a PDF as text", unit: "PDFs", credits: 5 },
+  { path: "/extract", job: "Read a web page as clean text or Markdown", unit: "web pages", credits: 2 },
+  { path: "/screenshot", job: "Screenshot a web page", unit: "screenshots", credits: 10 },
+  { path: "/transcribe", job: "Transcribe an audio clip", unit: "audio clips", credits: 10 },
+  { path: "/pack/website-audit", job: "Audit a website: uptime, SEO, security headers", unit: "website audits", credits: 30 },
+];
+const AGENT_JOBS = [
+  { path: "/check/counterparty", job: "Vet an address before paying it" },
+  { path: "/price/token", job: "Price any token from its Uniswap pool" },
+  { path: "/sanctions/check", job: "OFAC sanctions screening" },
+];
+
 function page(title: string, body: string, indexable = false) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}<style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}a.buy{display:inline-block;margin:.25rem .5rem .25rem 0;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;text-decoration:none;color:inherit}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}code,pre{background:#262626}a.buy{border-color:#eee}}</style></head><body>${body}</body></html>`;
 }
@@ -50,13 +64,9 @@ credits.get("/credits", (c) => {
   // Calls per pack at the most common price, so a buyer sees what the money gets.
   const calls = (credits: number) => Math.floor(credits / 10).toLocaleString("en-US");
   const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.01</small></a>`).join("");
-  const previews = [
-    ["/check/counterparty", "Vet an address before paying it"],
-    ["/extract", "Read a web page as clean text"],
-    ["/price/token", "Price any token from its Uniswap pool"],
-    ["/sanctions/check", "OFAC sanctions screening"],
-  ].map(([path, label]) => `<li><a href="${path}?sample=1">${esc(label)}</a> <code>${path}</code></li>`).join("");
-  return c.html(page("Pay by card: Agent Data Tools credits", `<h1>Pay by card</h1><p>${esc(info.what)} Try ${FREE_CALLS_PER_CALLER} calls free first; no card needed for those.</p><p>${packs}</p>
+  const previews = [...CARD_JOBS, ...AGENT_JOBS].map(({ path, job }) => `<li><a href="${path}?sample=1">${esc(job)}</a> <code>${path}</code></li>`).join("");
+  const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job.toLowerCase())}</li>`).join("");
+  return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try ${FREE_CALLS_PER_CALLER} calls free first on most tools; no card needed for those. ${esc(info.what)}</p><p>${packs}</p>
 <h2>Use it in your AI app</h2><ul>
 <li><b>Claude or ChatGPT:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and sign in with your key.</li>
 <li><b>Cursor, Claude Code and other MCP clients:</b> connect to <code>${esc(origin)}/mcp</code> with the header <code>Authorization: Bearer adt_…</code>, or use <code>${esc(origin)}/mcp/k/&lt;key&gt;</code> where only a URL fits.</li>
@@ -204,7 +214,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the AI, rendering, screenshot, transcription and search tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum, Monad or World Chain) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
   // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
   const kinds = signedIn ? DIRECTORY_KINDS : "LLM chat and embeddings, speech to text and text to speech, image generation and description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, utilities";
   return `Agent Data Tools: ${toolCount} pay-per-call tools: ${kinds}. Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${signedIn ? DIRECTORY_PICK : PICK_BY_TASK}`;
@@ -229,8 +239,8 @@ export function paymentHint(origin: string, price: string, signedIn = false, car
   // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
   const [starter] = WEB_PACKS;
   const card = cardReady
-    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${Math.floor(starter.credits / 10).toLocaleString("en-US")} calls at $0.01; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
-    : `buy a prepaid key by card at ${origin}/credits ($5 = 5,000 credits, about 500 calls at $0.01) ${keyPlacement(origin, signedIn)}`;
+    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
+    : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, price)} calls at ${price}) ${keyPlacement(origin, signedIn)}`;
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
     + `${card}, and retry. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may
