@@ -1,5 +1,5 @@
 {
-  "version": "1.83.0",
+  "version": "1.83.1",
   "tools": [
     {
       "name": "extract",
@@ -14327,7 +14327,7 @@
     },
     {
       "name": "pack_news_sentiment",
-      "description": "The news on a topic and its tone in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
