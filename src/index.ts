@@ -14,7 +14,7 @@ import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { demoPage } from "./lib/demo-page";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { payV1, v1Requirements } from "./lib/x402-v1";
-import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -35,6 +35,7 @@ import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
+import { pageHtml, readPage } from "./routes/pages";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
@@ -587,6 +588,22 @@ app.get("/.well-known/api-catalog", (c) =>
 // Discovery paths other conventions use; each serves an existing description, so nothing new to keep in step.
 app.get("/.well-known/mcp.json", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
 app.get("/.well-known/mcp", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
+// A2A agent card (1.84.0): the Agent2Agent discovery file A2A registries and FluxA's AgentMarket crawl.
+for (const path of ["/.well-known/agent.json", "/.well-known/agent-card.json"]) {
+  app.get(path, (c) => c.json(agentCard(origin(c.req.url), paymentRails(c.env).networks), 200, { "Cache-Control": "public, max-age=3600" }));
+}
+// Pages published through /page/publish (1.84.0): sanitised HTML from KV, noindex, strict CSP, gone after at most 7 days.
+app.get("/p/:id", async (c) => {
+  const page = await readPage(c.env.TRIALS ?? null, c.req.param("id"));
+  if (!page) return c.html("<!doctype html><meta charset=utf-8><meta name=robots content=noindex><title>Page not found</title><p>This page does not exist or has expired. Pages published through Agent Data Tools stay online for at most 7 days.</p>", 404);
+  return c.html(pageHtml(page, SUPPORT_EMAIL), 200, {
+    "X-Robots-Tag": "noindex, nofollow",
+    "Content-Security-Policy": "default-src 'none'; img-src https:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "public, max-age=60",
+  });
+});
 app.get("/.well-known/ai-plugin.json", (c) => c.json(aiPluginManifest(origin(c.req.url))));
 app.get("/llms-full.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
 

@@ -42,6 +42,8 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 </ul>
 <h2>Third parties</h2>
 <p>Cloudflare (hosting, and the AI models behind the AI tools: the text you send to an AI tool is processed by Cloudflare Workers AI to produce the answer), Brave (the query you send to the web and news search tools), Stripe (card payments), Coinbase Developer Platform (x402 payment settlement), and the public data sources each tool names in its description. They receive only what is needed to answer that call.</p>
+<h2>Hosted pages</h2>
+<p>HTML published through /page/publish is stored for the number of days the publisher chose (at most 7) and then deleted; its text is sent to the moderation model before storage. We keep no record of who published a page beyond the payment receipt.</p>
 <h2>Your choices</h2>
 <p>To ask what we hold about an API key or wallet, or to have card-credit records deleted (this ends the key's balance), write to ${mail}.</p>`);
 
@@ -64,6 +66,11 @@ export const TERMS_HTML = page("Terms of service", `<h1>Terms of service</h1>
 <ul>
 <li>Do not use the service for anything unlawful, to harm others, or to overload it. Keep your API key private; anyone with it can spend its credits.</li>
 <li>We may block keys or traffic that break these terms.</li>
+</ul>
+<h2>Hosted pages (/page/publish)</h2>
+<ul>
+<li>A page you publish is your content: you must have the right to publish it, and it must not be unlawful, deceptive, infringing, sexual, hateful or harmful. Pages are sanitised (no scripts, styles, frames or forms), screened by automated moderation, marked noindex, and expire after at most 7 days.</li>
+<li>We may remove a page at any time without refund if it breaks these terms, and we remove pages on a reasoned request to ${mail}. Pages carry no warranty of availability.</li>
 </ul>
 <h2>Liability</h2>
 <p>To the extent the law allows, our total liability for any claim is limited to what you paid us in the 30 days before it arose.</p>
