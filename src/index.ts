@@ -250,6 +250,7 @@ app.use(async (c, next) => {
   let freePaused = false;
   if (endpoint && trialable && !CAPACITY_LIMITED.has(c.req.path) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
     const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; });
+    if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
     if (freePaused && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
     }
@@ -302,7 +303,7 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
+  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && !CAPACITY_LIMITED.has(c.req.path) && !activeTrace()?.stages.has("free_exhausted"), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }

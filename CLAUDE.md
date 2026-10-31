@@ -961,3 +961,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `PACK_PRICE` ($0.03, src/family.ts) on all 24 packs and $0.05 on `/dex/new-pools`; everything else is unchanged. This overrides the 25 Oct "every tool at most $0.01" rule for these tools only, so comments elsewhere that say so are history. FluxA's one-cent catch-all no longer passes these tools: they answer the normal 402. The Bazaar shows each listing's last settled price until it settles again.
 - To revert: set `PACK_PRICE` and the `/dex/new-pools` price back, restore the copy in src/discovery.ts ("Most tools cost"), the test pins (families, chain-more, discovery-client, packs-intel, packs-research) and run `scripts/freeze-prices.mjs`, then `update-402index-prices.mjs`.
 
+
+
+## Card path copy and measurement (1.84.4, 31 Oct 2026)
+
+- `CARD_JOBS` in src/lib/credit-routes.ts drives the /credits opening ("What $1 buys"); tests/credit-jobs.test.cjs pins its credit costs to catalog prices, so a price change fails there. `callsAt()` (src/lib/credits.ts) counts calls at a tool's own price for hints.
+- `free_exhausted_by` counts exhaustion at `/caller/<software family>` over HTTP only; read it before calling `free_exhausted` a buying moment (31 Oct samples: machine traffic). Family names have `_` mapped to `-` because funnel paths reject underscores.
+- Search Console, 31 Oct: 1 page indexed, 195 "Discovered, not indexed", 0 "Crawled, not indexed", sitemap read 29 Oct with 575 pages; 0 clicks and 39 impressions in 28 days. Google has not crawled the pages, so this is crawl priority, not a verdict on their content.
+
