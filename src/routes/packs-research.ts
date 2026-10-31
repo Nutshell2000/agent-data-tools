@@ -120,8 +120,9 @@ export const PACKS_RESEARCH: Entry[] = [
       return { claim, verdict, explanation, sources: s.list.map(({ n, title, url }) => ({ n, title, url })), model: out.model, terms: s.terms };
     }, "$0.01"),
 
-  entry("/pack/news-sentiment", "News sentiment: headlines with sentiment scores",
-    "The news on a topic and its tone in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief.",
+  // 31 Oct 2026: the shopper that bought our /news pays $0.04 a call elsewhere for "Market & Brand Sentiment"; the name carries that phrase.
+  entry("/pack/news-sentiment", "Brand sentiment, news sentiment: headlines with sentiment scores",
+    "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief.",
     ["news-sentiment", "sentiment-analysis", "news", "pack", "crypto-news", "market-sentiment"], {
       q: { type: "string", description: "News topic, at most 400 characters", required: true, example: "bitcoin" },
       count: { type: "integer", description: "Number of articles (1-10, default 5)", example: 5 },

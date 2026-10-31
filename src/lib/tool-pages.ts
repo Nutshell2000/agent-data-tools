@@ -6,6 +6,7 @@ import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { TOOL_SEO } from "./tool-seo";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
+import { GUIDE_FOR_TOOL } from "../guides/task-guides";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -73,6 +74,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p class="meta"><span class="price">${esc(e.price)} per call</span> · failed calls are never charged · no account or API key needed</p>
 <p>${esc(e.description)}</p>
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
+${GUIDE_FOR_TOOL.has(e.path) ? `<p>Guide: <a href="/guides/${esc(GUIDE_FOR_TOOL.get(e.path)!.slug)}">${esc(GUIDE_FOR_TOOL.get(e.path)!.phrase)}</a></p>` : ""}
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $5)</a>
