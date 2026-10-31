@@ -27,6 +27,8 @@ export const CREDIT_PACKS = [
 export const topUpReference = (keyHash: string) => `topup_${keyHash}`;
 export const keyHashFromReference = (ref: unknown) => typeof ref === "string" && /^topup_[0-9a-f]{64}$/.test(ref) ? ref.slice(6) : undefined;
 /** The packs with a Stripe checkout page: what browsers, hints and top-up lists show. MPP sells every pack. */
+/** How many calls a pack pays for at a tool's price, for hints (1 credit = $0.001). */
+export const callsAt = (credits: number, price: string) => Math.floor(credits / Math.round(Number(price.slice(1)) * 1000)).toLocaleString("en-US");
 export const WEB_PACKS = CREDIT_PACKS.filter((p) => (p.url as string) !== "");
 export const topUpLinks = (keyHash: string) => WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${p.url}?client_reference_id=${topUpReference(keyHash)}` }));
 
