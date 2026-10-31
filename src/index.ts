@@ -19,6 +19,7 @@ import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
+import { guidesIndexHtml, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { requestMetricsMiddleware } from "./lib/request-metrics";
@@ -428,6 +429,16 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
   app.get(`/guides/${kind}`, async c => c.html(toolGuideHtml(kind, origin(c.req.url), c.env.PAY_TO, kind === "web-reading" ? await loadReaderDemo(c.env.ASSETS, origin(c.req.url)) : undefined)));
   app.get(`/guides/${kind}.md`, c => c.text(toolGuideMarkdown(kind, origin(c.req.url), c.env.PAY_TO)));
 }
+// Task guides (guides/task-guides.ts): one page per job agents search for, after the specific guide routes above.
+app.get("/guides", (c) => c.html(guidesIndexHtml(origin(c.req.url))));
+app.get("/guides/:name{[a-z0-9.-]+}", (c) => {
+  const name = c.req.param("name");
+  const md = name.endsWith(".md");
+  const slug = md ? name.slice(0, -3) : name;
+  const page = md ? taskGuideMarkdown(slug, origin(c.req.url), trialsEnabled(c.env)) : taskGuideHtml(slug, origin(c.req.url), trialsEnabled(c.env));
+  if (page === undefined) return c.notFound();
+  return md ? c.text(page) : c.html(page);
+});
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", (c) => {
   const tool = toolBySlug(c.req.param("slug"));

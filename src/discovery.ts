@@ -1,6 +1,7 @@
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
+import { TASK_GUIDES } from "./guides/task-guides";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 import { salesOrdered } from "./lib/discovery-index";
@@ -8,7 +9,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.83.0";
+export const MCP_SERVER_VERSION = "1.83.1";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -341,10 +342,11 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
 Claude Code: <code>${esc(install.claudeCode)}</code>. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. If your client limits how many tools it loads, add one section instead, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
-<li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $5</a> (5,000 credits; most tools cost 3). The key works over HTTP (<code>Authorization: Bearer adt_…</code>) and MCP.</li>
+<li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base and four more chains) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
 ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
+<p><strong>Guides by job:</strong> ${TASK_GUIDES.map((g) => `<a href="/guides/${g.slug}">${esc(g.phrase)}</a>`).join(" · ")} · <a href="/guides">all guides</a></p>
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
 <h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
@@ -355,7 +357,7 @@ ${rows}
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 <p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code>, <code>POST /v1/embeddings</code> and <code>POST /v1/images/generations</code> run the same paid tools at the same prices (Llama 4 Scout with function calling at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
-    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server. Same prices, failed calls refunded.</p>
+    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Every tool costs at most $0.01, so a cap of $0.01 pays all of them.</p>
@@ -527,7 +529,9 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     trialNote(trialsEnabled),
     "",
-    `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
+    `Guides by job (what to call, the request in every way an agent can make it): ${TASK_GUIDES.map((g) => `${g.phrase}: ${origin}/guides/${g.slug}.md`).join("; ")}. Index: ${origin}/guides.`,
+    "",
+    `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($1 = 1,000 credits, $5 = 5,000, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
@@ -602,6 +606,6 @@ export const robotsTxt = (origin: string) =>
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/tools", ...ENDPOINTS.map((e) => `/tools/${toolSlug(e.path)}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/tools", ...ENDPOINTS.map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
 }
