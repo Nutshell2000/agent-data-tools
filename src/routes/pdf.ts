@@ -77,7 +77,7 @@ export function pdfUrl(raw: string | undefined) {
 
 export const PDF: Entry[] = [
   entry("/pdf/text", "PDF to text, page by page",
-    "Download a public PDF (up to 10 MB) and return its text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200) and cap the output with maxChars. arXiv abstract links are read as their PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent's context.",
+    "Extract the text of a PDF from its URL: downloads a public PDF (up to 10 MB) and returns the text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200); cap the output with maxChars. arXiv abstract links are read as the PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent.",
     ["pdf", "documents", "text", "extract", "rag"], {
       // The example must load from Cloudflare's network: w3.org's dummy PDF answers Workers with 403.
       url: { type: "string", description: "Absolute public http(s) URL of the PDF", required: true, example: "https://bitcoin.org/bitcoin.pdf" },
