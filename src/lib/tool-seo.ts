@@ -439,9 +439,9 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     faq: [["How is it different from /ai/chat?", "Same call and inputs (prompt, optional system prompt, up to 1,024 output tokens, temperature) with a stronger model, at its own price."]],
   },
   "/ai/translate": {
-    title: "Translation API: translate text between 100 languages (M2M100)",
+    title: "Translation API: translate text between languages",
     uses: ["Localise messages and documents", "Translate up to 4,000 characters with a target ISO code such as en, sv, de, fr, es, zh or ja"],
-    faq: [["Which model?", "Meta's M2M100 1.2B, about 100 languages; the source language is optional (default en)."]],
+    faq: [["Which model?", "OpenAI's open-weight gpt-oss-20b for common languages and Meta's M2M100 for the rest; the source language is optional and detected when left out."]],
   },
   "/ai/embed": {
     title: "Text embeddings API: 1,024-dimension vectors (BGE-M3), pay per call",

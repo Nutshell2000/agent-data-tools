@@ -1,5 +1,5 @@
 {
-  "version": "1.84.6",
+  "version": "1.84.7",
   "tools": [
     {
       "name": "extract",
@@ -16623,7 +16623,7 @@
     },
     {
       "name": "ai_translate",
-      "description": "Translate text between about 100 languages with Meta's M2M100 1.2B model. Give the target language as an ISO code such as en, sv, de, fr, es, zh or ja; the source language is optional. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Translate text into another language with OpenAI's open-weight gpt-oss-20b, detecting the source language. Long text is split at sentence ends and checked, so a cut-off translation is an uncharged 502, never a success. Give the target as an ISO code such as en, sv, de, fr, es, zh or ja; less common languages use Meta's M2M100. Use to localise messages and documents. Example: text=Payment received, thank you!, to=sv. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16644,7 +16644,7 @@
           },
           "from": {
             "type": "string",
-            "description": "Source language code (default en)"
+            "description": "Source language code (default: detected)"
           }
         },
         "required": [

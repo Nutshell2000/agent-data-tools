@@ -47,6 +47,20 @@ function domainOf(raw: string) {
   try { return new URL(/^https?:\/\//i.test(raw) ? raw : `http://${raw}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return raw.toLowerCase(); }
 }
 
+const LEGAL_FORMS = new Set(["inc", "incorporated", "llc", "ltd", "limited", "corp", "corporation", "co", "company", "plc", "gmbh", "ag", "sa", "nv", "bv", "ab", "as", "asa", "oy", "oyj", "spa", "srl", "the"]);
+const nameWords = (s: string) => s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w && !LEGAL_FORMS.has(w));
+
+/** Whether an item is actually named what was asked for: every word of the name is in its label or one alias. Search also matches descriptions. */
+export function namedAs(e: Entity, name: string): boolean {
+  const want = nameWords(name);
+  if (!want.length) return false;
+  return [e.labels?.en?.value, ...(e.aliases?.en ?? []).map((a) => a.value)].some((label) => {
+    if (!label) return false;
+    const have = new Set(nameWords(label));
+    return want.every((w) => have.has(w));
+  });
+}
+
 /** Linked items whose labels the answer needs. */
 function linkedIds(e: Entity): string[] {
   const ids = ["P17", "P159", "P452", "P169", "P112", "P749", "P414"].flatMap((p) => itemIds(e, p));
@@ -81,9 +95,11 @@ export const COMPANY: Entry[] = [
       if (!ids.length) throw new HttpError(404, domain ? `no Wikidata item matches the domain ${domain}` : "no Wikidata item matches this name");
       const entities = await getEntities(ids);
       const candidates = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e?.claims));
-      const onDomain = (e: Entity) => { try { return new URL(firstString(e, "P856") ?? "http://-").hostname.replace(/^www\./, "") === domain; } catch { return false; } };
-      const best = (domain ? candidates.find((e) => isCompany(e) && onDomain(e)) : undefined) ?? candidates.find(isCompany);
-      if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : "no company found under this name");
+      const onDomain = (e: Entity) => { try { const host = new URL(firstString(e, "P856") ?? "http://-").hostname.replace(/^www\./, ""); return host === domain || host.endsWith(`.${domain}`); } catch { return false; } };
+      // A domain must match the company's own website and a name its own name: a wrong company is worse than an uncharged 404
+      // (31 Oct 2026: posthog.com answered a Brussels art school, cal.com answered Caltech).
+      const best = rawId ? candidates.find(isCompany) : domain ? candidates.find((e) => isCompany(e) && onDomain(e)) : candidates.find((e) => isCompany(e) && namedAs(e, name!));
+      if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : domain ? `no company on Wikidata has ${domain} as its website; nothing was charged` : "no company found under this name; nothing was charged");
       const labels = await labelsOf(linkedIds(best));
       return companyFacts([best], labels)!;
     }, "$0.01"),
