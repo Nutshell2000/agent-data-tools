@@ -99,7 +99,7 @@ app.use(async (c, next) => {
       // A field the tool knows under another name (Exa-style `query`, `numResults`, `urls`) is kept; the tool reads it
       // through INPUT_ALIASES. Nested objects (Exa's `contents`) are dropped as before.
       const aliased = ALIAS_OF[name]?.some((input) => input in endpoint.params);
-      if (!(name in endpoint.params) && !aliased && !["only", "trial", "sample"].includes(name)) continue;
+      if (!(name in endpoint.params) && !aliased && !["only", "trial", "sample", "api_key"].includes(name)) continue;
       if (["string", "number", "boolean"].includes(typeof value)) target.searchParams.set(name, String(value));
       // Items that hold a comma or a line break travel as a JSON array, so list inputs (listInput in routes/retrieval.ts) can split them back exactly.
       else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.some((v) => /[,\n]/.test(String(v))) ? JSON.stringify(value) : value.join(","));
@@ -221,8 +221,9 @@ app.use(async (c, next) => {
       tool: endpoint.path, price: endpoint.price, example: endpoint.outputExample,
     }, 200, { "X-Sample": "1", "Cache-Control": "public, max-age=3600" });
   }
-  // Prepaid card credits: a valid-looking API key replaces the x402 payment for this call.
-  const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name)) : undefined;
+  // Prepaid card credits: a valid-looking API key (header, or api_key= in the URL for fetch-only clients) replaces the
+  // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
+  const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
   if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
@@ -530,7 +531,7 @@ app.get("/metrics/callers", (c) => fromMetrics(async () => {
 // Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
 app.get("/status", async (c) => {
   const generatedAt = new Date().toISOString();
-  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx), which are never charged; server errors (5xx) are never charged either.";
+  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx, and a target URL that did not answer), which are never charged; server errors (5xx) are never charged either.";
   if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   return fromMetrics(async () => {

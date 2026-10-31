@@ -136,7 +136,7 @@ export const PACKS: Entry[] = [
     }, "$0.01"),
 
   entry("/pack/email-deliverability", "Email deliverability check: MX, SPF, DMARC, DKIM and score",
-    "One call to check a domain's email setup: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain.",
+    "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain.",
     ["email-deliverability", "spf", "dmarc", "dkim", "pack", "email"], {
       domain: { type: "string", description: "The sending domain, such as example.com (or a URL; its host is used)", required: true, example: "github.com" },
       email: { type: "string", description: "Optional address to check as well", example: "support@github.com" },

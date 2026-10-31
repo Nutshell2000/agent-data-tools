@@ -62,7 +62,7 @@ ${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
 <h2>Use it from an AI agent</h2>
 <p>Add this MCP server to Claude, Cursor or any MCP client. The tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
-<p>Agents with a wallet pay per call over HTTP: x402 (USDC on Base and four other chains) or MPP. A card key from <a href="/credits">/credits</a> works over both HTTP (<code>Authorization: Bearer adt_…</code>) and MCP.</p>
+<p>Agents with a wallet pay per call over HTTP: x402 (USDC on Base and four other chains) or MPP. A card key from <a href="/credits">/credits</a> works over both HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</p>
 <footer><a href="/">All tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
 </main></body></html>`;
 }

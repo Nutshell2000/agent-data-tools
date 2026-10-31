@@ -170,7 +170,7 @@ export const CHAT_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"; // Llama 4 
 export const AI_TEXT: Entry[] = [
   // "chat completions" (the bigger search) lost us when ", inference" was appended on 24 Oct: #5 before, absent after. One
   // phrase per name when the tool has one main task; /ai/chat-large carries "LLM inference".
-  ai("/ai/chat", "LLM chat completions: Llama 4 Scout", "Send a prompt, get an answer from Meta's Llama 4 Scout (17B active, 16 experts), with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Fast and cheap. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account; other open models by name at /v1/chat/completions, harder reasoning at ai_chat_large.",
+  ai("/ai/chat", "Chat completions (LLM): Llama 4 Scout", "Send a prompt, get an answer from Meta's Llama 4 Scout (17B active, 16 experts), with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Fast and cheap. Use for drafting, reasoning steps, Q&A and any quick LLM call without an AI provider account; other open models by name at /v1/chat/completions, harder reasoning at ai_chat_large.",
     ["chat", "completion", "llama", "llama-4"], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain x402 in one sentence." },
       system: { type: "string", description: "Optional system prompt, up to 2,000 characters", example: "You are a concise assistant." },
@@ -286,7 +286,7 @@ export const AI_TEXT: Entry[] = [
       if (!out?.translated_text) throw new HttpError(502, "the AI model returned no translation");
       return { translatedText: out.translated_text, from, to, model: AI_MODELS.translate };
     }),
-  ai("/ai/embed", "Embeddings, OpenAI compatible: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
+  ai("/ai/embed", "OpenAI compatible embeddings: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
     ["embeddings", "vector", "rag", "search"], { text: { type: "string", description: "Text to embed, up to 4,000 characters", required: true, example: "pay-per-call APIs for AI agents" } },
     { dimensions: 1024, embedding: [0.0123, -0.0456, 0.0789], model: AI_MODELS.embed },
     async (env, q) => {

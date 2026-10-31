@@ -26,7 +26,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean): st
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
   const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
-  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "This tool is not in the free calls;"} pay with card credits (from $5) or per call in USDC over x402 or MPP. No account or API key is needed.`;
+  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
   const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
   const related = ENDPOINTS.filter((o) => o.path !== e.path && categoryOf(o.path) === category).slice(0, 12);

@@ -8,7 +8,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.82.18";
+export const MCP_SERVER_VERSION = "1.83.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -20,7 +20,7 @@ export const exampleQuery = (e: Endpoint) =>
 
 const trialNote = (enabled: boolean) =>
   enabled
-    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls (failed calls do not count). Over MCP they are used automatically before any payment; over HTTP add trial=1 to a GET request. Not for the AI, rendering, screenshot, transcription and search tools, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. The operator can switch this off.`
+    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls (failed calls do not count). Over MCP they are used automatically before any payment; over HTTP add trial=1 to a GET request. Not for the AI, rendering, screenshot, transcription and search tools, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. When they run out, a card key from /credits continues the same URLs (api_key=adt_… in the URL for clients that cannot set headers). The operator can switch this off.`
     : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
 /** Every way a buyer can pay per call: the x402 networks (primary first) and the MPP methods (Tempo first). */
@@ -59,7 +59,7 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
       // MCP tool payments accept x402 on every network listed (the first is the default).
       protocol: "x402", asset: "USDC", network: networks[0], networks,
       // Card alternative: a prepaid key from /credits sent on the MCP request replaces x402 for every call.
-      alternatives: [{ method: "card-credits", buy: `${origin}/credits`, header: "Authorization: Bearer adt_…", balance: `${origin}/credits/balance` }],
+      alternatives: [{ method: "card-credits", buy: `${origin}/credits`, header: "Authorization: Bearer adt_…", query: "api_key=adt_…", balance: `${origin}/credits/balance` }],
     },
     tools: salesOrdered(ENDPOINTS).map((e) => ({ name: mcpName(e.path), description: e.summary, price: e.price, ...("outputSchema" in e ? { outputSchema: e.outputSchema } : {}) })),
   };
@@ -527,7 +527,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     trialNote(trialsEnabled),
     "",
-    `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance.`,
+    `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
