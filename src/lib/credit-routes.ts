@@ -43,7 +43,7 @@ export const CARD_JOBS = [
   { path: "/extract", job: "Read a web page as clean text or Markdown", unit: "web pages", credits: 2 },
   { path: "/screenshot", job: "Screenshot a web page", unit: "screenshots", credits: 10 },
   { path: "/transcribe", job: "Transcribe an audio clip", unit: "audio clips", credits: 10 },
-  { path: "/pack/website-audit", job: "Audit a website: uptime, SEO, security headers", unit: "website audits", credits: 30 },
+  { path: "/pack/website-audit", job: "Audit a website: uptime, SEO, security headers", unit: "website audits", credits: 10 },
 ];
 const AGENT_JOBS = [
   { path: "/check/counterparty", job: "Vet an address before paying it" },
