@@ -1,5 +1,5 @@
 {
-  "version": "1.89.0",
+  "version": "1.90.0",
   "tools": [
     {
       "name": "extract",
@@ -10957,6 +10957,152 @@
           "only": {
             "type": "string",
             "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polymarket_markets",
+      "description": "Polymarket prediction markets: the most traded open markets by 24-hour volume, or the markets matching a search, each with outcome prices (implied probability), best bid and ask, last trade, day change, volume, liquidity, end date, slug and CLOB token ids. Use to get the odds on an election, sports, crypto or news event, or to find a market before reading its order book. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Optional search, e.g. bitcoin, election, fed rates; without it the top markets by 24h volume"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Markets to return, 1-20 (default 10)"
+          },
+          "closed": {
+            "description": "true for resolved or closed markets instead of open ones",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polymarket_events",
+      "description": "Polymarket events (one question with one or several markets, such as an election with many candidates): the busiest open events by 24-hour volume or those matching a search, with volume, liquidity, end date, tags, the number of open markets and the five leading outcomes by price. Use to see who leads a multi-candidate market or to browse what is being traded now. Example: q=president. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Optional search, e.g. president 2028; without it the busiest events by 24h volume"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Events to return, 1-10 (default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polymarket_orderbook",
+      "description": "Polymarket order book for one market outcome from the CLOB: bids and asks (price and size) up to 50 levels, best bid and ask, mid, spread and USD depth within 5 cents of the mid on each side. Give the market slug and outcome, or a CLOB token id. Use to check liquidity and slippage before a trade, or to read a sharper price than the last trade. Example: slug=will-jd-vance-win-the-2028-republican-presidential-nomination. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "The market's Polymarket slug (from polymarket_markets) or its polymarket.com URL"
+          },
+          "outcome": {
+            "type": "string",
+            "description": "Outcome name, e.g. Yes or No (default the first outcome)"
+          },
+          "token_id": {
+            "description": "Instead of slug: the CLOB token id of one outcome",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Levels per side, 1-50 (default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polymarket_price_history",
+      "description": "Polymarket price history of one market outcome from the CLOB: time and price points over the last hour, 6 hours, day, week, month or all time, with first, last, change, high and low. Give the market slug and outcome, or a CLOB token id. Use to chart how the odds moved, spot a swing after news, or backtest a signal. Example: slug=will-jd-vance-win-the-2028-republican-presidential-nomination. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "The market's Polymarket slug (from polymarket_markets) or its polymarket.com URL"
+          },
+          "outcome": {
+            "type": "string",
+            "description": "Outcome name, e.g. Yes or No (default the first outcome)"
+          },
+          "token_id": {
+            "description": "Instead of slug: the CLOB token id of one outcome",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "1h",
+              "6h",
+              "1d",
+              "1w",
+              "1m",
+              "max"
+            ],
+            "description": "1h, 6h, 1d, 1w (default), 1m or max"
           }
         }
       },
