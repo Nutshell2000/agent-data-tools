@@ -1,3 +1,4 @@
+import { allowedValue } from "../family";
 import { HttpError } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { pageContent } from "../lib/page-content";
@@ -18,8 +19,10 @@ export function extractOptions(
   // Agents ask for small previews (maxChars=300 in the 26 Oct 2026 probe) and big dumps; a refused call wins nobody, so
   // whole numbers outside the range are held to it.
   const maxChars = Math.min(100000, Math.max(500, asked));
-  if (!["text", "markdown", "both"].includes(formatParam))
-    throw new HttpError(400, "format must be text, markdown or both");
+  // Same forgiveness as the paywall's enum check ("Markdown", "md", "plain"), so a call it let through is never refused here.
+  const format = allowedValue(formatParam, ["text", "markdown", "both"] as const);
+  if (!format) throw new HttpError(400, "format must be text, markdown or both");
+  formatParam = format;
   if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
     throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
   return { target, maxChars, formatParam, sectionParam };
@@ -31,7 +34,9 @@ export async function extract(
   formatParam = "text",
   sectionParam?: string,
 ) {
-  const { target, maxChars } = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
+  const options = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
+  const { target, maxChars } = options;
+  formatParam = options.formatParam;
   const res = await fetchPublic(
     target,
     "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8",
