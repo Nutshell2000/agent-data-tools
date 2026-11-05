@@ -671,7 +671,7 @@ type RawLog = { blockNumber: string; transactionHash: string; logIndex: string; 
  * pulling megabytes over the whole span; a quiet one covers 1,000 blocks in five calls. Small windows also suit nodes
  * that cap the range. Returns the logs oldest first and the first block actually scanned.
  */
-export async function recentLogs(cl: PublicClient, filter: { address?: `0x${string}`; topics?: (`0x${string}` | null)[] }, latest: bigint, span: bigint, want: number, window: { first?: bigint; max?: bigint } = {}) {
+export async function recentLogs(cl: PublicClient, filter: { address?: `0x${string}`; topics?: (`0x${string}` | `0x${string}`[] | null)[] }, latest: bigint, span: bigint, want: number, window: { first?: bigint; max?: bigint } = {}) {
   const floor = latest - span + 1n;
   let logs: RawLog[] = [];
   let to = latest;
@@ -750,7 +750,7 @@ const TOPIC_LOG_RPCS: Record<(typeof RELATED_CHAINS)[number], readonly string[]>
   op: ["https://mainnet.optimism.io", "https://optimism.gateway.tenderly.co"],
   polygon: ["https://polygon.gateway.tenderly.co", "https://rpc-mainnet.matic.quiknode.pro"],
 };
-function topicLogsClient(c: ChainDef): PublicClient {
+export function topicLogsClient(c: ChainDef): PublicClient {
   const urls = TOPIC_LOG_RPCS[c.slug as (typeof RELATED_CHAINS)[number]];
   const options = { timeout: 6_000, retryCount: 1, retryDelay: 150 };
   return requestClient(`topiclogs|${c.slug}`, () =>
