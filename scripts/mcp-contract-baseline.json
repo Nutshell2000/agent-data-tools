@@ -1,5 +1,5 @@
 {
-  "version": "1.91.0",
+  "version": "1.92.0",
   "tools": [
     {
       "name": "extract",
@@ -11109,6 +11109,27 @@
       "price": "$0.01"
     },
     {
+      "name": "crypto_trending",
+      "description": "Trending crypto coins right now: the coins most searched on CoinGecko in the last 24 hours, in order, with price, 24-hour change, market cap, volume and market-cap rank, plus the trending categories. Use to spot what the market is watching, feed a crypto news or trading agent, or pick coins to research next. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "stock_quote",
       "description": "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -15817,6 +15838,64 @@
       "price": "$0.01"
     },
     {
+      "name": "air_quality",
+      "description": "Current air quality at a point: European and US air-quality index, PM2.5, PM10, ozone, nitrogen dioxide, sulphur dioxide and carbon monoxide (Open-Meteo, CAMS model data). Use for health, outdoor-activity and travel decisions. Example: lat=59.33, lon=18.07. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "uv",
+      "description": "Current UV index and today's maximum at a point, with the WHO exposure category and sun-protection advice (Open-Meteo). Use for outdoor planning and health reminders. Example: lat=59.33, lon=18.07. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "geocode",
       "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Example: name=Uppsala. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -15842,6 +15921,35 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "elevation",
+      "description": "Ground elevation in metres above sea level for a latitude and longitude (Copernicus 90 m digital elevation model via Open-Meteo). Use to plan routes, size flood or terrain risk, or enrich location data. Example: lat=59.33, lon=18.07. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
         ]
       },
       "price": "$0.01"
@@ -15925,6 +16033,34 @@
       "price": "$0.01"
     },
     {
+      "name": "crypto_price",
+      "description": "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move. Example: ids=bitcoin,ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string",
+            "description": "Comma-separated CoinGecko ids"
+          },
+          "vs": {
+            "type": "string",
+            "description": "Comma-separated currencies (default usd)"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "npm_downloads",
       "description": "Download counts of an npm package for the last day, week and month, from the official npm registry API. Use to judge how widely a dependency is used. Example: package=hono. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -15969,6 +16105,50 @@
         "required": [
           "package"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hackernews_top",
+      "description": "Current top stories on Hacker News: title, link, points, comment count, author, age and discussion URL (official HN API). Use to follow what developers are discussing right now. Example: count=5. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many (1-20, default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "iss",
+      "description": "Current position of the International Space Station: latitude, longitude, altitude, speed and whether it is in daylight (wheretheiss.at). Use for space apps, education bots and sky-watching alerts. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
       },
       "price": "$0.01"
     },
