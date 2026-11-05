@@ -136,7 +136,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { word, meanings, url: `https://en.wiktionary.org/wiki/${enc(word.replaceAll(" ", "_"))}`, licence: "CC BY-SA 4.0", attribution: `Definitions from the Wiktionary entry "${word}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
-  entry("/earthquakes", "Recent earthquakes, USGS data", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
+  entry("/earthquakes", "Earthquake data, earthquakes", "Recent earthquakes worldwide from the US Geological Survey: magnitude, place, time, depth, coordinates, tsunami flag and USGS link, for the past day or week, filtered by minimum magnitude (2.5, 4.5 or significant). Use for alerts, news and travel checks.",
     ["earthquakes", "geo", "science", ...P], { period: { type: "string", description: "hour, day (default), week or month", example: "day" }, minMagnitude: { type: "string", description: "Smallest magnitude to include, 0-10 (default 2.5), or significant", example: "4.5" } },
     { period: "day", minMagnitude: "4.5", count: 8, earthquakes: [{ magnitude: 5.1, place: "100 km S of …", time: "2026-10-18T03:12:00.000Z", depthKm: 10, lat: -6.1, lon: 130.2, tsunami: false, url: "https://earthquake.usgs.gov/…" }] },
     async (_e, q) => {
@@ -166,7 +166,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { uvIndex: r.current.uv_index, category: cat(r.current.uv_index), todayMax: max, todayMaxCategory: cat(max), advice: max < 3 ? "No protection needed for most people." : max < 6 ? "Protection is advisable around midday." : "Seek shade at midday; use sunscreen, a hat and sunglasses." };
     }),
 
-  entry("/geocode", "Geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
+  entry("/geocode", "Geocode address, geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
     ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Uppsala" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
     { count: 1, results: [{ name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.858, lon: 17.645, population: 170000, elevation: 15, wikidataId: "Q…" }], source: "Wikidata (CC0 public domain)" },
     async (_e, q) => {
@@ -199,7 +199,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { lat: la, lon: lo, elevationM: r.elevation?.[0] ?? null };
     }),
 
-  entry("/sun", "Sunrise sunset times, day length", "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning.",
+  entry("/sun", "Sun times, sunrise sunset", "Sunrise, sunset, solar noon, civil dawn and dusk (UTC) and day length for any place and date, computed with the standard solar equations; handles polar day and night. No outside service. Use for photography, events and outdoor planning.",
     ["sun", "astronomy", "date", ...P], { ...LATLON, date: { type: "string", description: "Date (default today)", example: "2026-12-21" } },
     { date: "2026-12-21", sunrise: "2026-12-21T07:43:00.000Z", sunset: "2026-12-21T13:48:00.000Z", solarNoon: "2026-12-21T10:45:00.000Z", civilDawn: "2026-12-21T06:58:00.000Z", civilDusk: "2026-12-21T14:33:00.000Z", dayLengthMinutes: 365, polar: null },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...sunTimes(d, lat(q), lon(q)) }; }),
