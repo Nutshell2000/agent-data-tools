@@ -314,7 +314,7 @@ export const PACKS_INTEL: Entry[] = [
       return { pack: "gas-tracker", ethUsd, chains, cheapest: chains.find((c) => c.transferUsd !== null)?.chain ?? null, bitcoin: fees?.fees ? { nextBlock: fees.fees.nextBlock, hour: fees.fees.hour, unit: fees.unit ?? "sat/vB" } : null, failed };
     }, "$0.01"),
 
-  entry("/pack/domain-intel", "Domain intelligence, enrichment: who runs a domain and on what",
+  entry("/pack/domain-intel", "Company enrichment, domain intel: who runs a domain and on what",
     "Company enrichment in one call for any domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server (IP registry holder), DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting.",
     ["domain-intelligence", "company-enrichment", "lead-enrichment", "company-research", "pack", "web"],
     { domain: { type: "string", description: "Company domain such as stripe.com (or a URL; its host is used)", required: true, example: "stripe.com" } },
