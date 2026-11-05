@@ -6,7 +6,7 @@ import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, client, recentLogs, rpc, topicLogsClient } from "./chain-reads";
+import { CHAINS, client, logsClient, recentLogs, rpc, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -68,6 +68,8 @@ export const DEX_FACTORIES: Record<string, DexFactory[]> = Object.fromEntries(Ob
 const BLOCK_SECONDS: Record<string, number> = { eth: 12, base: 2, arb: 0.25, op: 2, polygon: 2 };
 const topicAddr = (t: string) => getAddress("0x" + t.slice(26));
 const word = (data: string, i: number) => data.slice(2 + 64 * i, 2 + 64 * (i + 1));
+
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
 
 /** Swap event topics (5 Nov 2026): Uniswap v3 and Aerodrome Slipstream share one signature; Uniswap v2; Aerodrome v2 pools. */
 const SWAP_TOPICS: `0x${string}`[] = [
@@ -252,6 +254,83 @@ export const CHAIN_MORE: Entry[] = [
         chain: def(slug).name, blocksScanned: Number(latest) - fromBlock + 1, fromBlock, toBlock: Number(latest), count: pools.length,
         pools: pools.map((p) => ({ ...p, token0: { address: p.token0, ...meta.get(p.token0 as `0x${string}`) }, token1: { address: p.token1, ...meta.get(p.token1 as `0x${string}`) }, approxAgeMinutes: sig6((Number(latest) - p.block) * secs / 60) })),
         source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live",
+      };
+    }),
+
+  // Who bought and who sold (5 Nov 2026): Nansen's who-bought-sold had 61 payers at $0.01 and we sold nothing like it.
+  // Net flow per address from the token's own Transfer logs (address-filtered, so every log node answers); contracts
+  // (pools, routers, vaults) are left out so the list is wallets.
+  entry("/token/buyers", "Token buyers and sellers",
+    "Who bought and who sold a token lately: the wallets that took the most of an ERC-20 from DEX pools and routers (buyers) or sent the most to them (sellers) over recent blocks, from its live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon, with bought, sold, net and transfers. Contracts are left out; plain wallet-to-wallet moves only count in netAll. Use to see who accumulates or dumps a token before you trade it.",
+    ["token-buyers", "who-bought", "smart-money", "token-flows", "wallet", "dex", "blockchain"], {
+      token: { type: "string", description: "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC", required: true, example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },
+      chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
+      blocks: { type: "integer", description: "How many recent blocks to read, 100 to 10000 (default 1800: about an hour on Base, 6 hours on Ethereum)", example: 1800 },
+      limit: { type: "integer", description: "Buyers and sellers to return each, 1 to 20 (default 10)", example: 10 },
+    },
+    { chain: "Base", token: { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", symbol: "AERO", decimals: 18 }, fromBlock: 37001200, toBlock: 37002999, transfersRead: 1840, truncated: false,
+      dexContractsSeen: 12, buyers: [{ address: "0x3333333333333333333333333333333333333333", bought: "15230.5", sold: "0", netViaDex: "15230.5", netAll: "15230.5", transfers: 4 }],
+      sellers: [{ address: "0x4444444444444444444444444444444444444444", bought: "0", sold: "8800", netViaDex: "-8800", netAll: "-8800", transfers: 2 }],
+      note: "Bought and sold count transfers from and to DEX pools, routers and other busy contracts; netAll includes plain wallet-to-wallet moves. Contracts are left out of the lists." },
+    async (env, q) => {
+      const slug = chainSlug(opt(q, "chain", 30) ?? "base");
+      const token = tokenInput(need(q, "token", 80), slug) as `0x${string}`;
+      const span = BigInt(num(q, "blocks", { min: 100, max: 10_000, fallback: 1800, integer: true }));
+      const limit = num(q, "limit", { min: 1, max: 20, fallback: 10, integer: true });
+      const c = def(slug);
+      const cl = client(env, c);
+      const logs = logsClient(env, c);
+      const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
+      // A busy token fills 3,000 transfers in a few blocks: the window then shrinks to what was read (fromBlock says so).
+      const scan = await recentLogs(logs, { address: token, topics: [TRANSFER] }, latest, span, 3000);
+      const [decimals, symbol] = await Promise.all([
+        (cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }) as Promise<number>).then(Number).catch(() => null),
+        (cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }) as Promise<string>).catch(() => null),
+      ]);
+      if (decimals === null) throw new HttpError(404, "that address is not an ERC-20 token on this network (nothing was charged)");
+      const edges: { from: string; to: string; amount: bigint }[] = [];
+      for (const l of scan.logs) {
+        if (l.topics.length !== 3) continue;
+        edges.push({ from: `0x${l.topics[1].slice(26)}`, to: `0x${l.topics[2].slice(26)}`, amount: BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66)) });
+      }
+      // Hubs: addresses that dealt with 3+ others in 4+ transfers (pools, routers, aggregators). The 30 busiest are checked
+      // for code; a wallet's buys are what it got from those contracts, its sells what it sent to them. A plain move between
+      // two wallets (5 Nov test: 3.9 million AERO) is not a buy and only shows in netAll.
+      const degree = new Map<string, { n: number; peers: Set<string> }>();
+      for (const e of edges) for (const [a, b] of [[e.from, e.to], [e.to, e.from]]) {
+        const d = degree.get(a) ?? { n: 0, peers: new Set<string>() };
+        d.n++; d.peers.add(b); degree.set(a, d);
+      }
+      const isCode = (a: string) => cl.getCode({ address: a as `0x${string}` }).then((code) => !!code && code !== "0x").catch(() => false);
+      const hubCandidates = [...degree.entries()].filter(([a, d]) => a !== ZERO && d.n >= 4 && d.peers.size >= 3).sort((x, y) => y[1].n - x[1].n).slice(0, 30).map(([a]) => a);
+      const hubCode = await Promise.all(hubCandidates.map(isCode));
+      const hubs = new Set(hubCandidates.filter((_, i) => hubCode[i]));
+      type Flow = { inn: bigint; out: bigint; dexIn: bigint; dexOut: bigint; n: number };
+      const flows = new Map<string, Flow>();
+      const at = (a: string) => { const v = flows.get(a) ?? { inn: 0n, out: 0n, dexIn: 0n, dexOut: 0n, n: 0 }; flows.set(a, v); return v; };
+      for (const e of edges) {
+        if (e.from !== ZERO) { const v = at(e.from); v.out += e.amount; v.n++; if (hubs.has(e.to)) v.dexOut += e.amount; }
+        if (e.to !== ZERO) { const v = at(e.to); v.inn += e.amount; v.n++; if (hubs.has(e.from)) v.dexIn += e.amount; }
+      }
+      const rows = [...flows.entries()].filter(([a]) => !hubs.has(a)).map(([a, v]) => ({ a, v, dex: v.dexIn - v.dexOut, all: v.inn - v.out }));
+      // With no hub seen (a quiet token), fall back to plain net flow.
+      const score = (x: (typeof rows)[number]) => (hubs.size ? x.dex : x.all);
+      const byScore = (desc: boolean) => (x: (typeof rows)[number], y: (typeof rows)[number]) => { const d = score(y) - score(x); return (desc ? 1 : -1) * (d > 0n ? 1 : d < 0n ? -1 : 0); };
+      const pick = async (side: typeof rows) => {
+        const code = await Promise.all(side.map((x) => isCode(x.a)));
+        return side.filter((_, i) => !code[i]).slice(0, limit);
+      };
+      const [buyers, sellers] = await Promise.all([
+        pick(rows.filter((x) => score(x) > 0n).sort(byScore(true)).slice(0, 30)),
+        pick(rows.filter((x) => score(x) < 0n).sort(byScore(false)).slice(0, 30)),
+      ]);
+      const f = (n: bigint) => formatUnits(n, decimals);
+      const fmt = (x: (typeof rows)[number]) => ({ address: getAddress(x.a), bought: f(x.v.dexIn), sold: f(x.v.dexOut), netViaDex: f(x.dex), netAll: f(x.all), transfers: x.v.n });
+      return {
+        chain: c.name, token: { address: getAddress(token), symbol, decimals }, fromBlock: Number(scan.fromBlock), toBlock: Number(latest),
+        transfersRead: scan.logs.length, truncated: !scan.complete, dexContractsSeen: hubs.size,
+        buyers: buyers.map(fmt), sellers: sellers.map(fmt),
+        note: (hubs.size ? "Bought and sold count transfers from and to DEX pools, routers and other busy contracts; netAll includes plain wallet-to-wallet moves." : "No DEX contract seen in the window: ranked by plain net flow.") + " Contracts are left out of the lists." + (scan.complete ? "" : " A busy token filled the read early: fromBlock shows where it started."),
       };
     }),
 
