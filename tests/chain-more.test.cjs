@@ -25,7 +25,7 @@ test('ABI summary lists function, event and error signatures', async () => {
 
 test('chain tools: names within 32 characters, descriptions within 450, "Use" guidance, one cent', async () => {
   const { CHAIN_MORE } = await load();
-  assert.deepEqual(CHAIN_MORE.map((e) => e.endpoint.path), ['/stablecoin/supply', '/token/supply', '/contract/abi', '/uniswap/pool', '/dex/new-pools']);
+  assert.deepEqual(CHAIN_MORE.map((e) => e.endpoint.path), ['/stablecoin/supply', '/token/supply', '/contract/abi', '/uniswap/pool', '/dex/new-pools', '/dex/trending']);
   for (const { endpoint: e } of CHAIN_MORE) {
     assert.ok(e.summary.split(':')[0].length <= 32, e.summary);
     assert.ok(e.description.length <= 450, `${e.path} ${e.description.length}`);

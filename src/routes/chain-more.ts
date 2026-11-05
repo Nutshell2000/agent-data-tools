@@ -6,7 +6,7 @@ import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, client, recentLogs, rpc } from "./chain-reads";
+import { CHAINS, client, recentLogs, rpc, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -68,6 +68,23 @@ export const DEX_FACTORIES: Record<string, DexFactory[]> = Object.fromEntries(Ob
 const BLOCK_SECONDS: Record<string, number> = { eth: 12, base: 2, arb: 0.25, op: 2, polygon: 2 };
 const topicAddr = (t: string) => getAddress("0x" + t.slice(26));
 const word = (data: string, i: number) => data.slice(2 + 64 * i, 2 + 64 * (i + 1));
+
+/** Swap event topics (5 Nov 2026): Uniswap v3 and Aerodrome Slipstream share one signature; Uniswap v2; Aerodrome v2 pools. */
+const SWAP_TOPICS: `0x${string}`[] = [
+  "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+  "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822",
+  "0xb3e2773606abfd36b5bd91394b3a54d1398336c65005baf7bf7a05efeffaf75b",
+];
+const pairAbi = [
+  { type: "function", name: "token0", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "address" }] },
+  { type: "function", name: "token1", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "address" }] },
+] as const;
+/** Base majors left out of trending by default: WETH, USDC, USDbC, cbBTC, cbETH, DAI, USDT, EURC, wstETH. */
+const BASE_MAJORS: ReadonlySet<string> = new Set([
+  "0x4200000000000000000000000000000000000006", "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+  "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22", "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+  "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2", "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42", "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
+]);
 
 export type NewPool = { dex: Dex; pool: string; token0: string; token1: string; feeTier: number | null; stable: boolean | null; block: number; txHash: string };
 /** One factory creation event as a plain record; null when the log is not the shape the factory emits. */
@@ -236,5 +253,68 @@ export const CHAIN_MORE: Entry[] = [
         pools: pools.map((p) => ({ ...p, token0: { address: p.token0, ...meta.get(p.token0 as `0x${string}`) }, token1: { address: p.token1, ...meta.get(p.token1 as `0x${string}`) }, approxAgeMinutes: sig6((Number(latest) - p.block) * secs / 60) })),
         source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live",
       };
+    }),
+
+  entry("/dex/trending", "Trending tokens, Base DEX",
+    "Trending tokens on Base now: the tokens with the most DEX swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, with swaps, pools, share of swaps, symbol, name and busiest pool. Majors (WETH, USDC, cbBTC, stables) are left out unless asked; symbolClash marks copied symbols, so match by address. Use to spot what traders buy now; check token_report before trading.",
+    ["trending-tokens", "trending", "dex", "base", "memecoins", "uniswap", "aerodrome"], {
+      blocks: { type: "integer", description: "How many recent Base blocks to count, 30 to 300 (default 150, about 5 minutes; a block every 2 s)", example: 150 },
+      limit: { type: "integer", description: "Most tokens to return, 1 to 25 (default 15)", example: 15 },
+      majors: { type: "string", description: "include to keep WETH, USDC, cbBTC and stables in the list (default: left out)", enum: ["exclude", "include"], example: "exclude" },
+    },
+    { chain: "Base", fromBlock: 37002850, toBlock: 37002999, minutes: 5, swapsCounted: 9120, poolsSeen: 980, count: 1, tokens: [
+      { rank: 1, address: "0x2222222222222222222222222222222222222222", symbol: "NEW", name: "New Token", swaps: 412, pools: 2, shareOfSwaps: 0.045, topPool: { address: "0x1111111111111111111111111111111111111111", swaps: 380 }, symbolClash: false },
+    ], source: "Uniswap v2/v3, Aerodrome and Slipstream Swap events on Base, read live" },
+    async (_env, q) => {
+      const span = BigInt(num(q, "blocks", { min: 30, max: 300, fallback: 150, integer: true }));
+      const limit = num(q, "limit", { min: 1, max: 25, fallback: 15, integer: true });
+      const majors = (opt(q, "majors", 10) ?? "exclude").toLowerCase() === "include";
+      const c = def("base");
+      // One answer per minute for each choice: the same swaps for every caller, and Tenderly is the one node that answers.
+      const cache = typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
+      const key = new Request(`https://dex-trending.internal/?b=${span}&l=${limit}&m=${majors ? 1 : 0}&t=${Math.floor(Date.now() / 60_000)}`);
+      const hit = cache ? await cache.match(key).catch(() => undefined) : undefined;
+      if (hit) return hit.json();
+      const logs = topicLogsClient(c);
+      const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
+      const scan = await recentLogs(logs, { topics: [SWAP_TOPICS] }, latest, span, 1_000_000, { first: span, max: span })
+        .catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "Base's log nodes did not answer; try again (nothing was charged)") : e; });
+      const perPool = new Map<string, number>();
+      for (const l of scan.logs as { address?: string }[]) if (l.address) perPool.set(l.address.toLowerCase(), (perPool.get(l.address.toLowerCase()) ?? 0) + 1);
+      const total = scan.logs.length;
+      if (!total) throw new HttpError(502, "no swaps came back for that range; try again (nothing was charged)");
+      const cl = client(_env, c);
+      const topPools = [...perPool.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40);
+      const pairs = await Promise.all(topPools.map(async ([pool, n]) => {
+        const [t0, t1] = await Promise.all([
+          (cl.readContract({ address: pool as `0x${string}`, abi: pairAbi, functionName: "token0" }) as Promise<string>).catch(() => null),
+          (cl.readContract({ address: pool as `0x${string}`, abi: pairAbi, functionName: "token1" }) as Promise<string>).catch(() => null),
+        ]);
+        return { pool, n, tokens: [t0, t1].filter((t): t is string => !!t).map((t) => t.toLowerCase()) };
+      }));
+      const perToken = new Map<string, { swaps: number; pools: number; topPool: { address: string; swaps: number } }>();
+      for (const p of pairs) for (const t of p.tokens) {
+        if (!majors && BASE_MAJORS.has(t)) continue;
+        const v = perToken.get(t) ?? { swaps: 0, pools: 0, topPool: { address: getAddress(p.pool), swaps: p.n } };
+        v.swaps += p.n; v.pools++;
+        if (p.n > v.topPool.swaps) v.topPool = { address: getAddress(p.pool), swaps: p.n };
+        perToken.set(t, v);
+      }
+      const ranked = [...perToken.entries()].sort((a, b) => b[1].swaps - a[1].swaps).slice(0, limit);
+      const meta = await Promise.all(ranked.map(async ([t]) => Promise.all([
+        (cl.readContract({ address: t as `0x${string}`, abi: erc20Abi, functionName: "symbol" }) as Promise<string>).catch(() => null),
+        (cl.readContract({ address: t as `0x${string}`, abi: erc20Abi, functionName: "name" }) as Promise<string>).catch(() => null),
+      ])));
+      const fromBlock = Number(scan.fromBlock);
+      const out = {
+        chain: "Base", fromBlock, toBlock: Number(latest), minutes: sig6(((Number(latest) - fromBlock + 1) * BLOCK_SECONDS.base) / 60),
+        swapsCounted: total, poolsSeen: perPool.size, count: ranked.length,
+        tokens: ranked.map(([t, v], i) => ({ rank: i + 1, address: getAddress(t), symbol: meta[i][0], name: meta[i][1], swaps: v.swaps, pools: v.pools, shareOfSwaps: sig6(v.swaps / total), topPool: v.topPool,
+          // Copycat tokens reuse a famous symbol (two "AERO" in one list, 5 Nov 2026): flag every symbol that appears twice.
+          symbolClash: meta.filter((m) => m[0] && m[0] === meta[i][0]).length > 1 })),
+        source: "Uniswap v2/v3, Aerodrome and Slipstream Swap events on Base, read live",
+      };
+      if (cache) await cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "max-age=60" } })).catch(() => undefined);
+      return out;
     }),
 ];

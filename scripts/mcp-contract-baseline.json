@@ -1,5 +1,5 @@
 {
-  "version": "1.86.1",
+  "version": "1.87.0",
   "tools": [
     {
       "name": "extract",
@@ -15201,6 +15201,43 @@
               "number",
               "boolean"
             ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "dex_trending",
+      "description": "Trending tokens on Base now: the tokens with the most DEX swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, with swaps, pools, share of swaps, symbol, name and busiest pool. Majors (WETH, USDC, cbBTC, stables) are left out unless asked; symbolClash marks copied symbols, so match by address. Use to spot what traders buy now; check token_report before trading. Example: blocks=150. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent Base blocks to count, 30 to 300 (default 150, about 5 minutes; a block every 2 s)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Most tokens to return, 1 to 25 (default 15)"
+          },
+          "majors": {
+            "type": "string",
+            "enum": [
+              "exclude",
+              "include"
+            ],
+            "description": "include to keep WETH, USDC, cbBTC and stables in the list (default: left out)"
           }
         }
       },
