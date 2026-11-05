@@ -5,7 +5,9 @@
 // reported in `failed` and the rest still answer. Only when every section fails is the call refused (502, uncharged).
 import { entry, need, opt, pick, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { chat } from "./ai-text";
 import { bitcoinFees } from "./bitcoin";
+import { CHAIN_MORE } from "./chain-more";
 import { CHAIN_READS } from "./chain-reads";
 import { CHECKS } from "./checks";
 import { contractRisk } from "./contract-risk";
@@ -22,7 +24,7 @@ import { tokenReport } from "./token-report";
 import { UTILS } from "./utils";
 import { dohQuery, RESOLVERS, WEB_CHECKS } from "./web-checks";
 
-const ALL: Entry[] = [...CHAIN_READS, ...CHECKS, ...FEAR_GREED, ...GEO_IP, ...HYPERLIQUID, ...LOOKUPS, ...PRICES, ...PUBLIC_DATA, ...SANCTIONS, ...UTILS, ...WEB_CHECKS];
+const ALL: Entry[] = [...CHAIN_READS, ...CHAIN_MORE, ...CHECKS, ...FEAR_GREED, ...GEO_IP, ...HYPERLIQUID, ...LOOKUPS, ...PRICES, ...PUBLIC_DATA, ...SANCTIONS, ...UTILS, ...WEB_CHECKS];
 const byPath = new Map(ALL.map((e) => [e.endpoint.path, e]));
 /** Runs one of our tools in-process with the given inputs (the same handler the single tool's route uses). */
 export function call(env: Env, path: string, inputs: Record<string, string | number | undefined>) {
@@ -81,6 +83,26 @@ export function reverseName(ip: string) {
   return `${ip.split(".").reverse().join(".")}.in-addr.arpa`;
 }
 
+/** The token-analysis pack's report (also the facts behind /token/verdict). */
+async function tokenAnalysis(env: Env, q: Input) {
+  const chain = pick(q, "chain", CHAINS, "base");
+  // address= and contract= as agents send them (26 Oct 2026 probe); a global alias would be wrong for tools that take both.
+  const token = need((n) => q(n) ?? (n === "token" ? q("address") ?? q("contract") ?? q("symbol") : undefined), "token", 64).trim();
+  const info = await call(env, `/${chain}/token-info`, { token: /^0x[0-9a-f]{40}$/i.test(token) ? token.toLowerCase() : token }) as { token: string; name: string | null; symbol: string | null; decimals: number; totalSupply: string };
+  const address = info.token.toLowerCase();
+  const { data, failed } = await runSections({
+    ...(PRICE_CHAIN[chain] ? { price: call(env, "/price/token", { address, chain: PRICE_CHAIN[chain] }) } : {}),
+    proxy: call(env, `/${chain}/proxy`, { address }),
+    ...(chain === "base" ? { risk: tokenReport(env, address), contract: contractRisk(env, address) } : {}),
+  });
+  return {
+    pack: "token-analysis", chain, token: address, info: pick2(info, ["name", "symbol", "decimals", "totalSupply"]),
+    price: data.price ?? null, proxy: data.proxy ? pick2(data.proxy, ["isProxy", "kind", "implementation", "admin", "upgradeable"]) : null,
+    risk: data.risk ?? null, contract: data.contract ?? null,
+    ...(chain === "base" ? {} : { note: "honeypot and contract risk checks cover Base only" }), failed,
+  };
+}
+
 export const PACKS: Entry[] = [
   entry("/pack/crypto-market", "Crypto market overview: sentiment, prices, funding and signals",
     "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard.",
@@ -116,22 +138,49 @@ export const PACKS: Entry[] = [
       chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", example: "base" },
     },
     { pack: "token-analysis", chain: "base", token: "0x4200000000000000000000000000000000000006", info: { name: "Wrapped Ether", symbol: "WETH", decimals: 18, totalSupply: "180000.5" }, price: { usd: 3920.15, source: "Uniswap v3" }, proxy: { isProxy: false, kind: "none", implementation: null }, risk: { verdict: "low", flags: [] }, contract: { tier: "low", flags: [] }, failed: {} },
+    async (env, q) => tokenAnalysis(env, q), "$0.01"),
+
+  // AI verdict on a token (5 Nov 2026): AX1's q-verdict, "send a Base token, get an AI-written verdict", had 250 payers and
+  // 58,906 calls a month at $0.02, the most-bought task we lacked. The rating comes from fixed rules over checked facts; the
+  // model only writes the plain-language summary from the same facts, and a failed model call still answers.
+  entry("/token/verdict", "Token verdict, AI token analysis",
+    "Plain-language AI verdict on an ERC-20 token: a rating (avoid, caution or no red flags) from fixed rules over checked facts (honeypot and contract risk flags, liquidity, upgradeable proxy, last hour's DEX buying and selling), the reasons, and a short AI-written summary of those facts only. Base (default), Ethereum, Arbitrum, Optimism or Polygon; risk flags on Base only. Use before buying or accepting an unknown token. Not investment advice.",
+    ["token-verdict", "ai-token-analysis", "token-security", "rug-check", "honeypot", "erc20", "ai"], {
+      token: { type: "string", description: "Token: a ticker such as AERO or a 0x ERC-20 contract address", required: true, example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },
+      chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", example: "base" },
+    },
+    { chain: "base", token: "0x940181a94a35a4569e4529a3cdfb74e38fd98631", symbol: "AERO", name: "Aerodrome", rating: "no red flags", reasons: ["risk screen low: 0 high and 0 medium flags", "deep liquidity: about $560,000 in the main pool", "not an upgradeable proxy", "last hour: top wallets bought 9,800 and sold 7,100 on DEXs"], summary: "Aerodrome shows no red flags in these checks: …", priceUsd: 0.64, facts: { risk: "low", flags: [], liquidityUsd: 560656, upgradeable: false, dexBought: "9800", dexSold: "7100" }, model: "@cf/meta/llama", disclaimer: "Heuristic screen from on-chain facts, not investment advice." },
     async (env, q) => {
       const chain = pick(q, "chain", CHAINS, "base");
-      // address= and contract= as agents send them (26 Oct 2026 probe); a global alias would be wrong for tools that take both.
-      const token = need((n) => q(n) ?? (n === "token" ? q("address") ?? q("contract") ?? q("symbol") : undefined), "token", 64).trim();
-      const info = await call(env, `/${chain}/token-info`, { token: /^0x[0-9a-f]{40}$/i.test(token) ? token.toLowerCase() : token }) as { token: string; name: string | null; symbol: string | null; decimals: number; totalSupply: string };
-      const address = info.token.toLowerCase();
-      const { data, failed } = await runSections({
-        ...(PRICE_CHAIN[chain] ? { price: call(env, "/price/token", { address, chain: PRICE_CHAIN[chain] }) } : {}),
-        proxy: call(env, `/${chain}/proxy`, { address }),
-        ...(chain === "base" ? { risk: tokenReport(env, address), contract: contractRisk(env, address) } : {}),
-      });
+      const analysis = await tokenAnalysis(env, q) as { token: string; info: { name?: string | null; symbol?: string | null }; price: { priceUsd?: number; thinLiquidity?: boolean; pool?: { quoteReserveUsd?: number } } | null; proxy: { upgradeable?: boolean; kind?: string } | null; risk: { risk?: string; flags?: { level: string; code: string; message: string }[] } | null };
+      const flows = await call(env, "/token/buyers", { token: analysis.token, chain: chain === "eth" ? "ethereum" : chain === "arb" ? "arbitrum" : chain === "op" ? "optimism" : chain, limit: 10 })
+        .catch(() => null) as { buyers?: { netViaDex: string }[]; sellers?: { netViaDex: string }[]; dexContractsSeen?: number } | null;
+      const sum = (rows?: { netViaDex: string }[]) => (rows ?? []).reduce((s, r) => s + Math.abs(Number(r.netViaDex) || 0), 0);
+      const bought = sum(flows?.buyers), sold = sum(flows?.sellers);
+      const flags = analysis.risk?.flags ?? [];
+      const high = flags.filter((f) => f.level === "high"), medium = flags.filter((f) => f.level === "medium");
+      const liquidity = analysis.price?.pool?.quoteReserveUsd ?? null;
+      const reasons: string[] = [];
+      let level = 0; // 0 no red flags, 1 caution, 2 avoid
+      if (analysis.risk) { reasons.push(`risk screen ${analysis.risk.risk}: ${high.length} high and ${medium.length} medium flags${high.length ? ` (${high.map((f) => f.code).join(", ")})` : ""}`); if (high.length) level = 2; else if (medium.length) level = Math.max(level, 1); }
+      else reasons.push(chain === "base" ? "risk screen did not answer" : "honeypot and contract risk flags cover Base only");
+      if (liquidity !== null) { reasons.push(`${liquidity < 20_000 ? "thin" : "deep"} liquidity: about $${Math.round(liquidity).toLocaleString("en-US")} in the main pool`); if (liquidity < 20_000) level = Math.max(level, 1); }
+      else { reasons.push("no Uniswap price pool found"); level = Math.max(level, 1); }
+      if (analysis.proxy?.upgradeable) { reasons.push(`upgradeable proxy (${analysis.proxy.kind}): the code can be changed`); level = Math.max(level, 1); } else if (analysis.proxy) reasons.push("not an upgradeable proxy");
+      if (flows?.dexContractsSeen) { reasons.push(`last hour: top wallets bought ${Math.round(bought).toLocaleString("en-US")} and sold ${Math.round(sold).toLocaleString("en-US")} on DEXs`); } // one hour of flow is shown, not rated: on 5 Nov it alone marked AERO "caution"
+      const rating = ["no red flags", "caution", "avoid"][level];
+      const facts = { risk: analysis.risk?.risk ?? null, flags: flags.map((f) => `${f.level}: ${f.message}`).slice(0, 8), liquidityUsd: liquidity, upgradeable: analysis.proxy?.upgradeable ?? null, dexBought: String(Math.round(bought)), dexSold: String(Math.round(sold)) };
+      const name = analysis.info.name ?? analysis.info.symbol ?? analysis.token;
+      let summary = `${name}: ${rating}. ${reasons.join("; ")}.`;
+      let model: string | null = null;
+      try {
+        const text = await chat(env, "You are a careful crypto token risk analyst. Write 2-4 plain sentences for a buyer. Use ONLY the facts given; never invent numbers, names or events; never tell anyone to buy or sell; state the rating exactly as given and why.",
+          JSON.stringify({ token: name, symbol: analysis.info.symbol, chain, rating, reasons, facts }), 220, 0.2);
+        if (text && text.length > 40) { summary = text.trim(); model = "Workers AI text model"; }
+      } catch { /* the rule-written summary stands */ }
       return {
-        pack: "token-analysis", chain, token: address, info: pick2(info, ["name", "symbol", "decimals", "totalSupply"]),
-        price: data.price ?? null, proxy: data.proxy ? pick2(data.proxy, ["isProxy", "kind", "implementation", "admin", "upgradeable"]) : null,
-        risk: data.risk ?? null, contract: data.contract ?? null,
-        ...(chain === "base" ? {} : { note: "honeypot and contract risk checks cover Base only" }), failed,
+        chain, token: analysis.token, symbol: analysis.info.symbol ?? null, name: analysis.info.name ?? null, rating, reasons, summary,
+        priceUsd: analysis.price?.priceUsd ?? null, facts, model, disclaimer: "Heuristic screen from on-chain facts, not investment advice.",
       };
     }, "$0.01"),
 
