@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "586 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "593 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -933,14 +933,9 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
   "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
   "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",
-  "/air-quality": "A source permitted for this commercial service is not yet configured.",
-  "/uv": "A source permitted for this commercial service is not yet configured.",
-  // Source terms checked 2026-10-18: Open-Meteo free tier, CoinGecko keyless/Demo and Nager.Date forbid commercial resale;
-  // Where The ISS At, Free Dictionary API and the Hacker News API publish no terms that permit it.
-  "/elevation": "A source permitted for this commercial service is not yet configured.",
-  "/crypto/price": "A source permitted for this commercial service is not yet configured.",
-  "/iss": "A source with terms permitting this commercial service is not yet confirmed.",
-  "/hackernews/top": "A source with terms permitting this commercial service is not yet confirmed.",
+  // Unpaused 5 Nov 2026: /air-quality, /uv, /elevation (Open-Meteo free tier), /crypto/price (CoinGecko keyless), /iss and
+  // /hackernews/top were paused only because their sources' terms do not permit commercial resale. The owner lifted that
+  // rule on 5 Nov 2026 and accepts the risk; if a source blocks Cloudflare or objects, pause the tool here again.
   // /search is on since 1.49.0 (22 Oct 2026, Peter's decision): SEARCH_API_KEY is set and the Brave API terms' end-user
   // obligations are stated in the tool's description and answer (src/routes/search.ts).
 });
