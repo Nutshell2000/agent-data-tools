@@ -956,7 +956,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 
 
-## Price test until 14 Nov 2026 (1.84.3, owner's go-ahead 31 Oct)
+## Price test until 14 Nov 2026 (1.84.3, owner's go-ahead 31 Oct) - ENDED EARLY 5 Nov 2026
+
+- **Ended 5 Nov 2026 (owner: "revert now"):** in five days no pack sold at $0.03 and `/dex/new-pools` never sold at $0.05, while one-cent tools kept selling to returning buyers. `PACK_PRICE` is gone; all 24 packs and `/dex/new-pools` are $0.01 again, the copy says every tool costs at most one cent, and the freeze fixture carries the decision. The rest of this section is history.
 
 - `PACK_PRICE` ($0.03, src/family.ts) on all 24 packs and $0.05 on `/dex/new-pools`; everything else is unchanged. This overrides the 25 Oct "every tool at most $0.01" rule for these tools only, so comments elsewhere that say so are history. FluxA's one-cent catch-all no longer passes these tools: they answer the normal 402. The Bazaar shows each listing's last settled price until it settles again.
 - To revert: set `PACK_PRICE` and the `/dex/new-pools` price back, restore the copy in src/discovery.ts ("Most tools cost"), the test pins (families, chain-more, discovery-client, packs-intel, packs-research) and run `scripts/freeze-prices.mjs`, then `update-402index-prices.mjs`.
