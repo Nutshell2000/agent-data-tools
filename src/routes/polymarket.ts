@@ -170,7 +170,7 @@ export const POLYMARKET: Entry[] = [
     },
     { query: "bitcoin", closed: false, count: 1, markets: [{ question: "Will the price of Bitcoin be above $72,000 on November 5?", slug: "bitcoin-above-72k-on-november-5-2026", conditionId: "0x…", outcomes: [{ name: "Yes", price: 0.9955, tokenId: "7755…" }, { name: "No", price: 0.0045, tokenId: "8888…" }], volume24h: 98817.32, volume: 250000.5, liquidity: 40000, bestBid: 0.995, bestAsk: 0.996, lastTradePrice: 0.996, dayChange: 0.01, endDate: "2026-11-05T17:00:00Z", active: true, closed: false, url: "https://polymarket.com/event/bitcoin-above-on-november-5-2026" }], note: NOTE, checkedAt: "2026-11-05T16:40:00.000Z" },
     (_env, q) => polymarketMarkets(q)),
-  entry("/polymarket/events", "Polymarket events",
+  entry("/polymarket/events", "Prediction markets, Polymarket events",
     "Polymarket events (one question with one or several markets, such as an election with many candidates): the busiest open events by 24-hour volume or those matching a search, with volume, liquidity, end date, tags, the number of open markets and the five leading outcomes by price. Use to see who leads a multi-candidate market or to browse what is being traded now.",
     ["polymarket-events", "prediction-markets", "polymarket", "election-odds", "odds"],
     {
