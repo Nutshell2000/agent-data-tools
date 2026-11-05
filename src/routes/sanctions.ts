@@ -185,5 +185,5 @@ export const SANCTIONS: Entry[] = [
         list: "OFAC Specially Designated Nationals (SDN)", listDate: index.listDate, entries: index.parties.size,
         note: "Screening aid only: confirm any match against the official OFAC record before acting.",
       };
-    }, "$0.005"),
+    }, "$0.009"), // price test 5 Nov-19 Nov 2026 (owner): the market leader charges $0.009
 ];

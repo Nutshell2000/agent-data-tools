@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "575 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "578 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -79,7 +79,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/domain",
-    price: "$0.005",
+    price: "$0.01",
     summary: "DNS lookup, WHOIS lookup: DNS, RDAP registration age and email authentication",
     description:
       "Domain intelligence in one call: DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC status, registrar, registration and expiry dates with domain age in days (RDAP/WHOIS), and email authentication (SPF and DMARC records and policies, whether the domain accepts mail). Use for lead qualification, phishing and trust checks, and deliverability audits. For a trust verdict with named flags use domain_report.",
@@ -109,7 +109,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/domain-report",
-    price: "$0.01",
+    price: "$0.02",
     summary: "Domain lookup, trust verdict: age, DNS and email-auth flags",
     description:
       "A trust verdict for any domain in one call: high/medium/low trust with named flags for very new registrations, expiry, missing or weak SPF and DMARC, too few nameservers, no web host and non-resolving domains, plus the key facts (registrar, age, nameservers, DNSSEC). Use for lead qualification, phishing and vendor checks, and before an agent sends mail to or trusts a domain. Signals only, not a guarantee. Raw DNS records: domain.",
@@ -199,7 +199,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/wallet",
-    price: "$0.005",
+    price: "$0.01",
     summary: "Base wallet balances and account nonce snapshot",
     description:
       "Base only (all 5 chains: wallet_balances; USD values: wallet_portfolio). An address on Base: ETH and major token balances (USDC, WETH, cbBTC, DAI, USDbC, cbETH, AERO, EURC) plus up to 20 token addresses you pass, the account nonce, and whether it is an EOA, a contract or an EIP-7702 account. The nonce counts outgoing transactions only; not transfer or trading history. Use to check a counterparty's holdings.",
@@ -266,7 +266,7 @@ export const CORE_ENDPOINTS = [
   },
   {
     path: "/image",
-    price: "$0.01",
+    price: "$0.03",
     summary: "Image generation, generate image from a text prompt",
     description:
       "Text-to-image generation with FLUX.1 schnell. Send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds. Use for illustrations, thumbnails, mockups, avatars and social media images. Optional steps parameter (1-8, default 4) trades speed for detail.",

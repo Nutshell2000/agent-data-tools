@@ -86,7 +86,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/btc-price": ["btc-price"], "/wallet/portfolio": ["portfolio-value", "portfolio-tracker", "erc20-balances", "token-holdings"], "/papers": ["research-papers"],
   "/dictionary": ["dictionary-definition"],
   // Second pass, 66 more searches measured on 22 Oct evening (absent or below #5 where the #1 has 1-4 payers).
-  "/time": ["timezone", "time-converter", "time-zone", "current-time"], "/hash": ["sha256", "hash"], "/uuid": ["uuid", "uuid-generator", "id-generator"], "/ping": ["ping", "x402-test", "payment-test", "test-payment", "health-check"],
+  "/time": ["timezone", "time-converter", "time-zone", "current-time", "utc-timestamp"], "/hash": ["sha256", "hash"], "/uuid": ["uuid", "uuid-generator", "id-generator"], "/ping": ["ping", "x402-test", "payment-test", "test-payment", "health-check"],
   "/units/convert": ["unit-conversion"], "/text/stats": ["word-count", "readability"], "/slug": ["slugify"],
   "/text/diff": ["text-diff"], "/date/diff": ["date-difference"], "/validate/isbn": ["isbn"], "/color/contrast": ["color-contrast"],
   "/jwt/decode": ["jwt-decode"], "/random/password": ["password-generator"], "/sun": ["sunrise-sunset"],
