@@ -58,7 +58,7 @@ export function translationComplete(source: string, out: string, to: string): bo
   return (src.match(/https?:\/\/[^\s)]+/g) ?? []).every((url) => got.includes(url.replace(/[.,;:!?]+$/, "")));
 }
 
-async function chat(env: Env, system: string, user: string, maxTokens = 400, temperature = 0.2, model: string = MODELS.text): Promise<string> {
+export async function chat(env: Env, system: string, user: string, maxTokens = 400, temperature = 0.2, model: string = MODELS.text): Promise<string> {
   // OpenAI's open-weight models take the Responses input shape and answer in `output`; the Llama models take
   // `messages` and answer in `response`.
   const responsesShape = model.startsWith("@cf/openai/gpt-oss");
