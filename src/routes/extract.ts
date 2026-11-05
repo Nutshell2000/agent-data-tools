@@ -5,6 +5,8 @@ import { pageContent } from "../lib/page-content";
 import { clipMarkdown } from "../lib/markdown";
 import { emptySourceMetadata } from "../lib/page-metadata";
 
+export const EXTRACT_BUDGET_MS = 15_000;
+
 /** Validated /extract options, shared with /extract/rendered. */
 export function extractOptions(
   rawUrl: string | undefined,
@@ -37,9 +39,13 @@ export async function extract(
   const options = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
   const { target, maxChars } = options;
   formatParam = options.formatParam;
+  // 15 s, not the default 8 s (5 Nov 2026): github.com repository pages took longer than 8 s from Cloudflare and paid
+  // reads of heavy pages timed out as 504s that the buyer could have had.
   const res = await fetchPublic(
     target,
     "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8",
+    [],
+    { budgetMs: EXTRACT_BUDGET_MS },
   );
   const contentType = res.headers.get("content-type") ?? "";
   const html = /^(text\/html|application\/xhtml\+xml)(?:;|$)/i.test(
