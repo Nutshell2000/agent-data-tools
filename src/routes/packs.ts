@@ -138,7 +138,7 @@ export const PACKS: Entry[] = [
       chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", example: "base" },
     },
     { pack: "token-analysis", chain: "base", token: "0x4200000000000000000000000000000000000006", info: { name: "Wrapped Ether", symbol: "WETH", decimals: 18, totalSupply: "180000.5" }, price: { usd: 3920.15, source: "Uniswap v3" }, proxy: { isProxy: false, kind: "none", implementation: null }, risk: { verdict: "low", flags: [] }, contract: { tier: "low", flags: [] }, failed: {} },
-    async (env, q) => tokenAnalysis(env, q), "$0.01"),
+    async (env, q) => tokenAnalysis(env, q), "$0.03"), // price test 5 Nov-19 Nov 2026 (owner): leader charges $0.15; well below its five tools ($0.05)
 
   // AI verdict on a token (5 Nov 2026): AX1's q-verdict, "send a Base token, get an AI-written verdict", had 250 payers and
   // 58,906 calls a month at $0.02, the most-bought task we lacked. The rating comes from fixed rules over checked facts; the

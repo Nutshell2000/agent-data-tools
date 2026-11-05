@@ -46,8 +46,10 @@ import { SEARCH } from "./routes/search";
 import { UTILS } from "./routes/utils";
 import { X402_CHECK } from "./routes/x402-check";
 import { AGENT_READINESS } from "./routes/agent-readiness";
+import { WALLET_HISTORY } from "./routes/wallet-history";
+import { FX_MORE } from "./routes/fx-more";
 
-const CATALOG: Entry[] = [...CHAIN_READS, ...SOLANA, ...PRICES, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
+const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICES, ...FX_MORE, ...SEARCH, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...GEO_IP, ...EVM_TOOLS, ...BIC, ...WEB_CHECKS, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...HYPERLIQUID, ...FEAR_GREED, ...FUN, ...BASICS, ...AI_TEXT];
 
 /**
  * Price test, part 2 (26 Oct to 2 Nov 2026, the owner's go-ahead): pure-computation tools (no outside data source, no

@@ -80,6 +80,12 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
   { slug: "token-honeypot-check-api", phrase: "Token honeypot check API", tools: ["/token-report", "/token", "/contract-risk"] },
   { slug: "new-dex-pools-api", phrase: "New DEX pools API, new token pairs", tools: ["/dex/new-pools", "/uniswap/pool", "/token-report"] },
   { slug: "host-web-page-api", phrase: "Host a web page API for AI agents", tools: ["/page/publish", "/markdown/to-html"] },
+  // 5 Nov 2026: jobs with paid demand on the Bazaar (Nansen historical balances 41 payers, who bought/sold 61, FX pairs and
+  // symbols 103-114, AX1 token verdict 250) that our new tools do.
+  { slug: "wallet-historical-balances-api", phrase: "Wallet historical balances API", tools: ["/wallet/balance-history", "/wallet/transactions", "/wallet/related"] },
+  { slug: "token-buyers-and-sellers-api", phrase: "Token buyers and sellers API", tools: ["/token/buyers", "/dex/trending"] },
+  { slug: "token-verdict-api", phrase: "Token verdict API, is this token safe", tools: ["/token/verdict", "/token-report"] },
+  { slug: "forex-pairs-api", phrase: "Forex pairs API, all FX cross rates", tools: ["/fx/all", "/fx/symbols"] },
 ];
 
 const BY_SLUG = new Map(TASK_GUIDES.map((g) => [g.slug, g]));
