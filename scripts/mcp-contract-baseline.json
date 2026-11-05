@@ -1,5 +1,5 @@
 {
-  "version": "1.90.0",
+  "version": "1.91.0",
   "tools": [
     {
       "name": "extract",
@@ -11109,6 +11109,110 @@
       "price": "$0.01"
     },
     {
+      "name": "stock_quote",
+      "description": "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker (AAPL, VOLV-B.ST, ^GSPC, BTC-USD) or a company name"
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stock_history",
+      "description": "Stock price history as OHLCV bars for any ticker or company name: open, high, low, close, adjusted close and volume from 1-minute to monthly bars over 1 day to the full history, plus first, last, change, high and low. Use to chart a stock, backtest a signal, compute returns or feed indicators. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker (AAPL, ^GSPC, BTC-USD) or a company name"
+          },
+          "range": {
+            "type": "string",
+            "enum": [
+              "1d",
+              "5d",
+              "1mo",
+              "3mo",
+              "6mo",
+              "1y",
+              "2y",
+              "5y",
+              "10y",
+              "ytd",
+              "max"
+            ],
+            "description": "1d, 5d, 1mo (default), 3mo, 6mo, 1y, 2y, 5y, 10y, ytd or max"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "1m",
+              "5m",
+              "15m",
+              "30m",
+              "60m",
+              "1h",
+              "1d",
+              "1wk",
+              "1mo"
+            ],
+            "description": "1m, 5m, 15m, 30m, 60m, 1d, 1wk or 1mo (default suits the range; intraday bars reach back about 60 days)"
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stock_search",
+      "description": "Stock ticker lookup: find the ticker symbol for a company, fund, index or crypto by name, with exchange, type, sector and industry. Use before /stock/quote or /stock/history when you only have a company name, or to find a company's listings on several exchanges. Example: q=volvo. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company, fund or index name, e.g. volvo"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "search",
       "description": "Search the web and get the top results as JSON: title, URL, a short snippet and the page age, from the Brave Search API. 1-20 results per call. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted daily capacity return 503, uncharged. Pair with /extract to read a result in full. Use when an agent needs current information or sources from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -11168,6 +11272,50 @@
         },
         "required": [
           "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "keywords_ideas",
+      "description": "Keyword ideas for SEO and ads: the search phrases real users type for a seed keyword, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, deduplicated and ranked by how many engines suggest each, with question and buying-intent phrases listed apart. deep=true adds the Google long tail (seed + a-z, how, what, best, vs), up to 200 keywords. Use to plan content, find long-tail and question keywords, or name a product. No search volumes. Example: seed=crm software. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "string",
+            "description": "Seed keyword or topic, 2-80 characters"
+          },
+          "deep": {
+            "description": "true to add the Google long tail (seed + each letter, question words); about 30 more lookups",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "engines": {
+            "type": "string",
+            "description": "Optional comma list: google, bing, youtube, amazon, duckduckgo (default all)"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code (default en)"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country code (default us)"
+          }
+        },
+        "required": [
+          "seed"
         ]
       },
       "price": "$0.01"

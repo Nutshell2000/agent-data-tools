@@ -86,6 +86,8 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
   { slug: "token-buyers-and-sellers-api", phrase: "Token buyers and sellers API", tools: ["/token/buyers", "/dex/trending"] },
   { slug: "token-verdict-api", phrase: "Token verdict API, is this token safe", tools: ["/token/verdict", "/token-report"] },
   { slug: "forex-pairs-api", phrase: "Forex pairs API, all FX cross rates", tools: ["/fx/all", "/fx/symbols"] },
+  { slug: "stock-price-api", phrase: "Stock price API, quotes and history", tools: ["/stock/quote", "/stock/history", "/stock/search"] },
+  { slug: "keyword-research-api", phrase: "Keyword research API, keyword ideas", tools: ["/keywords/ideas", "/seo/audit", "/text/keyword-density"] },
   { slug: "polymarket-api", phrase: "Polymarket API, prediction market odds", tools: ["/polymarket/markets", "/polymarket/events", "/polymarket/orderbook", "/polymarket/price-history"] },
 ];
 
