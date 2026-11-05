@@ -47,7 +47,7 @@ test("FluxA's proxy secret serves tools priced at most $0.01 unpaid; a wrong sec
 
 test('paused tools reject GET, HEAD and signed requests without payment or an upstream call',async()=>{
  const before=(await revenue()).settlements;
- for(const path of ['/iss','/air-quality','/uv','/elevation'])for(const method of ['GET','HEAD']){
+ for(const path of ['/solana/tx','/base/gas','/base/tx'])for(const method of ['GET','HEAD']){
   const r=await mf.dispatchFetch('https://api.test'+path,{method,headers:{'PAYMENT-SIGNATURE':'untrusted-not-a-payment'}});
   assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);
   if(method==='GET')assert.equal((await r.json()).code,'TOOL_PAUSED');else assert.equal(await r.text(),'');
@@ -55,7 +55,7 @@ test('paused tools reject GET, HEAD and signed requests without payment or an up
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'paused-tools-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));
   const names=(await client.listTools()).tools.map(t=>t.name);
-  for(const name of ['iss','air-quality','uv','elevation']){assert.ok(!names.includes(name));const r=await client.callTool({name,arguments:{}});assert.equal(r.isError,true);assert.ok(!r._meta?.['x402/payment-response']?.success);}
+  for(const name of ['solana_tx']){assert.ok(!names.includes(name));const r=await client.callTool({name,arguments:{}});assert.equal(r.isError,true);assert.ok(!r._meta?.['x402/payment-response']?.success);}
  }finally{await client.close();}
  assert.equal((await revenue()).settlements,before);
 });
