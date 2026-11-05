@@ -229,7 +229,7 @@ export const WEB_CHECKS: Entry[] = [
       for (const r of answered) tally.set(key(r), (tally.get(key(r)) ?? 0) + 1);
       const best = [...tally].sort((a, b) => b[1] - a[1])[0][0];
       return { name, type, propagated: tally.size === 1, agreeing: tally.get(best)!, answered: answered.length, majority: answered.find((r) => key(r) === best)!.answers, resolvers: rows };
-    }),
+    }, "$0.03"), // price test 5 Nov-19 Nov 2026 (owner): the market leader charges $0.03
 
   entry("/seo/audit", "SEO audit, on-page: title, meta, headings, links and issues",
     "On-page SEO audit of one URL: title and meta description with their lengths, canonical, meta robots, H1s and H2 count, images without alt text, lang and viewport, Open Graph and Twitter card tags, JSON-LD blocks, internal and external link counts and word count, plus a list of issues and a 0-100 score. Reads the server's HTML (no JavaScript), up to 1 MB. Use to check a page before publishing or to compare competitors.",
@@ -266,5 +266,5 @@ export const WEB_CHECKS: Entry[] = [
       const body = await readCapped(res, 1_000_000);
       const plain = /html/i.test(res.headers.get("content-type") ?? "") ? htmlToText(body.text) : body.text;
       return { source: w.final, ...keywordDensity(plain, top) };
-    }),
+    }, "$0.04"), // price test 5 Nov-19 Nov 2026 (owner): the market leader charges $0.04
 ];
