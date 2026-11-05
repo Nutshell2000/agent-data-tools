@@ -79,10 +79,21 @@ export const CHAIN_ALIASES: Readonly<Record<string, string>> = Object.freeze({
   optimism: "op", "10": "op", "8453": "base", matic: "polygon", pol: "polygon", "137": "polygon",
 });
 
-/** The allowed value a raw input names, directly or through a chain alias. */
+/**
+ * Output-format words agents send for our format enums (5 Nov 2026: 12 refused /extract calls in a week). An alias only
+ * applies when its target is one of the tool's own values, so it never widens a tool that has no "markdown" or "text".
+ */
+export const FORMAT_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  md: "markdown", mdx: "markdown", gfm: "markdown", html: "markdown",
+  plain: "text", plaintext: "text", "plain-text": "text", plain_text: "text", txt: "text", raw: "text",
+  all: "both", "text+markdown": "both", "markdown+text": "both",
+});
+
+/** The allowed value a raw input names, directly or through a chain or format alias. */
 export const allowedValue = <T extends string>(raw: string, values: readonly T[]): T | undefined => {
   const lower = raw.trim().toLowerCase();
-  return values.find((v) => v.toLowerCase() === lower) ?? values.find((v) => v.toLowerCase() === CHAIN_ALIASES[lower]);
+  const via = (alias: string | undefined) => (alias === undefined ? undefined : values.find((v) => v.toLowerCase() === alias));
+  return values.find((v) => v.toLowerCase() === lower) ?? via(CHAIN_ALIASES[lower]) ?? via(FORMAT_ALIASES[lower]);
 };
 
 export function pick<T extends string>(q: Input, name: string, values: readonly T[], fallback?: T): T {

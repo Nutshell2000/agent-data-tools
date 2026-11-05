@@ -93,6 +93,18 @@ test('agent-eye fixes: date/add weeks, holidays UK, tickers on chain token reads
   assert.equal(allowedValue('42161', ['base', 'eth', 'arb', 'op']), 'arb');
   assert.equal(allowedValue(' Base ', ['base', 'eth']), 'base');
   assert.equal(allowedValue('solana', ['base', 'eth']), undefined);
+  // Format words agents send (5 Nov 2026); an alias never adds a value the tool does not have.
+  const formats = ['text', 'markdown', 'both'];
+  assert.equal(allowedValue('md', formats), 'markdown');
+  assert.equal(allowedValue('Markdown', formats), 'markdown');
+  assert.equal(allowedValue('plain', formats), 'text');
+  assert.equal(allowedValue('TXT', formats), 'text');
+  assert.equal(allowedValue('html', formats), 'markdown');
+  assert.equal(allowedValue('md', ['json', 'csv']), undefined);
+  assert.equal(allowedValue('pdf', formats), undefined);
+  const { extractOptions } = await load('src/routes/extract.ts');
+  assert.equal(extractOptions('https://example.com/', undefined, 'MD', undefined).formatParam, 'markdown');
+  assert.throws(() => extractOptions('https://example.com/', undefined, 'pdf', undefined), /format must be/);
 });
 
 test('the address checksum tool sees the case it was sent; other tools still get lowercased addresses', async () => {
