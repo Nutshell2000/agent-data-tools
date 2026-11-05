@@ -671,11 +671,12 @@ type RawLog = { blockNumber: string; transactionHash: string; logIndex: string; 
  * pulling megabytes over the whole span; a quiet one covers 1,000 blocks in five calls. Small windows also suit nodes
  * that cap the range. Returns the logs oldest first and the first block actually scanned.
  */
-export async function recentLogs(cl: PublicClient, filter: { address: `0x${string}`; topics?: (`0x${string}` | null)[] }, latest: bigint, span: bigint, want: number) {
+export async function recentLogs(cl: PublicClient, filter: { address?: `0x${string}`; topics?: (`0x${string}` | null)[] }, latest: bigint, span: bigint, want: number, window: { first?: bigint; max?: bigint } = {}) {
   const floor = latest - span + 1n;
   let logs: RawLog[] = [];
   let to = latest;
-  let size = 10n;
+  let size = window.first ?? 10n;
+  const maxSize = window.max;
   let lagRetries = 0;
   while (to >= floor) {
     const from = to - size + 1n > floor ? to - size + 1n : floor;
@@ -693,6 +694,7 @@ export async function recentLogs(cl: PublicClient, filter: { address: `0x${strin
     if (logs.length >= want || from === floor) return { logs, fromBlock: from, complete: from === floor };
     to = from - 1n;
     size *= 4n;
+    if (maxSize !== undefined && size > maxSize) size = maxSize;
   }
   return { logs, fromBlock: floor, complete: true };
 }
@@ -724,6 +726,158 @@ const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance, USDC b
   "$0.005");
 
 /**
+ * Who a wallet deals with (5 Nov 2026). The wallet-profiler cluster had the most real payers among tools we lacked:
+ * Nansen's related-wallets 54 payers, counterparties, PnL and transactions 40-62 each, at $0.01-0.05. Built from public
+ * ERC-20 Transfer logs only (no outside data licence): every token the wallet sent or received over recent blocks,
+ * grouped by the other side.
+ */
+const RELATED_CHAINS = ["base", "eth", "arb", "op", "polygon"] as const;
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+const WALLET_SCAN_PARAMS = {
+  address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_ADDR },
+  chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: [...RELATED_CHAINS], example: "base" },
+  blocks: { type: "integer", description: "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)", example: 2000 },
+} as const;
+
+/**
+ * Nodes that answer eth_getLogs with no contract address over 1,000 blocks (probed 5 Nov 2026). publicnode refuses
+ * address-less filters, BlastAPI caps at 10 blocks, Nodies and 1rpc at 50, drpc's free plan refuses them.
+ */
+const TOPIC_LOG_RPCS: Record<(typeof RELATED_CHAINS)[number], readonly string[]> = {
+  base: ["https://base.gateway.tenderly.co"],
+  eth: ["https://mainnet.gateway.tenderly.co", "https://rpc.mevblocker.io"],
+  arb: ["https://arb1.arbitrum.io/rpc", "https://arbitrum.gateway.tenderly.co"],
+  op: ["https://mainnet.optimism.io", "https://optimism.gateway.tenderly.co"],
+  polygon: ["https://polygon.gateway.tenderly.co", "https://rpc-mainnet.matic.quiknode.pro"],
+};
+function topicLogsClient(c: ChainDef): PublicClient {
+  const urls = TOPIC_LOG_RPCS[c.slug as (typeof RELATED_CHAINS)[number]];
+  const options = { timeout: 6_000, retryCount: 1, retryDelay: 150 };
+  return requestClient(`topiclogs|${c.slug}`, () =>
+    createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }) }) as PublicClient);
+}
+
+/** Every ERC-20 Transfer log a wallet sent or received over recent blocks (any token), newest first, `want` each way. */
+async function walletScan(env: Env, q: (name: string) => string | undefined, want: number) {
+  const a = address(q("address"));
+  const slug = q("chain")?.trim().toLowerCase() || "base";
+  const c = CHAINS.find((x) => x.slug === slug && (RELATED_CHAINS as readonly string[]).includes(x.slug));
+  if (!c) throw new HttpError(400, `chain must be one of: ${RELATED_CHAINS.join(", ")}`);
+  const span = BigInt(num(q, "blocks", { min: 100, max: 10000, fallback: 2000, integer: true }));
+  const cl = client(env, c);
+  const logs = topicLogsClient(c);
+  // The newest block as the log nodes see it, minus a few: a node a little behind answers "header not found" otherwise.
+  const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
+  const padded = `0x${a.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
+  // One wallet's own transfers are sparse: start at the nodes' 1,000-block limit instead of 10-block steps.
+  const win = { first: 1000n, max: 1000n };
+  const [sentScan, receivedScan] = await Promise.all([
+    recentLogs(logs, { topics: [TRANSFER_TOPIC, padded] }, latest, span, want, win),
+    recentLogs(logs, { topics: [TRANSFER_TOPIC, null, padded] }, latest, span, want, win),
+  ]).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
+  return { a, c, cl, latest, span, sentScan, receivedScan };
+}
+const WALLET_RELATED: Entry = entry("/wallet/related", "Related wallets, counterparties",
+  "Related wallets of a 0x address: who it sent ERC-20 tokens to or got them from over recent blocks, ranked by transfers, with sent and received counts, tokens, USDC in and out, first and last block, and wallet or contract. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to map who a wallet trades with, find linked wallets before paying, or trace where funds went.",
+  ["related-wallets", "counterparties", "wallet", "onchain-analytics", "evm", "blockchain"],
+  { ...WALLET_SCAN_PARAMS },
+  { address: EX_ADDR, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, transfersScanned: 2, truncated: false, counterparties: [
+    { address: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", kind: "wallet", transfers: 2, sent: 1, received: 1, tokens: ["USDC"], usdcSent: "1.5", usdcReceived: "0.25", firstBlock: 123452001, lastBlock: 123456700 },
+  ], note: "ERC-20 Transfer logs only; native-coin transfers are not included." },
+  async (env, q) => {
+    const { a, c, cl, latest, span, sentScan, receivedScan } = await walletScan(env, q, 400);
+    type L = RawLog & { address: string };
+    const usdc = USDC[c.slug].toLowerCase();
+    const groups = new Map<string, { transfers: number; sent: number; received: number; tokens: Set<string>; usdcSent: bigint; usdcReceived: bigint; firstBlock: number; lastBlock: number }>();
+    const tokenSet = new Set<string>();
+    let scanned = 0;
+    for (const [list, dir] of [[sentScan.logs, "out"], [receivedScan.logs, "in"]] as const) {
+      for (const l of list as L[]) {
+        if (l.topics.length !== 3) continue; // ERC-721 transfers carry the token id as a fourth topic
+        const other = `0x${(dir === "out" ? l.topics[2] : l.topics[1]).slice(26)}`.toLowerCase();
+        if (other === a.toLowerCase()) continue;
+        scanned++;
+        const token = l.address.toLowerCase();
+        tokenSet.add(token);
+        const block = Number(l.blockNumber);
+        const g = groups.get(other) ?? { transfers: 0, sent: 0, received: 0, tokens: new Set<string>(), usdcSent: 0n, usdcReceived: 0n, firstBlock: block, lastBlock: block };
+        g.transfers++;
+        if (dir === "out") g.sent++; else g.received++;
+        g.tokens.add(token);
+        if (token === usdc) { const raw = BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66)); if (dir === "out") g.usdcSent += raw; else g.usdcReceived += raw; }
+        g.firstBlock = Math.min(g.firstBlock, block); g.lastBlock = Math.max(g.lastBlock, block);
+        groups.set(other, g);
+      }
+    }
+    const top = [...groups.entries()].sort((x, y) => y[1].transfers - x[1].transfers || y[1].lastBlock - x[1].lastBlock).slice(0, 25);
+    // Symbols for the tokens these counterparties used (up to 15), and contract-or-wallet for each shown counterparty.
+    const shownTokens = [...new Set(top.flatMap(([, g]) => [...g.tokens]))].slice(0, 15) as `0x${string}`[];
+    const [symbols, kinds] = await Promise.all([
+      Promise.all(shownTokens.map(async (t) => [t, await cl.readContract({ address: t, abi: erc20Abi, functionName: "symbol" }).catch(() => null) as string | null] as const)),
+      Promise.all(top.map(async ([o]) => (o === ZERO_ADDR ? "mint/burn" : await cl.getCode({ address: o as `0x${string}` }).then((code) => (code && code !== "0x" ? "contract" : "wallet")).catch(() => null)))),
+    ]);
+    const sym = new Map(symbols);
+    const partial = !sentScan.complete || !receivedScan.complete;
+    const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;
+    return {
+      address: a, chain: c.name, chainId: c.chain.id, fromBlock: Number(partial ? scannedFrom : latest - span + 1n), toBlock: Number(latest),
+      transfersScanned: scanned, truncated: partial,
+      counterparties: top.map(([o, g], i) => ({
+        address: o, kind: kinds[i], transfers: g.transfers, sent: g.sent, received: g.received,
+        tokens: [...g.tokens].map((t) => sym.get(t as `0x${string}`) ?? t),
+        usdcSent: formatUnits(g.usdcSent, 6), usdcReceived: formatUnits(g.usdcReceived, 6), firstBlock: g.firstBlock, lastBlock: g.lastBlock,
+      })),
+      note: "ERC-20 Transfer logs only; native-coin transfers are not included." + (partial ? " A busy wallet filled the scan early: fromBlock shows where it stopped." : ""),
+    };
+  });
+
+/**
+ * A wallet's recent token activity across every ERC-20 (5 Nov 2026): Nansen's transactions listing had 40 payers and the
+ * Bazaar search for "wallet transactions" only 6 sellers. Same public logs as /wallet/related, listed instead of grouped.
+ */
+const WALLET_TRANSACTIONS: Entry = entry("/wallet/transactions", "Wallet transactions, history",
+  "Recent token transactions of any 0x address across every ERC-20 it holds: the newest 50 transfers in or out over recent blocks, each with token symbol, amount, counterparty, direction, block and transaction hash. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to see what a wallet did lately, confirm a payment in any token, or audit activity before a deal.",
+  ["wallet-transactions", "transaction-history", "token-transfers", "wallet", "evm", "blockchain"],
+  { ...WALLET_SCAN_PARAMS },
+  { address: EX_ADDR, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, count: 1, truncated: false, transfers: [
+    { block: 123456700, tx: "0x…", token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", direction: "out", counterparty: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", amount: "1.5", raw: "1500000" },
+  ], note: "ERC-20 Transfer logs only; native-coin transfers are not included." },
+  async (env, q) => {
+    const { a, c, cl, latest, span, sentScan, receivedScan } = await walletScan(env, q, 60);
+    type L = RawLog & { address: string };
+    const self = a.toLowerCase();
+    const all = [...(sentScan.logs as L[]).map((l) => ({ l, direction: "out" as const })), ...(receivedScan.logs as L[]).map((l) => ({ l, direction: "in" as const }))]
+      .filter(({ l }) => l.topics.length === 3)
+      .sort((x, y) => Number(y.l.blockNumber) - Number(x.l.blockNumber) || Number(y.l.logIndex) - Number(x.l.logIndex));
+    // A transfer to oneself shows up in both scans: keep it once.
+    const seen = new Set<string>();
+    const unique = all.filter(({ l }) => { const k = `${l.transactionHash}:${l.logIndex}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    const shown = unique.slice(0, 50);
+    const tokens = [...new Set(shown.map(({ l }) => l.address.toLowerCase()))].slice(0, 15) as `0x${string}`[];
+    const meta = new Map(await Promise.all(tokens.map(async (t) => {
+      const [symbol, decimals] = await Promise.all([
+        cl.readContract({ address: t, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
+        cl.readContract({ address: t, abi: erc20Abi, functionName: "decimals" }).catch(() => null),
+      ]);
+      return [t, { symbol: symbol as string | null, decimals: decimals === null ? null : Number(decimals) }] as const;
+    })));
+    const partial = !sentScan.complete || !receivedScan.complete;
+    const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;
+    return {
+      address: a, chain: c.name, chainId: c.chain.id, fromBlock: Number(partial ? scannedFrom : latest - span + 1n), toBlock: Number(latest),
+      count: unique.length, truncated: unique.length > 50 || partial,
+      transfers: shown.map(({ l, direction }) => {
+        const raw = BigInt(l.data === "0x" ? 0 : l.data.slice(0, 66));
+        const m = meta.get(l.address.toLowerCase() as `0x${string}`);
+        const other = `0x${(direction === "out" ? l.topics[2] : l.topics[1]).slice(26)}`;
+        return { block: Number(l.blockNumber), tx: l.transactionHash, token: l.address, symbol: m?.symbol ?? null, direction: other.toLowerCase() === self ? "self" : direction, counterparty: other,
+          amount: m?.decimals != null ? formatUnits(raw, m.decimals) : null, raw: raw.toString() };
+      }),
+      note: "ERC-20 Transfer logs only; native-coin transfers are not included." + (partial ? " A busy wallet filled the scan early: fromBlock shows where it stopped." : ""),
+    };
+  });
+
+/**
  * Reads whose published example fails on that network (smoke run, 26 Oct 2026): zkSync estimates need a sender holding ETH
  * there, and HyperEVM's public node refuses the wider log ranges the transfer scan uses. Left out rather than listed broken.
  */
@@ -740,6 +894,6 @@ const EXTRA_READS: Entry[] = EXTRA_CHAINS.flatMap(chainEntries).filter((e) => !E
  */
 export const READ_TEST_PRICE = PRICE;
 export const testPriced = (e: Entry): Entry => (e.endpoint.price === PRICE ? { ...e, endpoint: { ...e.endpoint, price: READ_TEST_PRICE } } : e);
-export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries).map(testPriced), WALLET_BALANCES, ...EXTRA_READS.map(testPriced)];
+export const CHAIN_READS: Entry[] = [...CHAINS.flatMap(chainEntries).map(testPriced), WALLET_BALANCES, WALLET_RELATED, WALLET_TRANSACTIONS, ...EXTRA_READS.map(testPriced)];
 /** The extra networks' tool paths: HTTP and the /mcp/chain bundle only (mcp.ts). */
 export const EXTRA_CHAIN_PATHS: ReadonlySet<string> = new Set(EXTRA_READS.map((e) => e.endpoint.path));
