@@ -138,9 +138,11 @@ function chainEntries(c: ChainDef): Entry[] {
   const p = (op: string) => `/${c.slug}/${op}`;
   const tags = (...t: string[]) => [c.slug === "eth" ? "ethereum" : c.name.toLowerCase().split(" ")[0], "blockchain", "evm", ...t];
   const head = (extra: Record<string, unknown>) => ({ chain: c.name, chainId: c.chain.id, ...extra });
+  // Names lead with the chain as agents search ("base balance", "arbitrum transaction", "ethereum block number"; 5 Nov 2026).
+  const lead = c.name.split(" ")[0];
 
   return [
-    entry(p("balance"), `${c.name} native balance`,
+    entry(p("balance"), `${lead} balance, native coin`,
       `Native ${c.symbol} balance (eth_getBalance) of any 0x wallet address on ${c.name} at the latest block, in wei and in ${c.symbol}. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use ${c.slug}_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged.`,
       tags("balance", "wallet"), { address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_ADDR } },
       head({ address: EX_ADDR, balanceWei: "1234500000000000000", balance: "1.2345", symbol: c.symbol, block: 123456789 }),
@@ -173,7 +175,7 @@ function chainEntries(c: ChainDef): Entry[] {
         return head({ token, symbol, decimals: Number(decimals), address: a, raw: raw.toString(), balance: formatUnits(raw, Number(decimals)) });
       }),
 
-    entry(p("token-info"), `${c.name} ERC-20 token info`,
+    entry(p("token-info"), `${lead} token info, ERC-20`,
       `Look up the name, symbol, decimals and total supply of an ERC-20 token contract on ${c.name}, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use ${c.slug}_token_balance. Input is a ticker (USDC, WETH…) or the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged.`,
       tags("erc20", "token", "metadata"), { token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] } },
       head({ token: USDC[c.slug], name: "USD Coin", symbol: "USDC", decimals: 6, totalSupply: "1000000000.0", totalSupplyRaw: "1000000000000000" }),
@@ -194,7 +196,7 @@ function chainEntries(c: ChainDef): Entry[] {
     // 25 Oct 2026: inside a payer tier a name that STARTS with the searched phrase wins 67% of ties (name-shape.mjs), so the
     // generic-phrase reads lead with the phrase and name the chain after it; chain-named searches ("base balance") keep
     // the chain first.
-    entry(p("block"), `Block number, ${c.name}`,
+    entry(p("block"), `${lead} block number`,
       `Latest block number and block details on ${c.name}, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use ${c.slug}_gas. A block that does not exist yet returns 404, uncharged.`,
       tags("block", "chain-data"), { number: { type: "string", description: "Block number, or 'latest' (default)", example: "latest" } },
       head({ number: 123456789, hash: "0xabc…", timestamp: "2026-10-18T12:00:00.000Z", transactions: 154, gasUsed: "21000000", gasLimit: "30000000", baseFeeGwei: "0.012", miner: "0x…" }),
@@ -226,7 +228,7 @@ function chainEntries(c: ChainDef): Entry[] {
         });
       }),
 
-    entry(p("tx"), `${c.name} transaction`,
+    entry(p("tx"), `${lead} transaction`,
       `Look up ${/^[AEIOU]/.test(c.name) ? "an" : "a"} ${c.name} transaction by hash: sender, recipient, value in ${c.symbol}, nonce, gas limit, the 4-byte function selector and its block. Use to see what was sent or whether it exists; for success or failure and fees paid use ${c.slug}_receipt, for emitted events ${c.slug}_logs. Input is a 0x-prefixed 64-hex hash; an unknown hash returns 404, uncharged.`,
       tags("transaction", "chain-data"), { hash: { type: "string", description: "0x-prefixed transaction hash (64 hex characters)", required: true, example: EX_TX[c.slug] } },
       head({ hash: EX_TX[c.slug], from: "0x…", to: "0x…", value: "0.0", nonce: 12, gas: "65000", selector: "0xa9059cbb", inputBytes: 68, block: 123456789 }),
@@ -252,7 +254,7 @@ function chainEntries(c: ChainDef): Entry[] {
         });
       }),
 
-    entry(p("nonce"), `${c.name} account nonce`,
+    entry(p("nonce"), `${lead} nonce, account nonce`,
       `Read the transaction count (nonce) of a 0x address on ${c.name}, both confirmed and including pending transactions. Use to build the next transaction or to tell whether an address has ever sent anything; for its balance use ${c.slug}_balance. A malformed address is rejected with 400, uncharged.`,
       tags("nonce", "wallet"), { address: { type: "string", description: "0x address", required: true, example: EX_ADDR } },
       head({ address: EX_ADDR, nonce: 1204, pendingNonce: 1204, hasSent: true }),
@@ -263,7 +265,7 @@ function chainEntries(c: ChainDef): Entry[] {
         return head({ address: a, nonce: n, pendingNonce: pending, hasSent: n > 0 });
       }),
 
-    entry(p("is-contract"), `${c.name} contract check`,
+    entry(p("is-contract"), `${lead} is-contract check`,
       `Check whether a 0x address on ${c.name} is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged.`,
       tags("contract", "security", "address"), { address: { type: "string", description: "0x address", required: true, example: USDC[c.slug] } },
       head({ address: USDC[c.slug], isContract: true, codeBytes: 1855, minimalProxy: false, implementation: null }),
@@ -275,7 +277,7 @@ function chainEntries(c: ChainDef): Entry[] {
         return head({ address: a, isContract: bytes > 0, codeBytes: bytes, minimalProxy: !!m, implementation: m ? `0x${m[1]}` : null });
       }),
 
-    entry(p("logs"), `${c.name} recent event logs`,
+    entry(p("logs"), `${lead} event logs`,
       `Recent contract event logs on ${c.name} (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ${c.slug}_receipt.`,
       tags("logs", "events", "chain-data"), {
         address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] },
@@ -461,7 +463,7 @@ function contractEntries(c: ChainDef): Entry[] {
   const head = (extra: Record<string, unknown>) => ({ chain: c.name, chainId: c.chain.id, ...extra });
   const nft = NFT_EXAMPLE[c.slug];
   const list: Entry[] = [
-    entry(p("nft-owner"), `NFT owner, ${short}`,
+    entry(p("nft-owner"), `${short} NFT owner`,
       `Owner of an NFT on ${c.name}: the wallet that holds one ERC-721 token id right now (ownerOf), plus the collection's name and symbol. Use to verify who holds an NFT before a trade, a mint gate or an airdrop; for how many a wallet holds use ${c.slug}_nft_balance, for the token's metadata ${c.slug}_nft_metadata. A missing contract is 404, a token that does not exist 422, both uncharged.`,
       tags("nft", "nft-owner", "erc721", "owner"), {
         contract: { type: "string", description: "0x ERC-721 collection contract address", required: true, example: nft },
@@ -609,7 +611,7 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ to, from: from ?? null, value: rawValue, gas: gas.toString(), gasPriceGwei: formatGwei(price), cost: formatEther(gas * price), symbol: c.symbol, block: Number(block) });
       }),
 
-    entry(p("gas-history"), `Gas history, ${short} gas price`,
+    entry(p("gas-history"), `${short} gas history, gas price`,
       `Gas price history on ${c.name} (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ${c.slug}_gas.`,
       tags("gas", "gas-history", "fees", "fee-history"), {
         blocks: { type: "integer", description: "How many recent blocks, 5-100 (default 20)", example: 20 },

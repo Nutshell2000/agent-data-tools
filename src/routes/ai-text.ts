@@ -380,7 +380,7 @@ export const BASICS: Entry[] = [
     ["keccak", "ethereum", "hash", ...B], { text: { type: "string", description: "Text, or 0x-prefixed hex bytes, up to 10,000 characters", required: true, example: "transfer(address,uint256)" } },
     { input: "transfer(address,uint256)", inputType: "text", keccak256: "0xa9059cbb2ab09eb219583f4a59a5d0623ade346d962bcd4e46b11da047c9049b", selector: "0xa9059cbb" },
     (_e, q) => { const t = need(q, "text", 10_000); const hex = /^0x([0-9a-fA-F]{2})*$/.test(t); const h = keccak256(hex ? (t as `0x${string}`) : toBytes(t)); return { input: t, inputType: hex ? "hex" : "text", keccak256: h, selector: h.slice(0, 10) }; }, "$0.01"),
-  entry("/network", "Base network and USDC facts", "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client.",
+  entry("/network", "Network info, Base and USDC", "Reference facts for paying and reading on Base mainnet: chain id, native USDC contract and decimals, block explorer and public RPC URLs, and the x402 network identifier. Use to configure an x402 or Base client.",
     ["base", "usdc", "network", ...B], {}, { chain: "Base", chainId: 8453, caip2: "eip155:8453", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 } },
     () => ({ chain: "Base", chainId: 8453, caip2: "eip155:8453", nativeCurrency: "ETH", usdc: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6, symbol: "USDC" }, explorer: "https://basescan.org", publicRpc: ["https://mainnet.base.org", "https://base-rpc.publicnode.com"], x402Network: "eip155:8453" }), "$0.01"),
 ];

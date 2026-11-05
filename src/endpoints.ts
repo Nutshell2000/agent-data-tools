@@ -140,7 +140,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/token",
     price: "$0.01",
-    summary: "Base ERC-20 token facts and risk flags",
+    summary: "Token info, Base ERC-20 facts",
     description:
       "Base only (other chains: <chain>_token_info). Live on-chain facts for an ERC-20 token on Base: name, symbol, decimals, total supply, owner and whether ownership is renounced, paused state, proxy detection (EIP-1967, minimal proxy) with implementation and admin, and bytecode heuristics for mint, pause, blacklist and fee-setter functions. Use for token due diligence and rug-pull or honeypot screening before a swap.",
     tags: ["base", "token", "erc20", "security", "onchain"],
@@ -225,7 +225,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/summarize",
     price: "$0.01",
-    summary: "Summarize a web page from its URL",
+    summary: "Summarize web page by URL",
     description:
       "Give a URL, get a short summary of the page plus three to six key points, ready to drop into an agent's context. Fetches the page, strips navigation and boilerplate, and summarizes the main text with an LLM. HTML pages only; for a PDF use pdf_text, then ai_summarize_text. Use for research, news triage, link previews and deciding whether a page is worth reading in full. For the full text use extract.",
     tags: ["summary", "web", "llm", "research", "text"],
@@ -245,7 +245,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/screenshot",
     price: "$0.01",
-    summary: "Website screenshot: capture a web page as an image",
+    summary: "Website screenshot full page: capture a web page as an image",
     description:
       "Render any public web page in a real headless Chrome browser, with JavaScript executed, and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and page title. Set fullPage=true to capture up to 4000 px of page height. Use for visual checks, page previews, monitoring and feeding pages to vision models.",
     tags: ["screenshot", "browser", "render", "web", "image"],
@@ -614,7 +614,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/mev-simulator",
     price: "$0.01",
-    summary: "Base gas-cost estimates under priority-fee scenarios",
+    summary: "MEV and gas cost estimate, Base",
     description:
       "Estimates Base gas costs from current fees and priority-fee presets. Fixed gas units (100k simple, 250k complex, 180k liquidity) are typical assumptions, not transaction-specific estimates or quotes. Valid values: standard, high-mev (3x priority fee), low-gas (half); invalid values return HTTP 400 without charge. No transaction simulation, mempool observation, or MEV/sandwich-risk measurement. Use to budget gas for a Base transaction.",
     tags: ["gas", "defi", "transaction-cost", "scenario-estimate", "base"],
@@ -646,7 +646,7 @@ export const CORE_ENDPOINTS = [
     path: "/package",
     // Must equal its Coinbase Bazaar listing (tests/bazaar-listed-prices.test.cjs): buyers that read the listing pay that amount.
     price: "$0.002",
-    summary: "Package risk check: npm, PyPI, Cargo, Go, Maven or NuGet metadata and dependency-risk signals, latest or pinned version",
+    summary: "npm package info, package risk: npm, PyPI, Cargo, Go, Maven or NuGet metadata and dependency-risk signals, latest or pinned version",
     description:
       "Reports package existence, latest version and release, age, version count, npm weekly downloads, licenses, deprecation and known advisory severity. ok means no listed flags, not a safety guarantee. Supports npm, PyPI, Cargo, Go, Maven and NuGet. Optional exact version adds pinned-version metadata and uses deps.dev advisories; use /package-audit for OSV affected ranges and dated FIRST EPSS CVE estimates. Use before adding a dependency.",
     tags: ["package", "npm", "pypi", "security", "dependencies"],
@@ -894,7 +894,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/time",
     price: "$0.01",
-    summary: "Timezone converter, current time: time zone conversion",
+    summary: "Timezone, current time converter: time zone conversion",
     description:
       "The exact current date and time in any IANA time zone (UTC when none is given), with UTC offset, weekday, abbreviation and Unix timestamp, daylight saving time handled. Optionally convert a given moment into up to 10 other time zones in the same call. Use when an agent needs to know what time it is, to schedule across time zones or to turn a timestamp into local time. A bare GET is the smallest paid end-to-end test of an x402 or MPP client.",
     tags: ["time", "timezone", "clock", "date", "scheduling"],
