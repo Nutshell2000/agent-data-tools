@@ -1,5 +1,5 @@
 {
-  "version": "1.87.0",
+  "version": "1.88.0",
   "tools": [
     {
       "name": "extract",
@@ -11337,6 +11337,30 @@
       "price": "$0.01"
     },
     {
+      "name": "agent_readiness",
+      "description": "Score how ready a website is for AI agents, 0-100: llms.txt, sitemap, OpenAPI spec, MCP server card, A2A agent card and x402 payment discovery, each found or missing with its URL, which AI crawlers (GPTBot, ClaudeBot, PerplexityBot and others) robots.txt lets in, and a list of fixes. Reads only the public files a site publishes; nothing is signed in or submitted. Use to audit your own site or vet a service before an agent relies on it. Example: url=https://stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The site: a domain or any URL on it (its origin is checked)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "json_validate",
       "description": "Check whether text is valid JSON. Returns valid true/false, the parsed value's type and size, and for invalid input the error message with line and column. Use before parsing an LLM's or an API's output. Example: text={\"a\":1}. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -13643,6 +13667,34 @@
       "price": "$0.01"
     },
     {
+      "name": "token_verdict",
+      "description": "Plain-language AI verdict on an ERC-20 token: a rating (avoid, caution or no red flags) from fixed rules over checked facts (honeypot and contract risk flags, liquidity, upgradeable proxy, last hour's DEX buying and selling), the reasons, and a short AI-written summary of those facts only. Base (default), Ethereum, Arbitrum, Optimism or Polygon; risk flags on Base only. Use before buying or accepting an unknown token. Not investment advice. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as AERO or a 0x ERC-20 contract address"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Network: base (default), eth, arb, op or polygon"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "pack_email_deliverability",
       "description": "Email deliverability check for a domain in one call: MX records, SPF and its all-policy, DMARC and its policy, DKIM keys at the common selectors (Google, Microsoft, Mailchimp and others), MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes; optionally also checks one address (syntax, MX, disposable domain). Uses public DNS only and sends no mail. Use before a campaign, when mail lands in spam, or to vet a sender domain. Example: domain=github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -15203,6 +15255,46 @@
             ]
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "token_buyers",
+      "description": "Who bought and who sold a token lately: the wallets that took the most of an ERC-20 from DEX pools and routers (buyers) or sent the most to them (sellers) over recent blocks, from its live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon, with bought, sold, net and transfers. Contracts are left out; plain wallet-to-wallet moves only count in netAll. Use to see who accumulates or dumps a token before you trade it. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC"
+          },
+          "chain": {
+            "type": "string",
+            "description": "base (default), ethereum, arbitrum, optimism or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about an hour on Base, 6 hours on Ethereum)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Buyers and sellers to return each, 1 to 20 (default 10)"
+          }
+        },
+        "required": [
+          "token"
+        ]
       },
       "price": "$0.01"
     },
