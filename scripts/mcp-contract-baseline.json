@@ -1,5 +1,5 @@
 {
-  "version": "1.85.0",
+  "version": "1.86.0",
   "tools": [
     {
       "name": "extract",
@@ -4290,6 +4290,88 @@
         ]
       },
       "price": "$0.005"
+    },
+    {
+      "name": "wallet_related",
+      "description": "Related wallets of a 0x address: who it sent ERC-20 tokens to or got them from over recent blocks, ranked by transfers, with sent and received counts, tokens, USDC in and out, first and last block, and wallet or contract. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to map who a wallet trades with, find linked wallets before paying, or trace where funds went. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "wallet_transactions",
+      "description": "Recent token transactions of any 0x address across every ERC-20 it holds: the newest 50 transfers in or out over recent blocks, each with token symbol, amount, counterparty, direction, block and transaction hash. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to see what a wallet did lately, confirm a payment in any token, or audit activity before a deal. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet or contract address"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "avax_balance",
