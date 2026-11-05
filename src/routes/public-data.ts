@@ -191,7 +191,7 @@ export const PUBLIC_DATA: Entry[] = [
       };
     }),
 
-  entry("/elevation", "Elevation of a point", "Ground elevation in metres above sea level for a latitude and longitude (Copernicus 90 m digital elevation model via Open-Meteo).",
+  entry("/elevation", "Elevation of a point", "Ground elevation in metres above sea level for a latitude and longitude (Copernicus 90 m digital elevation model via Open-Meteo). Use to plan routes, size flood or terrain risk, or enrich location data.",
     ["elevation", "geo", ...P], LATLON, { lat: 59.33, lon: 18.07, elevationM: 28 },
     async (_e, q) => {
       const la = lat(q), lo = lon(q);
@@ -225,7 +225,7 @@ export const PUBLIC_DATA: Entry[] = [
       const p = Array.isArray(pop) && pop.length > 1 ? (pop[1] as Array<{ date: string; value: number | null }> | null)?.[0] : undefined;
       return { name: c.name, iso2: c.iso2Code, iso3: c.id, region: c.region.value, incomeLevel: c.incomeLevel.value, capital: c.capitalCity || null, capitalLat: c.latitude ? Number(c.latitude) : null, capitalLon: c.longitude ? Number(c.longitude) : null, population: p?.value ?? null, populationYear: p ? Number(p.date) : null, source: "World Bank" };
     }),
-  entry("/crypto/price", "Crypto prices", "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap.",
+  entry("/crypto/price", "Crypto prices", "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move.",
     ["crypto", "prices", "markets", ...P], { ids: { type: "string", description: "Comma-separated CoinGecko ids", required: true, example: "bitcoin,ethereum" }, vs: { type: "string", description: "Comma-separated currencies (default usd)", example: "usd,eur" } },
     { prices: { bitcoin: { usd: 67000, usd_24h_change: -1.2, usd_market_cap: 1.32e12 } }, source: "CoinGecko" },
     async (_e, q) => {
@@ -269,7 +269,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { count: items.length, stories: items.map((s) => ({ id: s.id, title: s.title, url: s.url ?? null, points: s.score, comments: s.descendants ?? 0, by: s.by, time: new Date(s.time * 1000).toISOString(), discussion: `https://news.ycombinator.com/item?id=${s.id}` })) };
     }),
 
-  entry("/iss", "Where is the ISS now", "Current position of the International Space Station: latitude, longitude, altitude, speed and whether it is in daylight (wheretheiss.at).",
+  entry("/iss", "Where is the ISS now", "Current position of the International Space Station: latitude, longitude, altitude, speed and whether it is in daylight (wheretheiss.at). Use for space apps, education bots and sky-watching alerts.",
     ["space", "iss", "astronomy", ...P], {},
     { lat: 12.3, lon: -45.6, altitudeKm: 418.2, speedKmh: 27580, visibility: "daylight", time: "2026-10-18T12:00:00.000Z" },
     async () => {
