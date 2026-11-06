@@ -46,7 +46,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 564);
+  assert.equal(families.length, 565);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -74,7 +74,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,593);
+  assert.equal(ENDPOINTS.length,594);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -300,7 +300,7 @@ test("web search maps Brave results, stays within the daily cap and fails unchar
     assert.equal(seen.length, 0);
     const env = { TRIALS: kv, SEARCH_API_KEY: "k", SEARCH_DAILY_CAP: "1" };
     const out = await run(env, q({ q: "x402", count: "5" }));
-    assert.deepEqual(out, { query: "x402", provider: "Brave Search", count: 1, results: [{ title: "x402 spec", url: "https://x402.org/", snippet: "Pay & go", age: "1 day ago" }], terms: SEARCH[0].endpoint.outputExample.terms });
+    assert.deepEqual(out, { query: "x402", provider: "Brave Search", count: 1, results: [{ title: "x402 spec", url: "https://x402.org/", snippet: "Pay & go", age: "1 day ago", publishedDate: null, author: null, domain: "x402.org", favicon: null, image: null }], terms: SEARCH[0].endpoint.outputExample.terms });
     assert.match(out.terms, /no storing or caching .* no resale and no model training \(Brave Search API terms\)/);
     assert.match(seen[0].url, /q=x402&count=5$/);
     assert.equal(seen[0].token, "k");

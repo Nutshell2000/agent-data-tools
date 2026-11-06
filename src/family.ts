@@ -87,6 +87,11 @@ export const FORMAT_ALIASES: Readonly<Record<string, string>> = Object.freeze({
   md: "markdown", mdx: "markdown", gfm: "markdown", html: "markdown",
   plain: "text", plaintext: "text", "plain-text": "text", plain_text: "text", txt: "text", raw: "text",
   all: "both", "text+markdown": "both", "markdown+text": "both",
+  // Still refused after 1.84.9 (6 Nov 2026 /status: 12 calls in 7 days); every answer is JSON, so "json" and the
+  // reader-mode words mean the clean text.
+  json: "text", string: "text", auto: "text", default: "text", article: "text", readable: "text", readability: "text",
+  clean: "text", content: "text", "text/plain": "text", "text/markdown": "markdown", "text/html": "markdown",
+  llm: "markdown", ai: "markdown", structured: "markdown", rich: "markdown", full: "both",
 });
 
 /** The allowed value a raw input names, directly or through a chain or format alias. */
