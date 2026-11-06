@@ -20,8 +20,9 @@ test('business days: weekends, Swedish holidays, default end of month, adding da
   const plain = await run('/date/business-days', { from: '2026-12-01' });
   assert.equal(plain.to, '2026-12-31');
   assert.equal(plain.businessDays, 23);
-  const unknown = await run('/date/business-days', { from: '2026-12-01', to: '2026-12-07', country: 'JP' });
-  assert.match(unknown.note, /no holiday rules for JP/);
+  // Japan is covered through Nager.Date since 1.96.0 (tests/books-merkle.test.cjs); a place with no calendar counts weekends only.
+  const unknown = await run('/date/business-days', { from: '2026-12-01', to: '2026-12-07', country: 'Atlantis' });
+  assert.match(unknown.note, /no holiday calendar for Atlantis; weekends only/);
   assert.equal((await run('/date/business-days', { from: '2026-12-23', add: '2', country: 'SE' })).date, '2026-12-28');
   assert.equal((await run('/date/business-days', { from: '2026-10-26', add: '-1' })).date, '2026-10-23');
   await assert.rejects(run('/date/business-days', { from: '2026-02-30' }), (e) => e.status === 400);
