@@ -1,5 +1,5 @@
 {
-  "version": "1.93.2",
+  "version": "1.94.0",
   "tools": [
     {
       "name": "extract",
@@ -13574,6 +13574,69 @@
       "price": "$0.01"
     },
     {
+      "name": "book_isbn",
+      "description": "Look up a book by its ISBN-10 or ISBN-13 (hyphens and spaces allowed): title, subtitle, authors, publishers, publish date, page count, subjects, language, cover image and Open Library link, from Open Library's catalogue (CC0). The ISBN check digit is verified first; an invalid or unknown ISBN is refused uncharged. Use to enrich a reading list, a product listing or a citation. Example: isbn=9780140328721. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "isbn": {
+            "description": "ISBN-10 or ISBN-13, with or without hyphens",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "isbn"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "book_search",
+      "description": "Search books by title, author or any words: up to 20 works with title, authors, first publish year, edition count, ISBNs (up to 5), publishers, languages, cover image and Open Library link, from Open Library's catalogue (CC0). Filter by author or title alone if you like. Use to find a book's ISBN, an author's works or editions before an ISBN lookup. Example: q=dune frank herbert. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Words to search for (title, author, subject)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Search the title only"
+          },
+          "author": {
+            "type": "string",
+            "description": "Search the author only"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of works (1-20, default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "ip_geolocate",
       "description": "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -13749,6 +13812,79 @@
         },
         "required": [
           "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "merkle_tree",
+      "description": "Build a Merkle tree for an allowlist or airdrop and get the root and a proof per entry, OpenZeppelin-compatible: values ABI-encoded by types (address,uint256 for airdrops), double-keccak leaves, sorted pairs, so proofs verify with MerkleProof.verify and the dump loads in StandardMerkleTree.load. Up to 2,000 values; proofs for the first 256 or the one you ask for. Ready bytes32 leaves work too. Use to set up a claim contract or check a list. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "string",
+            "description": "The entries: a JSON array of rows ([[\"0xabc…\",\"100\"],…]) or one row per line, fields comma-separated"
+          },
+          "types": {
+            "type": "string",
+            "description": "Solidity types of each row's fields, comma-separated (default: read from the rows: address,uint256 or address or bytes32 leaves)"
+          },
+          "proofFor": {
+            "type": "string",
+            "description": "Only the proof for this entry: its 0-based index or its first field (an address)"
+          }
+        },
+        "required": [
+          "values"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "merkle_verify",
+      "description": "Check a Merkle proof against a root, the way OpenZeppelin's MerkleProof.verify does on chain (sorted-pair keccak256): give the leaf hash, or the entry's values and their Solidity types (double-keccak OpenZeppelin leaf). Returns valid true or false and the root the proof leads to. Use before submitting an airdrop claim or to debug an allowlist mint. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "root": {
+            "type": "string",
+            "description": "The Merkle root (32-byte hex)"
+          },
+          "proof": {
+            "type": "string",
+            "description": "The proof: JSON array or comma-separated 32-byte hashes"
+          },
+          "leaf": {
+            "type": "string",
+            "description": "The leaf hash; or give value and types instead"
+          },
+          "value": {
+            "type": "string",
+            "description": "The entry's fields: a JSON array or comma-separated (with types)"
+          },
+          "types": {
+            "type": "string",
+            "description": "Solidity types of value's fields (default address,uint256)"
+          }
+        },
+        "required": [
+          "root",
+          "proof"
         ]
       },
       "price": "$0.01"

@@ -66,6 +66,12 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
  */
 export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   "/search": ["web-search", "search-api", "exa-search", "web-search-api"],
+  // "email auth" (9 results) and "spf dkim dmarc" (20) on 6 Nov 2026: our pack was absent from both.
+  "/pack/email-deliverability": ["email-auth", "spf-dkim-dmarc", "dmarc-check", "email-deliverability"],
+  "/book/isbn": ["isbn-lookup", "book-lookup", "isbn"],
+  "/book/search": ["book-search", "find-books"],
+  "/merkle/tree": ["merkle-tree", "merkle-root", "merkle-proof", "airdrop"],
+  "/merkle/verify": ["merkle-proof", "merkle-verify"],
   "/search/similar": ["find-similar", "similar-websites", "similar-pages", "competitor-search"],
   "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
   "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price", "dex-price"],
