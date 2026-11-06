@@ -1,5 +1,5 @@
 {
-  "version": "1.96.0",
+  "version": "1.97.0",
   "tools": [
     {
       "name": "extract",
@@ -16988,6 +16988,111 @@
             "description": "Number of models (1-50, default 20)"
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "defi_yields",
+      "description": "The best DeFi yields now across ~15,000 lending, staking, LP and vault pools: APY (base, reward), 30-day mean and change, TVL, stablecoin flag, impermanent-loss risk and exposure. Filter by chain, protocol, token, stablecoins, no IL, single exposure, TVL and APY range; sort by APY, TVL or 30-day mean. Source: DefiLlama. Use to find where to earn yield on a token or stablecoin. Not investment advice. Example: chain=Base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "Chain name(s), comma-separated: Ethereum, Base, Arbitrum, Solana…"
+          },
+          "project": {
+            "type": "string",
+            "description": "Protocol slug(s): aave-v3, lido, morpho-blue, pendle…"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "A token in the pool: USDC, ETH, WBTC…"
+          },
+          "stablecoin": {
+            "description": "true: stablecoin pools only",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "noIl": {
+            "description": "true: only pools without impermanent-loss risk",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "single": {
+            "description": "true: single-asset exposure only",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "minTvl": {
+            "type": "number",
+            "description": "Minimum TVL in USD (default 1,000,000)"
+          },
+          "minApy": {
+            "type": "number",
+            "description": "Minimum APY in percent (default 0)"
+          },
+          "maxApy": {
+            "type": "number",
+            "description": "Maximum APY in percent, to drop farm spikes (default 1,000)"
+          },
+          "sort": {
+            "type": "string",
+            "description": "apy (default), tvl or apyMean30d"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of pools (1-50, default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "defi_yield_history",
+      "description": "Daily APY and TVL history of one DeFi pool (a poolId from /defi/yields or a DefiLlama pool URL): up to 365 days with APY base and reward, plus the average, min, max and latest APY over the window. Source: DefiLlama. Use to check whether a yield is steady or a short spike before an agent deposits. Not investment advice. Example: pool=747c1d2a-c668-4682-b9f9-296708a3dd90. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pool": {
+            "type": "string",
+            "description": "DefiLlama pool id (UUID) or pool URL"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days of history (1-365, default 30)"
+          }
+        },
+        "required": [
+          "pool"
+        ]
       },
       "price": "$0.01"
     },
