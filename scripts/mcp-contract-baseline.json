@@ -1,5 +1,5 @@
 {
-  "version": "1.98.0",
+  "version": "1.99.0",
   "tools": [
     {
       "name": "extract",
@@ -17159,6 +17159,195 @@
             "description": "Number of chains (1-100, default 25)"
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "airport_lookup",
+      "description": "Look up airports by IATA or ICAO code, name or city (Paris, JFK, EGLL, Heathrow): codes, full name, city, country, region, coordinates, elevation, size, scheduled service and Wikipedia link, for ~9,500 airports worldwide; or give lat and lon for the nearest airports with distances. Data: OurAirports (public domain), committed snapshot, answers in milliseconds. Use for travel tools, flight data enrichment and geocoding airport codes. Example: q=Stockholm. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "IATA code, ICAO code, airport name or city"
+          },
+          "country": {
+            "type": "string",
+            "description": "Only airports in this country (code or name)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude, for the nearest airports (with lon)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude, for the nearest airports (with lat)"
+          },
+          "scheduled": {
+            "description": "true: only airports with scheduled passenger service",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of airports (1-25, default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "swap_quote",
+      "description": "Best price to swap one token for another on 30+ chains (Base, Ethereum, Arbitrum, Solana, BSC…) across DEX aggregators, via LI.FI: amount out, minimum after slippage, USD values, gas and fees, total cost in percent, route and approval address; with fromAddress, the unsigned transaction for your wallet to sign. Tokens by symbol or address, amounts in token units. A quote only: nothing is signed or sent. Use before a trading agent swaps. Example: fromChain=base, fromToken=USDC, amount=1000, toToken=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "fromChain": {
+            "type": "string",
+            "description": "Chain name or id: base, ethereum, arbitrum, solana…"
+          },
+          "fromToken": {
+            "type": "string",
+            "description": "Token to sell: symbol (USDC, ETH) or address"
+          },
+          "amount": {
+            "description": "Amount of fromToken in token units, e.g. 100 or 0.5",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "Optional wallet that would send: adds the unsigned transaction to the answer"
+          },
+          "toAddress": {
+            "type": "string",
+            "description": "Optional receiving wallet, e.g. a Solana address when bridging to Solana"
+          },
+          "slippage": {
+            "type": "number",
+            "description": "Slippage tolerance in percent (default 0.5)"
+          },
+          "toToken": {
+            "type": "string",
+            "description": "Token to buy: symbol or address"
+          }
+        },
+        "required": [
+          "fromChain",
+          "fromToken",
+          "amount",
+          "toToken"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "bridge_quote",
+      "description": "Cheapest route to move tokens between chains (Ethereum to Base, Arbitrum to Solana…) across 20+ bridges via LI.FI: amount received, minimum, USD values, gas, bridge fees, total cost in percent, estimated time, steps and approval address; with fromAddress, the unsigned transaction to sign. Swaps on either side are included when the tokens differ. A quote only: nothing is signed or sent. Use before an agent moves funds across chains. Example: fromChain=ethereum, toChain=base, fromToken=USDC, amount=1000. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "fromChain": {
+            "type": "string",
+            "description": "Source chain name or id"
+          },
+          "toChain": {
+            "type": "string",
+            "description": "Destination chain name or id"
+          },
+          "fromToken": {
+            "type": "string",
+            "description": "Token to sell: symbol (USDC, ETH) or address"
+          },
+          "amount": {
+            "description": "Amount of fromToken in token units, e.g. 100 or 0.5",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "Optional wallet that would send: adds the unsigned transaction to the answer"
+          },
+          "toAddress": {
+            "type": "string",
+            "description": "Optional receiving wallet, e.g. a Solana address when bridging to Solana"
+          },
+          "slippage": {
+            "type": "number",
+            "description": "Slippage tolerance in percent (default 0.5)"
+          },
+          "toToken": {
+            "type": "string",
+            "description": "Token to receive (default: the same token)"
+          }
+        },
+        "required": [
+          "fromChain",
+          "toChain",
+          "fromToken",
+          "amount"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "bridge_status",
+      "description": "Status of a cross-chain transfer by its source transaction hash, for transfers made through LI.FI and the bridges it routes (Stargate, Across, CCTP, Hop, Polymer and more): DONE, PENDING, FAILED or NOT_FOUND, the sub-status and its message, sending and receiving transaction hashes, chains, tokens, amounts and explorer links. Use to check whether funds arrived before an agent continues. Example: txHash=0x8f9e2c2a7a6e0f5b1c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "txHash": {
+            "type": "string",
+            "description": "Hash of the transaction on the source chain"
+          },
+          "fromChain": {
+            "type": "string",
+            "description": "Optional source chain name or id, to speed up the lookup"
+          }
+        },
+        "required": [
+          "txHash"
+        ]
       },
       "price": "$0.01"
     },
