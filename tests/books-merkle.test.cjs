@@ -164,3 +164,69 @@ test('Hyperliquid account view sums positions, spot and orders', async () => {
   assert.deepEqual(v.spot, [{ coin: 'USDC', total: 50.5, onHold: 0, entryNotionalUsd: 0 }]);
   assert.equal(v.openOrders.orders[0].side, 'sell');
 });
+
+test('holidays and business days cover countries beyond our rules through Nager.Date', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.hostname !== 'date.nager.at') return new Response('?', { status: 404 });
+    const [, , , , year, cc] = url.pathname.split('/');
+    if (cc === 'JP') return Response.json([
+      { date: `${year}-01-01`, localName: '元日', name: "New Year's Day", global: true, types: ['Public'] },
+      { date: `${year}-01-12`, localName: '成人の日', name: 'Coming of Age Day', global: true, types: ['Public'] },
+      { date: `${year}-03-01`, localName: 'x', name: 'Regional Day', global: false, types: ['Public'] },
+    ]);
+    return new Response(null, { status: 204 });
+  };
+  try {
+    const { PUBLIC_DATA } = await load('src/routes/public-data.ts');
+    const { MATH_DATE } = await load('src/routes/math-date.ts');
+    const holidays = PUBLIC_DATA.find((e) => e.endpoint.path === '/holidays');
+    const bd = MATH_DATE.find((e) => e.endpoint.path === '/date/business-days');
+    const jp = await holidays.run({}, (n) => ({ country: 'Japan', year: '2026' })[n]);
+    assert.equal(jp.country, 'JP');
+    assert.equal(jp.count, 3);
+    assert.equal(jp.source, 'Nager.Date');
+    await assert.rejects(holidays.run({}, (n) => ({ country: 'AQ', year: '2026' })[n]), (e) => e.status === 404);
+    // Our own rules still answer Sweden without a request.
+    assert.equal((await holidays.run({}, (n) => ({ country: 'SE', year: '2026' })[n])).country, 'SE');
+    // 2026-01-12 is a Monday holiday in Japan; the regional day on 3 March is not skipped.
+    const jan = await bd.run({}, (n) => ({ from: '2026-01-05', to: '2026-01-16', country: 'JP' })[n]);
+    assert.equal(jan.holidaySource, 'Nager.Date');
+    assert.equal(jan.businessDays, 9);
+    assert.deepEqual(jan.holidays, [{ date: '2026-01-12', name: 'Coming of Age Day' }]);
+    assert.equal((await bd.run({}, (n) => ({ from: '2026-01-09', add: '1', country: 'jp' })[n])).date, '2026-01-13');
+    const none = await bd.run({}, (n) => ({ from: '2026-01-05', to: '2026-01-16', country: 'Antarctica' })[n]);
+    assert.equal(none.holidayRules, false);
+    assert.match(none.note, /weekends only/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('LLM prices filter, sort and estimate the cost of a call', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ data: [
+    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Meta: Llama 3.3 70B', context_length: 131072, pricing: { prompt: '0.0000001', completion: '0.00000025' }, architecture: { input_modalities: ['text'] } },
+    { id: 'openai/gpt-5', name: 'OpenAI: GPT-5', context_length: 400000, pricing: { prompt: '0.00000125', completion: '0.00001' }, architecture: { input_modalities: ['text', 'image'] } },
+    { id: 'meta-llama/llama-4-scout:free', name: 'Meta: Llama 4 Scout (free)', context_length: 64000, pricing: { prompt: '0', completion: '0' }, architecture: { input_modalities: ['text', 'image'] } },
+    { id: 'router/auto', name: 'Auto', pricing: { prompt: '-1', completion: '-1' } },
+  ] });
+  try {
+    const { LLM_PRICES } = await load('src/routes/llm-prices.ts');
+    const run2 = (q) => LLM_PRICES[0].run({}, (n) => q[n]);
+    const all = await run2({});
+    assert.deepEqual(all.models.map((m) => m.id), ['meta-llama/llama-4-scout:free', 'meta-llama/llama-3.3-70b-instruct', 'openai/gpt-5']);
+    const llama = await run2({ q: 'llama 70b', inputTokens: '2000', outputTokens: '500' });
+    assert.equal(llama.count, 1);
+    assert.equal(llama.models[0].inputPerMillionUsd, 0.1);
+    assert.equal(llama.models[0].estimatedCostUsd, 0.000325);
+    assert.deepEqual((await run2({ vision: 'true', minContext: '100000' })).models.map((m) => m.id), ['openai/gpt-5']);
+    assert.deepEqual((await run2({ provider: 'openai' })).models.map((m) => m.provider), ['openai']);
+    assert.equal((await run2({ sort: 'context' })).models[0].id, 'openai/gpt-5');
+    await assert.rejects(run2({ maxInputPrice: '0.01', provider: 'openai' }), (e) => e.status === 404);
+    await assert.rejects(run2({ sort: 'best' }), (e) => e.status === 400);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

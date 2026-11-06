@@ -3,7 +3,9 @@
 // zodiac 22. No outside service; holidays come from the same rules as /holidays.
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { countryCode } from "../lib/country-code";
 import { COUNTRIES, holidaysFor } from "./holidays";
+import { holidayMap } from "./holidays-world";
 
 const U = ["utility", "data"];
 
@@ -16,11 +18,11 @@ const parseDay = (s: string, name: string) => {
   return t;
 };
 const ymd = (t: number) => new Date(t).toISOString().slice(0, 10);
-export function businessDays(from: number, to: number, country: string | null) {
+export function businessDays(from: number, to: number, country: string | null, given?: Map<string, string>) {
   if (to < from) throw new HttpError(400, "to must be on or after from");
   if ((to - from) / DAY > 3_660) throw new HttpError(400, "the range is limited to 10 years");
-  const holidays = new Map<string, string>();
-  if (country) {
+  const holidays = given ?? new Map<string, string>();
+  if (country && !given) {
     for (let y = new Date(from).getUTCFullYear(); y <= new Date(to).getUTCFullYear(); y++) {
       for (const h of holidaysFor(country, y)?.holidays ?? []) holidays.set(h.date, h.name);
     }
@@ -37,13 +39,13 @@ export function businessDays(from: number, to: number, country: string | null) {
   return { calendarDays: Math.round((to - from) / DAY) + 1, businessDays: business, weekendDays: weekend, holidays: skipped };
 }
 /** The date `n` business days after (or before, if negative) `from`. */
-export function addBusinessDays(from: number, n: number, country: string | null) {
+export function addBusinessDays(from: number, n: number, country: string | null, given?: Map<string, string>) {
   const step = n < 0 ? -DAY : DAY;
   let t = from, left = Math.abs(n);
-  const years = new Set<number>(), holidays = new Set<string>();
+  const years = new Set<number>(), holidays = new Set<string>(given?.keys() ?? []);
   const isHoliday = (x: number) => {
     const y = new Date(x).getUTCFullYear();
-    if (country && !years.has(y)) { years.add(y); for (const h of holidaysFor(country, y)?.holidays ?? []) holidays.add(h.date); }
+    if (country && !given && !years.has(y)) { years.add(y); for (const h of holidaysFor(country, y)?.holidays ?? []) holidays.add(h.date); }
     return holidays.has(ymd(x));
   };
   while (left > 0) { t += step; const wd = new Date(t).getUTCDay(); if (wd !== 0 && wd !== 6 && !isHoliday(t)) left--; }
@@ -133,27 +135,37 @@ export function westernSign(month: number, day: number) {
 
 export const MATH_DATE: Entry[] = [
   entry("/date/business-days", "Business days between dates, working days calculator",
-    "Count business (working) days between two dates, skipping weekends and public holidays for the US, UK, Sweden, Germany, France, Norway, Denmark or Finland, and list the holidays skipped; or give add=N to get the date N business days after (or before) a date. Other countries count weekends only, and the answer says so. Use for delivery estimates, SLAs, payment terms and payroll dates.",
+    "Count business (working) days between two dates, skipping weekends and the nationwide public holidays of over 100 countries (our statutory rules for US, UK, SE, DE, FR, NO, DK, FI; Nager.Date for the rest, e.g. JP, NZ, CA, AU, IN), and list the holidays skipped; or give add=N for the date N business days after (or before) a date. Use for delivery estimates, SLAs, payment terms and payroll dates.",
     ["business-days", "working-days", "calendar", "date", ...U], {
       from: { type: "string", description: "Start date, YYYY-MM-DD", required: true, example: "2026-12-01" },
       to: { type: "string", description: "End date, YYYY-MM-DD (inclusive; default: the last day of the start month); or use add", example: "2026-12-31" },
       add: { type: "integer", description: "Business days to add to from (negative to go back), instead of to", example: 10 },
-      country: { type: "string", description: "Holiday calendar: US, GB, SE, DE, FR, NO, DK or FI (default: weekends only)", example: "SE" },
+      country: { type: "string", description: "Holiday calendar: a 2-letter country code or English name, e.g. SE, JP, New Zealand (default: weekends only)", example: "SE" },
     },
-    { from: "2026-12-01", to: "2026-12-31", country: "SE", holidayRules: true, calendarDays: 31, businessDays: 20, weekendDays: 8, holidays: [{ date: "2026-12-24", name: "Christmas Eve" }] },
-    (_e, q) => {
+    { from: "2026-12-01", to: "2026-12-31", country: "SE", holidayRules: true, holidaySource: "rules", calendarDays: 31, businessDays: 20, weekendDays: 8, holidays: [{ date: "2026-12-24", name: "Christmas Eve" }] },
+    async (_e, q) => {
       const from = parseDay(need(q, "from", 20), "from");
-      const raw = opt(q, "country", 40)?.toUpperCase().replace(/^UK$/, "GB") ?? null;
-      const country = raw && raw in COUNTRIES ? raw : null;
-      const note = raw && !country ? `no holiday rules for ${raw}; weekends only (supported: ${Object.keys(COUNTRIES).join(", ")})` : undefined;
-      if (q("add")?.trim()) {
-        const n = num(q, "add", { min: -2_500, max: 2_500, integer: true });
-        return { from: ymd(from), add: n, country, holidayRules: !!country, date: addBusinessDays(from, n, country), ...(note ? { note } : {}) };
-      }
-      // Without to or add, count to the end of the start month, so the published example (required inputs only) works.
+      const typed = opt(q, "country", 60) ?? null;
+      const code = typed ? (countryCode(typed) ?? typed.toUpperCase().replace(/^UK$/, "GB")) : null;
+      const ruled = code && Object.hasOwn(COUNTRIES, code) ? code : null;
       const toRaw = opt(q, "to", 20);
-      const to = toRaw ? parseDay(toRaw, "to") : Date.UTC(new Date(from).getUTCFullYear(), new Date(from).getUTCMonth() + 1, 0);
-      return { from: ymd(from), to: ymd(to), country, holidayRules: !!country, ...businessDays(from, to, country), ...(note ? { note } : {}) };
+      const adding = !!q("add")?.trim();
+      const n = adding ? num(q, "add", { min: -2_500, max: 2_500, integer: true }) : 0;
+      // Without to or add, count to the end of the start month, so the published example (required inputs only) works.
+      const to = adding ? from : toRaw ? parseDay(toRaw, "to") : Date.UTC(new Date(from).getUTCFullYear(), new Date(from).getUTCMonth() + 1, 0);
+      // Countries without our rules use Nager.Date for every year the answer can touch.
+      let given: Map<string, string> | undefined;
+      if (code && !ruled && /^[A-Z]{2}$/.test(code)) {
+        const y0 = new Date(from).getUTCFullYear();
+        const span = adding ? Math.ceil((Math.abs(n) * 1.6) / 365) + 1 : new Date(to).getUTCFullYear() - y0;
+        const years = Array.from({ length: Math.min(12, span + 1) }, (_, i) => (n < 0 ? y0 - i : y0 + i));
+        given = (await holidayMap(code, years)) ?? undefined;
+      }
+      const country = ruled ?? (given ? code : null);
+      const holidaySource = ruled ? "rules" : given ? "Nager.Date" : null;
+      const note = typed && !country ? `no holiday calendar for ${typed.slice(0, 40)}; weekends only` : undefined;
+      if (adding) return { from: ymd(from), add: n, country, holidayRules: !!country, holidaySource, date: addBusinessDays(from, n, country, given), ...(note ? { note } : {}) };
+      return { from: ymd(from), to: ymd(to), country, holidayRules: !!country, holidaySource, ...businessDays(from, to, country, given), ...(note ? { note } : {}) };
     }),
 
   entry("/math/stats", "Statistics of numbers: mean, median, standard deviation, percentiles",
