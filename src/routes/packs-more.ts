@@ -4,7 +4,7 @@ import { decodeEventLog, formatEther, formatGwei, formatUnits, isHash, parseAbi,
 import { entry, need, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
-import { CHAINS, client, rpc } from "./chain-reads";
+import { CHAINS, client, historyRead, rpc } from "./chain-reads";
 import { decodeCalldata } from "./evm-tools";
 import { call, runSections } from "./packs";
 import { weather } from "./weather";
@@ -55,7 +55,7 @@ export const PACKS_MORE: Entry[] = [
       const hash = need(q, "hash", 80).trim().toLowerCase();
       if (!isHash(hash as Hex)) throw new HttpError(400, "hash must be a 0x transaction hash (64 hex characters)");
       const cl = client(env, c);
-      const [tx, receipt] = await rpc(() => Promise.all([cl.getTransaction({ hash: hash as Hex }), cl.getTransactionReceipt({ hash: hash as Hex })]));
+      const [tx, receipt] = await historyRead(env, c, (h) => Promise.all([h.getTransaction({ hash: hash as Hex }), h.getTransactionReceipt({ hash: hash as Hex })]));
       const events: { kind: string; token: string; from?: string; to?: string; value?: bigint; tokenId?: bigint; approved?: boolean }[] = [];
       for (const log of receipt.logs.slice(0, 200)) {
         try {
