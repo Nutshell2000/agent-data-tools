@@ -1,6 +1,7 @@
 import { allowedValue } from "../family";
 import { HttpError } from "../lib/env";
-import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
+import { archivedCopy } from "../lib/archive";
+import { TARGET_UNAVAILABLE, capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { pageContent } from "../lib/page-content";
 import { clipMarkdown } from "../lib/markdown";
 import { emptySourceMetadata } from "../lib/page-metadata";
@@ -30,30 +31,56 @@ export function extractOptions(
   return { target, maxChars, formatParam, sectionParam };
 }
 
+export interface ExtractRunOptions {
+  /** Total time for the live fetch (default 15 s). */
+  budgetMs?: number;
+  /** Serve the Internet Archive's latest capture when the live target is down or slow (default true). */
+  archiveFallback?: boolean;
+}
+
+const PAGE_ACCEPT = "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8";
+
 export async function extract(
   rawUrl: string | undefined,
   maxCharsParam?: string,
   formatParam = "text",
   sectionParam?: string,
+  { budgetMs = EXTRACT_BUDGET_MS, archiveFallback = true }: ExtractRunOptions = {},
 ) {
   const options = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
   const { target, maxChars } = options;
   formatParam = options.formatParam;
   // 15 s, not the default 8 s (5 Nov 2026): github.com repository pages took longer than 8 s from Cloudflare and paid
   // reads of heavy pages timed out as 504s that the buyer could have had.
-  const res = await fetchPublic(
-    target,
-    "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8",
-    [],
-    { budgetMs: EXTRACT_BUDGET_MS },
-  );
+  let res: Response;
+  let archived: { capturedAt: string; snapshotUrl: string } | null = null;
+  try {
+    res = await fetchPublic(target, PAGE_ACCEPT, [], { budgetMs });
+  } catch (e) {
+    // Down, slow or rate-limiting targets (TARGET_UNAVAILABLE: 5xx, 429, timeouts) get the archive's latest capture; a
+    // refusal or a missing page (422) is final (src/lib/archive.ts).
+    if (!archiveFallback || !(e instanceof HttpError) || e.code !== TARGET_UNAVAILABLE) throw e;
+    const copy = await archivedCopy(target, PAGE_ACCEPT);
+    if (!copy) throw e;
+    res = copy.res;
+    archived = { capturedAt: copy.capturedAt, snapshotUrl: copy.snapshotUrl };
+  }
+  // An archived page's links resolve against the page it copies, not the archive's address.
+  const result = await readResponse(res, target, maxChars, formatParam, sectionParam, archived ? target.href : undefined);
+  if (!archived) return result;
+  // The answer names the page the caller asked for; the archive copy is stated, never passed off as live.
+  result.warnings.push("archived_snapshot");
+  return { ...result, finalUrl: target.href, archived: { source: "Internet Archive (web.archive.org)", ...archived, reason: "the live page was down or did not answer in time" } };
+}
+
+async function readResponse(res: Response, target: URL, maxChars: number, formatParam: string, sectionParam: string | undefined, baseUrl?: string) {
   const contentType = res.headers.get("content-type") ?? "";
   const html = /^(text\/html|application\/xhtml\+xml)(?:;|$)/i.test(
     contentType,
   );
   const plain = /^text\/plain(?:;|$)/i.test(contentType);
   const markdownMime = /^text\/markdown(?:;|$)/i.test(contentType);
-  const finalUrl = res.url || target.href;
+  const finalUrl = baseUrl ?? (res.url || target.href);
   const markdownPath = plain && /\.(?:md|markdown)$/i.test(new URL(finalUrl).pathname);
   const markdownSource = markdownMime || markdownPath;
   if (!html && !plain && !markdownMime) {
