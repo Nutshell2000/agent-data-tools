@@ -65,7 +65,8 @@ export const X402_FIND: Entry[] = [
       const maxPrice = q("maxPrice") === undefined || q("maxPrice") === "" ? undefined : num(q, "maxPrice", { min: 0, max: 1000 });
       const network = opt(q, "network", 40)?.toLowerCase();
       const activeOnly = flag(q, "active");
-      const data = await getJson<{ resources?: BazaarItem[]; items?: BazaarItem[] }>(`${SEARCH}?${new URLSearchParams({ query, limit: "50" })}`, { timeoutMs: 10_000 });
+      // 20 is the search API's maximum page (25 and up answer 400, checked 6 Nov 2026).
+      const data = await getJson<{ resources?: BazaarItem[]; items?: BazaarItem[] }>(`${SEARCH}?${new URLSearchParams({ query, limit: "20" })}`, { timeoutMs: 10_000 });
       let rows = (data.resources ?? data.items ?? []).map((it) => listing(it, env.PAY_TO ?? ""));
       if (maxPrice !== undefined) rows = rows.filter((r) => r.priceUsd !== null && r.priceUsd <= maxPrice);
       if (network) rows = rows.filter((r) => r.networks.some((n) => n === network || (network === "ethereum" && n === "ethereum")));
