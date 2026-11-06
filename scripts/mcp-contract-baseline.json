@@ -13871,11 +13871,11 @@
           },
           "leaf": {
             "type": "string",
-            "description": "The leaf hash; or give value and types instead"
+            "description": "The leaf hash, or the entry's fields (comma-separated or a JSON array) to hash with types"
           },
           "value": {
             "type": "string",
-            "description": "The entry's fields: a JSON array or comma-separated (with types)"
+            "description": "The entry's fields, instead of leaf (comma-separated or a JSON array)"
           },
           "types": {
             "type": "string",
@@ -13884,7 +13884,8 @@
         },
         "required": [
           "root",
-          "proof"
+          "proof",
+          "leaf"
         ]
       },
       "price": "$0.01"
