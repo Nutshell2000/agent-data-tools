@@ -323,3 +323,50 @@ test('airport lookup by code, name and city, and the nearest airports', async ()
   assert.throws(() => run2({}), /give q/);
   assert.throws(() => run2({ q: 'zzqqxx' }), (e) => e.status === 404);
 });
+
+test('LI.FI quotes: exact unit maths, chain names, Solana receivers, and no route is an uncharged 404', async () => {
+  const lib = await load('src/routes/lifi.ts');
+  assert.equal(lib.toUnits('1.5', 6), '1500000');
+  assert.equal(lib.toUnits('1,000', 18), '1000000000000000000000');
+  assert.throws(() => lib.toUnits('0.0000001', 6), /decimals/);
+  assert.throws(() => lib.toUnits('-1', 6), /positive/);
+  assert.equal(lib.fromUnits('448115540014000000', 18), '0.448115540014');
+  assert.equal(lib.fromUnits('1000000', 6), '1');
+  assert.equal(lib.chainId('Base'), '8453');
+  assert.equal(lib.chainId('solana'), '1151111081099710');
+  assert.equal(lib.chainId('59144'), '59144');
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    asked.push(url);
+    if (url.pathname === '/v1/token') return Response.json(url.searchParams.get('token') === 'USDC'
+      ? { address: url.searchParams.get('chain') === '1151111081099710' ? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' : '0xusdc', symbol: 'USDC', decimals: 6, chainId: 1 }
+      : { address: '0x0000000000000000000000000000000000000000', symbol: 'ETH', decimals: 18, chainId: 8453 });
+    if (url.pathname === '/v1/quote') {
+      if (url.searchParams.get('fromAmount') === '7000000') return Response.json({ message: 'No available quotes', code: 1002 }, { status: 404 });
+      return Response.json({ tool: 'fly', toolDetails: { name: 'Fly' }, estimate: { fromAmount: url.searchParams.get('fromAmount'), toAmount: '448115540014000000', toAmountMin: '445874290140619979', fromAmountUSD: '1000', toAmountUSD: '997.5', gasCosts: [{ amountUSD: '0.02' }], feeCosts: [{ amountUSD: '2.5' }], approvalAddress: '0xapprove', executionDuration: 0 }, includedSteps: [{ type: 'protocol' }, { type: 'swap', toolDetails: { name: 'Fly' }, action: { fromChainId: 8453, toChainId: 8453 } }], transactionRequest: { to: '0xlifi', data: '0x', value: '0', chainId: 8453 } });
+    }
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const swap = lib.LIFI[0], bridge = lib.LIFI[1];
+    const out = await swap.run({}, (n) => ({ fromChain: 'base', fromToken: 'USDC', toToken: 'ETH', amount: '1000' })[n]);
+    assert.equal(out.to.amount, '0.448115540014');
+    assert.deepEqual(out.costs, { gasUsd: 0.02, feesUsd: 2.5, totalLossPercent: 0.25 });
+    assert.deepEqual(out.steps, [{ type: 'swap', via: 'Fly', fromChainId: 8453, toChainId: 8453 }]);
+    assert.equal(out.unsignedTransaction, undefined);
+    const quoted = asked.find((u) => u.pathname === '/v1/quote');
+    assert.equal(quoted.searchParams.get('fromAmount'), '1000000000');
+    assert.equal(quoted.searchParams.get('toAddress'), null);
+    // With the sender's wallet the unsigned transaction comes back; to Solana a Solana receiver is filled in.
+    asked.length = 0;
+    const withTx = await bridge.run({}, (n) => ({ fromChain: 'arbitrum', toChain: 'solana', fromToken: 'USDC', amount: '200', fromAddress: '0x000000000000000000000000000000000000dEaD' })[n]);
+    assert.equal(withTx.unsignedTransaction.to, '0xlifi');
+    assert.equal(asked.find((u) => u.pathname === '/v1/quote').searchParams.get('toAddress'), 'So11111111111111111111111111111111111111112');
+    await assert.rejects(bridge.run({}, (n) => ({ fromChain: 'base', toChain: 'base', fromToken: 'USDC', amount: '1' })[n]), /two different chains/);
+    await assert.rejects(swap.run({}, (n) => ({ fromChain: 'base', fromToken: 'USDC', toToken: 'ETH', amount: '7' })[n]), (e) => e.status === 404);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
