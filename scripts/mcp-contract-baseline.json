@@ -1,5 +1,5 @@
 {
-  "version": "1.92.0",
+  "version": "1.93.0",
   "tools": [
     {
       "name": "extract",
@@ -11235,7 +11235,7 @@
     },
     {
       "name": "search",
-      "description": "Search the web and get the top results as JSON: title, URL, a short snippet and the page age, from the Brave Search API. 1-20 results per call. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted daily capacity return 503, uncharged. Pair with /extract to read a result in full. Use when an agent needs current information or sources from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Exa-style web search: top 1-20 results with title, URL, snippet, published date and favicon (Brave index); optional domain, date, category and phrase filters; optional live page text, highlights and AI summaries of the top 10 pages. Results are for immediate use only: no storing, resale or model training (Brave API terms). Failures return 503, uncharged. Use when an agent needs current information or sources from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11255,10 +11255,180 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Number of results (1-20, default 10)"
+          },
+          "includeDomains": {
+            "type": "string",
+            "description": "Only results from these domains: comma list or JSON array, up to 20 (example.com, github.com/org)"
+          },
+          "excludeDomains": {
+            "type": "string",
+            "description": "Never results from these domains: comma list or JSON array"
+          },
+          "startPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or after this date (ISO 8601, e.g. 2025-01-01)"
+          },
+          "endPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or before this date (ISO 8601)"
+          },
+          "category": {
+            "type": "string",
+            "description": "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report"
+          },
+          "includeText": {
+            "type": "string",
+            "description": "A phrase the results must contain (up to 5 words)"
+          },
+          "excludeText": {
+            "type": "string",
+            "description": "A phrase the results must not contain"
+          },
+          "textChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)"
+          },
+          "highlights": {
+            "description": "true: the passages of each page that best match the query, with scores",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "numSentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Sentences per highlight (1-10, default 3)"
+          },
+          "highlightsPerUrl": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Highlights per result (1-5, default 1)"
+          },
+          "summary": {
+            "description": "true: a 1-3 sentence AI summary of each of the top pages",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "summaryQuery": {
+            "type": "string",
+            "description": "What the summaries should focus on (default: the query)"
           }
         },
         "required": [
           "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "search_similar",
+      "description": "Find pages like a given URL: we read it, search on its title and topic words and return the top 1-20 similar pages (title, URL, snippet, date), leaving out the source site by default. Same filters and contents options as /search (page text, highlights, summaries). Results are for immediate use only (Brave API terms). Use to find competitors, related articles or alternatives to a page. Example: url=https://www.x402.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The page to find similar pages for"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "excludeSourceDomain": {
+            "description": "Leave out the source page's whole domain (default true)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "includeDomains": {
+            "type": "string",
+            "description": "Only results from these domains: comma list or JSON array, up to 20 (example.com, github.com/org)"
+          },
+          "excludeDomains": {
+            "type": "string",
+            "description": "Never results from these domains: comma list or JSON array"
+          },
+          "startPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or after this date (ISO 8601, e.g. 2025-01-01)"
+          },
+          "endPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or before this date (ISO 8601)"
+          },
+          "category": {
+            "type": "string",
+            "description": "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report"
+          },
+          "includeText": {
+            "type": "string",
+            "description": "A phrase the results must contain (up to 5 words)"
+          },
+          "excludeText": {
+            "type": "string",
+            "description": "A phrase the results must not contain"
+          },
+          "textChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)"
+          },
+          "highlights": {
+            "description": "true: the passages of each page that best match the query, with scores",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "numSentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Sentences per highlight (1-10, default 3)"
+          },
+          "highlightsPerUrl": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Highlights per result (1-5, default 1)"
+          },
+          "summary": {
+            "description": "true: a 1-3 sentence AI summary of each of the top pages",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "summaryQuery": {
+            "type": "string",
+            "description": "What the summaries should focus on (default: the query)"
+          }
+        },
+        "required": [
+          "url"
         ]
       },
       "price": "$0.01"
