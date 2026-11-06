@@ -8,14 +8,13 @@
 import type { Context } from "hono";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
-import { extract } from "../routes/extract";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
-export const SEARCH_API_PATHS = { "/v1/search": "/search", "/v1/contents": "/contents", "/v1/answer": "/ai/answer" } as const;
+export const SEARCH_API_PATHS = { "/v1/search": "/search", "/v1/findSimilar": "/search/similar", "/v1/contents": "/contents", "/v1/answer": "/ai/answer" } as const;
 export type SearchApiPath = keyof typeof SEARCH_API_PATHS;
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v : typeof v === "string" ? (v.trim().startsWith("[") ? (() => { try { return JSON.parse(v); } catch { return [v]; } })() : v.split(/[\n,]/)) : [])
@@ -27,18 +26,77 @@ export function textBudget(v: unknown, fallback: number): number {
   return 0;
 }
 
+const firstText = (v: unknown): string | undefined => {
+  const s = Array.isArray(v) ? v.find((x) => typeof x === "string") : v;
+  return typeof s === "string" && s.trim() ? s.trim().slice(0, 80) : undefined;
+};
+const isOn = (v: unknown) => v === true || v === "true" || (!!v && typeof v === "object");
+
+/**
+ * The neural-search request fields we serve (6 Nov 2026), as /search inputs: includeDomains, excludeDomains,
+ * start/endPublishedDate, category, includeText, excludeText, and contents.{text, highlights, summary} (also accepted at the
+ * top level). type, useAutoprompt, livecrawl and crawl dates are accepted and ignored: every page we read is fetched live.
+ */
+export function searchFields(b: Record<string, unknown>): { query: Record<string, string>; text: number } | { error: string } {
+  const q: Record<string, string> = {};
+  const contents = (b.contents && typeof b.contents === "object" ? b.contents : {}) as Record<string, unknown>;
+  for (const k of ["includeDomains", "excludeDomains"] as const) {
+    const list = asList(b[k]);
+    if (list.length > 20) return { error: `${k} takes at most 20 domains` };
+    if (list.length) q[k] = list.join(",");
+  }
+  for (const k of ["startPublishedDate", "endPublishedDate", "category"] as const) {
+    if (typeof b[k] === "string" && (b[k] as string).trim()) q[k] = (b[k] as string).trim().slice(0, 40);
+  }
+  const inc = firstText(b.includeText), exc = firstText(b.excludeText);
+  if (inc) q.includeText = inc;
+  if (exc) q.excludeText = exc;
+  const text = textBudget(contents.text ?? b.text, 3000);
+  if (text) q.textChars = String(text);
+  const hl = contents.highlights ?? b.highlights;
+  if (isOn(hl)) {
+    q.highlights = "true";
+    const h = (typeof hl === "object" ? hl : {}) as Record<string, unknown>;
+    if (Number.isInteger(Number(h.numSentences)) && Number(h.numSentences) > 0) q.numSentences = String(Math.min(10, Number(h.numSentences)));
+    if (Number.isInteger(Number(h.highlightsPerUrl)) && Number(h.highlightsPerUrl) > 0) q.highlightsPerUrl = String(Math.min(5, Number(h.highlightsPerUrl)));
+    if (typeof h.query === "string" && h.query.trim()) q.highlightQuery = h.query.trim().slice(0, 400);
+  }
+  const sum = contents.summary ?? b.summary;
+  if (isOn(sum)) {
+    q.summary = "true";
+    const s = (typeof sum === "object" ? sum : {}) as Record<string, unknown>;
+    if (typeof s.query === "string" && s.query.trim()) q.summaryQuery = s.query.trim().slice(0, 400);
+  }
+  return { query: q, text };
+}
+
 /** Maps a request body to the inner tool's query, or an error that is refused 400 when a payment came with it. */
 export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number } | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object" };
   const b = body as Record<string, unknown>;
-  if (path === "/v1/search") {
-    const q = typeof b.query === "string" ? b.query.trim() : "";
-    if (!q) return { error: "query must be a non-empty string" };
-    if (q.length > 400) return { error: "query must be at most 400 characters" };
+  if (path === "/v1/search" || path === "/v1/findSimilar") {
+    const out: Record<string, string> = {};
+    if (path === "/v1/search") {
+      const q = typeof b.query === "string" ? b.query.trim() : "";
+      if (!q) return { error: "query must be a non-empty string" };
+      if (q.length > 400) return { error: "query must be at most 400 characters" };
+      out.q = q;
+    } else {
+      const url = typeof b.url === "string" ? b.url.trim() : "";
+      if (!url) return { error: "url must be a non-empty string" };
+      if (url.length > 2000) return { error: "url must be at most 2000 characters" };
+      out.url = url;
+      // Exa's default: the source domain stays in unless excludeSourceDomain is true.
+      out.excludeSourceDomain = String(b.excludeSourceDomain === true || b.excludeSourceDomain === "true");
+    }
+    // Neural-search clients ask for up to 100; one Brave request returns at most 20, so larger asks get 20.
     const n = b.numResults === undefined || b.numResults === "" ? 10 : Number(b.numResults);
-    if (!Number.isInteger(n) || n < 1 || n > 20) return { error: "numResults must be an integer from 1 to 20" };
-    const contents = b.contents as Record<string, unknown> | undefined;
-    return { query: { q, count: String(n) }, text: textBudget(contents?.text ?? b.text, 3000) };
+    if (!Number.isInteger(n) || n < 1) return { error: "numResults must be a whole number from 1 (at most 20 are returned)" };
+    out.count = String(Math.min(20, n));
+    const fields = searchFields(b);
+    if ("error" in fields) return fields;
+    Object.assign(out, fields.query);
+    return { query: out, text: fields.text };
   }
   if (path === "/v1/contents") {
     const urls = [...new Set([...asList(b.urls), ...asList(b.ids)])];
@@ -54,7 +112,7 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
 }
 
 export function bodyFromQuery(params: Record<string, string>): Record<string, unknown> | null {
-  if (params.query === undefined && params.urls === undefined && params.ids === undefined) return null;
+  if (params.query === undefined && params.url === undefined && params.urls === undefined && params.ids === undefined) return null;
   const out: Record<string, unknown> = { ...params };
   if (params.text !== undefined) out.text = params.text === "true" ? true : { maxCharacters: Number(params.text) };
   return out;
@@ -62,17 +120,28 @@ export function bodyFromQuery(params: Record<string, string>): Record<string, un
 
 const requestId = () => crypto.randomUUID().replace(/-/g, "");
 
-type SearchOut = { results?: { title: string; url: string; snippet?: string; age?: string | null }[]; terms?: string };
-export async function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>, text: number, read: typeof extract = extract) {
-  if (path === "/v1/search") {
+type SearchOut = {
+  results?: { title: string; url: string; snippet?: string; age?: string | null; publishedDate?: string | null; author?: string | null; image?: string | null; favicon?: string | null; text?: string; highlights?: string[]; highlightScores?: number[]; summary?: string | null }[];
+  terms?: string; filters?: Record<string, unknown>; ignored?: string[]; query?: string;
+};
+/** The tool's answer in the neural-search response shape. The tool already read, highlighted and summarized what was asked. */
+export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>) {
+  if (path === "/v1/search" || path === "/v1/findSimilar") {
     const r = inner as SearchOut;
-    const hits = r.results ?? [];
-    // Page text for the top results when the request asked for contents: read after the one paid search call, at most 5.
-    const texts = text ? await Promise.all(hits.map((h, i) => i < 5 ? (read(h.url, String(Math.max(500, text)), "text") as Promise<{ text?: string; title?: string | null }>).then((p) => p.text ?? null, () => null) : Promise.resolve(null))) : [];
     return {
       requestId: requestId(),
       resolvedSearchType: "keyword",
-      results: hits.map((h, i) => ({ id: h.url, url: h.url, title: h.title, publishedDate: null, author: null, score: null, ...(h.snippet ? { highlights: [h.snippet] } : {}), ...(text ? { text: texts[i] ?? h.snippet ?? "" } : {}), ...(h.age ? { age: h.age } : {}) })),
+      results: (r.results ?? []).map((h) => ({
+        id: h.url, url: h.url, title: h.title, publishedDate: h.publishedDate ?? null, author: h.author ?? null, score: null,
+        ...(h.image ? { image: h.image } : {}), ...(h.favicon ? { favicon: h.favicon } : {}),
+        ...(h.text !== undefined ? { text: h.text } : {}),
+        // Without a highlights request the search snippet stands in, as it did since 1.77.0.
+        ...(h.highlights ? { highlights: h.highlights, highlightScores: h.highlightScores ?? [] } : h.snippet ? { highlights: [h.snippet] } : {}),
+        ...(h.summary !== undefined ? { summary: h.summary ?? "" } : {}),
+        ...(h.age ? { age: h.age } : {}),
+      })),
+      ...(path === "/v1/findSimilar" && r.query ? { searchQuery: r.query } : {}),
+      ...(r.filters ? { filters: r.filters } : {}), ...(r.ignored ? { ignored: r.ignored } : {}),
       terms: r.terms,
     };
   }
@@ -84,7 +153,7 @@ export async function toSearchApi(path: SearchApiPath, inner: Record<string, unk
   return { requestId: requestId(), answer: r.answer ?? "", citations: (r.sources ?? []).map((s) => ({ id: s.url, url: s.url, title: s.title })), model: r.model, terms: r.terms };
 }
 
-/** Handles /v1/search, /v1/contents and /v1/answer by forwarding the equivalent tool GET through the middleware. */
+/** Handles /v1/search, /v1/findSimilar, /v1/contents and /v1/answer by forwarding the equivalent tool GET through the middleware. */
 export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Promise<Response> {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   const mapped = toToolQuery(path, await requestBody(c, bodyFromQuery));
@@ -93,7 +162,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const outer = new URL(c.req.url);
   const inner = new URL(tool, outer.origin);
   // An unpaid or empty request gets the tool's quote for its published example, under this front's own path.
-  const query = "error" in mapped ? (path === "/v1/contents" ? { urls: "https://example.com" } : { q: "x402 payment protocol" }) : mapped.query;
+  const query = "error" in mapped ? (path === "/v1/contents" ? { urls: "https://example.com" } : path === "/v1/findSimilar" ? { url: "https://www.x402.org/" } : { q: "x402 payment protocol" }) : mapped.query;
   for (const [k, v] of Object.entries(query)) inner.searchParams.set(k, v);
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
   const headers = new Headers(c.req.raw.headers);
@@ -104,7 +173,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   if (answer.status === 402) return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", tool);
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as Record<string, unknown>;
-  const out = c.json(await toSearchApi(path, result, "error" in mapped ? 0 : mapped.text), 200);
+  const out = c.json(toSearchApi(path, result), 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   out.headers.set("Cache-Control", "no-store");
   return out;

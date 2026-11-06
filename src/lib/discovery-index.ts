@@ -41,7 +41,7 @@ const SALES_FIRST = [
   // 24 Oct 2026, Bazaar income by seller: inference, speech and media sell to buyers who call thousands of times (dTelecom
   // STT/TTS $36k, Venice and BlockRun inference, KORUS music); one-call utilities earn cents however many payers they have.
   // The tools in those categories therefore lead every list a crawler or MCP client reads.
-  "/ai/chat", "/ai/chat-large", "/ai/embed", "/transcribe", "/ai/speech", "/image", "/describe", "/search", "/pack/web-research", "/news", "/ai/summarize-text", "/ai/translate", "/ai/extract-json",
+  "/ai/chat", "/ai/chat-large", "/ai/embed", "/transcribe", "/ai/speech", "/image", "/describe", "/search", "/search/similar", "/pack/web-research", "/news", "/ai/summarize-text", "/ai/translate", "/ai/extract-json",
   "/check/payee", "/check/counterparty", "/ai/answer", "/ai/fact-check", "/check/x402-seller", "/sanctions/check", "/pack/news-sentiment", "/pack/url-safety", "/token-report", "/token", "/wallet-audit", "/contract-risk",
   "/liquidity-pool-audit", "/x402/check", "/price/token", "/price/tokens", "/wallet/portfolio", "/wallet/balances",
   "/hyperliquid/market", "/sec/filings", "/contents", "/ai/rerank", "/memory/set", "/memory/get", "/whale/transfers", "/dex/new-pools", "/recommend", "/airport/status",
