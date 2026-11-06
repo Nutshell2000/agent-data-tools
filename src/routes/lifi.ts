@@ -30,20 +30,36 @@ export const chainId = (raw: string) => {
 };
 
 async function lifi<T>(path: string, params: Record<string, string>): Promise<{ status: number; body: T | null }> {
-  let res: Response;
-  try {
-    res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(20_000) });
-  } catch {
-    throw new HttpError(502, "LI.FI did not answer in time; try again");
+  let res: Response | undefined;
+  // Keyless LI.FI limits per IP and Workers share egress IPs (1.99.0 production: a 429 on /bridge/quote), so a 429 is retried
+  // once after the wait it asks for, up to 2 s.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(20_000) });
+    } catch {
+      throw new HttpError(502, "LI.FI did not answer in time; try again");
+    }
+    if (res.status !== 429 || attempt === 1) break;
+    const wait = Math.min(2_000, Math.max(500, Number(res.headers.get("retry-after")) * 1000 || 1_200));
+    await res.body?.cancel().catch(() => {});
+    await new Promise((r) => setTimeout(r, wait));
   }
+  if (!res) throw new HttpError(502, "LI.FI did not answer; try again");
   if (res.status === 429 || res.status >= 500) throw new HttpError(502, `LI.FI answered HTTP ${res.status}; try again`);
   return { status: res.status, body: (await res.json().catch(() => null)) as T | null };
 }
 
 interface Token { address: string; symbol: string; decimals: number; priceUSD?: string; name?: string; chainId: number }
+// Token metadata barely changes: kept a day per chain and symbol, so a quote usually costs one LI.FI request, not three.
+const tokens = new Map<string, { at: number; token: Token }>();
 async function token(chain: string, raw: string): Promise<Token> {
+  const key = `${chain}:${raw.trim().toLowerCase()}`;
+  const hit = tokens.get(key);
+  if (hit && Date.now() - hit.at < 86_400_000) return hit.token;
   const { status, body } = await lifi<Token & { message?: string }>("/token", { chain, token: raw.trim() });
   if (status !== 200 || !body?.address) throw new HttpError(400, `unknown token ${raw.slice(0, 50)} on chain ${chain}: give a symbol LI.FI lists or the token address`);
+  if (tokens.size > 2_000) tokens.clear();
+  tokens.set(key, { at: Date.now(), token: body });
   return body;
 }
 

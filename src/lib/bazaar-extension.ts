@@ -69,6 +69,9 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   // "email auth" (9 results) and "spf dkim dmarc" (20) on 6 Nov 2026: our pack was absent from both.
   "/pack/email-deliverability": ["email-auth", "spf-dkim-dmarc", "dmarc-check", "email-deliverability"],
   "/hyperliquid/account": ["hyperliquid-account", "hyperliquid-positions", "trader-positions"],
+  "/lei/lookup": ["lei-lookup", "legal-entity-identifier", "gleif"],
+  "/vat/validate": ["vat-validation", "vat-number", "vies"],
+  "/domain/availability": ["domain-availability", "domain-search", "domain-name"],
   "/swap/quote": ["swap-quote", "dex-aggregator", "best-route"],
   "/bridge/quote": ["bridge-quote", "cross-chain", "bridge"],
   "/bridge/status": ["bridge-status", "cross-chain", "bridge-tracker"],
