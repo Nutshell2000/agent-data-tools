@@ -238,7 +238,7 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Web, documents and search", (p) => /^\/(contents|page\/publish|extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|feed|url\/meta|url\/redirects|url\/uptime|url\/favicon|image\/metadata|tech\/stack|pack\/seo-toolkit|seo\/audit|keywords\/|robots|search|news|wikipedia|dictionary|papers|pack\/web-research|pack\/news-sentiment|agent-readiness)$/.test(p)],
   ["Company, compliance and checks", (p) => /^\/(company|sanctions\/check|check\/counterparty|check\/payee|check\/x402-seller|domain|domain-report|email|package|package-audit|x402\/check|sec\/filings|sec\/8k|sec\/insider|sec\/13f|gov\/federal-register|text\/prompt-injection|text\/pii|http\/security-headers|dockerfile\/lint|dns\/lookup|dns\/propagation|ip\/lookup|pack\/api-health|openapi\/summary|mcp\/inspect|pack\/email-deliverability|pack\/website-audit|pack\/ip-intelligence|pack\/domain-intel|pack\/url-safety)$/.test(p)],
   ["AI", (p) => p.startsWith("/ai/") || /^\/(image|transcribe|describe)$/.test(p)],
-  ["Everyday data", (p) => /^\/(weather|pack\/location-brief|geocode\/reverse|time|holidays|geocode|earthquakes|airport\/status|gov\/clinical-trials|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/") || p.startsWith("/book/")],
+  ["Everyday data", (p) => /^\/(weather|pack\/location-brief|geocode\/reverse|time|holidays|geocode|earthquakes|airport\/status|airport\/lookup|gov\/clinical-trials|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/") || p.startsWith("/book/")],
 ];
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities";
