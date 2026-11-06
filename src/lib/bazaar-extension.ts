@@ -65,7 +65,8 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
  * what the tool does.
  */
 export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  "/search": ["web-search"],
+  "/search": ["web-search", "search-api", "exa-search", "web-search-api"],
+  "/search/similar": ["find-similar", "similar-websites", "similar-pages", "competitor-search"],
   "/econ/gdp": ["gdp", "world-bank"], "/econ/inflation": ["inflation-rate"], "/econ/population": ["population"],
   "/econ/unemployment": ["unemployment-rate"], "/weather": ["weather-forecast"], "/price/token": ["token-price", "crypto-price", "dex-price"],
   "/sanctions/check": ["sanctions-check", "ofac-screening", "aml-check"], "/check/payee": ["payee-screening"],
