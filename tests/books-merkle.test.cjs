@@ -396,3 +396,37 @@ test('LEI, VAT and domain availability parse their registries correctly', async 
   assert.equal((await g.domainStatus('used.io', fake({ 'rdap.org/domain/used.io': [404, {}], 'dns-query': [200, { Status: 0 }] }))).status, 'taken');
   assert.equal((await g.domainStatus('x.io', fake({}))).status, 'unknown');
 });
+
+test('swap and bridge quotes fall back to KyberSwap and Across when LI.FI rate-limits', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.hostname === 'li.quest' && url.pathname === '/v1/token') {
+      const chain = url.searchParams.get('chain'), sym = url.searchParams.get('token');
+      if (sym === 'ETH') return Response.json({ address: '0x0000000000000000000000000000000000000000', symbol: 'ETH', decimals: 18, chainId: Number(chain) });
+      return Response.json({ address: chain === '1' ? '0xa0b8' : '0x8335', symbol: 'USDC', decimals: 6, chainId: Number(chain), priceUSD: '1' });
+    }
+    if (url.hostname === 'li.quest') return new Response('slow down', { status: 429, headers: { 'retry-after': '0' } });
+    if (url.hostname === 'aggregator-api.kyberswap.com') {
+      assert.equal(url.pathname, '/base/api/v1/routes');
+      assert.equal(url.searchParams.get('tokenOut'), '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE');
+      return Response.json({ data: { routeSummary: { amountIn: '100000000', amountOut: '45000000000000000', amountInUsd: '100', amountOutUsd: '99.5', gasUsd: '0.01', route: [[{ exchange: 'uniswap-v3' }]] } } });
+    }
+    if (url.hostname === 'app.across.to') return Response.json({ outputAmount: '499946105', totalRelayFee: { total: '53895' }, lpFee: { total: '0' }, estimatedFillTimeSec: 2, isAmountTooLow: false, spokePoolAddress: '0xspoke' });
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const { LIFI } = await load('src/routes/lifi.ts');
+    const swap = await LIFI[0].run({}, (n) => ({ fromChain: 'base', fromToken: 'USDC', toToken: 'ETH', amount: '100' })[n]);
+    assert.equal(swap.source, 'KyberSwap aggregator (keyless fallback)');
+    assert.equal(swap.to.amount, '0.045');
+    assert.equal(swap.to.amountMin, '0.044775');
+    assert.equal(swap.costs.totalLossPercent, 0.5);
+    const bridge = await LIFI[1].run({}, (n) => ({ fromChain: 'ethereum', toChain: 'base', fromToken: 'USDC', amount: '500' })[n]);
+    assert.deepEqual([bridge.route, bridge.to.amount, bridge.estimatedSeconds, bridge.costs.feesUsd], ['Across', '499.946105', 2, 0.05]);
+    // A swap across chains to a different token has no keyless fallback: the rate limit stays an uncharged 502.
+    await assert.rejects(LIFI[1].run({}, (n) => ({ fromChain: 'ethereum', toChain: 'base', fromToken: 'USDC', toToken: 'ETH', amount: '500' })[n]), (e) => e.status === 502);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

@@ -29,13 +29,16 @@ export const chainId = (raw: string) => {
   return Object.hasOwn(CHAIN_IDS, s) ? CHAIN_IDS[s] : s;
 };
 
+/** Optional free LI.FI API key (Worker secret LIFI_API_KEY): lifts the keyless per-IP limit on quotes. Same value for every request. */
+let lifiKey: string | undefined;
+
 async function lifi<T>(path: string, params: Record<string, string>): Promise<{ status: number; body: T | null }> {
   let res: Response | undefined;
   // Keyless LI.FI limits per IP and Workers share egress IPs (1.99.0 production: a 429 on /bridge/quote), so a 429 is retried
   // once after the wait it asks for, up to 2 s.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(20_000) });
+      res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0", ...(lifiKey ? { "x-lifi-api-key": lifiKey } : {}) }, signal: AbortSignal.timeout(20_000) });
     } catch {
       throw new HttpError(502, "LI.FI did not answer in time; try again");
     }
@@ -103,12 +106,23 @@ async function quote(q: Input, mode: "swap" | "bridge") {
   if (fromAddress && !wallet.test(fromAddress)) throw new HttpError(400, "fromAddress must be the wallet that would send (0x… or a Solana address)");
   if (toAddress && !wallet.test(toAddress)) throw new HttpError(400, "toAddress must be the receiving wallet (0x… or a Solana address)");
   const slippage = num(q, "slippage", { min: 0.01, max: 50, fallback: 0.5 }) / 100;
-  const { status, body } = await lifi<Quote>("/quote", {
-    fromChain, toChain, fromToken: fromToken.address, toToken: toToken.address, fromAmount: amount,
-    fromAddress: fromAddress ?? placeholder(fromChain), slippage: String(slippage),
-    // A different destination family (EVM to Solana and back) needs a receiver of that family.
-    ...(toAddress ? { toAddress } : placeholder(toChain) !== placeholder(fromChain) ? { toAddress: placeholder(toChain) } : {}),
-  });
+  let answer: { status: number; body: Quote | null };
+  try {
+    answer = await lifi<Quote>("/quote", {
+      fromChain, toChain, fromToken: fromToken.address, toToken: toToken.address, fromAmount: amount,
+      fromAddress: fromAddress ?? placeholder(fromChain), slippage: String(slippage),
+      // A different destination family (EVM to Solana and back) needs a receiver of that family.
+      ...(toAddress ? { toAddress } : placeholder(toChain) !== placeholder(fromChain) ? { toAddress: placeholder(toChain) } : {}),
+    });
+  } catch (e) {
+    // Keyless LI.FI quotes are rate-limited on Cloudflare's shared egress (1.100.0 production, 6 Nov 2026): answer from a
+    // keyless aggregator instead when one covers the request.
+    if (!(e instanceof HttpError) || !/429/.test(e.message)) throw e;
+    const alt = mode === "swap" ? await kyberQuote(fromChain, fromToken, toToken, amount, slippage) : await acrossQuote(fromChain, toChain, fromToken, toToken, amount);
+    if (alt) return alt;
+    throw e;
+  }
+  const { status, body } = answer;
   if (status !== 200 || !body?.estimate) throw new HttpError(404, `no route for this ${mode}: ${String(body?.message ?? "LI.FI found none").slice(0, 160)}; nothing was charged`);
   const e = body.estimate;
   const usd = (xs?: { amountUSD?: string }[]) => Math.round((xs ?? []).reduce((s, x) => s + Number(x.amountUSD ?? 0), 0) * 100) / 100;
@@ -124,6 +138,68 @@ async function quote(q: Input, mode: "swap" | "bridge") {
     ...(fromAddress && body.transactionRequest ? { unsignedTransaction: body.transactionRequest } : {}),
     note: "A quote, not an order: prices move, and nothing was signed or sent. With fromAddress, unsignedTransaction is LI.FI's transaction for that wallet to check and sign itself.",
     source: SOURCE,
+  };
+}
+
+// ---------- keyless fallbacks ----------
+const NATIVE = "0x0000000000000000000000000000000000000000";
+const KYBER_CHAINS: Record<string, string> = { "1": "ethereum", "56": "bsc", "42161": "arbitrum", "137": "polygon", "10": "optimism", "43114": "avalanche", "8453": "base", "59144": "linea", "534352": "scroll", "324": "zksync", "5000": "mantle", "146": "sonic", "80094": "berachain", "130": "unichain" };
+const KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5";
+const NOTE_FALLBACK = "A quote, not an order: prices move, and nothing was signed or sent. Answered by a keyless fallback; no unsigned transaction is included.";
+const usdN = (s?: string) => { const n = Number(s); return Number.isFinite(n) ? Math.round(n * 100) / 100 : null; };
+
+/** KyberSwap's keyless aggregator (aggregator-api.kyberswap.com), for single-chain swaps on the chains it serves. */
+export async function kyberQuote(chain: string, from: Token, to: Token, amount: string, slippage: number, fetcher: typeof fetch = fetch) {
+  const slug = KYBER_CHAINS[chain];
+  if (!slug) return null;
+  const evm = (a: string) => (a.toLowerCase() === NATIVE ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" : a);
+  let body: { data?: { routeSummary?: { amountIn: string; amountOut: string; amountInUsd?: string; amountOutUsd?: string; gasUsd?: string; route?: { exchange?: string }[][] } } } | null = null;
+  try {
+    const res = await fetcher(`https://aggregator-api.kyberswap.com/${slug}/api/v1/routes?${new URLSearchParams({ tokenIn: evm(from.address), tokenOut: evm(to.address), amountIn: amount })}`, { headers: { accept: "application/json", "x-client-id": "agentdatatools" }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return null;
+    body = await res.json();
+  } catch {
+    return null;
+  }
+  const r = body?.data?.routeSummary;
+  if (!r?.amountOut) return null;
+  const minOut = ((BigInt(r.amountOut) * BigInt(Math.round((1 - slippage) * 1_000_000))) / 1_000_000n).toString();
+  const fromUsd = usdN(r.amountInUsd), toUsd = usdN(r.amountOutUsd);
+  const dexes = [...new Set((r.route ?? []).flat().map((h) => h.exchange).filter(Boolean))];
+  return {
+    route: `KyberSwap${dexes.length ? ` (${dexes.slice(0, 4).join(", ")})` : ""}`, steps: [{ type: "swap", via: "KyberSwap", fromChainId: Number(chain), toChainId: Number(chain) }],
+    from: { chainId: Number(chain), token: from.symbol, address: from.address, amount: fromUnits(r.amountIn, from.decimals), amountUsd: fromUsd },
+    to: { chainId: Number(chain), token: to.symbol, address: to.address, amount: fromUnits(r.amountOut, to.decimals), amountMin: fromUnits(minOut, to.decimals), amountUsd: toUsd },
+    rate: Number(fromUnits(r.amountOut, to.decimals)) / Number(fromUnits(r.amountIn, from.decimals)),
+    costs: { gasUsd: usdN(r.gasUsd), feesUsd: null, totalLossPercent: fromUsd && toUsd !== null ? Math.round(((fromUsd - toUsd) / fromUsd) * 10_000) / 100 : null },
+    slippagePercent: slippage * 100, estimatedSeconds: null, approvalAddress: KYBER_ROUTER, note: NOTE_FALLBACK, source: "KyberSwap aggregator (keyless fallback)",
+  };
+}
+
+/** Across's keyless suggested-fees API, for moving the same token between EVM chains it supports. */
+export async function acrossQuote(fromChain: string, toChain: string, from: Token, to: Token, amount: string, fetcher: typeof fetch = fetch) {
+  if (!/^\d+$/.test(fromChain) || !/^\d+$/.test(toChain) || fromChain.length > 8 || toChain.length > 8) return null;
+  if (from.symbol.replace(/^W/, "").toUpperCase() !== to.symbol.replace(/^W/, "").toUpperCase()) return null;
+  let b: { outputAmount?: string; totalRelayFee?: { total?: string }; lpFee?: { total?: string }; estimatedFillTimeSec?: number; isAmountTooLow?: boolean; spokePoolAddress?: string; limits?: { minDeposit?: string; maxDeposit?: string } } | null = null;
+  try {
+    const res = await fetcher(`https://app.across.to/api/suggested-fees?${new URLSearchParams({ inputToken: from.address === NATIVE ? "" : from.address, outputToken: to.address === NATIVE ? "" : to.address, originChainId: fromChain, destinationChainId: toChain, amount })}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return null;
+    b = await res.json();
+  } catch {
+    return null;
+  }
+  if (!b?.outputAmount) return null;
+  if (b.isAmountTooLow) throw new HttpError(422, `amount is below the bridge minimum of ${fromUnits(b.limits?.minDeposit, from.decimals)} ${from.symbol}; nothing was charged`);
+  const fee = (BigInt(b.totalRelayFee?.total ?? "0") + BigInt(b.lpFee?.total ?? "0")).toString();
+  const price = Number(from.priceUSD ?? NaN);
+  const inN = Number(fromUnits(amount, from.decimals)), outN = Number(fromUnits(b.outputAmount, to.decimals)), feeN = Number(fromUnits(fee, from.decimals));
+  return {
+    route: "Across", steps: [{ type: "cross", via: "Across", fromChainId: Number(fromChain), toChainId: Number(toChain) }],
+    from: { chainId: Number(fromChain), token: from.symbol, address: from.address, amount: fromUnits(amount, from.decimals), amountUsd: Number.isFinite(price) ? Math.round(inN * price * 100) / 100 : null },
+    to: { chainId: Number(toChain), token: to.symbol, address: to.address, amount: fromUnits(b.outputAmount, to.decimals), amountMin: fromUnits(b.outputAmount, to.decimals), amountUsd: Number.isFinite(price) ? Math.round(outN * price * 100) / 100 : null },
+    rate: outN / inN,
+    costs: { gasUsd: null, feesUsd: Number.isFinite(price) ? Math.round(feeN * price * 100) / 100 : null, totalLossPercent: Math.round(((inN - outN) / inN) * 10_000) / 100 },
+    slippagePercent: 0, estimatedSeconds: b.estimatedFillTimeSec ?? null, approvalAddress: b.spokePoolAddress ?? null, note: NOTE_FALLBACK, source: "Across (keyless fallback)",
   };
 }
 
@@ -149,7 +225,7 @@ export const LIFI: Entry[] = [
       rate: 0.000448115540014, costs: { gasUsd: 0.02, feesUsd: 2.5, totalLossPercent: 0.25 }, slippagePercent: 0.5, estimatedSeconds: 0, approvalAddress: "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
       note: "A quote, not an order…", source: SOURCE,
     },
-    (_env, q) => quote(q, "swap")),
+    (env, q) => { lifiKey = env.LIFI_API_KEY; return quote(q, "swap"); }),
 
   entry("/bridge/quote", "Bridge quote, cross-chain transfer",
     "Cheapest route to move tokens between chains (Ethereum to Base, Arbitrum to Solana…) across 20+ bridges via LI.FI: amount received, minimum, USD values, gas, bridge fees, total cost in percent, estimated time, steps and approval address; with fromAddress, the unsigned transaction to sign. Swaps on either side are included when the tokens differ. A quote only: nothing is signed or sent. Use before an agent moves funds across chains.",
@@ -165,7 +241,7 @@ export const LIFI: Entry[] = [
       rate: 0.9992, costs: { gasUsd: 1.1, feesUsd: 0.8, totalLossPercent: 0.08 }, slippagePercent: 0.5, estimatedSeconds: 60, approvalAddress: "0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE",
       note: "A quote, not an order…", source: SOURCE,
     },
-    (_env, q) => quote(q, "bridge")),
+    (env, q) => { lifiKey = env.LIFI_API_KEY; return quote(q, "bridge"); }),
 
   entry("/bridge/status", "Bridge status, cross-chain transfer tracker",
     "Status of a cross-chain transfer by its source transaction hash, for transfers made through LI.FI and the bridges it routes (Stargate, Across, CCTP, Hop, Polymer and more): DONE, PENDING, FAILED or NOT_FOUND, the sub-status and its message, sending and receiving transaction hashes, chains, tokens, amounts and explorer links. Use to check whether funds arrived before an agent continues.",
