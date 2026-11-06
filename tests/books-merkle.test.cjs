@@ -100,6 +100,7 @@ test('the x402 service finder lists Bazaar results honestly, with filters and so
   globalThis.fetch = async (input) => {
     const url = new URL(typeof input === 'string' ? input : input.url);
     assert.equal(url.searchParams.get('query'), 'email verification');
+    assert.equal(url.searchParams.get('limit'), '20');
     return Response.json({ resources: [
       { resource: 'https://a.example/verify', serviceName: 'A', accepts: [{ amount: '30000', network: 'eip155:8453', payTo: '0x1' }], quality: { l30DaysUniquePayers: 9, l30DaysTotalCalls: 400 } },
       { resource: 'https://ours.example/email', serviceName: 'Ours', accepts: [{ amount: '10000', network: 'eip155:8453', payTo: ours.toLowerCase() }, { amount: '10000', network: 'eip155:137', payTo: ours }], quality: { l30DaysUniquePayers: 2, l30DaysTotalCalls: 7 } },
