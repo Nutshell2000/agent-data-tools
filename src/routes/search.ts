@@ -247,7 +247,7 @@ export function similarQuery(page: { title?: string | null; description?: string
 
 export const SEARCH: Entry[] = [
   entry("/search", "Web search API with contents: Exa-style search, filters, page text and highlights",
-    "Search the web in one call, Exa-style: top 1-20 results with title, URL, snippet, published date, domain and favicon (Brave Search index), with optional domain, date, category and phrase filters, and optionally the live page text, best-matching highlights and an AI summary of the top 10 pages. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures and exhausted capacity return 503, uncharged. Use when an agent needs current information or sources from the open web.",
+    "Exa-style web search: top 1-20 results with title, URL, snippet, published date and favicon (Brave index); optional domain, date, category and phrase filters; optional live page text, highlights and AI summaries of the top 10 pages. Results are for immediate use only: no storing, resale or model training (Brave API terms). Failures return 503, uncharged. Use when an agent needs current information or sources from the open web.",
     ["web-search", "search-api", "exa-search", "search", "web", "research", "rag", "neural-search"], {
       q: { type: "string", description: "Search query, at most 400 characters", required: true, example: "x402 payment protocol" },
       count: { type: "integer", description: "Number of results (1-20, default 10)", example: 10 },
@@ -266,7 +266,7 @@ export const SEARCH: Entry[] = [
 
   // Exa's findSimilar is the second most-used call of the neural-search SDKs; nothing like it was ours (6 Nov 2026).
   entry("/search/similar", "Find similar pages and websites: like Exa findSimilar",
-    "Find web pages like a given URL in one call: we read the page, build a search from its title and topic words and return the top 1-20 similar pages (title, URL, snippet, published date, domain), the source page and, by default, its whole site left out. Same domain, date, category and contents options as /search (page text, highlights, summaries). Results are for immediate use only (Brave API terms). Use to find competitors, related articles or alternatives to a page.",
+    "Find pages like a given URL: we read it, search on its title and topic words and return the top 1-20 similar pages (title, URL, snippet, date), leaving out the source site by default. Same filters and contents options as /search (page text, highlights, summaries). Results are for immediate use only (Brave API terms). Use to find competitors, related articles or alternatives to a page.",
     ["find-similar", "similar-pages", "similar-websites", "competitor-search", "web-search", "search-api", "exa-search"], {
       url: { type: "string", description: "The page to find similar pages for", required: true, example: "https://www.x402.org/" },
       count: { type: "integer", description: "Number of results (1-20, default 10)", example: 10 },
