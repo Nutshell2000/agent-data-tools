@@ -5,7 +5,8 @@
 // ": <what the agent wants done>" keeps every name and gives the matchers the task in an agent's words.
 // Only restate what the tool's own description says.
 export const SUMMARY_DETAILS: Readonly<Record<string, string>> = {
-  "/search": "search the web for a query and get the top pages with title, URL and snippet as JSON",
+  "/search": "search the web for a query and get the top pages with title, URL, snippet and published date as JSON, filtered by domain, date or category, optionally with the page text, highlights and summaries",
+  "/search/similar": "find web pages similar to a given URL, with the same filters and contents options as web search",
   "/image": "create a picture from a description with an AI image model",
   "/describe": "ask what is in an image or photo at a URL and get a text description or answer",
   "/ai/summarize-text": "shorten long text into a few sentences and key points",
