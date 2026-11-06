@@ -124,3 +124,109 @@ test('the x402 service finder lists Bazaar results honestly, with filters and so
     globalThis.fetch = realFetch;
   }
 });
+
+test('option pricing matches the textbook Black-Scholes case and inverts to implied volatility', async () => {
+  const { OPTIONS, normCdf } = await load('src/routes/options.ts');
+  const price = (q) => OPTIONS[0].run({}, (n) => q[n]);
+  // Hull's standard case: S = K = 100, T = 1, r = 5%, sigma = 20%.
+  const out = price({ spot: '100', strike: '100', years: '1', vol: '20', rate: '5' });
+  assert.equal(out.call.price, 10.450584);
+  assert.equal(out.put.price, 5.573526);
+  assert.equal(out.call.delta, 0.636831);
+  assert.equal(out.call.gamma, 0.018762);
+  assert.equal(out.call.vega, 0.37524);
+  // Put-call parity: C - P = S - K e^{-rT}.
+  assert.ok(Math.abs(out.call.price - out.put.price - (100 - 100 * Math.exp(-0.05))) < 1e-5);
+  // Volatility given as a fraction means the same; the rate is always percent.
+  assert.equal(price({ spot: '100', strike: '100', years: '1', vol: '0.2', rate: '5' }).call.price, 10.450584);
+  const iv = price({ spot: '100', strike: '100', years: '1', rate: '5', price: '10.450584' });
+  assert.equal(iv.impliedVolPercent, 20);
+  assert.equal(price({ spot: '100', strike: '90', days: '30', rate: '0', price: '12', type: 'put' }).impliedVol > 0, true);
+  assert.throws(() => price({ spot: '100', strike: '100', years: '1', price: '150' }), /no volatility/);
+  assert.throws(() => price({ spot: '100', strike: '100', expiry: '2001-01-01' }), /past/);
+  assert.ok(Math.abs(normCdf(1.96) - 0.9750021048517795) < 1e-12);
+});
+
+test('Hyperliquid account view sums positions, spot and orders', async () => {
+  const { accountView } = await load('src/routes/hl-account.ts');
+  const v = accountView('0xabc', {
+    marginSummary: { accountValue: '1000', totalNtlPos: '2500', totalMarginUsed: '125' }, withdrawable: '875', crossMaintenanceMarginUsed: '25', time: 1762400000000,
+    assetPositions: [
+      { position: { coin: 'BTC', szi: '0.01', entryPx: '75000', positionValue: '760', unrealizedPnl: '10.5', returnOnEquity: '0.1', liquidationPx: null, marginUsed: '38', leverage: { type: 'cross', value: 20 }, cumFunding: { sinceOpen: '-1.2' } } },
+      { position: { coin: 'ETH', szi: '-0.5', entryPx: '2400', positionValue: '1200', unrealizedPnl: '-4', liquidationPx: '3100', leverage: { type: 'isolated', value: 5 } } },
+    ],
+  }, { balances: [{ coin: 'USDC', total: '50.5', hold: '0', entryNtl: '0' }, { coin: 'DUST', total: '0', hold: '0' }] }, [{ coin: 'ETH', side: 'A', limitPx: '2500', sz: '0.5', oid: 7, timestamp: 1762400000000, orderType: 'Limit' }]);
+  assert.equal(v.perps.leverage, 2.5);
+  assert.equal(v.perps.unrealizedPnlUsd, 6.5);
+  assert.deepEqual(v.perps.positions.map((p) => [p.coin, p.side, p.size]), [['BTC', 'long', 0.01], ['ETH', 'short', 0.5]]);
+  assert.equal(v.perps.positions[0].cumFundingSinceOpen, -1.2);
+  assert.equal(v.perps.positions[1].liquidationPrice, 3100);
+  assert.deepEqual(v.spot, [{ coin: 'USDC', total: 50.5, onHold: 0, entryNotionalUsd: 0 }]);
+  assert.equal(v.openOrders.orders[0].side, 'sell');
+});
+
+test('holidays and business days cover countries beyond our rules through Nager.Date', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.hostname !== 'date.nager.at') return new Response('?', { status: 404 });
+    const [, , , , year, cc] = url.pathname.split('/');
+    if (cc === 'JP') return Response.json([
+      { date: `${year}-01-01`, localName: '元日', name: "New Year's Day", global: true, types: ['Public'] },
+      { date: `${year}-01-12`, localName: '成人の日', name: 'Coming of Age Day', global: true, types: ['Public'] },
+      { date: `${year}-03-01`, localName: 'x', name: 'Regional Day', global: false, types: ['Public'] },
+    ]);
+    return new Response(null, { status: 204 });
+  };
+  try {
+    const { PUBLIC_DATA } = await load('src/routes/public-data.ts');
+    const { MATH_DATE } = await load('src/routes/math-date.ts');
+    const holidays = PUBLIC_DATA.find((e) => e.endpoint.path === '/holidays');
+    const bd = MATH_DATE.find((e) => e.endpoint.path === '/date/business-days');
+    const jp = await holidays.run({}, (n) => ({ country: 'Japan', year: '2026' })[n]);
+    assert.equal(jp.country, 'JP');
+    assert.equal(jp.count, 3);
+    assert.equal(jp.source, 'Nager.Date');
+    await assert.rejects(holidays.run({}, (n) => ({ country: 'AQ', year: '2026' })[n]), (e) => e.status === 404);
+    // Our own rules still answer Sweden without a request.
+    assert.equal((await holidays.run({}, (n) => ({ country: 'SE', year: '2026' })[n])).country, 'SE');
+    // 2026-01-12 is a Monday holiday in Japan; the regional day on 3 March is not skipped.
+    const jan = await bd.run({}, (n) => ({ from: '2026-01-05', to: '2026-01-16', country: 'JP' })[n]);
+    assert.equal(jan.holidaySource, 'Nager.Date');
+    assert.equal(jan.businessDays, 9);
+    assert.deepEqual(jan.holidays, [{ date: '2026-01-12', name: 'Coming of Age Day' }]);
+    assert.equal((await bd.run({}, (n) => ({ from: '2026-01-09', add: '1', country: 'jp' })[n])).date, '2026-01-13');
+    const none = await bd.run({}, (n) => ({ from: '2026-01-05', to: '2026-01-16', country: 'Antarctica' })[n]);
+    assert.equal(none.holidayRules, false);
+    assert.match(none.note, /weekends only/);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('LLM prices filter, sort and estimate the cost of a call', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ data: [
+    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Meta: Llama 3.3 70B', context_length: 131072, pricing: { prompt: '0.0000001', completion: '0.00000025' }, architecture: { input_modalities: ['text'] } },
+    { id: 'openai/gpt-5', name: 'OpenAI: GPT-5', context_length: 400000, pricing: { prompt: '0.00000125', completion: '0.00001' }, architecture: { input_modalities: ['text', 'image'] } },
+    { id: 'meta-llama/llama-4-scout:free', name: 'Meta: Llama 4 Scout (free)', context_length: 64000, pricing: { prompt: '0', completion: '0' }, architecture: { input_modalities: ['text', 'image'] } },
+    { id: 'router/auto', name: 'Auto', pricing: { prompt: '-1', completion: '-1' } },
+  ] });
+  try {
+    const { LLM_PRICES } = await load('src/routes/llm-prices.ts');
+    const run2 = (q) => LLM_PRICES[0].run({}, (n) => q[n]);
+    const all = await run2({});
+    assert.deepEqual(all.models.map((m) => m.id), ['meta-llama/llama-4-scout:free', 'meta-llama/llama-3.3-70b-instruct', 'openai/gpt-5']);
+    const llama = await run2({ q: 'llama 70b', inputTokens: '2000', outputTokens: '500' });
+    assert.equal(llama.count, 1);
+    assert.equal(llama.models[0].inputPerMillionUsd, 0.1);
+    assert.equal(llama.models[0].estimatedCostUsd, 0.000325);
+    assert.deepEqual((await run2({ vision: 'true', minContext: '100000' })).models.map((m) => m.id), ['openai/gpt-5']);
+    assert.deepEqual((await run2({ provider: 'openai' })).models.map((m) => m.provider), ['openai']);
+    assert.equal((await run2({ sort: 'context' })).models[0].id, 'openai/gpt-5');
+    await assert.rejects(run2({ maxInputPrice: '0.01', provider: 'openai' }), (e) => e.status === 404);
+    await assert.rejects(run2({ sort: 'best' }), (e) => e.status === 400);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
