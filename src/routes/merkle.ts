@@ -147,8 +147,9 @@ export const MERKLE: Entry[] = [
     ["merkle-proof", "merkle-verify", "airdrop", "allowlist", "openzeppelin"], {
       root: { type: "string", description: "The Merkle root (32-byte hex)", required: true, example: "0xd4dee0beab2d53f2cc83e567171bd2820e49898130a22622b10ead383e90bd77" },
       proof: { type: "string", description: "The proof: JSON array or comma-separated 32-byte hashes", required: true, example: "[\"0xb92c48e9d7abe27fd8dfd6b5dfdbfb1c9a463f80c712b66f3a5180a090cccafc\"]" },
-      leaf: { type: "string", description: "The leaf hash; or give value and types instead", example: "0xeb02c421cfa48976e66dfb29120745909ea3a0f843456c263cf8f1253483e283" },
-      value: { type: "string", description: "The entry's fields: a JSON array or comma-separated (with types)", example: "0x1111111111111111111111111111111111111111,5000000000000000000" },
+      // Required, because the published example carries only required inputs (6 Nov 2026 smoke run: "give leaf").
+      leaf: { type: "string", description: "The leaf hash, or the entry's fields (comma-separated or a JSON array) to hash with types", required: true, example: "0xeb02c421cfa48976e66dfb29120745909ea3a0f843456c263cf8f1253483e283" },
+      value: { type: "string", description: "The entry's fields, instead of leaf (comma-separated or a JSON array)", example: "0x1111111111111111111111111111111111111111,5000000000000000000" },
       types: { type: "string", description: "Solidity types of value's fields (default address,uint256)", example: "address,uint256" },
     },
     { valid: true, root: "0xd4dee0beab2d53f2cc83e567171bd2820e49898130a22622b10ead383e90bd77", computedRoot: "0xd4dee0beab2d53f2cc83e567171bd2820e49898130a22622b10ead383e90bd77", leaf: "0xeb02c421cfa48976e66dfb29120745909ea3a0f843456c263cf8f1253483e283", proofLength: 1 },
@@ -156,16 +157,17 @@ export const MERKLE: Entry[] = [
       const root = need(q, "root", 80).toLowerCase();
       if (!BYTES32.test(root)) throw new HttpError(400, "root must be a 32-byte hex hash");
       const proof = proofInput(q);
-      const leafIn = opt(q, "leaf", 80);
+      const leafIn = opt(q, "leaf", 20_000);
+      const typesIn = opt(q, "types", 400);
       let leaf: Hex;
-      if (leafIn) {
-        if (!BYTES32.test(leafIn)) throw new HttpError(400, "leaf must be a 32-byte hex hash");
+      // A 32-byte hash without types is the leaf itself; anything else is the entry's fields, hashed with types.
+      if (leafIn && BYTES32.test(leafIn) && !typesIn) {
         leaf = leafIn.toLowerCase() as Hex;
       } else {
-        const value = opt(q, "value", 20_000);
-        if (!value) throw new HttpError(400, "give leaf, or value with types");
+        const value = opt(q, "value", 20_000) ?? leafIn;
+        if (!value) throw new HttpError(400, "give leaf (the hash, or the entry's fields with types)");
         const row = rowsOf(value.trim().startsWith("[") ? `[${value}]` : value)[0] ?? [];
-        leaf = leafHash(typesOf(opt(q, "types", 400) ?? "address,uint256"), row, 0);
+        leaf = leafHash(typesOf(typesIn ?? "address,uint256"), row, 0);
       }
       const computedRoot = processProof(leaf, proof);
       return { valid: computedRoot === root, root, computedRoot, leaf, proofLength: proof.length };
