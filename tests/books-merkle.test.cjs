@@ -124,3 +124,43 @@ test('the x402 service finder lists Bazaar results honestly, with filters and so
     globalThis.fetch = realFetch;
   }
 });
+
+test('option pricing matches the textbook Black-Scholes case and inverts to implied volatility', async () => {
+  const { OPTIONS, normCdf } = await load('src/routes/options.ts');
+  const price = (q) => OPTIONS[0].run({}, (n) => q[n]);
+  // Hull's standard case: S = K = 100, T = 1, r = 5%, sigma = 20%.
+  const out = price({ spot: '100', strike: '100', years: '1', vol: '20', rate: '5' });
+  assert.equal(out.call.price, 10.450584);
+  assert.equal(out.put.price, 5.573526);
+  assert.equal(out.call.delta, 0.636831);
+  assert.equal(out.call.gamma, 0.018762);
+  assert.equal(out.call.vega, 0.37524);
+  // Put-call parity: C - P = S - K e^{-rT}.
+  assert.ok(Math.abs(out.call.price - out.put.price - (100 - 100 * Math.exp(-0.05))) < 1e-5);
+  // Volatility given as a fraction means the same; the rate is always percent.
+  assert.equal(price({ spot: '100', strike: '100', years: '1', vol: '0.2', rate: '5' }).call.price, 10.450584);
+  const iv = price({ spot: '100', strike: '100', years: '1', rate: '5', price: '10.450584' });
+  assert.equal(iv.impliedVolPercent, 20);
+  assert.equal(price({ spot: '100', strike: '90', days: '30', rate: '0', price: '12', type: 'put' }).impliedVol > 0, true);
+  assert.throws(() => price({ spot: '100', strike: '100', years: '1', price: '150' }), /no volatility/);
+  assert.throws(() => price({ spot: '100', strike: '100', expiry: '2001-01-01' }), /past/);
+  assert.ok(Math.abs(normCdf(1.96) - 0.9750021048517795) < 1e-12);
+});
+
+test('Hyperliquid account view sums positions, spot and orders', async () => {
+  const { accountView } = await load('src/routes/hl-account.ts');
+  const v = accountView('0xabc', {
+    marginSummary: { accountValue: '1000', totalNtlPos: '2500', totalMarginUsed: '125' }, withdrawable: '875', crossMaintenanceMarginUsed: '25', time: 1762400000000,
+    assetPositions: [
+      { position: { coin: 'BTC', szi: '0.01', entryPx: '75000', positionValue: '760', unrealizedPnl: '10.5', returnOnEquity: '0.1', liquidationPx: null, marginUsed: '38', leverage: { type: 'cross', value: 20 }, cumFunding: { sinceOpen: '-1.2' } } },
+      { position: { coin: 'ETH', szi: '-0.5', entryPx: '2400', positionValue: '1200', unrealizedPnl: '-4', liquidationPx: '3100', leverage: { type: 'isolated', value: 5 } } },
+    ],
+  }, { balances: [{ coin: 'USDC', total: '50.5', hold: '0', entryNtl: '0' }, { coin: 'DUST', total: '0', hold: '0' }] }, [{ coin: 'ETH', side: 'A', limitPx: '2500', sz: '0.5', oid: 7, timestamp: 1762400000000, orderType: 'Limit' }]);
+  assert.equal(v.perps.leverage, 2.5);
+  assert.equal(v.perps.unrealizedPnlUsd, 6.5);
+  assert.deepEqual(v.perps.positions.map((p) => [p.coin, p.side, p.size]), [['BTC', 'long', 0.01], ['ETH', 'short', 0.5]]);
+  assert.equal(v.perps.positions[0].cumFundingSinceOpen, -1.2);
+  assert.equal(v.perps.positions[1].liquidationPrice, 3100);
+  assert.deepEqual(v.spot, [{ coin: 'USDC', total: 50.5, onHold: 0, entryNotionalUsd: 0 }]);
+  assert.equal(v.openOrders.orders[0].side, 'sell');
+});
