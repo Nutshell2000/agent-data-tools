@@ -230,3 +230,39 @@ test('LLM prices filter, sort and estimate the cost of a call', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('DeFi yields filter, sort and history summaries', async () => {
+  const realFetch = globalThis.fetch;
+  const pool = (o) => ({ chain: 'Base', project: 'aave-v3', symbol: 'USDC', tvlUsd: 5e7, apy: 5, apyBase: 5, apyReward: null, pool: '11111111-1111-1111-1111-111111111111', apyPct1D: 0, apyPct7D: 0, apyPct30D: 0, stablecoin: true, ilRisk: 'no', exposure: 'single', apyMean30d: 4.8, poolMeta: null, rewardTokens: null, underlyingTokens: null, outlier: false, ...o });
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/pools') return Response.json({ status: 'success', data: [
+      pool({}), pool({ project: 'morpho-blue', apy: 7.4, pool: '22222222-2222-2222-2222-222222222222' }),
+      pool({ chain: 'Ethereum', symbol: 'WETH-USDC', stablecoin: false, ilRisk: 'yes', exposure: 'multi', apy: 18, tvlUsd: 9e6, pool: '33333333-3333-3333-3333-333333333333' }),
+      pool({ apy: 900, outlier: true, pool: '44444444-4444-4444-4444-444444444444' }), pool({ apy: 30, tvlUsd: 2e5, pool: '55555555-5555-5555-5555-555555555555' }),
+    ] });
+    if (url.pathname.startsWith('/chart/')) return Response.json({ status: 'success', data: [1, 2, 3, 4].map((i) => ({ timestamp: `2026-11-0${i}T00:00:00.000Z`, tvlUsd: 1e6 * i, apy: 2 + i / 10, apyBase: 2 + i / 10, apyReward: null })) });
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const { DEFI_YIELDS } = await load('src/routes/defi-yields.ts');
+    const [yields, history] = DEFI_YIELDS;
+    const run2 = (e, q) => e.run({}, (n) => q[n]);
+    const base = await run2(yields, { chain: 'base', stablecoin: 'true' });
+    // The outlier and the pool under $1M TVL are left out; highest APY first.
+    assert.deepEqual(base.pools.map((p) => p.project), ['morpho-blue', 'aave-v3']);
+    assert.equal(base.pools[0].url, 'https://defillama.com/yields/pool/22222222-2222-2222-2222-222222222222');
+    assert.deepEqual((await run2(yields, { symbol: 'usdc', noIl: 'true', sort: 'tvl' })).pools.map((p) => p.chain), ['Base', 'Base']);
+    assert.equal((await run2(yields, { symbol: 'weth' })).pools[0].chain, 'Ethereum');
+    assert.equal((await run2(yields, { minTvl: '0', maxApy: '50' })).pools[0].apy, 30);
+    await assert.rejects(run2(yields, { project: 'nope' }), (e) => e.status === 404);
+    await assert.rejects(run2(yields, { sort: 'risk' }), (e) => e.status === 400);
+    const h = await run2(history, { pool: 'https://defillama.com/yields/pool/747C1D2A-c668-4682-b9f9-296708a3dd90', days: '3' });
+    assert.equal(h.pool, '747c1d2a-c668-4682-b9f9-296708a3dd90');
+    assert.deepEqual(h.history.map((r) => r.date), ['2026-11-02', '2026-11-03', '2026-11-04']);
+    assert.deepEqual(h.summary, { avgApy: 2.3, minApy: 2.2, maxApy: 2.4, latestApy: 2.4, latestTvlUsd: 4000000 });
+    await assert.rejects(run2(history, { pool: 'lido' }), (e) => e.status === 400);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
