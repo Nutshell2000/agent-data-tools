@@ -4,7 +4,8 @@ import { entry, getJson, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { countryCode, countryName } from "../lib/country-code";
 import { parseDate } from "../lib/relative-date";
-import { COUNTRIES, holidaysFor } from "./holidays";
+import { holidaysFor } from "./holidays";
+import { nagerHolidays } from "./holidays-world";
 import { CITIES } from "./weather";
 import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
@@ -87,8 +88,8 @@ export function quakeFeed(raw: string | undefined): { feed: string; min: number 
 }
 
 export const PUBLIC_DATA: Entry[] = [
-  entry("/holidays", "Public holidays by country", "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths.",
-    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code: US, GB (UK), SE, DE, FR, NO, DK or FI; English country names also work", required: true, example: "SE" }, year: { type: "integer", description: "Year, 2024-2100 (default this year)", example: 2026 } },
+  entry("/holidays", "Public holidays by country", "Public holidays for a year in over 100 countries: date, local and English name, whether it is nationwide, and the observed day where a weekend moves it. Statutory rules of our own for the US, UK, Sweden, Germany, France, Norway, Denmark and Finland (2024-2100); Nager.Date for the rest (Japan, Canada, Australia, India, Brazil…). Use for scheduling, delivery dates and business-day maths.",
+    ["holidays", "calendar", "date", ...P], { country: { type: "string", description: "ISO 3166-1 alpha-2 code (US, GB, SE, JP, CA…) or English country name", required: true, example: "SE" }, year: { type: "integer", description: "Year, 2024-2100 (default this year)", example: 2026 } },
     { country: "SE", countryName: "Sweden", year: 2026, count: 13, holidays: [{ date: "2026-01-01", localName: "Nyårsdagen", name: "New Year's Day", nationwide: true, types: ["Public"], observed: null }], note: "Computed from statutory rules; nationwide holidays only. Regional holidays and one-off proclamations are not included." },
     async (_e, q) => {
       // What agents type: "UK" (the description's own word), "USA" or the country's English name.
@@ -98,8 +99,11 @@ export const PUBLIC_DATA: Entry[] = [
       if (!/^[A-Z]{2}$/.test(country)) throw new HttpError(400, `country must be a 2-letter ISO code such as GB, US or SE, or a country name (got "${typed.slice(0, 40)}")`);
       const year = num(q, "year", { min: 2024, max: 2100, fallback: new Date().getUTCFullYear(), integer: true });
       const out = holidaysFor(country, year);
-      if (!out) throw new HttpError(404, `no holiday rules for ${countryName(country) ?? country} (${country}); supported: ${Object.keys(COUNTRIES).join(", ")}`);
-      return out;
+      if (out) return out;
+      // Countries without our statutory rules: Nager.Date (src/routes/holidays-world.ts).
+      const world = await nagerHolidays(country, year);
+      if (!world) throw new HttpError(404, `no holiday calendar for ${countryName(country) ?? country} (${country}); nothing was charged`);
+      return { country, countryName: countryName(country) ?? country, year, count: world.length, holidays: world, note: "From Nager.Date (date.nager.at). Holidays with nationwide false apply only in some regions.", source: "Nager.Date" };
     }),
 
   entry("/wikipedia", "Wikipedia article summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",

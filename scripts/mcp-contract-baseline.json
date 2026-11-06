@@ -1,5 +1,5 @@
 {
-  "version": "1.95.0",
+  "version": "1.96.0",
   "tools": [
     {
       "name": "extract",
@@ -14129,7 +14129,7 @@
     },
     {
       "name": "date_business_days",
-      "description": "Count business (working) days between two dates, skipping weekends and public holidays for the US, UK, Sweden, Germany, France, Norway, Denmark or Finland, and list the holidays skipped; or give add=N to get the date N business days after (or before) a date. Other countries count weekends only, and the answer says so. Use for delivery estimates, SLAs, payment terms and payroll dates. Example: from=2026-12-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Count business (working) days between two dates, skipping weekends and the nationwide public holidays of over 100 countries (our statutory rules for US, UK, SE, DE, FR, NO, DK, FI; Nager.Date for the rest, e.g. JP, NZ, CA, AU, IN), and list the holidays skipped; or give add=N for the date N business days after (or before) a date. Use for delivery estimates, SLAs, payment terms and payroll dates. Example: from=2026-12-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14156,7 +14156,7 @@
           },
           "country": {
             "type": "string",
-            "description": "Holiday calendar: US, GB, SE, DE, FR, NO, DK or FI (default: weekends only)"
+            "description": "Holiday calendar: a 2-letter country code or English name, e.g. SE, JP, New Zealand (default: weekends only)"
           }
         },
         "required": [
@@ -16085,7 +16085,7 @@
     },
     {
       "name": "holidays",
-      "description": "Nationwide public holidays for a year in the US (federal), UK (England and Wales), Sweden, Germany, France, Norway, Denmark and Finland: date, local and English name, and the weekday it is observed on where a weekend moves it. Computed from statutory rules for 2024-2100. Use for scheduling, delivery dates and business-day maths. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Public holidays for a year in over 100 countries: date, local and English name, whether it is nationwide, and the observed day where a weekend moves it. Statutory rules of our own for the US, UK, Sweden, Germany, France, Norway, Denmark and Finland (2024-2100); Nager.Date for the rest (Japan, Canada, Australia, India, Brazil…). Use for scheduling, delivery dates and business-day maths. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16098,7 +16098,7 @@
         "properties": {
           "country": {
             "type": "string",
-            "description": "ISO 3166-1 alpha-2 code: US, GB (UK), SE, DE, FR, NO, DK or FI; English country names also work"
+            "description": "ISO 3166-1 alpha-2 code (US, GB, SE, JP, CA…) or English country name"
           },
           "year": {
             "type": "integer",
@@ -16836,6 +16836,156 @@
           "coins": {
             "type": "string",
             "description": "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "hyperliquid_account",
+      "description": "Any Hyperliquid account by address: perp account value, notional, margin used, withdrawable, leverage and unrealized PnL; every open position with side, size, entry, value, PnL, ROE, liquidation price, leverage and cumulative funding since open (Hyperliquid's cumFunding); spot balances; and up to 50 open orders. Public on-chain data from Hyperliquid's info API, read live. Use to track a trader, a vault or your own agent's book. Example: address=0x31ca8395cf837de08b24da3f660e77761dfb974b. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "The account's 0x address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "options_price",
+      "description": "Price a European call and put with Black-Scholes-Merton and get delta, gamma, vega (per vol point), theta (per day), rho, d1, d2 and the probability of ending in the money; or give a market price and get the implied volatility. Inputs: spot, strike, expiry date or days, volatility, interest rate and dividend or funding yield in percent. Pure arithmetic, no data source. Use for crypto, stock or FX options, to price a quote or size a hedge. Example: spot=100, strike=100. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "spot": {
+            "type": "number",
+            "description": "Price of the underlying"
+          },
+          "strike": {
+            "type": "number",
+            "description": "Strike price"
+          },
+          "days": {
+            "type": "number",
+            "description": "Days to expiry (default 30), or give expiry or years"
+          },
+          "expiry": {
+            "type": "string",
+            "description": "Expiry date (ISO), instead of days"
+          },
+          "years": {
+            "type": "number",
+            "description": "Years to expiry, instead of days"
+          },
+          "vol": {
+            "type": "number",
+            "description": "Annual volatility in percent, e.g. 20 (default 50); not needed with price"
+          },
+          "rate": {
+            "type": "number",
+            "description": "Risk-free rate in percent per year, e.g. 5 for 5% (default 0)"
+          },
+          "dividend": {
+            "type": "number",
+            "description": "Dividend, funding or borrow yield in percent per year (default 0)"
+          },
+          "price": {
+            "type": "number",
+            "description": "A market option price: returns the implied volatility"
+          },
+          "type": {
+            "type": "string",
+            "description": "call or put, for the implied volatility (default call)"
+          }
+        },
+        "required": [
+          "spot",
+          "strike"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "llm_prices",
+      "description": "Compare the API prices of about 450 LLMs from OpenAI, Anthropic, Google, Meta, Mistral, DeepSeek, Qwen and others: USD per million input and output tokens, context length, max output, modalities, and the cost of your call when you give token counts. Filter by name, provider, price cap, context or image input; sort by input, output or blended price. Source: OpenRouter's public model list. Use to pick the cheapest model that fits a job. Example: q=llama. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Words in the model id or name, e.g. gpt, claude, llama 70b"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Only this provider: openai, anthropic, google, meta-llama, mistralai, deepseek, qwen…"
+          },
+          "maxInputPrice": {
+            "type": "number",
+            "description": "Only models at or under this USD per million input tokens"
+          },
+          "minContext": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Only models with at least this context length in tokens"
+          },
+          "vision": {
+            "description": "true: only models that take image input",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Input tokens of your call, to estimate its cost"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Output tokens of your call, to estimate its cost"
+          },
+          "sort": {
+            "type": "string",
+            "description": "input (default), output, blended (3:1 input:output) or context"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of models (1-50, default 20)"
           }
         }
       },
