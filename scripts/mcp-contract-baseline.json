@@ -1,5 +1,5 @@
 {
-  "version": "1.97.0",
+  "version": "1.98.0",
   "tools": [
     {
       "name": "extract",
@@ -17093,6 +17093,72 @@
         "required": [
           "pool"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "defi_tvl",
+      "description": "Total value locked of DeFi protocols from DefiLlama: name one protocol (Aave, Lido, Uniswap, a slug) for its TVL, 1h/1d/7d change, market cap to TVL and top chains; or list the top protocols by TVL, filtered by category (Lending, Dexs, Liquid Staking…) or chain, sorted by TVL or 1d/7d change. CEXs are left out unless asked for. Use to size a protocol, compare competitors or track where liquidity moves. Example: protocol=aave. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "description": "One protocol by name or slug (aave, lido, uniswap-v3); leave out for a ranking"
+          },
+          "category": {
+            "type": "string",
+            "description": "Only this category: Lending, Dexs, Liquid Staking, Bridge, CDP, Yield, Derivatives, CEX…"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Rank by TVL on this chain: Ethereum, Base, Arbitrum, Solana…"
+          },
+          "sort": {
+            "type": "string",
+            "description": "tvl (default), change_1d or change_7d"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of protocols (1-50, default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "defi_chains",
+      "description": "Total value locked in DeFi on every blockchain from DefiLlama: up to 100 chains ranked by TVL with their share of the total, native token and chain id, or one chain by name. Use to compare L1s and L2s, size an ecosystem or pick where to deploy. Example: chain=Base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "One chain by name (Base, Solana); leave out for the ranking"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of chains (1-100, default 25)"
+          }
+        }
       },
       "price": "$0.01"
     },
