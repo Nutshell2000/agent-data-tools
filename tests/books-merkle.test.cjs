@@ -1,0 +1,95 @@
+// Book lookups (Open Library, mocked) and OpenZeppelin-compatible Merkle trees (6 Nov 2026). The Merkle roots and proofs
+// below were checked against @openzeppelin/merkle-tree 1.0.8 (StandardMerkleTree / SimpleMerkleTree) for 1-257 entries.
+const assert = require('node:assert/strict');
+const { test } = require('node:test');
+const { build } = require('esbuild');
+
+async function load(entry) {
+  const b = await build({ entryPoints: [entry], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  return m.exports;
+}
+const run = (e, q) => e.run({}, (n) => q[n]);
+
+test('ISBNs are read with hyphens and checked by their check digit', async () => {
+  const b = await load('src/routes/books.ts');
+  assert.equal(b.isbnOf('978-0-14-032872-1'), '9780140328721');
+  assert.equal(b.isbnOf('ISBN 0-14-032872-6'), '0140328726');
+  assert.equal(b.isbnOf('080442957X'), '080442957X');
+  assert.equal(b.isbnOf('9780140328722'), null);
+  assert.equal(b.isbnOf('hello'), null);
+  assert.equal(b.isbn13('0140328726'), '9780140328721');
+});
+
+test('book lookup and search map Open Library answers and refuse unknown books uncharged', async () => {
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    asked.push(url.href);
+    if (url.pathname === '/api/books') {
+      const key = url.searchParams.get('bibkeys');
+      if (key === 'ISBN:9780140328721') return Response.json({ [key]: { url: 'http://openlibrary.org/books/OL7353617M/Fantastic_Mr._Fox', title: 'Fantastic Mr. Fox', authors: [{ name: 'Roald Dahl' }], publishers: [{ name: 'Puffin' }], publish_date: 'October 1, 1988', number_of_pages: 96, subjects: [{ name: 'Animals' }], languages: [{ key: '/languages/eng' }], cover: { large: 'https://covers.openlibrary.org/b/id/8739161-L.jpg' }, identifiers: { isbn_13: ['9780140328721'], isbn_10: ['0140328726'], goodreads: ['1507552'] } } });
+      return Response.json({});
+    }
+    if (url.pathname === '/search.json') return Response.json({ numFound: 279, docs: [{ key: '/works/OL893415W', title: 'Dune', author_name: ['Frank Herbert'], first_publish_year: 1965, edition_count: 155, isbn: ['0441172717', '9780425043769'], publisher: ['Ace Books'], language: ['eng'], cover_i: 11481354 }] });
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const { BOOKS } = await load('src/routes/books.ts');
+    const [isbn, search] = BOOKS;
+    const book = await run(isbn, { isbn: '0-14-032872-6' });
+    assert.equal(book.title, 'Fantastic Mr. Fox');
+    assert.deepEqual(book.authors, ['Roald Dahl']);
+    assert.equal(book.isbn13, '9780140328721');
+    assert.deepEqual(book.languages, ['eng']);
+    assert.deepEqual(book.otherIds, { goodreads: '1507552' });
+    // The ISBN-10 was not filed, so the ISBN-13 form was asked for next.
+    assert.ok(asked.some((u) => u.includes('ISBN%3A0140328726')) && asked.some((u) => u.includes('ISBN%3A9780140328721')));
+    await assert.rejects(run(isbn, { isbn: '9780140328722' }), (e) => e.status === 400);
+    await assert.rejects(run(isbn, { isbn: '9781234567897' }), (e) => e.status === 404);
+    const found = await run(search, { author: 'Frank Herbert', limit: '3' });
+    assert.equal(found.results[0].title, 'Dune');
+    assert.deepEqual(found.results[0].isbns, ['9780425043769', '0441172717']);
+    assert.equal(found.results[0].cover, 'https://covers.openlibrary.org/b/id/11481354-L.jpg');
+    assert.deepEqual(found.query, { author: 'Frank Herbert' });
+    await assert.rejects(run(search, {}), (e) => e.status === 400);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('Merkle trees match OpenZeppelin, and proofs verify', async () => {
+  const { MERKLE } = await load('src/routes/merkle.ts');
+  const [tree, verify] = MERKLE;
+  const values = [['0x1111111111111111111111111111111111111111', '5000000000000000000'], ['0x2222222222222222222222222222222222222222', '2500000000000000000']];
+  const out = run(tree, { values: JSON.stringify(values) });
+  // Types read from the rows; root as @openzeppelin/merkle-tree computes it.
+  assert.deepEqual(out.leafEncoding, ['address', 'uint256']);
+  assert.equal(out.root, '0xd4dee0beab2d53f2cc83e567171bd2820e49898130a22622b10ead383e90bd77');
+  assert.equal(out.entries[0].leaf, '0xeb02c421cfa48976e66dfb29120745909ea3a0f843456c263cf8f1253483e283');
+  assert.deepEqual(out.entries[0].proof, ['0xb92c48e9d7abe27fd8dfd6b5dfdbfb1c9a463f80c712b66f3a5180a090cccafc']);
+  assert.equal(out.dump.values[0].treeIndex, 1);
+  // The same list as lines; one proof by address.
+  const one = run(tree, { values: values.map((r) => r.join(',')).join('\n'), types: 'address,uint256', proofFor: '0x2222222222222222222222222222222222222222' });
+  assert.equal(one.root, out.root);
+  assert.equal(one.entries.length, 1);
+  assert.equal(one.entries[0].index, 1);
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), value: values[0].join(',') }).valid, true);
+  // The fields can also go in leaf (the published example carries only required inputs).
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), leaf: values[0].join(','), types: 'address,uint256' }).valid, true);
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), leaf: values[0].join(',') }).valid, true);
+  assert.equal(run(verify, { root: out.root, proof: out.entries[0].proof.join(','), leaf: out.entries[0].leaf }).valid, true);
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), value: `${values[0][0]},1` }).valid, false);
+  // Bad inputs are named.
+  assert.throws(() => run(tree, { values: '[["hello", "world"]]' }), /types/);
+  assert.throws(() => run(tree, { values: '[["0x1111111111111111111111111111111111111111","-1"]]', types: 'address,uint256' }), /not a valid uint256/);
+  assert.throws(() => run(tree, { values: '[[1]]', types: 'uint7' }), /unsupported type/);
+  assert.throws(() => run(verify, { root: '0x12', proof: '[]', leaf: out.root }), /root/);
+  // A ready bytes32 list is a SimpleMerkleTree.
+  const leaves = ['0x' + 'aa'.repeat(32), '0x' + 'bb'.repeat(32), '0x' + 'cc'.repeat(32)];
+  const simple = run(tree, { values: JSON.stringify(leaves) });
+  assert.equal(simple.format, 'simple-v1');
+  assert.equal(run(verify, { root: simple.root, proof: JSON.stringify(simple.entries[2].proof), leaf: leaves[2] }).valid, true);
+});
