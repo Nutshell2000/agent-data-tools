@@ -18,6 +18,8 @@ export interface Env {
   // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
+  /** Optional free LI.FI API key for /swap/quote and /bridge/quote (keyless quotes are rate-limited on shared egress). */
+  LIFI_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
   /** Origin in the URL /page/publish answers with; staging sets its own, production uses the public origin. */
   PAGE_ORIGIN?: string;
