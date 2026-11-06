@@ -1,5 +1,5 @@
 {
-  "version": "1.99.0",
+  "version": "1.100.0",
   "tools": [
     {
       "name": "extract",
@@ -17347,6 +17347,89 @@
         },
         "required": [
           "txHash"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "lei_lookup",
+      "description": "Look up a Legal Entity Identifier from GLEIF: by 20-character LEI, or search by company name for up to 10 matches. Legal name, other names, entity status, category, jurisdiction, company register ID, legal and headquarters address, LEI registration status, issue, renewal and corroboration. Source: GLEIF (CC0). Use for KYB, counterparty checks, trade reporting and matching companies across systems. Example: lei=HWUPKR0MPOU8FGXBT394. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "lei": {
+            "type": "string",
+            "description": "A 20-character LEI"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name to search, instead of lei"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Matches for a name search (1-10, default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "vat_validate",
+      "description": "Check an EU VAT number against the European Commission's VIES service: valid or not, and the registered company name and address where the member state shares them, with the check time. Accepts the number with its country prefix in any spacing (SE556703748501, DE 123 456 789, GR or EL for Greece, XI for Northern Ireland). Use to verify a B2B customer before invoicing without VAT, or to confirm a supplier. Example: vat=SE556703748501. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "vat": {
+            "type": "string",
+            "description": "VAT number with its 2-letter EU country prefix"
+          }
+        },
+        "required": [
+          "vat"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "domain_availability",
+      "description": "Is a domain name free? Check one name across up to 20 TLDs at once (default com, net, org, io, ai, co, app, dev, xyz, me): available, taken (with registrar, creation and expiry dates) or likely available, from each registry's RDAP server, with DNS where a TLD has no RDAP. Use to pick a product or company name, or to check a brand before launch. Availability is not a price quote: premium and reserved names exist. Example: name=agentdatatools. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name to check, with or without a TLD (acme, acme.com)"
+          },
+          "tlds": {
+            "type": "string",
+            "description": "TLDs to check, comma-separated (default com,net,org,io,ai,co,app,dev,xyz,me)"
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "price": "$0.01"

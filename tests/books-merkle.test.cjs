@@ -370,3 +370,29 @@ test('LI.FI quotes: exact unit maths, chain names, Solana receivers, and no rout
     globalThis.fetch = realFetch;
   }
 });
+
+test('LEI, VAT and domain availability parse their registries correctly', async () => {
+  const g = await load('src/routes/registries.ts');
+  assert.deepEqual(g.vatParts('se 5567-0374 8501'), { country: 'SE', number: '556703748501' });
+  assert.deepEqual(g.vatParts('GR123456789'), { country: 'EL', number: '123456789' });
+  assert.equal(g.vatParts('123'), null);
+  const v = g.leiView({ id: 'x', attributes: { lei: 'HWUPKR0MPOU8FGXBT394', entity: { legalName: { name: 'Apple Inc.' }, otherNames: [{ name: 'Apple Computer, Inc.' }], status: 'ACTIVE', jurisdiction: 'US-CA', legalAddress: { addressLines: ['1 Infinite Loop'], city: 'Cupertino', country: 'US' } }, registration: { status: 'ISSUED', initialRegistrationDate: '2012-06-06T15:53:00Z' } } });
+  assert.deepEqual([v.legalName, v.otherNames, v.registration.issued, v.legalAddress.city], ['Apple Inc.', ['Apple Computer, Inc.'], '2012-06-06', 'Cupertino']);
+  // Registry RDAP 200 = taken, registry 404 = available, rdap.org's own 404 (no RDAP for the TLD) falls back to DNS.
+  const fake = (map) => async (url) => {
+    const u = String(url);
+    const hit = Object.entries(map).find(([k]) => u.includes(k));
+    if (!hit) throw new Error('offline');
+    const [status, body, finalUrl] = hit[1];
+    const res = new Response(body === null ? null : JSON.stringify(body), { status });
+    Object.defineProperty(res, 'url', { value: finalUrl ?? u });
+    return res;
+  };
+  const taken = await g.domainStatus('acme.com', fake({ 'rdap.org/domain/acme.com': [200, { events: [{ eventAction: 'registration', eventDate: '1999-01-02T00:00:00Z' }], entities: [{ roles: ['registrar'], vcardArray: ['vcard', [['fn', {}, 'text', 'Example Registrar']]] }] }, 'https://rdap.verisign.com/com/v1/domain/acme.com'] }));
+  assert.deepEqual([taken.status, taken.registrar, taken.created], ['taken', 'Example Registrar', '1999-01-02']);
+  assert.equal((await g.domainStatus('free-name.com', fake({ 'rdap.org/domain/free-name.com': [404, {}, 'https://rdap.verisign.com/com/v1/domain/free-name.com'] }))).status, 'available');
+  const io = await g.domainStatus('free-name.io', fake({ 'rdap.org/domain/free-name.io': [404, {}], 'dns-query': [200, { Status: 3 }] }));
+  assert.deepEqual([io.status, io.method], ['likely available', 'dns']);
+  assert.equal((await g.domainStatus('used.io', fake({ 'rdap.org/domain/used.io': [404, {}], 'dns-query': [200, { Status: 0 }] }))).status, 'taken');
+  assert.equal((await g.domainStatus('x.io', fake({}))).status, 'unknown');
+});
