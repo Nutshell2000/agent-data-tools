@@ -25,7 +25,7 @@ async function markets() {
 }
 
 /** One info request; failures and timeouts are an uncharged 502. Weights: l2Book and allMids 2, candles and funding 20+. */
-async function info<T>(body: Record<string, unknown>): Promise<T> {
+export async function info<T>(body: Record<string, unknown>): Promise<T> {
   let res: Response;
   try {
     res = await fetch("https://api.hyperliquid.xyz/info", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) });
