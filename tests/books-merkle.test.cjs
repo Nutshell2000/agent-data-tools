@@ -93,3 +93,34 @@ test('Merkle trees match OpenZeppelin, and proofs verify', async () => {
   assert.equal(simple.format, 'simple-v1');
   assert.equal(run(verify, { root: simple.root, proof: JSON.stringify(simple.entries[2].proof), leaf: leaves[2] }).valid, true);
 });
+
+test('the x402 service finder lists Bazaar results honestly, with filters and sorting', async () => {
+  const realFetch = globalThis.fetch;
+  const ours = '0x2074C40346Ae2A90e0E4A391bceE6F16BF5277f5';
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    assert.equal(url.searchParams.get('query'), 'email verification');
+    assert.equal(url.searchParams.get('limit'), '20');
+    return Response.json({ resources: [
+      { resource: 'https://a.example/verify', serviceName: 'A', accepts: [{ amount: '30000', network: 'eip155:8453', payTo: '0x1' }], quality: { l30DaysUniquePayers: 9, l30DaysTotalCalls: 400 } },
+      { resource: 'https://ours.example/email', serviceName: 'Ours', accepts: [{ amount: '10000', network: 'eip155:8453', payTo: ours.toLowerCase() }, { amount: '10000', network: 'eip155:137', payTo: ours }], quality: { l30DaysUniquePayers: 2, l30DaysTotalCalls: 7 } },
+      { resource: 'https://c.example/old', serviceName: 'C', accepts: [{ amount: '1000', network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', payTo: 'x' }], quality: { l30DaysUniquePayers: 0, l30DaysTotalCalls: 0 } },
+    ] });
+  };
+  try {
+    const { X402_FIND } = await load('src/routes/x402-find.ts');
+    const find = (q) => X402_FIND[0].run({ PAY_TO: ours }, (n) => q[n]);
+    const plain = await find({ q: 'email verification' });
+    assert.deepEqual(plain.results.map((r) => r.name), ['A', 'Ours', 'C']);
+    assert.equal(plain.results[1].ours, true);
+    assert.deepEqual(plain.results[1].networks, ['base', 'polygon']);
+    assert.equal(plain.results[0].priceUsd, 0.03);
+    assert.deepEqual((await find({ q: 'email verification', sort: 'price' })).results.map((r) => r.name), ['C', 'Ours', 'A']);
+    assert.deepEqual((await find({ q: 'email verification', maxPrice: '0.01', active: 'true' })).results.map((r) => r.name), ['Ours']);
+    assert.deepEqual((await find({ q: 'email verification', network: 'solana' })).results.map((r) => r.name), ['C']);
+    await assert.rejects(find({ q: 'email verification', sort: 'best' }), (e) => e.status === 400);
+    await assert.rejects(find({ q: 'email verification', maxPrice: '0.0001' }), (e) => e.status === 404);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
