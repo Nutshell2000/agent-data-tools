@@ -266,3 +266,42 @@ test('DeFi yields filter, sort and history summaries', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('DeFi TVL: one protocol, rankings by category and chain, change rankings without dust, chain TVL', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/protocols') return Response.json([
+      { name: 'Binance CEX', slug: 'binance-cex', category: 'CEX', tvl: 1.2e11, chainTvls: { Bitcoin: 4e10 } },
+      { name: 'Aave V3', slug: 'aave-v3', category: 'Lending', tvl: 1.5e10, change_1d: -5, change_7d: 4, chainTvls: { Ethereum: 1.2e10, Base: 5e8, 'Ethereum-borrowed': 9e9, staking: 1e8 } },
+      { name: 'Aave V2', slug: 'aave-v2', category: 'Lending', tvl: 1e9, change_7d: 1, chainTvls: { Ethereum: 1e9 } },
+      { name: 'Morpho Blue', slug: 'morpho-blue', category: 'Lending', tvl: 1.1e10, change_7d: 6, chainTvls: { Ethereum: 5e9, Base: 4.3e9 } },
+      { name: 'Dust Vault', slug: 'dust', category: 'Yield', tvl: 1.7e7, change_7d: 135285, chainTvls: { Sui: 1.7e7 } },
+      { name: 'Tiny', slug: 'tiny', category: 'Yield', tvl: 5e5, change_7d: 300, chainTvls: { Base: 5e5 } },
+    ]);
+    if (url.pathname === '/v2/chains') return Response.json([{ name: 'Ethereum', tvl: 6e10, tokenSymbol: 'ETH', chainId: 1 }, { name: 'Base', tvl: 2e10, tokenSymbol: null, chainId: 8453 }, { name: 'Dead', tvl: 0 }]);
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const { DEFI_TVL, findProtocol } = await load('src/routes/defi-tvl.ts');
+    const run2 = (i, q) => DEFI_TVL[i].run({}, (n) => q[n]);
+    const aave = await run2(0, { protocol: 'Aave' });
+    assert.equal(aave.protocols[0].slug, 'aave-v3');
+    assert.deepEqual(aave.protocols[0].topChains.map((c) => c.chain), ['Ethereum', 'Base']);
+    assert.deepEqual(aave.related.map((r) => r.slug), ['aave-v2']);
+    assert.equal(findProtocol([{ name: 'Lido', slug: 'lido' }], 'LIDO').slug, 'lido');
+    // CEXs only when asked; ranking on a chain uses that chain's TVL.
+    assert.deepEqual((await run2(0, {})).protocols.map((p) => p.slug), ['aave-v3', 'morpho-blue', 'aave-v2', 'dust', 'tiny']);
+    assert.deepEqual((await run2(0, { category: 'cex' })).protocols.map((p) => p.slug), ['binance-cex']);
+    const base = await run2(0, { chain: 'base' });
+    assert.equal(base.chain, 'Base');
+    assert.deepEqual(base.protocols.map((p) => [p.slug, p.tvlUsd]), [['morpho-blue', 4.3e9], ['aave-v3', 5e8], ['tiny', 5e5]]);
+    assert.deepEqual((await run2(0, { sort: 'change_7d' })).protocols.map((p) => p.slug), ['morpho-blue', 'aave-v3', 'aave-v2']);
+    await assert.rejects(run2(0, { protocol: 'zzzz' }), (e) => e.status === 404);
+    const chains = await run2(1, {});
+    assert.deepEqual(chains.chains.map((c) => [c.rank, c.name, c.share]), [[1, 'Ethereum', 75], [2, 'Base', 25]]);
+    assert.equal((await run2(1, { chain: 'BASE' })).chains[0].rank, 2);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

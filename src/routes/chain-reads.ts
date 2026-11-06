@@ -58,6 +58,31 @@ export function client(env: Env, c: ChainDef): PublicClient {
     createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }), batch: { multicall: true } }) as PublicClient);
 }
 
+const isNotFound = (e: unknown) => /could not be found|not found/i.test(String((e as Error)?.message ?? e));
+
+/**
+ * A lookup of past data (a transaction or receipt) that asks each node in turn when one says "not found". Pruned nodes answer
+ * null for old transactions instead of failing, so the fallback transport never moves on: on 6 Nov 2026 /avax/tx and
+ * /avax/receipt answered 404 for a 2024 transaction that two of the three Avalanche nodes still had.
+ */
+export async function historyRead<T>(env: Env, c: ChainDef, fn: (cl: PublicClient) => Promise<T>): Promise<T> {
+  try {
+    return await fn(client(env, c));
+  } catch (e) {
+    if (!isNotFound(e)) return rpc(() => Promise.reject(e));
+  }
+  const urls = c.slug in EDGE_RPCS ? rpcUrls(c.slug as keyof typeof EDGE_RPCS, env) : c.rpcs;
+  for (const u of urls.slice(1)) {
+    const one = requestClient(`${c.slug}|one|${u}`, () => createPublicClient({ chain: c.chain, transport: http(u, { timeout: 5_000, retryCount: 0 }) }) as PublicClient);
+    try {
+      return await fn(one);
+    } catch {
+      // the next node, or the 404 below
+    }
+  }
+  throw new HttpError(404, "not found on this network");
+}
+
 /** A client whose node order suits eth_getLogs (LOG_RPCS); everything else keeps client()'s order. */
 export function logsClient(env: Env, c: ChainDef): PublicClient {
   const slug = c.slug as keyof typeof LOG_RPCS;
@@ -234,7 +259,7 @@ function chainEntries(c: ChainDef): Entry[] {
       head({ hash: EX_TX[c.slug], from: "0x…", to: "0x…", value: "0.0", nonce: 12, gas: "65000", selector: "0xa9059cbb", inputBytes: 68, block: 123456789 }),
       async (env, q) => {
         const hash = txHash(q("hash"));
-        const t = await rpc(() => client(env, c).getTransaction({ hash }));
+        const t = await historyRead(env, c, (cl) => cl.getTransaction({ hash }));
         return head({
           hash: t.hash, from: t.from, to: t.to, value: formatEther(t.value), nonce: t.nonce, gas: t.gas.toString(),
           selector: t.input.length >= 10 ? t.input.slice(0, 10) : null, inputBytes: (t.input.length - 2) / 2, block: t.blockNumber != null ? Number(t.blockNumber) : null,
@@ -247,7 +272,7 @@ function chainEntries(c: ChainDef): Entry[] {
       head({ hash: EX_TX[c.slug], status: "success", block: 123456789, gasUsed: "52000", effectiveGasPriceGwei: "0.012", fee: "0.000000624", logs: 1, contractAddress: null }),
       async (env, q) => {
         const hash = txHash(q("hash"));
-        const r = await rpc(() => client(env, c).getTransactionReceipt({ hash }));
+        const r = await historyRead(env, c, (cl) => cl.getTransactionReceipt({ hash }));
         return head({
           hash: r.transactionHash, status: r.status, block: Number(r.blockNumber), gasUsed: r.gasUsed.toString(),
           effectiveGasPriceGwei: formatGwei(r.effectiveGasPrice), fee: formatEther(r.gasUsed * r.effectiveGasPrice), logs: r.logs.length, contractAddress: r.contractAddress ?? null,
