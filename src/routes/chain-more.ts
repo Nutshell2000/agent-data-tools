@@ -235,8 +235,18 @@ export const CHAIN_MORE: Entry[] = [
       const span = BigInt(num(q, "blocks", { min: 100, max: 20_000, fallback: 3000, integer: true }));
       const limit = num(q, "limit", { min: 1, max: 30, fallback: 20, integer: true });
       const cl = client(env, def(slug));
-      const latest = await rpc(() => cl.getBlockNumber());
-      const scans = await Promise.all(factories.map(async (f) => ({ f, ...(await recentLogs(cl, { address: f.address, topics: [f.topic] }, latest, span, limit)) })));
+      // Log scans go through the log-capable node order (logsClient) and a block a few behind the head, as /token/buyers
+      // does: the general client's first nodes refuse eth_getLogs, and /status showed 5 of 9 calls failing (6 Nov 2026).
+      // One factory's failure leaves the others' pools in the answer; only a total failure is a 502.
+      const logs = logsClient(env, def(slug));
+      const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
+      let lastError: unknown;
+      const settled = await Promise.all(factories.map(async (f) => {
+        try { return { f, ...(await recentLogs(logs, { address: f.address, topics: [f.topic] }, latest, span, limit)) }; }
+        catch (e) { lastError = e; return null; }
+      }));
+      const scans = settled.filter((s): s is NonNullable<typeof s> => s !== null);
+      if (!scans.length) throw lastError;
       const found = scans.flatMap((s) => s.logs.map((l) => decodePoolCreated(l, s.f.dex)).filter((p): p is NewPool => p !== null));
       found.sort((x, y) => y.block - x.block);
       const pools = found.slice(0, limit);
