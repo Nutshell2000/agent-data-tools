@@ -77,6 +77,9 @@ test('Merkle trees match OpenZeppelin, and proofs verify', async () => {
   assert.equal(one.entries.length, 1);
   assert.equal(one.entries[0].index, 1);
   assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), value: values[0].join(',') }).valid, true);
+  // The fields can also go in leaf (the published example carries only required inputs).
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), leaf: values[0].join(','), types: 'address,uint256' }).valid, true);
+  assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), leaf: values[0].join(',') }).valid, true);
   assert.equal(run(verify, { root: out.root, proof: out.entries[0].proof.join(','), leaf: out.entries[0].leaf }).valid, true);
   assert.equal(run(verify, { root: out.root, proof: JSON.stringify(out.entries[0].proof), value: `${values[0][0]},1` }).valid, false);
   // Bad inputs are named.
