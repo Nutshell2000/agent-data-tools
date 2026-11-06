@@ -76,6 +76,10 @@ test('highlights pick the passages that match the query, with scores', async () 
   assert.equal(two.highlights.length, 2);
   assert.ok(two.highlights.every((h) => /shipping|Returns/.test(h)));
   assert.deepEqual(c.highlights('', 'x', 3, 1), { highlights: [], scores: [] });
+  // Navigation chrome is never a highlight, however many query words it holds.
+  const gh = 'Repository navigation [Image alt text: x402-foundation] x402 Public - Notifications - Fork (2.3k) - Star (6.8k) About A payments protocol for the internet. ' +
+    'The x402 payments protocol is built on HTTP and lets clients pay per request.';
+  assert.deepEqual(c.highlights(gh, 'x402 payments protocol', 1, 1).highlights, ['The x402 payments protocol is built on HTTP and lets clients pay per request.']);
   assert.deepEqual(c.queryTerms('What is the x402 payment protocol?'), ['x402', 'payment', 'protocol']);
 });
 
