@@ -5,6 +5,9 @@
 // pages read through extract() in parallel, highlights picked locally, summaries from Workers AI. A page that cannot be
 // read keeps its snippet, so one slow site never fails the call.
 import { extract } from "../routes/extract";
+import { pdfUrl, readPdf } from "../routes/pdf";
+import { HttpError } from "./env";
+import { fetchFile } from "./fetch";
 
 export interface Hit {
   title: string;
@@ -40,9 +43,16 @@ export function queryTerms(q: string): string[] {
   return [...new Set(q.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2 && !STOP.has(w)))];
 }
 
-/** Sentences of readable length from page text. */
+/**
+ * Page chrome that reads like a sentence once the markup is gone (6 Nov 2026, staging: GitHub pages highlighted "Repository
+ * navigation [Image alt text: …] - Notifications - Fork (2.3k)").
+ */
+const CHROME = /\[Image alt text|Skip to (main )?content|\b(Notifications|Fork|Star) \(?\d|\bcookies?\b.{0,40}\b(accept|consent|policy)|\bSign (in|up)\b.{0,30}\bSign (in|up)\b/i;
+const isChrome = (s: string) => CHROME.test(s) || (s.match(/ [-·|•] /g)?.length ?? 0) >= 3;
+
+/** Sentences of readable length from page text, without navigation and cookie chrome. */
 export function sentences(text: string): string[] {
-  return text.replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[\p{Lu}\p{N}"'(])/u).map((s) => s.trim()).filter((s) => s.length >= 30 && s.length <= 600);
+  return text.replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[\p{Lu}\p{N}"'(])/u).map((s) => s.trim()).filter((s) => s.length >= 30 && s.length <= 600 && !isChrome(s));
 }
 
 /**
@@ -108,5 +118,24 @@ export async function enrich(hits: Hit[], query: string, o: ContentsOptions, rea
   }));
 }
 
-/** extract() as the search reader: an 8 s budget and no archive detour, because the snippet is already there. */
-export const readPage: Reader = (url, chars) => extract(url, String(Math.min(100_000, Math.max(500, chars))), "text", undefined, { budgetMs: 8_000, archiveFallback: false }) as Promise<Page>;
+/** A PDF result (whitepapers, filings, papers) read through the PDF tool's reader: the first 5 pages. */
+async function readPdfPage(url: string, chars: number): Promise<Page> {
+  const file = await fetchFile(pdfUrl(url), /^/, 10 * 1024 * 1024, "a PDF", { cacheSeconds: 600, budgetMs: 10_000 });
+  const pdf = await readPdf(file.bytes, 1, 5, Math.max(1_000, chars)) as { title?: string | null; author?: string | null; pages?: { text: string }[] };
+  return { title: pdf.title ?? null, text: (pdf.pages ?? []).map((p) => p.text).join("\n\n"), sourceMetadata: { authors: pdf.author ? [{ value: pdf.author }] : [], dates: [] } };
+}
+
+/**
+ * extract() as the search reader: an 8 s budget and no archive detour, because the snippet is already there. PDF results
+ * go to the PDF reader (6 Nov 2026 staging: x402's whitepaper came back "unsupported content type: application/pdf").
+ */
+export const readPage: Reader = async (url, chars) => {
+  const budget = String(Math.min(100_000, Math.max(500, chars)));
+  if (/\.pdf($|[?#])/i.test(url) || /^https?:\/\/(www\.)?arxiv\.org\/abs\//i.test(url)) return readPdfPage(url, chars);
+  try {
+    return await (extract(url, budget, "text", undefined, { budgetMs: 8_000, archiveFallback: false }) as Promise<Page>);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 415 && /pdf/i.test(e.message)) return readPdfPage(url, chars);
+    throw e;
+  }
+};
