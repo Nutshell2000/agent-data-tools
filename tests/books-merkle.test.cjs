@@ -305,3 +305,21 @@ test('DeFi TVL: one protocol, rankings by category and chain, change rankings wi
     globalThis.fetch = realFetch;
   }
 });
+
+test('airport lookup by code, name and city, and the nearest airports', async () => {
+  const { AIRPORT_TOOLS, km } = await load('src/routes/airports.ts');
+  const run2 = (q) => AIRPORT_TOOLS[0].run({}, (n) => q[n]);
+  assert.equal(run2({ q: 'jfk' }).airports[0].icao, 'KJFK');
+  assert.equal(run2({ q: 'EGLL' }).airports[0].iata, 'LHR');
+  assert.equal(run2({ q: 'Heathrow' }).airports[0].iata, 'LHR');
+  // Big scheduled airports first, whatever the city field says.
+  assert.deepEqual(run2({ q: 'paris', limit: '2' }).airports.map((a) => a.iata), ['CDG', 'ORY']);
+  assert.equal(run2({ q: 'Stockholm' }).airports[0].iata, 'ARN');
+  assert.equal(run2({ q: 'sao paulo' }).airports[0].iata, 'GRU');
+  const near = run2({ lat: '59.33', lon: '18.07', scheduled: 'true', limit: '2' });
+  assert.deepEqual(near.airports.map((a) => a.iata), ['BMA', 'ARN']);
+  assert.ok(near.airports[0].distanceKm > 5 && near.airports[0].distanceKm < 10);
+  assert.ok(Math.abs(km([51.47, -0.4543], [40.6413, -73.7781]) - 5540) < 30);
+  assert.throws(() => run2({}), /give q/);
+  assert.throws(() => run2({ q: 'zzqqxx' }), (e) => e.status === 404);
+});
