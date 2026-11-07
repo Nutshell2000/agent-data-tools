@@ -124,7 +124,7 @@ export const PACKS_MORE: Entry[] = [
     ["location-data", "place-information", "weather", "pack", "geo", "travel"], {
       place: { type: "string", description: "Place name, such as Stockholm or Lyon, France", required: true, example: "Stockholm" },
     },
-    { pack: "location-brief", place: { name: "Stockholm", country: "Sweden", lat: 59.3294, lon: 18.0686, population: 984748 }, weather: { temperatureC: 8.1, conditions: "cloudy", windMs: 4.2 }, sun: { sunrise: "05:43", sunset: "15:12", dayLength: "9h 29m" }, country: { name: "Sweden", capital: "Stockholm", region: "Europe & Central Asia" }, failed: {} },
+    { pack: "location-brief", place: { name: "Stockholm", country: "Sweden", lat: 59.3294, lon: 18.0686, population: 984748 }, weather: { current: { time: "2026-11-07T07:00:00Z", temperatureC: 2.4, conditions: "fair_day", windSpeedMs: 4.3, humidityPercent: 90.1 }, forecast: [{ time: "2026-11-07T08:00:00Z", temperatureC: 2.5, conditions: "clearsky_day" }], source: "MET Norway (api.met.no), licensed CC BY 4.0" }, sun: { date: "2026-11-07", sunrise: "2026-11-07T06:21:06.698Z", sunset: "2026-11-07T14:41:42.379Z", dayLengthMinutes: 501 }, country: { name: "Sweden", iso2: "SE", capital: "Stockholm", region: "Europe & Central Asia", incomeLevel: "High income", population: 10596620 }, failed: {} },
     async (env, q) => {
       const name = need(q, "place", 120);
       const geo = await call(env, "/geocode", { name, count: 1 }) as { results?: Record<string, unknown>[] };

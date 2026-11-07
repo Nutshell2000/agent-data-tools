@@ -141,8 +141,8 @@ export const REGISTRIES: Entry[] = [
       tlds: { type: "string", description: "TLDs to check, comma-separated (default com,net,org,io,ai,co,app,dev,xyz,me)", example: "com,io,ai" },
     },
     {
-      name: "agentdatatools", available: ["agentdatatools.net"], results: [
-        { domain: "agentdatatools.com", status: "taken", method: "rdap", registrar: "Example Registrar, Inc.", created: "2024-03-01", expires: "2027-03-01" },
+      name: "agentdatatools", available: ["agentdatatools.com", "agentdatatools.net"], results: [
+        { domain: "agentdatatools.com", status: "available", method: "rdap" },
         { domain: "agentdatatools.net", status: "available", method: "rdap" },
       ],
     },
