@@ -124,7 +124,7 @@ Open https://agent-data-tools.revmesh2074.workers.dev/extract?url=https%3A%2F%2F
 curl -i 'https://agent-data-tools.revmesh2074.workers.dev/extract?url=https%3A%2F%2Fexample.com&maxChars=20000'
 ```
 
-Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run the tool or sign a payment. Check exact scheme, eip155:8453, recipient 0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5, native USDC 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 and amount 2000 atomic units ($0.002). HEAD is also an unpaid probe.
+Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run the tool or sign a payment. Check exact scheme, eip155:8453, recipient 0x6293ded2684f1a76e26becef87c137d691fbf800, native USDC 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913 and amount 2000 atomic units ($0.002). HEAD is also an unpaid probe.
 
 ## Example result (illustrative, not a paid receipt or live quote)
 
@@ -187,7 +187,7 @@ if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {
 }
 const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);
 const serviceOrigin = "https://agent-data-tools.revmesh2074.workers.dev";
-const expectedPayTo = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+const expectedPayTo = "0x6293ded2684f1a76e26becef87c137d691fbf800";
 const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const maxUsdcAtomic = 2000n; // $0.002 USDC, the current /extract price
 
@@ -229,7 +229,7 @@ if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {
 }
 const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);
 const serviceOrigin = "https://agent-data-tools.revmesh2074.workers.dev";
-const expectedPayTo = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+const expectedPayTo = "0x6293ded2684f1a76e26becef87c137d691fbf800";
 const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const maxUsdcAtomic = 2000n; // $0.002 USDC, the current /extract price
 
