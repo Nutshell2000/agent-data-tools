@@ -281,7 +281,8 @@ export class Metrics extends DurableObject {
       }
       const ran = served + serverErrors;
       const counted = [...(reasons.get(path) ?? [])].sort((a, b) => b[1] - a[1]);
-      const topOf = (refused: boolean) => counted.filter(([reason]) => reason.startsWith(`${REFUSED_PAYMENT} `) === refused).slice(0, 3).map(([reason, count]) => ({ reason, count }));
+      // Six, not three (7 Nov 2026): /extract's top three explained 56 of its 328 refused calls in a week.
+      const topOf = (refused: boolean) => counted.filter(([reason]) => reason.startsWith(`${REFUSED_PAYMENT} `) === refused).slice(0, 6).map(([reason, count]) => ({ reason, count }));
       const top = topOf(false), refusals = topOf(true);
       return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}), ...(refusals.length ? { paymentRefusals: refusals } : {}) };
     });
