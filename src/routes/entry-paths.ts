@@ -11,8 +11,12 @@
  */
 import { entry, need, type Entry, type Input } from "../family";
 import type { Env } from "../lib/env";
+import { EXTRACT_OUTPUT_EXAMPLE } from "../lib/extract-example";
+import { generateImage } from "./ai";
 import { AI_TEXT } from "./ai-text";
 import { CHAIN_READS } from "./chain-reads";
+import { extract } from "./extract";
+import { PAGES } from "./pages";
 import { COMPANY } from "./company";
 import { DEFI_YIELDS } from "./defi-yields";
 import { domainInfo } from "./domain";
@@ -84,6 +88,19 @@ const CORE_SCREENSHOT = core("/screenshot", "$0.01", {
 }, {
   url: "https://example.com/", finalUrl: "https://example.com/", status: 200, title: "Example Domain", width: 1280, height: 800, contentType: "image/jpeg", imageBase64: "/9j/4AAQSkZJRgABAQAAAQABAAD...",
 }, (env: Env, q) => screenshot(env, q("url"), q("fullPage")));
+
+const CORE_IMAGE = core("/image", "$0.03", {
+  prompt: { type: "string", description: "What the image should show (3-800 characters)", required: true, example: "a lighthouse on a cliff at sunset, watercolor" },
+  steps: { type: "integer", description: "Diffusion steps, 1-8 (default 4)", example: 4 },
+}, { prompt: "a lighthouse on a cliff at sunset, watercolor", steps: 4, model: "@cf/black-forest-labs/flux-1-schnell", contentType: "image/jpeg", imageBase64: "/9j/4AAQSkZJRgABAQAAAQABAAD..." },
+(env: Env, q) => generateImage(env, q("prompt"), q("steps")));
+
+const CORE_EXTRACT = core("/extract", "$0.002", {
+  url: { type: "string", description: "Absolute http(s) URL of the page to scrape", required: true, example: "https://example.com" },
+  maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
+  format: { type: "string", description: "Returned representation: text (default), markdown, or both", enum: ["text", "markdown", "both"], example: "text" },
+  section: { type: "string", description: "Optional exact visible HTML ID within the main content, 1-500 characters", example: "retry-policy" },
+}, EXTRACT_OUTPUT_EXAMPLE as Record<string, unknown>, (_env, q) => extract(q("url"), q("maxChars"), q("format"), q("section")));
 
 const YIELDS = from(DEFI_YIELDS, "/defi/yields");
 const MARKETS = from(POLYMARKET, "/polymarket/markets");
@@ -174,6 +191,24 @@ export const ENTRY_PATHS: Entry[] = [
   door("/screenshot/website", "Website screenshot API: capture any web page as an image",
     "Website screenshot API: render any public web page in a real headless Chrome browser with JavaScript executed and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and title; fullPage=true captures up to 4000 px of height. Use for visual checks, previews, monitoring and archiving a page as an agent sees it.",
     ["website-screenshot", "screenshot-api", "screenshot", "page-capture", "browser", "monitoring"], CORE_SCREENSHOT),
+
+  // Round 2 (7 Nov 2026, afternoon): Zero's four biggest intents we sell for and had no door to: image generation (98+87
+  // agents/90 d), web scraping (79), static hosting (46), LLM chat (9+37 members, our /ai/chat sat at #8).
+  door("/image/generate", "Generate image from text prompt: AI image generation, a JPEG in seconds",
+    "Generate an image from a text prompt with FLUX.1 schnell: send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds, with an optional steps setting (1-8) for more detail. Use for illustrations, thumbnails, mockups, avatars, product shots and social media images inside an agent workflow.",
+    ["image-generation", "text-to-image", "generate-image", "ai-image", "flux", "art"], CORE_IMAGE),
+
+  door("/scrape", "Web scraping API: scrape any web page to clean text or Markdown",
+    "Web scraping API: fetch any public web page URL and get its main content as clean text or Markdown (headings, code blocks, tables and links kept), ready for an LLM, RAG or an agent's context; static HTML, Markdown or text pages, up to 100,000 characters. JavaScript-rendered pages: /extract/rendered. Empty pages, bot walls and errors are never charged. Use to read articles, docs and product pages at scale.",
+    ["web-scraping", "scrape", "scraper", "web-page-to-markdown", "extract", "rag"], CORE_EXTRACT),
+
+  door("/page/host", "Host static website, web page: a public URL for HTML your agent made",
+    "Host a static web page: send HTML (up to 200,000 characters) and an optional title and get a public URL at once, valid up to 7 days; the page is sanitised (no scripts, styles, frames or forms), screened by content moderation and served with noindex. Use to hand a person a report, dashboard or summary your agent produced, or to share results between agents.",
+    ["host-static-website", "web-hosting", "publish-html", "host-web-page", "static-site", "share-page"], from(PAGES, "/page/publish")),
+
+  door("/llm/chat", "LLM chat completion API: text generation with Llama 4 Scout",
+    "LLM chat completion and text generation: send a prompt (or an OpenAI messages array with tools and JSON mode) and get an answer from Meta's Llama 4 Scout, up to 1,024 output tokens, in a couple of seconds, at $0.002 a call; OpenAI-compatible at /v1/chat/completions. Use for drafting, summaries, classification, reasoning steps and any quick LLM call without an AI provider account.",
+    ["llm", "chat-completion", "text-generation", "llm-inference", "openai-compatible", "llama"], from(AI_TEXT, "/ai/chat")),
 
   door("/crypto/fear-and-greed", "Crypto fear and greed index: today's value, label, changes and history",
     "Crypto Fear and Greed Index today (0 = extreme fear, 100 = extreme greed) from alternative.me: the value and its label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and daily history up to 90 days. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief.",
