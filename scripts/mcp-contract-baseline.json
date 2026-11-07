@@ -1,5 +1,5 @@
 {
-  "version": "1.100.2",
+  "version": "1.101.0",
   "tools": [
     {
       "name": "extract",
@@ -1328,7 +1328,7 @@
     },
     {
       "name": "fx",
-      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Example: from=USD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency. Example: from=USD. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1356,11 +1356,11 @@
           "from"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "btc_price",
-      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Example: currency=SEK. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current Bitcoin (BTC) spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with the number of satoshis per US dollar and the time of the price. Use to convert between sats and fiat, to value a Bitcoin or Lightning payment, or to check the BTC price before a trade. Example: currency=SEK. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1377,7 +1377,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "base_gas",
@@ -1460,7 +1460,7 @@
     },
     {
       "name": "ens",
-      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Example: name=vitalik.eth. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address. Example: name=vitalik.eth. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1480,11 +1480,11 @@
           "name"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "weather",
-      "description": "Current weather by city name, or by latitude and longitude, for any place on Earth: temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: city=London. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current weather by city name, or by latitude and longitude, for any place on Earth: temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1515,7 +1515,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "time",
@@ -1548,7 +1548,7 @@
     },
     {
       "name": "base_balance",
-      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Base at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use base_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Base at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use base_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1568,7 +1568,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "base_token_balance",
@@ -1625,7 +1625,7 @@
     },
     {
       "name": "base_block",
-      "description": "Latest block number and block details on Base, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use base_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Base, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use base_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1642,7 +1642,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "base_receipt",
@@ -1966,7 +1966,7 @@
     },
     {
       "name": "base_estimate_gas",
-      "description": "Estimate the gas a transaction would use on Base (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use base_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Estimate the gas a transaction would use on Base (eth_estimateGas) and what it would cost at the current gas price, in gas units, gwei and ETH. Give to, plus value in ETH and calldata for a contract call, and the sender when the call depends on it. Use before sending a transaction or to price a batch; for the gas price alone use base_gas. A transaction that would revert is 422 with the reason, uncharged. Example: to=0x000000000000000000000000000000000000dEaD. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2002,7 +2002,7 @@
           "to"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "base_gas_history",
@@ -2029,7 +2029,7 @@
     },
     {
       "name": "eth_balance",
-      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Ethereum at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use eth_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2049,7 +2049,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "eth_token_balance",
@@ -2106,7 +2106,7 @@
     },
     {
       "name": "eth_block",
-      "description": "Latest block number and block details on Ethereum, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use eth_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Ethereum, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use eth_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2123,11 +2123,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "eth_gas",
-      "description": "Current gas price on Ethereum (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Ethereum (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use eth_receipt. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2144,7 +2144,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "eth_tx",
@@ -2589,7 +2589,7 @@
     },
     {
       "name": "arb_balance",
-      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Arbitrum One at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use arb_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Arbitrum One at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use arb_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2609,7 +2609,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "arb_token_balance",
@@ -2666,7 +2666,7 @@
     },
     {
       "name": "arb_block",
-      "description": "Latest block number and block details on Arbitrum One, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use arb_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Arbitrum One, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use arb_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2683,11 +2683,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "arb_gas",
-      "description": "Current gas price on Arbitrum One (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Arbitrum One (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use arb_receipt. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2704,7 +2704,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "arb_tx",
@@ -3149,7 +3149,7 @@
     },
     {
       "name": "op_balance",
-      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native ETH balance (eth_getBalance) of any 0x wallet address on Optimism at the latest block, in wei and in ETH. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use op_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3169,7 +3169,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "op_token_balance",
@@ -3226,7 +3226,7 @@
     },
     {
       "name": "op_block",
-      "description": "Latest block number and block details on Optimism, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use op_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Optimism, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use op_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3243,11 +3243,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "op_gas",
-      "description": "Current gas price on Optimism (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Optimism (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain ETH transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use op_receipt. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3264,7 +3264,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "op_tx",
@@ -3709,7 +3709,7 @@
     },
     {
       "name": "polygon_balance",
-      "description": "Native POL balance (eth_getBalance) of any 0x wallet address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Native POL balance (eth_getBalance) of any 0x wallet address on Polygon PoS at the latest block, in wei and in POL. Use to check whether a wallet can pay gas or a transfer; for ERC-20 tokens use polygon_token_balance, for all holdings at once use wallet_portfolio. A malformed address is rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3729,7 +3729,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polygon_token_balance",
@@ -3786,7 +3786,7 @@
     },
     {
       "name": "polygon_block",
-      "description": "Latest block number and block details on Polygon PoS, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use polygon_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest block number and block details on Polygon PoS, or any block by decimal number: hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use for timestamps and confirmation counts; for current fees use polygon_gas. A block that does not exist yet returns 404, uncharged. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3803,11 +3803,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polygon_gas",
-      "description": "Current gas price on Polygon PoS (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current gas price on Polygon PoS (eth_gasPrice): gas price, base fee and suggested priority fee in gwei, plus what a plain POL transfer (21,000 gas) costs right now. Takes no input. Use before sending a transaction or to decide whether to wait; for the fee a past transaction actually paid use polygon_receipt. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3824,7 +3824,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polygon_tx",
@@ -4269,7 +4269,7 @@
     },
     {
       "name": "wallet_balances",
-      "description": "Read a wallet's native coin and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, live from each network, plus the USDC total. Use to find where a wallet's funds are before a payment or bridge; for one token on one network use <chain>_token_balance, for all tokens on Base use wallet_portfolio. A network whose nodes do not answer is listed with an error instead of failing the call. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read a wallet's native coin and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, live from each network, plus the USDC total. Use to find where a wallet's funds are before a payment or bridge; for one token on one network use <chain>_token_balance, for all tokens on Base use wallet_portfolio. A network whose nodes do not answer is listed with an error instead of failing the call. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4289,7 +4289,7 @@
           "address"
         ]
       },
-      "price": "$0.005"
+      "price": "$0.002"
     },
     {
       "name": "wallet_related",
@@ -10760,7 +10760,7 @@
     },
     {
       "name": "solana_balance",
-      "description": "SOL balance of a Solana wallet, read live from mainnet in lamports and SOL, plus its SPL token accounts (mint, symbol for well-known tokens, decimals, amount) when the public node serves them; otherwise tokens is null with a note. Use to check a Solana wallet before a payment. An address that is not 32-byte base58 is 400, uncharged. Example: address=vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "SOL balance of a Solana wallet, read live from mainnet in lamports and SOL, plus its SPL token accounts (mint, symbol for well-known tokens, decimals, amount) when the public node serves them; otherwise tokens is null with a note. Use to check a Solana wallet before a payment. An address that is not 32-byte base58 is 400, uncharged. Example: address=vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10780,7 +10780,7 @@
           "address"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "solana_token",
@@ -10814,7 +10814,7 @@
     },
     {
       "name": "price_token",
-      "description": "Token price in USD for a crypto token by symbol (ETH, BTC, USDC, AERO, ARB, OP, LINK…), coin name, CoinGecko id or ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns the pool, fee tier, quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: symbol=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Token price in USD for a crypto token by symbol (ETH, BTC, USDC, AERO, ARB, OP, LINK…), coin name, CoinGecko id or ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns the pool, fee tier, quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10845,11 +10845,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "price_tokens",
-      "description": "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call. Example: symbols=ETH,BTC,AERO. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call. Example: symbols=ETH,BTC,AERO. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10880,7 +10880,7 @@
           }
         }
       },
-      "price": "$0.005"
+      "price": "$0.002"
     },
     {
       "name": "wallet_portfolio",
@@ -10922,7 +10922,7 @@
     },
     {
       "name": "fx_all",
-      "description": "All FX pairs in one call: cross rates for every pair among the major currencies (USD, EUR, GBP, JPY, CHF, CAD, AUD, CNY) or up to 12 chosen ones, from the European Central Bank's daily reference rates, with the date they apply to. Use to fill a forex rate table, convert between many currencies at once, or check a cross rate. Reference mid rates, not live bid/ask. Example: currencies=USD,EUR,GBP. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "All FX pairs in one call: cross rates for every pair among the major currencies (USD, EUR, GBP, JPY, CHF, CAD, AUD, CNY) or up to 12 chosen ones, from the European Central Bank's daily reference rates, with the date they apply to. Use to fill a forex rate table, convert between many currencies at once, or check a cross rate. Reference mid rates, not live bid/ask. Example: currencies=USD,EUR,GBP. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10939,7 +10939,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "fx_symbols",
@@ -11110,7 +11110,7 @@
     },
     {
       "name": "crypto_trending",
-      "description": "Trending crypto coins right now: the coins most searched on CoinGecko in the last 24 hours, in order, with price, 24-hour change, market cap, volume and market-cap rank, plus the trending categories. Use to spot what the market is watching, feed a crypto news or trading agent, or pick coins to research next. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Trending crypto coins right now: the coins most searched on CoinGecko in the last 24 hours, in order, with price, 24-hour change, market cap, volume and market-cap rank, plus the trending categories. Use to spot what the market is watching, feed a crypto news or trading agent, or pick coins to research next. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11127,7 +11127,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "stock_quote",
@@ -12269,7 +12269,7 @@
     },
     {
       "name": "hash",
-      "description": "SHA256 hash of UTF-8 text (SHA-256 by default; SHA-1, SHA-384 or SHA-512 on request), returned as a digest in hex and base64. Use for checksums, cache keys and deduplication. Example: text=hello. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "SHA256 hash of UTF-8 text (SHA-256 by default; SHA-1, SHA-384 or SHA-512 on request), returned as a digest in hex and base64. Use for checksums, cache keys and deduplication. Example: text=hello. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12293,11 +12293,11 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "hmac",
-      "description": "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored. Example: message=hello, key=secret. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Compute an HMAC of a message with a key using SHA-256 (default), SHA-1, SHA-384 or SHA-512, in hex and base64. Use to check webhook signatures. The key is used only for this call and is not stored. Example: message=hello, key=secret. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12326,11 +12326,11 @@
           "key"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "uuid",
-      "description": "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data. Example: count=3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Generate 1 to 100 random version-4 UUIDs from a cryptographic random source. Use for IDs, idempotency keys and test data. Example: count=3. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12349,7 +12349,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "slug",
@@ -12487,7 +12487,7 @@
     },
     {
       "name": "regex_test",
-      "description": "Run a JavaScript regular expression against a text and return every match with its index and capture groups (named groups included). Pattern up to 300 characters, text up to 5,000; patterns with nested quantifiers such as (a+)+ are refused as unsafe, uncharged. Use to check a pattern before using it in code. Example: pattern=(\\d{4})-(\\d{2}), text=2026-10 and 2027-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Run a JavaScript regular expression against a text and return every match with its index and capture groups (named groups included). Pattern up to 300 characters, text up to 5,000; patterns with nested quantifiers such as (a+)+ are refused as unsafe, uncharged. Use to check a pattern before using it in code. Example: pattern=(\\d{4})-(\\d{2}), text=2026-10 and 2027-01. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12516,7 +12516,7 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "cron_next",
@@ -13088,7 +13088,7 @@
     },
     {
       "name": "mime",
-      "description": "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files. Example: file=report.xlsx. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "MIME (content) type for a file name or extension, e.g. report.pdf → application/pdf, and whether browsers usually display it inline. Use when uploading or serving files. Example: file=report.xlsx. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13108,7 +13108,7 @@
           "file"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "qr",
@@ -13712,7 +13712,7 @@
     },
     {
       "name": "ip_lookup",
-      "description": "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged. Example: ip=8.8.8.8. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13732,7 +13732,7 @@
           "ip"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "geo_distance",
@@ -14018,7 +14018,7 @@
     },
     {
       "name": "dns_lookup",
-      "description": "Look up DNS records of a domain over DNS-over-HTTPS (Cloudflare 1.1.1.1): A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY or HTTPS, with each answer's TTL, the response code (NOERROR, NXDOMAIN…) and whether DNSSEC validated. Use to check email (MX, SPF in TXT), verify a domain, or debug a DNS change; for whether the change has spread use dns_propagation. Example: name=example.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up DNS records of a domain over DNS-over-HTTPS (Cloudflare 1.1.1.1): A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY or HTTPS, with each answer's TTL, the response code (NOERROR, NXDOMAIN…) and whether DNSSEC validated. Use to check email (MX, SPF in TXT), verify a domain, or debug a DNS change; for whether the change has spread use dns_propagation. Example: name=example.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14042,7 +14042,7 @@
           "name"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "dns_propagation",
@@ -14126,6 +14126,30 @@
         }
       },
       "price": "$0.04"
+    },
+    {
+      "name": "audit_website",
+      "description": "Full website audit of one URL from a single load in a real browser: WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link), page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to audit"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "date_business_days",
@@ -14367,7 +14391,7 @@
     },
     {
       "name": "pack_crypto_market",
-      "description": "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard. Example: coins=BTC,ETH,SOL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Market sentiment, prices and signals in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, technical readings (RSI, MACD, moving averages) for up to three coins, and Bitcoin fee rates. Cheaper than the five tools bought one by one. Use for a daily market brief, a trading agent's context or a dashboard. Example: coins=BTC,ETH,SOL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14384,7 +14408,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "pack_token_analysis",
@@ -14544,7 +14568,7 @@
     },
     {
       "name": "pack_hash_toolbox",
-      "description": "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems. Example: text=hello world. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Every common hash of one input in a single call: MD5, SHA-1, SHA-256, SHA-384, SHA-512, Keccak-256 (Ethereum), CRC-32, base64 SHA-256, and Subresource Integrity strings (sha256-, sha384-, sha512-) for <script integrity>. Hashes UTF-8 text, or 0x/hex bytes with hex=true. Cheaper than hashing one algorithm at a time. Use for checksums, cache keys, file integrity and comparing digests across systems. Example: text=hello world. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14572,7 +14596,7 @@
           "text"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "pack_encoding_toolbox",
@@ -14745,7 +14769,7 @@
     },
     {
       "name": "pack_id_toolbox",
-      "description": "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data. Example: count=3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Generate unique IDs of every common kind in one call: UUID v4 (random), UUID v7 and ULID (time-ordered, sort by creation), NanoID (21 URL-safe characters) and random base62 and hex strings, up to 20 of each, from the platform's cryptographic random source; and decode the creation time hidden in a ULID or UUID v7. Use for database keys, request and trace IDs, file names or test data. Example: count=3. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14774,7 +14798,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "pack_string_toolbox",
@@ -15104,7 +15128,7 @@
     },
     {
       "name": "pack_gas_tracker",
-      "description": "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15121,7 +15145,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "pack_domain_intel",
@@ -16115,7 +16139,7 @@
     },
     {
       "name": "wikipedia",
-      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Example: title=Stockholm. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Example: title=Stockholm. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16139,7 +16163,7 @@
           "title"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "dictionary",
@@ -16254,7 +16278,7 @@
     },
     {
       "name": "geocode",
-      "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Example: name=Uppsala. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart. Example: name=Uppsala. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16280,7 +16304,7 @@
           "name"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "elevation",
@@ -16391,7 +16415,7 @@
     },
     {
       "name": "crypto_price",
-      "description": "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move. Example: ids=bitcoin,ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move. Example: ids=bitcoin,ethereum. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16415,7 +16439,7 @@
           "ids"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "npm_downloads",
@@ -16511,7 +16535,7 @@
     },
     {
       "name": "sec_filings",
-      "description": "Latest SEC EDGAR filings for a US-listed company by stock ticker or CIK: form (10-K, 10-Q, 8-K, 4, S-1…), filing and report dates, accession number, document description and a direct link, newest first, optionally only one form type. Plus company name, CIK and industry (SIC). Public SEC data. Use to check a company's latest annual or quarterly report, insider trades (form 4) or material events (8-K). Example: ticker=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Latest SEC EDGAR filings for a US-listed company by stock ticker or CIK: form (10-K, 10-Q, 8-K, 4, S-1…), filing and report dates, accession number, document description and a direct link, newest first, optionally only one form type. Plus company name, CIK and industry (SIC). Public SEC data. Use to check a company's latest annual or quarterly report, insider trades (form 4) or material events (8-K). Example: ticker=AAPL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16546,7 +16570,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "airport_status",
@@ -16691,7 +16715,7 @@
     },
     {
       "name": "hyperliquid_market",
-      "description": "Live Hyperliquid perpetual futures data for a coin (BTC, ETH, SOL, HYPE…): mark, oracle and mid price, hourly funding rate and its APR, premium, open interest in coins and USD, 24-hour volume and price change, and max leverage. Without a coin, the 20 most traded markets by 24-hour volume. Read from Hyperliquid's public API. Use for funding-rate checks, basis trades, derivatives dashboards and market context. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Live Hyperliquid perpetual futures data for a coin (BTC, ETH, SOL, HYPE…): mark, oracle and mid price, hourly funding rate and its APR, premium, open interest in coins and USD, 24-hour volume and price change, and max leverage. Without a coin, the 20 most traded markets by 24-hour volume. Read from Hyperliquid's public API. Use for funding-rate checks, basis trades, derivatives dashboards and market context. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16708,11 +16732,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "hyperliquid_orderbook",
-      "description": "Live order book of a Hyperliquid perpetual (BTC, ETH, SOL, HYPE…): the best bid and ask levels with price, size and order count, the mid price, the spread in USD and basis points, and the summed depth on each side. Up to 20 levels a side (default 10). Read from Hyperliquid's public API. Use to judge liquidity and slippage before a trade, or for market-making and arbitrage checks. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Live order book of a Hyperliquid perpetual (BTC, ETH, SOL, HYPE…): the best bid and ask levels with price, size and order count, the mid price, the spread in USD and basis points, and the summed depth on each side. Up to 20 levels a side (default 10). Read from Hyperliquid's public API. Use to judge liquidity and slippage before a trade, or for market-making and arbitrage checks. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16735,11 +16759,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "hyperliquid_candles",
-      "description": "Historical price candles (OHLCV) of a Hyperliquid perpetual such as BTC, ETH or SOL: open, high, low, close, volume in coins and trade count per bar, newest last. Intervals 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w and more; up to 500 bars (default 50). Read from Hyperliquid's public API. Use for charts, backtests, volatility and trend checks, or as context for a trading agent. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Historical price candles (OHLCV) of a Hyperliquid perpetual such as BTC, ETH or SOL: open, high, low, close, volume in coins and trade count per bar, newest last. Intervals 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w and more; up to 500 bars (default 50). Read from Hyperliquid's public API. Use for charts, backtests, volatility and trend checks, or as context for a trading agent. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16766,7 +16790,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "hyperliquid_funding_history",
@@ -16822,7 +16846,7 @@
     },
     {
       "name": "hyperliquid_prices",
-      "description": "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market. Example: coins=BTC,ETH,SOL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market. Example: coins=BTC,ETH,SOL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16839,7 +16863,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "hyperliquid_account",
@@ -17436,7 +17460,7 @@
     },
     {
       "name": "crypto_fear_greed",
-      "description": "The Crypto Fear & Greed Index (0 = extreme fear, 100 = extreme greed) from alternative.me: today's value and label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and the daily history (up to 90 days, default 30). Updated once a day. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief; for live prices use price_token. Example: days=30. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "The Crypto Fear & Greed Index (0 = extreme fear, 100 = extreme greed) from alternative.me: today's value and label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and the daily history (up to 90 days, default 30). Updated once a day. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief; for live prices use price_token. Example: days=30. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -17455,7 +17479,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "coin",
@@ -18420,7 +18444,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 1,000 characters of text into natural speech as an audio file (base64, with its content type), in English, Spanish, French, Chinese, Japanese or Korean, with MeloTTS. Use for voice replies, audio notes, accessibility and phone or chat bots. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, narration, audio notes, accessibility and phone or chat bots. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18433,19 +18457,19 @@
         "properties": {
           "text": {
             "type": "string",
-            "description": "Text to speak, up to 1,000 characters"
+            "description": "Text to speak, up to 300 characters"
           },
           "lang": {
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Language: en, es, fr, zh, ja or ko (default en)"
+            "description": "Language: en or es (default en)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
           }
         },
         "required": [
