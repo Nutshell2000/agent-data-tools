@@ -9,4 +9,5 @@ import { MODEL_PATHS } from "../routes/ai-text";
 // The per-model chat endpoints (/ai/model/*) and /ai/chat-large cost more Workers AI per call than the 8B text tools,
 // so they stay paid-only: the free calls cover the cheap AI text tools.
 // /page/publish stores content and runs a moderation model per call: paid only, never on marketplaces (1.84.0).
-export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/screenshot", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/search/similar", "/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", "/ai/speech", "/audit/website", ...MODEL_PATHS]);
+// The entry paths of capacity-limited tools (src/routes/entry-paths.ts, 7 Nov 2026) follow their canonical tool.
+export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/screenshot", "/screenshot/website", "/extract/rendered", "/image", "/transcribe", "/describe", "/search", "/search/web", "/search/similar", "/news", "/news/search", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", "/ai/speech", "/ai/tts", "/audit/website", ...MODEL_PATHS]);
