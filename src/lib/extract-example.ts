@@ -1,4 +1,6 @@
 // Actual local extraction of owned HTML; demonstration, not a customer receipt.
+// 7 Nov 2026: shown in the default format (text), because the listing's example call sends only the url; trust scanners
+// (Settled's scout) compare the paid answer of that call with this example, and a "markdown" field here failed them.
 export const EXTRACT_OUTPUT_EXAMPLE = {
   "url": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
   "finalUrl": "https://agent-data-tools.revmesh2074.workers.dev/examples/extract/sources/short-article.html",
@@ -29,9 +31,8 @@ export const EXTRACT_OUTPUT_EXAMPLE = {
   "codeBlocks": [],
   "contentSelection": "main",
   "warnings": [],
-  "format": "both",
+  "format": "text",
   "text": "A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
-  "markdown": "# A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
   "textLength": 198,
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
