@@ -39,7 +39,8 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
   client.settle = ((payload: unknown, requirements: unknown) => settle(...(withoutQuery(payload, requirements) as Parameters<typeof settle>))) as typeof client.settle;
 
   const original = client.getSupported.bind(client);
-  let lastGood: Awaited<ReturnType<typeof original>> | undefined;
+  type Supported = Awaited<ReturnType<typeof original>>;
+  let lastGood: Supported | undefined;
   client.getSupported = async () => {
     // A cold isolate otherwise signs a CDP JWT and calls /supported before it can quote at all, which made unpaid
     // 402 quotes take ~750 ms instead of ~150 ms; probes and directories mostly hit cold isolates and rank by it.
@@ -49,7 +50,7 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
     if (cached) {
       // Once per isolate: a colo's edge copy also seeds the durable one, so it exists even while the facilitator refuses.
       await keepDurable(store, client.url, cached);
-      return (lastGood = cached as typeof lastGood)!;
+      return (lastGood = cached as Supported);
     }
     let lastError: unknown;
     for (let attempt = 0; attempt < 6; attempt++) {
@@ -73,7 +74,7 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
     const durable = await readDurable(store, client.url);
     if (durable) {
       console.error(`facilitator /supported failed (${String((lastError as Error)?.message ?? lastError).slice(0, 160)}); quoting from the stored copy`);
-      return (lastGood = durable as typeof lastGood)!;
+      return (lastGood = durable as Supported);
     }
     throw lastError;
   };
