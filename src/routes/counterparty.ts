@@ -62,7 +62,8 @@ export const COUNTERPARTY: Entry[] = [
       sanctions: { listed: false, matches: [], listDate: "2026-10-17T20:15:00.000Z" },
       account: { type: "eoa", riskLevel: "low", riskFlags: [], accountNonce: 1234 },
       contract: null,
-      domain: { name: "ethereum.org", trust: "high", ageDays: 4100, registeredAt: "2015-03-21T00:00:00Z", flags: [] },
+      // The published example call sends no domain (only required inputs), so its answer has domain: null; scanners compare the two (7 Nov 2026).
+      domain: null,
       holdings: { totalUsd: 1234.56, tokensChecked: 9 },
       limitations: [],
       note: "Screening aid only: confirm any sanctions match against the official OFAC record; heuristics are not a security audit.",
@@ -127,7 +128,8 @@ export const COUNTERPARTY: Entry[] = [
       address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", chain: "base", verdict: "pass", reasons: [],
       sanctions: { listed: false, matches: [], listDate: "2026-10-17T20:15:00.000Z" },
       account: { type: "eoa", accountNonce: 1234 },
-      domain: { name: "ethereum.org", trust: "high", ageDays: 4100, registeredAt: "2015-03-21T00:00:00Z", flags: [] },
+      // The published example call sends no domain (only required inputs), so its answer has domain: null; scanners compare the two (7 Nov 2026).
+      domain: null,
       limitations: [],
       note: "Screening aid only: confirm any sanctions match against the official OFAC record.",
     },
