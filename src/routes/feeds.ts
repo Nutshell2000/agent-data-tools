@@ -152,12 +152,14 @@ export const FEEDS: Entry[] = [
   entry("/feed", "RSS feed parser and reader: read an RSS or Atom feed",
     "Read a public RSS 2.0, RSS 1.0 or Atom feed and get the feed title, link and description plus its newest items: title, link, date (ISO 8601), short plain-text summary, author and id. Up to 50 items, feeds up to 2 MB. Lenient with real-world feeds; a page that is not a feed returns 422, uncharged. Use to follow news, blogs, release notes or podcasts without scraping pages.",
     ["rss", "atom", "feed", "news", "web", "monitoring"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed", required: true, example: "https://blog.cloudflare.com/rss/" },
+      url: { type: "string", description: "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed", required: true, example: "https://hnrss.org/frontpage" },
       limit: { type: "integer", description: "Items to return (1-50, default 20)", example: 10 },
     },
     {
-      url: "https://blog.cloudflare.com/rss/", format: "rss", title: "Cloudflare Blog", link: "https://blog.cloudflare.com/", description: "Technical deep dives, product news and research…", count: 1,
-      items: [{ title: "An example post", link: "https://blog.cloudflare.com/…", date: "2026-10-17T16:00:00.000Z", summary: "A short plain-text summary…", author: "Cloudflare", id: "https://blog.cloudflare.com/…" }],
+      // 7 Nov 2026: hnrss.org, because blog.cloudflare.com answers Cloudflare Workers with 429, so every scanner's paid test of
+      // the published example failed. Checked from staging: hnrss.org and feeds.bbci.co.uk answer.
+      url: "https://hnrss.org/frontpage", format: "rss", title: "Hacker News: Front Page", link: "https://news.ycombinator.com/", description: "Hacker News RSS", count: 1,
+      items: [{ title: "An example story", link: "https://example.com/…", date: "2026-11-07T06:00:00.000Z", summary: "A short plain-text summary…", author: "someone", id: "https://news.ycombinator.com/item?id=…" }],
     },
     async (_env, q) => {
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });
