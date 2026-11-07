@@ -60,6 +60,12 @@ let payments: { server: ReturnType<typeof resourceServer>; terms: Record<string,
 
 async function paymentState(env: Env) {
   if (payments) return payments;
+  // One more try on a fresh server, as the HTTP paywall does: a failed start-up lost the whole MCP call.
+  try { return await startPayments(env); } catch (err) { console.error("mcp payment start-up failed; retrying once", err); }
+  return startPayments(env);
+}
+
+async function startPayments(env: Env) {
   const server = resourceServer(env);
   await server.initialize();
   const built: Record<string, Accepts> = {};

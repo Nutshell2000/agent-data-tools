@@ -979,3 +979,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/ai/speech`: Deepgram Aura-2 (`@cf/deepgram/aura-2-en`, `-es`), $0.030 per 1,000 characters, so `SPEECH_MAX` 300 keeps a call under its $0.01 price. A longer limit needs a higher price (owner's decision). `audioToBase64` takes a stream, bytes, a buffer or `{ audio }`.
 - Both are in `CAPACITY_LIMITED`. BROWSER_DAILY_CAP is 200 (about 15 s of browser time a call; Workers Paid includes 10 browser hours a month).
 
+
+
+## Failures that were ours (1.101.1, 7 Nov 2026, no new tools)
+
+- A JSON 500 with `error: "Internal Server Error"` on /status is @x402/hono's own `internalErrorResponse` (our onError says "internal error"). The paywall wrapper in src/index.ts retries once on a fresh gateway when the library fails before the tool ran (`gatewayFailed`, `ran` flag), then answers 503 `PAYWALL_UNAVAILABLE` with Retry-After. MCP's `paymentState` retries `startPayments` once. Tests: tests/gateway-startup.test.cjs.
+- Body reads after `fetchPublic` share its timeout signal: wrap them in `bodyWithin()` (src/lib/fetch.ts) so a slow target is a 504 TARGET_UNAVAILABLE, not our 502. Done for `fetchFile` and the cache path; other callers read bodies themselves.
+- ARIN (rdap.arin.net, whois.arin.net) answers Cloudflare egress with 525. `/ip/lookup` falls back to RIPEstat's whois (`fromWhois` in src/routes/geo-ip.ts). Test an upstream from Cloudflare with a free trial of `/url/uptime?url=<upstream>` before building on it.
+- Zero.xyz writes its own `whatItDoes`/`whenToPreferThis` once per capability and does not regenerate them when our description changes (7 Nov: /weather's record still says lat/lon only and "prefer alternatives for city lookup"); its search ranks on that text. Our descriptions reach the record's `description` field only.
+
