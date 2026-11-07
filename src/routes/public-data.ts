@@ -2,6 +2,7 @@
 // Outside failures are 502 (not charged); "not found" answers are 404 (not charged).
 import { entry, getJson, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { cryptoPrices } from "../lib/coin-prices";
 import { countryCode, countryName } from "../lib/country-code";
 import { parseDate } from "../lib/relative-date";
 import { holidaysFor } from "./holidays";
@@ -229,16 +230,17 @@ export const PUBLIC_DATA: Entry[] = [
       const p = Array.isArray(pop) && pop.length > 1 ? (pop[1] as Array<{ date: string; value: number | null }> | null)?.[0] : undefined;
       return { name: c.name, iso2: c.iso2Code, iso3: c.id, region: c.region.value, incomeLevel: c.incomeLevel.value, capital: c.capitalCity || null, capitalLat: c.latitude ? Number(c.latitude) : null, capitalLon: c.longitude ? Number(c.longitude) : null, population: p?.value ?? null, populationYear: p ? Number(p.date) : null, source: "World Bank" };
     }),
-  entry("/crypto/price", "Crypto prices", "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with 24-hour change and market cap. Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move.",
+  entry("/crypto/price", "Crypto prices", "Current price of up to 25 cryptocurrencies by CoinGecko id (bitcoin, ethereum, solana, usd-coin…) in up to 5 currencies, with the 24-hour change (from Coinbase for the coins it trades; tickers such as BTC work too). Use to price coins that are not on-chain tokens, value a portfolio in several currencies, or check a move.",
     ["crypto", "prices", "markets", ...P], { ids: { type: "string", description: "Comma-separated CoinGecko ids", required: true, example: "bitcoin,ethereum" }, vs: { type: "string", description: "Comma-separated currencies (default usd)", example: "usd,eur" } },
-    { prices: { bitcoin: { usd: 67000, usd_24h_change: -1.2, usd_market_cap: 1.32e12 } }, source: "CoinGecko" },
+    { prices: { bitcoin: { usd: 101250.5, usd_24h_change: -1.2, usd_market_cap: null }, ethereum: { usd: 2241.23, usd_24h_change: 0.84, usd_market_cap: null } }, missing: [], source: "Coinbase" },
     async (_e, q) => {
       const ids = need(q, "ids", 500).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
       const vs = (opt(q, "vs", 60) ?? "usd").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
       if (ids.length > 25 || vs.length > 5 || ![...ids, ...vs].every((x) => /^[a-z0-9-]+$/.test(x))) throw new HttpError(400, "up to 25 ids and 5 currencies, letters, digits and hyphens only");
-      const r = await getJson<Record<string, Record<string, number>>>(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=${vs.join(",")}&include_24hr_change=true&include_market_cap=true`);
-      if (!Object.keys(r).length) throw new HttpError(404, "none of those ids were found");
-      return { prices: r, missing: ids.filter((i) => !(i in r)), source: "CoinGecko" };
+      // Coinbase first for the coins it trades, CoinGecko for the rest (src/lib/coin-prices.ts: CoinGecko refuses Workers).
+      const r = await cryptoPrices(ids, vs);
+      if (!Object.keys(r.prices).length) throw new HttpError(404, "none of those ids were found (use CoinGecko ids such as bitcoin, or tickers such as BTC)");
+      return r;
     }),
 
   entry("/npm/downloads", "npm package downloads", "Download counts of an npm package for the last day, week and month, from the official npm registry API. Use to judge how widely a dependency is used.",
