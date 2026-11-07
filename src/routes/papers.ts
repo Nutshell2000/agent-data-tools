@@ -110,6 +110,8 @@ async function fromCrossref(query: string, limit: number, fromYear: number | nul
   return { total: body.message?.["total-results"] ?? results.length, results, source: "Crossref" };
 }
 
+let openAlexPausedUntil = 0;
+
 export async function searchPapers(queryParam: string | undefined, limitParam?: string, fromYearParam?: string) {
   const query = (queryParam ?? "").trim();
   if (query.length < 3 || query.length > 300) throw new HttpError(400, "query must be 3 to 300 characters");
@@ -117,7 +119,12 @@ export async function searchPapers(queryParam: string | undefined, limitParam?: 
   const fromYear = Math.trunc(Number(fromYearParam)) || null;
   if (fromYear !== null && (fromYear < 1800 || fromYear > 2100)) throw new HttpError(400, "fromYear must be a four-digit year");
 
-  const found = await fromOpenAlex(query, limit, fromYear).catch((e) => {
+  // OpenAlex gives keyless callers a shared daily budget, and Cloudflare's egress spends it (429 "Insufficient budget"
+  // from Cloudflare on 7 Nov 2026), so after a 429 the isolate goes straight to Crossref for 10 minutes instead of
+  // paying a failed round trip on every call.
+  const openAlex = Date.now() < openAlexPausedUntil ? Promise.reject(new Error("OpenAlex paused after a 429")) : fromOpenAlex(query, limit, fromYear);
+  const found = await openAlex.catch((e) => {
+    if (/HTTP 429/.test(String(e))) openAlexPausedUntil = Date.now() + 10 * 60_000;
     console.error(`papers: ${e}; falling back to Crossref`);
     return fromCrossref(query, limit, fromYear).catch(() => {
       throw new HttpError(502, "the paper indexes did not respond");
