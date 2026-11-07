@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "614 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "635 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -959,6 +959,8 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/eth/balance", "/base/balance", "/arb/balance", "/op/balance", "/polygon/balance", "/solana/balance", "/wallet/balances", "/ens",
   "/weather", "/fx", "/fx/all", "/geocode", "/ip/lookup", "/dns/lookup", "/wikipedia", "/sec/filings",
   "/hash", "/hmac", "/uuid", "/mime", "/regex/test", "/pack/hash-toolbox", "/pack/id-toolbox",
+  // Entry paths (7 Nov 2026, src/routes/entry-paths.ts) share their canonical tool's live price.
+  "/weather/forecast", "/fx/rates", "/geocode/address", "/token/price", "/crypto/fear-and-greed", "/wallet/balance",
 ]);
 const acquisitionPriced = (e: Endpoint): Endpoint => (ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e);
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
