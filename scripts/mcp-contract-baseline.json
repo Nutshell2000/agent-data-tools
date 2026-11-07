@@ -1,5 +1,5 @@
 {
-  "version": "1.101.4",
+  "version": "1.102.0",
   "tools": [
     {
       "name": "extract",
@@ -16714,6 +16714,56 @@
       "price": "$0.01"
     },
     {
+      "name": "econ_national_debt",
+      "description": "US national debt from the Treasury's Debt to the Penny dataset: total public debt outstanding, debt held by the public and intragovernmental holdings (USD) at the latest record date, the change over 1 day, 30 days and 1 year, and a daily history (1-365 days). US federal data, public domain; the snapshot's record date is in the answer. Use when an agent needs the current US federal debt figure, its trend, or a daily series for a chart or brief. Example: days=30. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days of daily history to return, 1-365 (default 30)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "econ_treasury_rates",
+      "description": "Average interest rates on US Treasury securities by month from the Treasury's Fiscal Data: bills, notes, bonds, TIPS, floating rate notes and the non-marketable series, with totals for marketable, non-marketable and all interest-bearing debt, for the latest month and up to 24 months. US federal data, public domain, from a dated snapshot. Use for the US government's borrowing cost, a rate trend or macro context; not a live yield curve. Example: months=12. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Months of history for the totals, 1-24 (default 12)"
+          },
+          "security": {
+            "type": "string",
+            "description": "Optional filter on the security name: bills, notes, bonds, TIPS, floating, marketable…"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "hyperliquid_market",
       "description": "Live Hyperliquid perpetual futures data for a coin (BTC, ETH, SOL, HYPE…): mark, oracle and mid price, hourly funding rate and its APR, premium, open interest in coins and USD, 24-hour volume and price change, and max leverage. Without a coin, the 20 most traded markets by 24-hour volume. Read from Hyperliquid's public API. Use for funding-rate checks, basis trades, derivatives dashboards and market context. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -17461,6 +17511,645 @@
     {
       "name": "crypto_fear_greed",
       "description": "The Crypto Fear & Greed Index (0 = extreme fear, 100 = extreme greed) from alternative.me: today's value and label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and the daily history (up to 90 days, default 30). Updated once a day. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief; for live prices use price_token. Example: days=30. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days of history, 1-90 (default 30)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "weather_forecast",
+      "description": "Weather forecast by city name or coordinates: current temperature, conditions, precipitation, wind, humidity, cloud cover and pressure, plus an hourly forecast up to 48 hours ahead, for any city on Earth (MET Norway data). Give a city such as London or Tokyo, or lat and lon. Use when an agent needs today's weather or tomorrow's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "sanctions_screen",
+      "description": "OFAC sanctions check for a crypto wallet address or a person or company name: screens against the OFAC SDN list (EVM, Bitcoin, Tron, USDT and more) and returns a verdict (block, review, pass) with every match, its SDN id and programs. A screening aid, not legal advice. Use before paying or accepting funds from an address, when onboarding a counterparty, or as the compliance step of an agent payment flow. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96. Price $0.009/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Crypto address to check (give address, name or both)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Person or company name; matches when every word appears in a listed name or alias"
+          }
+        }
+      },
+      "price": "$0.009"
+    },
+    {
+      "name": "wallet_balance",
+      "description": "Wallet balance lookup for any EVM address: the native coin (ETH, POL) and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live from each network, with the USDC total. Use to check what a wallet holds before a payment, bridge or airdrop, or to confirm that funds arrived. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "token_price",
+      "description": "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address (instead of symbol)"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "defi_usdc_yield",
+      "description": "USDC yield right now: the best stablecoin APY across DeFi lending, vault and LP pools (Aave, Morpho, Compound, Pendle and more) on Ethereum, Base, Arbitrum, Solana and other chains, with APY base and reward, 30-day mean, TVL, exposure and risk flags, from DefiLlama. Filter by chain, protocol or another stablecoin (USDT, DAI). Use to find where an agent can earn yield on USDC or any stablecoin. Not investment advice. Example: symbol=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Stablecoin symbol (default USDC): USDC, USDT, DAI, USDe…"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Chain name(s), comma-separated: Ethereum, Base, Arbitrum, Solana…"
+          },
+          "project": {
+            "type": "string",
+            "description": "Protocol slug(s): aave-v3, morpho-blue, compound-v3, pendle…"
+          },
+          "minTvl": {
+            "type": "number",
+            "description": "Minimum pool TVL in USD (default 1,000,000)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of pools (1-50, default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "polymarket_search",
+      "description": "Search Polymarket prediction markets by keyword (election, bitcoin, fed, world cup) and get the matching open markets with outcome odds as implied probabilities, best bid and ask, volume, liquidity, end date and token ids. Use to look up the odds on an event, find a market before reading its order book, or feed a forecasting agent. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search words, e.g. bitcoin, election, fed rates"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Markets to return, 1-20 (default 10)"
+          },
+          "closed": {
+            "description": "true for resolved or closed markets instead of open ones",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "search_web",
+      "description": "Web search API for agents: search the web and get the top results as JSON (title, URL, snippet, published date, domain), optionally with the page text, highlights and a summary of each result, and filters by domain, date range and category. Results are for immediate use only (Brave API terms); failures are uncharged. Use when an agent needs current information, sources or links from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "includeDomains": {
+            "type": "string",
+            "description": "Only results from these domains: comma list or JSON array, up to 20 (example.com, github.com/org)"
+          },
+          "excludeDomains": {
+            "type": "string",
+            "description": "Never results from these domains: comma list or JSON array"
+          },
+          "startPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or after this date (ISO 8601, e.g. 2025-01-01)"
+          },
+          "endPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or before this date (ISO 8601)"
+          },
+          "category": {
+            "type": "string",
+            "description": "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report"
+          },
+          "includeText": {
+            "type": "string",
+            "description": "A phrase the results must contain (up to 5 words)"
+          },
+          "excludeText": {
+            "type": "string",
+            "description": "A phrase the results must not contain"
+          },
+          "textChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)"
+          },
+          "highlights": {
+            "description": "true: the passages of each page that best match the query, with scores",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "numSentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Sentences per highlight (1-10, default 3)"
+          },
+          "highlightsPerUrl": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Highlights per result (1-5, default 1)"
+          },
+          "summary": {
+            "description": "true: a 1-3 sentence AI summary of each of the top pages",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "summaryQuery": {
+            "type": "string",
+            "description": "What the summaries should focus on (default: the query)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "domain_whois",
+      "description": "WHOIS and domain lookup in one call: registrar, registration and expiry dates with the domain's age (RDAP/WHOIS), DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC, and email authentication (SPF, DMARC). Use to check who owns a domain, how old it is, where it is hosted or whether it accepts mail, for lead research, trust and phishing checks. Example: name=cloudflare.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name, e.g. cloudflare.com"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "company_lookup",
+      "description": "Company lookup by name, website domain or Wikidata id: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and LEI, from Wikidata (CC0). No match is an uncharged 404. Use to enrich a lead, vendor or counterparty with company data, or to ground an answer about a business. Example: name=Spotify. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Company name to search for (give name or id)"
+          },
+          "id": {
+            "type": "string",
+            "description": "Wikidata item ID such as Q689141, instead of name"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "geocode_address",
+      "description": "Geocode a place or address to latitude and longitude: a city, town, landmark or address name becomes coordinates, with country, region, population and elevation where known, best match first (Wikidata, CC0). Use to turn a place name into coordinates for maps, distance, weather or routing. Example: name=Uppsala. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Place name"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Max results (1-10, default 5)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "fx_rates",
+      "description": "Currency exchange rates and conversion: rates from a base currency to one or many currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR and about 20 more), with an optional amount to convert, from European Central Bank reference rates. Use to convert prices, settle an invoice in another currency or show a rate in an agent's answer. Example: from=USD. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Base currency as a three-letter ISO 4217 code, e.g. USD"
+          },
+          "to": {
+            "type": "string",
+            "description": "Optional comma-separated target currency codes, e.g. EUR,GBP; default is all available currencies"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Optional amount of the base currency to convert (default 1)"
+          }
+        },
+        "required": [
+          "from"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ai_tts",
+      "description": "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices, in English (40 voices) or Spanish (10). Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 300 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (default en)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "news_search",
+      "description": "News search API: current news articles on any topic from the Brave news index, as JSON with title, URL, snippet, publisher and age, 1-20 results, optionally only from the past day, week or month. Results are for immediate use only (Brave API terms). Use when an agent needs the latest news or headlines on a company, coin, person or event. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "News search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Only articles from the past day, week or month (default: any age)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_summarize",
+      "description": "Summarize text with an LLM: send up to 12,000 characters and get a short summary plus bullet key points. Use for long emails, articles, transcripts, meeting notes and tool outputs; for a web page by URL use /summarize. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to summarize, up to 12,000 characters"
+          },
+          "sentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Summary length in sentences, 1-8 (default 3)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_sentiment_analysis",
+      "description": "Sentiment analysis of text: positive or negative with a confidence score, from a DistilBERT model fine-tuned on SST-2, for English text. Use to classify reviews, support tickets, social posts, headlines and replies at scale, or as the scoring step of a monitoring agent. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "English text, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_translate_text",
+      "description": "Translate text between languages with an open LLM (gpt-oss-20b; M2M100 for less common languages): the source language is detected, the target is an ISO code such as en, sv, de, fr, es, zh or ja, and long text is split at sentence ends and checked so a cut-off translation is never charged. Use to localise messages, documents, product copy and support replies. Example: text=Payment received, thank you!, to=sv. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text, up to 4,000 characters"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target language code, e.g. sv"
+          },
+          "from": {
+            "type": "string",
+            "description": "Source language code (default: detected)"
+          }
+        },
+        "required": [
+          "text",
+          "to"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ai_embeddings",
+      "description": "Text embeddings API: a 1,024-dimension vector for up to 4,000 characters of text in 100+ languages (BAAI BGE-M3), also OpenAI-compatible at /v1/embeddings. Use for semantic search, RAG retrieval, clustering, deduplication and similarity scoring. Example: text=pay-per-call APIs for AI agents. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to embed, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "screenshot_website",
+      "description": "Website screenshot API: render any public web page in a real headless Chrome browser with JavaScript executed and get a JPEG screenshot (1280 px wide, base64) plus the final URL, HTTP status and title; fullPage=true captures up to 4000 px of height. Use for visual checks, previews, monitoring and archiving a page as an agent sees it. Example: url=https://example.com. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to capture"
+          },
+          "fullPage": {
+            "description": "Set to true to capture the full page height (max 4000 px) instead of the 1280x800 viewport",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "crypto_fear_and_greed",
+      "description": "Crypto Fear and Greed Index today (0 = extreme fear, 100 = extreme greed) from alternative.me: the value and its label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and daily history up to 90 days. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief. Example: days=30. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
