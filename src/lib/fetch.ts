@@ -147,7 +147,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     }
     if (!res.body && !allowed) throw targetDown(502, "target returned an empty body");
     if (cache && cacheKey && res.ok && res.body) {
-      const bytes = await res.arrayBuffer();
+      const bytes = await bodyWithin(res.arrayBuffer(), budgetMs);
       const headers = new Headers(res.headers);
       headers.delete("set-cookie");
       headers.delete("content-length");
@@ -168,6 +168,23 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
   throw new HttpError(502, "target exceeded the redirect limit");
 }
 
+/**
+ * Reads a target's body under the request's own deadline. The timeout signal also covers the body, so a target that
+ * answered in time but was still sending when the budget ran out threw a bare abort, which the error handler counted
+ * as our server error ("an outside data source did not respond in time"): 72 /pdf/text calls in the week to 7 Nov.
+ * It is the target being slow, like a late answer: 504 TARGET_UNAVAILABLE, uncharged, counted as the caller's input.
+ */
+export async function bodyWithin<T>(read: Promise<T>, budgetMs: number): Promise<T> {
+  try {
+    return await read;
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    const name = e instanceof Error ? e.name : "";
+    if (name === "TimeoutError" || name === "AbortError") throw targetDown(504, `target did not finish sending within ${Math.round(budgetMs / 1000)} seconds`);
+    throw targetDown(502, "target connection broke while sending");
+  }
+}
+
 /** Downloads a file of an expected media type, refusing anything over `maxBytes`. */
 export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp, maxBytes: number, what: string, options: FetchPublicOptions = {}) {
   const target = parseTarget(rawUrl);
@@ -175,7 +192,7 @@ export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp,
   const contentType = res.headers.get("content-type") ?? "";
   if (!typePattern.test(contentType)) throw new HttpError(415, `url must point to ${what}; got ${contentType || "an unknown type"}`);
   let tooBig = Number(res.headers.get("content-length")) > maxBytes;
-  const bytes = tooBig ? new Uint8Array() : new Uint8Array(await new Response(capBytes(res.body!, maxBytes + 1, () => {})).arrayBuffer());
+  const bytes = tooBig ? new Uint8Array() : new Uint8Array(await bodyWithin(new Response(capBytes(res.body!, maxBytes + 1, () => {})).arrayBuffer(), options.budgetMs ?? BUDGET_MS));
   tooBig ||= bytes.byteLength > maxBytes;
   if (tooBig) throw new HttpError(422, `file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit`);
   return { url: target.href, contentType: contentType.split(";")[0].trim(), bytes };

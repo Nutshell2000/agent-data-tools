@@ -199,6 +199,11 @@ function buildPaywall(env: Env): MiddlewareHandler {
   return paymentMiddleware({ ...routes, ...purchases }, resourceServer(env));
 }
 
+/** The x402 library's own failure answer (internalErrorResponse in @x402/hono): a 500 before any tool ran. */
+function gatewayFailed(result: unknown): boolean {
+  return result instanceof Response && result.status === 500;
+}
+
 // Cache only a gateway whose initialization finished in its own request.
 // Sharing the SDK's pending startup promise lets one interrupted request stall others.
 let paywall: MiddlewareHandler | undefined;
@@ -287,9 +292,24 @@ app.use(async (c, next) => {
   if (c.req.method === "HEAD") {
     return headPaymentProbe(c.req.raw, (probe) => app.fetch(probe, c.env, c.executionCtx));
   }
-  const candidate = paywall ?? buildPaywall(c.env);
-  const result = await candidate(c, next);
-  if (c.res.status < 500) paywall ??= candidate;
+  // The x402 library answers a bare 500 "Internal Server Error" when it throws before the tool runs (gateway start-up or
+  // building the terms on a cold isolate). /status counted 1-2 of these on seven unrelated tools in the week to 7 Nov:
+  // each one a quote or a paid attempt lost. Nothing has run or been charged then, so one more try on a fresh gateway is
+  // safe; if that fails too the caller gets an uncharged 503 with Retry-After, which clients retry, instead of a 500.
+  let ran = false;
+  const tool = () => { ran = true; return next(); };
+  let candidate = paywall ?? buildPaywall(c.env);
+  let result = await candidate(c, tool);
+  if (!ran && gatewayFailed(result)) {
+    console.error(`paywall start-up failed on ${c.req.path}; retrying on a fresh gateway`);
+    paywall = undefined;
+    candidate = buildPaywall(c.env);
+    result = await candidate(c, tool);
+    if (!ran && gatewayFailed(result)) {
+      return c.json({ error: "payment terms could not be prepared just now; nothing was charged, retry in a few seconds", code: "PAYWALL_UNAVAILABLE" }, 503, { "Retry-After": "5", "Cache-Control": "no-store" });
+    }
+  }
+  if (c.res.status < 500 && !gatewayFailed(result)) paywall ??= candidate;
   const response = result instanceof Response ? result : c.res;
   // A signed v2 request answered 402 is a refused payment. The hooks in lib/payments.ts cover facilitator
   // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.
