@@ -55,8 +55,8 @@ export const LLM_PRICES: Entry[] = [
       limit: { type: "integer", description: "Number of models (1-50, default 20)", example: 5 },
     },
     {
-      count: 1, matched: 41, sort: "blended",
-      models: [{ id: "meta-llama/llama-3.3-70b-instruct", name: "Meta: Llama 3.3 70B Instruct", provider: "meta-llama", contextLength: 131072, maxOutputTokens: 16384, inputPerMillionUsd: 0.1, outputPerMillionUsd: 0.25, free: false, inputs: ["text"], outputs: ["text"], estimatedCostUsd: 0.000325 }],
+      count: 1, matched: 41, sort: "input",
+      models: [{ id: "meta-llama/llama-3.3-70b-instruct", name: "Meta: Llama 3.3 70B Instruct", provider: "meta-llama", contextLength: 131072, maxOutputTokens: 16384, inputPerMillionUsd: 0.1, outputPerMillionUsd: 0.25, free: false, inputs: ["text"], outputs: ["text"] }],
       source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-06T06:00:00.000Z",
     },
     async (_env, q) => {
