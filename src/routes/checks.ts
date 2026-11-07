@@ -49,7 +49,7 @@ function scanInjection(text: string) {
 
 // ---------------------------------------------------------------- HTTP security headers
 
-async function auditHeaders(raw: string | undefined) {
+export async function auditHeaders(raw: string | undefined) {
   const res = await fetchPublic(parseTarget(raw), "text/html,*/*;q=0.8");
   await res.body?.cancel().catch(() => {});
   const h = res.headers;
