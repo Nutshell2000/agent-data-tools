@@ -148,7 +148,11 @@ async function quote(q: Input, mode: "swap" | "bridge") {
     // Keyless LI.FI quotes are rate-limited on Cloudflare's shared egress (1.100.0 production, 6 Nov 2026): answer from a
     // keyless aggregator instead when one covers the request.
     if (!(e instanceof HttpError) || !/429/.test(e.message)) throw e;
-    const alt = mode === "swap" ? await kyberQuote(fromChain, fromToken, toToken, amount, slippage) : await acrossQuote(fromChain, toChain, fromToken, toToken, amount);
+    // 7 Nov 2026: KyberSwap answered from the PC with a forced LI.FI 429 but not from Cloudflare (staging, paid example), so
+    // ParaSwap's keyless prices API (200 from Cloudflare the same day) is tried after it.
+    const alt = mode === "swap"
+      ? (await kyberQuote(fromChain, fromToken, toToken, amount, slippage)) ?? (await paraswapQuote(fromChain, fromToken, toToken, amount, slippage))
+      : await acrossQuote(fromChain, toChain, fromToken, toToken, amount);
     if (alt) return alt;
     throw e;
   }
@@ -186,9 +190,10 @@ export async function kyberQuote(chain: string, from: Token, to: Token, amount: 
   let body: { data?: { routeSummary?: { amountIn: string; amountOut: string; amountInUsd?: string; amountOutUsd?: string; gasUsd?: string; route?: { exchange?: string }[][] } } } | null = null;
   try {
     const res = await fetcher(`https://aggregator-api.kyberswap.com/${slug}/api/v1/routes?${new URLSearchParams({ tokenIn: evm(from.address), tokenOut: evm(to.address), amountIn: amount })}`, { headers: { accept: "application/json", "x-client-id": "agentdatatools" }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return null;
+    if (!res.ok) { console.warn(`kyberswap ${slug}: HTTP ${res.status}`); return null; }
     body = await res.json();
-  } catch {
+  } catch (e) {
+    console.warn(`kyberswap ${slug}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
   const r = body?.data?.routeSummary;
@@ -203,6 +208,37 @@ export async function kyberQuote(chain: string, from: Token, to: Token, amount: 
     rate: Number(fromUnits(r.amountOut, to.decimals)) / Number(fromUnits(r.amountIn, from.decimals)),
     costs: { gasUsd: usdN(r.gasUsd), feesUsd: null, totalLossPercent: fromUsd && toUsd !== null ? Math.round(((fromUsd - toUsd) / fromUsd) * 10_000) / 100 : null },
     slippagePercent: slippage * 100, estimatedSeconds: null, approvalAddress: KYBER_ROUTER, note: NOTE_FALLBACK, source: "KyberSwap aggregator (keyless fallback)",
+  };
+}
+
+/** ParaSwap's keyless prices API (api.paraswap.io/prices), the second single-chain swap fallback after KyberSwap. */
+const PARASWAP_CHAINS = new Set(["1", "10", "56", "137", "8453", "42161", "43114", "100", "1101"]);
+export async function paraswapQuote(chain: string, from: Token, to: Token, amount: string, slippage: number, fetcher: typeof fetch = fetch) {
+  if (!PARASWAP_CHAINS.has(chain)) return null;
+  const evm = (a: string) => (a.toLowerCase() === NATIVE ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" : a);
+  type Swap = { swapExchanges?: { exchange?: string }[] };
+  let body: { priceRoute?: { srcAmount: string; destAmount: string; srcUSD?: string; destUSD?: string; gasCostUSD?: string; tokenTransferProxy?: string; bestRoute?: { swaps?: Swap[] }[] } } | null = null;
+  try {
+    const params = new URLSearchParams({ srcToken: evm(from.address), destToken: evm(to.address), amount, srcDecimals: String(from.decimals), destDecimals: String(to.decimals), side: "SELL", network: chain });
+    const res = await fetcher(`https://api.paraswap.io/prices?${params}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) { console.warn(`paraswap ${chain}: HTTP ${res.status}`); return null; }
+    body = await res.json();
+  } catch (e) {
+    console.warn(`paraswap ${chain}: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+  const p = body?.priceRoute;
+  if (!p?.destAmount) return null;
+  const minOut = ((BigInt(p.destAmount) * BigInt(Math.round((1 - slippage) * 1_000_000))) / 1_000_000n).toString();
+  const fromUsd = usdN(p.srcUSD), toUsd = usdN(p.destUSD);
+  const dexes = [...new Set((p.bestRoute ?? []).flatMap((r) => r.swaps ?? []).flatMap((s) => s.swapExchanges ?? []).map((x) => x.exchange).filter(Boolean))];
+  return {
+    route: `ParaSwap${dexes.length ? ` (${dexes.slice(0, 4).join(", ")})` : ""}`, steps: [{ type: "swap", via: "ParaSwap", fromChainId: Number(chain), toChainId: Number(chain) }],
+    from: { chainId: Number(chain), token: from.symbol, address: from.address, amount: fromUnits(p.srcAmount, from.decimals), amountUsd: fromUsd },
+    to: { chainId: Number(chain), token: to.symbol, address: to.address, amount: fromUnits(p.destAmount, to.decimals), amountMin: fromUnits(minOut, to.decimals), amountUsd: toUsd },
+    rate: Number(fromUnits(p.destAmount, to.decimals)) / Number(fromUnits(p.srcAmount, from.decimals)),
+    costs: { gasUsd: usdN(p.gasCostUSD), feesUsd: null, totalLossPercent: fromUsd && toUsd !== null ? Math.round(((fromUsd - toUsd) / fromUsd) * 10_000) / 100 : null },
+    slippagePercent: slippage * 100, estimatedSeconds: null, approvalAddress: p.tokenTransferProxy ?? null, note: NOTE_FALLBACK, source: "ParaSwap prices API (keyless fallback)",
   };
 }
 
