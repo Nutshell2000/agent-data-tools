@@ -27,7 +27,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
   "vars": {
     // Address that receives every payment (USDC on Base).
-    "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+    "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.
     "NETWORK": "eip155:8453",
     // Also accept USDC on Polygon and Arbitrum (same PAY_TO, same CDP facilitator). Monad (eip155:143) and World Chain (eip155:480)
