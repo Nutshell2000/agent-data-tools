@@ -128,7 +128,7 @@ function cardStep(origin: string, cardReady: boolean) {
   return `To continue, tell your user: pay $${starter.usdCents / 100} by card at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about 100 calls at $0.01 or 500 at $0.002; failed calls are never charged). The key appears right after payment; then reconnect this connector and choose "Sign in with key". Other packs: ${origin}/credits.`;
 }
 /** Tools that generate images or audio with AI models: not offered on the signed-in directory server. */
-const GENERATIVE_MEDIA: ReadonlySet<string> = new Set(["/image", "/ai/speech"]);
+const GENERATIVE_MEDIA: ReadonlySet<string> = new Set(["/image", "/image/generate", "/ai/speech", "/ai/tts"]);
 /** Left out of the ChatGPT plugin server (/mcp/chatgpt) after OpenAI's scan of 26 Oct 2026 flagged them:
  *  raw eth_call runs operations it does not expose one by one; the card-number and PII tools read as
  *  requests for payment-card data; two names read as exaggerated; memory writes are hard-to-reverse changes. */
@@ -138,7 +138,7 @@ const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
   "/memory/set", "/memory/get", "/memory/list", "/memory/delete",
   // Brave Search results: its API terms limit redistribution (accepted risk on our own site), and the plugin
   // submission asks us to confirm full rights to every third-party API the plugin uses.
-  "/search", "/news", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
+  "/search", "/search/web", "/news", "/news/search", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
 ]);
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
