@@ -15,12 +15,14 @@ const filter = args.find((a, i) => !a.startsWith("--") && (jsonAt < 0 || i !== j
 
 const urlShim = { name: "url", setup(b) { b.onResolve({ filter: /^url$/ }, () => ({ path: "node:url", external: true })); } };
 const catalog = await build({
-  stdin: { contents: 'export { ENDPOINTS, exampleParams } from "./src/endpoints"; export { CAPACITY_LIMITED } from "./src/lib/capacity";', resolveDir: process.cwd(), sourcefile: "smoke-examples-entry.ts" },
+  stdin: { contents: 'export { ENDPOINTS, exampleParams } from "./src/endpoints"; export { CAPACITY_LIMITED } from "./src/lib/capacity"; export { ENTRY_OF } from "./src/routes/entry-paths";', resolveDir: process.cwd(), sourcefile: "smoke-examples-entry.ts" },
   bundle: true, platform: "node", format: "cjs", write: false, plugins: [urlShim],
 });
 const mod = { exports: {} };
 new Function("module", "exports", "require", catalog.outputFiles[0].text)(mod, mod.exports, createRequire(import.meta.url));
-const { ENDPOINTS, exampleParams, CAPACITY_LIMITED } = mod.exports;
+const { ENDPOINTS, exampleParams, CAPACITY_LIMITED, ENTRY_OF } = mod.exports;
+// An entry path (src/routes/entry-paths.ts) runs its canonical tool: an AI door such as /llm/chat is skipped like /ai/chat.
+const isAi = (p) => (ENTRY_OF[p] ?? p).startsWith("/ai/");
 
 const worker = await build({ entryPoints: ["src/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, external: ["cloudflare:workers", "node:*"], plugins: [urlShim] });
 const mf = new Miniflare(convertV4MiniflareOptions({
@@ -53,7 +55,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
 // /defi/yields reads a 10 MB file that Cloudflare serves from its cache in milliseconds but a home connection in ~48 s (6 Nov 2026);
 // the staging proof of its release covers it.
 const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate", "/defi/yields", "/defi/usdc-yield", "/econ/national-debt", "/econ/treasury-rates"]);
-const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !e.path.startsWith("/ai/") && (!filter || e.path.includes(filter)));
+const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !isAi(e.path) && (!filter || e.path.includes(filter)));
 let results = [];
 async function runExample(e) {
   const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)]));
@@ -86,6 +88,6 @@ await mf.dispose();
 
 const failed = results.filter((r) => !isOk(r));
 const slow = results.filter((r) => r.ms > 10_000 && !failed.includes(r));
-console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.filter((e) => CAPACITY_LIMITED.has(e.path) || e.path.startsWith("/ai/")).length} AI/rendering tools skipped (staging).`);
+console.log(`\n${results.length - failed.length}/${results.length} examples succeed; ${failed.length} fail; ${slow.length} slower than 10 s; ${ENDPOINTS.filter((e) => CAPACITY_LIMITED.has(e.path) || isAi(e.path)).length} AI/rendering tools skipped (staging).`);
 if (jsonOut) await writeFile(jsonOut, JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));
 process.exit(failed.length ? 1 : 0);
