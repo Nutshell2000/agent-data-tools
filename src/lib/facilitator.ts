@@ -6,15 +6,17 @@ import type { Env } from "./env";
  * short-lived JWT per request, signed with the CDP API key held in Worker secrets.
  */
 export function buildFacilitator(env: Env): HTTPFacilitatorClient {
-  return withResilientSupported(buildClient(env));
+  return withResilientSupported(buildClient(env), env.TRIALS);
 }
+
+type SupportedStore = Pick<KVNamespace, "get" | "put">;
 
 /**
  * The facilitator front door sometimes answers a Worker with a transient bot-challenge 403.
  * That would turn an ordinary paywall request into a 500, so retry and fall back to the
  * last good response.
  */
-function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorClient {
+function withResilientSupported(client: HTTPFacilitatorClient, store?: SupportedStore): HTTPFacilitatorClient {
   // An HTML error page means the request was stopped at the edge and never reached the
   // facilitator, so retrying verify/settle cannot double-process a payment.
   const edgeBlock = (err: unknown) => /\((403|429|5\d\d)\):\s*<(!doctype|html)/i.test(String((err as Error)?.message ?? err));
@@ -42,23 +44,62 @@ function withResilientSupported(client: HTTPFacilitatorClient): HTTPFacilitatorC
     // A cold isolate otherwise signs a CDP JWT and calls /supported before it can quote at all, which made unpaid
     // 402 quotes take ~750 ms instead of ~150 ms; probes and directories mostly hit cold isolates and rank by it.
     // The supported kinds change rarely, so the edge cache keeps them for a few hours.
-    const cached = lastGood ?? await readSupported(cacheKey(client));
-    if (cached) return (lastGood = cached as typeof lastGood)!;
+    if (lastGood) return lastGood;
+    const cached = await readSupported(cacheKey(client));
+    if (cached) {
+      // Once per isolate: a colo's edge copy also seeds the durable one, so it exists even while the facilitator refuses.
+      await keepDurable(store, client.url, cached);
+      return (lastGood = cached as typeof lastGood)!;
+    }
     let lastError: unknown;
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
         lastGood = await original();
         await writeSupported(cacheKey(client), lastGood);
+        await keepDurable(store, client.url, lastGood);
         return lastGood;
       } catch (err) {
         lastError = err;
+        // Our own credentials refused (401/403 JSON, not an edge page): retrying cannot help.
+        if (/\((401|403)\)/.test(String((err as Error)?.message ?? err)) && !edgeBlock(err)) break;
         await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
       }
     }
     if (lastGood) return lastGood;
+    // 7 Nov 2026: an IP allowlist added to the CDP key made the facilitator answer 401 to the Worker, and every cold
+    // isolate whose colo had no edge-cached copy answered quotes with a bare 500 (about 3,400 probes that day). The
+    // supported kinds change rarely, so the last copy that worked, kept in KV, still quotes correctly; payments then fail
+    // at verify with the facilitator's own message instead of the whole tool looking down.
+    const durable = await readDurable(store, client.url);
+    if (durable) {
+      console.error(`facilitator /supported failed (${String((lastError as Error)?.message ?? lastError).slice(0, 160)}); quoting from the stored copy`);
+      return (lastGood = durable as typeof lastGood)!;
+    }
     throw lastError;
   };
   return client;
+}
+
+const durableKey = (url: string) => `facilitator-supported:${url}`;
+
+async function readDurable(store: SupportedStore | undefined, url: string): Promise<unknown> {
+  try {
+    const text = await store?.get(durableKey(url));
+    return text ? JSON.parse(text) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Keeps the last good /supported answer in KV; written only when it changed, so a fresh fetch costs one read. */
+async function keepDurable(store: SupportedStore | undefined, url: string, value: unknown): Promise<void> {
+  if (!store) return;
+  try {
+    const text = JSON.stringify(value);
+    if ((await store.get(durableKey(url))) !== text) await store.put(durableKey(url), text);
+  } catch {
+    // The edge cache and the isolate copy still hold it.
+  }
 }
 
 /**
