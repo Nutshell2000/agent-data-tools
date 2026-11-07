@@ -54,3 +54,19 @@ test('new pools: factory events decode per DEX, odd shapes are dropped, Aerodrom
   assert.deepEqual(DEX_FACTORIES.eth.map((f) => f.dex), ['uniswap-v3', 'uniswap-v2']);
   for (const list of Object.values(DEX_FACTORIES)) for (const f of list) assert.match(f.address, /^0x[0-9a-fA-F]{40}$/);
 });
+
+test('hex inputs: calldata without 0x, with 0X or spaces is accepted; odd digits and non-hex stay refused', async () => {
+  const b = await build({ entryPoints: ['src/routes/chain-reads.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  const { hexInput } = m.exports;
+  assert.equal(hexInput('0x18160DDD', 'data', 100), '0x18160ddd');
+  assert.equal(hexInput('18160ddd', 'data', 100), '0x18160ddd');
+  assert.equal(hexInput('0X18160ddd', 'data', 100), '0x18160ddd');
+  assert.equal(hexInput(' 0x18 16 0d dd\n', 'data', 100), '0x18160ddd');
+  assert.equal(hexInput('0x', 'data', 100), '0x');
+  assert.equal(hexInput(undefined, 'data', 100, false), undefined);
+  assert.throws(() => hexInput('0x123', 'data', 100), /whole bytes/);
+  assert.throws(() => hexInput('totalSupply()', 'data', 100), /0x-prefixed hex/);
+  assert.throws(() => hexInput('', 'data', 100), /required/);
+});
