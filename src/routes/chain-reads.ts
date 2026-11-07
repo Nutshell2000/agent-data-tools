@@ -46,7 +46,7 @@ export const EXTRA_CHAINS: ChainDef[] = [
   { slug: "unichain", name: "Unichain", chain: unichain, symbol: "ETH", rpcs: ["https://unichain-rpc.publicnode.com", "https://mainnet.unichain.org", "https://unichain.drpc.org"] },
   { slug: "hyperevm", name: "HyperEVM", chain: hyperEvm, symbol: "HYPE", rpcs: ["https://rpc.hyperliquid.xyz/evm", "https://hyperliquid.drpc.org"] },
   { slug: "bera", name: "Berachain", chain: berachain, symbol: "BERA", rpcs: ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com", "https://berachain.drpc.org"] },
-  { slug: "ink", name: "Ink", chain: ink, symbol: "ETH", rpcs: ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com", "https://ink.drpc.org"] },
+  { slug: "ink", name: "Ink", chain: ink, symbol: "ETH", rpcs: ["https://ink-rpc.publicnode.com", "https://ink.api.pocket.network", "https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com", "https://ink.drpc.org"] },
   { slug: "sei", name: "Sei", chain: sei, symbol: "SEI", rpcs: ["https://sei.drpc.org", "https://evm-rpc.sei-apis.com", "https://sei-evm-rpc.publicnode.com"] },
 ];
 
@@ -448,8 +448,11 @@ const needCode = async (cl: PublicClient, a: `0x${string}`) => {
   if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
   return code;
 };
-const hexInput = (v: string | undefined, name: string, maxBytes: number, required = true) => {
-  const h = v?.trim();
+export const hexInput = (v: string | undefined, name: string, maxBytes: number, required = true) => {
+  // Agents send calldata without the 0x prefix, with a 0X prefix or wrapped in whitespace (8 refused /polygon/call and 36
+  // refused /arb/call in the 6 Nov 2026 /status); the meaning is unambiguous, so accept it. An odd digit count stays refused.
+  const raw = v?.trim().replace(/\s+/g, "");
+  const h = raw && /^(0x)?[0-9a-f]+$/i.test(raw) && !/^0x/i.test(raw) ? `0x${raw}` : raw?.replace(/^0X/, "0x");
   if (!h) { if (required) throw new HttpError(400, `${name} is required: 0x-prefixed hex`); return undefined; }
   if (!/^0x([0-9a-fA-F]{2})*$/.test(h)) throw new HttpError(400, `${name} must be 0x-prefixed hex with whole bytes`);
   if ((h.length - 2) / 2 > maxBytes) throw new HttpError(400, `${name} is longer than ${maxBytes} bytes`);
