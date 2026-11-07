@@ -36,3 +36,28 @@ test('settlements name the tool without the caller query (Bazaar listing), quote
   assert.deepEqual(withoutQuery({ resource: { url: 'https://api.test/btc-fees' } }, undefined)[0], { resource: { url: 'https://api.test/btc-fees' } });
   assert.deepEqual(withoutQuery(undefined, { resource: 'not a url' }), [undefined, { resource: 'not a url' }]);
 });
+
+test('/supported: the last good answer is kept in KV and quotes from it when the facilitator refuses our key', async () => {
+  // 7 Nov 2026: an IP allowlist on the CDP key made /supported answer 401; cold isolates then answered quotes with 500.
+  const supported = { kinds: [{ x402Version: 2, scheme: 'exact', network: 'eip155:8453' }], extensions: [] };
+  const kv = new Map(); let writes = 0;
+  const TRIALS = { get: async (k) => kv.get(k) ?? null, put: async (k, v) => { writes++; kv.set(k, v); } };
+  const realFetch = globalThis.fetch;
+  let calls = 0, refuse = false;
+  globalThis.fetch = async () => { calls++; return refuse ? Response.json({ errorMessage: 'Unauthorized' }, { status: 401 }) : Response.json(supported); };
+  try {
+    const first = await load();
+    assert.deepEqual((await first.buildFacilitator({ FACILITATOR_URL: 'https://fac.test', TRIALS }).getSupported()).kinds, supported.kinds);
+    assert.equal(writes, 1, 'stored once');
+    await (await load()).buildFacilitator({ FACILITATOR_URL: 'https://fac.test', TRIALS }).getSupported();
+    assert.equal(writes, 1, 'an unchanged answer is not written again');
+    refuse = true; calls = 0;
+    const cold = await load();
+    assert.deepEqual((await cold.buildFacilitator({ FACILITATOR_URL: 'https://fac.test', TRIALS }).getSupported()).kinds, supported.kinds);
+    assert.equal(calls, 1, 'a 401 is our credentials: no six retries');
+    // Without a stored copy the refusal still surfaces.
+    await assert.rejects((await load()).buildFacilitator({ FACILITATOR_URL: 'https://fac.test' }).getSupported());
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

@@ -50,6 +50,9 @@ const DEFAULT_TLDS = ["com", "net", "org", "io", "ai", "co", "app", "dev", "xyz"
 interface Rdap { events?: { eventAction?: string; eventDate?: string }[]; entities?: { roles?: string[]; vcardArray?: [string, [string, unknown, string, string][]] }[]; status?: string[] }
 
 export async function domainStatus(domain: string, fetcher: typeof fetch = fetch) {
+  // Why the answer falls back to DNS: no RDAP service for the TLD, or a registry RDAP server that refused us. CentralNic
+  // (.xyz, .site, .online, .store and others) answers Cloudflare Workers with 403 (checked from Cloudflare on 7 Nov 2026).
+  let why = "no RDAP for this TLD";
   try {
     // rdap.org answers 403 to requests without a User-Agent (6 Nov 2026).
     const res = await fetcher(`https://rdap.org/domain/${domain}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, redirect: "follow", signal: AbortSignal.timeout(6_000) });
@@ -62,14 +65,15 @@ export async function domainStatus(domain: string, fetcher: typeof fetch = fetch
     }
     await res.body?.cancel().catch(() => {});
     if (res.status === 404 && fromRegistry) return { domain, status: "available", method: "rdap" };
+    if (fromRegistry) why = `the registry's RDAP server answered HTTP ${res.status}`;
   } catch {
-    // fall through to DNS
+    why = "the RDAP lookup did not answer in time";
   }
   // No RDAP for this TLD (or it failed): name servers in DNS mean registered.
   try {
     const r = await fetcher(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=NS`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(4_000) });
     const d = (await r.json()) as { Status?: number };
-    if (d.Status === 3) return { domain, status: "likely available", method: "dns", note: "no RDAP for this TLD; the name does not exist in DNS, so it is probably unregistered (check with a registrar)" };
+    if (d.Status === 3) return { domain, status: "likely available", method: "dns", note: `${why}; the name does not exist in DNS, so it is probably unregistered (check with a registrar)` };
     if (d.Status === 0) return { domain, status: "taken", method: "dns" };
   } catch {
     // unknown below

@@ -393,6 +393,11 @@ test('LEI, VAT and domain availability parse their registries correctly', async 
   assert.equal((await g.domainStatus('free-name.com', fake({ 'rdap.org/domain/free-name.com': [404, {}, 'https://rdap.verisign.com/com/v1/domain/free-name.com'] }))).status, 'available');
   const io = await g.domainStatus('free-name.io', fake({ 'rdap.org/domain/free-name.io': [404, {}], 'dns-query': [200, { Status: 3 }] }));
   assert.deepEqual([io.status, io.method], ['likely available', 'dns']);
+  assert.match(io.note, /^no RDAP for this TLD;/);
+  // CentralNic (.xyz) refuses Cloudflare Workers with 403 (7 Nov 2026): DNS answers, and the note names the refusal.
+  const xyz = await g.domainStatus('free-name.xyz', fake({ 'rdap.org/domain/free-name.xyz': [403, {}, 'https://rdap.centralnic.com/xyz/domain/free-name.xyz'], 'dns-query': [200, { Status: 3 }] }));
+  assert.deepEqual([xyz.status, xyz.method], ['likely available', 'dns']);
+  assert.match(xyz.note, /^the registry's RDAP server answered HTTP 403;/);
   assert.equal((await g.domainStatus('used.io', fake({ 'rdap.org/domain/used.io': [404, {}], 'dns-query': [200, { Status: 0 }] }))).status, 'taken');
   assert.equal((await g.domainStatus('x.io', fake({}))).status, 'unknown');
 });
