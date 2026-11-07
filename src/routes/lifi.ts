@@ -7,6 +7,7 @@
  */
 import { entry, need, num, opt, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
+import { TICKERS } from "../lib/tickers";
 
 const API = "https://li.quest/v1";
 const SOURCE = "LI.FI (li.quest)";
@@ -59,11 +60,40 @@ async function token(chain: string, raw: string): Promise<Token> {
   const key = `${chain}:${raw.trim().toLowerCase()}`;
   const hit = tokens.get(key);
   if (hit && Date.now() - hit.at < 86_400_000) return hit.token;
-  const { status, body } = await lifi<Token & { message?: string }>("/token", { chain, token: raw.trim() });
+  let lookup: { status: number; body: (Token & { message?: string }) | null };
+  try {
+    lookup = await lifi<Token & { message?: string }>("/token", { chain, token: raw.trim() });
+  } catch (e) {
+    // 7 Nov 2026: LI.FI's token lookup is rate-limited on Cloudflare's shared egress too (429), and it runs before the quote,
+    // so the KyberSwap/Across fallbacks were never reached and the listed example (USDC -> ETH on Base) failed. Common
+    // tokens resolve from our own checked table instead.
+    const known = knownToken(chain, raw);
+    if (known) return known;
+    throw e;
+  }
+  const { status, body } = lookup;
   if (status !== 200 || !body?.address) throw new HttpError(400, `unknown token ${raw.slice(0, 50)} on chain ${chain}: give a symbol LI.FI lists or the token address`);
   if (tokens.size > 2_000) tokens.clear();
   tokens.set(key, { at: Date.now(), token: body });
   return body;
+}
+
+/** chain id -> the network key of TICKERS (src/lib/tickers.ts, addresses checked against symbol()). */
+const TICKER_NETWORK: Record<string, string> = { "8453": "base", "1": "eth", "42161": "arb", "10": "op", "137": "polygon" };
+/** Decimals of the tickers whose decimals are the same on every network we list. */
+const KNOWN_DECIMALS: Record<string, number> = { USDC: 6, USDT: 6, WETH: 18, DAI: 18, WBTC: 8, CBBTC: 8 };
+/** Chains whose native coin is ETH (LI.FI writes native coins as the zero address). */
+const ETH_NATIVE = new Set(["8453", "1", "42161", "10"]);
+/** A token from our own table when LI.FI cannot be asked: native ETH, or a ticker with known decimals. Null otherwise. */
+export function knownToken(chain: string, raw: string): Token | null {
+  const sym = raw.trim().toUpperCase();
+  const network = Object.hasOwn(TICKER_NETWORK, chain) ? TICKER_NETWORK[chain] : null;
+  if (!network) return null;
+  if (sym === "ETH" && ETH_NATIVE.has(chain)) return { address: NATIVE, symbol: "ETH", decimals: 18, chainId: Number(chain) };
+  const table = TICKERS[network] ?? {};
+  const ticker = sym === "ETH" ? "WETH" : sym;
+  if (!Object.hasOwn(table, ticker) || !Object.hasOwn(KNOWN_DECIMALS, ticker)) return null;
+  return { address: table[ticker], symbol: ticker === "CBBTC" ? "cbBTC" : ticker, decimals: KNOWN_DECIMALS[ticker], chainId: Number(chain) };
 }
 
 /** "1.5" in a token with 6 decimals -> "1500000", exactly, without floating point. */
