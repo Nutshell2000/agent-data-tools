@@ -57,3 +57,20 @@ test('swap tokens resolve from our checked table when LI.FI cannot be asked', as
   assert.equal(knownToken('56', 'USDC'), null, 'networks outside the table: no guess (BSC USDC has 18 decimals)');
   assert.equal(knownToken('8453', 'constructor'), null);
 });
+
+test('ParaSwap answers a swap quote when LI.FI and KyberSwap cannot', async () => {
+  const { paraswapQuote } = await load('src/routes/lifi.ts');
+  const usdc = { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', decimals: 6, chainId: 8453 };
+  const eth = { address: '0x0000000000000000000000000000000000000000', symbol: 'ETH', decimals: 18, chainId: 8453 };
+  let asked = '';
+  const fetcher = async (url) => { asked = String(url); return new Response(JSON.stringify({ priceRoute: { srcAmount: '1000000000', destAmount: '446000000000000000', srcUSD: '999.5', destUSD: '1000.1', gasCostUSD: '0.0054', tokenTransferProxy: '0x6a000f20005980200259b80c5102003040001068', bestRoute: [{ swaps: [{ swapExchanges: [{ exchange: 'aerocl' }] }] }] } }), { status: 200 }); };
+  const q = await paraswapQuote('8453', usdc, eth, '1000000000', 0.005, fetcher);
+  assert.match(asked, /destToken=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE/, 'native ETH is sent as the 0xEeee placeholder');
+  assert.equal(q.from.amount, '1000');
+  assert.equal(q.to.amount, '0.446');
+  assert.equal(q.to.amountMin, '0.44377');
+  assert.equal(q.route, 'ParaSwap (aerocl)');
+  assert.equal(q.approvalAddress, '0x6a000f20005980200259b80c5102003040001068');
+  assert.equal(await paraswapQuote('999', usdc, eth, '1', 0.005, fetcher), null, 'unsupported chain: no call');
+  assert.equal(await paraswapQuote('8453', usdc, eth, '1', 0.005, async () => new Response('', { status: 429 })), null);
+});
