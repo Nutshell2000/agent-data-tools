@@ -9,7 +9,7 @@ const supported = {
   extensions: [],
 };
 
-async function fixture({ failFirst = false } = {}) {
+async function fixture({ failFirst = false, failures = failFirst ? 1 : 0 } = {}) {
   let started, release;
   const firstStarted = new Promise(resolve => { started = resolve; });
   const firstReleased = new Promise(resolve => { release = resolve; });
@@ -30,10 +30,8 @@ async function fixture({ failFirst = false } = {}) {
     bindings: { PAY_TO: '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5', NETWORK: 'eip155:8453', PAYWALL: 'on', TRIALS_ENABLED: 'off', FACILITATOR_URL: 'https://facilitator.fixture' },
     outboundService: async request => {
       assert.equal(request.url, 'https://facilitator.fixture/supported');
-      if (++calls === 1) {
-        started(); await firstReleased;
-        if (failFirst) return Response.json({ error: 'offline initialization failure' }, { status: 503 });
-      }
+      if (++calls === 1) { started(); await firstReleased; }
+      if (calls <= failures) return Response.json({ error: 'offline initialization failure' }, { status: 503 });
       return Response.json(supported);
     },
   }));
@@ -67,17 +65,36 @@ test('a stalled cold HTTP initialization does not block another quote or become 
   }
 });
 
-test('a failed cold gateway is discarded and the next unsigned request can initialize successfully', async () => {
+test('a failed cold gateway is discarded and the same request is quoted on a fresh one', async () => {
   const f = await fixture({ failFirst: true });
   try {
     const first = f.mf.dispatchFetch('https://api.test/btc-fees');
     await f.firstStarted; f.release();
-    const failed = await first; assert.equal(failed.status, 500); await failed.body?.cancel();
-    const recovered = await f.mf.dispatchFetch('https://api.test/btc-fees');
+    // Until 1.101.1 this request got the library's bare 500 "Internal Server Error" (/status: 1-2 a week on 7 tools).
+    const recovered = await first;
     assert.equal(recovered.status, 402);
     assert.equal(JSON.parse(Buffer.from(recovered.headers.get('PAYMENT-REQUIRED'), 'base64')).accepts[0].amount, '2000');
     await recovered.body?.cancel();
     assert.equal(f.calls(), 2);
+    const warmed = await f.mf.dispatchFetch('https://api.test/btc-fees');
+    assert.equal(warmed.status, 402); await warmed.body?.cancel();
+    assert.equal(f.calls(), 2, 'the gateway that started is reused');
+  } finally { f.release(); await f.mf.dispose(); }
+});
+
+test('a gateway that fails twice answers an uncharged 503 with Retry-After, never a 500', async () => {
+  const f = await fixture({ failures: 2 });
+  try {
+    const first = f.mf.dispatchFetch('https://api.test/btc-fees');
+    await f.firstStarted; f.release();
+    const refused = await first;
+    assert.equal(refused.status, 503);
+    assert.equal(refused.headers.get('retry-after'), '5');
+    const body = await refused.json();
+    assert.equal(body.code, 'PAYWALL_UNAVAILABLE');
+    assert.match(body.error, /nothing was charged/);
+    const recovered = await f.mf.dispatchFetch('https://api.test/btc-fees');
+    assert.equal(recovered.status, 402); await recovered.body?.cancel();
   } finally { f.release(); await f.mf.dispose(); }
 });
 

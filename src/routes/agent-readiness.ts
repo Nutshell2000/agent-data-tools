@@ -27,7 +27,7 @@ async function grab(origin: string, path: string) {
 }
 
 export const AGENT_READINESS: Entry[] = [
-  entry("/agent-readiness", "Agent readiness check, website",
+  entry("/agent-readiness", "Agent readiness, llms.txt check",
     "Score how ready a website is for AI agents, 0-100: llms.txt, sitemap, OpenAPI spec, MCP server card, A2A agent card and x402 payment discovery, each found or missing with its URL, which AI crawlers (GPTBot, ClaudeBot, PerplexityBot and others) robots.txt lets in, and a list of fixes. Reads only the public files a site publishes; nothing is signed in or submitted. Use to audit your own site or vet a service before an agent relies on it.",
     ["agent-readiness", "llms-txt", "mcp", "a2a", "ai-crawlers", "seo", "web"], {
       url: { type: "string", description: "The site: a domain or any URL on it (its origin is checked)", required: true, example: "https://stripe.com" },
