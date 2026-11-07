@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "613 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "614 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Every caller gets 25 free calls; then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -939,7 +939,29 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   // /search is on since 1.49.0 (22 Oct 2026, Peter's decision): SEARCH_API_KEY is set and the Brave API terms' end-user
   // obligations are stated in the tool's description and answer (src/routes/search.ts).
 });
-export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))];
+/**
+ * Acquisition price (6 Nov 2026, the owner: "Yes, cut them"). Everyday tools with no per-call upstream cost go to $0.002 to
+ * win buyers, because rank and selection now follow buyers, not price per call:
+ * - explorer bots buy listings at $0.002 or less about twice as often as their share of the list they shop in;
+ * - agents-trust's free demo answers rank by cheapest catalog price (its picks are $0.001-0.003);
+ * - Agent402's base router tier only buys tools at $0.005 or less.
+ * The $0.01 floor of 25 Oct was set for the sweeper, which paid every listing at its live price and has been gone since
+ * 28 Oct. $0.002, not $0.001: CDP charges $0.001 per settlement above 1,000 a month. Picked from price-anchors.mjs ("market
+ * below ours") plus zero-cost reads and data; excluded: Brave-backed (/news, /search), AI, browser rendering and the
+ * 8 tools in the 5-19 Nov upward price test. Review on 20 Nov against payers and calls (business/agentic/base-bots).
+ */
+export const ACQUISITION_PRICE = "$0.002";
+export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
+  "/price/token", "/price/tokens", "/crypto/price", "/crypto/trending", "/crypto/fear-greed", "/btc-price", "/pack/crypto-market",
+  "/hyperliquid/orderbook", "/hyperliquid/prices", "/hyperliquid/market", "/hyperliquid/candles",
+  "/eth/gas", "/arb/gas", "/op/gas", "/polygon/gas", "/pack/gas-tracker", "/base/estimate-gas",
+  "/base/block", "/eth/block", "/arb/block", "/op/block", "/polygon/block",
+  "/eth/balance", "/base/balance", "/arb/balance", "/op/balance", "/polygon/balance", "/solana/balance", "/wallet/balances", "/ens",
+  "/weather", "/fx", "/fx/all", "/geocode", "/ip/lookup", "/dns/lookup", "/wikipedia", "/sec/filings",
+  "/hash", "/hmac", "/uuid", "/mime", "/regex/test", "/pack/hash-toolbox", "/pack/id-toolbox",
+]);
+const acquisitionPriced = (e: Endpoint): Endpoint => (ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e);
+export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
 for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
 // Short listing names get their task sentence after the colon (lib/summary-details.ts); the name before the colon is unchanged.

@@ -971,3 +971,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `free_exhausted_by` counts exhaustion at `/caller/<software family>` over HTTP only; read it before calling `free_exhausted` a buying moment (31 Oct samples: machine traffic). Family names have `_` mapped to `-` because funnel paths reject underscores.
 - Search Console, 31 Oct: 1 page indexed, 195 "Discovered, not indexed", 0 "Crawled, not indexed", sitemap read 29 Oct with 575 pages; 0 clicks and 39 impressions in 28 days. Google has not crawled the pages, so this is crawl priority, not a verdict on their content.
 
+
+
+## Website audit and Aura-2 speech (1.101.0, 7 Nov 2026)
+
+- `/audit/website` (src/routes/site-audit.ts): one `withBrowserPage` load; `PERF_READ` and `AXE_RUN` are evaluated in the page as strings; `AXE_SOURCE` (src/data/axe-source.generated.ts, rebuild with `node scripts/build-axe-source.mjs` after upgrading the axe-core devDependency) is evaluated first through CDP, so a page's CSP cannot block it. Security headers come from `auditHeaders` (checks.ts, now exported) in parallel. Scores: accessibility 100 minus 15/8/3/1 per violated rule by impact; performance from LCP, CLS, TTFB, weight, requests, DOM size. Prove it on staging after every release that touches lib/browser.ts.
+- `/ai/speech`: Deepgram Aura-2 (`@cf/deepgram/aura-2-en`, `-es`), $0.030 per 1,000 characters, so `SPEECH_MAX` 300 keeps a call under its $0.01 price. A longer limit needs a higher price (owner's decision). `audioToBase64` takes a stream, bytes, a buffer or `{ audio }`.
+- Both are in `CAPACITY_LIMITED`. BROWSER_DAILY_CAP is 200 (about 15 s of browser time a call; Workers Paid includes 10 browser hours a month).
+
