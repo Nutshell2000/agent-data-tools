@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.103.2";
+export const MCP_SERVER_VERSION = "1.104.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -417,9 +417,10 @@ ${details}
  * rejects any entry that does not recover to PAY_TO. Signatures are public, not secrets.
  */
 export const OWNERSHIP_PROOFS: readonly string[] = [
-  // Coinbase Wallet (EIP-7702 account) signature of the bare origin by PAY_TO, 2026-10-18. It is an
-  // ERC-1271 wrapped signature, so CI verifies it on Base with scripts/check-ownership-proofs.mjs.
-  "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000413e5f9cac8f7c1dfe7f44c5b57ddf3618682fffeeed033d842128e30775141f38083802e95f2cda9eea4002ececa24d1bdbc5ec23c58d4e2320d081840d38bad91c00000000000000000000000000000000000000000000000000000000000000",
+  // EIP-191 signature of the bare origin by PAY_TO (the desk's income wallet, a plain key held by Eyconomics on the
+  // owner's PC since 2026-11-07; it replaced the Coinbase Wallet account so tool income can be swept and invested
+  // without a click). A plain EOA signature: CI recovers it offline with scripts/check-ownership-proofs.mjs.
+  "0x04e3d8999bc5f3147fc91e439fef915328e3d02ccac5fe874859d4d3b3df435e38945d7b4ab8ca53317c5d1396ff8692a3919a607933b9168e61f25e7446c75f1b",
 ];
 
 type MppOffer = { mpp: { method: string; intent: string; currency: string } };
