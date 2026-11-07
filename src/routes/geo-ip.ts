@@ -97,6 +97,50 @@ const abuseOf = (entities: RdapEntity[] = []) => {
   return typeof email === "string" ? email : null;
 };
 const REGISTRY: Record<string, string> = { "whois.arin.net": "ARIN", "whois.ripe.net": "RIPE NCC", "whois.apnic.net": "APNIC", "whois.lacnic.net": "LACNIC", "whois.afrinic.net": "AFRINIC" };
+const AUTHORITY: Record<string, string> = { arin: "ARIN", ripe: "RIPE NCC", apnic: "APNIC", lacnic: "LACNIC", afrinic: "AFRINIC" };
+
+type WhoisLine = { key?: string; value?: string };
+/**
+ * The registry's whois record as RIPEstat serves it (stat.ripe.net/data/whois, every RIR, CC BY 4.0 like RIPE's other
+ * open data), mapped onto /ip/lookup's answer. Why: ARIN's RDAP and whois hosts answer Cloudflare Workers with HTTP 525
+ * (checked 7 Nov 2026 from production), so every ARIN address, the published example 8.8.8.8 among them, failed with a 502.
+ * ARIN writes NetRange/NetName/OrgName, the other registries inetnum/netname/org-name/descr; both shapes are read.
+ */
+export function fromWhois(ip: string, v: 4 | 6, data: { records?: WhoisLine[][]; authorities?: string[] }) {
+  const records = (data.records ?? []).filter((r) => Array.isArray(r));
+  const get = (r: WhoisLine[] | undefined, ...keys: string[]) => {
+    for (const k of keys) { const hit = r?.find((l) => l.key?.toLowerCase() === k.toLowerCase() && l.value?.trim()); if (hit) return hit.value!.trim(); }
+    return null;
+  };
+  const net = records.find((r) => get(r, "NetRange", "inetnum", "inet6num", "NetHandle"));
+  if (!net) return null;
+  const org = records.find((r) => get(r, "OrgName", "org-name")) ?? net;
+  const abuse = records.find((r) => get(r, "OrgAbuseEmail", "abuse-mailbox"));
+  const range = get(net, "NetRange", "inetnum", "inet6num");
+  const [start, end] = range?.includes(" - ") ? range.split(" - ").map((s) => s.trim()) : [range, null];
+  // "Google LLC (GOGL)" in ARIN's net record names the holder and its handle when no org record came back.
+  const organization = /^(.*?)\s*\(([^)]+)\)$/.exec(get(net, "Organization") ?? "");
+  const holderName = get(org, "OrgName", "org-name") ?? organization?.[1] ?? get(net, "descr", "owner");
+  const country = (get(org, "Country", "country") ?? get(net, "Country", "country"))?.toUpperCase().slice(0, 2) ?? null;
+  const authority = data.authorities?.[0]?.toLowerCase() ?? get(net, "source")?.toLowerCase() ?? "";
+  return {
+    ip, version: v, registry: AUTHORITY[authority] ?? (authority.toUpperCase() || null),
+    network: { name: get(net, "NetName", "netname"), handle: get(net, "NetHandle") ?? range, start, end, type: get(net, "NetType", "status") },
+    holder: holderName ? { name: holderName, handle: get(org, "OrgId", "org", "organisation") ?? organization?.[2] ?? null, kind: "org", country } : null,
+    country, abuseEmail: get(abuse, "OrgAbuseEmail", "abuse-mailbox") ?? get(net, "abuse-mailbox"),
+    registered: get(net, "RegDate", "created"), lastChanged: get(net, "Updated", "last-modified"), source: "registry whois via RIPEstat",
+  };
+}
+
+async function whoisFallback(ip: string, v: 4 | 6) {
+  let res: Response;
+  try {
+    res = await fetch(`https://stat.ripe.net/data/whois/data.json?resource=${ip}&sourceapp=agent-data-tools`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(6_000) });
+  } catch { return null; }
+  if (!res.ok) { await res.body?.cancel().catch(() => {}); return null; }
+  const body = (await res.json().catch(() => null)) as { data?: Parameters<typeof fromWhois>[2] } | null;
+  return body?.data ? fromWhois(ip, v, body.data) : null;
+}
 
 // ---------- distance ----------
 const R_KM = 6371.0088;
@@ -139,10 +183,16 @@ export const GEO_IP: Entry[] = [
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           res = await fetch(`https://rdap.org/ip/${ip}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(6_000) });
-        } catch { if (attempt === 1) throw new HttpError(502, "the registry did not answer in time; try again"); continue; }
-        if (res.status < 500) break;
+        } catch { res = undefined; continue; }
+        // ARIN refuses Workers (525) every time, so a retry there only adds a second.
+        if (res.status < 500 || /arin\.net/.test(res.url)) break;
       }
-      if (!res) throw new HttpError(502, "the registry did not answer in time; try again");
+      if (!res || res.status >= 500) {
+        await res?.body?.cancel().catch(() => {});
+        const whois = await whoisFallback(ip, v);
+        if (whois) return whois;
+        throw new HttpError(502, res ? `the registry answered HTTP ${res.status}; try again` : "the registry did not answer in time; try again");
+      }
       if (res.status === 404) throw new HttpError(404, "no registry record for this address");
       if (!res.ok) throw new HttpError(502, `the registry answered HTTP ${res.status}; try again`);
       const d = (await res.json()) as RdapIp;

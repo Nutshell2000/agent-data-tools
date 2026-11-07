@@ -1,5 +1,5 @@
 {
-  "version": "1.101.0",
+  "version": "1.101.1",
   "tools": [
     {
       "name": "extract",
@@ -14440,7 +14440,7 @@
     },
     {
       "name": "token_verdict",
-      "description": "Plain-language AI verdict on an ERC-20 token: a rating (avoid, caution or no red flags) from fixed rules over checked facts (honeypot and contract risk flags, liquidity, upgradeable proxy, last hour's DEX buying and selling), the reasons, and a short AI-written summary of those facts only. Base (default), Ethereum, Arbitrum, Optimism or Polygon; risk flags on Base only. Use before buying or accepting an unknown token. Not investment advice. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Rug check with a plain-language AI verdict on an ERC-20 token: a rating (avoid, caution or no red flags) from fixed rules over checked facts (honeypot and contract risk flags, liquidity, upgradeable proxy, last hour's DEX buys and sells), the reasons, and a short AI summary of those facts. Base (default), Ethereum, Arbitrum, Optimism or Polygon; risk flags on Base only. Use before buying or accepting an unknown token. Not investment advice. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
