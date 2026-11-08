@@ -38,10 +38,10 @@
     // USDC associated token account C7L5qhPw7xMs6qf8jEyZQiwmoB9oDZ24cFvRaedbECwR exists since 22 Oct 2026 (checked
     // against the derived address). Dexter's verifier pays on Solana; empty switches Solana off.
     "SOLANA_PAY_TO": "82wfSCZhCmZA7zwqqt6Q3FG8nqYBwUvbThP6M97fa9Q6",
-    // Tempo address that receives per-call MPP payments in USDC.e (src/lib/mpp-tempo.ts): PAY_TO, by Peter's
-    // decision of 2026-10-20 (option A in docs/mpp-per-call.md; his wallet shows the address on Tempo Mainnet and can
-    // send from it). Empty switches the tempo method off.
-    "TEMPO_PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
+    // Tempo address that receives per-call MPP payments in USDC.e (src/lib/mpp-tempo.ts): PAY_TO, the desk's income
+    // wallet (owner's decision of 2026-11-08; until then her Coinbase Wallet 0x2074…77f5, option A of 2026-10-20 in
+    // docs/mpp-per-call.md). A plain key, so it can send on Tempo too. Empty switches the tempo method off.
+    "TEMPO_PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
     // Per-call MPP with USDC on Base to PAY_TO (src/lib/mpp-evm.ts) is ON unless this is "off": it reuses the x402
     // facilitator and the CDP secret, so it needs nothing new. MPPScan lists the tools from it (docs/mpp-per-call.md).
     "MPP_EVM": "on",
