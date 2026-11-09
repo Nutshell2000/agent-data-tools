@@ -1,5 +1,5 @@
 {
-  "version": "1.104.1",
+  "version": "1.105.0",
   "tools": [
     {
       "name": "extract",
@@ -18402,6 +18402,506 @@
         }
       },
       "price": "$0.002"
+    },
+    {
+      "name": "price_crypto",
+      "description": "Crypto price and token price in USD, live: give a symbol (ETH, BTC, LINK, AERO, ARB, OP), a coin name or an ERC-20 address and get its price from the deepest Uniswap v3 pool on Base, Ethereum, Arbitrum or Optimism, with the pool and a thin-liquidity flag. Use to price a token for a quote, a portfolio or a trade. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address (instead of symbol)"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op"
+            ],
+            "description": "Network: base (default), eth, arb or op"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "web_search",
+      "description": "Web search: send a query and get the top web results as JSON (title, URL, snippet, published date), optionally with page text and highlights, filtered by domain, date or category. Results are for immediate use only (Brave API terms); failures are uncharged. Use when an agent needs current facts, sources or links. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "includeDomains": {
+            "type": "string",
+            "description": "Only results from these domains: comma list or JSON array, up to 20 (example.com, github.com/org)"
+          },
+          "excludeDomains": {
+            "type": "string",
+            "description": "Never results from these domains: comma list or JSON array"
+          },
+          "startPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or after this date (ISO 8601, e.g. 2025-01-01)"
+          },
+          "endPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or before this date (ISO 8601)"
+          },
+          "category": {
+            "type": "string",
+            "description": "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report"
+          },
+          "includeText": {
+            "type": "string",
+            "description": "A phrase the results must contain (up to 5 words)"
+          },
+          "excludeText": {
+            "type": "string",
+            "description": "A phrase the results must not contain"
+          },
+          "textChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)"
+          },
+          "highlights": {
+            "description": "true: the passages of each page that best match the query, with scores",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "numSentences": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Sentences per highlight (1-10, default 3)"
+          },
+          "highlightsPerUrl": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Highlights per result (1-5, default 1)"
+          },
+          "summary": {
+            "description": "true: a 1-3 sentence AI summary of each of the top pages",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "summaryQuery": {
+            "type": "string",
+            "description": "What the summaries should focus on (default: the query)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "balance_wallet",
+      "description": "Wallet balance of any EVM address: the native coin (ETH, POL) and USDC on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live, with the USDC total. Use to check what a wallet holds before a payment or to confirm funds arrived. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "weather_today",
+      "description": "Weather forecast today for any city or coordinates: current temperature, conditions, rain, wind and humidity now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ofac_check",
+      "description": "OFAC sanctions check: screen a crypto wallet address (EVM, Bitcoin, Tron and more) or a person or company name against the OFAC SDN list and get a verdict (block, review, pass) with every match, SDN id and program. A screening aid, not legal advice. Use before paying or accepting funds, or when onboarding a counterparty. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96. Price $0.009/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Crypto address to check (give address, name or both)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Person or company name; matches when every word appears in a listed name or alias"
+          }
+        }
+      },
+      "price": "$0.009"
+    },
+    {
+      "name": "whois_lookup",
+      "description": "WHOIS lookup for a domain: registrar, creation and expiry date and age (RDAP/WHOIS), plus its DNS records and email setup (SPF, DMARC). Use to check who registered a domain, how old it is and where it is hosted, for lead research and phishing checks. Example: name=cloudflare.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name, e.g. cloudflare.com"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "dns_records",
+      "description": "DNS lookup of a domain: A, AAAA, MX, TXT, CNAME, NS, CAA, SOA and other records through Cloudflare DNS over HTTPS, with TTLs, the response code and DNSSEC validation. Use to check where a domain points, its mail servers or a TXT verification record. Example: name=example.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name (or a URL; its host is used)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Record type: A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY, HTTPS (default A)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "sec_edgar",
+      "description": "SEC filings of a US public company from EDGAR by ticker or CIK: the latest 10-K, 10-Q, 8-K, Form 4 and other forms with dates and document links, optionally one form type. Use to find a company's annual or quarterly report, insider trades or recent events. Example: ticker=AAPL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker such as AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "form": {
+            "type": "string",
+            "description": "Only this form type, e.g. 10-K, 10-Q, 8-K or 4 (default: all)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Filings to return, 1-50 (default 10)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "language_detect",
+      "description": "Detect language of a text: the language as an ISO 639-1 and 639-3 code with its English name, from 82 languages (franc), offline and fast. Use to route a message to the right translator, model or support team, or to tag content by language. Example: text=Det här är en mening skriven på svenska om väder och resor.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text (up to 10,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "whales",
+      "description": "Whale transfers: the largest USDC and USDT transfers of the last minutes on Base, Ethereum, Arbitrum, Optimism or Polygon above a size you choose (default 100,000 USD), with sender, receiver, amount and transaction. Use for whale alerts, flow monitoring and market-moving transfers. Example: chain=ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          },
+          "token": {
+            "type": "string",
+            "description": "USDC, USDT or stablecoins (both, default)"
+          },
+          "min": {
+            "description": "Smallest transfer in USD, 10000 or more (default 100000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "minutes": {
+            "description": "How far back, 1 to 15 minutes (default 5; Base covers at most 3)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "json_validator",
+      "description": "JSON validator: check whether a text is valid JSON and get the error position and message when it is not, plus the parsed type. Use before parsing an LLM's JSON output, saving a config or sending a request body. Example: text={\"a\":1}. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The JSON text to check (up to 20,000 characters)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "holidays_public",
+      "description": "Public holidays for a country and year: date, local and English name, whether it is nationwide and the observed day, for over 100 countries. Use to plan deliveries, schedules and business days, or to tell whether today is a holiday somewhere. Example: country=SE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 code (US, GB, SE, JP, CA…) or English country name"
+          },
+          "year": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Year, 2024-2100 (default this year)"
+          }
+        },
+        "required": [
+          "country"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pdf_extract",
+      "description": "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the PDF"
+          },
+          "firstPage": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "First page to read (default 1)"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "How many pages to read (1-200, default 20)"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum characters of text returned across all pages (1000-200000, default 50000)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.005"
+    },
+    {
+      "name": "uniswap_liquidity",
+      "description": "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool. Example: tokenA=WETH, tokenB=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "tokenA": {
+            "type": "string",
+            "description": "First token: 0x address or ticker"
+          },
+          "tokenB": {
+            "type": "string",
+            "description": "Second token: 0x address or ticker"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon"
+          }
+        },
+        "required": [
+          "tokenA",
+          "tokenB"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "coin",
