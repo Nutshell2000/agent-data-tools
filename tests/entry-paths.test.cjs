@@ -39,9 +39,14 @@ test("every entry path names a task, runs a canonical tool at that tool's live p
     assert.equal(capacity.CAPACITY_LIMITED.has(e.path), capacity.CAPACITY_LIMITED.has(canonical), e.path);
     assert.equal(discovery.categoryOf(e.path), discovery.categoryOf(canonical), `${e.path} category`);
   }
-  // One door per intent: no two doors share a canonical tool, and none shadows a core or family path.
-  const canonicals = Object.values(doors.ENTRY_OF);
-  assert.equal(new Set(canonicals).size, canonicals.length);
+  // At most two doors per tool (round 4, 9 Nov 2026: a short-name door beside the long one), each with its own phrase.
+  const byCanonical = {};
+  for (const { endpoint: e } of doors.ENTRY_PATHS) (byCanonical[doors.ENTRY_OF[e.path]] ??= []).push(e.summary.split(":")[0].toLowerCase());
+  for (const [canonical, names] of Object.entries(byCanonical)) {
+    assert.ok(names.length <= 2, `${canonical} has ${names.length} doors`);
+    assert.equal(new Set(names).size, names.length, `${canonical} doors share a name`);
+  }
+  assert.equal(new Set(doors.ENTRY_PATHS.map((d) => d.endpoint.path)).size, doors.ENTRY_PATHS.length);
 });
 
 test("the USDC yield door forces stablecoin pools and defaults the token to USDC", () => {
