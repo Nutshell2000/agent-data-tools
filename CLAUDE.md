@@ -1009,3 +1009,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 ## PAY_TO is the desk's income wallet (1.104.0, 7 Nov 2026)
 - Every EVM payment goes to 0x6293ded2684f1a76e26becef87c137d691fbf800, a plain key held by Eyconomics on the owner's PC (`%LOCALAPPDATA%\Programs\Eyconomics\app\secrets\income_key.dpapi`); Eyconomics sweeps it to Coinbase and invests it. The Coinbase Wallet 0x2074…77f5 received everything before that (history on x402scan/Bazaar is under the old address). Never change PAY_TO without the owner; the ownership proof in `src/discovery.ts` must be re-signed by whoever holds the new key (Eyconomics' `eth.sign_hash(priv, eth.personal_hash(origin))`).
 - Since 1.104.1 (owner, 8 Nov 2026) `TEMPO_PAY_TO` is the same desk wallet, so MPP tempo payments land there too. Eyconomics' income scan and sweep cover Base, Polygon and Arbitrum only; Tempo USDC.e stays in the wallet until that is added. Solana still pays her Phantom wallet.
+
+## Short-name entry paths (1.105.0, 9 Nov 2026; 655 tools)
+
+- Zero.xyz retrieves about 50 candidates per search by similarity, so a long multi-phrase name misses short queries (/token/price #1 for "token price lookup", absent for "token price"; the winners are named "Token Price"). Round 4 in `src/routes/entry-paths.ts` adds 14 doors named with the bare phrase: /price/crypto, /web/search, /balance/wallet, /weather/today, /ofac/check, /whois/lookup, /dns/records, /sec/edgar, /language/detect, /whales, /json/validator, /holidays/public, /pdf/extract, /uniswap/liquidity. Rule now: at most two doors per tool, each with a different name phrase (tests/entry-paths.test.cjs). `POST api.zero.xyz/v1/search` takes `limit` up to 50; use it when measuring, the default shows 15.
+

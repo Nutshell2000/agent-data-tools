@@ -7,7 +7,8 @@
  * about 25 of them, and the one real repeat buyer that week came through the two tasks where we rank #1-2. A NEW URL gets a
  * fresh write: /stock/quote (6 Nov, task-worded) was #2 for "stock price" at once. Each door below is a new path whose name
  * and first sentence are the buyer's task words; it runs the canonical tool's handler, shares its inputs, output and price,
- * and leaves the canonical path untouched (its Bazaar payers and history stay). One door per intent, no more.
+ * and leaves the canonical path untouched (its Bazaar payers and history stay). One door per intent; at most two doors per
+ * tool, each named with a different phrase (round 4, 9 Nov).
  */
 import { entry, need, type Entry, type Input } from "../family";
 import type { Env } from "../lib/env";
@@ -30,6 +31,13 @@ import { SANCTIONS } from "./sanctions";
 import { screenshot } from "./screenshot";
 import { SEARCH } from "./search";
 import { weather } from "./weather";
+import { CHAIN_MORE } from "./chain-more";
+import { GOV_DATA } from "./gov-data";
+import { MEDIA_TEXT } from "./media-text";
+import { PDF } from "./pdf";
+import { UTILS } from "./utils";
+import { WEB_CHECKS } from "./web-checks";
+import { WHALE } from "./whale";
 
 /** The canonical tool each entry path runs (read by tests, the handover notes and the Zero registration check). */
 export const ENTRY_OF: Record<string, string> = {};
@@ -229,4 +237,64 @@ export const ENTRY_PATHS: Entry[] = [
   door("/crypto/fear-and-greed", "Crypto fear and greed index: today's value, label, changes and history",
     "Crypto Fear and Greed Index today (0 = extreme fear, 100 = extreme greed) from alternative.me: the value and its label, the change against 1, 7 and 30 days ago, the low, high and average over the window, and daily history up to 90 days. Use as a market-sentiment input for a trading agent, a dashboard or a daily brief.",
     ["fear-and-greed-index", "crypto-fear-greed", "market-sentiment", "crypto-sentiment", "bitcoin", "indicator"], from(FEAR_GREED, "/crypto/fear-greed")),
+
+  // Round 4 (9 Nov 2026): short names. Zero picks ~50 candidates per search by similarity to the query, and a long
+  // multi-phrase name falls outside that pool for a short query: /token/price is #1 for "token price lookup" but absent
+  // from all 53 results for "token price", where the winners are named just "Token Price". So each name below is the bare
+  // phrase agents type, and the first sentence repeats it. At most two doors per tool, each with its own phrase.
+  door("/price/crypto", "Crypto price: live USD price of a coin or token",
+    "Crypto price and token price in USD, live: give a symbol (ETH, BTC, LINK, AERO, ARB, OP), a coin name or an ERC-20 address and get its price from the deepest Uniswap v3 pool on Base, Ethereum, Arbitrum or Optimism, with the pool and a thin-liquidity flag. Use to price a token for a quote, a portfolio or a trade.",
+    ["crypto-price", "token-price", "coin-price", "price", "defi", "market-data"], from(PRICES, "/price/token")),
+
+  door("/web/search", "Web search: top results for any query",
+    "Web search: send a query and get the top web results as JSON (title, URL, snippet, published date), optionally with page text and highlights, filtered by domain, date or category. Results are for immediate use only (Brave API terms); failures are uncharged. Use when an agent needs current facts, sources or links.",
+    ["web-search", "search", "search-engine", "internet-search", "research", "rag"], from(SEARCH, "/search")),
+
+  door("/balance/wallet", "Wallet balance: ETH and USDC of an address",
+    "Wallet balance of any EVM address: the native coin (ETH, POL) and USDC on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live, with the USDC total. Use to check what a wallet holds before a payment or to confirm funds arrived.",
+    ["wallet-balance", "balance", "eth-balance", "usdc-balance", "evm", "multichain"], from(CHAIN_READS, "/wallet/balances")),
+
+  door("/weather/today", "Weather forecast: today and the next 48 hours",
+    "Weather forecast for any city or coordinates: current temperature, conditions, rain, wind and humidity now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use for travel, events, logistics or a daily brief.",
+    ["weather-forecast", "weather", "forecast", "temperature", "rain", "city-weather"], CORE_WEATHER),
+
+  door("/ofac/check", "OFAC sanctions check: wallet or name",
+    "OFAC sanctions check: screen a crypto wallet address (EVM, Bitcoin, Tron and more) or a person or company name against the OFAC SDN list and get a verdict (block, review, pass) with every match, SDN id and program. A screening aid, not legal advice. Use before paying or accepting funds, or when onboarding a counterparty.",
+    ["ofac", "sanctions-screening", "sanctions-check", "sdn", "aml", "compliance"], from(SANCTIONS, "/sanctions/check")),
+
+  door("/whois/lookup", "WHOIS lookup: who owns a domain",
+    "WHOIS lookup for a domain: registrar, creation and expiry date and age (RDAP/WHOIS), plus its DNS records and email setup (SPF, DMARC). Use to check who registered a domain, how old it is and where it is hosted, for lead research and phishing checks.",
+    ["whois", "whois-lookup", "domain-whois", "registrar", "domain-age", "rdap"], CORE_DOMAIN),
+
+  door("/dns/records", "DNS lookup: records of a domain",
+    "DNS lookup of a domain: A, AAAA, MX, TXT, CNAME, NS, CAA, SOA and other records through Cloudflare DNS over HTTPS, with TTLs, the response code and DNSSEC validation. Use to check where a domain points, its mail servers or a TXT verification record.",
+    ["dns-lookup", "dns", "dns-records", "mx-records", "txt-records", "domain"], from(WEB_CHECKS, "/dns/lookup")),
+
+  door("/sec/edgar", "SEC filings: 10-K, 10-Q, 8-K by ticker",
+    "SEC filings of a US public company from EDGAR by ticker or CIK: the latest 10-K, 10-Q, 8-K, Form 4 and other forms with dates and document links, optionally one form type. Use to find a company's annual or quarterly report, insider trades or recent events.",
+    ["sec-filings", "edgar", "10-k", "10-q", "8-k", "financial-data"], from(GOV_DATA, "/sec/filings")),
+
+  door("/language/detect", "Detect language: which language a text is",
+    "Detect language of a text: the language as an ISO 639-1 and 639-3 code with its English name, from 82 languages (franc), offline and fast. Use to route a message to the right translator, model or support team, or to tag content by language.",
+    ["detect-language", "language-detection", "language", "nlp", "text", "translation"], from(MEDIA_TEXT, "/text/language")),
+
+  door("/whales", "Whale transfers: big USDC and USDT moves",
+    "Whale transfers: the largest USDC and USDT transfers of the last minutes on Base, Ethereum, Arbitrum, Optimism or Polygon above a size you choose (default 100,000 USD), with sender, receiver, amount and transaction. Use for whale alerts, flow monitoring and market-moving transfers.",
+    ["whale-transfers", "whale-alert", "large-transfers", "stablecoin", "onchain-data", "monitoring"], from(WHALE, "/whale/transfers")),
+
+  door("/json/validator", "JSON validator: is this valid JSON",
+    "JSON validator: check whether a text is valid JSON and get the error position and message when it is not, plus the parsed type. Use before parsing an LLM's JSON output, saving a config or sending a request body.",
+    ["json-validator", "validate-json", "json", "json-lint", "developer-tools", "parser"], from(UTILS, "/json/validate")),
+
+  door("/holidays/public", "Public holidays: dates for any country",
+    "Public holidays for a country and year: date, local and English name, whether it is nationwide and the observed day, for over 100 countries. Use to plan deliveries, schedules and business days, or to tell whether today is a holiday somewhere.",
+    ["public-holidays", "holidays", "bank-holidays", "calendar", "country", "business-days"], from(PUBLIC_DATA, "/holidays")),
+
+  door("/pdf/extract", "Extract text from a PDF URL",
+    "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context.",
+    ["pdf-to-text", "extract-pdf-text", "pdf", "pdf-parser", "document", "rag"], from(PDF, "/pdf/text")),
+
+  door("/uniswap/liquidity", "Uniswap pool liquidity: reserves and price",
+    "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
+    ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
 ];
