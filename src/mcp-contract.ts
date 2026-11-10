@@ -4,6 +4,7 @@ import { exampleParams, type Endpoint } from "./endpoints";
 import { CAPACITY_LIMITED } from "./lib/capacity";
 import { LOCAL_PATHS } from "./families";
 import { FREE_CALLS_PER_CALLER } from "./lib/free-calls";
+import { chatgptText } from "./lib/chatgpt-tools";
 
 /** One snake_case name per tool: "/eth/gas" becomes "eth_gas" and "/base-gas" becomes "base_gas". */
 export const mcpName = (path: string) => path.slice(1).replace(/[/-]/g, "_");
@@ -32,7 +33,7 @@ export const isWriteTool = (path: string) => Object.hasOwn(WRITE_TOOLS, path);
 // nothing outside the request, and the memory reads see only what the caller saved here: closed-world. Everything else reads the public internet or open-ended public records.
 export const annotationsFor = (path: string) => Object.hasOwn(WRITE_TOOLS, path)
   ? { readOnlyHint: false, destructiveHint: WRITE_TOOLS[path].destructive, idempotentHint: WRITE_TOOLS[path].idempotent, openWorldHint: WRITE_TOOLS[path].openWorld }
-  : LOCAL_PATHS.has(path) || path.startsWith("/memory/") ? { ...toolAnnotations, openWorldHint: false } : toolAnnotations;
+  : LOCAL_PATHS.has(path) || path.startsWith("/memory/") || path === "/time" ? { ...toolAnnotations, openWorldHint: false } : toolAnnotations;
 
 /**
  * A short "Example: name=value" from the published example call (directories score descriptions with examples). It is
@@ -46,8 +47,8 @@ const exampleText = (endpoint: Endpoint) => {
 };
 
 /**
- * The ChatGPT directory server (/mcp/chatgpt) shows no prices or payment methods: ChatGPT's plugin rules forbid pricing
- * and checkout prompts inside the app. Credits are bought on our own site, outside ChatGPT.
+ * The ChatGPT plugin server (/mcp/chatgpt) is free inside ChatGPT and says nothing about prices, plans, free calls or
+ * credits: its rules allow no sale of digital services and no upsell (lib/chatgpt-tools.ts).
  */
 /** What a tool changes, for its description: side effects must be stated where a model and a reviewer read them. */
 const writeNote = (path: string) => !Object.hasOwn(WRITE_TOOLS, path) ? "Reads or computes only and changes nothing."
@@ -55,12 +56,12 @@ const writeNote = (path: string) => !Object.hasOwn(WRITE_TOOLS, path) ? "Reads o
   : "Publishes a page on the public web that stays up until it expires and cannot be withdrawn.";
 
 export const directoryToolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description}${exampleText(endpoint)} Uses one of this account's free calls or credits per successful call; failed calls never count. ${writeNote(endpoint.path)}`;
+  `${chatgptText(endpoint.path, `${endpoint.description}${exampleText(endpoint)}`)} ${writeNote(endpoint.path)}`;
 
 export const toolDescription = (endpoint: Endpoint) =>
   `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${writeNote(endpoint.path).replace(/\.$/, "")}; each call is charged, so repeats are not free.`;
 
-export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
+export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z, wording: (text: string) => string = (text) => text) =>
   Object.fromEntries(
     Object.entries(endpoint.params).map(([name, param]) => {
       const schema = param.enum
@@ -74,7 +75,7 @@ export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
             : typeof param.example === "string" && /^(true|false|-?\d+(\.\d+)?)$/.test(param.example)
               ? z.union([z.string(), z.number(), z.boolean()])
               : z.string();
-      const field = schema.describe(param.description);
+      const field = schema.describe(wording(param.description));
       return [name, param.required ? field : field.optional()];
     }),
   );
@@ -84,7 +85,7 @@ export function protocolTool(endpoint: Endpoint, directory = false) {
   return {
     // Directories (Claude, ChatGPT) require a human-readable title on every tool and in its annotations.
     name: toolName(endpoint), title: endpoint.summary, description: directory ? directoryToolDescription(endpoint) : toolDescription(endpoint), annotations: { title: endpoint.summary, ...annotationsFor(endpoint.path) },
-    inputSchema: z4mini.toJSONSchema(z.object(toolInputShape(endpoint, z)), {target:"draft-7",io:"input"}) as {type:"object";[key:string]:unknown},
+    inputSchema: z4mini.toJSONSchema(z.object(toolInputShape(endpoint, z, directory ? (text) => chatgptText(endpoint.path, text) : undefined)), {target:"draft-7",io:"input"}) as {type:"object";[key:string]:unknown},
     ...(endpoint.outputSchema ? {outputSchema: endpoint.outputSchema as {type:"object";[key:string]:unknown}} : {}),
     execution: {taskSupport:"forbidden" as const},
   };
