@@ -206,6 +206,21 @@ export async function useFreeCall(env: Env, ip: string | undefined, onUnavailabl
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
 }
 
+/**
+ * One call of the day for a signed-in ChatGPT user (lib/free-calls.ts takeDailyCall), or null when the user or the day
+ * is used up. Not tied to TRIALS_ENABLED: inside ChatGPT this allowance is the whole product.
+ */
+export async function useDailyCall(env: Env, caller: string, perCaller: number, total: number, onUnavailable?: () => void) {
+  const store = ledger(env);
+  if (!store) { onUnavailable?.(); return null; }
+  const hash = await callerHash(caller);
+  const day = utcDay();
+  const left = await store.takeDailyCall(hash, day, perCaller, total).catch((err: unknown) => { console.error(`daily calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
+  if (left === undefined) { onUnavailable?.(); return null; }
+  if (left === null) markStage("free_exhausted");
+  return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day) };
+}
+
 /** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */
 /** Where a newly bought key goes: signed-in connectors sign in again; others add a header or use the key URL. */
 const keyPlacement = (origin: string, signedIn: boolean) => signedIn
@@ -230,13 +245,9 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
 }
 
 /** Server instructions for the ChatGPT plugin server: no prices, payment methods or links (ChatGPT plugin rules). */
-export function directoryInstructions(hasKey: boolean, toolCount: number) {
-  const plan = hasKey
-    ? "This account has prepaid credits: each successful call uses some; failed calls never count."
-    : `This account includes ${FREE_CALLS_PER_CALLER} free successful calls (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. When they are used up, tools answer that they are not available on the current plan.`;
-  return `Agent Data Tools: ${toolCount} live data tools: ${DIRECTORY_KINDS}. ${plan} Every tool's result shape is in its output schema. ${DIRECTORY_PICK}`;
-}
-// What the signed-in directory servers offer (mcp.ts leaves out generative media and the Brave search tools there).
+export function directoryInstructions(toolCount: number, callsPerDay: number) {
+  return `Agent Data Tools: ${toolCount} read-only lookups of public data: sanctions screening and company records (OFAC, LEI, SEC filings), domains, DNS and website checks, text of PDFs and feeds, software packages and repositories, public blockchain balances, transactions and token prices, currency rates, economic statistics, weather, time and public holidays. Every tool only reads or computes: nothing is bought, sent, signed or changed. Each signed-in user can make ${callsPerDay} calls a day; failed calls do not count. Every tool's result shape is in its output schema. Pick by task: is an address or a name on the OFAC list → sanctions_check; a company → company, lei_lookup, sec_filings; a domain → domain, dns_lookup; is a site up, where it redirects, its headers or its SEO → url_uptime, url_redirects, http_security_headers, seo_audit; the text of a PDF → pdf_text; an RSS or Atom feed → feed; a software package → package, package_audit; a repository → github_repo; a wallet's balances → wallet_balances, wallet_portfolio; a token price → price_token; a transaction → eth_tx, base_tx; currency conversion → fx; weather by city → weather; the time in a zone → time.`;
+}// What the signed-in directory servers offer (mcp.ts leaves out generative media and the Brave search tools there).
 const DIRECTORY_KINDS = "LLM chat and embeddings, speech to text, image description, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time and utilities";
 // The task guide without the tools the signed-in servers leave out and without other server addresses.
 const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; OpenAI-compatible at /v1/chat/completions)", " (stronger model: ai_chat_large)")
