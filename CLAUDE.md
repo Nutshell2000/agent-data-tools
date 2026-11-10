@@ -1083,3 +1083,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - **Finder** (src/routes/recommend.ts): `JOBS` maps job names to tools (+10 on top of 1.110.1's `written` scoring, the longest phrase wins; the reranker cannot push that tool off the top). Add a phrase when `business/agentic/base-bots/buyer-next.mjs` shows a job landing on the wrong tool; tests/recommend.test.cjs checks every path exists.
 - **`/status`** has `byDay` (served, serverErrors, successRate per UTC day), `medianDailySuccessRate` and `daysAt99`: the 7 Nov incident alone made the week read 54%.
 
+
+
+## Audio over MCP, larger pages, the speech tool's name (1.111.1, 11 Nov 2026)
+
+- `toContent()` (src/mcp.ts) returns `audioBase64` as an MCP `audio` content block, like `imageBase64` as an `image` block, and `runTool` leaves both out of `structuredContent`. Before this the speech tools put the whole file into the text block: about 55 KB of base64 for `/ai/speech` and up to 800 KB for `/text-to-speech`, read by the model as text. Any new tool that returns a file must use one of these two field names or get its own block here.
+- `MAX_ELEMENTS` (src/lib/page-content.ts) is 60,000. The old 20,000 dated from the free plan (10 ms of CPU); `/status` showed five "HTML complexity limit exceeded" refusals in a week. Measured on the PC: 59,000 elements (845 KB) in 0.35 s; Wikipedia's longest articles hold about 15,700. The 128-level depth limit and the 2 MB input cap are unchanged. The fixture `many` in tests/fixtures/extract-pages.cjs holds 60,001 elements.
+- `/text-to-speech`'s listing name is the bare phrase "Text to speech". Register a NEW path with Zero.xyz only when its name is final: Zero writes the record once from the first crawl.
+

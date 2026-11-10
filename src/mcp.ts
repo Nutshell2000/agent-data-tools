@@ -33,14 +33,17 @@ type Accepts = Parameters<typeof createPaymentWrapper>[1]["accepts"];
 
 export { toolName } from "./mcp-contract";
 
-/** Images go back as MCP image blocks so clients don't have to parse base64 out of JSON. */
-function toContent(value: unknown) {
-  const { imageBase64, ...rest } = value as Record<string, unknown>;
-  if (typeof imageBase64 !== "string") return [{ type: "text", text: JSON.stringify(value) }];
-  return [
-    { type: "text", text: JSON.stringify(rest) },
-    { type: "image", data: imageBase64, mimeType: String(rest.contentType ?? "image/jpeg") },
-  ];
+/**
+ * Images and audio go back as MCP image and audio blocks, never as base64 inside the JSON text: a client does not have to
+ * parse it out, and a model does not read it as text. A spoken page is about 800 KB of base64 (11 Nov 2026), which as text
+ * would fill an assistant's context after the call was paid.
+ */
+export function toContent(value: unknown) {
+  const { imageBase64, audioBase64, ...rest } = value as Record<string, unknown>;
+  const media = typeof imageBase64 === "string" ? { type: "image", data: imageBase64, mimeType: String(rest.contentType ?? "image/jpeg") }
+    : typeof audioBase64 === "string" ? { type: "audio", data: audioBase64, mimeType: String(rest.contentType ?? "audio/mpeg") } : null;
+  if (!media) return [{ type: "text", text: JSON.stringify(value) }];
+  return [{ type: "text", text: JSON.stringify(rest) }, media];
 }
 
 /** A failed tool returns isError, which makes the payment wrapper cancel the charge. */
@@ -48,7 +51,7 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
   try {
     const path: EndpointPath = e.path;
     const result = pickFields(await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name]))), args.only === undefined ? undefined : String(args.only));
-    const { imageBase64: _image, ...structuredContent } = result as Record<string, unknown>;
+    const { imageBase64: _image, audioBase64: _audio, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
     if (!(err instanceof HttpError)) console.error(err);

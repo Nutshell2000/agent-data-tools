@@ -392,13 +392,15 @@ export const AI_TEXT: Entry[] = [
       const data = Object.fromEntries(fields.map((f) => [f, (r as Record<string, unknown>)[f] ?? null]));
       return { data, missing: fields.filter((f) => data[f] === null), model: MODELS.text };
     }),
-  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, narration, audio notes, accessibility and phone or chat bots.",
+  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
     ["tts", "text-to-speech", "voice", "audio", "voice-generation", ...T], {
       text: { type: "string", description: "Text to speak, up to 300 characters", required: true, example: "Your payment was received. Thank you!" },
       lang: { type: "string", description: "Language: en or es (default en)", example: "en", enum: ["en", "es"] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 41472, lang: "en", voice: "luna", characters: 37, model: AI_MODELS.speech },
     async (env, q) => {
+      // Longer text is not a dead end: the refusal names the tool that reads it.
+      if ((q("text")?.trim().length ?? 0) > SPEECH_MAX) throw new HttpError(400, `text is longer than ${SPEECH_MAX} characters; /text-to-speech reads up to ${SPEECH_LONG_MAX} characters (${SPEECH_LONG_PRICE})`);
       const t = text(q, SPEECH_MAX).trim();
       const { lang, voice, model } = speechVoice(q);
       const audioBase64 = await speakOnce(env, model, voice, t);
@@ -409,7 +411,9 @@ export const AI_TEXT: Entry[] = [
   // paragraph was a refusal here. This one reads up to 2,000 characters: the text is cut at sentence ends into parts the
   // model takes, the parts are spoken in parallel and joined into one MP3. All parts or nothing: a part that fails makes
   // the call a 502 and nothing is charged. Aura-2 costs $0.030 per 1,000 characters, so a full call costs $0.06.
-  entry("/text-to-speech", "Text to speech, long text: up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: turn up to 2,000 characters of text into natural, human-sounding speech as one MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
+  // The name is the bare phrase: Zero.xyz writes a tool's record once, from its first crawl, and retrieves by name similarity
+  // (a two-phrase name misses the short search), and the Bazaar matches the phrase a name starts with.
+  entry("/text-to-speech", "Text to speech: long text, up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: turn up to 2,000 characters of text into natural, human-sounding speech as one MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
     ["text-to-speech", "tts", "tts-api", "voice-generation", "narration", "audio", ...T], {
       text: { type: "string", description: "Text to speak, up to 2,000 characters", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
       lang: { type: "string", description: "Language: en or es (default en)", example: "en", enum: ["en", "es"] },

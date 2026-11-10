@@ -64,6 +64,7 @@ const longestTicks = (s: string) => {
 };
 const escape = (s: string) => s.replace(/[\\`*_[\]<>|~]/g, "\\$&");
 
+export const MAX_ELEMENTS = 60_000;
 /** Inert, bounded HTML parsing. No scripts, layout or external subrequests. */
 export function pageContent(html: string, base: string, maxChars: number, sectionId?: string) {
   const root: Node = { tag: "root", attrs: {}, children: [] },
@@ -74,7 +75,10 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   new Parser(
     {
       onopentag(tag, attrs) {
-        if (++count > 20000 || stack.length > 128)
+        // 60,000 elements since 1.111.1 (11 Nov 2026): the limit was 20,000 from the free plan's 10 ms of CPU, and five real
+        // pages were refused by it in a week. Input is capped at 2 MB; the largest pages measured (Wikipedia's longest
+        // articles, 15,700 elements) take about 0.2 s here, and the paid plan allows 30 s.
+        if (++count > MAX_ELEMENTS || stack.length > 128)
           throw new HttpError(
             422,
             "HTML complexity limit exceeded",
