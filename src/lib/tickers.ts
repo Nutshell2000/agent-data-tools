@@ -67,5 +67,5 @@ export function tokenAddress(input: string, slug: string): Address {
   const hit = TICKERS[slug]?.[ALIASES[slug]?.[key] ?? key];
   if (hit) return getAddress(hit);
   const known = [...Object.keys(ALIASES[slug] ?? {}), ...Object.keys(TICKERS[slug] ?? {})].join(", ");
-  throw new HttpError(400, `"${v.slice(0, 20)}" is not a 0x token address or a ticker known on this network (${known}); pass the token's 0x address`);
+  throw new HttpError(400, `"${v.slice(0, 20)}" is not a 0x token address or a ticker known on this network${known ? ` (${known})` : ""}; pass the token's 0x address`);
 }
