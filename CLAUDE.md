@@ -1050,3 +1050,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - Owner, 10 Nov 2026: "we keep tools.funwords.eu for now we buy a dedicated one later". `PUBLIC_SITE_ORIGIN` (wrangler.jsonc, production only) names it; `withPublicCanonical()` (src/lib/public-site.ts) rewrites only the canonical and og:url tags of 200 HTML pages served from another host. When the dedicated domain arrives: add it as a route, set `PUBLIC_SITE_ORIGIN` to it, and answer the old public host's human pages with a 301 to the new one (not built yet). Search Console: property sc-domain:funwords.eu, filter page contains tools.funwords.eu; judge by clicks there, weekly.
 
+
+## Weather default (1.109.3, 10 Nov 2026)
+
+- `/status` `[sent nothing]` on a refused paid /weather call settled the open question from 1.106.0: empty calls are real. `weather()` answers a call with no place for `DEFAULT_CITY` (London) with a `note`; descriptions state the default. Apply the same only where a tool has an honest, documented default and `/status` shows `[sent nothing]` on paid calls; otherwise keep the tool in `ONE_OF_INPUT_PATHS`.
+

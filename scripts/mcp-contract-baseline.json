@@ -1,5 +1,5 @@
 {
-  "version": "1.109.2",
+  "version": "1.109.3",
   "tools": [
     {
       "name": "extract",
@@ -1497,7 +1497,7 @@
         "properties": {
           "city": {
             "type": "string",
-            "description": "City or place name, e.g. London or Uppsala (used when lat and lon are not given)"
+            "description": "City or place name, e.g. London or Uppsala (used when lat and lon are not given; with no place at all the answer is for London)"
           },
           "lat": {
             "type": "number",
@@ -17652,7 +17652,7 @@
         "properties": {
           "city": {
             "type": "string",
-            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given)"
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)"
           },
           "lat": {
             "type": "number",
@@ -18679,7 +18679,7 @@
         "properties": {
           "city": {
             "type": "string",
-            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given)"
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)"
           },
           "lat": {
             "type": "number",

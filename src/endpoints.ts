@@ -863,7 +863,7 @@ export const CORE_ENDPOINTS = [
       "Current weather by city name, or by latitude and longitude, for any place on Earth: temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
     tags: ["weather", "forecast", "temperature", "climate", "geo"],
     params: {
-      city: { type: "string", description: "City or place name, e.g. London or Uppsala (used when lat and lon are not given)", example: "London" },
+      city: { type: "string", description: "City or place name, e.g. London or Uppsala (used when lat and lon are not given; with no place at all the answer is for London)", example: "London" },
       lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)", example: 59.33 },
       lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)", example: 18.07 },
       hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)", example: 12 },
