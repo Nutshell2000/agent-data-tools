@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.114.0";
+export const MCP_SERVER_VERSION = "1.115.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -294,6 +294,8 @@ export function mcpInstallLinks(origin: string) {
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
     claudeCode: `claude mcp add --transport http agent-data-tools ${url}`,
     claudeAi: `${origin}/mcp/account`,
+    // The npm client (clients/agent-data-tools, 1.1.0): writes the client's MCP configuration, or runs a local stdio bridge.
+    npx: "npx -y agent-data-tools setup",
   };
 }
 
@@ -366,7 +368,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
 <li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
-Claude Code: <code>${esc(install.claudeCode)}</code>. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. If your client limits how many tools it loads, add one section instead, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
+Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. If your client limits how many tools it loads, add one section instead, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
@@ -623,6 +625,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "## Machine-readable",
     "",
     `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp`,
+    `- Set it up in Claude Code, Claude Desktop, Cursor or VS Code from a terminal: npx -y agent-data-tools setup (npm package agent-data-tools; "npx -y agent-data-tools mcp" is a local stdio server for clients that only start commands)`,
     `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpBundleTools(slug)!.length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
