@@ -16,13 +16,15 @@ export const toolBySlug = (slug: string) => BY_SLUG.get(slug);
 /** Inline JSON for a <script type="application/ld+json"> block: "<" escaped so the data cannot close the tag. */
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 
-export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean): string {
+export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }): string {
   const slug = toolSlug(e.path);
   const url = `${origin}/tools/${slug}`;
   const query = exampleQuery(e);
   const request = `${origin}${e.path}?${query}`;
   const mcpName = e.path.slice(1).replace(/[/-]/g, "_");
-  const example = JSON.stringify(e.outputExample, null, 2);
+  // A live answer (lib/live-pages.ts) replaces the static example for tools whose example has a current answer.
+  const example = JSON.stringify(live ? live.result : e.outputExample, null, 2);
+  const liveAt = live ? `${live.at.slice(0, 10)} ${live.at.slice(11, 16)} UTC` : "";
   const shown = example.length > 4000 ? `${example.slice(0, 4000)}\n…` : example;
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
@@ -87,7 +89,8 @@ ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>
 <pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"</code></pre>
 ${freeCalls ? `<p>Or one of your ${FREE_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
 <p>Without a key, the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so an agent with a wallet pays per call in USDC (Base, Polygon, Arbitrum or Solana over x402; Base or Tempo over MPP) and retries.</p>
-<h2>Example result</h2>
+<h2>${live ? "Live result" : "Example result"}</h2>
+${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}
 <pre><code>${esc(shown)}</code></pre>
 <h2>From an AI agent (MCP)</h2>
 <p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
