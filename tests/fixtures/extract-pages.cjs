@@ -25,7 +25,7 @@ module.exports = {
   ordered: '<main><ol start="3"><li>Third step</li><li>Fourth step</li></ol><div class="highlight-python3"><pre>def f():\n    return 1</pre></div></main>',
 
   deep: '<div>'.repeat(140)+'text'+'</div>'.repeat(140),
-  many: '<main>'+ '<span>x</span>'.repeat(20001)+'</main>',
+  many: '<main>'+ '<span>x</span>'.repeat(60001)+'</main>',
   bigcode: '<main><pre><code class="language-text">'+ '`'.repeat(200000)+'</code></pre></main>',
 
   short: '<html><head><title>Short note</title></head><body><header>Unrelated site header</header><main><h1>Release note</h1><p>Version 2 fixes parsing.</p></main><div>Unrelated site links</div></body></html>',
