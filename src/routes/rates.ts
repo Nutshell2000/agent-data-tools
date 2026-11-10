@@ -33,14 +33,17 @@ async function getJson<T>(url: string, source: string, notFound: string): Promis
 
 /** European Central Bank reference rates, published once per working day. */
 export async function exchangeRates(fromInput: string, toInput?: string, amountInput?: string) {
-  const from = currencyCode(fromInput);
+  // A pair in one field (EURUSD, EUR/USD, eur-usd) is from and to; an amount may carry thousands separators (1,000).
+  const pair = /^\s*([A-Za-z]{3})\s*[\/_\-:]?\s*([A-Za-z]{3})\s*$/.exec(fromInput ?? "");
+  // Only when the text is not itself a currency ("dollar" is six letters too) and no target was sent.
+  if (pair && !(toInput ?? "").trim() && !CODE.test(currencyCode(fromInput))) { fromInput = pair[1]; toInput = pair[2]; }  const from = currencyCode(fromInput);
   if (!CODE.test(from)) throw new HttpError(400, "from must be a three-letter currency code such as USD (or a currency name such as euro)");
   const to = (toInput ?? "")
     .split(",")
     .map(currencyCode)
     .filter(Boolean);
   if (to.some((c) => !CODE.test(c))) throw new HttpError(400, "to must be three-letter currency codes separated by commas, e.g. EUR,GBP (currency names also work)");
-  const amount = amountInput === undefined || amountInput === "" ? 1 : Number(amountInput);
+  const amount = amountInput === undefined || amountInput === "" ? 1 : Number(String(amountInput).replace(/(?<=\d)[,_\s](?=\d{3}\b)/g, ""));
   if (!Number.isFinite(amount) || amount <= 0) throw new HttpError(400, "amount must be a positive number");
 
   const query = new URLSearchParams({ base: from });
