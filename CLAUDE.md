@@ -1038,3 +1038,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Secret `GITHUB_TOKEN` (production and staging; a fine-grained token with no permissions, public repositories read-only; the owner creates it and it has an expiry date). Keyless reads from Cloudflare were refused 1 time in 3 on 10 Nov, so do not sell these without the secret. A 401 (expired token) logs a warning and reads without it; a used-up limit is a 503 `GITHUB_BUSY`, uncharged. Answers are cached five minutes at the edge.
 - Acquisition-priced (`ACQUISITION_PATHS`). `repoName()` takes owner/name, any github.com URL, an SSH remote, or a bare name with `owner`.
 
+
+## Live answers on tool pages; where our own customers can come from (1.109.0, 10 Nov 2026)
+
+- Measured 10 Nov (`business/agentic/base-bots/human-funnel.mjs`, `mcp-funnel.mjs`, Search Console): the top of the card funnel is empty. 0 search clicks in 28 days; browser page views are 97% referrer-less fetchers; /credits had 64 views and /credits/claim 0 in 14 days (no checkout ever completed); MCP "free_exhausted" comes from directory probes repeating the same tools daily. The pages themselves convert fine in form (free run, card from $1).
+- Google indexes 1 of 608 pages on workers.dev and shows the same pages on `tools.funwords.eu` (self-canonical mirror since 31 Oct: 359 impressions in its first week, position about 24, no clicks yet). The permanent public domain is the owner's decision.
+- `src/lib/live-pages.ts`: `isLivePage` (a list plus `/<network>/gas` and `/<network>/block`, never a `CAPACITY_LIMITED` tool) and `liveAnswer()` (the tool's published example, cached 15 minutes in `caches.default`, 3.5 s budget, never throws). `toolDocPage(e, origin, freeCalls, live)` renders "Live result" with the read time. Add a tool to `LIVE_EXACT` only when its example has a changing answer people search for.
+
