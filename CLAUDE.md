@@ -1031,3 +1031,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Round 5 doors in `src/routes/entry-paths.ts`: /web/fetch, /email/auth, /tech/detect, /crypto/news (`cryptoNewsInput`: default topic and the past day, so an empty call answers), and /weather/current, named "Current weather" (it was /weather/today for one day; src/index.ts redirects the old path with a 308). Agent402's router (`agent402-route-ranks.mjs`) scores the URL slug most, so a door's path should hold the task words too. A Brave-backed door joins `CAPACITY_LIMITED` and `DIRECTORY_EXCLUDED`. The Bazaar lists a door only after its first settlement.
 - Staging delivery check of the 60 most-bought tools: copy `business/agentic/base-bots/delivery-check-staging.mjs` into x402-w11 (funded test wallet) and pass the paths; results in `base-bots/data/delivery-<day>.txt`.
 
+
+## GitHub repository data (1.108.0, 10 Nov 2026; 662 tools)
+
+- `src/routes/github.ts`: `/github/repo` (facts, language shares, latest release: three reads, the last two best effort), `/github/search` (repository search; 30 searches a minute with a token) and `/github/releases`. Owner's decision: repository data only. GitHub's terms restrict selling users' personal information, so never add profile, e-mail, avatar, contributor or stargazer fields (tests/github.test.cjs feeds GitHub's real owner and author objects and asserts none of it is returned).
+- Secret `GITHUB_TOKEN` (production and staging; a fine-grained token with no permissions, public repositories read-only; the owner creates it and it has an expiry date). Keyless reads from Cloudflare were refused 1 time in 3 on 10 Nov, so do not sell these without the secret. A 401 (expired token) logs a warning and reads without it; a used-up limit is a 503 `GITHUB_BUSY`, uncharged. Answers are cached five minutes at the edge.
+- Acquisition-priced (`ACQUISITION_PATHS`). `repoName()` takes owner/name, any github.com URL, an SSH remote, or a bare name with `owner`.
+
