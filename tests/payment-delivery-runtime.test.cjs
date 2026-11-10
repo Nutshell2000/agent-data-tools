@@ -243,7 +243,10 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
  const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],4);assert.equal(day['mcp:/extract:free_call'],2);assert.equal(day['http:/extract:free_exhausted'],1);
   // PDF reading is not in the HTTP free calls at all (10 Nov 2026): trial=1 gets the payment request, at the lowest price.
-  const pdf=await mfFree.dispatchFetch('https://api.test/pdf/text?url=https%3A%2F%2Fpublic.example%2Fa.pdf&trial=1',{headers:{'cf-connecting-ip':'198.51.100.9'}});assert.equal(pdf.status,402);assert.equal(JSON.parse(Buffer.from(pdf.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0].amount,'2000');await pdf.arrayBuffer();
+  const pdf=await mfFree.dispatchFetch('https://api.test/pdf/text?url=https%3A%2F%2Fpublic.example%2Fa.pdf&trial=1',{headers:{'cf-connecting-ip':'198.51.100.9'}});assert.equal(pdf.status,402);assert.equal(JSON.parse(Buffer.from(pdf.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0].amount,'5000');
+  // The refusal carries the prepaid-key price (lib/credits.ts KEY_PRICES); a tool without one does not.
+  assert.match((await pdf.json()).withKey,/costs \$0\.002 a call.*\$1 pays for 500 calls/);
+  const noKeyPrice=await mfFree.dispatchFetch('https://api.test/btc-fees',{headers:{accept:'application/json'}});assert.equal((await noKeyPrice.json()).withKey,undefined);
 });
 test('page views: a browser reading a tool page is counted with its referrer family; JSON clients are not',async()=>{
  const browser={accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 Chrome/130',referer:'https://www.google.com/search?q=ofac+check+api'};
