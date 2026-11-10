@@ -34,7 +34,25 @@ export function bazaarInputProperties(e: Endpoint) {
     Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), examples: [p.example] }]),
   );
 }
-export const requiredInputs = (e: Endpoint) => Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
+/**
+ * Tools that take one of several inputs (city or lat and lon, symbol or address, ticker or CIK): no single input is
+ * required, so their schema used to list none, and a router that plans calls from the schema called them with no input
+ * at all. Mercator (mercator.sh, the router behind our steadiest buyer) held `"input": {}` as its plan for /weather on
+ * 10 Nov 2026, got our 400 five times out of five and marked the tool "severely degraded" (score halved); /company and
+ * /ip/lookup failed the same way. The LISTING therefore names the published example's input as required for these
+ * tools. The tools themselves still take the alternatives (MCP and OpenAPI keep every input optional). The set must be
+ * exactly the tools without a required input that refuse an empty call: tests/buyer-inputs.test.cjs runs them all.
+ */
+export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
+  "/weather", "/weather/forecast", "/weather/today", "/price/token", "/token/price", "/price/crypto", "/price/tokens",
+  "/sanctions/check", "/sanctions/screen", "/ofac/check", "/company", "/company/lookup",
+  "/sec/filings", "/sec/edgar", "/sec/8k", "/sec/insider", "/sec/13f", "/polymarket/orderbook", "/polymarket/price-history",
+  "/number/roman", "/book/search", "/text/keyword-density", "/gov/clinical-trials", "/airport/lookup", "/lei/lookup",
+]);
+export const requiredInputs = (e: Endpoint) => {
+  const required = Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
+  return required.length || !ONE_OF_INPUT_PATHS.has(e.path) ? required : exampleParams(e).map(([k]) => k);
+};
 /** The published example call's inputs: what the Bazaar sends when it checks a listed tool (HTTP and MCP alike). */
 export const exampleInput = (e: Endpoint) => Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example]));
 /**

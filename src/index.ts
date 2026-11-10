@@ -13,7 +13,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
-import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -103,7 +103,10 @@ app.use(async (c, next) => {
       if (!(name in endpoint.params) && !aliased && !["only", "trial", "sample", "api_key"].includes(name)) continue;
       if (["string", "number", "boolean"].includes(typeof value)) target.searchParams.set(name, String(value));
       // Items that hold a comma or a line break travel as a JSON array, so list inputs (listInput in routes/retrieval.ts) can split them back exactly.
-      else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.some((v) => /[,\n]/.test(String(v))) ? JSON.stringify(value) : value.join(","));
+      else if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) target.searchParams.set(name, value.some((v) => /[,\n]/.test(String(v))) ? JSON.stringify(value) : value.join(","));      // An OpenAI-shaped body (messages, tools, response_format as arrays or objects) travels as JSON text: /ai/chat reads
+      // those inputs as JSON, and the other prompt tools read `messages` through INPUT_ALIASES. Until 10 Nov 2026 they were
+      // dropped here, so a paid POST of {"messages":[…]} to /llm/chat was refused "prompt is required" three times.
+      else if (value && typeof value === "object") { const text = JSON.stringify(value); if (text.length <= 24_000) target.searchParams.set(name, text); }
     }
   }
   const headers = new Headers(c.req.raw.headers);
@@ -140,7 +143,7 @@ app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X40
       }
       if (c.res.status === 402 && !c.req.header("payment-signature")) markStage("quote");
       if (c.res.status >= 400 && activeTrace()?.stages.has("verified") && !activeTrace()?.stages.has("settlement_failed")) markStage("execution_failed");
-      if (c.res.ok && (c.res.headers.has("PAYMENT-RESPONSE") || c.res.headers.has("Payment-Receipt"))) markStage("completed");
+      if (c.res.ok && (c.res.headers.has("PAYMENT-RESPONSE") || c.res.headers.has("X-PAYMENT-RESPONSE") || c.res.headers.has("Payment-Receipt"))) markStage("completed");
     }
   }));
 
@@ -635,7 +638,17 @@ app.notFound((c) => {
   }, 404);
 });
 app.onError((err, c) => {
-  if (err instanceof HttpError) return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}) }, err.status);
+  if (err instanceof HttpError) {
+    // A tool that refuses its inputs (400) also says which inputs it takes and shows its published example call, so an
+    // agent can correct the request from the answer alone instead of giving up (10 Nov 2026: three paid /llm/chat calls
+    // in a row got only "prompt is required").
+    const tool = err.status === 400 ? ENDPOINTS.find((e) => e.path === c.req.path) : undefined;
+    const help = tool ? {
+      inputs: Object.fromEntries(Object.entries(tool.params).filter(([name]) => name !== "only").map(([name, p]) => [name, `${p.required ? "required" : "optional"} ${p.type}: ${p.description.slice(0, 140)}`])),
+      example: `${origin(c.req.url)}${tool.path}?${exampleQuery(tool)}`,
+    } : {};
+    return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}), ...help }, err.status);
+  }
   console.error(err);
   // An outside source that timed out or could not be reached (a tool without its own catch): say so, uncharged.
   if (isUpstreamFailure(err)) return c.json({ error: "an outside data source did not respond in time; not charged, try again" }, 502);
