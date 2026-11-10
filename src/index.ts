@@ -31,7 +31,7 @@ import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
-import { ALIAS_OF, TOOLS } from "./tools";
+import { ALIAS_OF, NO_INPUT, TOOLS } from "./tools";
 import { marketplaceOf } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
@@ -47,6 +47,8 @@ import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
 import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
+/** Query parameters that steer the call and are not tool input. */
+const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key"]);
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
@@ -374,7 +376,8 @@ app.use(async (c, next) => {
 /** The `error` the v2 library put in a 402's PAYMENT-REQUIRED header, for logs; never the request's payment data. */
 for (const e of ENDPOINTS) {
   // The IP tools answer a call without `ip` for the address the request came from; no other input is read from a header.
-  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : c.req.query(name))), c.req.query("only"))));
+  // NO_INPUT tells a tool that the request carried nothing but control parameters (EMPTY_CALL_DEFAULTS in src/tools.ts).
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
 }
 
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {

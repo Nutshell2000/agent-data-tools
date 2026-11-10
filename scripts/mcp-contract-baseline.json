@@ -1,5 +1,5 @@
 {
-  "version": "1.111.1",
+  "version": "1.111.2",
   "tools": [
     {
       "name": "extract",
@@ -10971,7 +10971,7 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
@@ -17874,7 +17874,7 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
@@ -18662,7 +18662,7 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
