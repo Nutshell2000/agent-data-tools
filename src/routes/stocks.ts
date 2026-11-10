@@ -49,9 +49,20 @@ async function chart(symbol: string, range: string, interval: string) {
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const r4 = (v: number | null) => (v === null ? null : Math.round(v * 10_000) / 10_000);
 
-export async function stockQuote(raw: string) {
+/** A word that passes for a ticker but is a company name ("Tesla", "Apple"): when no such ticker exists, search the name once. */
+async function chartOf(raw: string, range: string, interval: string) {
   const symbol = await resolveSymbol(raw);
-  const m = (await chart(symbol, "5d", "1d")).meta!;
+  try { return { symbol, c: await chart(symbol, range, interval) }; } catch (e) {
+    if (!(e instanceof HttpError) || e.status !== 404) throw e;
+    const hit = (await stockSearch(raw, 1).catch(() => []))[0]?.symbol;
+    if (!hit || hit === symbol) throw e;
+    return { symbol: hit, c: await chart(hit, range, interval) };
+  }
+}
+
+export async function stockQuote(raw: string) {
+  const { symbol, c: quoted } = await chartOf(raw, "5d", "1d");
+  const m = quoted.meta!;
   const price = num(m.regularMarketPrice), prev = num(m.chartPreviousClose) ?? num(m.previousClose);
   const change = price !== null && prev !== null ? price - prev : null;
   return {
@@ -70,8 +81,7 @@ export async function stockHistory(raw: string, rangeIn?: string, intervalIn?: s
   if (!RANGES.includes(range)) throw new HttpError(400, `range must be one of: ${RANGES.join(", ")}`);
   const interval = (intervalIn ?? (["1d", "5d"].includes(range) ? "15m" : ["1mo", "3mo", "6mo", "1y", "ytd"].includes(range) ? "1d" : "1wk")).toLowerCase();
   if (!INTERVALS.includes(interval)) throw new HttpError(400, `interval must be one of: ${INTERVALS.join(", ")}`);
-  const symbol = await resolveSymbol(raw);
-  const c = await chart(symbol, range, interval);
+  const { symbol, c } = await chartOf(raw, range, interval);
   const q = c.indicators?.quote?.[0] ?? {};
   const adj = c.indicators?.adjclose?.[0]?.adjclose;
   const bars = (c.timestamp ?? []).map((t, i) => ({

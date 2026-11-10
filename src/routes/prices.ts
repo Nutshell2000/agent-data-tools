@@ -7,7 +7,7 @@ import { HttpError } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { CHAINS, USDC, client, rpc, testPriced } from "./chain-reads";
 import { DEFAULT_TOKENS } from "./wallet";
-import { tokenAddress } from "../lib/tickers";
+import { tokenAddress, knowsTicker, tickerNetwork } from "../lib/tickers";
 
 type Address = `0x${string}`;
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -121,7 +121,8 @@ const PRICE_TOOLS: Entry[] = [
       // token= and ticker= as agents send them (26 Oct 2026 probe: /price/token?token=0x… was refused).
       const raw = (q("address") ?? q("symbol") ?? q("token") ?? q("ticker") ?? q("coin"))?.trim();
       if (!raw) throw new HttpError(400, "symbol (e.g. ETH) or address (a 0x token address) is required");
-      const slug = pick(q, "chain", SLUGS, "base");
+      // No chain named: a ticker Base does not list (LINK, ARB, OP) is priced on the first network that does.
+      const slug = q("chain")?.trim() ? pick(q, "chain", SLUGS, "base") : tickerNetwork(raw, "base", SLUGS);
       const token = tokenAddress(raw, slug);
       const c = CHAINS.find((x) => x.slug === slug)!;
       const cl = client(env, c);
@@ -164,7 +165,12 @@ const PRICE_TOOLS: Entry[] = [
       const raw = [q("symbols"), q("addresses")].flatMap((list) => (list ?? "").split(",")).map((a) => a.trim()).filter(Boolean);
       if (raw.length === 0 || raw.length > 20) throw new HttpError(400, "symbols and addresses must name 1 to 20 tokens in all");
       const slug = pick(q, "chain", SLUGS, "base");
-      const tokens = [...new Set(raw.map((a) => tokenAddress(a, slug)))];
+      // A ticker this network does not list no longer refuses the whole call: the rest are priced and the unknown ones
+      // are named in `unknown`. Only when nothing can be priced is the call refused (with the list of known tickers).
+      const known = raw.filter((a) => /^0x[0-9a-fA-F]{40}$/.test(a) || knowsTicker(a, slug));
+      const unknown = raw.filter((a) => !known.includes(a));
+      if (!known.length) tokenAddress(raw[0], slug);
+      const tokens = [...new Set(known.map((a) => tokenAddress(a, slug)))];
       const c = CHAINS.find((x) => x.slug === slug)!;
       const cl = client(env, c);
       const p = pricer(cl, slug);
@@ -184,7 +190,7 @@ const PRICE_TOOLS: Entry[] = [
       }));
       return {
         chain: c.name, chainId: c.chain.id, ethUsd: sig(ethUsd), block,
-        prices: results.filter((r) => "priceUsd" in r), unpriced: results.filter((r) => "reason" in r), method: METHOD,
+        prices: results.filter((r) => "priceUsd" in r), unpriced: [...results.filter((r) => "reason" in r), ...unknown.map((ticker) => ({ ticker: ticker.slice(0, 20), reason: "not a ticker known on this network; pass the token's 0x address or another chain" }))], method: METHOD,
       };
     }, "$0.005"),
 
