@@ -44,6 +44,10 @@ test("a weather buyer may say location, place or q instead of city", async () =>
     assert.ok(asked.every((u) => u.includes("api.met.no")), "the built-in city table needs no lookup");
     // An empty alias is no input and does not hide the next one.
     assert.equal((await T.TOOLS["/weather"]({}, sent({ location: " ", q: "Tokyo" }))).place, "Tokyo");
+    // No place at all: the documented default, said plainly, never a refusal after payment (10 Nov 2026).
+    for (const path of ["/weather", "/weather/forecast", "/weather/current"]) { const d = await T.TOOLS[path]({}, sent({})); assert.equal(d.place, "London", path); assert.match(d.note, /No place was sent.*London.*default/); }
+    assert.equal((await T.TOOLS["/weather"]({}, sent({ city: "Tokyo" }))).note, undefined, "a named place carries no note");
+    await assert.rejects(T.TOOLS["/weather"]({}, sent({ lat: "59.33" })), (e) => e.status === 400, "half a coordinate is still refused");
     // lat and lon still win over nothing else being sent.
     assert.equal((await T.TOOLS["/weather"]({}, sent({ latitude: "59.33", lng: "18.07" }))).latitude, 59.33);
   } finally { globalThis.fetch = realFetch; }
