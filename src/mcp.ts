@@ -3,7 +3,9 @@ import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
-import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useFreeCall } from "./lib/credit-routes";
+import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useDailyCall, useFreeCall } from "./lib/credit-routes";
+import { CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, CHATGPT_TOOLS } from "./lib/chatgpt-tools";
+import { ENTRY_OF } from "./routes/entry-paths";
 import { FREE_CALLS_PER_CALLER, freeCallNote } from "./lib/free-calls";
 import { freeCallsPausedNote } from "./lib/browser-402";
 import { mppEnabled } from "./lib/mpp-credits";
@@ -140,6 +142,8 @@ const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
   "/base/call", "/eth/call", "/arb/call", "/op/call", "/polygon/call",
   "/validate/luhn", "/text/pii", "/mev-simulator", "/liquidity-pool-audit",
   "/memory/set", "/memory/get", "/memory/list", "/memory/delete",
+  // Publishing a page is a write on the public web that cannot be withdrawn (10 Nov 2026): not for the directory servers.
+  "/page/publish", "/page/host",
   // Brave Search results: its API terms limit redistribution (accepted risk on our own site), and the plugin
   // submission asks us to confirm full rights to every third-party API the plugin uses.
   "/search", "/search/web", "/web/search", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
@@ -166,9 +170,14 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const sized = bundle === "chain" ? catalog : catalog.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path));
   // Both directory servers (Claude's /mcp/account, ChatGPT's /mcp/chatgpt) leave out the tools OpenAI's scan flagged: the
   // same rules (third-party API rights, payment-card data, hard-to-reverse writes) are in Anthropic's directory review (27 Oct 2026).
-  const endpoints = salesOrdered(account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path)) : sized);
-  // directory: the ChatGPT plugin server (/mcp/chatgpt). Same signed-in tools, but no prices, payment methods, links to
-  // our checkout or request ids in what ChatGPT shows (its plugin rules); credits are bought on our site, outside ChatGPT.
+  // The ChatGPT plugin server has its own fixed list (lib/chatgpt-tools.ts): the tools OpenAI's rules allow and that cost
+  // us nothing per call, because inside ChatGPT the service is free.
+  const endpoints = salesOrdered(directory ? ENDPOINTS.filter((e) => CHATGPT_TOOLS.has(e.path))
+    // Entry paths are second names for outside search engines; a signed-in user's assistant gets each tool once (1.111.5).
+    : account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path) && !Object.hasOwn(ENTRY_OF, e.path)) : sized);
+  // directory: the ChatGPT plugin server (/mcp/chatgpt). Free inside ChatGPT (its rules allow no sale of digital services
+  // and no freemium upsell): a daily allowance per signed-in user, and no price, plan, credit, key, link or request id in
+  // anything ChatGPT shows.
   const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;
   const env = c.env;
   if (c.req.method === "POST" && env.METRICS) {
@@ -182,7 +191,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const paid = env.PAYWALL !== "off";
   // An API key from /credits pays every call in this request with card credits instead of x402,
   // so the x402 facilitator is not needed (or contacted) for it.
-  const creditKey = paid ? (account ? account.key ?? undefined : apiKeyFrom((name) => c.req.header(name)) ?? urlKey) : undefined;
+  // The ChatGPT server never spends credits: a key that came with the sign-in is ignored there.
+  const creditKey = paid && !directory ? (account ? account.key ?? undefined : apiKeyFrom((name) => c.req.header(name)) ?? urlKey) : undefined;
   // Free calls follow a signed-in person; anonymous callers are told apart by network address.
   const caller = account ? `sub:${account.sub}` : c.req.header("cf-connecting-ip");
   // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
@@ -192,7 +202,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(Boolean(creditKey), endpoints.length) : mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
+  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(endpoints.length, CHATGPT_CALLS_PER_DAY) : mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
 
   // Tools this server offers, so a result names only next tools the client can actually call here.
   const served = new Set(endpoints.map((x) => x.path));
@@ -215,7 +225,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         }
       : freeOnly
       ? async () => ({ isError: true, content: [{ type: "text", text: directory
-          ? (CAPACITY_LIMITED.has(e.path) ? "This tool is not included in this account's free calls, so it is not available on the current plan. Nothing was charged." : "This account's free calls are used up, so this tool is not available on the current plan. Nothing was charged.")
+          // True for both limits (this account's, and the total for all ChatGPT users together).
+          ? `Today's call limit is reached (${CHATGPT_CALLS_PER_DAY} calls a day per account). It resets at 00:00 UTC. Nothing was run.`
           : `${CAPACITY_LIMITED.has(e.path) ? "This tool is not included in the free calls." : "The free calls for this account are used up."} ${cardStep(origin, Boolean(env.STRIPE_READ_KEY))}` }] })
       : handler;
     const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
@@ -225,9 +236,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
         let freePaused = false;
-        const free = (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }) : null;
+        const free = directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
+          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }) : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
-        if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Free calls are paused until 00:00 UTC because today's free-call capacity is used up. Nothing was charged and no free call was used." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
+        if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
           ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
@@ -244,7 +256,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
         const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY))}` }]
-          : free && !result.isError ? [{ type: "text", text: directory ? `Free call (${free.left} of ${FREE_CALLS_PER_CALLER} free calls left for this account).` : freeCallNote(free.left, origin) }] : [];
+          : free && !result.isError && !directory ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         const requestMeta = directory ? {} : { requestId: trace?.requestId };
         if ("outputSchema" in e && response.isError && response.structuredContent) {
           const {structuredContent, ...errorResult} = response;

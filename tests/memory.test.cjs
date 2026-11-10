@@ -76,7 +76,14 @@ test('memory write tools are annotated as writes; every other tool stays read-on
   const m = { exports: {} };
   new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
   const { annotationsFor } = m.exports;
-  assert.deepEqual(annotationsFor('/memory/set'), { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+  // Saving overwrites an existing key, which OpenAI's and the MCP wording both call destructive (10 Nov 2026).
+  assert.deepEqual(annotationsFor('/memory/set'), { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
+  assert.equal(annotationsFor('/memory/get').openWorldHint, false);
+  // Publishing a page changes the public web and cannot be withdrawn; each call makes a new page.
+  for (const p of ['/page/publish', '/page/host']) assert.deepEqual(annotationsFor(p), { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true });
+  // Pure computation is closed-world; a tool that reads the internet is open-world. Both are read-only and non-destructive.
+  assert.deepEqual(annotationsFor('/hash'), { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false });
+  assert.deepEqual(annotationsFor('/weather'), { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true });
   assert.equal(annotationsFor('/memory/delete').destructiveHint, true);
   assert.equal(annotationsFor('/memory/get').readOnlyHint, true);
   assert.equal(annotationsFor('/eth/gas').readOnlyHint, true);

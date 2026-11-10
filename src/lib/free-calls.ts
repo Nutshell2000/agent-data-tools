@@ -34,6 +34,35 @@ export async function refundFreeCall(storage: FreeCallStorage, callerHash: strin
   });
 }
 
+// A daily allowance (1.111.5, the free ChatGPT plugin server): unlike the free calls above it comes back every UTC day,
+// because inside ChatGPT there is nothing to buy afterwards. One record per caller and one for everybody, each holding the
+// day it counts for, so nothing accumulates per day.
+interface DayCount { day: string; used: number }
+const dailyCallerKey = (hash: string) => `daily:caller:${hash}`;
+const DAILY_TOTAL_KEY = "daily:total";
+const usedOn = (c: DayCount | undefined, day: string) => (c && c.day === day ? c.used : 0);
+
+/** Takes one call of the day; returns how many the caller has left today, or null when the caller or the day is used up. */
+export async function takeDailyCall(storage: FreeCallStorage, callerHash: string, day: string, perCaller: number, total: number): Promise<number | null> {
+  return storage.transaction(async (txn) => {
+    const mine = usedOn(await txn.get<DayCount>(dailyCallerKey(callerHash)), day);
+    const all = usedOn(await txn.get<DayCount>(DAILY_TOTAL_KEY), day);
+    if (mine >= perCaller || all >= total) return null;
+    await txn.put(dailyCallerKey(callerHash), { day, used: mine + 1 } satisfies DayCount);
+    await txn.put(DAILY_TOTAL_KEY, { day, used: all + 1 } satisfies DayCount);
+    return perCaller - mine - 1;
+  });
+}
+
+/** Gives back a call of the day whose tool failed, so only successful calls count. */
+export async function refundDailyCall(storage: FreeCallStorage, callerHash: string, day: string): Promise<void> {
+  await storage.transaction(async (txn) => {
+    const mine = usedOn(await txn.get<DayCount>(dailyCallerKey(callerHash)), day);
+    const all = usedOn(await txn.get<DayCount>(DAILY_TOTAL_KEY), day);
+    if (mine > 0) await txn.put(dailyCallerKey(callerHash), { day, used: mine - 1 } satisfies DayCount);
+    if (all > 0) await txn.put(DAILY_TOTAL_KEY, { day, used: all - 1 } satisfies DayCount);
+  });
+}
 /** The caller identity: a hash of the connecting IP, so no raw address is stored. */
 export async function callerHash(ip: string): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`free-calls:${ip}`)));
