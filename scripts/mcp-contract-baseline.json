@@ -1,5 +1,5 @@
 {
-  "version": "1.116.0",
+  "version": "1.117.0",
   "tools": [
     {
       "name": "extract",
@@ -11378,6 +11378,30 @@
       "price": "$0.01"
     },
     {
+      "name": "commodity_price",
+      "description": "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief. Example: commodity=gold. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "commodity": {
+            "type": "string",
+            "description": "One of: gold, silver, platinum, palladium, copper, crude-oil, brent, natural-gas, gasoline, heating-oil, corn, wheat, soybeans, coffee, sugar, cocoa, cotton"
+          }
+        },
+        "required": [
+          "commodity"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "github_repo",
       "description": "GitHub repository data in one call: stars, forks, watchers, open issues and pull requests, main language and language shares, topics, license, default branch, created and last-push dates, archived and fork flags, and the latest release with its tag and date. Give owner/name or a github.com URL; public repositories only, no user profile data. Use to vet a dependency, check whether a project is alive, compare libraries or enrich a list of repos. Example: repo=vercel/next.js. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -11503,6 +11527,49 @@
         },
         "required": [
           "cve"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "arxiv_search",
+      "description": "Search arXiv, the open preprint server for physics, mathematics, computer science and AI: give search words (every word must match, quotes for a phrase) and optionally a category such as cs.AI, and get 1-20 papers by relevance or newest first, each with title, abstract, authors, dates, categories, DOI and PDF link. An arXiv ID or link returns that paper. Use to find research on a topic, cite a paper or read its abstract before the PDF. Example: q=retrieval augmented generation. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search words, or an arXiv ID or link (1706.03762, arxiv.org/abs/2401.01234)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Papers to return (1-20, default 5)"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "newest",
+              "updated"
+            ],
+            "description": "relevance (default), newest (submission date) or updated"
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional arXiv category to search in, e.g. cs.AI, cs.CL, stat.ML, hep-th"
+          }
+        },
+        "required": [
+          "q"
         ]
       },
       "price": "$0.01"
@@ -19170,6 +19237,153 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "page_markdown",
+      "description": "Web page to Markdown: give a public URL and get the page's main content as clean Markdown for an LLM, with headings, links, lists, tables and code blocks kept and navigation, ads and scripts removed, up to 100,000 characters; static HTML, Markdown and text pages. Bot walls, empty pages and errors are never charged. Use to put an article, documentation page or blog post into a prompt, a RAG index or an agent's notes. Example: url=https://www.iana.org/help/example-domains. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to convert"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum characters of body text to return (500-100000, default 20000)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text",
+              "markdown",
+              "both"
+            ],
+            "description": "Returned representation: markdown (default), text, or both"
+          },
+          "section": {
+            "type": "string",
+            "description": "Optional exact visible HTML ID within the main content, 1-500 characters"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "cve_lookup",
+      "description": "CVE vulnerability lookup by ID (CVE-2021-44228): the description, CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, decide what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "cve": {
+            "type": "string",
+            "description": "CVE ID such as CVE-2021-44228 (any case; a cve.org or nvd.nist.gov link works too)"
+          }
+        },
+        "required": [
+          "cve"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "wiki_summary",
+      "description": "Wikipedia summary of an article by its title: the one-paragraph extract in plain text with the short description, the page link and the thumbnail image, from the English edition or any other language edition, with the CC BY-SA attribution to show. Use to get quick background on a subject, ground an answer in a citable encyclopedia source, or check what a name refers to. Example: title=Stockholm. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Article title"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code (default en)"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "market_trending",
+      "description": "Trending crypto right now: the coins people search most on CoinGecko in the last 24 hours, with symbol, market-cap rank, price and 24-hour change, plus the trending categories. No input needed. Use to see what the market is watching today, seed a watchlist, or give a trading agent or daily brief its market context. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "market_ohlcv",
+      "description": "Crypto OHLCV candles for any coin (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Bar length: 1m, 3m, 5m, 15m, 30m, 1h (default), 2h, 4h, 8h, 12h, 1d, 3d or 1w"
+          },
+          "bars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of bars, 1-500 (default 50)"
+          }
+        }
+      },
+      "price": "$0.002"
     },
     {
       "name": "timezone_convert",

@@ -43,7 +43,8 @@ test("every entry path names a task, runs a canonical tool at that tool's live p
   const byCanonical = {};
   for (const { endpoint: e } of doors.ENTRY_PATHS) (byCanonical[doors.ENTRY_OF[e.path]] ??= []).push(e.summary.split(":")[0].toLowerCase());
   for (const [canonical, names] of Object.entries(byCanonical)) {
-    assert.ok(names.length <= 2, `${canonical} has ${names.length} doors`);
+    // /extract has three since 10 Nov 2026: scrape, fetch and Markdown are three searches, and routers match the path words.
+    assert.ok(names.length <= (canonical === "/extract" ? 3 : 2), `${canonical} has ${names.length} doors`);
     assert.equal(new Set(names).size, names.length, `${canonical} doors share a name`);
   }
   assert.equal(new Set(doors.ENTRY_PATHS.map((d) => d.endpoint.path)).size, doors.ENTRY_PATHS.length);
@@ -163,4 +164,32 @@ test("round 7 doors (10 Nov 2026) carry the job in the name and the path, and an
   assert.ok(endpoints.ACQUISITION_PATHS.has("/perp/funding"), "the funding door shares /hyperliquid/market's acquisition price");
   // The published example (the first input with an example) of the convert door is a conversion, not just "now".
   assert.deepEqual(endpoints.exampleParams(door("/timezone/convert").endpoint).map(([name]) => name), ["to"]);
+});
+
+test("round 8 doors (10 Nov 2026): the Markdown door returns Markdown unless told otherwise, and each door runs its tool", async () => {
+  const door = (p) => doors.ENTRY_PATHS.find((d) => d.endpoint.path === p);
+  const name = (p) => door(p).endpoint.summary.split(":")[0];
+  assert.equal(name("/page/markdown"), "Web page to Markdown");
+  assert.equal(name("/cve/lookup"), "CVE vulnerability lookup");
+  assert.equal(name("/wiki/summary"), "Wikipedia summary");
+  assert.equal(name("/market/trending"), "Trending crypto");
+  assert.equal(name("/market/ohlcv"), "Crypto OHLCV");
+  assert.deepEqual(["/page/markdown", "/cve/lookup", "/wiki/summary", "/market/trending", "/market/ohlcv"].map((p) => doors.ENTRY_OF[p]), ["/extract", "/cve", "/wikipedia", "/crypto/trending", "/hyperliquid/candles"]);
+  // Markdown by default; a caller's own choice stands; other inputs pass through untouched.
+  const md = doors.markdownInput((n) => ({ url: "https://example.com", maxChars: "900" })[n]);
+  assert.equal(md("format"), "markdown");
+  assert.equal(md("url"), "https://example.com");
+  assert.equal(md("maxChars"), "900");
+  assert.equal(doors.markdownInput((n) => ({ format: "text" })[n])("format"), "text");
+  assert.equal(doors.markdownInput((n) => ({ format: " " })[n])("format"), "markdown");
+  const page = door("/page/markdown").endpoint;
+  assert.equal(page.params.format.example, "markdown");
+  assert.equal(page.outputExample.format, "markdown");
+  assert.ok(typeof page.outputExample.markdown === "string" && !("text" in page.outputExample), "the example answer is the Markdown answer");
+  assert.equal(page.outputExample.url, page.params.url.example);
+  // The published example call of each door is the one its tool answers: required inputs only, or none.
+  assert.deepEqual(endpoints.exampleParams(door("/cve/lookup").endpoint).map(([n]) => n), ["cve"]);
+  assert.deepEqual(endpoints.exampleParams(door("/wiki/summary").endpoint).map(([n]) => n), ["title"]);
+  assert.deepEqual(endpoints.exampleParams(door("/market/trending").endpoint), []);
+  for (const p of ["/market/trending", "/market/ohlcv", "/wiki/summary"]) assert.ok(endpoints.ACQUISITION_PATHS.has(p), `${p} shares its tool's acquisition price`);
 });

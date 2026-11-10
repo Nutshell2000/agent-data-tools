@@ -126,6 +126,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   data: ["calldata", "input", "function", "signature", "method", "sig", "abi"], args: ["arguments", "params", "parameters"],
   // 10 Nov 2026: the CVE lookup's input as other CVE sellers name it (id, cve_id, cveId) and as search agents send it.
   cve: ["id", "cve_id", "cveId", "cveid", "cve_ids", "vulnerability", "vuln", "q", "query", "name"],
+  commodity: ["symbol", "name", "asset", "metal", "ticker", "q", "query", "item"],
 };
 
 /** The text of one OpenAI message's content: a string, or the text parts of a content array. */

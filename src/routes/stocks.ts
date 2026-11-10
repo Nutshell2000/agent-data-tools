@@ -63,7 +63,11 @@ async function chartOf(raw: string, range: string, interval: string) {
 export async function stockQuote(raw: string) {
   const { symbol, c: quoted } = await chartOf(raw, "5d", "1d");
   const m = quoted.meta!;
-  const price = num(m.regularMarketPrice), prev = num(m.chartPreviousClose) ?? num(m.previousClose);
+  // The previous close is the daily bar before the latest one. Yahoo's chartPreviousClose is the close before the whole
+  // chart window: with this 5-day chart it is the close of five sessions ago, and until 10 Nov 2026 the tool reported
+  // that five-day move as the day's change (AAPL: +5.0% shown, -0.62% true). With a single bar it is the true previous close.
+  const closes = (quoted.indicators?.quote?.[0]?.close ?? []).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  const price = num(m.regularMarketPrice), prev = closes.length >= 2 ? closes[closes.length - 2] : num(m.chartPreviousClose) ?? num(m.previousClose);
   const change = price !== null && prev !== null ? price - prev : null;
   return {
     symbol: String(m.symbol ?? symbol), name: (m.longName ?? m.shortName ?? null) as string | null, exchange: (m.fullExchangeName ?? m.exchangeName ?? null) as string | null,
@@ -98,6 +102,54 @@ export async function stockHistory(raw: string, rangeIn?: string, intervalIn?: s
   };
 }
 
+/**
+ * Commodity prices (10 Nov 2026). The Bazaar had 53 commodity listings that day (196 calls in 30 days, gold, oil, silver
+ * and grains; one explorer wallet bought a commodities list ten times at $0.02) and we sold none. The price is the
+ * front-month futures contract as Yahoo Finance names it (GC=F and so on), which is the figure quote pages show for a
+ * commodity; same source, terms and risk as the stock tools above. Units are the contract's own quoting units.
+ */
+export const COMMODITIES: Readonly<Record<string, { symbol: string; name: string; unit: string }>> = Object.freeze({
+  gold: { symbol: "GC=F", name: "Gold", unit: "USD per troy ounce" },
+  silver: { symbol: "SI=F", name: "Silver", unit: "USD per troy ounce" },
+  platinum: { symbol: "PL=F", name: "Platinum", unit: "USD per troy ounce" },
+  palladium: { symbol: "PA=F", name: "Palladium", unit: "USD per troy ounce" },
+  copper: { symbol: "HG=F", name: "Copper", unit: "USD per pound" },
+  "crude-oil": { symbol: "CL=F", name: "Crude oil (WTI)", unit: "USD per barrel" },
+  brent: { symbol: "BZ=F", name: "Crude oil (Brent)", unit: "USD per barrel" },
+  "natural-gas": { symbol: "NG=F", name: "Natural gas (Henry Hub)", unit: "USD per MMBtu" },
+  gasoline: { symbol: "RB=F", name: "Gasoline (RBOB)", unit: "USD per gallon" },
+  "heating-oil": { symbol: "HO=F", name: "Heating oil", unit: "USD per gallon" },
+  corn: { symbol: "ZC=F", name: "Corn", unit: "US cents per bushel" },
+  wheat: { symbol: "ZW=F", name: "Wheat", unit: "US cents per bushel" },
+  soybeans: { symbol: "ZS=F", name: "Soybeans", unit: "US cents per bushel" },
+  coffee: { symbol: "KC=F", name: "Coffee (arabica)", unit: "US cents per pound" },
+  sugar: { symbol: "SB=F", name: "Sugar (raw)", unit: "US cents per pound" },
+  cocoa: { symbol: "CC=F", name: "Cocoa", unit: "USD per metric ton" },
+  cotton: { symbol: "CT=F", name: "Cotton", unit: "US cents per pound" },
+});
+const COMMODITY_ALIASES: Readonly<Record<string, string>> = Object.freeze({
+  xau: "gold", xauusd: "gold", "gc=f": "gold", xag: "silver", xagusd: "silver", "si=f": "silver", xpt: "platinum", xpd: "palladium",
+  oil: "crude-oil", crude: "crude-oil", wti: "crude-oil", "crude oil": "crude-oil", crudeoil: "crude-oil", "wti crude": "crude-oil", "cl=f": "crude-oil",
+  "brent crude": "brent", "brent oil": "brent", natgas: "natural-gas", "natural gas": "natural-gas", gas: "natural-gas", "nat gas": "natural-gas", "ng=f": "natural-gas",
+  petrol: "gasoline", rbob: "gasoline", "heating oil": "heating-oil", diesel: "heating-oil", soybean: "soybeans", soy: "soybeans", maize: "corn",
+});
+/** "Gold", "XAU", "crude oil", "WTI", "GC=F" -> our commodity key; undefined when it is not one we quote. */
+export function commodityKey(raw: string): string | undefined {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, " ").replace(/ (price|futures|spot)$/g, "");
+  const dashed = s.replace(/[ _]/g, "-");
+  return Object.hasOwn(COMMODITIES, dashed) ? dashed : Object.hasOwn(COMMODITY_ALIASES, s) ? COMMODITY_ALIASES[s] : Object.hasOwn(COMMODITY_ALIASES, dashed) ? COMMODITY_ALIASES[dashed] : undefined;
+}
+export async function commodityPrice(raw: string, quote: typeof stockQuote = stockQuote) {
+  const key = commodityKey(raw);
+  if (!key) throw new HttpError(400, `commodity must be one of: ${Object.keys(COMMODITIES).join(", ")}`);
+  const c = COMMODITIES[key];
+  const q = await quote(c.symbol);
+  return {
+    commodity: key, name: c.name, contract: "front-month futures", symbol: c.symbol, unit: c.unit, price: q.price, previousClose: q.previousClose, change: q.change, changePercent: q.changePercent,
+    dayHigh: q.dayHigh, dayLow: q.dayLow, fiftyTwoWeekHigh: q.fiftyTwoWeekHigh, fiftyTwoWeekLow: q.fiftyTwoWeekLow, exchange: q.exchange, marketTime: q.marketTime, note: NOTE,
+  };
+}
+
 export const STOCKS: Entry[] = [
   entry("/stock/quote", "Stock price, stock quote",
     "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line.",
@@ -121,4 +173,10 @@ export const STOCKS: Entry[] = [
     { q: { type: "string", description: "Company, fund or index name, e.g. volvo", required: true, example: "volvo" } },
     { query: "volvo", count: 1, results: [{ symbol: "VOLV-B.ST", name: "AB Volvo (publ)", exchange: "Stockholm", type: "Equity", sector: "Industrials", industry: "Farm & Heavy Construction Machinery" }], note: NOTE },
     async (_env, q) => { const query = need(q, "q", 100); const results = await stockSearch(query); if (!results.length) throw new HttpError(404, `no ticker found for "${query}"`); return { query, count: results.length, results, note: NOTE }; }),
+  entry("/commodity/price", "Commodity prices: gold, oil, silver, gas, grains",
+    "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief.",
+    ["commodity-prices", "gold-price", "oil-price", "silver-price", "commodities", "futures", "market-data"],
+    { commodity: { type: "string", description: `One of: ${Object.keys(COMMODITIES).join(", ")}`, required: true, example: "gold" } },
+    { commodity: "gold", name: "Gold", contract: "front-month futures", symbol: "GC=F", unit: "USD per troy ounce", price: 4105.3, previousClose: 4088.1, change: 17.2, changePercent: 0.4207, dayHigh: 4121.8, dayLow: 4079.5, fiftyTwoWeekHigh: 4398, fiftyTwoWeekLow: 2567.4, exchange: "COMEX", marketTime: "2026-11-10T21:59:00.000Z", note: NOTE },
+    (_env, q) => commodityPrice(need(q, "commodity", 60))),
 ];
