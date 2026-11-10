@@ -212,6 +212,28 @@ export const declaredInputFor = (path: string, input: Input): Input => {
   return Object.assign((n: string) => input(n), input, { [DECLARED]: declaredByPath.get(path) ?? new Set<string>() });
 };
 
+/**
+ * The reserved input name under which the HTTP route says "this request carried no tool input at all" (src/index.ts sets
+ * it to "1" when the query string holds nothing but control parameters). Never read from the query string; MCP does not
+ * set it, because an assistant fills in what the schema asks for.
+ */
+export const NO_INPUT = "@no-input";
+const BTC_NOTE = "No input was sent, so this is the price of BTC (the wrapped token on Base), the default. Send symbol (for example symbol=ETH) or address for another token.";
+/**
+ * Tools that answer a call with no input at all for a documented default, with a `note` saying so (11 Nov 2026).
+ * Why: vAPI Call's console (about 100 new wallets a day make their first paid call there) shows a tool's inputs as an
+ * empty form with a "Pay and call" button, and Mercator planned calls as `{}`; /weather sold in both because it answers
+ * an empty call (London, 1.109.3), while a 400 sends the buyer to the next seller. Rules: only a default a buyer would
+ * expect (the reference asset for a price), stated in the input's description; only when NOTHING was sent, so a
+ * misspelled input is still a 400 and never a silent default (the 10 Nov lesson); and the tool stays in
+ * `ONE_OF_INPUT_PATHS`, so a listing still names the input and a router plans a real one.
+ */
+export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Record<string, string>>; note: string }>> = {
+  "/price/token": { input: { symbol: "BTC" }, note: BTC_NOTE },
+  "/token/price": { input: { symbol: "BTC" }, note: BTC_NOTE },
+  "/price/crypto": { input: { symbol: "BTC" }, note: BTC_NOTE },
+};
+
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
 const KEEP_CASE = Symbol("keepCase");
 const keepCase = (input: Input): Input => Object.assign((n: string) => input(n), { [KEEP_CASE]: true });
@@ -220,11 +242,15 @@ export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, han
   path, async (env: Env, input: Input) => {
     if (Object.hasOwn(PAUSED_FAMILY_TOOLS, path)) throw new HttpError(503, PAUSED_FAMILY_TOOLS[path], "TOOL_PAUSED");
     // /evm/checksum judges the case of the address it is given, so its input keeps its case (aliases still apply).
+    // A call that carried no input at all answers for the tool's documented default (see EMPTY_CALL_DEFAULTS).
+    const fallback = Object.hasOwn(EMPTY_CALL_DEFAULTS, path) && input(NO_INPUT) === "1" ? EMPTY_CALL_DEFAULTS[path] : null;
+    if (fallback) { const sent = input; input = (n) => (Object.hasOwn(fallback.input, n) ? fallback.input[n] : sent(n)); }
     if (RAW_INPUT_PATHS.has(path)) input = keepCase(input);
     if (path !== "/ens") input = await withEnsResolved(input);
     input = declaredInputFor(path, input);
     const result = await handler(env, normalizedInput(input));
     assertToolOutput(path as EndpointPath, result);
+    if (fallback && result && typeof result === "object" && !Array.isArray(result)) return { ...result, note: fallback.note } as typeof result;
     return result;
   },
 ])) as typeof handlers;
