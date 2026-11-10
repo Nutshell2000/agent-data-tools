@@ -1,5 +1,5 @@
 {
-  "version": "1.106.0",
+  "version": "1.107.0",
   "tools": [
     {
       "name": "extract",
@@ -18559,8 +18559,8 @@
       "price": "$0.002"
     },
     {
-      "name": "weather_today",
-      "description": "Weather forecast today for any city or coordinates: current temperature, conditions, rain, wind and humidity now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "name": "weather_current",
+      "description": "Current weather for any city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the weather now or today's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18900,6 +18900,132 @@
           "tokenA",
           "tokenB"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "web_fetch",
+      "description": "Web fetch for agents: fetch any public URL and get the page's main content as clean text or Markdown (headings, links, tables and code blocks kept), up to 100,000 characters; static HTML, Markdown and text pages. Bot walls, empty pages and errors are never charged. Use to read a web page, article or documentation URL into an LLM's context or a RAG pipeline. Example: url=https://example.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to scrape"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maximum characters of body text to return (500-100000, default 20000)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text",
+              "markdown",
+              "both"
+            ],
+            "description": "Returned representation: text (default), markdown, or both"
+          },
+          "section": {
+            "type": "string",
+            "description": "Optional exact visible HTML ID within the main content, 1-500 characters"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "email_auth",
+      "description": "Email authentication check for a domain: the SPF record and its all-policy, DKIM keys at the common selectors, the DMARC record and policy, plus MX, MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes. Public DNS only; no mail is sent. Use to verify a sender domain's SPF, DKIM and DMARC setup, to debug mail landing in spam, or to vet a domain before trusting its mail. Example: domain=github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "The sending domain, such as example.com (or a URL; its host is used)"
+          },
+          "email": {
+            "type": "string",
+            "description": "Optional address to check as well"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "tech_detect",
+      "description": "Website technology detection: which CMS or site builder, JavaScript framework, analytics and ad pixels, payment, support and captcha widgets, CDN, hosting and web server a site runs on, read from its home page HTML and response headers, each with the evidence found. Use for lead qualification, competitor research, security reviews and sales prospecting by technology. Example: url=https://vercel.com/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Website or page URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "crypto_news",
+      "description": "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Only articles from the past day, week or month (default: any age)"
+          }
+        }
       },
       "price": "$0.01"
     },

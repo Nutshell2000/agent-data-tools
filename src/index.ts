@@ -86,6 +86,12 @@ app.use(async (c, next) => {
   }
 });
 
+// /weather/today (1.105.0, one day old, never on the Bazaar) became /weather/current in 1.107.0: the few catalogs that
+// crawled the old path are sent on with the same query, and a paying client's retry follows the same redirect.
+app.use(async (c, next) => {
+  if (c.req.path !== "/weather/today") return next();
+  return c.redirect(`/weather/current${new URL(c.req.url).search}`, 308);
+});
 // A POST to a tool with a flat JSON body ({"url": …}, {"address": …}) is the same call as the GET with those fields
 // in the query: agents and directories that default to POST get the quote and a paid answer instead of a 405. It is
 // forwarded before tracing and metrics, so only the GET is counted. An empty or unreadable body gets the quote.

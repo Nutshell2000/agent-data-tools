@@ -138,7 +138,7 @@ const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
   "/memory/set", "/memory/get", "/memory/list", "/memory/delete",
   // Brave Search results: its API terms limit redistribution (accepted risk on our own site), and the plugin
   // submission asks us to confirm full rights to every third-party API the plugin uses.
-  "/search", "/search/web", "/web/search", "/news", "/news/search", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
+  "/search", "/search/web", "/web/search", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
 ]);
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
 const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();

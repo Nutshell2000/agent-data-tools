@@ -1023,3 +1023,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - A 400 from a tool carries `inputs` and `example`. /status `topFailures` ends with `[sent a,b]` for refused paid calls: the input NAMES only (`sentInputNames` in src/lib/request-metrics.ts). Read it to find the next missing alias.
 - Measurement trap: PAY_TO moved to 0x6293 on 7 Nov; scripts that still filter on 0x2074 only see nothing after that (payments-to-us.mjs and full-history.mjs were fixed on 10 Nov; the KPI had read $0.86 for a week that earned $1.32). Use `lib.mjs` `oursAll`.
 
+
+## Doors for the flows that bring new payers (1.107.0, 10 Nov 2026; 659 tools)
+
+- **Where new wallets come from** (`business/agentic/base-bots/new-wallets.mjs`, `starter-demand.mjs`): about twenty fresh wallets a day-pair paid us once at the acquisition price on /weather/forecast, each also paying one or two other sellers once. Market-wide the "current weather" leader gained 266 payers in three days. `bazaar-search.mjs "<query>"…` prints the live Bazaar search with payers and prices; `bazaar-search-compact.mjs` our position and the top three.
+- **What a distinct payer is worth** (`band-map.mjs`, `band-calls.mjs`, 9 Nov snapshot): our listings with 3+ payers sit at #5,700-7,500 ordered by last settlement (newest first), with 2 payers near #14,000, with 1 near #19,450. The explorer bots buy from about #1,000-8,000. So the lever for the median is a third distinct payer per listing, and task-named doors in a flow of new wallets are how a listing gets one.
+- Round 5 doors in `src/routes/entry-paths.ts`: /web/fetch, /email/auth, /tech/detect, /crypto/news (`cryptoNewsInput`: default topic and the past day, so an empty call answers), and /weather/current, named "Current weather" (it was /weather/today for one day; src/index.ts redirects the old path with a 308). Agent402's router (`agent402-route-ranks.mjs`) scores the URL slug most, so a door's path should hold the task words too. A Brave-backed door joins `CAPACITY_LIMITED` and `DIRECTORY_EXCLUDED`. The Bazaar lists a door only after its first settlement.
+- Staging delivery check of the 60 most-bought tools: copy `business/agentic/base-bots/delivery-check-staging.mjs` into x402-w11 (funded test wallet) and pass the paths; results in `base-bots/data/delivery-<day>.txt`.
+
