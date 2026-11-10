@@ -3,6 +3,6 @@
   "description": "600+ pay-per-call data and AI tools for agents.",
   "owner": { "name": "SpellzCode" },
   "plugins": [
-    { "name": "agent-data-tools", "source": "./", "description": "600+ pay-per-call data and AI tools for agents." }
+    { "name": "agent-data-tools", "source": "./claude-plugin", "description": "600+ pay-per-call data and AI tools for agents." }
   ]
 }
