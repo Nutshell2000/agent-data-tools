@@ -2,7 +2,7 @@ import { pickFields } from "./lib/fields";
 import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
+import { WEB_PACKS, apiKeyFrom, isCreditKey, keyPrice } from "./lib/credits";
 import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useDailyCall, useFreeCall } from "./lib/credit-routes";
 import { CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, CHATGPT_TOOLS } from "./lib/chatgpt-tools";
 import { ENTRY_OF } from "./routes/entry-paths";
@@ -209,7 +209,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
-      ? (args: Args) => creditCharger(env, creditKey, e.price, origin, directory)(() => handler(args))
+      ? (args: Args) => creditCharger(env, creditKey, keyPrice(e.path, e.price), origin, directory)(() => handler(args))
       : x402
       ? async (args: Args, extra: unknown) => {
           const wrapped = paymentWrapperFor(e, await payment())(handler as never) as (args: Args, extra: unknown) => Promise<{
