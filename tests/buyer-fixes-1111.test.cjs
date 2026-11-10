@@ -177,3 +177,30 @@ test('mcp: audio and images are media blocks, never base64 inside the text', asy
   assert.deepEqual(image[1], { type: 'image', data: 'AAAA', mimeType: 'image/png' });
   assert.deepEqual(toContent({ pong: true }), [{ type: 'text', text: '{"pong":true}' }]);
 });
+
+test('empty call: a price call with no input at all answers for BTC with a note; anything sent is used or refused as before', async () => {
+  const T = await load('src/tools.ts');
+  const B = await load('src/lib/bazaar-extension.ts');
+  const { ENDPOINTS } = await load('src/endpoints.ts');
+  for (const [path, d] of Object.entries(T.EMPTY_CALL_DEFAULTS)) {
+    const e = ENDPOINTS.find((x) => x.path === path);
+    assert.ok(e, `${path} is a tool`);
+    // The listing still names an input (a router plans a real one), and the default is one of the tool's own inputs.
+    assert.ok(B.requiredInputs(e).length >= 1, `${path} lists a required input`);
+    for (const k of Object.keys(d.input)) assert.ok(Object.hasOwn(e.params, k), `${path} has the input ${k}`);
+    assert.match(d.note, /^No input was sent/);
+    // The default is written where a buyer reads the inputs.
+    assert.match(Object.values(e.params).map((p) => p.description).join(' '), /no input at all/, path);
+  }
+  // The wrapper swaps the default in only on the route's flag. The price handler reaches the network, which is cut here:
+  // the flagged call gets past the input check (it fails later, on the network), the unflagged one is the plain 400.
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('NET'); };
+  try {
+    const env = new Proxy({}, { get: () => undefined });
+    await assert.rejects(T.TOOLS['/price/crypto'](env, () => undefined), (e) => e.status === 400 && /symbol/.test(e.message));
+    await assert.rejects(Promise.race([T.TOOLS['/price/crypto'](env, (n) => (n === T.NO_INPUT ? '1' : undefined)), new Promise((_, r) => setTimeout(() => r(Object.assign(new Error('NET timeout'), { status: 599 })), 1500))]), (e) => e.status !== 400);
+    // A tool without a default ignores the flag.
+    await assert.rejects(T.TOOLS['/sanctions/check'](env, (n) => (n === T.NO_INPUT ? '1' : undefined)), (e) => e.status === 400);
+  } finally { globalThis.fetch = realFetch; }
+});

@@ -105,7 +105,7 @@ const PRICE_TOOLS: Entry[] = [
   entry("/price/token", "Crypto price and token price: USD price of a token from Uniswap v3 pools",
     "Token price in USD for a crypto token by symbol (ETH, BTC, USDC, AERO, ARB, OP, LINK…), coin name, CoinGecko id or ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns the pool, fee tier, quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 404, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
-      symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens)", example: "ETH" },
+      symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)", example: "ETH" },
       address: { type: "string", description: "0x ERC-20 token contract address (instead of symbol)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
