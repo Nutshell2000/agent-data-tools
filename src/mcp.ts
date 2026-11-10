@@ -140,6 +140,8 @@ const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
   "/base/call", "/eth/call", "/arb/call", "/op/call", "/polygon/call",
   "/validate/luhn", "/text/pii", "/mev-simulator", "/liquidity-pool-audit",
   "/memory/set", "/memory/get", "/memory/list", "/memory/delete",
+  // Publishing a page is a write on the public web that cannot be withdrawn (10 Nov 2026): not for the directory servers.
+  "/page/publish", "/page/host",
   // Brave Search results: its API terms limit redistribution (accepted risk on our own site), and the plugin
   // submission asks us to confirm full rights to every third-party API the plugin uses.
   "/search", "/search/web", "/web/search", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
