@@ -1202,3 +1202,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Not built, with the reason: Kalshi markets (the public API has no search or volume order; the payer evidence is one seller's own client), a DEX pool search (GeckoTerminal answers Cloudflare's egress with 429), an economic calendar (no free source checked yet), job search over our own job index (needs a secret and the owner's word on the index's read budget), GitHub user lookups and FRED series (owner's decisions: personal data, an API key).
 - After the release: the owner's Refresh click lists the seven new paths (about $0.05); register with Zero only now that the names are final.
 
+
+## A prepaid key can pay less than the public price (1.118.0, 10 Nov 2026)
+
+- Corrects 1.116.0: /pdf/text was $0.002 for everyone for about an hour; the owner meant the low price only for the heavy free user ("I meant only that low price for our regular buyer to entice it into buying"). Public price $0.005 again.
+- `KEY_PRICES` / `keyPrice(path, price)` in src/lib/credits.ts: what a prepaid key is charged where that is below the tool's price (today only /pdf/text and its entry path, $0.002). Applied at the two places a key is charged (`chargeCredits` in src/index.ts, `creditCharger` in src/mcp.ts). `keyPriceLine` puts the offer in the 402 body (`withKey`) and `keyOffer` on the browser 402 page. tests/credit-jobs.test.cjs: a key price must be below the public price and the tool must exist; `CARD_JOBS` counts with the key price.
+- Why by payment method: a person cannot be told apart, but wallets and routers pay per call (they do not choose on price), while a web user buys a key. Adding a tool to `KEY_PRICES` is a price decision: the owner's.
+- After the release: `scripts/update-402index-prices.mjs` (the $0.002 of 1.116.0 may have been copied there). Check on 17 Nov with /metrics for /pdf/text (`credits` outcomes) and the funnel's `credits_bought`.
+- Release numbers are shared by several sessions: before writing notes-<v>.md, claude-<v>.md or queue-<v>.ps1 in release\train, check that no file for that version exists (two sessions overwrote each other's 1.118.0 and 1.119.0 files on 10 Nov).
+
