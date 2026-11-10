@@ -274,7 +274,8 @@ export const AI_TEXT: Entry[] = [
       const prompt = need(q, "prompt", 8000);
       const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
       const name = (opt(q, "model", 40) ?? "llama-3.3-70b") as keyof typeof LARGE_CHAT_MODELS;
-      const model = LARGE_CHAT_MODELS[name];
+      // Object.hasOwn: model=constructor returned a function and crashed in chat() (sweep of 11 Nov 2026).
+      const model = Object.hasOwn(LARGE_CHAT_MODELS, name) ? LARGE_CHAT_MODELS[name] : undefined;
       if (!model) throw new HttpError(400, `model must be one of: ${Object.keys(LARGE_CHAT_MODELS).join(", ")}`);
       const response = await chat(env, system, prompt, num(q, "maxTokens", { min: 1, max: 1024, fallback: 400, integer: true }), num(q, "temperature", { min: 0, max: 1.5, fallback: 0.6 }), model);
       return { model, response };

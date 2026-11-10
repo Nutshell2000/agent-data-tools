@@ -20,6 +20,8 @@ import { extract } from "./extract";
 import { PAGES } from "./pages";
 import { PACKS } from "./packs";
 import { PACKS_INTEL } from "./packs-intel";
+import { PACKS_MORE } from "./packs-more";
+import { bitcoinFees } from "./bitcoin";
 import { COMPANY } from "./company";
 import { DEFI_YIELDS } from "./defi-yields";
 import { domainInfo } from "./domain";
@@ -28,7 +30,7 @@ import { FEAR_GREED } from "./fear-greed";
 import { POLYMARKET } from "./polymarket";
 import { PRICES } from "./prices";
 import { PUBLIC_DATA } from "./public-data";
-import { exchangeRates } from "./rates";
+import { bitcoinPriceIn, exchangeRates } from "./rates";
 import { SANCTIONS } from "./sanctions";
 import { screenshot } from "./screenshot";
 import { SEARCH } from "./search";
@@ -75,6 +77,26 @@ const CORE_WEATHER = core("/weather", "$0.01", {
   forecastUpdatedAt: "2026-10-13T08:30:57Z", source: "MET Norway (api.met.no), licensed CC BY 4.0", checkedAt: "2026-10-13T09:12:00.000Z",
 }, (_env, q) => weather(q("lat"), q("lon"), q("hours"), q("city")));
 
+// The two hand-written Bitcoin tools, for the /bitcoin/price and /bitcoin/fees doors. Inputs and examples repeat
+// endpoints.ts; the price here is the tool's own, and ACQUISITION_PATHS gives the door the live acquisition price.
+const CORE_BTC_PRICE = core("/btc-price", "$0.01", {
+  currency: { type: "string", description: "Optional: also price BTC in this currency; the seven listed ones come from the source, others (SEK, NOK, INR, BRL and about 25 more) are converted from USD at the ECB reference rate", example: "SEK" },
+}, {
+  asset: "BTC",
+  prices: { USD: 83463, EUR: 74624, GBP: 63152, CAD: 118855, CHF: 69423, AUD: 119532, JPY: 13210661 },
+  satsPerUsd: 1198, usdPerSat: 0.00083463, priceTime: "2026-10-13T09:10:05.000Z",
+  source: "mempool.space (average of major exchanges)", checkedAt: "2026-10-13T09:12:00.000Z",
+}, (_env, q) => bitcoinPriceIn(q("currency")));
+
+const CORE_BTC_FEES = core("/btc-fees", "$0.002", {}, {
+  network: "bitcoin", unit: "sat/vB",
+  fees: { nextBlock: 4, halfHour: 3, hour: 1, economy: 1, minimum: 1 },
+  typicalPaymentSats: { nextBlock: 564, hour: 141 }, typicalPaymentVbytes: 141,
+  source: "https://mempool.space/api",
+  limitations: ["Estimates do not guarantee confirmation time", "141 vB is an illustrative one-input/two-output SegWit size; actual transaction size varies", "Source endpoints are fetched concurrently, not as an atomic snapshot"],
+  mempool: { transactions: 83832, vsize: 42066150, totalFeesBtc: 0.1093664 },
+  blockHeight: 970000, checkedAt: "2026-10-01T00:00:00.000Z",
+}, () => bitcoinFees());
 const CORE_DOMAIN = core("/domain", "$0.01", {
   name: { type: "string", description: "Domain name, e.g. cloudflare.com", required: true, example: "cloudflare.com" },
 }, {
@@ -329,4 +351,44 @@ export const ENTRY_PATHS: Entry[] = [
     "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest.",
     ["crypto-news", "cryptocurrency-news", "bitcoin-news", "market-news", "headlines", "news"], NEWS,
     (env, q) => NEWS.run(env, cryptoNewsInput(q)),
-    { ...NEWS.endpoint.params, q: { type: "string", description: "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)", example: "bitcoin ETF" } }),];
+    { ...NEWS.endpoint.params, q: { type: "string", description: "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)", example: "bitcoin ETF" } }),
+
+  // Round 6 (11 Nov 2026), written for the full re-settle of that day: a settlement is the one moment a listing's name
+  // reaches the Bazaar, and a new URL starts its listing age (about 30 days outside the scored tier) from its first
+  // payment, so the phrases we were missing go out together. Each is a search where the tool exists and the name lacked
+  // the phrase (base-bots/name-plan.mjs, flip-candidates.mjs): "bitcoin price" (vAPI Call: one result), "bitcoin fee
+  // estimate" (Zero: absent), "gas price" (#8), "company enrichment" (absent, 11 results, leader with one payer),
+  // "transaction decoder" (#2), "url unshortener" (#3), "exif" (#3), "market sentiment"
+  // (#9). Three take no input at all, which is what a marketplace console's empty form sends.
+  door("/bitcoin/price", "Bitcoin price: BTC in USD, EUR and more",
+    "Bitcoin price now: the current BTC spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with satoshis per US dollar and the time of the price; name a currency such as SEK or INR for one more. No input needed. Use to value a Bitcoin or Lightning payment, convert between sats and fiat, or check the BTC price before a trade.",
+    ["bitcoin-price", "btc-price", "btc-usd", "crypto-price", "bitcoin", "market-data"], CORE_BTC_PRICE),
+
+  door("/bitcoin/fees", "Bitcoin fee estimate: sat/vB now",
+    "Bitcoin fee estimate: current fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, what a typical payment costs in sats, mempool size and pending fees, and the latest block height, from mempool.space. No input needed. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
+    ["bitcoin-fees", "bitcoin-fee-estimate", "mempool", "btc-fees", "sat-vb", "bitcoin"], CORE_BTC_FEES),
+
+  door("/gas/price", "Gas price: every major EVM chain",
+    "Gas price now on Base, Ethereum, Arbitrum, Optimism and Polygon in one call: gas price, base fee and priority fee in gwei, what a plain transfer costs in the native coin and, for the ETH chains, in US dollars, sorted cheapest first, plus Bitcoin fee rates. No input needed. Use to pick the cheapest chain, time a transaction or show current fees in a wallet.",
+    ["gas-price", "gas-fees", "gwei", "gas-tracker", "multichain-gas", "evm"], from(PACKS_INTEL, "/pack/gas-tracker")),
+
+  door("/company/enrichment", "Company enrichment: from a domain",
+    "Company enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server, DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting.",
+    ["company-enrichment", "lead-enrichment", "company-research", "domain-enrichment", "firmographics", "sales-prospecting"], from(PACKS_INTEL, "/pack/domain-intel")),
+
+  door("/tx/decode", "Transaction decoder: what a tx did",
+    "Transaction decoder for EVM chains: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting or reporting it.",
+    ["transaction-decoder", "decode-transaction", "tx-decoder", "explain-transaction", "evm", "onchain-data"], from(PACKS_MORE, "/pack/tx-explain")),
+
+  door("/url/unshorten", "URL unshortener: final destination",
+    "URL unshortener: expand a short link (bit.ly, t.co and others) to its final destination without loading the page, with every redirect hop's status code and Location, total hops, timing and whether it loops. Each hop is checked before it is requested; redirects to private addresses are reported, not followed. Use to see where a link really goes before opening or sharing it.",
+    ["url-unshortener", "unshorten-url", "expand-url", "link-expander", "redirects", "link-safety"], from(WEB_CHECKS, "/url/redirects")),
+
+  door("/exif", "EXIF data: camera, date and GPS",
+    "EXIF data of a photo from its URL: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded, with the image format, width and height. JPEG EXIF; PNG, GIF and WebP give size only. Up to 15 MB. Use to check where and when a photo was taken or to verify an upload.",
+    ["exif", "exif-data", "photo-metadata", "image-metadata", "gps-from-photo", "image"], from(MEDIA_TEXT, "/image/metadata")),
+
+  door("/market/sentiment", "Market sentiment: crypto fear and funding",
+    "Market sentiment for crypto in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, and technical readings (RSI, MACD, moving averages) for up to three coins. No input needed. Use for a daily market brief, a trading agent's context or a risk-on, risk-off check.",
+    ["market-sentiment", "crypto-sentiment", "fear-and-greed", "funding-rates", "market-brief", "crypto"], from(PACKS, "/pack/crypto-market")),
+];

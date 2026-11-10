@@ -1,5 +1,5 @@
 {
-  "version": "1.111.3",
+  "version": "1.111.4",
   "tools": [
     {
       "name": "extract",
@@ -1752,7 +1752,7 @@
     },
     {
       "name": "base_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Base, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use base_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Base, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use base_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x498581ff718922c3f8e6a244956af099b2652b2b. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1765,7 +1765,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -2286,7 +2286,7 @@
     },
     {
       "name": "eth_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Ethereum, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use eth_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Ethereum, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use eth_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x000000000004444c5dc75cb358380d2e3de08a90. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2299,7 +2299,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -2854,7 +2854,7 @@
     },
     {
       "name": "arb_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Arbitrum One, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use arb_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Arbitrum One, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use arb_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x360e68faccca8ca495c1b759fd9eee466db9fb32. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2867,7 +2867,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -3422,7 +3422,7 @@
     },
     {
       "name": "op_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Optimism, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use op_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Optimism, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use op_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x9a13f98cb987694c9f086b1f5eb990eea8264ec3. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3435,7 +3435,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -3990,7 +3990,7 @@
     },
     {
       "name": "polygon_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Polygon PoS, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use polygon_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Polygon PoS, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use polygon_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x67366782805870060151383f4bbff9dab53e5cd6. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4003,7 +4003,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -4333,7 +4333,7 @@
     },
     {
       "name": "wallet_related",
-      "description": "Related wallets of a 0x address: who it sent ERC-20 tokens to or got them from over recent blocks, ranked by transfers, with sent and received counts, tokens, USDC in and out, first and last block, and wallet or contract. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to map who a wallet trades with, find linked wallets before paying, or trace where funds went. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Related wallets of a 0x address: who it sent ERC-20 tokens to or got them from over recent blocks, ranked by transfers, with sent and received counts, tokens, USDC in and out, first and last block, and wallet or contract. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to map who a wallet trades with, find linked wallets before paying, or trace where funds went. Example: address=0x498581ff718922c3f8e6a244956af099b2652b2b. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4374,7 +4374,7 @@
     },
     {
       "name": "wallet_transactions",
-      "description": "Recent token transactions of any 0x address across every ERC-20 it holds: the newest 50 transfers in or out over recent blocks, each with token symbol, amount, counterparty, direction, block and transaction hash. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to see what a wallet did lately, confirm a payment in any token, or audit activity before a deal. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent token transactions of any 0x address across every ERC-20 it holds: the newest 50 transfers in or out over recent blocks, each with token symbol, amount, counterparty, direction, block and transaction hash. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to see what a wallet did lately, confirm a payment in any token, or audit activity before a deal. Example: address=0x498581ff718922c3f8e6a244956af099b2652b2b. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4664,7 +4664,7 @@
     },
     {
       "name": "avax_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Avalanche, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use avax_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Avalanche, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use avax_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x06380c0e0912312b5150364b9dc4542ba0dbbc85. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4677,7 +4677,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -5232,7 +5232,7 @@
     },
     {
       "name": "gnosis_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Gnosis, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use gnosis_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Gnosis, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use gnosis_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xb45373129b4220160b92bd2320869f44d48ecd01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5245,7 +5245,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -5705,7 +5705,7 @@
     },
     {
       "name": "linea_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Linea, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use linea_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Linea, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use linea_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x90e8a5b881d211f418d77ba8978788b62544914b. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5718,7 +5718,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -6144,7 +6144,7 @@
     },
     {
       "name": "zksync_logs",
-      "description": "Recent contract event logs on zkSync Era (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use zksync_receipt. Example: address=0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on zkSync Era (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use zksync_receipt. Example: address=0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6178,7 +6178,7 @@
     },
     {
       "name": "zksync_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on zkSync Era, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use zksync_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on zkSync Era, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use zksync_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x7b217443bfa96950fb23ce9a387fbf0cb452e0c8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6191,7 +6191,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -6706,7 +6706,7 @@
     },
     {
       "name": "scroll_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Scroll, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use scroll_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Scroll, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use scroll_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x04566bf83399e4f750728d1ef57008aedda00e71. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6719,7 +6719,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -7145,7 +7145,7 @@
     },
     {
       "name": "mantle_logs",
-      "description": "Recent contract event logs on Mantle (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use mantle_receipt. Example: address=0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Mantle (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use mantle_receipt. Example: address=0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7179,7 +7179,7 @@
     },
     {
       "name": "mantle_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Mantle, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use mantle_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Mantle, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use mantle_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xa875ac23d106394d1baaae5bc42b951268bc04e2. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7192,7 +7192,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -7618,7 +7618,7 @@
     },
     {
       "name": "celo_logs",
-      "description": "Recent contract event logs on Celo (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use celo_receipt. Example: address=0xcebA9300f2b948710d2653dD7B07f33A8B32118C. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Celo (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use celo_receipt. Example: address=0x471EcE3750Da237f93B8E339c536989b8978a438. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7652,7 +7652,7 @@
     },
     {
       "name": "celo_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Celo, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use celo_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Celo, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use celo_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x1a810e0b6c2dd5629afa2f0c898b9512c6f78846. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7665,7 +7665,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -8220,7 +8220,7 @@
     },
     {
       "name": "sonic_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Sonic, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use sonic_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Sonic, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use sonic_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xcfd41df89d060b72ebdd50d65f9021e4457c477e. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8233,7 +8233,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -8693,7 +8693,7 @@
     },
     {
       "name": "unichain_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Unichain, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use unichain_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Unichain, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use unichain_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x1f98400000000000000000000000000000000004. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8706,7 +8706,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -9700,7 +9700,7 @@
     },
     {
       "name": "bera_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Berachain, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use bera_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Berachain, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use bera_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0x69fbaa80b560e425ff0ab0222335dc7f1eca7d90. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9713,7 +9713,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -10139,7 +10139,7 @@
     },
     {
       "name": "ink_logs",
-      "description": "Recent contract event logs on Ink (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ink_receipt. Example: address=0xF1815bd50389c46847f0Bda824eC8da914045D14. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Recent contract event logs on Ink (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ink_receipt. Example: address=0x4200000000000000000000000000000000000006. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10173,7 +10173,7 @@
     },
     {
       "name": "ink_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Ink, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ink_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Ink, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ink_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xdfa03426d54e4f19ce789973731b82a2e7f5dc87. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10186,7 +10186,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -10646,7 +10646,7 @@
     },
     {
       "name": "sei_token_transfers",
-      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Sei, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use sei_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "List a wallet's recent transfers of one ERC-20 token (default USDC) on Sei, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use sei_token_balance. Malformed addresses are rejected with 400, uncharged. Example: address=0xe62fd4661c85e126744cc335e9bca8ae3d5d19d1. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10659,7 +10659,7 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "0x wallet address"
+            "description": "0x wallet or contract address"
           },
           "token": {
             "type": "string",
@@ -11919,7 +11919,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Wikidata item ID such as Q689141, instead of name"
+            "description": "Wikidata item ID such as Q60269744, instead of name"
           }
         }
       },
@@ -18110,7 +18110,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Wikidata item ID such as Q689141, instead of name"
+            "description": "Wikidata item ID such as Q60269744, instead of name"
           }
         }
       },
@@ -19272,6 +19272,190 @@
         }
       },
       "price": "$0.01"
+    },
+    {
+      "name": "bitcoin_price",
+      "description": "Bitcoin price now: the current BTC spot price in USD, EUR, GBP, CAD, CHF, AUD and JPY, averaged across major exchanges, with satoshis per US dollar and the time of the price; name a currency such as SEK or INR for one more. No input needed. Use to value a Bitcoin or Lightning payment, convert between sats and fiat, or check the BTC price before a trade. Example: currency=SEK. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "Optional: also price BTC in this currency; the seven listed ones come from the source, others (SEK, NOK, INR, BRL and about 25 more) are converted from USD at the ECB reference rate"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "bitcoin_fees",
+      "description": "Bitcoin fee estimate: current fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, what a typical payment costs in sats, mempool size and pending fees, and the latest block height, from mempool.space. No input needed. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "gas_price",
+      "description": "Gas price now on Base, Ethereum, Arbitrum, Optimism and Polygon in one call: gas price, base fee and priority fee in gwei, what a plain transfer costs in the native coin and, for the ETH chains, in US dollars, sorted cheapest first, plus Bitcoin fee rates. No input needed. Use to pick the cheapest chain, time a transaction or show current fees in a wallet. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "only": {
+            "type": "string",
+            "description": "Optional: comma-separated top-level result keys to keep, for a smaller answer (for example only=price,symbol); unknown keys are ignored and an empty match returns the full result"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "company_enrichment",
+      "description": "Company enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server, DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Company domain such as stripe.com (or a URL; its host is used)"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "tx_decode",
+      "description": "Transaction decoder for EVM chains: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting or reporting it. Example: hash=0x7d108fa131ed949c76d50caf2e7dfe25fc9903b9d276c40a0446d8afbdfe86b0. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "0x transaction hash"
+          },
+          "chain": {
+            "type": "string",
+            "description": "Network: base (default), eth, arb, op or polygon"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "url_unshorten",
+      "description": "URL unshortener: expand a short link (bit.ly, t.co and others) to its final destination without loading the page, with every redirect hop's status code and Location, total hops, timing and whether it loops. Each hop is checked before it is requested; redirects to private addresses are reported, not followed. Use to see where a link really goes before opening or sharing it. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "exif",
+      "description": "EXIF data of a photo from its URL: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded, with the image format, width and height. JPEG EXIF; PNG, GIF and WebP give size only. Up to 15 MB. Use to check where and when a photo was taken or to verify an upload. Example: url=https://raw.githubusercontent.com/ianare/exif-samples/master/jpg/gps/DSCN0010.jpg. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Public URL of the image"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "market_sentiment",
+      "description": "Market sentiment for crypto in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, and technical readings (RSI, MACD, moving averages) for up to three coins. No input needed. Use for a daily market brief, a trading agent's context or a risk-on, risk-off check. Example: coins=BTC,ETH,SOL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coins": {
+            "type": "string",
+            "description": "Up to 3 coins for technical readings, comma separated (default BTC,ETH,SOL)"
+          }
+        }
+      },
+      "price": "$0.002"
     },
     {
       "name": "coin",
