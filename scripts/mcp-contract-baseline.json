@@ -1,5 +1,5 @@
 {
-  "version": "1.111.5",
+  "version": "1.112.0",
   "tools": [
     {
       "name": "extract",
@@ -11484,6 +11484,30 @@
       "price": "$0.002"
     },
     {
+      "name": "cve",
+      "description": "Look up a CVE by its ID: what the vulnerability is, its CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, CISA's SSVC points, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, rank what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "cve": {
+            "type": "string",
+            "description": "CVE ID such as CVE-2021-44228 (any case; a cve.org or nvd.nist.gov link works too)"
+          }
+        },
+        "required": [
+          "cve"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "search",
       "description": "Exa-style web search: top 1-20 results with title, URL, snippet, published date and favicon (Brave index); optional domain, date, category and phrase filters; optional live page text, highlights and AI summaries of the top 10 pages. Results are for immediate use only: no storing, resale or model training (Brave API terms). Failures return 503, uncharged. Use when an agent needs current information or sources from the open web. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -19146,6 +19170,85 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "timezone_convert",
+      "description": "Timezone convert: turn a moment (or now) into up to 10 other time zones in one call, with each zone's local time, UTC offset, weekday and abbreviation, daylight saving time handled. Zones as IANA names or cities (Europe/Stockholm, New York, Tokyo, UTC+2). Use to schedule a meeting across time zones, convert a timestamp for a user, or check business hours somewhere else. Example: to=America/New_York,Asia/Tokyo. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Time zones or cities to convert into, comma-separated, up to 10 (e.g. America/New_York,Asia/Tokyo)"
+          },
+          "at": {
+            "type": "string",
+            "description": "Optional moment to convert, as ISO 8601 with an offset or Unix seconds (default: now)"
+          },
+          "zone": {
+            "type": "string",
+            "description": "Time zone or city the result is shown in first, e.g. Europe/Stockholm (default UTC)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "time_now",
+      "description": "Current time in any time zone or city: the exact date and time now with UTC offset, weekday, zone abbreviation and Unix timestamp (UTC when no zone is given), daylight saving time handled. Use when an agent needs to know what time or date it is right now, to timestamp a record, or to check whether a place is inside business hours. Example: zone=Europe/Stockholm. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "zone": {
+            "type": "string",
+            "description": "IANA time zone or city, e.g. Europe/Stockholm, America/New_York or Tokyo (default UTC)"
+          },
+          "at": {
+            "type": "string",
+            "description": "Optional moment to convert, as ISO 8601 with an offset or Unix seconds (default: now)"
+          },
+          "to": {
+            "type": "string",
+            "description": "Optional comma-separated time zones to convert the same moment into (max 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "perp_funding",
+      "description": "Perp funding rate now for a coin (BTC, ETH, SOL, HYPE…): the hourly funding rate and its APR, premium, mark and oracle price, open interest in coins and USD, 24-hour volume and price change on Hyperliquid perpetual futures. Without a coin, the 20 most traded markets. Use to compare funding before opening a perp position, to find a basis or carry trade, or to feed a derivatives dashboard. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default: the 20 most traded markets)"
+          }
+        }
+      },
+      "price": "$0.002"
     },
     {
       "name": "web_fetch",

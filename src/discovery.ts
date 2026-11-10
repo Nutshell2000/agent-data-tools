@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.111.5";
+export const MCP_SERVER_VERSION = "1.112.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -241,7 +241,13 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Everyday data", (p) => /^\/(weather|weather\/forecast|weather\/current|holidays\/public|pack\/location-brief|geocode\/reverse|geocode\/address|time|holidays|geocode|earthquakes|airport\/status|airport\/lookup|gov\/clinical-trials|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/") || p.startsWith("/book/")],
 ];
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
-export const categoryOf = (path: string) => CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities";
+/** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
+const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
+  "/cve": "Company, compliance and checks",
+  "/perp/funding": "Prices and DeFi",
+  "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
+});
+export const categoryOf = (path: string) => (Object.hasOwn(CATEGORY_OF_PATH, path) ? CATEGORY_OF_PATH[path] : CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities");
 /**
  * Smaller MCP servers, one per catalog section, at /mcp/<slug>. Many MCP clients cap or slow
  * down past a few dozen tools, and every listed tool costs the agent context.

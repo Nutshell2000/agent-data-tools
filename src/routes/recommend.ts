@@ -43,6 +43,10 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
   "website audit": "/audit/website", "site audit": "/audit/website", "audit bundle": "/audit/website", "accessibility audit": "/audit/website", "page speed": "/audit/website", "lighthouse": "/audit/website",
   "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
+  // 10 Nov 2026 (base-bots/mercator-jobs.mjs, bazaar-word-demand.mjs): jobs sold elsewhere under a path that names them.
+  "cve lookup": "/cve", "cve": "/cve", "vulnerability lookup": "/cve", "known exploited": "/cve", "kev": "/cve", "epss": "/cve", "cvss score": "/cve",
+  "timezone convert": "/time", "time zone converter": "/time", "current time": "/time", "what time is it": "/time",
+  "perp funding": "/hyperliquid/market", "funding rate": "/hyperliquid/market", "open interest": "/hyperliquid/market",
   "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",
   "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
   "email verifier": "/email", "verify email": "/email", "email verification": "/email", "email validation": "/email",
