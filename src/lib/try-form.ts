@@ -4,7 +4,7 @@
 // before deciding to buy credits. No script: the form submits to the tool URL with trial=1, which already renders
 // the result as a page. Only for tools in the free calls.
 import { exampleParams, type Endpoint } from "../endpoints";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -43,7 +43,7 @@ export function tryForm(endpoint: Endpoint, values?: URLSearchParams, heading = 
 ${fields.join("\n")}
 <input type="hidden" name="trial" value="1">
 <button type="submit" class="btn primary">Run it free</button>
-<p class="small">Uses one of your ${FREE_CALLS_PER_CALLER} free calls. Nothing is charged, and a call that fails is not counted.</p>
+<p class="small">Uses one of your ${FREE_HTTP_CALLS_PER_CALLER} free calls. Nothing is charged, and a call that fails is not counted.</p>
 </form>`;
 }
 
