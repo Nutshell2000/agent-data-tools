@@ -1,5 +1,5 @@
 {
-  "version": "1.111.4",
+  "version": "1.111.5",
   "tools": [
     {
       "name": "extract",
@@ -1524,7 +1524,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -11957,7 +11957,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12005,7 +12005,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12228,7 +12228,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12252,7 +12252,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12292,7 +12292,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12316,7 +12316,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12340,7 +12340,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12364,7 +12364,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12396,7 +12396,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12420,7 +12420,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12444,7 +12444,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12468,7 +12468,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12500,7 +12500,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12524,7 +12524,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12552,7 +12552,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12585,7 +12585,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12608,7 +12608,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12636,7 +12636,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12665,7 +12665,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12689,7 +12689,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12713,7 +12713,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12742,7 +12742,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12775,7 +12775,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12809,7 +12809,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12838,7 +12838,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12904,7 +12904,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12925,7 +12925,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12950,7 +12950,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12984,7 +12984,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13008,7 +13008,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13035,7 +13035,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13059,7 +13059,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13083,7 +13083,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13111,7 +13111,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13135,7 +13135,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13164,7 +13164,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13192,7 +13192,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13216,7 +13216,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13245,7 +13245,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13269,7 +13269,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13293,7 +13293,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13317,7 +13317,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13343,7 +13343,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13367,7 +13367,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13407,7 +13407,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13452,7 +13452,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13494,7 +13494,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13522,7 +13522,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13555,7 +13555,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13597,7 +13597,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13632,7 +13632,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13660,7 +13660,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13698,7 +13698,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13722,7 +13722,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13746,7 +13746,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13770,7 +13770,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13794,7 +13794,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13985,7 +13985,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14024,7 +14024,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14052,7 +14052,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14093,7 +14093,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14191,7 +14191,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14402,7 +14402,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14440,7 +14440,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14464,7 +14464,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14488,7 +14488,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14512,7 +14512,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14560,7 +14560,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14584,7 +14584,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14616,7 +14616,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14817,7 +14817,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14849,7 +14849,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14873,7 +14873,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15018,7 +15018,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15051,7 +15051,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15225,7 +15225,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15249,7 +15249,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15564,7 +15564,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15684,10 +15684,10 @@
     },
     {
       "name": "page_publish",
-      "description": "Publish an HTML page and get a public URL for it (valid up to 7 days): send the HTML (up to 200,000 characters) and an optional title; the page is sanitised (no scripts, styles, frames, forms or event handlers; links and https images stay), screened by content moderation, stored, and served at /p/<id> with noindex. Use to hand a person a report, table or summary your agent produced, or to share results between agents. Removal requests: /support. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Publish an HTML page and get a public URL for it (valid up to 7 days): send the HTML (up to 200,000 characters) and an optional title; the page is sanitised (no scripts, styles, frames, forms or event handlers; links and https images stay), screened by content moderation, stored, and served at /p/<id> with noindex. Use to hand a person a report, table or summary your agent produced, or to share results between agents. Removal requests: /support. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Publishes a page on the public web that stays up until it expires and cannot be withdrawn; each call is charged, so repeats are not free.",
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
+        "readOnlyHint": false,
+        "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
       },
@@ -15764,7 +15764,7 @@
       "description": "Save a value (up to 8,000 characters of text or JSON) under a key in your own namespace, so an agent can remember facts, preferences or task state between runs. Overwrites an existing key; expires after 1 to 30 days (default 30). Values are kept until they expire (at most 30 days) or are deleted; reads anywhere may lag a write made elsewhere by up to a minute. Use to persist what an agent learned for a later call to memory_get. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Changes only what you saved in your own memory namespace; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": false,
+        "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": false
       },
@@ -15808,7 +15808,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15837,7 +15837,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16358,7 +16358,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16586,7 +16586,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16619,7 +16619,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16844,7 +16844,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16874,7 +16874,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16904,7 +16904,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -16934,7 +16934,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -18466,10 +18466,10 @@
     },
     {
       "name": "page_host",
-      "description": "Host a static web page: send HTML (up to 200,000 characters) and an optional title and get a public URL at once, valid up to 7 days; the page is sanitised (no scripts, styles, frames or forms), screened by content moderation and served with noindex. Use to hand a person a report, dashboard or summary your agent produced, or to share results between agents. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Host a static web page: send HTML (up to 200,000 characters) and an optional title and get a public URL at once, valid up to 7 days; the page is sanitised (no scripts, styles, frames or forms), screened by content moderation and served with noindex. Use to hand a person a report, dashboard or summary your agent produced, or to share results between agents. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Publishes a page on the public web that stays up until it expires and cannot be withdrawn; each call is charged, so repeats are not free.",
       "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
+        "readOnlyHint": false,
+        "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
       },
@@ -19464,7 +19464,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19487,7 +19487,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19508,7 +19508,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19551,7 +19551,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19581,7 +19581,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19605,7 +19605,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19635,7 +19635,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19656,7 +19656,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19693,7 +19693,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19720,7 +19720,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19741,7 +19741,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19765,7 +19765,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19786,7 +19786,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -19810,7 +19810,7 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": true
+        "openWorldHint": false
       },
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
