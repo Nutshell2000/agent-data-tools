@@ -79,7 +79,7 @@ test("Worker bundle replaces Ajv's runtime compiler with a stand-in that fails i
 
 test("service summary states the current tool count and the buyer terms", () => {
   assert.match(discovery.SERVICE_SUMMARY, new RegExp(`^${discovery.ENDPOINTS.length} pay-per-call tools`));
-  for (const phrase of ["No account needed", "25 free calls", "/credits", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
+  for (const phrase of ["No account needed", "25 over MCP, 3 over HTTP", "/credits", "failed calls are never charged", "/status"]) assert.ok(discovery.SERVICE_SUMMARY.includes(phrase), phrase);
 });
 
 test("OpenAPI x-guidance stays short enough for AgentCash to include it automatically", () => {
