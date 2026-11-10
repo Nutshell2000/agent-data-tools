@@ -45,6 +45,8 @@
     // Per-call MPP with USDC on Base to PAY_TO (src/lib/mpp-evm.ts) is ON unless this is "off": it reuses the x402
     // facilitator and the CDP secret, so it needs nothing new. MPPScan lists the tools from it (docs/mpp-per-call.md).
     "MPP_EVM": "on",
+    // The public home of the human pages (owner, 10 Nov 2026: tools.funwords.eu for now, a dedicated domain later).
+    "PUBLIC_SITE_ORIGIN": "https://tools.funwords.eu",
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.
