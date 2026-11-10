@@ -143,3 +143,24 @@ test("a tool that refuses an empty call lists an input as required, so a router 
   } finally { globalThis.fetch = realFetch; }
   for (const p of B.ONE_OF_INPUT_PATHS) assert.ok(E.ENDPOINTS.some((e) => e.path === p), `${p} is a tool`);
 });
+test("10 Nov probe: shapes that were refused or silently answered for a default", async () => {
+  const q = (o) => T.normalizedInput(sent(o));
+  assert.equal(q({ topic: "Bitcoin" })("title"), "Bitcoin");
+  assert.equal(q({ url: "https://en.wikipedia.org/wiki/Hong_Kong_dollar?x=1#History" })("title"), "Hong Kong dollar");
+  assert.equal(q({ title: "https://sv.m.wikipedia.org/wiki/G%C3%B6teborg" })("title"), "Göteborg");
+  assert.equal(q({ address: "1600 Pennsylvania Ave" })("name"), "1600 Pennsylvania Ave");
+  assert.equal(q({ stock: "MSFT" })("symbol"), "MSFT");
+  assert.equal(q({ tokens: "ETH,BTC" })("symbols"), "ETH,BTC");
+  assert.equal(q({ timeframe: "1d" })("interval"), "1d", "a wrong name used to answer for the default interval");
+  assert.equal(q({ min_magnitude: "5" })("minMagnitude"), "5");
+  assert.equal(q({ vs: "eur" })("currency"), "eur");
+  assert.equal(q({ pair: "EURUSD" })("from"), "EURUSD");
+  assert.equal(q({ q: "honojs/hono" })("repo"), "honojs/hono");
+  // Coordinates sent as one place string are coordinates.
+  const realFetch = globalThis.fetch; const asked = [];
+  globalThis.fetch = async (url) => { asked.push(String(url)); return new Response(JSON.stringify({ geometry: { coordinates: [2.35, 48.85, 35] }, properties: { meta: { updated_at: "2026-11-10T08:00:00Z" }, timeseries: [{ time: "2026-11-10T09:00:00Z", data: { instant: { details: { air_temperature: 9 } } } }] } }), { headers: { "content-type": "application/json" } }); };
+  try {
+    for (const input of [{ location: "48.85,2.35" }, { coordinates: "48.85, 2.35" }, { q: "48.85 2.35" }]) { const w = await T.TOOLS["/weather"]({}, sent(input)); assert.equal(w.latitude, 48.85); assert.equal(w.longitude, 2.35); assert.equal(w.note, undefined); }
+    assert.ok(asked.every((u) => u.includes("lat=48.85&lon=2.35")));
+  } finally { globalThis.fetch = realFetch; }
+});
