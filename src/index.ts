@@ -11,6 +11,7 @@ import { readable402 } from "./lib/readable-402";
 import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
+import { liveAnswer } from "./lib/live-pages";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -465,10 +466,13 @@ app.get("/guides/:name{[a-z0-9.-]+}", (c) => {
   return md ? c.text(page) : c.html(page);
 });
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
-app.get("/tools/:slug", (c) => {
+app.get("/tools/:slug", async (c) => {
   const tool = toolBySlug(c.req.param("slug"));
+  if (!tool) return c.notFound();
+  // Tools whose example has a current answer show it (at most 15 minutes old); the rest keep their static example.
+  const live = await liveAnswer(tool, c.env, (p) => c.executionCtx.waitUntil(p));
   // Capacity-limited tools (AI media, rendering, transcription, search) are outside the free calls, so no free button.
-  return tool ? c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && !CAPACITY_LIMITED.has(tool.path))) : c.notFound();
+  return c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && !CAPACITY_LIMITED.has(tool.path), live));
 });
 // IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
