@@ -1,5 +1,5 @@
 {
-  "version": "1.109.4",
+  "version": "1.109.5",
   "tools": [
     {
       "name": "extract",
@@ -15755,7 +15755,7 @@
     },
     {
       "name": "recommend",
-      "description": "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 320 tools (web search and page reading, LLM chat, token prices and chain reads on 5 networks, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one. Example: need=current gas price on Base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 600+ tools (web search and page reading, LLM chat, token prices and EVM chain reads, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one. Example: need=current gas price on Base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

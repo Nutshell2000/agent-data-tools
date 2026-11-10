@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.109.4";
+export const MCP_SERVER_VERSION = "1.109.5";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -362,7 +362,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
 Claude Code: <code>${esc(install.claudeCode)}</code>. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. If your client limits how many tools it loads, add one section instead, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
-<li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base and four more chains) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
+<li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
 ${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
 <p><strong>Guides by job:</strong> ${TASK_GUIDES.slice(0, 8).map((g) => `<a href="/guides/${g.slug}">${esc(g.phrase)}</a>`).join(" · ")} · <a href="/guides">all ${TASK_GUIDES.length} guides</a></p>
@@ -555,7 +555,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",
-    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (model ${MODELS.text}, no streaming), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); POST ${origin}/v1/embeddings (one input string, BGE-M3, 1,024 dimensions) is the same front for /ai/embed (${catalogEndpoint(EMBED_TOOL_PATH).price}). POST ${origin}/v1/responses takes the OpenAI Responses shape (input, instructions, max_output_tokens) for the same models and prices. GET ${origin}/v1/models is free. Each of the three also answers GET with the same inputs in the query (prompt= or input=, plus system/instructions, model, max_tokens, temperature) for clients that cannot POST. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
+    `OpenAI-compatible chat: POST ${origin}/v1/chat/completions with the usual {"messages":[...]} body (Llama 4 Scout; "stream": true answers as server-sent events; tools and JSON mode work), same price and payment paths as /ai/chat (${catalogEndpoint(CHAT_TOOL_PATH).price}); model "llama-3.3-70b" or "gpt-oss-120b" routes to /ai/chat-large (${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price}); POST ${origin}/v1/embeddings (one input string, BGE-M3, 1,024 dimensions) is the same front for /ai/embed (${catalogEndpoint(EMBED_TOOL_PATH).price}). POST ${origin}/v1/responses takes the OpenAI Responses shape (input, instructions, max_output_tokens) for the same models and prices. GET ${origin}/v1/models is free. Each of the three also answers GET with the same inputs in the query (prompt= or input=, plus system/instructions, model, max_tokens, temperature) for clients that cannot POST. Proven recipe with the official SDK: new OpenAI({ baseURL: "${origin}/v1", apiKey: "x402", fetch: wrapFetchWithPayment(fetch, client) }) with the @x402/fetch client from the example below; or set apiKey to a card-credit key (adt_…) from ${origin}/credits and no wrapper is needed.`,
     "",
     "Smaller answers: add only=<comma-separated top-level keys> to any tool (for example /btc-fees?only=fastestFee); unknown keys are ignored and no match returns the full result.",
     "",
