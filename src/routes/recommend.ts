@@ -23,18 +23,28 @@ export const tokens = (s: string) => {
   return [...out];
 };
 
-type Doc = { path: string; name: string; tags: string[]; summary: string; description: string; price: string };
+/** `also`: the names and tags of the entry paths that run this tool, so the phrases those doors were named for find it. */
+type Doc = { path: string; name: string; tags: string[]; summary: string; description: string; price: string; also?: string };
 
-/** Lexical score: a query word in the listing name counts most, then tags, then the summary, then the description. */
-export function lexicalScore(query: string[], d: Doc) {
+/** The request as written: lower case, punctuation as spaces. Word order is kept ("text to speech" is not "speech to text"). */
+export const asWritten = (s: string) => s.toLowerCase().replace(/[^a-z0-9$.]+/g, " ").trim();
+
+/**
+ * Lexical score: a query word in the listing name counts most, then tags, then the summary, then the description.
+ * `written` is the request as the caller wrote it (1.110.1): the stop-word-free word list scored "text to speech" and
+ * "speech to text" the same, so the free finder answered /transcribe for a text-to-speech job. A name or tag that holds
+ * the phrase in the caller's own word order wins.
+ */
+export function lexicalScore(query: string[], d: Doc, written = "") {
   if (!query.length) return 0;
   const has = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${w.replace(/[.$]/g, "\\$&")}`).test(text);
-  const name = d.name.toLowerCase(), tags = d.tags.join(" ").toLowerCase().replace(/-/g, " "), summary = d.summary.toLowerCase(), desc = d.description.toLowerCase();
+  const name = asWritten(d.name), tags = `${d.tags.join(" ").toLowerCase().replace(/-/g, " ")} ${d.also ?? ""}`, summary = d.summary.toLowerCase(), desc = d.description.toLowerCase();
   let s = 0;
   for (const w of query) s += has(name, w) ? 4 : has(tags, w) ? 3 : has(summary, w) ? 2 : has(desc, w) ? 1 : 0;
   // The whole request as a phrase in the name or tags (e.g. "token price", "dns lookup").
   const phrase = query.join(" ");
   if (query.length > 1 && (name.includes(phrase) || tags.includes(phrase))) s += 4;
+  if (written.includes(" ")) s += name.startsWith(written) ? 8 : name.includes(written) ? 6 : tags.includes(written) ? 5 : 0;
   return s / query.length;
 }
 
@@ -43,8 +53,11 @@ async function catalog(): Promise<{ docs: Doc[]; example: (path: string) => [str
   const byPath = new Map(ENDPOINTS.map((e) => [e.path, e]));
   // Entry paths (7 Nov 2026) are doors for outside search engines; our own recommender names the canonical tool only.
   const canonical = (e: { path: string }) => !Object.hasOwn(ENTRY_OF, e.path);
+  // Each door was named for a phrase buyers search ("USDC yield", "Current weather"): the tool it runs answers to it too.
+  const also = new Map<string, string[]>();
+  for (const e of ENDPOINTS) if (!canonical(e)) (also.get(ENTRY_OF[e.path]) ?? also.set(ENTRY_OF[e.path], []).get(ENTRY_OF[e.path])!).push(asWritten(listingName(e.summary)), ...listingTags(e.tags, e.path).map((tag) => tag.toLowerCase().replace(/-/g, " ")));
   return {
-    docs: ENDPOINTS.filter((e) => e.path !== "/recommend" && canonical(e)).map((e) => ({ path: e.path, name: listingName(e.summary), tags: listingTags(e.tags, e.path), summary: e.summary, description: e.description, price: e.price })),
+    docs: ENDPOINTS.filter((e) => e.path !== "/recommend" && canonical(e)).map((e) => ({ path: e.path, name: listingName(e.summary), tags: listingTags(e.tags, e.path), summary: e.summary, description: e.description, price: e.price, also: (also.get(e.path) ?? []).join(" , ") })),
     example: (path) => exampleParams(byPath.get(path as never)!) as never,
     free: (path) => !CAPACITY_LIMITED.has(path),
   };
@@ -58,7 +71,8 @@ export async function recommend(env: Env, needText: string, count: number, reran
   const query = tokens(needText);
   if (!query.length) throw new HttpError(400, "describe the task in a few plain words, for example need=current gas price on Base");
   const { docs, example, free } = await catalog();
-  const ranked = docs.map((d) => ({ d, s: lexicalScore(query, d) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15);
+  const written = asWritten(needText);
+  const ranked = docs.map((d) => ({ d, s: lexicalScore(query, d, written) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15);
   if (!ranked.length) throw new HttpError(404, `no tool here matches "${needText.slice(0, 80)}"; nothing was charged. The full catalog is at ${origin}/discovery/resources`);
   let order = ranked;
   let method = "lexical";
