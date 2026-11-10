@@ -22,6 +22,7 @@ import { withMcpRevenue } from "./lib/revenue";
 import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
 import { annotationsFor, directoryToolDescription, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
+import { relatedTools } from "./lib/related";
 import { TOOLS } from "./tools";
 import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
@@ -190,6 +191,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const origin = new URL(c.req.url).origin;
   const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(Boolean(creditKey), endpoints.length) : mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account)) });
 
+  // Tools this server offers, so a result names only next tools the client can actually call here.
+  const served = new Set(endpoints.map((x) => x.path));
   for (const e of endpoints) {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
@@ -244,7 +247,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
           const {structuredContent, ...errorResult} = response;
           return {...errorResult, content:[{type:"text",text:JSON.stringify(structuredContent)}, ...hint], _meta:{...response._meta,...requestMeta}};
         }
-        return { ...result, ...(hint.length ? { content: [...(response.content ?? []), ...hint] } : {}), _meta: { ...result._meta, ...requestMeta } };
+        // The HTTP answer carries three related tools as Link headers; an MCP answer had no next step at all (10 Nov 2026).
+        // Names only, in _meta, so the result itself and its output contract are unchanged.
+        const next = result.isError ? [] : relatedTools(e.path).filter((r) => served.has(r.path)).map((r) => toolName(r));
+        return { ...result, ...(hint.length ? { content: [...(response.content ?? []), ...hint] } : {}), _meta: { ...result._meta, ...requestMeta, ...(next.length ? { relatedTools: next } : {}) } };
       } catch (error) {
         throw error;
       }

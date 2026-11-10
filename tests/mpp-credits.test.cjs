@@ -96,9 +96,13 @@ test('OpenAPI lists the MPP credit packs for MPP directories only while MPP is o
   }
   // Every x402 tool keeps declaring x402 only; no MPP pack carries x402.
   const x402Paths = Object.entries(on.paths).filter(([, item]) => item.get?.['x-payment-info']?.protocols?.some((p) => 'x402' in p)).map(([p]) => p);
-  assert.ok(!x402Paths.some((p) => p.startsWith('/credits/')));
+  assert.ok(!x402Paths.some((p) => p.startsWith('/credits/buy/')));
+  // The only x402 routes under /credits are the USDC packs (1.110.0, lib/usdc-credits.ts).
+  assert.deepEqual(x402Paths.filter((p) => p.startsWith('/credits/')).sort(), ['/credits/usdc/1', '/credits/usdc/20', '/credits/usdc/5']);
   const off = await (await mfOff.dispatchFetch('https://api.test/openapi.json')).json();
-  assert.equal(Object.keys(off.paths).filter((p) => p.startsWith('/credits/')).length, 0);
+  // With MPP off the card packs are gone; the USDC packs do not depend on MPP.
+  assert.equal(Object.keys(off.paths).filter((p) => p.startsWith('/credits/buy/')).length, 0);
+  assert.equal(Object.keys(off.paths).filter((p) => p.startsWith('/credits/')).length, 3);
 });
 
 test('/credits tells agents about MPP purchase only when it is switched on', async () => {

@@ -7,7 +7,7 @@ import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import type { Endpoint } from "../endpoints";
 import { relatedList } from "./related";
-import { WEB_PACKS, callsAt } from "./credits";
+import { WEB_PACKS, callsAt, usdcPrepayLine } from "./credits";
 
 /**
  * The card route for callers without a wallet. While card payments can issue keys it is the first Stripe checkout as one
@@ -43,7 +43,9 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // body only when it is absent); otherwise the body mirrors the v2 header.
   // Three related tools, so an agent that cannot use this one (price, inputs, chain) sees the next thing to try.
   const related = page ? relatedList(origin, page.endpoint.path) : undefined;
-  const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource, related } : { ...challenge, hint, related };
+  // A wallet that will call more than once can prepay and stop paying per call (lib/usdc-credits.ts).
+  const prepay = page ? usdcPrepayLine(origin) : undefined;
+  const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource, related, prepay } : { ...challenge, hint, related, prepay };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
   return new Response(JSON.stringify(body), { status: 402, headers });

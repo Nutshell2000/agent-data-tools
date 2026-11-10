@@ -7,7 +7,7 @@ import { canBatch, queueBatched } from "./metrics-batch";
 // facilitator itself could not be reached, so the buyer was told to retry and was not charged.
 // free_exhausted marks a caller who asked for a free call after using them all: the moment they are asked to pay.
 // free_exhausted_by counts the same moment at /caller/<software family>: on 31 Oct about 1,800 a day were machine traffic.
-export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral", "discovery_read"] as const;
+export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "credits_bought", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral", "discovery_read"] as const;
 export type FunnelStage = typeof STAGES[number];
 export interface FunnelEvent {
   requestId: string; path: string; transport: "http" | "mcp";
