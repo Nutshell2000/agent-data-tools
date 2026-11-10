@@ -38,6 +38,8 @@ import { weather } from "./weather";
 import { CHAIN_MORE } from "./chain-more";
 import { GOV_DATA } from "./gov-data";
 import { HYPERLIQUID } from "./hyperliquid";
+import { CVE } from "./cve";
+import { CRYPTO_TRENDING } from "./crypto-trending";
 import { timeInZone } from "./time";
 import { MEDIA_TEXT } from "./media-text";
 import { PDF } from "./pdf";
@@ -64,6 +66,8 @@ function door(path: string, summary: string, description: string, tags: string[]
   return entry(path, summary, description, tags, params, example, run, src.endpoint.price);
 }
 
+/** /page/markdown: the page reader with Markdown as the format when the caller names none. */
+export const markdownInput = (q: Input): Input => (name) => (name === "format" ? (q("format")?.trim() || "markdown") : q(name));
 /** /defi/usdc-yield: the yields tool with stablecoin pools forced on and USDC as the default token. */
 export const usdcYieldInput = (q: Input): Input => (name) => (name === "stablecoin" ? "true" : name === "symbol" ? (q("symbol")?.trim() || "USDC") : q(name));
 
@@ -338,6 +342,50 @@ export const ENTRY_PATHS: Entry[] = [
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
 
+  // Round 8 (10 Nov 2026): five more jobs sold elsewhere under a path that names them. Evidence the same day: Mercator's
+  // router sent "page to Markdown" listings about 520 calls in 30 days (/md 210, /proxy/web-scrape 258) and for that search
+  // ranked our /markdown/to-html, not /extract; Zero's intent "web page to markdown" has 55 searches; the Bazaar's
+  // "markdown" listings 1,135 calls. Agent402's router gave /cve nothing for "cve lookup" (every winner's slug is
+  // cve_lookup). Wikipedia summary listings 537 calls (the leader, /summary, 24 payers), "trending" 2,686 calls (36 payers
+  // on /market/trending), "ohlcv" 647 calls (35-42 payers on the two leaders) against 2 payers on ours.
+  // /extract gets a third door here: its first two are named for scraping and fetching, and neither holds "markdown".
+  door("/page/markdown", "Web page to Markdown: any URL",
+    "Web page to Markdown: give a public URL and get the page's main content as clean Markdown for an LLM, with headings, links, lists, tables and code blocks kept and navigation, ads and scripts removed, up to 100,000 characters; static HTML, Markdown and text pages. Bot walls, empty pages and errors are never charged. Use to put an article, documentation page or blog post into a prompt, a RAG index or an agent's notes.",
+    ["web-page-to-markdown", "url-to-markdown", "html-to-markdown", "page-markdown", "markdown", "llm-ready"], CORE_EXTRACT,
+    (env, q) => CORE_EXTRACT.run(env, markdownInput(q)),
+    {
+      url: { type: "string", description: "Absolute http(s) URL of the page to convert", required: true, example: "https://www.iana.org/help/example-domains" },
+      maxChars: CORE_EXTRACT.endpoint.params.maxChars,
+      format: { type: "string", description: "Returned representation: markdown (default), text, or both", enum: ["text", "markdown", "both"], example: "markdown" },
+      section: CORE_EXTRACT.endpoint.params.section,
+    },
+    // A real answer for the example URL (10 Nov 2026), body shortened.
+    {
+      url: "https://www.iana.org/help/example-domains", finalUrl: "https://www.iana.org/help/example-domains", status: 200, contentType: "text/html; charset=utf-8", sourceFormat: "html",
+      linkBaseUrl: "https://www.iana.org/help/example-domains", sourceMetadata: { verification: "not_verified", authors: [], dates: [], truncated: false },
+      title: "Example Domains", description: null, lang: null, canonical: null,
+      headings: [{ level: 1, text: "Example Domains", id: "example-domains" }, { level: 2, text: "Further Reading", id: "further-reading" }],
+      section: null, links: [{ href: "https://www.iana.org/domains/reserved", text: "IANA-managed Reserved Domains" }], tables: [], codeBlocks: [], contentSelection: "main", warnings: [],
+      format: "markdown",
+      markdown: "# Example Domains\n\nA number of domains such as `example.com` and `example.org` are maintained for documentation purposes. …\n\n## Further Reading\n\n- [IANA-managed Reserved Domains](https://www.iana.org/domains/reserved)",
+      textLength: 788, truncated: false, contentHash: "sha256:1a422ba91cd1edcba03aef51b09aaba9bc677a48efa55065b9284cf2bfec0ddd", hashFormat: "markdown", fetchedAt: "2026-11-10T22:01:30.410Z",
+    }),
+
+  door("/cve/lookup", "CVE vulnerability lookup: by CVE ID",
+    "CVE vulnerability lookup by ID (CVE-2021-44228): the description, CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, decide what to patch first, or check an advisory before upgrading a dependency.",
+    ["cve-lookup", "vulnerability-lookup", "cve", "security-advisory", "kev", "epss"], from(CVE, "/cve")),
+
+  door("/wiki/summary", "Wikipedia summary: by article title",
+    "Wikipedia summary of an article by its title: the one-paragraph extract in plain text with the short description, the page link and the thumbnail image, from the English edition or any other language edition, with the CC BY-SA attribution to show. Use to get quick background on a subject, ground an answer in a citable encyclopedia source, or check what a name refers to.",
+    ["wikipedia-summary", "wiki-summary", "wikipedia", "encyclopedia", "knowledge", "background"], from(PUBLIC_DATA, "/wikipedia")),
+
+  door("/market/trending", "Trending crypto: coins trending now",
+    "Trending crypto right now: the coins people search most on CoinGecko in the last 24 hours, with symbol, market-cap rank, price and 24-hour change, plus the trending categories. No input needed. Use to see what the market is watching today, seed a watchlist, or give a trading agent or daily brief its market context.",
+    ["trending-crypto", "market-trending", "trending-coins", "crypto", "market-data", "watchlist"], from(CRYPTO_TRENDING, "/crypto/trending")),
+
+  door("/market/ohlcv", "Crypto OHLCV: candles for any coin",
+    "Crypto OHLCV candles for any coin (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history.",
+    ["crypto-ohlcv", "ohlcv", "candles", "price-history", "klines", "market-data"], from(HYPERLIQUID, "/hyperliquid/candles")),
   // Round 7 (10 Nov 2026, placed here so it does not collide with round 6 at the end of the list): three jobs buyers pay other sellers for under a path that names the job, while ours sat under
   // /time and /hyperliquid/market. Bazaar snapshot of 9 Nov, 30-day figures: listings with "timezone" in the path 850 calls
   // (the leader /timezone-convert 9 payers), /current-time 34 calls from 9 payers at $0.005, listings with "funding" 1,629
