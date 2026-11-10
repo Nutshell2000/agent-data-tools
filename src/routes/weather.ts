@@ -59,6 +59,9 @@ export const CITIES: Record<string, [string, number, number]> = Object.fromEntri
   ["Jakarta", -6.2088, 106.8456], ["Uppsala", 59.8586, 17.6389],
 ] as [string, number, number][]).map(([name, lat, lon]) => [name.toLowerCase(), [name, lat, lon]]));
 
+/** The place a call without any place answers for (stated in the inputs' descriptions and in the answer's note). */
+export const DEFAULT_CITY = "london";
+
 /** A city's coordinates: the built-in table first, then Wikidata's best match. */
 async function cityCoordinates(city: string) {
   const tidy = city.toLowerCase().replace(/\s+/g, " ").trim();
@@ -81,11 +84,13 @@ export async function weather(latInput?: string, lonInput?: string, hoursInput?:
   const place = city && (latInput ?? "").trim() === "" && (lonInput ?? "").trim() === ""
     ? await cityCoordinates(city.slice(0, 100)).then((p) => p ?? Promise.reject(new HttpError(404, `no place with coordinates found for "${city.slice(0, 100)}"; pass lat and lon`)))
     : null;
-  if (!place && !city && !(latInput ?? "").trim() && !(lonInput ?? "").trim()) {
-    throw new HttpError(400, "send city (for example city=London) or lat and lon (for example lat=59.33&lon=18.07)");
-  }
-  const lat = place ? place.lat : coordinate(latInput, "lat", 90);
-  const lon = place ? place.lon : coordinate(lonInput, "lon", 180);
+  // A call with no place at all answers for the documented default instead of refusing a buyer who already paid: routers
+  // that plan from the schema call this tool empty (Mercator: 5 of 5 failed; on 10 Nov 2026 /status showed a paid call
+  // refused with "[sent nothing]"). The answer says so in `note`, and the inputs' descriptions name the default.
+  const nothingSent = !place && !city && !(latInput ?? "").trim() && !(lonInput ?? "").trim();
+  const fallback = nothingSent ? CITIES[DEFAULT_CITY] : undefined;
+  const lat = place ? place.lat : fallback ? fallback[1] : coordinate(latInput, "lat", 90);
+  const lon = place ? place.lon : fallback ? fallback[2] : coordinate(lonInput, "lon", 180);
   const hours = Math.min(Math.max(Math.trunc(Number(hoursInput)) || 12, 1), 48);
 
   let res: Response;
@@ -107,7 +112,7 @@ export async function weather(latInput?: string, lonInput?: string, hoursInput?:
   if (!steps?.length) throw new HttpError(502, "the weather data source returned no forecast");
 
   return {
-    ...(place ? { place: place.name } : {}),
+    ...(place ? { place: place.name } : fallback ? { place: fallback[0], note: `No place was sent, so this is the weather for ${fallback[0]}, the default. Send city (for example city=Tokyo) or lat and lon for another place.` } : {}),
     latitude: lat,
     longitude: lon,
     elevationM: body.geometry.coordinates[2] ?? null,
