@@ -1211,3 +1211,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - After the release: `scripts/update-402index-prices.mjs` (the $0.002 of 1.116.0 may have been copied there). Check on 17 Nov with /metrics for /pdf/text (`credits` outcomes) and the funnel's `credits_bought`.
 - Release numbers are shared by several sessions: before writing notes-<v>.md, claude-<v>.md or queue-<v>.ps1 in release\train, check that no file for that version exists (two sessions overwrote each other's 1.118.0 and 1.119.0 files on 10 Nov).
 
+
+
+## GitHub account lookup, repository data only (1.119.0, 11 Nov 2026)
+
+- Owner, 11 Nov 2026, to "Build a GitHub account lookup that returns repository data only?": "Yes, repo data only". `/github/user` (`accountRepos` in src/routes/github.ts) answers "what has this account built" from `/users/<login>/repos` (the 100 most recently pushed, owner type only) and reads exactly two fields of the account record, `type` and `public_repos`. Never add name, bio, e-mail, company, location, avatar, blog, social links, follower counts or account dates: GitHub's terms restrict selling users' personal information, and tests/github.test.cjs fails if any of those values appears.
+- Forks are left out unless `forks=true`. Counts and languages cover the repositories read, and the answer says so in `note`; an account with more than 100 repositories can hold an older, more starred one outside that window.
+- Acquisition-priced with the other GitHub tools; category through `CATEGORY_OF_PATH`. Needs `GITHUB_TOKEN` like the others.
+- Two sessions wrote release files under the same version number twice on 10 Nov and overwrote each other. Before writing any notes-, claude- or queue- file in business\agentic\release\train, list the folder for that version number.
+
