@@ -7,12 +7,13 @@ import { ENDPOINTS, type Endpoint } from "../endpoints";
 import { categoryOf } from "../discovery";
 import { listingName } from "./bazaar-extension";
 import { salesOrdered } from "./discovery-index";
+import { ENTRY_OF } from "../routes/entry-paths";
 
 const cache = new Map<string, Endpoint[]>();
 
 /**
- * The pack that runs a tool among others, for the tool's first related link (25 Oct 2026). Since every tool and pack costs
- * $0.01, a bot that just bought one tool gets four to six for the same price in the pack: the cheapest upsell we have.
+ * The pack that runs a tool among others, for the tool's first related link (25 Oct 2026). A pack runs four to six tools
+ * in one paid call, at or near the price of one of them (prices differ per pack since the 6 Nov acquisition prices).
  * Paths missing from the catalog are skipped, so the map may name tools that are paused.
  */
 const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntries(([
@@ -43,8 +44,12 @@ const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntri
   ["/pack/url-safety", ["/url/redirects", "/domain-report", "/text/prompt-injection"]],
 ] as const).flatMap(([pack, tools]) => tools.map((t) => [t, pack]))));
 
+/** The tool a path runs: an entry path's canonical tool, or the path itself. */
+const canonicalOf = (path: string): string => (Object.hasOwn(ENTRY_OF, path) ? ENTRY_OF[path] : path);
+
+/** An entry path gets its canonical tool's pack: the door and the tool are the same purchase. */
 export function packOf(path: string): Endpoint | undefined {
-  const pack = PACK_OF[path];
+  const pack = PACK_OF[canonicalOf(path)];
   return pack ? ENDPOINTS.find((e) => e.path === pack) : undefined;
 }
 
@@ -53,7 +58,11 @@ export function relatedTools(path: string, max = 3): Endpoint[] {
   if (!related) {
     const category = categoryOf(path);
     const pack = packOf(path);
-    const others = salesOrdered(ENDPOINTS).filter((e) => e.path !== path && e.path !== pack?.path);
+    // Never the same purchase under another name (10 Nov 2026): /weather/forecast, the door new wallets arrive through,
+    // offered its own canonical /weather as a "next" tool. Entry paths are left out of every list, and so is the tool
+    // this path itself runs, so each of the three links is a different job.
+    const self = canonicalOf(path);
+    const others = salesOrdered(ENDPOINTS).filter((e) => e.path !== path && e.path !== self && e.path !== pack?.path && !Object.hasOwn(ENTRY_OF, e.path));
     related = [...(pack ? [pack] : []), ...others.filter((e) => categoryOf(e.path) === category), ...others.filter((e) => categoryOf(e.path) !== category)].slice(0, max);
     cache.set(path, related);
   }

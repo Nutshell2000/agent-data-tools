@@ -93,7 +93,7 @@ export async function recommend(env: Env, needText: string, count: number, reran
 
 export const RECOMMEND: Entry[] = [
   entry("/recommend", "API recommendation: which API to call for a task",
-    "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 320 tools (web search and page reading, LLM chat, token prices and chain reads on 5 networks, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one.",
+    "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 600+ tools (web search and page reading, LLM chat, token prices and EVM chain reads, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one.",
     ["api-recommendation", "which-api", "find-api", "api-discovery", "x402-discovery"], {
       need: { type: "string", description: "The task in plain words, up to 300 characters", required: true, example: "current gas price on Base" },
       count: { type: "string", description: "How many picks, 1 to 5 (default 3)", example: "3" },

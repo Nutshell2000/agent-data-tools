@@ -43,7 +43,7 @@ The reader also supports an exact HTML section ID and retains labelled source im
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-A Cloudflare Worker that sells 175 active tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum, Monad or World Chain) or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells more than 600 tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum or Solana), through MPP (Tempo), or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|

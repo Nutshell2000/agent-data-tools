@@ -2,8 +2,8 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { build } = require('esbuild');
 
-async function load() {
-  const b = await build({ entryPoints: ['src/lib/related.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+async function load(entry = 'src/lib/related.ts') {
+  const b = await build({ entryPoints: [entry], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
   const m = { exports: {} };
   new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
   return m.exports;
@@ -22,6 +22,16 @@ test('related tools: three others, same category first, best sellers first, neve
   assert.equal(relatedTools('/hash')[0].path, '/pack/hash-toolbox');
   assert.equal(relatedTools('/url/uptime')[0].path, '/pack/website-audit');
   assert.ok(!relatedTools('/pack/wallet-profile').some((e) => e.path === '/pack/wallet-profile'));
+  // An entry path is the same purchase as its canonical tool (10 Nov 2026): the door new wallets arrive through must not
+  // spend a link on the tool it runs, it gets that tool's pack, and no list offers an entry path as a "next" tool.
+  const door = relatedTools('/weather/forecast').map((e) => e.path);
+  assert.equal(door.length, 3);
+  assert.ok(!door.includes('/weather'), door.join(','));
+  assert.equal(door[0], '/pack/location-brief');
+  const { ENTRY_OF } = await load('src/routes/entry-paths.ts');
+  for (const path of ['/weather', '/weather/forecast', '/extract', '/ai/chat', '/price/token', '/domain']) {
+    assert.ok(relatedTools(path).every((e) => !Object.hasOwn(ENTRY_OF, e.path)), `${path}: ${relatedTools(path).map((e) => e.path).join(',')}`);
+  }
   const header = relatedLinkHeader('https://api.test', '/btc-fees');
   assert.equal((header.match(/rel="related"/g) ?? []).length, 3);
   assert.match(header, /^<https:\/\/api\.test\/[a-z/-]+>; rel="related"; title="[^"]+"/);
