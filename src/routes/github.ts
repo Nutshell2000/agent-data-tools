@@ -12,7 +12,7 @@
  * per address, and Cloudflare's shared egress uses that up: 1 of 3 test calls from staging answered 403 on 10 Nov. A
  * rate-limited call is an uncharged 503, never a wrong answer.
  */
-import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
+import { entry, flag, need, num, opt, pick, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const API = "https://api.github.com";
@@ -135,6 +135,45 @@ export async function repoReleases(env: Pick<Env, "GITHUB_TOKEN">, name: string,
   return { repo: name, count: published.length, releases: published.map((r) => release(r, 1_500)), source: SOURCE, checkedAt: new Date().toISOString() };
 }
 
+/** An account as agents write it: a login, @login, or a github.com link to the account or to one of its repositories. */
+export function accountLogin(raw: string): string {
+  const login = raw.trim().replace(/^@/, "").replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, "").replace(/[?#].*$/, "").split("/").filter(Boolean)[0] ?? "";
+  if (!OWNER.test(login)) throw new HttpError(400, "user must be a GitHub login such as vercel, or a github.com link to the account");
+  return login;
+}
+
+/**
+ * The public repositories of one account (11 Nov 2026, owner: "Yes, repo data only"). The busiest GitHub listing on the
+ * Bazaar is a user lookup (about 3,100 calls a month from Mercator's router and as many on the Bazaar); it sells the
+ * profile. This answers the same question, what has this account built, from repository data alone: the account's login
+ * as repositories carry it, whether it is a user or an organization, how many public repositories it has, and the
+ * repositories themselves. From the account record GitHub sends, only `type` and `public_repos` are read: no name, bio,
+ * e-mail, company, location, avatar, blog, social links, follower counts or account dates ever reach an answer
+ * (tests/github.test.cjs feeds the real record and checks).
+ */
+export async function accountRepos(env: Pick<Env, "GITHUB_TOKEN">, login: string, count: number, includeForks: boolean, fetcher: Fetcher = fetch) {
+  const [list, record] = await Promise.all([
+    github<Repo[]>(env, `/users/${login}/repos?type=owner&sort=pushed&direction=desc&per_page=100`, fetcher),
+    github<{ type?: string; public_repos?: number }>(env, `/users/${login}`, fetcher).catch(() => null),
+  ]);
+  if (!list) throw new HttpError(404, `no public GitHub account ${login}`);
+  const own = list.filter((r) => includeForks || !r.fork);
+  const languages: Record<string, number> = {};
+  for (const r of own) if (r.language) languages[r.language] = (languages[r.language] ?? 0) + 1;
+  const pushes = own.map((r) => r.pushed_at).filter((p): p is string => typeof p === "string").sort();
+  return {
+    user: list[0]?.full_name.split("/")[0] ?? login, type: record?.type ?? list[0]?.owner?.type ?? null, url: `https://github.com/${login}`,
+    publicRepos: typeof record?.public_repos === "number" ? record.public_repos : null, reposRead: list.length, forksIncluded: includeForks,
+    stars: own.reduce((n, r) => n + r.stargazers_count, 0), forks: own.reduce((n, r) => n + r.forks_count, 0),
+    languages: Object.fromEntries(Object.entries(languages).sort((x, y) => y[1] - x[1]).slice(0, 8)), lastPushAt: pushes.at(-1) ?? null,
+    repos: [...own].sort((x, y) => y.stargazers_count - x.stargazers_count).slice(0, count).map((r) => ({
+      repo: r.full_name, url: r.html_url, description: r.description, stars: r.stargazers_count, forks: r.forks_count, language: r.language,
+      topics: (r.topics ?? []).slice(0, 8), license: licence(r), pushedAt: r.pushed_at, archived: r.archived, fork: r.fork,
+    })),
+    note: "Repository data only: counts and languages cover the account's 100 most recently pushed public repositories.",
+    source: SOURCE, checkedAt: new Date().toISOString(),
+  };
+}
 const repoInput = (q: Input) => repoName(need(q, "repo", 300), opt(q, "owner", 60));
 const REPO_PARAMS = {
   repo: { type: "string" as const, description: "Repository as owner/name, e.g. vercel/next.js, or its github.com URL", required: true, example: "vercel/next.js" },
@@ -181,4 +220,20 @@ export const GITHUB: Entry[] = [
       source: SOURCE, checkedAt: "2026-11-10T09:12:00.000Z",
     },
     (env, q) => repoReleases(env, repoInput(q), num(q, "count", { min: 1, max: 10, fallback: 5, integer: true }))),
+
+  entry("/github/user", "GitHub user repos: what an account has built",
+    "GitHub user or organization by login: its public repositories ranked by stars, each with description, stars, forks, language, topics, license and last push, plus the repository count, total stars, language mix and latest activity. Repository data only: no profile, e-mail, avatar or follower data. Use to see what a developer or company has built, vet a maintainer by their projects, or find an organization's main repositories.",
+    ["github-user", "github", "github-repos", "developer", "open-source", "repositories"], {
+      user: { type: "string", description: "GitHub login of a user or organization, e.g. vercel, or its github.com link", required: true, example: "vercel" },
+      count: { type: "integer", description: "Repositories to list, most starred first, 1-30 (default 10)", example: 5 },
+      forks: { type: "string", description: "true to include repositories forked from others (default false)", example: "false" },
+    },
+    {
+      user: "vercel", type: "Organization", url: "https://github.com/vercel", publicRepos: 212, reposRead: 100, forksIncluded: false, stars: 312000, forks: 54000,
+      languages: { TypeScript: 61, JavaScript: 17, Rust: 4 }, lastPushAt: "2026-11-10T21:40:02Z",
+      repos: [{ repo: "vercel/next.js", url: "https://github.com/vercel/next.js", description: "The React Framework", stars: 131000, forks: 28100, language: "JavaScript", topics: ["react", "nextjs"], license: "MIT", pushedAt: "2026-11-10T21:40:02Z", archived: false, fork: false }],
+      note: "Repository data only: counts and languages cover the account's 100 most recently pushed public repositories.",
+      source: SOURCE, checkedAt: "2026-11-11T09:12:00.000Z",
+    },
+    (env, q) => accountRepos(env, accountLogin(need(q, "user", 200)), num(q, "count", { min: 1, max: 30, fallback: 10, integer: true }), flag(q, "forks"))),
 ];
