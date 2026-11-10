@@ -143,3 +143,24 @@ test("treasury rates: latest month, totals, history and the security filter", ()
   assert.throws(() => treasury.ratesSummary(rateRows, 1, "gold"), (e) => e.status === 404);
   assert.throws(() => treasury.ratesSummary([], 1), (e) => e.status === 502);
 });
+
+test("round 7 doors (10 Nov 2026) carry the job in the name and the path, and answer a call with no input", async () => {
+  const door = (p) => doors.ENTRY_PATHS.find((d) => d.endpoint.path === p);
+  assert.equal(door("/timezone/convert").endpoint.summary.split(":")[0], "Timezone convert");
+  assert.equal(door("/time/now").endpoint.summary.split(":")[0], "Current time");
+  assert.equal(door("/perp/funding").endpoint.summary.split(":")[0], "Perp funding rate");
+  assert.equal(doors.ENTRY_OF["/timezone/convert"], "/time");
+  assert.equal(doors.ENTRY_OF["/time/now"], "/time");
+  assert.equal(doors.ENTRY_OF["/perp/funding"], "/hyperliquid/market");
+  for (const p of ["/timezone/convert", "/time/now", "/perp/funding"]) assert.ok(Object.values(door(p).endpoint.params).every((x) => !x.required), `${p}: a router that plans the call empty must succeed`);
+  // Both time doors run the real tool: an empty call is UTC now, a conversion keeps the moment.
+  const now = await door("/time/now").run({}, () => undefined);
+  assert.equal(now.zone, "UTC");
+  assert.ok(Math.abs(now.unixSeconds - Date.now() / 1000) < 5);
+  const moved = await door("/timezone/convert").run({}, (n) => ({ zone: "Europe/Stockholm", at: "2026-03-01T09:00:00+01:00", to: "America/New_York,Asia/Tokyo" })[n]);
+  assert.equal(moved.localTime, "2026-03-01T09:00:00");
+  assert.deepEqual(moved.converted.map((c) => c.localTime), ["2026-03-01T03:00:00", "2026-03-01T17:00:00"]);
+  assert.ok(endpoints.ACQUISITION_PATHS.has("/perp/funding"), "the funding door shares /hyperliquid/market's acquisition price");
+  // The published example (the first input with an example) of the convert door is a conversion, not just "now".
+  assert.deepEqual(endpoints.exampleParams(door("/timezone/convert").endpoint).map(([name]) => name), ["to"]);
+});
