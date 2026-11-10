@@ -3,7 +3,7 @@
 // example result, and offers the ways in: a free trial call, the free static sample, card credits and MCP.
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
 import { exampleParams, type Endpoint } from "../endpoints";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -52,7 +52,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
-${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
@@ -100,7 +100,7 @@ main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.4rem;li
 </style></head><body><main>
 <h1>${esc(endpoint.summary)}</h1>
 <p class="meta">${esc(freeCallsPausedNote(now))}</p>
-<p>Nothing was charged and none of your ${FREE_CALLS_PER_CALLER} free calls were used. Until then you can look at a real example result, or come back after 00:00 UTC and run it again.</p>
+<p>Nothing was charged and none of your ${FREE_HTTP_CALLS_PER_CALLER} free calls were used. Until then you can look at a real example result, or come back after 00:00 UTC and run it again.</p>
 <div class="actions"><a class="btn primary" href="${esc(withParam(new URL(url.origin + url.pathname), "sample"))}">See an example result</a><a class="btn" href="/tools">All tools</a></div>
 </main></body></html>`;
 }
