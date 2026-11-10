@@ -1175,3 +1175,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Ruled out as causes of lost sales on 10 Nov: quote speed (ours answer in 150-190 ms, five competitors in 195-420 ms), CORS, and how we answer HEAD, POST and OPTIONS (the same as sellers a monitor calls healthy).
 - The funnel stage `completed` did not count x402 v1 payments before 1.106.0 (10 Nov, about 09:15 UTC). A day before that with `settled` above `completed` and no `execution_failed` is that counter, not a lost delivery.
 
+
+## The npm client is live and named in our own pages (1.115.0, 10 Nov 2026)
+
+- npm package `agent-data-tools` 1.1.0 was published by the owner on 10 Nov 2026 (account spellzzz11; npm requires two-factor authentication to publish). `mcpInstallLinks().npx` is the command the homepage shows; llms.txt and the README carry it too. Check from a clean folder after a publish: `npx -y agent-data-tools@<version> setup cursor --print` and an `initialize` line piped into `npx -y agent-data-tools@<version> mcp`.
+- npm removes a `bin` path written as `./cli.mjs` at publish (the command would be missing); `npm pkg fix` writes the accepted form. Always read the first lines of `npm publish --dry-run` for a `warn`.
+- Not done yet: a `packages` entry (registryType npm, stdio, argument `mcp`) in server.json for the MCP Registry. It needs a published npm version that carries `mcpName` (1.1.1, prepared in business\agentic\npm-client; the owner publishes), because the registry checks the package before it accepts the entry. Add it only after `npm view agent-data-tools@1.1.1 mcpName` answers.
+
