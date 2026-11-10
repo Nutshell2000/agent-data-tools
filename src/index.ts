@@ -40,7 +40,7 @@ import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { discoveryResources, salesOrdered } from "./lib/discovery-index";
-import { apiKeyFrom } from "./lib/credits";
+import { apiKeyFrom, keyPrice } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { httpFree } from "./lib/capacity";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
@@ -265,7 +265,7 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key (header, or api_key= in the URL for fetch-only clients) replaces the
   // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
-  if (endpoint && creditKey) return chargeCredits(c, endpoint.price, creditKey, next);
+  if (endpoint && creditKey) return chargeCredits(c, keyPrice(endpoint.path, endpoint.price), creditKey, next);
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;

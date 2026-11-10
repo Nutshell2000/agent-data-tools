@@ -226,3 +226,14 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
   if (usdTotal === undefined || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
   return { ...pack, topUpKeyHash: keyHashFromReference(s.client_reference_id) };
 }
+
+// What a prepaid key pays where that is less than the tool's public price (the owner, 10 Nov 2026: "I meant only that low
+// price for our regular buyer to entice it into buying"). The one large direct demand we have is a web caller reading
+// hundreds of PDFs a day on free calls; a caller cannot be identified, but the way a caller pays can: a prepaid key is
+// what a web user buys, and wallets and routers paying per call keep the public price. Entry paths are listed with their tool.
+export const KEY_PRICES: Readonly<Record<string, string>> = { "/pdf/text": "$0.002", "/pdf/extract": "$0.002" };
+/** The price a prepaid key is charged for this tool. */
+export const keyPrice = (path: string, price: string) => (Object.hasOwn(KEY_PRICES, path) ? KEY_PRICES[path] : price);
+/** One sentence for a refusal: what this tool costs with a prepaid key, when that is less than its price. */
+export const keyPriceLine = (path: string, origin: string) => !Object.hasOwn(KEY_PRICES, path) ? undefined
+  : `With a prepaid key this tool costs ${KEY_PRICES[path]} a call instead of the price above: $1 pays for ${callsAt(1000, KEY_PRICES[path])} calls. Buy one by card at ${origin}/credits (from $1, no account) or with USDC at ${origin}/credits/usdc/1, and send it as Authorization: Bearer or as api_key= in the URL.`;
