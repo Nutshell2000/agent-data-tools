@@ -227,7 +227,7 @@ export class Metrics extends DurableObject {
   async mppDelete(key: string) { await this.ctx.storage.delete(`mpp:${key}`); }
   async mppClaim(key: string, expires: number) { return claimReplay(this.ctx.storage, key, expires); }
   async mppSwap(key: string, expected: string, next: { value: unknown } | null) { return swapReplay(this.ctx.storage, key, expected, next); }
-  async takeFreeCall(caller: string, day: string) { return takeFreeCall(this.ctx.storage, caller, day); }
+  async takeFreeCall(caller: string, day: string, limit?: number) { return takeFreeCall(this.ctx.storage, caller, day, limit); }
   async refundFreeCall(caller: string, day: string) { return refundFreeCall(this.ctx.storage, caller, day); }
   async takeDailyCall(caller: string, day: string, perCaller: number, total: number) { return takeDailyCall(this.ctx.storage, caller, day, perCaller, total); }
   async refundDailyCall(caller: string, day: string) { return refundDailyCall(this.ctx.storage, caller, day); }

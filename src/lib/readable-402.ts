@@ -2,7 +2,7 @@
 // Agents that fetch a tool with plain HTTP only see the body, so repeat the decoded
 // challenge there with a short hint. Official clients read the header first, so this is additive.
 import { decodePaymentRequiredHeader } from "@x402/core/http";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import type { Endpoint } from "../endpoints";
@@ -38,7 +38,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   } catch {
     return res;
   }
-  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). x402 v1 clients: terms in this body, pay with X-PAYMENT. ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
+  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). x402 v1 clients: terms in this body, pay with X-PAYMENT. ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // With v1 terms the body is a v1 PaymentRequired (official v2 clients read the header first and use the
   // body only when it is absent); otherwise the body mirrors the v2 header.
   // Three related tools, so an agent that cannot use this one (price, inputs, chain) sees the next thing to try.

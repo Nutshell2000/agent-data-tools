@@ -4,8 +4,8 @@
 // calling our readers. Each guide only restates what the tool's own description says, gives the request in every way
 // an agent can make it (free trial, card key in a header or in the URL, x402/MPP, MCP) and links the tool pages.
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
-import { FREE_CALLS_PER_CALLER } from "../lib/free-calls";
-import { CAPACITY_LIMITED } from "../lib/capacity";
+import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
+import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
 import { TOOL_SEO } from "../lib/tool-seo";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -111,7 +111,7 @@ export const taskGuide = (slug: string) => BY_SLUG.get(slug);
 
 function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean) {
   const request = `${origin}${e.path}?${query(e)}`;
-  const free = freeCalls && !CAPACITY_LIMITED.has(e.path);
+  const free = freeCalls && httpFree(e.path);
   const mcp = e.path.slice(1).replace(/[/-]/g, "_");
   const params = Object.entries(e.params).filter(([n]) => n !== "only").map(([n, p]) => `${n}${p.required ? " (required)" : ""}: ${p.description}`);
   const example = JSON.stringify(e.outputExample, null, 2);
@@ -120,7 +120,7 @@ function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean)
     `${e.summary}. ${e.price} per successful call; failed calls are never charged.`,
     e.description,
     `Inputs: ${params.join("; ")}.`,
-    free ? `Free first (${FREE_CALLS_PER_CALLER} successful calls per caller, no key):\n\n    curl "${request}&trial=1"` : `Not in the free calls (it costs us capacity per call); pay from the first call.`,
+    free ? `Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):\n\n    curl "${request}&trial=1"` : (CAPACITY_LIMITED.has(e.path) ? `Not in the free calls (it costs us capacity per call); pay from the first call.` : `Not in the free calls over HTTP; pay from the first call.`),
     `With a card key from ${origin}/credits, in a header or, when your client can only fetch a URL, in the URL:\n\n    curl -H "Authorization: Bearer adt_…" "${request}"\n    curl "${request}&api_key=adt_…"`,
     `Without a key the same URL answers 402 with x402 and MPP terms, so a wallet client pays USDC per call and retries. Over MCP (${origin}/mcp) this tool is ${mcp}.`,
     `Example result:\n\n${shown.split("\n").map((l) => `    ${l}`).join("\n")}`,
@@ -129,7 +129,7 @@ function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean)
   if (md) return lines.join("\n\n");
   return `<section><h2>${esc(e.summary)} <span class="price">${esc(e.price)}</span></h2><p>${esc(e.description)}</p>
 <p><strong>Inputs:</strong> ${params.map(esc).join("; ")}.</p>
-${free ? `<p>Free first (${FREE_CALLS_PER_CALLER} successful calls per caller, no key):</p><pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : `<p>Not in the free calls (it costs capacity per call); pay from the first call.</p>`}
+${free ? `<p>Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):</p><pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : `<p>Not in the free calls${CAPACITY_LIMITED.has(e.path) ? " (it costs capacity per call)" : " over HTTP"}; pay from the first call.</p>`}
 <p>With a card key from <a href="/credits">/credits</a>, in a header or, when your client can only fetch a URL, in the URL:</p><pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"\ncurl "${esc(request)}&amp;api_key=adt_…"</code></pre>
 <p>Without a key the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so a wallet client pays USDC per call and retries. Over MCP (<code>${esc(origin)}/mcp</code>) this tool is <code>${esc(mcp)}</code>.</p>
 <details><summary>Example result</summary><pre><code>${esc(shown)}</code></pre></details>
@@ -154,7 +154,7 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
   const lead = leadOf(g, main), uses = usesOf(g, main);
   const seoFaq = TOOL_SEO[main.path]?.faq ?? [];
   const faq: [string, string][] = [...(g.faq ?? []), ...seoFaq.filter(([q]) => !(g.faq ?? []).some(([gq]) => gq === q)),
-    ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && !CAPACITY_LIMITED.has(main.path) ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
+    ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && httpFree(main.path) ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
   const ld = { "@context": "https://schema.org", "@type": "TechArticle", headline: `${g.phrase}`, description: lead, url, author: { "@type": "Organization", name: SERVICE_NAME, url: origin }, about: tools.map((e) => ({ "@type": "WebAPI", name: e.summary, url: `${origin}/tools/${toolSlug(e.path)}`, offers: { "@type": "Offer", price: e.price.replace(/^\$/, ""), priceCurrency: "USD" } })) };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

@@ -155,7 +155,7 @@ export async function recommend(env: Env, needText: string, count: number, reran
   return {
     need: needText,
     picks,
-    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a prepaid key as Authorization: Bearer (by card at ${origin}/credits, or with USDC at ${origin}/credits/usdc/5). Failed calls are never charged; the first 25 calls per caller are free on tools in the free calls (add trial=1).`,
+    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a prepaid key as Authorization: Bearer (by card at ${origin}/credits, or with USDC at ${origin}/credits/usdc/5). Failed calls are never charged; the first 3 calls per caller are free over HTTP on tools in the free calls (add trial=1).`,
     mcp: `${origin}/mcp`,
     method,
   };
