@@ -1155,3 +1155,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Not built, with the reason: an SSL certificate check (Workers cannot read a peer certificate; a hand-written TLS 1.2 handshake would miss TLS 1.3-only hosts), FRED series (needs a key and an account), sports odds, social and people data (terms and personal data).
 - After the release: the owner's Refresh click lists the four new paths on the Bazaar (about $0.03); register them with Zero only now that the names are final.
 
+
+## OpenAI-shaped speech; the npm client as the way into AI clients (1.113.0, 10 Nov 2026)
+
+- `POST /v1/audio/speech` (src/lib/openai-speech.ts) is the images-front pattern with two differences: it routes by input length (`SPEECH_SHORT_LIMIT` 300 → `/ai/speech`, up to `SPEECH_INPUT_LIMIT` 2,000 → `/text-to-speech`; tests/openai-speech.test.cjs keeps both equal to the tools' own limits) and it answers with the audio bytes, not JSON. Its OpenAPI price is dynamic (the two tools' prices). An unpaid empty probe is quoted at the short tool's price. Not a tool: no MCP entry, not in /discovery/resources. Prove it on staging after a release that touches it: `node scripts/pay-test.mjs <staging>/v1/audio/speech --post-json '{"input":"Hello there.","voice":"nova"}'` and check the body starts with ID3 or an MPEG frame. The Bazaar lists it after its first settlement (`seed-bazaar.mjs --fronts`).
+- npm client `agent-data-tools` 1.1.0 (clients/agent-data-tools): `setup <client>`, `mcp` (stdio proxy in mcp-stdio.mjs: POST only, no GET stream, no re-initialize on an expired session), `key`, `credits`. Key sources in order: `--key`, `AGENT_DATA_TOOLS_KEY`, `~/.agent-data-tools/config.json`, `ADT_API_KEY`. tests/npm-client-mcp.test.cjs runs it against a local fake server. Publishing is the owner's click (`C:\MoneyWallet\Publish npm client.cmd`); the repository copy is ahead of npm until she does.
+- Why the client: every seller that earns owns the buyer's client; a prepaid key in the user's own client makes them our customer rather than a router's (plan of 10 Nov, workstream C).
+
