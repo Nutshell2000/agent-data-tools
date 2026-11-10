@@ -59,7 +59,7 @@ export function authorizationServerMetadata(o: string) {
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
     scopes_supported: ["tools"],
-    service_documentation: `${o}/credits`,
+    service_documentation: `${o}/llms.txt`,
   };
 }
 
@@ -96,10 +96,28 @@ async function checkAuthorize(env: Env, p: Partial<AuthorizeParams>): Promise<{ 
   return { client };
 }
 
+/**
+ * A sign-in that comes from ChatGPT (10 Nov 2026). Inside ChatGPT the service is free and OpenAI's plugin rules allow no
+ * sale of digital services, no upsell and no link to a checkout, so its sign-in page offers one button and never mentions
+ * keys, credits or prices, and a key is never attached to its grant. Told by where the browser returns to.
+ */
+export function fromChatGpt(redirectUri: string | undefined): boolean {
+  try { const host = new URL(redirectUri ?? "").hostname; return host === "chatgpt.com" || host.endsWith(".chatgpt.com") || host === "chat.openai.com" || host === "platform.openai.com"; } catch { return false; }
+}
+
 function authorizeForm(o: string, client: Client, p: AuthorizeParams, error?: string) {
   const hidden = (["client_id", "redirect_uri", "state", "code_challenge", "code_challenge_method", "response_type"] as const)
     .map((k) => `<input type="hidden" name="${k}" value="${esc(p[k] ?? "")}">`).join("");
   const host = new URL(p.redirect_uri).host;
+  if (fromChatGpt(p.redirect_uri)) {
+    return page("Connect · Agent Data Tools", `<h1>Connect Agent Data Tools</h1>
+<p><strong>${esc(client.clientName)}</strong> wants to use Agent Data Tools for you. You will return to <strong>${esc(host)}</strong>.</p>
+<p>Agent Data Tools looks up public data: sanctions lists, company and domain records, public blockchain data, currency rates, weather and more. It only reads; nothing is bought, sent or changed, and no account or payment is needed.</p>
+<form method="post" action="/oauth/authorize">${hidden}
+<div class="box"><button type="submit" name="mode" value="free">Continue</button></div>
+</form>
+<p><a href="${o}/privacy" target="_blank">Privacy</a> · <a href="${o}/terms" target="_blank">Terms</a></p>`);
+  }
   return page("Sign in · Agent Data Tools", `<h1>Sign in to Agent Data Tools</h1>
 <p><strong>${esc(client.clientName)}</strong> wants to use Agent Data Tools for you. You will return to <strong>${esc(host)}</strong>.</p>
 ${error ? `<p class="err">${esc(error)}</p>` : ""}
@@ -186,7 +204,7 @@ oauth.post("/oauth/authorize", async (c) => {
   if ("error" in checked) return c.html(page("Sign-in error", `<h1>Sign-in error</h1><p class="err">${esc(checked.error)}</p>`), 400);
   const s = store(c.env)!;
   let key: string | null = null;
-  if (p.mode !== "free") {
+  if (p.mode !== "free" && !fromChatGpt(p.redirect_uri)) {
     const typed = (p.key ?? "").trim();
     if (!isCreditKey(typed) || !(await s.creditBalance(await hashCreditKey(typed)))) {
       return c.html(authorizeForm(origin(c), checked.client, p, "That key was not found. Check it on your /credits/claim page, or continue with free calls."), 400);
