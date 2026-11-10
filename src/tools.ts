@@ -1,7 +1,7 @@
 import { assertToolOutput } from "./lib/output-contract";
 import { sitemap } from "./routes/sitemap";
 import { HttpError, type Env } from "./lib/env";
-import { PAUSED_FAMILY_TOOLS } from "./endpoints";
+import { ENDPOINTS, PAUSED_FAMILY_TOOLS } from "./endpoints";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
 import { baseAllowance, baseTransaction, ensLookup } from "./routes/chain";
@@ -84,23 +84,61 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  */
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
-  address: ["wallet", "addr", "account", "email", "pool"], token: ["token_address", "contract"], hash: ["tx", "txhash", "transaction"],
-  lat: ["latitude"], lon: ["longitude", "lng"], zone: ["tz", "timezone", "time_zone"], at: ["time", "timestamp", "datetime", "when"], date: ["day"], text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value"],
+  address: ["wallet", "addr", "account", "email", "pool", "wallet_address", "walletAddress", "email_address", "emailAddress", "mail"],
+  token: ["token_address", "contract", "tokenAddress", "contract_address"], hash: ["tx", "txhash", "transaction", "txHash", "tx_hash", "transaction_hash", "transactionHash", "txid"],
+  lat: ["latitude"], lon: ["longitude", "lng", "long"], zone: ["tz", "timezone", "time_zone", "timeZone", "location", "city"], at: ["time", "timestamp", "datetime", "when"], date: ["day"],
+  text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value", "prompt", "message", "body", "string", "document", "article", "q", "query"],
   // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
   // More names agents send (26 Oct 2026 utility probe): cron expression, number lists, phone numbers, QR data, loan amounts, semver pairs.
   expr: ["expression", "cron", "schedule"], values: ["numbers", "data", "nums", "list"], number: ["phone", "phone_number", "tel"], principal: ["amount", "loan", "loan_amount"],
-  country: ["name", "country_code", "code"],
+  country: ["name", "country_code", "code", "countryCode"],
   // Price lists as other price APIs take them (openverbs /v1/price?ids=coingecko:bitcoin,...).
-  symbols: ["ids", "coins", "tickers"], symbol: ["coin", "ticker", "id"],
+  symbols: ["ids", "coins", "tickers"], symbol: ["coin", "ticker", "id", "asset", "token", "currency", "name"],
+  coin: ["symbol", "ticker", "asset", "token", "market", "pair", "name", "id"], ticker: ["symbol", "stock", "q", "query", "name"],
   a: ["version", "v1", "from"], b: ["other", "v2", "compare", "to"],
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
-  name: ["q", "query", "domain", "host", "company"], word: ["q", "query"], title: ["q", "query"], query: ["q"], invoice: ["bolt11"], url: ["link", "urls"], urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
-  from: ["from_currency"], to: ["to_currency"],
+  name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site"],
+  domain: ["name", "host", "hostname", "website", "url", "site"],
+  word: ["q", "query", "term"], title: ["q", "query"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
+  url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],
+  urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
+  from: ["from_currency", "base", "base_currency", "source"], to: ["to_currency", "target", "quote", "symbols", "currencies"],
   // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).
-  q: ["query", "question", "search"], count: ["numResults", "num_results", "limit", "n"], claim: ["statement", "query", "q"],
+  q: ["query", "question", "search", "term", "keyword", "keywords", "topic", "search_query", "searchQuery", "text", "prompt", "input"],
+  count: ["numResults", "num_results", "limit", "n", "max_results", "maxResults", "size"], claim: ["statement", "query", "q", "text"],
+  // 10 Nov 2026: paying buyers were refused after their payment verified because they named the input differently:
+  // /weather lost 9 of 19 paid attempts ("send city or lat and lon") and /llm/chat 3 of 4 ("prompt is required", an OpenAI
+  // body). A weather buyer sends location or q; a chat buyer sends message, input or an OpenAI `messages` array (read by
+  // messagePart below) with max_tokens; an IP buyer sends address.
+  city: ["location", "place", "q", "query", "name", "town", "loc", "city_name", "cityName", "address"],
+  prompt: ["message", "input", "text", "query", "q", "question", "content", "user_prompt", "userPrompt", "description", "messages"],
+  system: ["system_prompt", "systemPrompt", "instructions", "messages"],
+  maxTokens: ["max_tokens", "max_completion_tokens", "max_output_tokens", "maxOutputTokens"],
+  ip: ["address", "ip_address", "ipAddress", "host", "q", "query"],
+  amount: ["value", "quantity", "qty"],
 };
-/** Every alias, with the input it stands for (the POST-body flattener in src/index.ts keeps aliased fields). */
+
+/** The text of one OpenAI message's content: a string, or the text parts of a content array. */
+const messageText = (content: unknown): string => typeof content === "string" ? content
+  : Array.isArray(content) ? content.map((p) => (typeof p === "string" ? p : typeof (p as { text?: unknown })?.text === "string" ? (p as { text: string }).text : "")).filter(Boolean).join("\n") : "";
+/**
+ * `prompt` or `system` out of an OpenAI `messages` array, for the prompt tools that have no messages input of their own
+ * (/ai/chat-large, the models by name, /image): the system and developer turns are the system prompt; one user turn is the
+ * prompt as sent, a longer conversation becomes a "User: … / Assistant: …" transcript. Anything unreadable is no input.
+ */
+export function messagePart(raw: string | undefined, part: "prompt" | "system"): string | undefined {
+  if (!raw?.trim().startsWith("[")) return undefined;
+  let list: unknown;
+  try { list = JSON.parse(raw); } catch { return undefined; }
+  if (!Array.isArray(list)) return undefined;
+  const turns = list.map((m) => ({ role: String((m as { role?: unknown })?.role ?? ""), text: messageText((m as { content?: unknown })?.content).trim() })).filter((m) => m.text);
+  const isSystem = (role: string) => role === "system" || role === "developer";
+  if (part === "system") return turns.filter((m) => isSystem(m.role)).map((m) => m.text).join("\n") || undefined;
+  const talk = turns.filter((m) => m.role === "user" || m.role === "assistant");
+  if (!talk.length) return undefined;
+  return talk.length === 1 ? talk[0].text : talk.map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.text}`).join("\n");
+}/** Every alias, with the input it stands for (the POST-body flattener in src/index.ts keeps aliased fields). */
 export const ALIAS_OF: Readonly<Record<string, readonly string[]>> = Object.freeze(Object.entries(INPUT_ALIASES).reduce((acc, [input, aliases]) => {
   for (const a of aliases) (acc[a] ??= []).push(input);
   return acc;
@@ -109,7 +147,18 @@ export const ALIAS_OF: Readonly<Record<string, readonly string[]>> = Object.free
 /** A host with an optional port, path, query or fragment and no scheme: "example.com/a?b=1", "localhost:8080", "10.0.0.1/x". */
 const SCHEMELESS_URL = /^(localhost|[a-z0-9-]+(\.[a-z0-9-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]|$)/i;
 export const normalizedInput = (sent: Input): Input => (name) => {
-  const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => (alias === "urls" ? sent(alias)?.split(",")[0]?.trim() || undefined : sent(alias))).find((v) => v !== undefined);
+  // An alias that is one of this tool's own inputs is never read as another input (declaredInputs): /time?city= stays
+  // unread as `zone` on a tool that has a city input, and /ai/chat keeps its own `messages`.
+  const own = (sent as { [DECLARED]?: ReadonlySet<string> })[DECLARED];
+  const viaAlias = (n: string, alias: string): string | undefined => {
+    if (own?.has(alias)) return undefined;
+    const v = sent(alias);
+    if (alias === "urls") return v?.split(",")[0]?.trim() || undefined;
+    if (alias === "messages") return n === "prompt" || n === "system" ? messagePart(v, n) : undefined;
+    // An empty alias is no input: location= must not hide q=London.
+    return v?.trim() ? v : undefined;
+  };
+  const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => viaAlias(n, alias)).find((v) => v !== undefined);
   const value = input(name);
   // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
   // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.
@@ -146,6 +195,14 @@ async function withEnsResolved(input: Input): Promise<Input> {
   return Object.assign((n: string) => resolved.get(n) ?? input(n), input);
 }
 
+const DECLARED = Symbol("declaredInputs");
+let declaredByPath: Map<string, ReadonlySet<string>> | undefined;
+/** The inputs a tool declares, attached to its Input so normalizedInput never reads one of them as an alias of another. */
+export const declaredInputFor = (path: string, input: Input): Input => {
+  declaredByPath ??= new Map(ENDPOINTS.map((e) => [e.path, new Set(Object.keys(e.params))]));
+  return Object.assign((n: string) => input(n), input, { [DECLARED]: declaredByPath.get(path) ?? new Set<string>() });
+};
+
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
 const KEEP_CASE = Symbol("keepCase");
 const keepCase = (input: Input): Input => Object.assign((n: string) => input(n), { [KEEP_CASE]: true });
@@ -156,6 +213,7 @@ export const TOOLS = Object.fromEntries(Object.entries(handlers).map(([path, han
     // /evm/checksum judges the case of the address it is given, so its input keeps its case (aliases still apply).
     if (RAW_INPUT_PATHS.has(path)) input = keepCase(input);
     if (path !== "/ens") input = await withEnsResolved(input);
+    input = declaredInputFor(path, input);
     const result = await handler(env, normalizedInput(input));
     assertToolOutput(path as EndpointPath, result);
     return result;
