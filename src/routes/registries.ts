@@ -45,6 +45,46 @@ export function vatParts(raw: string): { country: string; number: string } | nul
 }
 const VIES_COUNTRIES = new Set(["AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK", "XI"]);
 
+type ViesBody = { isValid?: boolean; requestDate?: string; userError?: string; name?: string; address?: string };
+/** VIES answers that mean "ask again in a moment": the member state's or the Commission's concurrency limits and short outages. */
+const VIES_BUSY = /^(MS_MAX_CONCURRENT_REQ|GLOBAL_MAX_CONCURRENT_REQ|MS_UNAVAILABLE|SERVICE_UNAVAILABLE|TIMEOUT)/;
+const VIES_WAITS_MS = [500, 1300];
+const VIES_CACHE_SECONDS = 3600;
+/**
+ * One VIES check with patience (11 Nov 2026). In the week before, 19 of 28 calls ended "VIES answered
+ * MS_MAX_CONCURRENT_REQ": a member state allows few simultaneous checks and VIES refuses the rest at once, so the same
+ * request passes a moment later. Up to three tries inside about 12 s; a busy or failed try is repeated after 0.5 s and
+ * 1.3 s. A clear answer (valid or not) is kept at the edge for an hour, with its own check time, so a repeated number
+ * does not queue at VIES again. `sleep` and `store` are parameters for the tests.
+ */
+export async function viesCheck(parts: { country: string; number: string }, fetcher: typeof fetch = fetch, sleep: (ms: number) => Promise<unknown> = (ms) => new Promise((r) => setTimeout(r, ms)), store: Cache | undefined = (globalThis as { caches?: { default?: Cache } }).caches?.default) {
+  const vat = `${parts.country}${parts.number}`;
+  const cacheKey = `https://vies.cache.invalid/${encodeURIComponent(vat)}`;
+  const kept = await store?.match(cacheKey).catch(() => undefined);
+  if (kept) { const hit = (await kept.json().catch(() => null)) as Record<string, unknown> | null; if (hit && typeof hit.valid === "boolean") return hit; }
+  const started = Date.now();
+  let problem = "VIES did not answer in time";
+  for (let attempt = 0; attempt <= VIES_WAITS_MS.length; attempt++) {
+    if (attempt) { if (Date.now() - started > 9_000) break; await sleep(VIES_WAITS_MS[attempt - 1]); }
+    let res: Response;
+    try {
+      res = await fetcher(`https://ec.europa.eu/taxation_customs/vies/rest-api/ms/${parts.country}/vat/${encodeURIComponent(parts.number)}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(attempt ? 4_500 : 7_000) });
+    } catch { problem = "VIES did not answer in time"; continue; }
+    const b = (await res.json().catch(() => null)) as ViesBody | null;
+    const refused = b?.userError && !["VALID", "INVALID"].includes(b.userError) ? b.userError : null;
+    if (res.ok && b && typeof b.isValid === "boolean" && !refused) {
+      const clean = (s?: string) => (s && s !== "---" ? s.replace(/\s*\n\s*/g, ", ").trim() : null);
+      const answer = { vat, country: parts.country, number: parts.number, valid: b.isValid, name: clean(b.name), address: clean(b.address), checkedAt: b.requestDate ?? new Date().toISOString(), source: "EU VIES (European Commission)" };
+      await store?.put(cacheKey, new Response(JSON.stringify(answer), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${VIES_CACHE_SECONDS}` } })).catch(() => {});
+      return answer;
+    }
+    problem = `VIES answered ${refused ?? `HTTP ${res.status}`}`;
+    // Anything but a busy signal or a server error will not change on a second try.
+    if (!(refused ? VIES_BUSY.test(refused) : res.status === 429 || res.status >= 500)) break;
+  }
+  throw new HttpError(502, `${problem}; the member state's service is busy or down, nothing was charged, try again in a minute`);
+}
+
 // ---------- domains ----------
 const DEFAULT_TLDS = ["com", "net", "org", "io", "ai", "co", "app", "dev", "xyz", "me"];
 interface Rdap { events?: { eventAction?: string; eventDate?: string }[]; entities?: { roles?: string[]; vcardArray?: [string, [string, unknown, string, string][]] }[]; status?: string[] }
@@ -121,17 +161,7 @@ export const REGISTRIES: Entry[] = [
       const parts = vatParts(raw);
       if (!parts) throw new HttpError(400, "vat must start with a 2-letter EU country code, e.g. SE556703748501");
       if (!VIES_COUNTRIES.has(parts.country)) throw new HttpError(400, `${parts.country} is not an EU VIES country (GB numbers are checked by HMRC, not VIES)`);
-      let res: Response;
-      try {
-        res = await fetch(`https://ec.europa.eu/taxation_customs/vies/rest-api/ms/${parts.country}/vat/${encodeURIComponent(parts.number)}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
-      } catch {
-        throw new HttpError(502, "VIES did not answer in time; try again");
-      }
-      const b = (await res.json().catch(() => null)) as { isValid?: boolean; requestDate?: string; userError?: string; name?: string; address?: string } | null;
-      if (!res.ok || !b || typeof b.isValid !== "boolean") throw new HttpError(502, `VIES answered ${b?.userError ?? `HTTP ${res.status}`}; the member state's service may be down, try again`);
-      if (b.userError && !["VALID", "INVALID"].includes(b.userError)) throw new HttpError(502, `VIES answered ${b.userError}; try again`);
-      const clean = (s?: string) => (s && s !== "---" ? s.replace(/\s*\n\s*/g, ", ").trim() : null);
-      return { vat: `${parts.country}${parts.number}`, country: parts.country, number: parts.number, valid: b.isValid, name: clean(b.name), address: clean(b.address), checkedAt: b.requestDate ?? new Date().toISOString(), source: "EU VIES (European Commission)" };
+      return viesCheck(parts);
     }),
 
   entry("/domain/availability", "Domain availability, domain name search",

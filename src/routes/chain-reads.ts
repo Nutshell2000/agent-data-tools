@@ -1,6 +1,6 @@
 // Plain blockchain reads on five EVM networks, generated from one table.
 // These "boring chain reads" are the most-paid category in the Coinbase Bazaar (crawl of 13 Oct 2026).
-import { createPublicClient, fallback, formatEther, formatGwei, formatUnits, http, isHash, type Chain, type PublicClient } from "viem";
+import { createPublicClient, decodeFunctionResult, encodeFunctionData, fallback, formatEther, formatGwei, formatUnits, http, isHash, parseAbiItem, type AbiFunction, type Chain, type PublicClient } from "viem";
 import { arbitrum, avalanche, base, berachain, celo, gnosis, hyperEvm, ink, linea, mainnet, mantle, optimism, polygon, scroll, sei, sonic, unichain, zksync } from "viem/chains";
 import { PRICE, entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
@@ -458,6 +458,56 @@ export const hexInput = (v: string | undefined, name: string, maxBytes: number, 
   if ((h.length - 2) / 2 > maxBytes) throw new HttpError(400, `${name} is longer than ${maxBytes} bytes`);
   return h.toLowerCase() as `0x${string}`;
 };
+/** `data` that is a function signature rather than calldata: a name and a parameter list, e.g. "balanceOf(address)". */
+export const isSignature = (v: string | undefined) => !!v && /^\s*(function\s+)?[A-Za-z_$][\w$]*\s*\(/.test(v) && !/^\s*(0x)?[0-9a-f]+\s*$/i.test(v);
+const jsonSafe = (v: unknown): unknown => typeof v === "bigint" ? v.toString() : Array.isArray(v) ? v.map(jsonSafe) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, jsonSafe(x)])) : v;
+const STANDARD_RETURNS: Readonly<Record<string, string>> = {
+  "totalSupply()": "uint256", "decimals()": "uint8", "symbol()": "string", "name()": "string", "balanceOf(address)": "uint256", "allowance(address,address)": "uint256",
+  "owner()": "address", "ownerOf(uint256)": "address", "tokenURI(uint256)": "string", "paused()": "bool", "getOwner()": "address", "nonces(address)": "uint256",
+};
+/** One argument as sent (text) in the shape viem's encoder wants for its ABI type. Arrays and tuples come as JSON. */
+function abiValue(raw: unknown, type: string): unknown {
+  if (type.endsWith("]")) { if (!Array.isArray(raw)) throw new HttpError(400, `the ${type} argument must be a JSON array (send args as a JSON array)`); const inner = type.replace(/\[\d*\]$/, ""); return raw.map((x) => abiValue(x, inner)); }
+  if (type.startsWith("tuple") || type.startsWith("(")) return raw;
+  const s = typeof raw === "string" ? raw.trim().replace(/^["']|["']$/g, "") : raw;
+  if (/^u?int\d*$/.test(type)) { try { return BigInt(String(s).replace(/[,_]/g, "")); } catch { throw new HttpError(400, `the ${type} argument must be a whole number, got "${String(s).slice(0, 40)}"`); } }
+  if (type === "bool") return s === true || /^(true|1|yes)$/i.test(String(s));
+  if (type === "address") return address(String(s), "an address argument").toLowerCase();
+  return s;
+}
+/**
+ * A contract call from a function signature (11 Nov 2026): agents cannot ABI-encode, so /polygon/call and /hyperevm/call
+ * refused more paid calls ("the call reverted", "data must be 0x-prefixed hex") than they answered in the week before.
+ * `balanceOf(address)` with `args` is encoded here; result types, from the signature's `returns (…)` or the `returns`
+ * input, decode the answer. A signature the ABI parser rejects, or arguments that do not fit it, is a 400.
+ */
+export function callFromSignature(sig: string, argsRaw?: string, returnsRaw?: string) {
+  const m = /^\s*(?:function\s+)?([A-Za-z_$][\w$]*)\s*\((.*?)\)\s*(?:(?:external|public|view|pure|payable|\s)*returns\s*\((.*)\))?\s*;?\s*$/s.exec(sig);
+  if (!m) throw new HttpError(400, "data must be 0x calldata or a function signature such as balanceOf(address)");
+  // The standard token and ownership getters decode without being told their result type.
+  const standard = Object.hasOwn(STANDARD_RETURNS, `${m[1]}(${m[2].replace(/\s+/g, "")})`) ? STANDARD_RETURNS[`${m[1]}(${m[2].replace(/\s+/g, "")})`] : "";
+  const outputs = (m[3] ?? returnsRaw ?? standard).trim().replace(/^\(|\)$/g, "");
+  let item: AbiFunction;
+  try { item = parseAbiItem(`function ${m[1]}(${m[2]}) view${outputs ? ` returns (${outputs})` : ""}`) as AbiFunction; }
+  catch { throw new HttpError(400, `could not read the function signature ${m[1]}(${m[2].slice(0, 80)})${outputs ? ` returns (${outputs.slice(0, 60)})` : ""}; use Solidity types, for example balanceOf(address) returns (uint256)`); }
+  const text = argsRaw?.trim() ?? "";
+  let sent: unknown[];
+  if (text.startsWith("[")) { try { sent = JSON.parse(text) as unknown[]; } catch { throw new HttpError(400, "args is not a valid JSON array"); } if (!Array.isArray(sent)) throw new HttpError(400, "args must be a JSON array or a comma-separated list"); }
+  else sent = text ? text.split(",").map((s) => s.trim()) : [];
+  if (sent.length !== item.inputs.length) throw new HttpError(400, `${item.name} takes ${item.inputs.length} argument(s) (${item.inputs.map((i) => i.type).join(", ") || "none"}); args has ${sent.length}`);
+  let data: `0x${string}`;
+  try { data = encodeFunctionData({ abi: [item], functionName: item.name, args: sent.map((v, i) => abiValue(v, item.inputs[i].type)) }); }
+  catch (e) { if (e instanceof HttpError) throw e; throw new HttpError(400, `the arguments do not fit ${item.name}(${item.inputs.map((i) => i.type).join(", ")}): ${String((e as { shortMessage?: string })?.shortMessage ?? (e as Error)?.message ?? e).split("\n")[0].slice(0, 160)}`); }
+  return {
+    data, signature: `${item.name}(${item.inputs.map((i) => i.type).join(",")})`,
+    /** `decoded` when result types are known: one value, or a list for several. Undecodable data says so and keeps the raw result. */
+    decode(result: `0x${string}`): { decoded?: unknown; decodeNote?: string } {
+      if (!item.outputs.length) return { decodeNote: "add returns (for example returns=uint256) to have the result decoded" };
+      try { return { decoded: jsonSafe(decodeFunctionResult({ abi: [item], functionName: item.name, data: result })) }; }
+      catch { return { decodeNote: `the result does not decode as (${item.outputs.map((o) => o.type).join(", ")})` }; }
+    },
+  };
+}
 /** Shortens long strings inside NFT metadata (on-chain SVG images run to tens of kilobytes). */
 function trimLong(v: unknown, depth = 0): unknown {
   if (typeof v === "string") return v.length > 1_000 ? `${v.slice(0, 120)}… (${v.length} characters, shortened)` : v;
@@ -595,22 +645,25 @@ function contractEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("call"), `Eth call, ${short} contract call`.length <= 32 ? `Eth call, ${short} contract call` : `Eth call, contract call, ${short}`.length <= 32 ? `Eth call, contract call, ${short}` : `Eth call, ${short}`,
-      `Read-only contract call on ${c.name} (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
+      `Read-only contract call on ${c.name} (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
       tags("eth-call", "contract", "read", "chain-data"), {
         to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },
-        data: { type: "string", description: "0x ABI-encoded calldata: 4-byte selector plus arguments", required: true, example: "0x18160ddd" },
+        data: { type: "string", description: "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)", required: true, example: "0x18160ddd" },
+        args: { type: "string", description: "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples", example: EX_ADDR },
+        returns: { type: "string", description: "Result types to decode when data is a signature without them, for example uint256 or address,uint8", example: "uint256" },
         from: { type: "string", description: "Optional 0x sender address for calls that check msg.sender", example: EX_ADDR },
       },
       head({ to: USDC[c.slug], data: "0x18160ddd", result: "0x00000000000000000000000000000000000000000000000000038d7ea4c68000", resultBytes: 32, block: 123456789 }),
       async (env, q) => {
         const to = address(q("to"), "to").toLowerCase() as `0x${string}`;
-        const data = hexInput(q("data"), "data", 8_192)!;
+        const named = isSignature(q("data")) ? callFromSignature(q("data")!, q("args"), q("returns")) : null;
+        const data = named?.data ?? hexInput(q("data"), "data", 8_192)!;
         const from = q("from")?.trim() ? address(q("from"), "from").toLowerCase() as `0x${string}` : undefined;
         const cl = client(env, c);
         const block = await rpc(() => cl.getBlockNumber());
         const res = await contractRead(() => cl.call({ to, data, account: from, blockNumber: block }), "the call reverted");
-        const result = (res.data ?? "0x").toLowerCase();
-        return head({ to, data, from: from ?? null, result, resultBytes: (result.length - 2) / 2, block: Number(block) });
+        const result = (res.data ?? "0x").toLowerCase() as `0x${string}`;
+        return head({ to, data, from: from ?? null, result, resultBytes: (result.length - 2) / 2, block: Number(block), ...(named ? { function: named.signature, ...named.decode(result) } : {}) });
       }),
 
     entry(p("estimate-gas"), `Estimate gas, ${short}`,

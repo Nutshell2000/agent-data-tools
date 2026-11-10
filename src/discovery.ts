@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.110.1";
+export const MCP_SERVER_VERSION = "1.111.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -237,7 +237,7 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
   ["Chain data", (p) => p.startsWith("/merkle/") || /^\/(base|eth|arb|op|polygon|solana|evm|avax|gnosis|linea|zksync|scroll|mantle|celo|sonic|unichain|hyperevm|bera|ink|sei)\//.test(p) || /^\/(base-gas|base-tx|base-allowance|ens|wallet|wallet\/balance|wallet\/balances|wallet\/related|wallet\/transactions|wallet\/balance-history|pack\/wallet-profile|pack\/tx-explain|pack\/nft-analysis|pack\/evm-toolbox|pack\/gas-tracker|whale\/transfers|whales|balance\/wallet|uniswap\/liquidity|stablecoin\/supply|token\/supply|contract\/abi|uniswap\/pool|dex\/new-pools|btc-fees|btc-address|ln-invoice|network|keccak)$/.test(p)],
   ["Web, documents and search", (p) => /^\/(contents|scrape|web\/fetch|tech\/detect|crypto\/news|page\/publish|page\/host|extract|extract\/rendered|sitemap|summarize|screenshot|pdf\/text|pdf\/extract|feed|url\/meta|url\/redirects|url\/uptime|url\/favicon|image\/metadata|tech\/stack|pack\/seo-toolkit|seo\/audit|audit\/website|keywords\/|robots|search|search\/web|web\/search|news|news\/search|screenshot\/website|wikipedia|dictionary|papers|pack\/web-research|pack\/news-sentiment|agent-readiness)$/.test(p)],
   ["Company, compliance and checks", (p) => /^\/(company|company\/lookup|email\/auth|lei\/lookup|vat\/validate|domain\/availability|domain\/whois|email\/verify|sanctions\/check|sanctions\/screen|ofac\/check|whois\/lookup|dns\/records|sec\/edgar|check\/counterparty|check\/payee|check\/x402-seller|domain|domain-report|email|package|package-audit|github\/repo|github\/search|github\/releases|x402\/check|sec\/filings|sec\/8k|sec\/insider|sec\/13f|gov\/federal-register|text\/prompt-injection|text\/pii|http\/security-headers|dockerfile\/lint|dns\/lookup|dns\/propagation|ip\/lookup|pack\/api-health|openapi\/summary|mcp\/inspect|pack\/email-deliverability|pack\/website-audit|pack\/ip-intelligence|pack\/domain-intel|pack\/url-safety)$/.test(p)],
-  ["AI", (p) => p.startsWith("/ai/") || /^\/(image|image\/generate|llm\/chat|llm\/inference|transcribe|describe)$/.test(p)],
+  ["AI", (p) => p.startsWith("/ai/") || /^\/(image|image\/generate|llm\/chat|llm\/inference|transcribe|describe|text-to-speech)$/.test(p)],
   ["Everyday data", (p) => /^\/(weather|weather\/forecast|weather\/current|holidays\/public|pack\/location-brief|geocode\/reverse|geocode\/address|time|holidays|geocode|earthquakes|airport\/status|airport\/lookup|gov\/clinical-trials|sun|moon|country|npm\/downloads|pypi)$/.test(p) || p.startsWith("/econ/") || p.startsWith("/book/")],
 ];
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];

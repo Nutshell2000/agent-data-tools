@@ -33,6 +33,22 @@ export const SPEECH_VOICES = {
 // /ai/speech is capacity-limited, so free calls never run it.
 export const SPEECH_MAX = 300;
 export const SPEECH_PRICE = AI_PRICE;
+// /text-to-speech: 2,000 characters cost $0.06 at Aura-2's rate; $0.08 keeps a margin after the settlement fee. Buyers
+// pay $0.02 to $0.10 a call for speech elsewhere (11 Nov 2026). The price is the owner's to change.
+export const SPEECH_LONG_MAX = 2000;
+export const SPEECH_LONG_PRICE = "$0.08";
+/**
+ * One model call's text. Aura-2 takes about half the audio's length to speak a part, so the longest part sets the wait:
+ * on staging (11 Nov 2026) 1,891 characters in three 630-character parts took 21 s. Parts of at most 450 characters run
+ * side by side, up to five for a full call.
+ */
+export const SPEECH_PART_MAX = 450;
+/**
+ * OpenAI speech voice names (11 Nov 2026: the top text-to-speech seller in Mercator's catalog is OpenAI's /v1/audio/speech,
+ * and clients written for it send these). Each maps to an English Aura-2 voice instead of a 400; the answer names the
+ * voice that spoke.
+ */
+export const OPENAI_VOICES: Readonly<Record<string, string>> = { alloy: "luna", ash: "apollo", ballad: "orpheus", coral: "thalia", echo: "orion", fable: "draco", nova: "asteria", onyx: "zeus", sage: "athena", shimmer: "aurora", verse: "arcas" };
 
 /** Workers AI hands binary model output back as a stream, bytes, a buffer or { audio: base64 }; returns base64. */
 export async function audioToBase64(out: unknown): Promise<string> {
@@ -384,20 +400,101 @@ export const AI_TEXT: Entry[] = [
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 41472, lang: "en", voice: "luna", characters: 37, model: AI_MODELS.speech },
     async (env, q) => {
       const t = text(q, SPEECH_MAX).trim();
-      const lang = pick(q, "lang", ["en", "es"] as const, "en");
-      const voices: readonly string[] = SPEECH_VOICES[lang];
-      const asked = q("voice")?.trim().toLowerCase().replace(/^aura-2-|-(en|es)$/g, "");
-      if (asked && !voices.includes(asked)) throw new HttpError(400, `voice must be one of the ${lang} voices: ${voices.join(", ")}`);
-      const voice = asked || (lang === "es" ? "aquila" : "luna");
-      const model = lang === "es" ? AI_MODELS.speechEs : AI_MODELS.speech;
-      const out = await runAi<unknown>(env, model, { text: t, speaker: voice, encoding: "mp3" });
-      const audioBase64 = await audioToBase64(out);
-      if (!audioBase64) throw new HttpError(502, "the AI model returned no audio");
-      const head = atob(audioBase64.slice(0, 8));
-      const contentType = head.startsWith("RIFF") ? "audio/wav" : head.startsWith("ID3") || head.charCodeAt(0) === 0xff ? "audio/mpeg" : head.startsWith("OggS") ? "audio/ogg" : "application/octet-stream";
-      return { contentType, audioBase64, bytes: Math.floor(audioBase64.length * 3 / 4), lang, voice, characters: t.length, model };
+      const { lang, voice, model } = speechVoice(q);
+      const audioBase64 = await speakOnce(env, model, voice, t);
+      return { contentType: audioType(audioBase64), audioBase64, bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, model };
     }, SPEECH_PRICE),
+  // Long text to speech (11 Nov 2026). Our steadiest buyer's router paid other sellers $37 that week for speech at $0.02 to
+  // $0.10 a call (base-bots/buyer-next.mjs), while /ai/speech stops at 300 characters because of its one-cent price: a
+  // paragraph was a refusal here. This one reads up to 2,000 characters: the text is cut at sentence ends into parts the
+  // model takes, the parts are spoken in parallel and joined into one MP3. All parts or nothing: a part that fails makes
+  // the call a 502 and nothing is charged. Aura-2 costs $0.030 per 1,000 characters, so a full call costs $0.06.
+  entry("/text-to-speech", "Text to speech, long text: up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: turn up to 2,000 characters of text into natural, human-sounding speech as one MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
+    ["text-to-speech", "tts", "tts-api", "voice-generation", "narration", "audio", ...T], {
+      text: { type: "string", description: "Text to speak, up to 2,000 characters", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
+      lang: { type: "string", description: "Language: en or es (default en)", example: "en", enum: ["en", "es"] },
+      voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
+    }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 187392, lang: "en", voice: "luna", characters: 168, parts: 1, model: AI_MODELS.speech },
+    async (env, q) => {
+      const t = text(q, SPEECH_LONG_MAX).trim();
+      const { lang, voice, model } = speechVoice(q);
+      const parts = speechParts(t);
+      const spoken = await Promise.all(parts.map((part) => speakOnce(env, model, voice, part)));
+      const audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      return { contentType: audioType(audioBase64), audioBase64, bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, parts: parts.length, model };
+    }, SPEECH_LONG_PRICE),
 ];
+
+/** The language, voice and model a speech request asks for; an unknown voice is a 400 before anything runs. */
+function speechVoice(q: Input) {
+  const lang = pick(q, "lang", ["en", "es"] as const, "en");
+  const voices: readonly string[] = SPEECH_VOICES[lang];
+  const sent = q("voice")?.trim().toLowerCase().replace(/^aura-2-|-(en|es)$/g, "");
+  // A buyer whose client was written for OpenAI's speech API sends its voice names; the nearest Aura-2 voice speaks.
+  const asked = sent && lang === "en" && Object.hasOwn(OPENAI_VOICES, sent) ? OPENAI_VOICES[sent] : sent;
+  if (asked && !voices.includes(asked)) throw new HttpError(400, `voice must be one of the ${lang} voices: ${voices.join(", ")}`);
+  return { lang, voice: asked || (lang === "es" ? "aquila" : "luna"), model: lang === "es" ? AI_MODELS.speechEs : AI_MODELS.speech };
+}
+async function speakOnce(env: Env, model: string, voice: string, t: string): Promise<string> {
+  const audioBase64 = await audioToBase64(await runAi<unknown>(env, model, { text: t, speaker: voice, encoding: "mp3" }));
+  if (!audioBase64) throw new HttpError(502, "the AI model returned no audio");
+  return audioBase64;
+}
+/** The byte length a base64 string decodes to (padding counted). */
+export const base64Bytes = (b64: string) => Math.floor(b64.length * 3 / 4) - (b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0);
+function audioType(audioBase64: string) {
+  const head = atob(audioBase64.slice(0, 8));
+  return head.startsWith("RIFF") ? "audio/wav" : head.startsWith("ID3") || head.charCodeAt(0) === 0xff ? "audio/mpeg" : head.startsWith("OggS") ? "audio/ogg" : "application/octet-stream";
+}
+/**
+ * Text cut into parts of at most `max` characters, at a sentence end where there is one in the second half of the part,
+ * else at a comma or a space, else mid-word. No word is dropped, so the parts spoken in order are the text.
+ */
+export function speechParts(t: string, max = SPEECH_PART_MAX): string[] {
+  const parts: string[] = [];
+  let rest = t.trim();
+  while (rest.length > max) {
+    const window = rest.slice(0, max);
+    const from = Math.floor(max / 2);
+    const at = (re: RegExp) => { let last = -1; for (const m of window.matchAll(re)) if (m.index! + m[0].length > from) last = m.index! + m[0].length; return last; };
+    let cut = at(/[.!?…]["')\]]*\s+|\n+/g);
+    if (cut < 0) cut = at(/[,;:]\s+/g);
+    if (cut < 0) cut = at(/\s+/g);
+    if (cut < 0) cut = max;
+    parts.push(rest.slice(0, cut).trim());
+    rest = rest.slice(cut).trim();
+  }
+  if (rest) parts.push(rest);
+  return parts;
+}
+const fromBase64 = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+function toBase64(bytes: Uint8Array) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+/** An ID3v2 tag at the start of an MP3 (10-byte header with a 28-bit syncsafe size), or 0 when there is none. */
+export function id3Length(b: Uint8Array) {
+  if (b.length < 10 || b[0] !== 0x49 || b[1] !== 0x44 || b[2] !== 0x33) return 0;
+  return 10 + (((b[6] & 0x7f) << 21) | ((b[7] & 0x7f) << 14) | ((b[8] & 0x7f) << 7) | (b[9] & 0x7f)) + (b[5] & 0x10 ? 10 : 0);
+}
+/**
+ * MP3 parts as one file: MP3 frames stand alone, so the frames of each part follow the previous part's. The first part
+ * keeps its ID3 tag; later tags are dropped (a tag in the middle of a stream clicks in some players). Anything that is
+ * not MP3 cannot be joined this way and is a 502.
+ */
+export function joinMp3(partsBase64: string[]): string {
+  const parts = partsBase64.map(fromBase64);
+  const frames = parts.map((b, i) => {
+    const skip = id3Length(b);
+    if (!skip && b[0] !== 0xff) throw new HttpError(502, "the AI model returned audio that is not MP3; nothing was charged");
+    return i ? b.subarray(Math.min(skip, b.length)) : b;
+  });
+  const out = new Uint8Array(frames.reduce((n, b) => n + b.length, 0));
+  let at = 0;
+  for (const b of frames) { out.set(b, at); at += b.length; }
+  return toBase64(out);
+}
 
 const B = ["utility", "basics"];
 export const BASICS: Entry[] = [
