@@ -20,6 +20,21 @@ export const CREDIT_PACKS = [
 ] as const;
 
 /**
+ * The packs a wallet can buy with USDC over x402 (lib/usdc-credits.ts; 10 Nov 2026, the owner's decision: $1, $5 and $20
+ * with the same credits as the card packs, so the $20 pack carries the same 10% bonus). The $100 pack stays card-only.
+ */
+export const USDC_PACKS = CREDIT_PACKS.filter((p) => p.usdCents <= 2_000);
+export const usdcPackPath = (p: { usdCents: number }) => `/credits/usdc/${p.usdCents / 100}`;
+/** The packs as data for /credits and catalogs. */
+export const usdcPackList = (origin: string) => USDC_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: `${origin}${usdcPackPath(p)}`, pay: "x402 (USDC)" }));
+/** One sentence for hints: where a wallet prepays and what it gets. The $5 pack leads; the others are named. */
+export const usdcPrepayLine = (origin: string) => {
+  const lead = USDC_PACKS.find((p) => p.usdCents === 500) ?? USDC_PACKS[0];
+  const others = USDC_PACKS.filter((p) => p !== lead).map((p) => `$${p.usdCents / 100}`).join(" or ");
+  return `Calling often with a wallet? Prepay once: GET ${origin}${usdcPackPath(lead)} with your x402 client ($${lead.usdCents / 100} USDC for ${lead.credits.toLocaleString("en-US")} credits; ${others} at ${origin}/credits/usdc/<amount>) returns an API key. Send it as Authorization: Bearer on later calls and they need no payment each.`;
+};
+
+/**
  * Top-ups: a pack bought through a link carrying client_reference_id=topup_<key hash> adds its credits
  * to that existing key, so a buyer never has to reconfigure their apps with a new key. Only the
  * SHA-256 of the key travels through Stripe; anyone may pay into a key, nobody can spend from one.

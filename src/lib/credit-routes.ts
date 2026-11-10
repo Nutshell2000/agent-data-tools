@@ -6,8 +6,9 @@ import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 import {
-  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, verifyCheckout,
+  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, verifyCheckout,
 } from "./credits";
+import { applyUnsavedCredits, buyCreditsWithUsdc } from "./usdc-credits";
 import { prefersHtml } from "./negotiate";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
 import { markStage } from "./funnel";
@@ -27,6 +28,7 @@ export function creditsInfo(origin: string, agentPurchase = false, cardReady = t
       ? "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402."
       : "Card payments are being set up and are not available yet, so no pack can be bought here today. Pay per call with x402 (USDC) in the meantime.",
     cardReady,
+    usdc: { what: usdcPrepayLine(origin), packs: usdcPackList(origin), topUp: "Send a key you already hold as X-API-Key on the same request to add the credits to it." },
     packs: cardReady ? WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
     use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp), or as `?api_key=adt_…` in the tool URL where a client can only fetch a URL. In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then. A key that travels in URLs can end up in logs: rotate it at POST /credits/rotate if it was shared.",
@@ -73,6 +75,7 @@ credits.get("/credits", (c) => {
 <li><b>HTTP:</b> <code>curl -H "Authorization: Bearer adt_…" "${esc(origin)}/eth/balance?address=0x…"</code></li>
 <li><b>Fetch-only clients</b> (an agent's URL reader that cannot set headers): <code>${esc(origin)}/eth/balance?address=0x…&amp;api_key=adt_…</code>. A key in a URL can end up in logs; rotate it at <code>POST /credits/rotate</code> if it was shared.</li></ul>
 <h2>See what you get (free previews)</h2><ul>${previews}</ul><p>All tools and prices: <a href="/#tools">catalog</a>.</p>
+<h2>Agents with a USDC wallet: prepay once</h2><p>${esc(usdcPrepayLine(origin))} Packs: ${usdcPackList(origin).map((p) => `<code>${esc(p.buy.replace(origin, ""))}</code> ${p.price} = ${p.credits.toLocaleString("en-US")} credits`).join(", ")}. To top up a key, send it as <code>X-API-Key</code> on the same request.</p>
 ${info.agentPurchase ? `<h2>Agents: buy without a checkout page</h2><p>${esc(info.agentPurchase)}</p>` : ""}<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Charging and refunds</h2><p>${esc(info.charging)}</p><p>${esc(info.refunds)}</p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>. <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/support">Support</a></p>`, true));
 });
 
@@ -117,6 +120,10 @@ const getOnly = (c: C) => c.json({ error: "use GET to buy a pack; not charged" }
 credits.get("/credits/buy/:usd", async (c) => c.req.method === "HEAD" ? getOnly(c) : buyCreditsWithMpp(c));
 credits.on(["POST", "PUT", "PATCH", "DELETE"], "/credits/buy/:usd", (c) => getOnly(c));
 
+// Wallets prepay with USDC over x402 (lib/usdc-credits.ts): one payment, a key from the same ledger as the card packs.
+credits.get("/credits/usdc/:usd", async (c) => c.req.method === "HEAD" ? getOnly(c) : buyCreditsWithUsdc(c));
+credits.on(["POST", "PUT", "PATCH", "DELETE"], "/credits/usdc/:usd", (c) => getOnly(c));
+
 // Replace a leaked key: POST with the current key; the balance moves to a new key and the old one stops working.
 credits.post("/credits/rotate", async (c) => {
   c.header("Cache-Control", "no-store");
@@ -140,6 +147,8 @@ credits.get("/credits/balance", async (c) => {
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now" }, 503);
   const keyHash = await hashCreditKey(key);
+  // A USDC purchase whose credits could not be written when it settled is applied here (lib/usdc-credits.ts).
+  await applyUnsavedCredits(c.env, keyHash).catch((e: unknown) => { console.error("credits: applying parked credits failed", e); });
   const account = await store.creditBalance(keyHash);
   if (!account) return c.json({ error: "unknown API key" }, 401);
   return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash) });
@@ -204,7 +213,7 @@ const keyPlacement = (origin: string, signedIn: boolean) => signedIn
   : `and add the header "Authorization: Bearer <key>" to this server's connection settings (or, in apps that only take a URL, connect to ${origin}/mcp/k/<key>)`;
 
 /** The tool for the common jobs, so a model does not have to read all tool descriptions to pick one. */
-const PICK_BY_TASK = "Pick by task: an LLM answer, draft or chat turn → ai_chat (stronger model: ai_chat_large; OpenAI-compatible at /v1/chat/completions); embeddings → ai_embed; speech to text → transcribe; text to speech → ai_speech; an image from a prompt → image; what is in an image → describe; current information from the web → search, news; is it safe to pay an address → check_counterparty; OFAC only → sanctions_check; token price by ticker or address → price_token (many: price_tokens); a wallet's holdings in USD → wallet_portfolio (5 chains: wallet_balances); chain state on base, eth, arb, op or polygon → <chain>_balance, _token_balance (tickers work), _tx, _receipt, _logs, _gas, _block; read a web page → extract (JavaScript sites: extract_rendered); PDF → pdf_text; company → company; FX → fx; weather by city → weather. Smaller servers per section: /mcp/prices, /mcp/chain, /mcp/web, /mcp/compliance, /mcp/ai, /mcp/everyday, /mcp/utilities.";
+const PICK_BY_TASK = "Pick by task: an LLM answer, draft or chat turn → ai_chat (stronger model: ai_chat_large; OpenAI-compatible at /v1/chat/completions); embeddings → ai_embed; speech to text → transcribe; text to speech → ai_speech; an image from a prompt → image; what is in an image → describe; current information from the web → search, news; is it safe to pay an address → check_counterparty; OFAC only → sanctions_check; token price by ticker or address → price_token (many: price_tokens); a wallet's holdings in USD → wallet_portfolio (5 chains: wallet_balances); chain state on base, eth, arb, op or polygon → <chain>_balance, _token_balance (tickers work), _tx, _receipt, _logs, _gas, _block; read a web page → extract (JavaScript sites: extract_rendered); PDF → pdf_text; company → company; FX → fx; weather by city → weather; several checks on one input in one call → pack_website_audit, pack_token_analysis, pack_wallet_profile, pack_coin_research, pack_domain_intel. Smaller servers per section: /mcp/prices, /mcp/chain, /mcp/web, /mcp/compliance, /mcp/ai, /mcp/everyday, /mcp/utilities.";
 
 export function mcpInstructions(origin: string, hasKey: boolean, toolCount: number, agentPurchase = false, signedIn = false) {
   const pay = signedIn
@@ -214,7 +223,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
     : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
-      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo) it can pay it. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
+      + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo) it can pay it, or prepay once: GET ${origin}/credits/usdc/5 with x402 returns a key worth 5,000 credits for later calls. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
   // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
   const kinds = signedIn ? DIRECTORY_KINDS : "LLM chat and embeddings, speech to text and text to speech, image generation and description, web search and news, blockchain reads, token prices, sanctions and company checks, web and PDF text, weather, time, utilities";
   return `Agent Data Tools: ${toolCount} pay-per-call tools: ${kinds}. Most cost $0.01 per successful call. ${pay} Every tool's result shape is in its output schema. ${signedIn ? DIRECTORY_PICK : PICK_BY_TASK}`;
