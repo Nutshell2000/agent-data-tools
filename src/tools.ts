@@ -117,6 +117,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   maxTokens: ["max_tokens", "max_completion_tokens", "max_output_tokens", "maxOutputTokens"],
   ip: ["address", "ip_address", "ipAddress", "host", "q", "query"],
   amount: ["value", "quantity", "qty"],
+  repo: ["repository", "full_name", "fullName", "name", "url", "slug", "project"],
 };
 
 /** The text of one OpenAI message's content: a string, or the text parts of a content array. */

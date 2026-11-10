@@ -18,6 +18,8 @@ export interface Env {
   // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   SEARCH_API_KEY?: string;
+  /** Read-only GitHub token (fine-grained, no permissions) for /github/* (5,000 requests an hour; keyless reads are refused on shared egress). */
+  GITHUB_TOKEN?: string;
   /** Optional free LI.FI API key for /swap/quote and /bridge/quote (keyless quotes are rate-limited on shared egress). */
   LIFI_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;
