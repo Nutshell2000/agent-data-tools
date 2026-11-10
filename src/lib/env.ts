@@ -17,6 +17,8 @@ export interface Env {
   FLUXA_PROXY_SECRET?: string;
   // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
+  /** Origin of the public site for people (canonical URLs), e.g. https://tools.funwords.eu; unset = each host names itself. */
+  PUBLIC_SITE_ORIGIN?: string;
   SEARCH_API_KEY?: string;
   /** Read-only GitHub token (fine-grained, no permissions) for /github/* (5,000 requests an hour; keyless reads are refused on shared egress). */
   GITHUB_TOKEN?: string;

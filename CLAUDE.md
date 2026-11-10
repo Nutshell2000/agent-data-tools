@@ -1045,3 +1045,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Google indexes 1 of 608 pages on workers.dev and shows the same pages on `tools.funwords.eu` (self-canonical mirror since 31 Oct: 359 impressions in its first week, position about 24, no clicks yet). The permanent public domain is the owner's decision.
 - `src/lib/live-pages.ts`: `isLivePage` (a list plus `/<network>/gas` and `/<network>/block`, never a `CAPACITY_LIMITED` tool) and `liveAnswer()` (the tool's published example, cached 15 minutes in `caches.default`, 3.5 s budget, never throws). `toolDocPage(e, origin, freeCalls, live)` renders "Live result" with the read time. Add a tool to `LIVE_EXACT` only when its example has a changing answer people search for.
 
+
+## The public home of the human pages (1.109.1, 10 Nov 2026)
+
+- Owner, 10 Nov 2026: "we keep tools.funwords.eu for now we buy a dedicated one later". `PUBLIC_SITE_ORIGIN` (wrangler.jsonc, production only) names it; `withPublicCanonical()` (src/lib/public-site.ts) rewrites only the canonical and og:url tags of 200 HTML pages served from another host. When the dedicated domain arrives: add it as a route, set `PUBLIC_SITE_ORIGIN` to it, and answer the old public host's human pages with a 301 to the new one (not built yet). Search Console: property sc-domain:funwords.eu, filter page contains tools.funwords.eu; judge by clicks there, weekly.
+
