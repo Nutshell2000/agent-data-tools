@@ -2,6 +2,7 @@ import { z } from "zod";
 import * as z4mini from "zod/v4-mini";
 import { exampleParams, type Endpoint } from "./endpoints";
 import { CAPACITY_LIMITED } from "./lib/capacity";
+import { LOCAL_PATHS } from "./families";
 import { FREE_CALLS_PER_CALLER } from "./lib/free-calls";
 
 /** One snake_case name per tool: "/eth/gas" becomes "eth_gas" and "/base-gas" becomes "base_gas". */
@@ -13,10 +14,25 @@ export const toolName = (endpoint: Endpoint) => mcpName(endpoint.path);
 export const toolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 // The agent memory tools (1.75.0) are the exception: saving and deleting change what the caller has stored with us, so
 // they are not read-only, delete is destructive, both are idempotent (same key, same result) and closed-world.
-const WRITE_TOOLS: Readonly<Record<string, { destructive: boolean }>> = { "/memory/set": { destructive: false }, "/memory/delete": { destructive: true } };
+// 10 Nov 2026, after OpenAI's review of 5 Nov ("annotations do not appear to match the tool's behavior"), read against
+// its published meanings: a write that can overwrite, delete or send something that cannot be taken back is destructive;
+// openWorld is the public internet or open-ended entities, not "has a network connection".
+//   /memory/set overwrites a saved key, so it is destructive too; both memory tools stay closed-world and idempotent.
+//   /page/publish and its entry path /page/host put a page on the public web that the caller cannot withdraw: not
+//   read-only, destructive, open-world, and each call makes a new page (not idempotent). They were marked read-only.
+const WRITE_TOOLS: Readonly<Record<string, { destructive: boolean; openWorld: boolean; idempotent: boolean }>> = {
+  "/memory/set": { destructive: true, openWorld: false, idempotent: true },
+  "/memory/delete": { destructive: true, openWorld: false, idempotent: true },
+  "/page/publish": { destructive: true, openWorld: true, idempotent: false },
+  "/page/host": { destructive: true, openWorld: true, idempotent: false },
+};
+/** True for the tools that change something: what the caller saved with us, or a page on the public web. */
+export const isWriteTool = (path: string) => Object.hasOwn(WRITE_TOOLS, path);
+// A tool that only computes from its own inputs (hashes, converters, calculators, validators; LOCAL_PATHS) touches
+// nothing outside the request, and the memory reads see only what the caller saved here: closed-world. Everything else reads the public internet or open-ended public records.
 export const annotationsFor = (path: string) => Object.hasOwn(WRITE_TOOLS, path)
-  ? { readOnlyHint: false, destructiveHint: WRITE_TOOLS[path].destructive, idempotentHint: true, openWorldHint: false }
-  : toolAnnotations;
+  ? { readOnlyHint: false, destructiveHint: WRITE_TOOLS[path].destructive, idempotentHint: WRITE_TOOLS[path].idempotent, openWorldHint: WRITE_TOOLS[path].openWorld }
+  : LOCAL_PATHS.has(path) || path.startsWith("/memory/") ? { ...toolAnnotations, openWorldHint: false } : toolAnnotations;
 
 /**
  * A short "Example: name=value" from the published example call (directories score descriptions with examples). It is
@@ -33,11 +49,16 @@ const exampleText = (endpoint: Endpoint) => {
  * The ChatGPT directory server (/mcp/chatgpt) shows no prices or payment methods: ChatGPT's plugin rules forbid pricing
  * and checkout prompts inside the app. Credits are bought on our own site, outside ChatGPT.
  */
+/** What a tool changes, for its description: side effects must be stated where a model and a reviewer read them. */
+const writeNote = (path: string) => !Object.hasOwn(WRITE_TOOLS, path) ? "Reads or computes only and changes nothing."
+  : path.startsWith("/memory/") ? "Changes only what you saved in your own memory namespace."
+  : "Publishes a page on the public web that stays up until it expires and cannot be withdrawn.";
+
 export const directoryToolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description}${exampleText(endpoint)} Uses one of this account's free calls or credits per successful call; failed calls never count. ${Object.hasOwn(WRITE_TOOLS, endpoint.path) ? "Changes only what you saved in your own memory namespace." : "Reads or computes only and changes nothing."}`;
+  `${endpoint.description}${exampleText(endpoint)} Uses one of this account's free calls or credits per successful call; failed calls never count. ${writeNote(endpoint.path)}`;
 
 export const toolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${Object.hasOwn(WRITE_TOOLS, endpoint.path) ? "Changes only what you saved in your own memory namespace" : "Reads or computes only and changes nothing"}; each call is charged, so repeats are not free.`;
+  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${writeNote(endpoint.path).replace(/\.$/, "")}; each call is charged, so repeats are not free.`;
 
 export const toolInputShape = (endpoint: Endpoint, z: typeof import("zod").z) =>
   Object.fromEntries(
