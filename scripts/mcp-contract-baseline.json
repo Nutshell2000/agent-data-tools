@@ -1,5 +1,5 @@
 {
-  "version": "1.110.1",
+  "version": "1.111.0",
   "tools": [
     {
       "name": "extract",
@@ -1933,7 +1933,7 @@
     },
     {
       "name": "base_call",
-      "description": "Read-only contract call on Base (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Base (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1950,7 +1950,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -2459,7 +2467,7 @@
     },
     {
       "name": "eth_call",
-      "description": "Read-only contract call on Ethereum (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Ethereum (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2476,7 +2484,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -3019,7 +3035,7 @@
     },
     {
       "name": "arb_call",
-      "description": "Read-only contract call on Arbitrum One (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xaf88d065e77c8cC2239327C5EDb3A432268e5831, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Arbitrum One (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xaf88d065e77c8cC2239327C5EDb3A432268e5831, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3036,7 +3052,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -3579,7 +3603,7 @@
     },
     {
       "name": "op_call",
-      "description": "Read-only contract call on Optimism (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Optimism (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3596,7 +3620,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -4139,7 +4171,7 @@
     },
     {
       "name": "polygon_call",
-      "description": "Read-only contract call on Polygon PoS (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Polygon PoS (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4156,7 +4188,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -4805,7 +4845,7 @@
     },
     {
       "name": "avax_call",
-      "description": "Read-only contract call on Avalanche (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Avalanche (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4822,7 +4862,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -5270,7 +5318,7 @@
     },
     {
       "name": "gnosis_call",
-      "description": "Read-only contract call on Gnosis (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Gnosis (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5287,7 +5335,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -5735,7 +5791,7 @@
     },
     {
       "name": "linea_call",
-      "description": "Read-only contract call on Linea (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x176211869cA2b568f2A7D4EE941E073a821EE1ff, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Linea (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x176211869cA2b568f2A7D4EE941E073a821EE1ff, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5752,7 +5808,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -6295,7 +6359,7 @@
     },
     {
       "name": "zksync_call",
-      "description": "Read-only contract call on zkSync Era (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on zkSync Era (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6312,7 +6376,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -6720,7 +6792,7 @@
     },
     {
       "name": "scroll_call",
-      "description": "Read-only contract call on Scroll (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Scroll (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6737,7 +6809,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -7185,7 +7265,7 @@
     },
     {
       "name": "mantle_call",
-      "description": "Read-only contract call on Mantle (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Mantle (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7202,7 +7282,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -7745,7 +7833,7 @@
     },
     {
       "name": "celo_call",
-      "description": "Read-only contract call on Celo (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xcebA9300f2b948710d2653dD7B07f33A8B32118C, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Celo (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xcebA9300f2b948710d2653dD7B07f33A8B32118C, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7762,7 +7850,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -8210,7 +8306,7 @@
     },
     {
       "name": "sonic_call",
-      "description": "Read-only contract call on Sonic (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x29219dd400f2Bf60E5a23d13Be72B486D4038894, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Sonic (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x29219dd400f2Bf60E5a23d13Be72B486D4038894, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8227,7 +8323,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -8770,7 +8874,7 @@
     },
     {
       "name": "unichain_call",
-      "description": "Read-only contract call on Unichain (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x078D782b760474a361dDA0AF3839290b0EF57AD6, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Unichain (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x078D782b760474a361dDA0AF3839290b0EF57AD6, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8787,7 +8891,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -9201,7 +9313,7 @@
     },
     {
       "name": "hyperevm_call",
-      "description": "Read-only contract call on HyperEVM (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xb88339CB7199b77E23DB6E890353E22632Ba630f, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on HyperEVM (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xb88339CB7199b77E23DB6E890353E22632Ba630f, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9218,7 +9330,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -9666,7 +9786,7 @@
     },
     {
       "name": "bera_call",
-      "description": "Read-only contract call on Berachain (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x549943e04f40284185054145c6E4e9568C1D3241, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Berachain (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0x549943e04f40284185054145c6E4e9568C1D3241, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9683,7 +9803,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -10131,7 +10259,7 @@
     },
     {
       "name": "ink_call",
-      "description": "Read-only contract call on Ink (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xF1815bd50389c46847f0Bda824eC8da914045D14, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Ink (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xF1815bd50389c46847f0Bda824eC8da914045D14, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10148,7 +10276,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -10596,7 +10732,7 @@
     },
     {
       "name": "sei_call",
-      "description": "Read-only contract call on Sei (eth_call): send ABI-encoded calldata to a contract at the latest block and get the raw return data, without a transaction or gas. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply, selector 0x18160ddd); decode the result with the function's ABI. Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read-only contract call on Sei (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged. Example: to=0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392, data=0x18160ddd. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10613,7 +10749,15 @@
           },
           "data": {
             "type": "string",
-            "description": "0x ABI-encoded calldata: 4-byte selector plus arguments"
+            "description": "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)"
+          },
+          "args": {
+            "type": "string",
+            "description": "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples"
+          },
+          "returns": {
+            "type": "string",
+            "description": "Result types to decode when data is a signature without them, for example uint256 or address,uint8"
           },
           "from": {
             "type": "string",
@@ -13794,7 +13938,7 @@
     },
     {
       "name": "ip_geolocate",
-      "description": "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attributed in every answer). An HTTP call without ip answers for the caller's own address. City level at best; private addresses are refused. Use to localise a visitor or caller, or enrich logs; for the network owner use ip_lookup. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13807,18 +13951,15 @@
         "properties": {
           "ip": {
             "type": "string",
-            "description": "Public IPv4 or IPv6 address"
+            "description": "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)"
           }
-        },
-        "required": [
-          "ip"
-        ]
+        }
       },
       "price": "$0.01"
     },
     {
       "name": "ip_lookup",
-      "description": "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged. Example: ip=8.8.8.8. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up who holds an IP address (v4 or v6) in the regional internet registries' public records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP an address in a log belongs to. An HTTP call without ip answers for the caller's own address. Registration country, not city location. Example: ip=8.8.8.8. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -13831,12 +13972,9 @@
         "properties": {
           "ip": {
             "type": "string",
-            "description": "Public IPv4 or IPv6 address"
+            "description": "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)"
           }
-        },
-        "required": [
-          "ip"
-        ]
+        }
       },
       "price": "$0.002"
     },
@@ -20131,6 +20269,42 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "text_to_speech",
+      "description": "Text to speech for a paragraph or a page: turn up to 2,000 characters of text into natural, human-sounding speech as one MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 2,000 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (default en)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.08"
     }
   ]
 }

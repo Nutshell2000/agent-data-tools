@@ -26,7 +26,8 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 // more than its required inputs fails its first payment (/calc/loan without a term, 23 Oct 2026).
 const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParams(endpoint)); return (name) => (p[name] ? String(p[name].example) : undefined); };
 
-const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04" };
+// /text-to-speech (11 Nov 2026): 2,000 characters of Aura-2 cost $0.06, so it cannot be a one-cent tool; the owner asked for tools that sell for more.
+const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08" };
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
@@ -47,7 +48,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 633);
+  assert.equal(families.length, 634);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -75,7 +76,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,662);
+  assert.equal(ENDPOINTS.length,663);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

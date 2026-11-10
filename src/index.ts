@@ -46,6 +46,7 @@ import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
 import { recommend } from "./routes/recommend";
+import { CALLER_IP_INPUT } from "./routes/geo-ip";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
@@ -372,7 +373,8 @@ app.use(async (c, next) => {
 
 /** The `error` the v2 library put in a 402's PAYMENT-REQUIRED header, for logs; never the request's payment data. */
 for (const e of ENDPOINTS) {
-  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => c.req.query(name)), c.req.query("only"))));
+  // The IP tools answer a call without `ip` for the address the request came from; no other input is read from a header.
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : c.req.query(name))), c.req.query("only"))));
 }
 
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {

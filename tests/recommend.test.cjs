@@ -58,3 +58,26 @@ test('recommend: the reranker reorders the candidates; its failure falls back to
   await assert.rejects(recommend({}, 'the of and', 3, null), (e) => e.status === 400);
   await assert.rejects(recommend({}, 'zzqx vvbn', 3, null), (e) => e.status === 404);
 });
+
+test('finder: a job named as buyers name it gets its tool first, and every job points at a tool we sell', async () => {
+  const { recommend, JOBS, jobTool } = await load();
+  // 10 Nov 2026 (base-bots/buyer-next.mjs): these jobs, bought elsewhere by our paying wallets, landed on the wrong tool.
+  const first = { 'text to speech': '/ai/speech', 'tts elevenlabs': '/ai/speech', 'speech to text': '/transcribe', 'audit bundle': '/audit/website', 'website audit': '/audit/website', 'exa search': '/search', 'brave search': '/search', 'hunter email verifier': '/email', 'token preflight': '/token/verdict', 'chain erc20 balance': '/base/token-balance', 'what is my ip': '/ip/geolocate', 'narrate this article': '/text-to-speech', 'read contract balance': '/base/call' };
+  for (const [need, tool] of Object.entries(first)) {
+    const r = await recommend({}, need, 3, null);
+    assert.equal(r.picks[0].tool, tool, `${need}: ${r.picks.map((p) => p.tool).join(' ')}`);
+  }
+  // The reranker cannot push a named job's tool off the top.
+  const down = async (_q, docs) => docs.map((_, i) => (i === 0 ? 0 : 1));
+  assert.equal((await recommend({}, 'text to speech', 3, down)).picks[0].tool, '/ai/speech');
+  // The longest phrase wins; a request with no job phrase has no job.
+  assert.equal(jobTool('long text to speech please'), '/text-to-speech');
+  assert.equal(jobTool('weather in Paris'), undefined);
+  assert.equal(jobTool('youtube search scraper'), undefined, 'a job we do not sell has no tool');
+  const { ENDPOINTS } = await (async () => { const b = await build({ entryPoints: ['src/endpoints.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' }); const m = { exports: {} }; new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require); return m.exports; })();
+  const paths = new Set(ENDPOINTS.map((e) => e.path));
+  for (const [phrase, path] of Object.entries(JOBS)) {
+    assert.ok(paths.has(path), `${phrase} -> ${path} is not a tool`);
+    assert.equal(phrase, phrase.toLowerCase().replace(/[^a-z0-9$.]+/g, ' ').trim(), `${phrase} must be plain lower-case words`);
+  }
+});
