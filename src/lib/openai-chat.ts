@@ -258,6 +258,7 @@ export const FRONT_DESCRIPTIONS: Record<string, string> = {
   "/v1/rerank": "Rerank API, Cohere-style request shape, pay per request: query and up to 50 documents in, relevance scores best first out (BAAI bge-reranker-base). No account or API key; failed calls are not charged.",
   "/v1/moderations": "OpenAI-compatible moderation, pay per request: one input in, flagged and categories out (Llama Guard 3, 14 hazard categories mapped onto OpenAI names). No account or API key; failed calls are not charged.",
   "/v1/messages": "Anthropic Messages API shape on open models, pay per request: Llama 4 Scout by default with tool_use and streaming, or an open model by name. Claude models are not served. No account or API key; failed calls are not charged.",
+  "/v1/audio/speech": "OpenAI-compatible text to speech, pay per request: input text and a voice in, one MP3 file out (Deepgram Aura-2; OpenAI voice names such as alloy and nova work). Up to 2,000 characters. No account or API key; failed calls are not charged.",
   "/v1/images/generations": "OpenAI-compatible image generation, pay per image: a prompt in, one 1024x1024 FLUX.1 schnell JPEG out as b64_json. No account or API key; failed calls are not charged.",
   "/v1/embeddings": "OpenAI-compatible embeddings, pay per request: one input string in, a 1,024-dimension BGE-M3 vector out (multilingual, for search and RAG). No account or API key; failed calls are not charged.",
 };

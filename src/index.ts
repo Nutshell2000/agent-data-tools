@@ -57,6 +57,7 @@ import { pickFields } from "./lib/fields";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
+import { OPENAI_SPEECH_PATH, openAiSpeech } from "./lib/openai-speech";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -424,6 +425,7 @@ app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control"
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], OPENAI_SPEECH_PATH, (c) => openAiSpeech(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
