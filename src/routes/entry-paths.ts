@@ -37,6 +37,8 @@ import { SEARCH } from "./search";
 import { weather } from "./weather";
 import { CHAIN_MORE } from "./chain-more";
 import { GOV_DATA } from "./gov-data";
+import { HYPERLIQUID } from "./hyperliquid";
+import { timeInZone } from "./time";
 import { MEDIA_TEXT } from "./media-text";
 import { PDF } from "./pdf";
 import { UTILS } from "./utils";
@@ -142,7 +144,15 @@ const CORE_EMAIL = core("/email", "$0.01", {
 
 const YIELDS = from(DEFI_YIELDS, "/defi/yields");
 const MARKETS = from(POLYMARKET, "/polymarket/markets");
-const NEWS = from(SEARCH, "/news");
+const CORE_TIME = core("/time", "$0.01", {
+  zone: { type: "string", description: "IANA time zone or city, e.g. Europe/Stockholm, America/New_York or Tokyo (default UTC)", example: "Europe/Stockholm" },
+  at: { type: "string", description: "Optional moment to convert, as ISO 8601 with an offset or Unix seconds (default: now)", example: "2026-03-01T09:00:00+01:00" },
+  to: { type: "string", description: "Optional comma-separated time zones to convert the same moment into (max 10)", example: "America/New_York,Asia/Tokyo" },
+}, {
+  utc: "2026-10-13T09:12:00.000Z", unixSeconds: 1791882720, zone: "Europe/Stockholm", localTime: "2026-10-13T11:12:00", isoWithOffset: "2026-10-13T11:12:00+02:00",
+  utcOffset: "+02:00", weekday: "Tuesday", abbreviation: "CEST",
+  converted: [{ zone: "America/New_York", localTime: "2026-10-13T05:12:00", isoWithOffset: "2026-10-13T05:12:00-04:00", utcOffset: "-04:00", weekday: "Tuesday", abbreviation: "EDT" }],
+}, (_env, q) => timeInZone(q("zone"), q("at"), q("to")));const NEWS = from(SEARCH, "/news");
 /** /crypto/news: the news tool with a default topic and the past day as the default window. */
 export const cryptoNewsInput = (q: Input): Input => (name) => (name === "q" ? (q("q")?.trim() || "cryptocurrency") : name === "freshness" ? (q("freshness")?.trim() || "day") : q(name));
 
@@ -327,6 +337,30 @@ export const ENTRY_PATHS: Entry[] = [
   door("/uniswap/liquidity", "Uniswap pool liquidity: reserves and price",
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
+
+  // Round 7 (10 Nov 2026, placed here so it does not collide with round 6 at the end of the list): three jobs buyers pay other sellers for under a path that names the job, while ours sat under
+  // /time and /hyperliquid/market. Bazaar snapshot of 9 Nov, 30-day figures: listings with "timezone" in the path 850 calls
+  // (the leader /timezone-convert 9 payers), /current-time 34 calls from 9 payers at $0.005, listings with "funding" 1,629
+  // calls (agent402's /perp-funding 1,042 calls from 14 payers; Mercator's gateway bought it 73 times in a week). Mercator's
+  // search matches path words first: for "timezone convert" our /time was #18 and for "perp funding" we were absent
+  // (business/agentic/base-bots/mercator-jobs.mjs). All three answer a call with no input.
+  door("/timezone/convert", "Timezone convert: a time in other zones",
+    "Timezone convert: turn a moment (or now) into up to 10 other time zones in one call, with each zone's local time, UTC offset, weekday and abbreviation, daylight saving time handled. Zones as IANA names or cities (Europe/Stockholm, New York, Tokyo, UTC+2). Use to schedule a meeting across time zones, convert a timestamp for a user, or check business hours somewhere else.",
+    ["timezone-convert", "time-zone-converter", "timezone", "convert-time", "world-clock", "scheduling"], CORE_TIME, CORE_TIME.run,
+    // `to` comes first so the published example (the first input with an example) is a real conversion, not just "now".
+    {
+      to: { type: "string", description: "Time zones or cities to convert into, comma-separated, up to 10 (e.g. America/New_York,Asia/Tokyo)", example: "America/New_York,Asia/Tokyo" },
+      at: CORE_TIME.endpoint.params.at,
+      zone: { type: "string", description: "Time zone or city the result is shown in first, e.g. Europe/Stockholm (default UTC)", example: "Europe/Stockholm" },
+    }),
+
+  door("/time/now", "Current time: now in any time zone",
+    "Current time in any time zone or city: the exact date and time now with UTC offset, weekday, zone abbreviation and Unix timestamp (UTC when no zone is given), daylight saving time handled. Use when an agent needs to know what time or date it is right now, to timestamp a record, or to check whether a place is inside business hours.",
+    ["current-time", "time-now", "world-clock", "date-today", "unix-timestamp", "timezone"], CORE_TIME),
+
+  door("/perp/funding", "Perp funding rate: live, by coin",
+    "Perp funding rate now for a coin (BTC, ETH, SOL, HYPE…): the hourly funding rate and its APR, premium, mark and oracle price, open interest in coins and USD, 24-hour volume and price change on Hyperliquid perpetual futures. Without a coin, the 20 most traded markets. Use to compare funding before opening a perp position, to find a basis or carry trade, or to feed a derivatives dashboard.",
+    ["perp-funding", "funding-rate", "perpetuals", "open-interest", "hyperliquid", "derivatives"], from(HYPERLIQUID, "/hyperliquid/market")),
 
   // Round 5 (10 Nov 2026): the tasks most open shoppers pay for that we already sell under another name. Counted in a
   // two-day sample of 50 wallets that each pay 8+ sellers: website technology detection 10 buyers, email auth 8, URL fetch
