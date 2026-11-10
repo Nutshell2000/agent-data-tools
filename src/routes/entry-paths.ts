@@ -64,7 +64,7 @@ function door(path: string, summary: string, description: string, tags: string[]
 export const usdcYieldInput = (q: Input): Input => (name) => (name === "stablecoin" ? "true" : name === "symbol" ? (q("symbol")?.trim() || "USDC") : q(name));
 
 const CORE_WEATHER = core("/weather", "$0.01", {
-  city: { type: "string", description: "City or place name, e.g. London or Tokyo (used when lat and lon are not given)", example: "London" },
+  city: { type: "string", description: "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)", example: "London" },
   lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)", example: 59.33 },
   lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)", example: 18.07 },
   hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)", example: 12 },
