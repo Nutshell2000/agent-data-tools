@@ -59,7 +59,10 @@ test("catalog is grouped by category with every tool listed exactly once", () =>
   const html = discovery.homePage("https://example.test", "0x0000000000000000000000000000000000000001");
   const links = html.match(/<td class="path"><a href="\/tools\//g).length;
   assert.equal(links, discovery.ENDPOINTS.length + 6, "each tool once per category table plus six Start here rows");
-  for (const e of discovery.ENDPOINTS) assert.ok(html.includes(`id="tool-${e.path.slice(1).replaceAll("/", "_")}"`), e.path);
+  // Per-tool details live on /tools/<slug>; the homepage links each one and stays a light page (it was 800 KB with all 660 repeated).
+  for (const e of discovery.ENDPOINTS) assert.ok(html.includes(`href="/tools/${e.path.slice(1).replaceAll("/", "-")}"`), e.path);
+  assert.ok(!html.includes('id="tool-'));
+  assert.ok(html.length < 260_000, `homepage is ${html.length} bytes`);
   for (const name of discovery.CATEGORY_ORDER) assert.match(html, new RegExp(`<h3 class="cat">${name} \\(\\d+\\)</h3>`));
   const llms = discovery.llmsTxt("https://example.test", false, "0x0000000000000000000000000000000000000001");
   assert.equal(llms.match(/^#### GET /gm).length, discovery.ENDPOINTS.length);

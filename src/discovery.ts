@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.109.1";
+export const MCP_SERVER_VERSION = "1.109.2";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -303,17 +303,7 @@ export function homePage(origin: string, payTo: string, trialsEnabled = false, d
     `<h3 class="cat">Start here</h3><div class="wrap"><table>${head}${starters.map(row).join("")}</table></div>`,
     ...byCategory().map((g) => `<h3 class="cat">${esc(g.name)} (${g.tools.length})</h3><div class="wrap"><table>${head}${g.tools.map(row).join("")}</table></div>`),
   ].join("");
-  const details = ENDPOINTS.map((e) => {
-    const params = Object.entries(e.params)
-      .map(([k, p]) => `<li><code>${esc(k)}</code>${p.required ? " (required)" : ""}: ${esc(p.description)}</li>`)
-      .join("");
-    const query = exampleQuery(e);
-    // Keep the trial opt-in limited to human-facing homepage links; machine-readable
-    // discovery examples should continue to trigger the normal 402 challenge.
-    const example = `${origin}${e.path}?${query}${trialsEnabled ? "&trial=1" : ""}`;
-    const exampleLabel = trialsEnabled ? "Try free once" : "Example";
-    return `<section id="tool-${esc(e.path.slice(1).replaceAll("/", "_"))}"><h3><code>GET ${esc(e.path)}</code> <span class="price">${esc(e.price)}</span></h3><p>${esc(fullDescription(e as Endpoint))}</p><ul>${params}</ul><p class="ex">Example: <a ${trialsEnabled ? 'rel="nofollow" ' : ""}href="${esc(example)}">${exampleLabel}</a> — <code>${esc(example)}</code> · <a href="/tools/${esc(toolSlug(e.path))}">Tool page</a></p></section>`;
-  }).join("");
+  // Per-tool details live on /tools/<slug> (10 Nov 2026): repeating all of them here made this page 800 KB and a duplicate of 660 pages.
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -404,7 +394,7 @@ ${rows}
 </ul>
 
 <h2>Endpoint details</h2>
-${details}
+<p>Every tool has its own page with its inputs, a request you can copy, a result and a free run: follow a tool's link in <a href="#tools">Tools and prices</a> above, or browse <a href="/tools">all tools</a>.</p>
 </main>
 </body>
 </html>`;
