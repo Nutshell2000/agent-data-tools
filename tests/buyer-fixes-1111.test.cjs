@@ -123,6 +123,11 @@ test('long speech: text is cut at sentence ends without losing a word, and MP3 p
   for (const v of Object.values(OPENAI_VOICES)) assert.ok(SPEECH_VOICES.en.includes(v), v);
   assert.equal((await tool.run(env, input({ text: 'Hello there.', voice: 'alloy' }))).voice, 'luna');
   await assert.rejects(tool.run(env, input({ text: 'Hola.', lang: 'es', voice: 'alloy' })), (e) => e.status === 400);
+  // The short tool's refusal of a long text names this one.
+  const short = AI_TEXT.find((e) => e.endpoint.path === '/ai/speech');
+  await assert.rejects(short.run(env, input({ text: long })), (e) => e.status === 400 && /\/text-to-speech reads up to 2000 characters \(\$0\.08\)/.test(e.message));
+  assert.match(short.endpoint.description, /text_to_speech/);
+  assert.ok(short.endpoint.description.length <= 450);
 });
 
 test('contract call: a function signature is encoded and its result decoded; calldata still passes through', async () => {
@@ -159,4 +164,16 @@ test('contract call: a function signature is encoded and its result decoded; cal
   assert.throws(() => callFromSignature('f(uint256)', 'abc'), (e) => e.status === 400 && /whole number/.test(e.message));
   assert.throws(() => callFromSignature('f(notatype)', '1'), (e) => e.status === 400 && /function signature/.test(e.message));
   assert.throws(() => callFromSignature('f(uint256[])', '1'), (e) => e.status === 400 && /JSON array/.test(e.message));
+});
+
+test('mcp: audio and images are media blocks, never base64 inside the text', async () => {
+  const { toContent } = await load('src/mcp.ts');
+  const audio = toContent({ contentType: 'audio/mpeg', audioBase64: 'SUQz'.repeat(1000), bytes: 3000, voice: 'luna', characters: 37 });
+  assert.equal(audio.length, 2);
+  assert.deepEqual(JSON.parse(audio[0].text), { contentType: 'audio/mpeg', bytes: 3000, voice: 'luna', characters: 37 });
+  assert.ok(audio[0].text.length < 200, 'the text block stays small');
+  assert.deepEqual({ type: audio[1].type, mimeType: audio[1].mimeType, size: audio[1].data.length }, { type: 'audio', mimeType: 'audio/mpeg', size: 4000 });
+  const image = toContent({ contentType: 'image/png', imageBase64: 'AAAA', model: 'm' });
+  assert.deepEqual(image[1], { type: 'image', data: 'AAAA', mimeType: 'image/png' });
+  assert.deepEqual(toContent({ pong: true }), [{ type: 'text', text: '{"pong":true}' }]);
 });

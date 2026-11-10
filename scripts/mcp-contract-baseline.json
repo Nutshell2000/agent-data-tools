@@ -1,5 +1,5 @@
 {
-  "version": "1.111.0",
+  "version": "1.111.1",
   "tools": [
     {
       "name": "extract",
@@ -20236,7 +20236,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, narration, audio notes, accessibility and phone or chat bots. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
