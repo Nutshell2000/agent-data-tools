@@ -84,25 +84,25 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
  */
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
-  address: ["wallet", "addr", "account", "email", "pool", "wallet_address", "walletAddress", "email_address", "emailAddress", "mail"],
+  address: ["wallet", "addr", "account", "email", "pool", "wallet_address", "walletAddress", "email_address", "emailAddress", "mail", "q", "query"],
   token: ["token_address", "contract", "tokenAddress", "contract_address"], hash: ["tx", "txhash", "transaction", "txHash", "tx_hash", "transaction_hash", "transactionHash", "txid"],
-  lat: ["latitude"], lon: ["longitude", "lng", "long"], zone: ["tz", "timezone", "time_zone", "timeZone", "location", "city"], at: ["time", "timestamp", "datetime", "when"], date: ["day"],
+  lat: ["latitude"], lon: ["longitude", "lng", "long"], zone: ["tz", "timezone", "time_zone", "timeZone", "location", "city", "place", "country", "q", "query"], at: ["time", "timestamp", "datetime", "when"], date: ["day"],
   text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value", "prompt", "message", "body", "string", "document", "article", "q", "query"],
   // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
   // More names agents send (26 Oct 2026 utility probe): cron expression, number lists, phone numbers, QR data, loan amounts, semver pairs.
   expr: ["expression", "cron", "schedule"], values: ["numbers", "data", "nums", "list"], number: ["phone", "phone_number", "tel"], principal: ["amount", "loan", "loan_amount"],
   country: ["name", "country_code", "code", "countryCode"],
   // Price lists as other price APIs take them (openverbs /v1/price?ids=coingecko:bitcoin,...).
-  symbols: ["ids", "coins", "tickers"], symbol: ["coin", "ticker", "id", "asset", "token", "currency", "name"],
+  symbols: ["ids", "coins", "tickers", "tokens", "assets", "symbol"], symbol: ["coin", "ticker", "id", "ids", "asset", "token", "currency", "name", "stock", "symbols", "q", "query", "company"],
   coin: ["symbol", "ticker", "asset", "token", "market", "pair", "name", "id"], ticker: ["symbol", "stock", "q", "query", "name"],
   a: ["version", "v1", "from"], b: ["other", "v2", "compare", "to"],
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
-  name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site"],
+  name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site", "address", "location", "place", "city", "search", "term", "entity", "person"],
   domain: ["name", "host", "hostname", "website", "url", "site"],
-  word: ["q", "query", "term"], title: ["q", "query"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
+  word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
   url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],
   urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
-  from: ["from_currency", "base", "base_currency", "source"], to: ["to_currency", "target", "quote", "symbols", "currencies"],
+  from: ["from_currency", "fromCurrency", "base", "base_currency", "source", "pair", "currency"], to: ["to_currency", "toCurrency", "target", "quote", "symbols", "currencies", "vs"],
   // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).
   q: ["query", "question", "search", "term", "keyword", "keywords", "topic", "search_query", "searchQuery", "text", "prompt", "input"],
@@ -111,13 +111,17 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // /weather lost 9 of 19 paid attempts ("send city or lat and lon") and /llm/chat 3 of 4 ("prompt is required", an OpenAI
   // body). A weather buyer sends location or q; a chat buyer sends message, input or an OpenAI `messages` array (read by
   // messagePart below) with max_tokens; an IP buyer sends address.
-  city: ["location", "place", "q", "query", "name", "town", "loc", "city_name", "cityName", "address"],
+  city: ["location", "place", "q", "query", "name", "town", "loc", "city_name", "cityName", "address", "coordinates", "coords", "latlng", "latlon", "ll", "zip", "zipcode", "postal_code", "postcode"],
   prompt: ["message", "input", "text", "query", "q", "question", "content", "user_prompt", "userPrompt", "description", "messages"],
   system: ["system_prompt", "systemPrompt", "instructions", "messages"],
   maxTokens: ["max_tokens", "max_completion_tokens", "max_output_tokens", "maxOutputTokens"],
   ip: ["address", "ip_address", "ipAddress", "host", "q", "query"],
   amount: ["value", "quantity", "qty"],
-  repo: ["repository", "full_name", "fullName", "name", "url", "slug", "project"],
+  repo: ["repository", "full_name", "fullName", "name", "url", "slug", "project", "repo_name", "repoName", "q", "query"],
+  // 10 Nov 2026 probe: a wrong name here did not refuse, it silently answered for the default (4h candles for a 1d request,
+  // every earthquake for a magnitude-5 request), which is worse than a refusal.
+  interval: ["timeframe", "period", "tf", "resolution", "granularity"], minMagnitude: ["min_magnitude", "magnitude", "minmag", "min_mag", "mag"],
+  currency: ["vs", "fiat", "vs_currency", "vs_currencies", "quote"],
 };
 
 /** The text of one OpenAI message's content: a string, or the text parts of a content array. */
@@ -164,6 +168,8 @@ export const normalizedInput = (sent: Input): Input => (name) => {
   // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
   // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.
   if (name === "url" && value && !/^[a-z][a-z0-9+.-]*:/i.test(value.trim()) && SCHEMELESS_URL.test(value.trim())) return `https://${value.trim()}`;
+  // A Wikipedia link where a title is expected: the title is the last part of its path.
+  if (name === "title" && value) { const m = /^https?:\/\/[a-z-]+\.(?:m\.)?wikipedia\.org\/wiki\/([^?#]+)/i.exec(value.trim()); if (m) { try { return decodeURIComponent(m[1]).replaceAll("_", " "); } catch { return m[1].replaceAll("_", " "); } } }
   if (value === undefined || !ADDRESS_INPUTS.has(name) || (sent as { [KEEP_CASE]?: boolean })[KEEP_CASE]) return value;
   return value.split(",").map((part) => {
     const m = EVM_HEX.exec(part.trim());

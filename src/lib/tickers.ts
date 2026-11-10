@@ -42,6 +42,22 @@ export const coinIdTicker = (input: string): string | undefined => {
   return Object.hasOwn(COIN_IDS, id) ? COIN_IDS[id] : undefined;
 };
 
+/** Whether the input is a ticker (or coin name) this network's table knows. Addresses are never "known tickers". */
+export function knowsTicker(input: string, slug: string): boolean {
+  const v = input.trim().replace(/^\$(?=[A-Za-z])/, "");
+  if (/^0x[0-9a-fA-F]{40}$/.test(v)) return false;
+  const key = coinIdTicker(v) ?? v.toUpperCase();
+  return Boolean(TICKERS[slug]?.[ALIASES[slug]?.[key] ?? key]);
+}
+/**
+ * The network to price a ticker on when the caller named none: the default when it knows the ticker, else the first
+ * other network that does (LINK, ARB and OP are not in Base's table; 10 Nov 2026: symbol=LINK was refused although the
+ * description offers it). An explicit chain, an address or an unknown ticker keep the default.
+ */
+export function tickerNetwork(input: string, preferred: string, slugs: readonly string[]): string {
+  if (/^0x[0-9a-fA-F]{40}$/.test(input.trim()) || knowsTicker(input, preferred)) return preferred;
+  return slugs.find((s) => s !== preferred && knowsTicker(input, s)) ?? preferred;
+}
 /** A 0x address as given, or the address of a known ticker on this network; 400 lists the tickers otherwise. */
 export function tokenAddress(input: string, slug: string): Address {
   // "$ETH" is how tickers are written in chat; the dollar sign is not part of the ticker.

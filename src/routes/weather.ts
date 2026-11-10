@@ -80,6 +80,9 @@ async function cityCoordinates(city: string) {
 
 export async function weather(latInput?: string, lonInput?: string, hoursInput?: string, cityInput?: string) {
   // A city name stands in for coordinates (Wikidata's best match); explicit lat/lon win when both are given.
+  // "48.85,2.35" sent as the place (location=, coordinates=, q=) is a pair of coordinates, not a name to look up.
+  const pair = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(cityInput ?? "");
+  if (pair && !(latInput ?? "").trim() && !(lonInput ?? "").trim()) { latInput = pair[1]; lonInput = pair[2]; cityInput = undefined; }
   const city = cityInput?.trim();
   const place = city && (latInput ?? "").trim() === "" && (lonInput ?? "").trim() === ""
     ? await cityCoordinates(city.slice(0, 100)).then((p) => p ?? Promise.reject(new HttpError(404, `no place with coordinates found for "${city.slice(0, 100)}"; pass lat and lon`)))
