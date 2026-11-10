@@ -58,6 +58,27 @@ test("the USDC yield door forces stablecoin pools and defaults the token to USDC
   assert.equal(doors.usdcYieldInput((n) => ({ symbol: "DAI" })[n])("symbol"), "DAI");
 });
 
+test("the crypto news door answers a call without a topic: general crypto headlines of the past day", () => {
+  const empty = doors.cryptoNewsInput(() => undefined);
+  assert.equal(empty("q"), "cryptocurrency");
+  assert.equal(empty("freshness"), "day");
+  assert.equal(empty("count"), undefined);
+  const asked = doors.cryptoNewsInput((n) => ({ q: " solana ETF ", freshness: "week", count: "5" })[n]);
+  assert.equal(asked("q"), "solana ETF");
+  assert.equal(asked("freshness"), "week");
+  assert.equal(asked("count"), "5");
+  const door = doors.ENTRY_PATHS.find((d) => d.endpoint.path === "/crypto/news").endpoint;
+  assert.ok(!door.params.q.required, "a router that plans the call empty must succeed");
+});
+
+test("round 5 doors are named with the phrase buyers search", () => {
+  const name = (p) => doors.ENTRY_PATHS.find((d) => d.endpoint.path === p).endpoint.summary.split(":")[0];
+  assert.equal(name("/weather/current"), "Current weather");
+  assert.equal(name("/web/fetch"), "Web fetch");
+  assert.equal(name("/email/auth"), "Email auth check");
+  assert.equal(name("/crypto/news"), "Crypto news");
+  assert.match(name("/tech/detect"), /^Website technology detection$/);
+});
 test("the prediction-market door requires a search", async () => {
   const door = doors.ENTRY_PATHS.find((d) => d.endpoint.path === "/polymarket/search");
   await assert.rejects(door.run({}, () => undefined), (e) => e.status === 400 && /q is required/.test(e.message));
