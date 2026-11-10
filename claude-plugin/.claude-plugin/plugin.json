@@ -7,6 +7,9 @@
   "repository": "https://github.com/Nutshell2000/agent-data-tools",
   "license": "ISC",
   "privacyPolicyUrl": "https://agent-data-tools.revmesh2074.workers.dev/privacy",
+  "termsOfServiceUrl": "https://agent-data-tools.revmesh2074.workers.dev/terms",
+  "supportUrl": "https://agent-data-tools.revmesh2074.workers.dev/support",
+  "documentationUrl": "https://agent-data-tools.revmesh2074.workers.dev/tools",
   "keywords": ["data", "web-search", "crypto", "x402", "mcp"],
   "mcpServers": {
     "agent-data-tools": { "type": "http", "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp" }
