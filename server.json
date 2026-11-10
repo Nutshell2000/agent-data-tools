@@ -22,6 +22,30 @@
       ]
     }
   ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "agent-data-tools",
+      "version": "1.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "AGENT_DATA_TOOLS_KEY",
+          "description": "Optional. A prepaid key (adt_...) from https://agent-data-tools.revmesh2074.workers.dev/credits. Leave empty to use the free calls.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
   "websiteUrl": "https://agent-data-tools.revmesh2074.workers.dev/",
   "icons": [
     {
