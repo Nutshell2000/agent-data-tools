@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.109.5";
+export const MCP_SERVER_VERSION = "1.110.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -511,6 +511,7 @@ import { anthropicMessagesOpenApiPath } from "./lib/anthropic-messages";
 import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
 import { MODELS } from "./lib/ai";
 import { paymentInfo } from "./lib/payment-info";
+import { usdcPrepayLine } from "./lib/credits";
 export { CAPACITY_LIMITED };
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
@@ -552,6 +553,10 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `Guides by job (what to call, the request in every way an agent can make it): ${TASK_GUIDES.map((g) => `${g.phrase}: ${origin}/guides/${g.slug}.md`).join("; ")}. Index: ${origin}/guides.`,
     "",
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($1 = 1,000 credits, $5 = 5,000, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
+    "",
+    `Which tool for a job: GET ${origin}/find?need=<the job in plain words> is free and answers with the exact calls, inputs and prices from this catalog. ${usdcPrepayLine(origin)} To add credits to a key later, send it as X-API-Key on the same request.`,
+    "",
+    `Agent skill for the whole catalog (which path for which job, how to pay): ${origin}/skills/agent-data-tools/SKILL.md; discovery index ${origin}/.well-known/agent-skills/index.json; install with "npx skills add Nutshell2000/agent-data-tools".`,
     "",
     `Start here: ${origin}/guides/web-reading.md (static web reading, capped HTTP and x402-capable MCP examples, $0.002 per call). Bitcoin fees: ${origin}/guides/bitcoin-fees.md ($0.002).`,
     "",

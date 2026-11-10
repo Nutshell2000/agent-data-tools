@@ -1,7 +1,8 @@
 import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
 import { sendBatchNow } from "./lib/metrics-batch";
 import { localMcpHtml, localMcpMarkdown } from "./guides/local-mcp";
-import { readerSkillMarkdown, readerSkillIndex } from "./guides/reader-skill";
+import { readerSkillMarkdown, readerSkillIndex, READER_SKILL_NAME, READER_SKILL_DESCRIPTION } from "./guides/reader-skill";
+import { agentSkillsIndex, catalogSkillMarkdown, CATALOG_SKILL_NAME } from "./guides/catalog-skill";
 import { loadReaderDemo } from "./guides/reader-buying";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
@@ -43,6 +44,8 @@ import { apiKeyFrom } from "./lib/credits";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
+import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
+import { recommend } from "./routes/recommend";
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
@@ -453,7 +456,7 @@ app.get("/openapi.json", (c) => {
   if (!body) {
     const doc = openApi(origin(c.req.url), trialsEnabled(c.env), offers);
     // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
-    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
+    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...usdcCreditOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
     openApiDocs.set(key, body);
   }
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });
@@ -508,6 +511,16 @@ app.get("/og.png", (c) => c.body(OG_IMAGE, 200, { "Content-Type": "image/png", "
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
 app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),READER_VERSION)));
+// The catalog skill (guides/catalog-skill.ts): one SKILL.md for every tool, at the path the repository uses and at the
+// Agent Skills discovery location, whose index carries the digest of the exact bytes served from this host.
+const MARKDOWN = { "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": "public, max-age=3600" };
+for (const path of [`/skills/${CATALOG_SKILL_NAME}/SKILL.md`, `/.well-known/agent-skills/${CATALOG_SKILL_NAME}/SKILL.md`]) {
+  app.on(["GET", "HEAD"], path, (c) => c.body(catalogSkillMarkdown(origin(c.req.url)), 200, MARKDOWN));
+}
+app.on(["GET", "HEAD"], `/.well-known/agent-skills/${READER_SKILL_NAME}/SKILL.md`, (c) => c.body(readerSkillMarkdown(origin(c.req.url), READER_VERSION), 200, MARKDOWN));
+app.on(["GET", "HEAD"], "/.well-known/agent-skills/index.json", async (c) => c.json(await agentSkillsIndex(origin(c.req.url), [
+  { name: READER_SKILL_NAME, description: READER_SKILL_DESCRIPTION, url: `/.well-known/agent-skills/${READER_SKILL_NAME}/SKILL.md`, text: readerSkillMarkdown(origin(c.req.url), READER_VERSION) },
+]), 200, { "Cache-Control": "public, max-age=3600" }));
 app.on(["GET","HEAD"],"/skills/spellzcode-x402-reader/SKILL.md",c=>c.body(readerSkillMarkdown(origin(c.req.url),READER_VERSION),200,{"Content-Type":"text/markdown; charset=utf-8"}));
 
 // Static, generated public examples and client artifacts. No arbitrary-URL proxy or paid work.
@@ -652,6 +665,23 @@ app.get("/p/:id", async (c) => {
 app.get("/.well-known/ai-plugin.json", (c) => c.json(aiPluginManifest(origin(c.req.url))));
 app.get("/llms-full.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
 
+// The free tool finder (1.110.0): which of our tools does a job, in plain words. Word matching only (no model), so it
+// costs nothing to answer; /recommend is the paid version with a reranker. Before this an agent that had just bought one
+// tool had no free way to ask this service what else it sells for its next job.
+app.get("/find", async (c) => {
+  const text = (c.req.query("need") ?? c.req.query("q") ?? c.req.query("task") ?? c.req.query("query") ?? "").trim().slice(0, 300);
+  const o = origin(c.req.url);
+  if (!text) return c.json({ error: "describe the job in a few plain words, for example /find?need=current gas price on Base", free: true, catalog: `${o}/discovery/resources` }, 400);
+  const count = Math.min(10, Math.max(1, Math.trunc(Number(c.req.query("count") ?? c.req.query("limit") ?? 5)) || 5));
+  try {
+    const found = await recommend(c.env, text, count, null, o);
+    return c.json({ ...found, free: true, note: "This lookup is free. Each pick is a paid call unless it is in the free calls (inFreeCalls: add trial=1)." }, 200, { "Cache-Control": "public, max-age=300" });
+  } catch (err) {
+    if (!(err instanceof HttpError)) throw err;
+    return c.json({ error: err.message.replace("; nothing was charged", ""), free: true, picks: [], catalog: `${o}/discovery/resources`, docs: `${o}/llms.txt` }, err.status as 400 | 404);
+  }
+});
+
 // A guessed URL gets the closest tools and every catalog instead of a dead end.
 app.notFound((c) => {
   const o = origin(c.req.url);
@@ -659,6 +689,7 @@ app.notFound((c) => {
   return c.json({
     error: "not found",
     ...(suggestions.length ? { didYouMean: suggestions.map((p) => `${o}${p}`) } : {}),
+    find: `${o}/find?need=<the job in plain words> (free)`,
     docs: `${o}/llms.txt`, catalog: `${o}/discovery/resources`, openapi: `${o}/openapi.json`, mcp: `${o}/mcp`,
   }, 404);
 });

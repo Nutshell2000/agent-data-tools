@@ -50,12 +50,16 @@ async function catalog(): Promise<{ docs: Doc[]; example: (path: string) => [str
   };
 }
 
-export async function recommend(env: Env, needText: string, count: number, rerank: ((q: string, docs: string[]) => Promise<number[] | null>) | null) {
+/**
+ * `rerank` null is the free finder (GET /find, 1.110.0): word matching only, so it costs nothing to run and an agent can
+ * ask which of our tools does its next job without paying or leaving. `origin` is the host the caller used.
+ */
+export async function recommend(env: Env, needText: string, count: number, rerank: ((q: string, docs: string[]) => Promise<number[] | null>) | null, origin = ORIGIN) {
   const query = tokens(needText);
   if (!query.length) throw new HttpError(400, "describe the task in a few plain words, for example need=current gas price on Base");
   const { docs, example, free } = await catalog();
   const ranked = docs.map((d) => ({ d, s: lexicalScore(query, d) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15);
-  if (!ranked.length) throw new HttpError(404, `no tool here matches "${needText.slice(0, 80)}"; nothing was charged. The full catalog is at ${ORIGIN}/discovery/resources`);
+  if (!ranked.length) throw new HttpError(404, `no tool here matches "${needText.slice(0, 80)}"; nothing was charged. The full catalog is at ${origin}/discovery/resources`);
   let order = ranked;
   let method = "lexical";
   if (rerank && ranked.length > 1) {
@@ -76,7 +80,7 @@ export async function recommend(env: Env, needText: string, count: number, reran
       what: d.summary,
       price: d.price,
       mcpTool: d.path.slice(1).replace(/[/-]/g, "_"),
-      call: { method: "GET", url: `${ORIGIN}${d.path}${query ? `?${query}` : ""}` },
+      call: { method: "GET", url: `${origin}${d.path}${query ? `?${query}` : ""}` },
       requiredInputs: params.filter(([, p]) => p.required).map(([n, p]) => ({ name: n, description: p.description })),
       inFreeCalls: free(d.path),
       score: Math.round(s * 1000) / 1000,
@@ -85,8 +89,8 @@ export async function recommend(env: Env, needText: string, count: number, reran
   return {
     need: needText,
     picks,
-    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a card-credit key from ${ORIGIN}/credits as Authorization: Bearer. Failed calls are never charged; the first 25 calls per caller are free on tools in the free calls.`,
-    mcp: `${ORIGIN}/mcp`,
+    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a prepaid key as Authorization: Bearer (by card at ${origin}/credits, or with USDC at ${origin}/credits/usdc/5). Failed calls are never charged; the first 25 calls per caller are free on tools in the free calls (add trial=1).`,
+    mcp: `${origin}/mcp`,
     method,
   };
 }
