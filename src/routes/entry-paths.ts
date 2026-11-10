@@ -18,6 +18,8 @@ import { AI_TEXT } from "./ai-text";
 import { CHAIN_READS } from "./chain-reads";
 import { extract } from "./extract";
 import { PAGES } from "./pages";
+import { PACKS } from "./packs";
+import { PACKS_INTEL } from "./packs-intel";
 import { COMPANY } from "./company";
 import { DEFI_YIELDS } from "./defi-yields";
 import { domainInfo } from "./domain";
@@ -118,6 +120,9 @@ const CORE_EMAIL = core("/email", "$0.01", {
 
 const YIELDS = from(DEFI_YIELDS, "/defi/yields");
 const MARKETS = from(POLYMARKET, "/polymarket/markets");
+const NEWS = from(SEARCH, "/news");
+/** /crypto/news: the news tool with a default topic and the past day as the default window. */
+export const cryptoNewsInput = (q: Input): Input => (name) => (name === "q" ? (q("q")?.trim() || "cryptocurrency") : name === "freshness" ? (q("freshness")?.trim() || "day") : q(name));
 
 export const ENTRY_PATHS: Entry[] = [
   door("/weather/forecast", "Weather forecast by city: current weather and hourly forecast for any city or coordinates",
@@ -254,10 +259,13 @@ export const ENTRY_PATHS: Entry[] = [
     "Wallet balance of any EVM address: the native coin (ETH, POL) and USDC on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live, with the USDC total. Use to check what a wallet holds before a payment or to confirm funds arrived.",
     ["wallet-balance", "balance", "eth-balance", "usdc-balance", "evm", "multichain"], from(CHAIN_READS, "/wallet/balances")),
 
-  door("/weather/today", "Weather forecast today: any city, 48 hours",
-    "Weather forecast today for any city or coordinates: current temperature, conditions, rain, wind and humidity now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use for travel, events, logistics or a daily brief.",
-    ["weather-forecast", "weather", "forecast", "temperature", "rain", "city-weather"], CORE_WEATHER),
-
+  // 10 Nov 2026: named for the search that carries the market's biggest flow of new wallets. "current weather" is led by one
+  // listing with 315 payers in 30 days (+266 in three days); a listing named "Current weather" with 2 payers sat at #2
+  // behind it, and our /weather was #7. Agent402's router scores the URL slug most and its winner is /weather/current, so the
+  // door moved here from /weather/today (9 Nov, never listed on the Bazaar); index.ts redirects the old path.
+  door("/weather/current", "Current weather: any city, right now",
+    "Current weather for any city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the weather now or today's forecast for travel, events, logistics or a daily brief.",
+    ["current-weather", "weather", "weather-now", "temperature", "forecast", "city-weather"], CORE_WEATHER),
   door("/ofac/check", "OFAC sanctions check: wallet or name",
     "OFAC sanctions check: screen a crypto wallet address (EVM, Bitcoin, Tron and more) or a person or company name against the OFAC SDN list and get a verdict (block, review, pass) with every match, SDN id and program. A screening aid, not legal advice. Use before paying or accepting funds, or when onboarding a counterparty.",
     ["ofac", "sanctions-screening", "sanctions-check", "sdn", "aml", "compliance"], from(SANCTIONS, "/sanctions/check")),
@@ -297,4 +305,28 @@ export const ENTRY_PATHS: Entry[] = [
   door("/uniswap/liquidity", "Uniswap pool liquidity: reserves and price",
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
-];
+
+  // Round 5 (10 Nov 2026): the tasks most open shoppers pay for that we already sell under another name. Counted in a
+  // two-day sample of 50 wallets that each pay 8+ sellers: website technology detection 10 buyers, email auth 8, URL fetch
+  // 7-8, crypto news 9. In the Bazaar search the top results for those phrases are named with the phrase ("Email Auth
+  // Check", "Website technology detector", "Crypto News"); ours were absent or lower under "Email deliverability", "Tech
+  // stack detection", "Scrape website page" and "News headlines". The 7 Nov weather door is the proof that a task-named
+  // door works: it had 19 distinct payers three days later, more than any older listing of ours.
+  door("/web/fetch", "Web fetch: get a URL as clean text",
+    "Web fetch for agents: fetch any public URL and get the page's main content as clean text or Markdown (headings, links, tables and code blocks kept), up to 100,000 characters; static HTML, Markdown and text pages. Bot walls, empty pages and errors are never charged. Use to read a web page, article or documentation URL into an LLM's context or a RAG pipeline.",
+    ["web-fetch", "fetch-url", "url-fetch", "read-url", "http-fetch", "web-page"], CORE_EXTRACT),
+
+  door("/email/auth", "Email auth check: SPF, DKIM, DMARC",
+    "Email authentication check for a domain: the SPF record and its all-policy, DKIM keys at the common selectors, the DMARC record and policy, plus MX, MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes. Public DNS only; no mail is sent. Use to verify a sender domain's SPF, DKIM and DMARC setup, to debug mail landing in spam, or to vet a domain before trusting its mail.",
+    ["email-auth", "spf-dkim-dmarc", "spf-check", "dmarc-check", "dkim", "email-security"], from(PACKS, "/pack/email-deliverability")),
+
+  door("/tech/detect", "Website technology detection: CMS and stack",
+    "Website technology detection: which CMS or site builder, JavaScript framework, analytics and ad pixels, payment, support and captcha widgets, CDN, hosting and web server a site runs on, read from its home page HTML and response headers, each with the evidence found. Use for lead qualification, competitor research, security reviews and sales prospecting by technology.",
+    ["technology-detection", "website-technology", "tech-detect", "tech-stack", "cms-detection", "lead-qualification"], from(PACKS_INTEL, "/tech/stack")),
+
+  // A call with no topic answers with general crypto headlines of the past day, so a router that plans it empty succeeds.
+  door("/crypto/news", "Crypto news: latest headlines",
+    "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest.",
+    ["crypto-news", "cryptocurrency-news", "bitcoin-news", "market-news", "headlines", "news"], NEWS,
+    (env, q) => NEWS.run(env, cryptoNewsInput(q)),
+    { ...NEWS.endpoint.params, q: { type: "string", description: "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)", example: "bitcoin ETF" } }),];

@@ -35,7 +35,7 @@ test("a weather buyer may say location, place or q instead of city", async () =>
       { time: "2026-11-10T10:00:00Z", data: { instant: { details: { air_temperature: 10 } } } }] } }), { headers: { "content-type": "application/json" } });
   };
   try {
-    for (const path of ["/weather", "/weather/forecast", "/weather/today"]) {
+    for (const path of ["/weather", "/weather/forecast", "/weather/current"]) {
       for (const name of ["location", "place", "q", "query", "name", "town"]) {
         const out = await T.TOOLS[path]({}, sent({ [name]: "London" }));
         assert.equal(out.place, "London", `${path}?${name}=London`);
