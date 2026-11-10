@@ -81,13 +81,32 @@ test('the free finder names the call for a job without a payment', async () => {
   assert.match((await (await get('/no-such-tool')).json()).find, /\/find\?need=/);
 });
 
-test('the Claude Code plugin files point at the live MCP server and the repository skills', () => {
-  const plugin = JSON.parse(readFileSync('.claude-plugin/plugin.json', 'utf8'));
+test('the Claude Code plugin is its own small folder: manifest, icon and the same skill text, nothing else', () => {
+  // The plugin directory scans every file of a plugin. With the repository root as the plugin (1.110.0) its validator
+  // blocked on the service's own code (package.json, lockfile, test fixtures that look like credentials). The plugin is
+  // therefore a folder that holds only what a user installs.
+  const { readdirSync, statSync } = require('node:fs');
+  const files = [];
+  const walk = (dir) => { for (const name of readdirSync(dir)) { const p = `${dir}/${name}`; if (statSync(p).isDirectory()) walk(p); else files.push(p); } };
+  walk('claude-plugin');
+  assert.deepEqual(files.sort(), ['claude-plugin/.claude-plugin/icon.png', 'claude-plugin/.claude-plugin/plugin.json', 'claude-plugin/skills/agent-data-tools/SKILL.md']);
+  const plugin = JSON.parse(readFileSync('claude-plugin/.claude-plugin/plugin.json', 'utf8'));
   assert.equal(plugin.name, 'agent-data-tools');
-  assert.equal(plugin.mcpServers['agent-data-tools'].url, `${PRODUCTION}/mcp`);
-  assert.equal(plugin.mcpServers['agent-data-tools'].type, 'http');
+  assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(plugin.license, require('../package.json').license);
+  assert.equal(plugin.privacyPolicyUrl, `${PRODUCTION}/privacy`);
+  assert.deepEqual(plugin.mcpServers['agent-data-tools'], { type: 'http', url: `${PRODUCTION}/mcp` });
+  // The plugin's skill is the repository skill, byte for byte (scripts/build-catalog-skill.mjs writes both).
+  assert.equal(readFileSync('claude-plugin/skills/agent-data-tools/SKILL.md', 'utf8'), readFileSync('skills/agent-data-tools/SKILL.md', 'utf8'));
+  // A square PNG of at least 512 px, as the directory asks (width and height are in the PNG header).
+  const png = readFileSync('claude-plugin/.claude-plugin/icon.png');
+  assert.equal(png.subarray(1, 4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), png.readUInt32BE(20));
+  assert.ok(png.readUInt32BE(16) >= 512 && png.length < 2 * 1024 * 1024);
   const market = JSON.parse(readFileSync('.claude-plugin/marketplace.json', 'utf8'));
   assert.equal(market.plugins.length, 1);
   assert.equal(market.plugins[0].name, plugin.name);
-  assert.equal(market.plugins[0].source, './');
+  assert.equal(market.plugins[0].source, './claude-plugin');
+  // No plugin manifest at the repository root: the root must not be read as a plugin again.
+  assert.equal(require('node:fs').existsSync('.claude-plugin/plugin.json'), false);
 });
