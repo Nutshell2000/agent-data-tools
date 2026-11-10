@@ -1,5 +1,5 @@
 {
-  "version": "1.107.0",
+  "version": "1.108.0",
   "tools": [
     {
       "name": "extract",
@@ -11232,6 +11232,112 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "github_repo",
+      "description": "GitHub repository data in one call: stars, forks, watchers, open issues and pull requests, main language and language shares, topics, license, default branch, created and last-push dates, archived and fork flags, and the latest release with its tag and date. Give owner/name or a github.com URL; public repositories only, no user profile data. Use to vet a dependency, check whether a project is alive, compare libraries or enrich a list of repos. Example: repo=vercel/next.js. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repository as owner/name, e.g. vercel/next.js, or its github.com URL"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner, only when repo is given as a bare name"
+          }
+        },
+        "required": [
+          "repo"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "github_search",
+      "description": "GitHub repository search: find public repositories by keyword, optionally in one language, ordered by best match, stars, forks or last update, with each result's stars, forks, language, topics, license and last-push date; 1-20 results. Repositories only, no user profile data. Use to find a library for a task, discover the popular projects on a topic or check what already exists before building. Example: q=x402 payments. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search words, e.g. x402 payments (GitHub search qualifiers such as topic:mcp or stars:>100 work too)"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "best-match",
+              "stars",
+              "forks",
+              "updated"
+            ],
+            "description": "best-match (default), stars, forks or updated"
+          },
+          "language": {
+            "type": "string",
+            "description": "Only repositories mainly in this language, e.g. TypeScript"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of results, 1-20 (default 10)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "github_releases",
+      "description": "GitHub releases of a repository, newest first: tag, name, publish date, pre-release flag, link and the first 1,500 characters of the release notes, for the last 1-10 releases. Give owner/name or a github.com URL; public repositories only. Use to check the latest version of a tool, read what changed before upgrading a dependency or watch a project for new releases. Example: repo=cloudflare/workers-sdk. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repository as owner/name, e.g. vercel/next.js, or its github.com URL"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner, only when repo is given as a bare name"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of releases, 1-10 (default 5)"
+          }
+        },
+        "required": [
+          "repo"
+        ]
+      },
+      "price": "$0.002"
     },
     {
       "name": "search",
