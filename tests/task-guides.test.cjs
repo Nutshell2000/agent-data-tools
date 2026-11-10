@@ -67,7 +67,10 @@ test('free-call rules carry into the guides: a capacity-limited tool offers no t
   assert.match(news, /Not in the free calls/);
   assert.doesNotMatch(news, /\/news\?[^"]*&amp;trial=1/);
   const pdf = await (await mf.dispatchFetch('https://api.test/guides/pdf-to-text-api')).text();
-  assert.match(pdf, /\/pdf\/text\?[^"]*&amp;trial=1/);
+  assert.match(pdf, /Not in the free calls over HTTP/);
+  assert.doesNotMatch(pdf, /\/pdf\/text\?[^"]*&amp;trial=1/);
+  const fx = await (await mf.dispatchFetch('https://api.test/guides')).text();
+  assert.ok(fx.length > 0);
 });
 
 test('the guides are reachable: index page, homepage, tool pages, llms.txt and the sitemap', async () => {

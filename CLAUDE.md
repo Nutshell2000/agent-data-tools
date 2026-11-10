@@ -1182,3 +1182,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - npm removes a `bin` path written as `./cli.mjs` at publish (the command would be missing); `npm pkg fix` writes the accepted form. Always read the first lines of `npm publish --dry-run` for a `warn`.
 - Not done yet: a `packages` entry (registryType npm, stdio, argument `mcp`) in server.json for the MCP Registry. It needs a published npm version that carries `mcpName` (1.1.1, prepared in business\agentic\npm-client; the owner publishes), because the registry checks the package before it accepts the entry. Add it only after `npm view agent-data-tools@1.1.1 mcpName` answers.
 
+
+## Free calls over HTTP cut to 3; PDF reading out of the HTTP trial and at $0.002 (1.116.0, 10 Nov 2026)
+
+- Owner's decisions, 10 Nov 2026. Why: in 15 days 14,352 free HTTP calls (11,047 on /pdf/text from browser-type callers arriving from many addresses) and 24,304 `free_exhausted` answers led to 77 /credits views and no purchase; the wallets that pay never use free calls.
+- `FREE_HTTP_CALLS_PER_CALLER` 3 (HTTP `trial=1`), `FREE_CALLS_PER_CALLER` 25 (MCP: directories test without paying), one shared counter per caller (`takeFreeCall(..., limit)`). `HTTP_FREE_EXCLUDED` (/pdf/text, /pdf/extract) and `httpFree(path)` in src/lib/capacity.ts decide every "Run it free" button, trial hint and guide line; use `httpFree`, not `!CAPACITY_LIMITED.has`, for anything about the HTTP trial. A caller cannot be singled out (only a hash of the address is known), so a tool leaves the trial, not a person.
+- /pdf/text is $0.002. After the release: `node scripts/update-402index-prices.mjs --dry` then for real; the Bazaar shows $0.005 until the tool's next settlement.
+- Judge it on 17 Nov with the same three public reports (/metrics for /pdf/text paid and challenged, /metrics/callers browser family, the /revenue funnel `credits_bought` and /credits page views): paid PDF calls or credit purchases mean it worked; if the calls simply stop, nothing was lost.
+

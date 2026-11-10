@@ -1,5 +1,5 @@
 {
-  "version": "1.115.0",
+  "version": "1.116.0",
   "tools": [
     {
       "name": "extract",
@@ -11787,7 +11787,7 @@
     },
     {
       "name": "pdf_text",
-      "description": "Extract the text of a PDF from its URL: downloads a public PDF (up to 10 MB) and returns the text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200); cap the output with maxChars. arXiv abstract links are read as the PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Extract the text of a PDF from its URL: downloads a public PDF (up to 10 MB) and returns the text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200); cap the output with maxChars. arXiv abstract links are read as the PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11825,7 +11825,7 @@
           "url"
         ]
       },
-      "price": "$0.005"
+      "price": "$0.002"
     },
     {
       "name": "extract_rendered",
@@ -19098,7 +19098,7 @@
     },
     {
       "name": "pdf_extract",
-      "description": "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19136,7 +19136,7 @@
           "url"
         ]
       },
-      "price": "$0.005"
+      "price": "$0.002"
     },
     {
       "name": "uniswap_liquidity",
