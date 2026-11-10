@@ -122,6 +122,8 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // every earthquake for a magnitude-5 request), which is worse than a refusal.
   interval: ["timeframe", "period", "tf", "resolution", "granularity"], minMagnitude: ["min_magnitude", "magnitude", "minmag", "min_mag", "mag"],
   currency: ["vs", "fiat", "vs_currency", "vs_currencies", "quote"],
+  // 11 Nov 2026: the contract-call tools take a function signature in data; agents name it in several ways.
+  data: ["calldata", "input", "function", "signature", "method", "sig", "abi"], args: ["arguments", "params", "parameters"],
 };
 
 /** The text of one OpenAI message's content: a string, or the text parts of a content array. */

@@ -258,7 +258,8 @@ export class Metrics extends DurableObject {
 
   /** Per-path reliability over the last STATUS_DAYS days: executed calls only, never unpaid quotes. */
   async status(paths: readonly string[]) {
-    const days = [...(await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS })).values()];
+    const dayRows = await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS });
+    const days = [...dayRows.values()];
     const last = await this.ctx.storage.list<string>({ prefix: "last:" });
     // Failure reasons ("<path> <status> <message without the caller's input>"), summed over the same days.
     const reasons = new Map<string, Map<string, number>>();
@@ -287,7 +288,19 @@ export class Metrics extends DurableObject {
       return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}), ...(refusals.length ? { paymentRefusals: refusals } : {}) };
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
-    return { windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null, tools: rows };
+    // Per day (11 Nov 2026): one bad hour that monitors hammered (7 Nov: 4,800 errors in two hours) made the week read 54%
+    // while six of its seven days were above 98%. The week's figure counts calls; these rows show which day they fell on.
+    const known = new Set(paths);
+    const byDay = [...dayRows].map(([key, day]) => {
+      let ok = 0, errors = 0;
+      for (const [path, row] of Object.entries(day)) { if (!known.has(path)) continue; ok += SERVED.reduce((n, o) => n + (row[o] ?? 0), 0); errors += row.errored ?? 0; }
+      return { day: key.slice("day:".length), served: ok, serverErrors: errors, successRate: ok + errors ? Math.round((ok / (ok + errors)) * 1000) / 1000 : null };
+    }).sort((a, b) => (a.day < b.day ? 1 : -1));
+    const rated = byDay.map((d) => d.successRate).filter((r): r is number => r !== null).sort((a, b) => a - b);
+    return {
+      windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null,
+      medianDailySuccessRate: rated.length ? rated[rated.length >> 1] : null, daysAt99: rated.filter((r) => r >= 0.99).length, byDay, tools: rows,
+    };
   }
 
   /** One MCP connection (initialize) by client name and how it connected: open, key or account. */

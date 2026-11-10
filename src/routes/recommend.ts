@@ -30,6 +30,52 @@ type Doc = { path: string; name: string; tags: string[]; summary: string; descri
 export const asWritten = (s: string) => s.toLowerCase().replace(/[^a-z0-9$.]+/g, " ").trim();
 
 /**
+ * Jobs as buyers name them, each with the tool that does it (1.111.0, 11 Nov 2026). The names are what our paying
+ * wallets bought from other sellers that week (base-bots/buyer-next.mjs); word and phrase scoring sent several to the
+ * wrong tool: "audit bundle" to the package audit, "hunter email verifier" to the x402 finder, "token preflight" to the
+ * token lookup, "tts elevenlabs" below speech to text. A request that holds one of these phrases as whole words gets
+ * that tool first; the longest phrase wins. Keep each phrase to a job the tool really does, and add one when buyer-next
+ * shows a job landing on the wrong tool (tests/recommend.test.cjs checks every path is a tool).
+ */
+export const JOBS: Readonly<Record<string, string>> = Object.freeze({
+  "text to speech": "/ai/speech", "tts": "/ai/speech", "read aloud": "/ai/speech", "voice over": "/ai/speech", "speak text": "/ai/speech",
+  "long text to speech": "/text-to-speech", "narrate": "/text-to-speech", "narration": "/text-to-speech",
+  "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
+  "website audit": "/audit/website", "site audit": "/audit/website", "audit bundle": "/audit/website", "accessibility audit": "/audit/website", "page speed": "/audit/website", "lighthouse": "/audit/website",
+  "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
+  "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",
+  "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
+  "email verifier": "/email", "verify email": "/email", "email verification": "/email", "email validation": "/email",
+  "email auth": "/pack/email-deliverability", "spf": "/pack/email-deliverability", "dmarc": "/pack/email-deliverability", "dkim": "/pack/email-deliverability",
+  "fear and greed": "/crypto/fear-greed", "fear greed": "/crypto/fear-greed",
+  "token price": "/price/token", "crypto price": "/price/token", "coin price": "/price/token",
+  "gas oracle": "/pack/gas-tracker", "gas tracker": "/pack/gas-tracker", "multichain gas": "/pack/gas-tracker",
+  "erc20 balance": "/base/token-balance", "token balance": "/base/token-balance", "wallet balance": "/wallet/balances", "wallet portfolio": "/wallet/portfolio",
+  "weather forecast": "/weather", "current weather": "/weather",
+  "screenshot": "/screenshot", "status check": "/url/uptime", "uptime": "/url/uptime", "is it down": "/url/uptime",
+  "image generation": "/image", "generate image": "/image", "image gen": "/image",
+  "chat completion": "/ai/chat", "chat completions": "/ai/chat", "llm": "/ai/chat",
+  "rug check": "/token/verdict", "honeypot": "/token/verdict", "token preflight": "/token/verdict", "token verdict": "/token/verdict",
+  "wallet screen": "/sanctions/check", "sanctions check": "/sanctions/check", "ofac": "/sanctions/check",
+  "company lookup": "/company", "company enrich": "/pack/domain-intel", "company enrichment": "/pack/domain-intel",
+  "rss": "/feed", "feed json": "/feed", "pdf to text": "/pdf/text", "web page to markdown": "/extract", "scrape": "/extract",
+  "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
+  "stock price": "/stock/quote", "stock quote": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
+  "github repo": "/github/repo", "github repository": "/github/repo",
+  "contract call": "/base/call", "eth call": "/base/call", "read contract": "/base/call",
+  "vat number": "/vat/validate", "vat validation": "/vat/validate", "lei": "/lei/lookup",
+  "my ip": "/ip/geolocate", "ip geolocation": "/ip/geolocate", "ip location": "/ip/geolocate", "ip lookup": "/ip/lookup", "ip whois": "/ip/lookup",
+  "national debt": "/econ/national-debt", "usdc yield": "/defi/usdc-yield", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
+});
+/** The tool for the longest job phrase the request holds as whole words, if any. */
+export function jobTool(needText: string): string | undefined {
+  const text = ` ${asWritten(needText)} `;
+  let best: string | undefined;
+  for (const phrase of Object.keys(JOBS)) if (text.includes(` ${phrase} `) && (!best || phrase.length > best.length)) best = phrase;
+  return best ? JOBS[best] : undefined;
+}
+
+/**
  * Lexical score: a query word in the listing name counts most, then tags, then the summary, then the description.
  * `written` is the request as the caller wrote it (1.110.1): the stop-word-free word list scored "text to speech" and
  * "speech to text" the same, so the free finder answered /transcribe for a text-to-speech job. A name or tag that holds
@@ -72,7 +118,8 @@ export async function recommend(env: Env, needText: string, count: number, reran
   if (!query.length) throw new HttpError(400, "describe the task in a few plain words, for example need=current gas price on Base");
   const { docs, example, free } = await catalog();
   const written = asWritten(needText);
-  const ranked = docs.map((d) => ({ d, s: lexicalScore(query, d, written) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15);
+  const job = jobTool(needText);
+  const ranked = docs.map((d) => ({ d, s: lexicalScore(query, d, written) + (d.path === job ? 10 : 0) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 15);
   if (!ranked.length) throw new HttpError(404, `no tool here matches "${needText.slice(0, 80)}"; nothing was charged. The full catalog is at ${origin}/discovery/resources`);
   let order = ranked;
   let method = "lexical";
@@ -81,7 +128,8 @@ export async function recommend(env: Env, needText: string, count: number, reran
     if (scores && scores.length === ranked.length) {
       // Blend: the reranker reads meaning, the lexical score keeps exact task names (a tool named for the phrase) on top.
       const top = ranked[0].s;
-      order = ranked.map((x, i) => ({ ...x, s: 0.7 * scores[i] + 0.3 * (x.s / top) })).sort((a, b) => b.s - a.s);
+      // A named job keeps its tool first: the reranker reads "text to speech" and "speech to text" as near twins.
+      order = ranked.map((x, i) => ({ ...x, s: 0.7 * scores[i] + 0.3 * (x.s / top) + (x.d.path === job ? 1 : 0) })).sort((a, b) => b.s - a.s);
       method = "lexical+rerank";
     }
   }
