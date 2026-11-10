@@ -33,10 +33,10 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 - Buy credits by card: https://agent-data-tools.revmesh2074.workers.dev/credits
 - Privacy, terms, support: https://agent-data-tools.revmesh2074.workers.dev/privacy, /terms, /support
 - Smaller MCP servers, one per section:
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 51 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 37 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 46 tools)
-  - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 363 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/prices (prices and DeFi, 53 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/web (web, documents and search, 39 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/compliance (company, compliance and checks, 47 tools)
+  - https://agent-data-tools.revmesh2074.workers.dev/mcp/chain (chain data, 366 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/ai (AI text, 34 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/everyday (everyday data, 27 tools)
   - https://agent-data-tools.revmesh2074.workers.dev/mcp/utilities (utilities, 105 tools)

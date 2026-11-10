@@ -204,3 +204,33 @@ test('empty call: a price call with no input at all answers for BTC with a note;
     await assert.rejects(T.TOOLS['/sanctions/check'](env, (n) => (n === T.NO_INPUT ? '1' : undefined)), (e) => e.status === 400);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('payout wallets: the declaration names every wallet a quote or a catalogue can show, and only real addresses', async () => {
+  const { payoutWallets, paycheckDeclaration, PREVIOUS_PAY_TO } = await load('src/lib/payout-wallets.ts');
+  const fs = require('node:fs');
+  // The production settings: every wallet named there is declared.
+  const vars = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8').replace(/^\s*\/\/.*$/gm, '')).vars;
+  const declared = payoutWallets(vars);
+  const lower = declared.map((a) => a.toLowerCase());
+  assert.ok(lower.includes(vars.PAY_TO.toLowerCase()), 'the live EVM wallet');
+  if (vars.TEMPO_PAY_TO) assert.ok(lower.includes(vars.TEMPO_PAY_TO.toLowerCase()), 'the Tempo wallet');
+  if (vars.SOLANA_PAY_TO) assert.ok(declared.includes(vars.SOLANA_PAY_TO), 'the Solana wallet, case kept');
+  // The wallet in use until 7 Nov 2026: most Bazaar listings still show it, so it stays declared.
+  assert.ok(PREVIOUS_PAY_TO.includes('0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5'));
+  for (const a of PREVIOUS_PAY_TO) assert.ok(lower.includes(a.toLowerCase()), a);
+  assert.equal(new Set(lower).size, lower.length, 'no repeats');
+  assert.equal(declared[0].toLowerCase(), vars.PAY_TO.toLowerCase(), 'current wallet first');
+  for (const a of declared.filter((x) => x.startsWith('0x'))) assert.match(a, /^0x[0-9a-fA-F]{40}$/);
+  // Junk settings never reach the file; an unset Solana wallet is simply absent.
+  assert.deepEqual(payoutWallets({ PAY_TO: 'not-an-address', TEMPO_PAY_TO: '', SOLANA_PAY_TO: '' }).map((a) => a.toLowerCase()), PREVIOUS_PAY_TO);
+  const file = paycheckDeclaration(vars);
+  assert.deepEqual(file.payTo, declared);
+  // The known-answer test is a real tool with a fixed answer.
+  const { ENDPOINTS } = await load('src/endpoints.ts');
+  for (const path of Object.keys(file.tests)) assert.ok(ENDPOINTS.some((e) => e.path === path), path);
+  const { BASICS } = await load('src/routes/ai-text.ts');
+  const keccak = await BASICS.find((e) => e.endpoint.path === '/keccak').run({}, (n) => file.tests['/keccak'][0].query[n]);
+  assert.equal(keccak.selector, file.tests['/keccak'][0].expect[0].equals);
+  // The route is registered.
+  assert.match(fs.readFileSync('src/index.ts', 'utf8'), /app\.get\("\/\.well-known\/paycheck\.json"/);
+});
