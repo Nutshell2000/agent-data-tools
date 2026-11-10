@@ -32,7 +32,7 @@ export function mppCreditOpenApiPaths() {
       get: {
         operationId: `buy-credits-${usd}`,
         summary: `Buy ${p.credits.toLocaleString("en-US")} prepaid tool credits for $${usd} (card, MPP)`,
-        description: `An agent pays $${usd} by card through MPP (Stripe, Link agent wallet) and gets an API key worth ${p.credits.toLocaleString("en-US")} credits (1 credit = $0.001) in the response, with no checkout page. The key pays any of the service's tools over HTTP (Authorization: Bearer <key>) or MCP (/mcp/k/<key>); most tools cost 3 credits per call and failed calls are refunded. To add credits to a key you already hold, send it as X-API-Key.`,
+        description: `An agent pays $${usd} by card through MPP (Stripe, Link agent wallet) and gets an API key worth ${p.credits.toLocaleString("en-US")} credits (1 credit = $0.001) in the response, with no checkout page. The key pays any of the service's tools over HTTP (Authorization: Bearer <key>) or MCP (/mcp/k/<key>); most tools cost 10 credits ($0.01) per call, everyday lookups 2, and failed calls are refunded. To add credits to a key you already hold, send it as X-API-Key.`,
         tags: ["credits"],
         "x-payment-info": paymentInfo({ amount: usd.toFixed(2) }, [{ mpp: { method: "stripe", intent: "charge", currency: "usd" } }], false),
         parameters: [{ name: "X-API-Key", in: "header", required: false, description: "Optional existing adt_ key to top up instead of creating a new one", schema: { type: "string", pattern: "^adt_[A-Za-z0-9_-]{20,}$" } }],
