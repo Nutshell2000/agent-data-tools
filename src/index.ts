@@ -47,6 +47,7 @@ import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
 import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
 import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
+import { paycheckDeclaration } from "./lib/payout-wallets";
 /** Query parameters that steer the call and are not tool input. */
 const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key"]);
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
@@ -640,6 +641,8 @@ app.get("/discovery/resources", (c) =>
 // Proves to the 402 Index directory that we run this domain. A hash, not a secret.
 app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
 // Glama connector ownership claim (public token bound to our Glama account; keep it published).
+// Our payout wallets, declared for the trust checkers that watch sellers for a hijacked wallet (src/lib/payout-wallets.ts).
+app.get("/.well-known/paycheck.json", (c) => c.json(paycheckDeclaration(c.env), 200, { "Cache-Control": "public, max-age=3600" }));
 app.get("/.well-known/glama.json", (c) => c.json({ $schema: "https://glama.ai/mcp/schemas/connector.json", claim: "glama_claim_n6dyHp-kpVDnsj1SvyWEhoeenwlxpGQj" }));
 app.get("/.well-known/mcp/server-card.json", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
 app.get("/.well-known/api-catalog", (c) =>

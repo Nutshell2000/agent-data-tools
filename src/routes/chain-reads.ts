@@ -129,6 +129,30 @@ const txHash = (v: string | undefined) => {
 };
 const iso = (seconds: bigint | number) => new Date(Number(seconds) * 1000).toISOString();
 const EX_ADDR = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+/**
+ * The example address of the transfer scans, per network: one that moves USDC all day, so the published example answers
+ * with transfers. With EX_ADDR (a personal wallet) the example returned an empty list on 17 networks and on both wallet
+ * scans (sweep of 11 Nov 2026), which is what a buyer's first try and a marketplace's test call saw. Uniswap's v4 pool
+ * manager where the network has one, otherwise the busiest USDC pool in the newest 1,000 blocks that day; each returned
+ * transfers through the tool itself. Recheck with the example sweep (business/agentic/release/train/sweep-shape.cjs).
+ */
+const EX_BUSY: Record<string, string> = {
+  base: "0x498581ff718922c3f8e6a244956af099b2652b2b", eth: "0x000000000004444c5dc75cb358380d2e3de08a90", arb: "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+  op: "0x9a13f98cb987694c9f086b1f5eb990eea8264ec3", polygon: "0x67366782805870060151383f4bbff9dab53e5cd6", avax: "0x06380c0e0912312b5150364b9dc4542ba0dbbc85",
+  unichain: "0x1f98400000000000000000000000000000000004", gnosis: "0xb45373129b4220160b92bd2320869f44d48ecd01", linea: "0x90e8a5b881d211f418d77ba8978788b62544914b",
+  scroll: "0x04566bf83399e4f750728d1ef57008aedda00e71", sonic: "0xcfd41df89d060b72ebdd50d65f9021e4457c477e", bera: "0x69fbaa80b560e425ff0ab0222335dc7f1eca7d90",
+  sei: "0xe62fd4661c85e126744cc335e9bca8ae3d5d19d1", celo: "0x1a810e0b6c2dd5629afa2f0c898b9512c6f78846", mantle: "0xa875ac23d106394d1baaae5bc42b951268bc04e2",
+  zksync: "0x7b217443bfa96950fb23ce9a387fbf0cb452e0c8", ink: "0xdfa03426d54e4f19ce789973731b82a2e7f5dc87",
+};
+const busyAddress = (slug: string) => EX_BUSY[slug] ?? EX_ADDR;
+/**
+ * The example contract of the event-log read where USDC is quiet (under one transfer in the default 50 blocks on
+ * 11 Nov 2026, so the example answered with no logs): the network's wrapped native token.
+ */
+const EX_LOGS: Record<string, string> = {
+  mantle: "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8", ink: "0x4200000000000000000000000000000000000006",
+  zksync: "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91", celo: "0x471EcE3750Da237f93B8E339c536989b8978a438",
+};
 export const USDC: Record<string, `0x${string}`> = {
   base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   eth: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
@@ -261,7 +285,8 @@ function chainEntries(c: ChainDef): Entry[] {
         const hash = txHash(q("hash"));
         const t = await historyRead(env, c, (cl) => cl.getTransaction({ hash }));
         return head({
-          hash: t.hash, from: t.from, to: t.to, value: formatEther(t.value), nonce: t.nonce, gas: t.gas.toString(),
+          // Some nodes leave the nonce out of an OP-stack deposit transaction: null then, never a missing field.
+          hash: t.hash, from: t.from, to: t.to, value: formatEther(t.value), nonce: t.nonce ?? null, gas: t.gas.toString(),
           selector: t.input.length >= 10 ? t.input.slice(0, 10) : null, inputBytes: (t.input.length - 2) / 2, block: t.blockNumber != null ? Number(t.blockNumber) : null,
         });
       }),
@@ -305,11 +330,11 @@ function chainEntries(c: ChainDef): Entry[] {
     entry(p("logs"), `${lead} event logs`,
       `Recent contract event logs on ${c.name} (eth_getLogs): the events a contract emitted over the last N blocks (1-1,000, default 50), optionally filtered by topic0 (the 0x 32-byte event signature hash). Returns up to 100 logs with block, transaction hash and topics. Use to watch transfers or contract events; for one transaction's outcome use ${c.slug}_receipt.`,
       tags("logs", "events", "chain-data"), {
-        address: { type: "string", description: "0x contract address", required: true, example: USDC[c.slug] },
+        address: { type: "string", description: "0x contract address", required: true, example: EX_LOGS[c.slug] ?? USDC[c.slug] },
         blocks: { type: "integer", description: "How many recent blocks to scan (1-1000, default 50)", example: 50 },
         topic0: { type: "string", description: "Optional 0x event signature hash to filter by", example: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" },
       },
-      head({ address: USDC[c.slug], fromBlock: 123456739, toBlock: 123456789, count: 2, truncated: false, logs: [{ block: 123456780, tx: "0x…", logIndex: 3, topics: ["0xddf2…"], data: "0x…" }] }),
+      head({ address: EX_LOGS[c.slug] ?? USDC[c.slug], fromBlock: 123456739, toBlock: 123456789, count: 2, truncated: false, logs: [{ block: 123456780, tx: "0x…", logIndex: 3, topics: ["0xddf2…"], data: "0x…" }] }),
       async (env, q) => {
         const a = address(q("address"));
         const span = BigInt(num(q, "blocks", { min: 1, max: 1000, fallback: 50, integer: true }));
@@ -328,11 +353,11 @@ function chainEntries(c: ChainDef): Entry[] {
     entry(p("token-transfers"), `Token transfers, ${c.name}`,
       `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
       tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
-        address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
+        address: { type: "string", description: "0x wallet or contract address", required: true, example: busyAddress(c.slug) },
         token: { type: "string", description: "Token: a ticker such as USDT or WETH, or the 0x ERC-20 contract (default: USDC on this network)", example: USDC[c.slug] },
         blocks: { type: "integer", description: `How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about ${BLOCK_WINDOW[c.slug]} on ${c.name})`, example: 1000 },
       },
-      head({ address: EX_ADDR, fromBlock: 123456290, toBlock: 123456789, count: 1, truncated: false, transfers: [{ block: 123456780, tx: "0x…", token: USDC[c.slug], symbol: "USDC", direction: "in", counterparty: "0x…", amount: "2.5", raw: "2500000" }] }),
+      head({ address: busyAddress(c.slug), fromBlock: 123456290, toBlock: 123456789, count: 1, truncated: false, transfers: [{ block: 123456780, tx: "0x…", token: USDC[c.slug], symbol: "USDC", direction: "in", counterparty: "0x…", amount: "2.5", raw: "2500000" }] }),
       async (env, q) => {
         const a = address(q("address"));
         const token = q("token") ? tokenInput(q("token"), c.slug) : USDC[c.slug];
@@ -818,7 +843,7 @@ const WALLET_BALANCES: Entry = entry("/wallet/balances", "Wallet balance, USDC b
 const RELATED_CHAINS = ["base", "eth", "arb", "op", "polygon"] as const;
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 const WALLET_SCAN_PARAMS = {
-  address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_ADDR },
+  address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_BUSY.base },
   chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: [...RELATED_CHAINS], example: "base" },
   blocks: { type: "integer", description: "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)", example: 2000 },
 } as const;
@@ -881,7 +906,7 @@ const WALLET_RELATED: Entry = entry("/wallet/related", "Related wallets, counter
   "Related wallets of a 0x address: who it sent ERC-20 tokens to or got them from over recent blocks, ranked by transfers, with sent and received counts, tokens, USDC in and out, first and last block, and wallet or contract. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to map who a wallet trades with, find linked wallets before paying, or trace where funds went.",
   ["related-wallets", "counterparties", "wallet", "onchain-analytics", "evm", "blockchain"],
   { ...WALLET_SCAN_PARAMS },
-  { address: EX_ADDR, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, transfersScanned: 2, truncated: false, counterparties: [
+  { address: EX_BUSY.base, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, transfersScanned: 2, truncated: false, counterparties: [
     { address: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", kind: "wallet", transfers: 2, sent: 1, received: 1, tokens: ["USDC"], usdcSent: "1.5", usdcReceived: "0.25", firstBlock: 123452001, lastBlock: 123456700 },
   ], coverage: "all ERC-20 tokens", note: "ERC-20 Transfer logs only; native-coin transfers are not included." },
   async (env, q) => {
@@ -939,7 +964,7 @@ const WALLET_TRANSACTIONS: Entry = entry("/wallet/transactions", "Wallet transac
   "Recent token transactions of any 0x address across every ERC-20 it holds: the newest 50 transfers in or out over recent blocks, each with token symbol, amount, counterparty, direction, block and transaction hash. Live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon; native-coin transfers are not included. Use to see what a wallet did lately, confirm a payment in any token, or audit activity before a deal.",
   ["wallet-transactions", "transaction-history", "token-transfers", "wallet", "evm", "blockchain"],
   { ...WALLET_SCAN_PARAMS },
-  { address: EX_ADDR, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, count: 1, truncated: false, transfers: [
+  { address: EX_BUSY.base, chain: "Base", chainId: 8453, fromBlock: 123454790, toBlock: 123456789, count: 1, truncated: false, transfers: [
     { block: 123456700, tx: "0x…", token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", direction: "out", counterparty: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", amount: "1.5", raw: "1500000" },
   ], coverage: "all ERC-20 tokens", note: "ERC-20 Transfer logs only; native-coin transfers are not included." },
   async (env, q) => {

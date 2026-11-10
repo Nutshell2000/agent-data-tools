@@ -267,7 +267,14 @@ export const PUBLIC_DATA: Entry[] = [
 
   entry("/hackernews/top", "Hacker News top stories", "Current top stories on Hacker News: title, link, points, comment count, author, age and discussion URL (official HN API). Use to follow what developers are discussing right now.",
     ["news", "hackernews", "tech", ...P], { count: { type: "integer", description: "How many (1-20, default 10)", example: 5 } },
-    { count: 1, stories: [{ id: 1, title: "Show HN: …", url: "https://…", points: 312, comments: 140, by: "user", time: "2026-10-18T09:00:00.000Z", discussion: "https://news.ycombinator.com/item?id=1" }] },
+    // Five stories, as the example input asks for (the listing showed count 1 beside count=5 until 1.111.4).
+    { count: 5, stories: [
+      { id: 1, title: "Show HN: …", url: "https://…", points: 312, comments: 140, by: "user", time: "2026-10-18T09:00:00.000Z", discussion: "https://news.ycombinator.com/item?id=1" },
+      { id: 2, title: "…", url: "https://…", points: 268, comments: 97, by: "user", time: "2026-10-18T08:10:00.000Z", discussion: "https://news.ycombinator.com/item?id=2" },
+      { id: 3, title: "…", url: "https://…", points: 201, comments: 54, by: "user", time: "2026-10-18T07:45:00.000Z", discussion: "https://news.ycombinator.com/item?id=3" },
+      { id: 4, title: "…", url: "https://…", points: 150, comments: 212, by: "user", time: "2026-10-18T06:30:00.000Z", discussion: "https://news.ycombinator.com/item?id=4" },
+      { id: 5, title: "…", url: "https://…", points: 96, comments: 31, by: "user", time: "2026-10-18T05:05:00.000Z", discussion: "https://news.ycombinator.com/item?id=5" },
+    ] },
     async (_e, q) => {
       const n = num(q, "count", { min: 1, max: 20, fallback: 10, integer: true });
       const ids = await getJson<number[]>("https://hacker-news.firebaseio.com/v0/topstories.json");

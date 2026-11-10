@@ -111,8 +111,9 @@ const PRICE_TOOLS: Entry[] = [
     },
     {
       chain: "Base", chainId: 8453,
-      token: { address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", symbol: "cbBTC", decimals: 8 },
-      priceUsd: 104250.5, quotedIn: "USDC",
+      // The answer for the example input, symbol=ETH (the listing showed cbBTC beside it until 1.111.4).
+      token: { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18 },
+      priceUsd: 3850.12, quotedIn: "USDC",
       pool: { address: "0x…", feeTier: 500, quoteReserve: 2500000.25, quoteReserveUsd: 2500000.25 },
       ethUsd: 3850.12, thinLiquidity: false, block: 37000000,
       method: "Uniswap v3 spot price from the pool with the largest USDC or WETH reserve",

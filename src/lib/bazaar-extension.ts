@@ -150,7 +150,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/pack/hash-toolbox": ["hash-generator", "developer-tools"], "/pack/json-toolbox": ["json-tools", "developer-tools"],
   "/pack/encoding-toolbox": ["encoding-tools", "developer-tools"], "/pack/string-toolbox": ["string-utilities", "developer-tools"],
   "/pack/id-toolbox": ["id-generator", "ulid"], "/pack/evm-toolbox": ["evm-tools", "developer-utilities"],
-  "/pack/domain-intel": ["domain-intelligence", "company-enrichment", "company-research"], "/pack/tx-explain": ["transaction-explainer", "explain-transaction"],
+  "/pack/domain-intel": ["domain-intel", "domain-intelligence", "company-enrichment", "company-research"], "/pack/tx-explain": ["transaction-explainer", "explain-transaction"],
   "/pack/coin-research": ["coin-research", "crypto-research"], "/pack/wallet-profile": ["wallet-profile", "wallet-analysis"],
   // Contract reads of 1.52.0 on every network, phrased like the most-paid single reads (onesource.io, 23 Oct).
   ...Object.fromEntries(["base", "eth", "arb", "op", "polygon"].flatMap((s) => [
@@ -160,9 +160,25 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   ])),
 });
 
+/**
+ * Phrase tags for the 20 tools whose listing went out with three or four tags (quote sweep of 11 Nov 2026): the Bazaar
+ * matches a listing's first five, so a missing one is a search the tool cannot be found by. They follow SEARCH_TAGS and
+ * come before the tool's own tags. tests/listing-quality.test.cjs requires five on every tool.
+ */
+export const FILL_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  "/case": ["camelcase", "snake-case"], "/text/stats": ["reading-time", "character-count"], "/text/diff": ["compare-text", "diff-checker"],
+  "/regex/test": ["regular-expression", "regex-match"], "/echo": ["echo-test", "paid-call-test"],
+  "/air-quality": ["aqi", "air-pollution"], "/uv": ["uv-index", "sun-safety"], "/elevation": ["altitude", "terrain-height", "height-above-sea-level"],
+  "/crypto/price": ["crypto-prices", "coin-price"], "/hackernews/top": ["hacker-news", "top-stories"], "/iss": ["iss-location", "space-station"],
+  "/coin": ["coin-flip", "heads-or-tails", "flip-a-coin"], "/dice": ["dice-roll", "roll-dice"], "/magic-8-ball": ["magic-8-ball", "fortune"],
+  "/random/number": ["random-number", "random-number-generator", "rng"], "/random/pick": ["random-picker", "random-choice"],
+  "/random/shuffle": ["shuffle-list", "randomize-list", "random-order"], "/random/teams": ["team-generator", "random-teams", "group-maker"],
+  "/random/color": ["random-color", "color-generator"], "/yes-no": ["yes-or-no", "decision-maker", "random-decision"],
+});
+
 /** The tool's tags with its search-phrase tags first, without duplicates (the full list, for our own discovery index). */
 export function searchTagged(tags: readonly string[], path?: string): string[] {
-  return [...new Set([...(path ? SEARCH_TAGS[path] ?? [] : []), ...tags])];
+  return [...new Set([...(path ? [...(SEARCH_TAGS[path] ?? []), ...(FILL_TAGS[path] ?? [])] : []), ...tags])];
 }
 
 /**

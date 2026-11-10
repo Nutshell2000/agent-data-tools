@@ -7,7 +7,10 @@ export function parseDate(raw: string | undefined, dayTime = "T00:00:00Z"): Date
   if (!v) return null;
   const word = v.toLowerCase();
   if (word === "now") return new Date();
-  const dayOffset = { today: 0, tomorrow: 1, yesterday: -1 }[word];
+  // Object.hasOwn: "constructor" and "__proto__" are keys of every object literal; without it they came back as functions,
+  // the date was invalid and toISOString threw, a 500 on /date/add, /date/info, /sun and /moon (sweep of 11 Nov 2026).
+  const DAY_WORDS: Record<string, number> = { today: 0, tomorrow: 1, yesterday: -1 };
+  const dayOffset = Object.hasOwn(DAY_WORDS, word) ? DAY_WORDS[word] : undefined;
   if (dayOffset !== undefined) {
     const d = new Date(new Date().toISOString().slice(0, 10) + dayTime);
     d.setUTCDate(d.getUTCDate() + dayOffset);
