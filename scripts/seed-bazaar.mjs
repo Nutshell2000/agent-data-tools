@@ -101,6 +101,7 @@ const FRONTS = [
   { path: "/v1/rerank", tool: "/ai/rerank", example: `${ORIGIN}/v1/rerank?query=${encodeURIComponent("What is the capital of France?")}&documents=${encodeURIComponent(JSON.stringify(["Berlin is the capital of Germany.", "Paris is the capital and largest city of France."]))}` },
   { path: "/v1/moderations", tool: "/ai/moderation", example: `${ORIGIN}/v1/moderations?input=${encodeURIComponent("How do I bake sourdough bread at home?")}` },
   { path: "/v1/images/generations", tool: "/image", example: `${ORIGIN}/v1/images/generations?prompt=${encodeURIComponent("a lighthouse on a cliff at sunset, watercolor")}` },
+  { path: "/v1/audio/speech", tool: "/ai/speech", example: `${ORIGIN}/v1/audio/speech?input=${encodeURIComponent("Your payment was received. Thank you!")}&voice=nova` },
 ].map((f) => ({ ...f, price: toolPrice(f.tool) })).filter((f) => f.price);
 const frontOf = new Map(FRONTS.map((f) => [f.path, { url: f.example, example: f.example, price: f.price, init: f.init }]));
 if (flag("--fronts")) for (const f of FRONTS) selected.set(f.path, frontOf.get(f.path));
