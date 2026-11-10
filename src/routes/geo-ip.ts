@@ -2,7 +2,7 @@
 // top 20 and "ip geolocation" 50, "distance between" 43, no listing of ours. /ip/lookup reads the regional internet
 // registries' public RDAP records through rdap.org (the same source /domain uses): who holds the network, its range,
 // type and registration country. It is not city-level geolocation, and the copy says so. /geo/distance is local math.
-import { entry, need, num, type Entry } from "../family";
+import { entry, num, opt, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
 import { countryName } from "../lib/country-code";
 import { bigToIp, findInShard, isReservedIp, parseIp, shardIndex, shardKey } from "../lib/ip-geo";
@@ -37,6 +37,27 @@ export async function geolocate(kv: GeoKv | null, raw: string) {
 }
 
 const U = ["utility", "data"];
+
+/**
+ * The reserved input name under which the HTTP route hands a tool the address the request came from (src/index.ts). It
+ * is never read from the query string, and MCP and the packs do not set it.
+ */
+export const CALLER_IP_INPUT = "@caller-ip";
+const OWN_IP_NOTE = "No ip was sent, so this is the public address this request came from. Send ip=<address> to look up another one.";
+/**
+ * The address to look up: the one sent, or the caller's own public address when none was (11 Nov 2026). /status showed
+ * paid calls refused with "ip is required": routers and first-time buyers call the bare URL, and "what is my IP" is the
+ * conventional answer of an IP API to that call. Only over plain HTTP, where the caller's address is the buyer's own;
+ * over MCP the request comes from the assistant's host, so `ip` stays needed there.
+ */
+export function ipOrCaller(q: Input): { ip: string; own: boolean } {
+  const sent = opt(q, "ip", 64);
+  if (sent) return { ip: sent.replace(/^\[|\]$/g, ""), own: false };
+  const caller = q(CALLER_IP_INPUT)?.trim() ?? "";
+  const v = ipKind(caller);
+  if (v && !isNonPublic(caller, v)) return { ip: caller, own: true };
+  throw new HttpError(400, "ip is required");
+}
 
 /**
  * One end of /geo/distance: lat<n>/lon<n>, or `from`/`to` as "59.33,18.07" or a major city by name (the weather tool's
@@ -161,19 +182,24 @@ const r = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
 export const GEO_IP: Entry[] = [
   entry("/ip/geolocate", "IP geolocation: city, region, country and coordinates",
-    "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the address range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attribution in every answer). City level at best; private and reserved addresses are refused. Use to localise a visitor or caller, pick a region or enrich logs; for the network owner and registry record use ip_lookup.",
+    "Geolocate an IPv4 or IPv6 address to its city, region, country (code and name), continent and approximate latitude and longitude, with the range the record covers, from DB-IP's City Lite data (CC BY 4.0, monthly; attributed in every answer). An HTTP call without ip answers for the caller's own address. City level at best; private addresses are refused. Use to localise a visitor or caller, or enrich logs; for the network owner use ip_lookup.",
     ["ip-geolocation", "ip-location", "geoip", "ip-to-city", "ip-address", "geo"], {
-      ip: { type: "string", description: "Public IPv4 or IPv6 address", required: true, example: "8.8.8.8" },
+      ip: { type: "string", description: "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)", example: "8.8.8.8" },
     },
     { ip: "8.8.8.8", version: 4, country: "US", countryName: "United States", region: "California", city: "Mountain View", latitude: 37.4056, longitude: -122.0775, continent: "NA", continentName: "North America", range: "8.8.8.0-8.8.8.255", accuracy: "city level at best; the free Lite data set, updated monthly", dataMonth: "2026-10", attribution: DBIP_ATTRIBUTION, attributionUrl: "https://db-ip.com" },
-    (env, q) => geolocate(env.TRIALS ?? null, need(q, "ip", 60))),
+    async (env, q) => {
+      const { ip, own } = ipOrCaller(q);
+      const found = await geolocate(env.TRIALS ?? null, ip);
+      return own ? { ...found, note: OWN_IP_NOTE } : found;
+    }),
 
   entry("/ip/lookup", "IP lookup: owner, network range and country (RDAP)",
-    "Look up who holds an IPv4 or IPv6 address in the regional internet registries' public RDAP records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP a log or firewall address belongs to. Registration country, not city geolocation. Private and reserved addresses are refused with 400, uncharged.",
-    ["ip-lookup", "ip", "rdap", "whois", "network", ...U], { ip: { type: "string", description: "Public IPv4 or IPv6 address", required: true, example: "8.8.8.8" } },
+    "Look up who holds an IP address (v4 or v6) in the regional internet registries' public records (ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC): the holding organisation, network name and range, allocation type, registration country, abuse contact and registry. Use to see which company or ISP an address in a log belongs to. An HTTP call without ip answers for the caller's own address. Registration country, not city location.",
+    ["ip-lookup", "ip", "rdap", "whois", "network", ...U], { ip: { type: "string", description: "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)", example: "8.8.8.8" } },
     { ip: "8.8.8.8", version: 4, registry: "ARIN", network: { name: "GOGL", handle: "NET-8-8-8-0-2", start: "8.8.8.0", end: "8.8.8.255", type: "DIRECT ALLOCATION" }, holder: { name: "Google LLC", handle: "GOGL", kind: "org", country: "US" }, country: "US", abuseEmail: "network-abuse@google.com", registered: "2023-12-28T17:24:33-05:00", lastChanged: "2023-12-28T17:24:56-05:00", source: "RDAP via rdap.org" },
     async (_e, q) => {
-      const ip = need(q, "ip", 64).trim().replace(/^\[|\]$/g, "");
+      const { ip, own } = ipOrCaller(q);
+      const mine = <T extends object>(answer: T) => (own ? { ...answer, note: OWN_IP_NOTE } : answer);
       const v = ipKind(ip);
       if (!v) throw new HttpError(400, "ip must be an IPv4 or IPv6 address");
       if (isNonPublic(ip, v)) throw new HttpError(400, "this is a private or reserved address; registries hold no record for it (ip_info classifies it for free of network calls)");
@@ -190,7 +216,7 @@ export const GEO_IP: Entry[] = [
       if (!res || res.status >= 500) {
         await res?.body?.cancel().catch(() => {});
         const whois = await whoisFallback(ip, v);
-        if (whois) return whois;
+        if (whois) return mine(whois);
         throw new HttpError(502, res ? `the registry answered HTTP ${res.status}; try again` : "the registry did not answer in time; try again");
       }
       if (res.status === 404) throw new HttpError(404, "no registry record for this address");
@@ -198,12 +224,12 @@ export const GEO_IP: Entry[] = [
       const d = (await res.json()) as RdapIp;
       const holder = holderOf(d.entities);
       const event = (a: string) => d.events?.find((e) => e.eventAction === a)?.eventDate ?? null;
-      return {
+      return mine({
         ip, version: v, registry: (d.port43 && REGISTRY[d.port43.toLowerCase()]) ?? d.port43 ?? null,
         network: { name: d.name ?? null, handle: d.handle ?? null, start: d.startAddress ?? null, end: d.endAddress ?? null, type: d.type ?? null },
         holder, country: (d.country?.toUpperCase() || holder?.country) ?? null, abuseEmail: abuseOf(d.entities),
         registered: event("registration"), lastChanged: event("last changed"), source: "RDAP via rdap.org",
-      };
+      });
     }),
 
   entry("/geo/distance", "Distance between coordinates: km, miles, bearing and midpoint",
