@@ -1100,3 +1100,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Where the evidence came from: vAPI Network (vapinetwork.ai). Its Earn quests bring about 100 new wallets a day; its marketplace "vAPI Call" mirrors the Coinbase Bazaar, shows a mirrored listing only when its Bazaar record was updated in the last 24 hours, and its console pays from an empty form. Free search API: `api.vapinetwork.ai/api/call/discovery?q=…&kinds=api`; our position per task: `business/agentic/base-bots/vapi-ranks.mjs`; the cohort's purchases: `vapi-cohort.mjs`.
 - The Coinbase Bazaar's default list is scored down to about #5,790 and then starts again with freshly paid listings; the scored part is 96% listings older than about 30 days (`business/agentic/base-bots/bazaar-tier-watch.mjs`, prediction and check dates in its header). A new URL starts outside it, so do not move or rename paths.
 
+
+## The Claude Code plugin lives in claude-plugin/ (1.111.3, 10 Nov 2026)
+
+- The plugin directory (claude.ai/directory/manage, Submit new, Plugin bundle) validates the whole plugin folder. The repository root as the plugin failed with 3 blocking issues and 69 policy holds, all from the service's own files. The plugin is now `claude-plugin/`: `.claude-plugin/plugin.json`, `.claude-plugin/icon.png` (512 px) and `skills/agent-data-tools/SKILL.md`. Nothing else may be added there: tests/catalog-skill.test.cjs lists the folder's files exactly.
+- `scripts/build-catalog-skill.mjs` writes the skill to `skills/agent-data-tools/` (for `npx skills add`) and to `claude-plugin/skills/agent-data-tools/`; a plugin cannot read outside its folder. `.claude-plugin/marketplace.json` at the root points at `./claude-plugin`.
+- In the directory form use repository `Nutshell2000/agent-data-tools` with plugin path `claude-plugin` and the default branch. A branch name with a slash must go in the branch field, not in a /tree/ link. The form's Compliance step agrees to the directory terms on behalf of the owner's organization: the owner ticks it.
+- Bump `version` in plugin.json when the skill or the server URL changes; the directory tracks the default branch.
