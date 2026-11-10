@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.112.0";
+export const MCP_SERVER_VERSION = "1.113.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -381,7 +381,7 @@ ${rows}
 <p>Call any endpoint. Without payment it answers <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header describing the price in USDC on Base (x402 v2, exact scheme) and a <code>WWW-Authenticate: Payment</code> challenge for MPP (USDC on Base or USDC.e on Tempo). An x402 client signs the payment and retries with a <code>PAYMENT-SIGNATURE</code> header; an MPP client (mppx) answers the challenge in <code>Authorization: Payment</code>. Calls that fail are not charged.</p>
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
-<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code>, <code>POST /v1/embeddings</code> and <code>POST /v1/images/generations</code> run the same paid tools at the same prices (Llama 4 Scout with function calling at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
+<p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code>, <code>POST /v1/embeddings</code>, <code>POST /v1/images/generations</code> and <code>POST /v1/audio/speech</code> run the same paid tools at the same prices (Llama 4 Scout with function calling at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
     <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
@@ -443,7 +443,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
+    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...openAiSpeechOpenApiPath(origin, { short: catalogEndpoint(SPEECH_TOOL_PATH).price, long: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price }, mpp), ...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       salesOrdered(ENDPOINTS).map((e) => [
         e.path,
         {
@@ -513,6 +513,7 @@ import { CAPACITY_LIMITED } from "./lib/capacity";
 import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/openai-chat";
 import { EMBED_TOOL_PATH, openAiEmbeddingsOpenApiPath } from "./lib/openai-embeddings";
 import { IMAGE_TOOL_PATH, openAiImagesOpenApiPath } from "./lib/openai-images";
+import { SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, openAiSpeechOpenApiPath } from "./lib/openai-speech";
 import { anthropicMessagesOpenApiPath } from "./lib/anthropic-messages";
 import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
 import { MODELS } from "./lib/ai";
