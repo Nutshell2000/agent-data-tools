@@ -2,6 +2,7 @@ import type { SettleResultContext } from "@x402/core/server";
 import { ENDPOINTS } from "../endpoints";
 import { PRODUCTS } from "../store/catalog";
 import { activeTrace } from "./funnel";
+import { USDC_PACKS, usdcPackPath } from "./credits";
 import { SOLANA_NETWORK, SOLANA_USDC, TEMPO_STABLECOIN, USDC_BY_NETWORK } from "./networks";
 
 const ADDRESS = /^0x[0-9a-f]{40}$/;
@@ -14,7 +15,8 @@ const OWNED_WALLETS = new Set([
   // recorded as self-payments, never revenue or demand.
   "0x4d4aeb549f7024de1cea777af70f844bafcff8d3",
 ]);
-const PATHS = new Set([...ENDPOINTS.map(e => e.path), ...PRODUCTS.map(p => `/buy/${p.slug}`)]);
+// Prepaid credit packs bought with USDC (lib/usdc-credits.ts) settle through the same hook and are income like a tool call.
+const PATHS = new Set([...ENDPOINTS.map(e => e.path), ...PRODUCTS.map(p => `/buy/${p.slug}`), ...USDC_PACKS.map(usdcPackPath)]);
 const object = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" ? value as Record<string, unknown> : null;
 
