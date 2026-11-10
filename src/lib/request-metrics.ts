@@ -44,7 +44,12 @@ export function requestMetricsMiddleware(
     queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), c.req.path, outcome, revenueUsdMicros, caller);
     // Why it failed, so /status can show it (the 21-23 Oct /pdf/text failures could not be diagnosed without logs).
     if ((outcome === "failed" || outcome === "errored") && json) {
-      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, body?.error)}`, outcome);
+      // A paying caller refused for its inputs (a 400 on a request that carried a payment): also keep the NAMES of the
+      // inputs it sent, never their values, so the next alias we lack is visible on /status (10 Nov 2026: /weather and
+      // /llm/chat refused paid calls and nothing showed what the buyers had sent instead of city and prompt).
+      const paying = c.req.header("payment-signature") || c.req.header("x-payment") || /(^|,)\s*Payment\s/i.test(c.req.header("authorization") ?? "");
+      const sent = c.res.status === 400 && paying ? sentInputNames(new URL(c.req.url).searchParams) : "";
+      queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${failureReason(c.res.status, body?.error)}${sent}`, outcome);
     }
     // Why a buyer's payment was refused: until 1.84.2 this reached only wrangler tail, so lost buyers could not be explained.
     if (outcome === "v2_payment" || outcome === "v1_payment" || outcome === "mpp_payment") {
@@ -52,6 +57,12 @@ export function requestMetricsMiddleware(
       queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${refusalReason(reason)}`, outcome);
     }
   };
+}
+
+/** " [sent a,b]": up to six input names of a request, lower-case identifiers only (letters and underscores, 24 at most). */
+export function sentInputNames(params: URLSearchParams): string {
+  const names = [...new Set([...params.keys()].filter((k) => /^[A-Za-z_]{1,24}$/.test(k)).map((k) => k.toLowerCase()))].sort().slice(0, 6);
+  return names.length ? ` [sent ${names.join(",")}]` : " [sent nothing]";
 }
 
 /** The refusal message a v2 402 carries in its PAYMENT-REQUIRED header. */
