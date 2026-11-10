@@ -109,7 +109,7 @@ const CORE_DOMAIN = core("/domain", "$0.01", {
 }, (_env, q) => domainInfo(q("name") ?? ""));
 
 const CORE_FX = core("/fx", "$0.01", {
-  from: { type: "string", description: "Base currency as a three-letter ISO 4217 code, e.g. USD", required: true, example: "USD" },
+  from: { type: "string", description: "Base currency as a three-letter ISO 4217 code, e.g. USD (an HTTP call with no input at all answers for USD)", required: true, example: "USD" },
   to: { type: "string", description: "Optional comma-separated target currency codes, e.g. EUR,GBP; default is all available currencies", example: "EUR,GBP,SEK" },
   amount: { type: "number", description: "Optional amount of the base currency to convert (default 1)", example: 100 },
 }, {

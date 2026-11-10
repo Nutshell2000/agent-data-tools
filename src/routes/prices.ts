@@ -153,7 +153,7 @@ const PRICE_TOOLS: Entry[] = [
   entry("/price/tokens", "Crypto prices in USD for up to 20 tokens in one call",
     "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call.",
     ["price", "token", "batch", "crypto", "market-data", "uniswap", "defi"], {
-      symbols: { type: "string", description: "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all)", example: "ETH,BTC,AERO" },
+      symbols: { type: "string", description: "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all; an HTTP call with no input at all answers for BTC and ETH)", example: "ETH,BTC,AERO" },
       addresses: { type: "string", description: "Comma-separated 0x ERC-20 token addresses (with or instead of symbols; 1-20 tokens in all)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf,0x4200000000000000000000000000000000000006" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
