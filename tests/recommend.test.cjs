@@ -27,6 +27,25 @@ test('recommend: plain task words find the right tools with exact call URLs, wit
   assert.ok(!r.picks.some((p) => p.tool === '/recommend'), 'never recommends itself');
 });
 
+test('recommend: the phrase as written decides between tools that share its words, and a door\'s phrase finds the tool it runs', async () => {
+  const { recommend, lexicalScore, asWritten } = await load();
+  // 1.110.0's free finder answered /transcribe for "text to speech": both tools hold both words once "to" is dropped.
+  const first = async (need) => (await recommend({}, need, 2, null)).picks[0].tool;
+  assert.equal(await first('text to speech'), '/ai/speech');
+  assert.equal(await first('speech to text'), '/transcribe');
+  assert.equal(await first('Text-to-Speech'), '/ai/speech');
+  // Entry paths are not recommended themselves; the phrase each was named for finds its canonical tool.
+  for (const [need, tool] of Object.entries({ 'usdc yield': '/defi/yields', 'current weather': '/weather', 'web fetch': '/extract', 'crypto news': '/news', 'email verification': '/email', 'fear and greed': '/crypto/fear-greed', 'national debt': '/econ/national-debt', 'pdf to text': '/pdf/text', 'website audit': '/audit/website' })) {
+    assert.equal(await first(need), tool, need);
+  }
+  assert.equal(asWritten('  Text-to-Speech!  '), 'text to speech');
+  const doc = (name, tags = []) => ({ path: '/x', name, tags, summary: name, description: name, price: '$0.01' });
+  const q = ['text', 'speech'];
+  assert.ok(lexicalScore(q, doc('Text to speech, TTS'), 'text to speech') > lexicalScore(q, doc('Speech to text, transcribe audio'), 'text to speech'));
+  // One word is no phrase: nothing is added for it.
+  assert.equal(lexicalScore(['weather'], doc('Weather forecast'), 'weather'), lexicalScore(['weather'], doc('Weather forecast')));
+});
+
 test('recommend: the reranker reorders the candidates; its failure falls back to lexical order; nonsense is a 400 or 404', async () => {
   const { recommend } = await load();
   const reversed = async (_q, docs) => docs.map((_, i) => i / docs.length);
