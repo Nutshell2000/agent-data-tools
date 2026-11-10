@@ -12,6 +12,7 @@ import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { liveAnswer } from "./lib/live-pages";
+import { withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -87,6 +88,20 @@ app.use(async (c, next) => {
   }
 });
 
+// Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
+app.use(async (c, next) => {
+  await next();
+  const site = c.env.PUBLIC_SITE_ORIGIN;
+  if (!site || c.req.method !== "GET" || c.res.status !== 200 || !(c.res.headers.get("content-type") ?? "").includes("text/html")) return;
+  const here = origin(c.req.url);
+  if (here === site) return;
+  const html = await c.res.text();
+  const headers = new Headers(c.res.headers);
+  headers.delete("content-length");
+  const rewritten = new Response(withPublicCanonical(html, here, site), { status: 200, headers });
+  c.res = undefined as never;
+  c.res = rewritten;
+});
 // /weather/today (1.105.0, one day old, never on the Bazaar) became /weather/current in 1.107.0: the few catalogs that
 // crawled the old path are sent on with the same query, and a paying client's retry follows the same redirect.
 app.use(async (c, next) => {
