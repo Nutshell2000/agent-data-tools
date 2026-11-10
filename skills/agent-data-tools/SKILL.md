@@ -7,7 +7,7 @@ metadata:
 
 # Agent Data Tools
 
-More than 600 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 25 free successful calls, and after that a call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
+More than 600 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 3 free successful calls over HTTP (25 through the MCP server), and after that a call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
 
 ## 1. Find the tool (free)
 

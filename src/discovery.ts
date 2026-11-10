@@ -1,4 +1,4 @@
-import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY } from "./lib/free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { listingName as bazaarName } from "./lib/bazaar-extension";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.115.0";
+export const MCP_SERVER_VERSION = "1.116.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -22,7 +22,7 @@ export const exampleQuery = (e: Endpoint) =>
 
 const trialNote = (enabled: boolean) =>
   enabled
-    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls (failed calls do not count). Over MCP they are used automatically before any payment; over HTTP add trial=1 to a GET request. Not for the AI, rendering, screenshot, transcription and search tools, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. When they run out, a card key from /credits continues the same URLs (api_key=adt_… in the URL for clients that cannot set headers). The operator can switch this off.`
+    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls over MCP, used automatically before any payment, or ${FREE_HTTP_CALLS_PER_CALLER} over HTTP by adding trial=1 to a GET request (failed calls do not count). Not for the AI, rendering, screenshot, transcription and search tools, nor over HTTP for PDF reading, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. When they run out, a card key from /credits continues the same URLs (api_key=adt_… in the URL for clients that cannot set headers). The operator can switch this off.`
     : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
 /** Every way a buyer can pay per call: the x402 networks (primary first) and the MPP methods (Tempo first). */
@@ -56,7 +56,7 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
     capabilities: { tools: { listChanged: false } },
     // /mcp needs no sign-in; /mcp/account is the same tools behind OAuth for app directories.
     authentication: { required: false, optional: { type: "oauth2", endpoint: `${origin}/mcp/account`, metadata: `${origin}/.well-known/oauth-authorization-server` } },
-    freeCalls: { perCaller: FREE_CALLS_PER_CALLER },
+    freeCalls: { perCaller: FREE_CALLS_PER_CALLER, perCallerHttp: FREE_HTTP_CALLS_PER_CALLER },
     payment: {
       // MCP tool payments accept x402 on every network listed (the first is the default).
       protocol: "x402", asset: "USDC", network: networks[0], networks,
@@ -102,7 +102,7 @@ export function aiPluginManifest(origin: string) {
     name_for_human: SERVICE_NAME,
     name_for_model: "agent_data_tools",
     description_for_human: "Pay-per-call data tools for AI agents: payee and sanctions checks, prices, chain data, web reading.",
-    description_for_model: `${SERVICE_SUMMARY} Every unpaid call answers HTTP 402 with x402 and MPP payment terms; ${FREE_CALLS_PER_CALLER} free calls per caller with trial=1. Pick a tool from ${origin}/llms.txt or ${origin}/discovery/resources.`,
+    description_for_model: `${SERVICE_SUMMARY} Every unpaid call answers HTTP 402 with x402 and MPP payment terms; ${FREE_HTTP_CALLS_PER_CALLER} free calls per caller with trial=1 (${FREE_CALLS_PER_CALLER} over MCP). Pick a tool from ${origin}/llms.txt or ${origin}/discovery/resources.`,
     auth: { type: "none" },
     api: { type: "openapi", url: `${origin}/openapi.json` },
     logo_url: `${origin}/logo.png`,
