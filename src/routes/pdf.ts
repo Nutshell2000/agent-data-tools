@@ -98,5 +98,7 @@ export const PDF: Entry[] = [
       // checks the %PDF signature itself, so the type check only refused real PDFs.
       const file = await fetchFile(pdfUrl(q("url")), /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
       return { url: file.url, ...(await readPdf(file.bytes, firstPage, want, maxChars)) };
-    }, "$0.005"),
+      // $0.002 since 10 Nov 2026 (owner: "add a very low price for the heavy user"): the one tool with large direct demand (400-1,300
+  // free reads a day) leaves the HTTP free calls the same day, so the price a refused caller sees is the lowest we have.
+  }, "$0.002"),
 ];

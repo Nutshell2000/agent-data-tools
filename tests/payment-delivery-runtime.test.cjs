@@ -225,8 +225,8 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
  const plain=await mfFree.dispatchFetch(url);assert.equal(plain.status,402);assert.match((await plain.json()).hint,/^Try it free: add trial=1/);
  const ip={'cf-connecting-ip':'198.51.100.7'};
- const first=await mfFree.dispatchFetch(url+'&trial=1',{headers:ip});assert.equal(first.status,200);assert.equal(first.headers.get('X-Free-Trial-Remaining'),'24');await first.arrayBuffer();
- const failed=await mfFree.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail&trial=1',{headers:ip});assert.ok(failed.status>=400);assert.equal(failed.headers.get('X-Free-Trial-Remaining'),'24');await failed.arrayBuffer();
+ const first=await mfFree.dispatchFetch(url+'&trial=1',{headers:ip});assert.equal(first.status,200);assert.equal(first.headers.get('X-Free-Trial-Remaining'),'2');await first.arrayBuffer();
+ const failed=await mfFree.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail&trial=1',{headers:ip});assert.ok(failed.status>=400);assert.equal(failed.headers.get('X-Free-Trial-Remaining'),'2');await failed.arrayBuffer();
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
  const client=new Client({name:'free-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
@@ -236,12 +236,14 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
   const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);
  }finally{await client.close();}
- // A caller who has used all 25 gets the 402 and is counted as free_exhausted, the moment they are asked to pay.
+ // Over HTTP a caller has 3 free calls (10 Nov 2026; MCP keeps 25). A caller who has used all 3 gets the 402 and is counted as free_exhausted, the moment they are asked to pay.
  const other={'cf-connecting-ip':'198.51.100.8'};
- for(let i=0;i<25;i++){const r=await mfFree.dispatchFetch(url+'&trial=1',{headers:other});assert.equal(r.status,200);await r.arrayBuffer();}
+ for(let i=0;i<3;i++){const r=await mfFree.dispatchFetch(url+'&trial=1',{headers:other});assert.equal(r.status,200);await r.arrayBuffer();}
  const over=await mfFree.dispatchFetch(url+'&trial=1',{headers:other});assert.equal(over.status,402);await over.arrayBuffer();
  const rev=await (await mfFree.dispatchFetch('https://api.test/revenue')).json();assert.equal(rev.settlements,0);
- const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],26);assert.equal(day['mcp:/extract:free_call'],2);assert.equal(day['http:/extract:free_exhausted'],1);
+ const day=Object.values(rev.funnel.days).at(-1);assert.equal(day['http:/extract:free_call'],4);assert.equal(day['mcp:/extract:free_call'],2);assert.equal(day['http:/extract:free_exhausted'],1);
+  // PDF reading is not in the HTTP free calls at all (10 Nov 2026): trial=1 gets the payment request, at the lowest price.
+  const pdf=await mfFree.dispatchFetch('https://api.test/pdf/text?url=https%3A%2F%2Fpublic.example%2Fa.pdf&trial=1',{headers:{'cf-connecting-ip':'198.51.100.9'}});assert.equal(pdf.status,402);assert.equal(JSON.parse(Buffer.from(pdf.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0].amount,'2000');await pdf.arrayBuffer();
 });
 test('page views: a browser reading a tool page is counted with its referrer family; JSON clients are not',async()=>{
  const browser={accept:'text/html,application/xhtml+xml','user-agent':'Mozilla/5.0 Chrome/130',referer:'https://www.google.com/search?q=ofac+check+api'};

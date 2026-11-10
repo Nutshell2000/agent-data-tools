@@ -5,7 +5,7 @@ export function demoPage(origin: string, toolCount: number): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demo · Agent Data Tools</title>
-<meta name="description" content="A two-minute walkthrough of Agent Data Tools: ${toolCount} pay-per-call tools for AI agents, paid in USDC on Base via x402, with 25 free calls.">
+<meta name="description" content="A two-minute walkthrough of Agent Data Tools: ${toolCount} pay-per-call tools for AI agents, paid in USDC on Base via x402, with free calls to start.">
 <link rel="canonical" href="${origin}/demo">
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--line:#e3e5e8;--accent:#0b57d0}
@@ -16,7 +16,7 @@ img{display:block;width:100%;height:auto;border:1px solid var(--line);border-rad
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
 </style></head><body><main>
 <h1>Agent Data Tools: product demo</h1>
-<p class="lead">${toolCount} pay-per-call data tools for AI agents. No accounts or API keys: an agent pays each request in USDC on Base via x402 (or MPP), and every caller gets 25 free calls.</p>
+<p class="lead">${toolCount} pay-per-call data tools for AI agents. No accounts or API keys: an agent pays each request in USDC on Base via x402 (or MPP), with free calls to start (25 over MCP, 3 over HTTP).</p>
 <img src="/demo.gif" alt="Screen recording: the homepage, the tool list, a free payee screening check, a tool's payment page and a live Base gas reading" width="1568" height="726">
 <h2>What the recording shows</h2>
 <ol>

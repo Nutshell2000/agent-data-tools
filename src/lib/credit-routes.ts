@@ -41,7 +41,7 @@ export function creditsInfo(origin: string, agentPurchase = false, cardReady = t
 
 /** What people buy elsewhere, with each tool's price in credits (tests/credit-jobs pins these to the catalog). */
 export const CARD_JOBS = [
-  { path: "/pdf/text", job: "Read a PDF as text", unit: "PDFs", credits: 5 },
+  { path: "/pdf/text", job: "Read a PDF as text", unit: "PDFs", credits: 2 },
   { path: "/extract", job: "Read a web page as clean text or Markdown", unit: "web pages", credits: 2 },
   { path: "/screenshot", job: "Screenshot a web page", unit: "screenshots", credits: 10 },
   { path: "/transcribe", job: "Transcribe an audio clip", unit: "audio clips", credits: 10 },
@@ -193,14 +193,14 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
 }
 
 /** One free call for this caller, or null. The returned refund gives it back when the tool fails. */
-export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void) {
+export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER) {
   const store = ledger(env);
   if (!store || !trialsEnabled(env)) return null;
   const caller = await callerHash(ip ?? "unknown");
   const day = utcDay();
   // If the allowance cannot be counted (storage over its daily write limit), the caller gets the payment
   // request like any unpaid call instead of a 500, and onUnavailable lets the caller say why.
-  const left = await store.takeFreeCall(caller, day).catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
+  const left = await store.takeFreeCall(caller, day, limit).catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
   if (left === undefined) { onUnavailable?.(); return null; }
   if (left === null) markStage("free_exhausted");
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };

@@ -3,7 +3,7 @@
 // a request and an example result, and the ways in (free calls, card credits, MCP, x402/MPP).
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { TOOL_SEO } from "./tool-seo";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { GUIDE_FOR_TOOL } from "../guides/task-guides";
@@ -29,7 +29,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
   const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
-  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_CALLS_PER_CALLER} calls are free. Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
+  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
   const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
   const related = ENDPOINTS.filter((o) => o.path !== e.path && categoryOf(o.path) === category).slice(0, 12);
@@ -78,7 +78,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${GUIDE_FOR_TOOL.has(e.path) ? `<p>Guide: <a href="/guides/${esc(GUIDE_FOR_TOOL.get(e.path)!.slug)}">${esc(GUIDE_FOR_TOOL.get(e.path)!.phrase)}</a></p>` : ""}
 <div class="actions">
-${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
 <a class="btn" href="${esc(`${e.path}?${query}&sample=1`)}">Example result (JSON)</a>
 </div>
@@ -87,7 +87,7 @@ ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>
 <h2>Request</h2>
 <p>Over HTTP, with a card key from <a href="/credits">/credits</a>:</p>
 <pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"</code></pre>
-${freeCalls ? `<p>Or one of your ${FREE_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
+${freeCalls ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
 <p>Without a key, the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so an agent with a wallet pays per call in USDC (Base, Polygon, Arbitrum or Solana over x402; Base or Tempo over MPP) and retries.</p>
 <h2>${live ? "Live result" : "Example result"}</h2>
 ${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}
@@ -108,7 +108,7 @@ export function toolIndexPage(origin: string, groups: { name: string; tools: rea
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="Pay-per-call data tools for AI agents and developers: web and PDF reading, OFAC sanctions checks, token prices, chain reads, FX, weather and more. No signup; ${FREE_CALLS_PER_CALLER} free calls.">
+<meta name="description" content="Pay-per-call data tools for AI agents and developers: web and PDF reading, OFAC sanctions checks, token prices, chain reads, FX, weather and more. No signup; free calls to start.">
 <link rel="canonical" href="${esc(origin)}/tools"><link rel="icon" href="/favicon.ico">
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--line:#e3e5e8;--accent:#0b57d0}
@@ -119,7 +119,7 @@ ul{padding-left:20px}li{margin:3px 0}a{color:var(--accent)}.muted{color:var(--mu
 </style></head><body><main>
 <p class="muted"><a href="/">${esc(SERVICE_NAME)}</a></p>
 <h1>${esc(title)}</h1>
-<p class="muted">Each tool is one GET request that returns JSON, or an MCP tool at <code>${esc(origin)}/mcp</code>. ${FREE_CALLS_PER_CALLER} free calls, then pay per call by card credits, x402 or MPP.</p>
+<p class="muted">Each tool is one GET request that returns JSON, or an MCP tool at <code>${esc(origin)}/mcp</code>. ${FREE_CALLS_PER_CALLER} free calls through MCP (${FREE_HTTP_CALLS_PER_CALLER} over HTTP), then pay per call by card credits, x402 or MPP.</p>
 ${groups.map((g) => `<h2>${esc(g.name)} (${g.tools.length})</h2><ul>${g.tools.map((e) => `<li><a href="/tools/${esc(toolSlug(e.path))}">${esc(e.summary)}</a> <span class="muted">· ${esc(e.price)}</span></li>`).join("")}</ul>`).join("\n")}
 </main></body></html>`;
 }

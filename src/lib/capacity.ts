@@ -1,4 +1,5 @@
 import { MODEL_PATHS } from "../routes/ai-text";
+import { HTTP_FREE_EXCLUDED } from "./free-calls";
 
 /**
  * Tools that use a limited shared resource (Browser Rendering, AI media models, paid search): never free, never via
@@ -11,3 +12,5 @@ import { MODEL_PATHS } from "../routes/ai-text";
 // /page/publish stores content and runs a moderation model per call: paid only, never on marketplaces (1.84.0).
 // The entry paths of capacity-limited tools (src/routes/entry-paths.ts, 7 Nov 2026) follow their canonical tool.
 export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/page/host", "/screenshot", "/screenshot/website", "/extract/rendered", "/image", "/image/generate", "/transcribe", "/text-to-speech", "/describe", "/search", "/search/web", "/web/search", "/search/similar", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", "/llm/inference", "/ai/speech", "/ai/tts", "/audit/website", ...MODEL_PATHS]);
+/** True when a plain HTTP request with trial=1 may run this tool free (lib/free-calls.ts): not capacity-limited, and not taken out of the HTTP trial. */
+export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_FREE_EXCLUDED.has(path);
