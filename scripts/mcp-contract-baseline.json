@@ -1,5 +1,5 @@
 {
-  "version": "1.113.0",
+  "version": "1.114.0",
   "tools": [
     {
       "name": "extract",
@@ -1341,7 +1341,7 @@
         "properties": {
           "from": {
             "type": "string",
-            "description": "Base currency as a three-letter ISO 4217 code, e.g. USD"
+            "description": "Base currency as a three-letter ISO 4217 code, e.g. USD (an HTTP call with no input at all answers for USD)"
           },
           "to": {
             "type": "string",
@@ -11006,7 +11006,7 @@
         "properties": {
           "symbols": {
             "type": "string",
-            "description": "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all)"
+            "description": "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all; an HTTP call with no input at all answers for BTC and ETH)"
           },
           "addresses": {
             "type": "string",
@@ -18185,7 +18185,7 @@
         "properties": {
           "from": {
             "type": "string",
-            "description": "Base currency as a three-letter ISO 4217 code, e.g. USD"
+            "description": "Base currency as a three-letter ISO 4217 code, e.g. USD (an HTTP call with no input at all answers for USD)"
           },
           "to": {
             "type": "string",

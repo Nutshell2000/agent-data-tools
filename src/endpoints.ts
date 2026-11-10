@@ -726,7 +726,7 @@ export const CORE_ENDPOINTS = [
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
     tags: ["currency", "exchange-rate", "forex", "finance", "conversion"],
     params: {
-      from: { type: "string", description: "Base currency as a three-letter ISO 4217 code, e.g. USD", required: true, example: "USD" },
+      from: { type: "string", description: "Base currency as a three-letter ISO 4217 code, e.g. USD (an HTTP call with no input at all answers for USD)", required: true, example: "USD" },
       to: { type: "string", description: "Optional comma-separated target currency codes, e.g. EUR,GBP; default is all available currencies", example: "EUR,GBP,SEK" },
       amount: { type: "number", description: "Optional amount of the base currency to convert (default 1)", example: 100 },
     },

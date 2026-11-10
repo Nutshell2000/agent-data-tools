@@ -221,6 +221,7 @@ export const declaredInputFor = (path: string, input: Input): Input => {
  */
 export const NO_INPUT = "@no-input";
 const BTC_NOTE = "No input was sent, so this is the price of BTC (the wrapped token on Base), the default. Send symbol (for example symbol=ETH) or address for another token.";
+const USD_NOTE = "No input was sent, so these are the exchange rates for 1 USD, the default base currency. Send from (for example from=EUR), and optionally to and amount, for another conversion.";
 /**
  * Tools that answer a call with no input at all for a documented default, with a `note` saying so (11 Nov 2026).
  * Why: vAPI Call's console (about 100 new wallets a day make their first paid call there) shows a tool's inputs as an
@@ -234,6 +235,11 @@ export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Reco
   "/price/token": { input: { symbol: "BTC" }, note: BTC_NOTE },
   "/token/price": { input: { symbol: "BTC" }, note: BTC_NOTE },
   "/price/crypto": { input: { symbol: "BTC" }, note: BTC_NOTE },
+  // 1.114.0: the same rule for the two other price-like tools whose reference is not in doubt. After the full Bazaar
+  // re-settle of 10 Nov vAPI Call showed 46 of our 56 tracked searches (22 before), /fx among its cheapest listings.
+  "/price/tokens": { input: { symbols: "BTC,ETH" }, note: "No input was sent, so these are the prices of BTC and ETH (the wrapped tokens on Base), the default. Send symbols (for example symbols=ETH,AERO) or addresses for other tokens." },
+  "/fx": { input: { from: "USD" }, note: USD_NOTE },
+  "/fx/rates": { input: { from: "USD" }, note: USD_NOTE },
 };
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
