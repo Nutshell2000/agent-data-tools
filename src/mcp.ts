@@ -5,6 +5,7 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
 import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useDailyCall, useFreeCall } from "./lib/credit-routes";
 import { CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, CHATGPT_TOOLS } from "./lib/chatgpt-tools";
+import { ENTRY_OF } from "./routes/entry-paths";
 import { FREE_CALLS_PER_CALLER, freeCallNote } from "./lib/free-calls";
 import { freeCallsPausedNote } from "./lib/browser-402";
 import { mppEnabled } from "./lib/mpp-credits";
@@ -172,7 +173,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // The ChatGPT plugin server has its own fixed list (lib/chatgpt-tools.ts): the tools OpenAI's rules allow and that cost
   // us nothing per call, because inside ChatGPT the service is free.
   const endpoints = salesOrdered(directory ? ENDPOINTS.filter((e) => CHATGPT_TOOLS.has(e.path))
-    : account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path)) : sized);
+    // Entry paths are second names for outside search engines; a signed-in user's assistant gets each tool once (1.111.5).
+    : account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path) && !Object.hasOwn(ENTRY_OF, e.path)) : sized);
   // directory: the ChatGPT plugin server (/mcp/chatgpt). Free inside ChatGPT (its rules allow no sale of digital services
   // and no freemium upsell): a daily allowance per signed-in user, and no price, plan, credit, key, link or request id in
   // anything ChatGPT shows.

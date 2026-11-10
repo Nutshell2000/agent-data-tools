@@ -28,27 +28,27 @@ after(async () => { await mf?.dispose(); });
 const b64url = (buf) => buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const REDIRECT = 'https://chatgpt.com/connector_platform_oauth_redirect';
 
-async function freeToken() {
-  const reg = await mf.dispatchFetch(`${O}/oauth/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ client_name: 'ChatGPT', redirect_uris: [REDIRECT] }) });
+async function freeToken(redirect = REDIRECT) {
+  const reg = await mf.dispatchFetch(`${O}/oauth/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ client_name: 'ChatGPT', redirect_uris: [redirect] }) });
   assert.equal(reg.status, 201);
   const clientId = (await reg.json()).client_id;
   const verifier = b64url(crypto.randomBytes(32));
   const challenge = b64url(crypto.createHash('sha256').update(verifier).digest());
-  const q = { client_id: clientId, redirect_uri: REDIRECT, state: 's', code_challenge: challenge, code_challenge_method: 'S256', response_type: 'code' };
+  const q = { client_id: clientId, redirect_uri: redirect, state: 's', code_challenge: challenge, code_challenge_method: 'S256', response_type: 'code' };
   const post = await mf.dispatchFetch(`${O}/oauth/authorize`, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', 'cf-connecting-ip': '203.0.113.77' }, body: new URLSearchParams({ ...q, mode: 'free' }) });
   assert.equal(post.status, 302);
   const code = new URL(post.headers.get('location')).searchParams.get('code');
-  const tok = await mf.dispatchFetch(`${O}/oauth/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code, code_verifier: verifier, client_id: clientId, redirect_uri: REDIRECT }) });
+  const tok = await mf.dispatchFetch(`${O}/oauth/token`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code, code_verifier: verifier, client_id: clientId, redirect_uri: redirect }) });
   assert.equal(tok.status, 200);
   return (await tok.json()).access_token;
 }
 
-async function withClient(token, fn) {
+async function withClient(token, fn, path = '/mcp/chatgpt') {
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
   const client = new Client({ name: 'openai-mcp', version: '1' });
   try {
-    await client.connect(new StreamableHTTPClientTransport(new URL(`${O}/mcp/chatgpt`), { requestInit: { headers: { authorization: `Bearer ${token}` } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${O}${path}`), { requestInit: { headers: { authorization: `Bearer ${token}` } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
     return await fn(client);
   } finally { await client.close(); }
 }
@@ -205,4 +205,15 @@ test('a sign-in from ChatGPT sees one Continue button and no key, credits or pri
   assert.ok(new URL(post.headers.get('location')).searchParams.get('code'));
   const meta = await (await mf.dispatchFetch(`${O}/.well-known/oauth-authorization-server`)).json();
   assert.doesNotMatch(meta.service_documentation, /credits/);
+});
+test('the signed-in server for other apps lists each tool once: no entry paths', async () => {
+  const { ENTRY_OF } = await load('src/routes/entry-paths.ts');
+  const { mcpName } = await load('src/mcp-contract.ts');
+  const token = await freeToken('https://claude.ai/api/mcp/auth_callback');
+  await withClient(token, async (client) => {
+    const names = new Set((await client.listTools()).tools.map((t) => t.name));
+    for (const [door, canonical] of Object.entries(ENTRY_OF)) assert.ok(!names.has(mcpName(door)), `${door} is a second name for ${canonical}`);
+    for (const kept of ['weather', 'extract', 'price_token', 'ai_chat']) assert.ok(names.has(kept), kept);
+    assert.ok(names.size > 300, `still the full signed-in catalog: ${names.size}`);
+  }, '/mcp/account');
 });
