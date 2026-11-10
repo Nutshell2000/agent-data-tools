@@ -122,12 +122,64 @@ test("releases: newest first without drafts, notes clipped, no author", async ()
   await assert.rejects(G.repoReleases({}, "nobody/nothing", 2, fetcher([])), (e) => e.status === 404);
 });
 
-test("the three tools are listed with task names and required inputs", () => {
+test("the four tools are listed with task names and required inputs", () => {
   const byPath = Object.fromEntries(G.GITHUB.map((e) => [e.endpoint.path, e.endpoint]));
-  assert.deepEqual(Object.keys(byPath), ["/github/repo", "/github/search", "/github/releases"]);
+  assert.deepEqual(Object.keys(byPath), ["/github/repo", "/github/search", "/github/releases", "/github/user"]);
+  assert.equal(byPath["/github/user"].summary.split(":")[0], "GitHub user repos");
+  assert.ok(byPath["/github/user"].params.user.required);
   assert.equal(byPath["/github/repo"].summary.split(":")[0], "GitHub repo data");
   assert.equal(byPath["/github/search"].summary.split(":")[0], "GitHub search");
   assert.equal(byPath["/github/releases"].summary.split(":")[0], "GitHub releases");
   assert.ok(byPath["/github/repo"].params.repo.required && byPath["/github/search"].params.q.required && byPath["/github/releases"].params.repo.required);
   for (const e of Object.values(byPath)) assert.ok(!/user profile|e-?mail address|followers/i.test(e.summary), e.path);
+});
+
+// 11 Nov 2026, owner: "Yes, repo data only". The account lookup answers from repositories; of GitHub's account record
+// only `type` and `public_repos` are read.
+const ACCOUNT = {
+  login: "octo-dev", id: 583231, type: "User", name: "Mona Lisa Octocat", company: "@github", blog: "https://octo.example", location: "San Francisco", email: "mona@example.com",
+  hireable: true, bio: "There once was...", twitter_username: "monatheoctocat", avatar_url: "https://avatars.githubusercontent.com/u/583231", gravatar_id: "abc",
+  public_repos: 3, public_gists: 8, followers: 20000, following: 9, created_at: "2011-01-25T18:44:36Z", updated_at: "2026-11-01T10:00:00Z", site_admin: false,
+};
+const ownerOf = { login: "octo-dev", type: "User", id: 583231, avatar_url: "https://avatars.githubusercontent.com/u/583231", html_url: "https://github.com/octo-dev", email: "mona@example.com" };
+const repoOf = (name, stars, language, extra = {}) => ({ ...REPO, full_name: `octo-dev/${name}`, html_url: `https://github.com/octo-dev/${name}`, stargazers_count: stars, forks_count: Math.floor(stars / 10), language, owner: ownerOf, pushed_at: `2026-11-0${1 + (stars % 8)}T00:00:00Z`, ...extra });
+
+test("an account as agents write it", () => {
+  for (const raw of ["vercel", " vercel ", "@vercel", "https://github.com/vercel", "github.com/vercel/", "https://github.com/vercel/next.js", "https://www.github.com/vercel?tab=repositories"]) assert.equal(G.accountLogin(raw), "vercel", raw);
+  for (const raw of ["", "two words", "-bad", "a".repeat(40), "https://github.com/"]) assert.throws(() => G.accountLogin(raw), (e) => e.status === 400, raw);
+});
+
+test("account lookup: repositories ranked by stars, forks left out unless asked, and nothing personal from the account record", async () => {
+  const seen = [];
+  const list = [repoOf("small", 5, "Go"), repoOf("big", 900, "TypeScript"), repoOf("mid", 40, "TypeScript"), repoOf("a-fork", 5000, "Rust", { fork: true })];
+  const fetch = fetcher([["/users/octo-dev/repos", json(list)], ["/users/octo-dev", json(ACCOUNT)]], seen);
+  const out = await G.accountRepos({}, "octo-dev", 2, false, fetch);
+  assert.equal(out.user, "octo-dev");
+  assert.equal(out.type, "User");
+  assert.equal(out.publicRepos, 3);
+  assert.equal(out.reposRead, 4);
+  assert.deepEqual(out.repos.map((r) => r.repo), ["octo-dev/big", "octo-dev/mid"]);
+  assert.equal(out.stars, 945);
+  assert.deepEqual(out.languages, { TypeScript: 2, Go: 1 });
+  assert.deepEqual(Object.keys(out.repos[0]).sort(), ["archived", "description", "fork", "forks", "language", "license", "pushedAt", "repo", "stars", "topics", "url"]);
+  assert.ok(seen.some((s) => s.url.includes("/users/octo-dev/repos?type=owner&sort=pushed")));
+  const withForks = await G.accountRepos({}, "octo-dev", 1, true, fetch);
+  assert.deepEqual(withForks.repos.map((r) => r.repo), ["octo-dev/a-fork"]);
+  assert.equal(withForks.forksIncluded, true);
+  // Every personal value GitHub sent, from the account record and from each repository's owner object, is absent.
+  const text = JSON.stringify([out, withForks]);
+  for (const secret of ["Mona", "@github", "octo.example", "San Francisco", "mona@example.com", "There once was", "monatheoctocat", "avatars.githubusercontent", "20000", "2011-01-25", "583231", "hireable", "gravatar", "someone@example.com"]) assert.ok(!text.includes(secret), secret);
+  for (const key of ["name", "email", "bio", "company", "location", "blog", "avatar", "followers", "following", "createdAt", "twitter"]) assert.ok(!(key in out), key);
+});
+
+test("account lookup: an unknown account is a 404, a failed account read still answers from the repositories", async () => {
+  await assert.rejects(G.accountRepos({}, "nobody-here", 5, false, fetcher([])), (e) => e.status === 404);
+  const out = await G.accountRepos({}, "octo-dev", 5, false, fetcher([["/users/octo-dev/repos", json([repoOf("big", 900, "TypeScript")])], ["/users/octo-dev", json({ message: "boom" }, 500)]]));
+  assert.equal(out.publicRepos, null);
+  assert.equal(out.type, "User");
+  assert.equal(out.repos.length, 1);
+  const empty = await G.accountRepos({}, "octo-dev", 5, false, fetcher([["/users/octo-dev/repos", json([])], ["/users/octo-dev", json(ACCOUNT)]]));
+  assert.deepEqual(empty.repos, []);
+  assert.equal(empty.user, "octo-dev");
+  assert.equal(empty.lastPushAt, null);
 });
