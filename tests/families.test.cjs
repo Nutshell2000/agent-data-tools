@@ -27,7 +27,8 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParams(endpoint)); return (name) => (p[name] ? String(p[name].example) : undefined); };
 
 // /text-to-speech (11 Nov 2026): 2,000 characters of Aura-2 cost $0.06, so it cannot be a one-cent tool; the owner asked for tools that sell for more.
-const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08" };
+// From 11 Nov 2026 (owner: "Yes, start now"): /news, its two doors and the two research packs Mercator's gateway buys daily, $0.03.
+const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08", "/news": "$0.03", "/news/search": "$0.03", "/crypto/news": "$0.03", "/pack/web-research": "$0.03", "/pack/news-sentiment": "$0.03" };
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
@@ -36,7 +37,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
     // The price tests of 26-27 Oct 2026 (LOCAL_TEST_PRICE, READ_TEST_PRICE) ended on 27 Oct: their tools are back at $0.01.
     // Price test 5-19 Nov 2026 (owner): /pack/token-analysis at $0.03, still below its five tools bought one by one.
-    if (e.path.startsWith("/pack/")) assert.equal(e.price, e.path === "/pack/token-analysis" ? "$0.03" : "$0.01", e.path);
+    if (e.path.startsWith("/pack/")) assert.equal(e.price, e.path === "/pack/token-analysis" ? "$0.03" : PRICE_TEST[e.path] ?? "$0.01", e.path);
     // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     // Round 8 doors (10 Nov 2026): a door carries its tool's price, and /page/markdown runs /extract ($0.002).

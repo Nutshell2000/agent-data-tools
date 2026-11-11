@@ -28,7 +28,8 @@ test('research packs: names within 32 characters, descriptions within 450, one c
   for (const e of PACKS_RESEARCH) {
     assert.ok(e.endpoint.summary.split(':')[0].length <= 32, e.endpoint.summary);
     assert.ok(e.endpoint.description.length <= 450, `${e.endpoint.path} ${e.endpoint.description.length}`);
-    assert.equal(e.endpoint.price, '$0.01');
+    // Price test from 11 Nov 2026 (owner: "Yes, start now"): the two packs Mercator's gateway buys daily cost $0.03.
+    assert.equal(e.endpoint.price, ['/pack/web-research', '/pack/news-sentiment'].includes(e.endpoint.path) ? '$0.03' : '$0.01', e.endpoint.path);
     await assert.rejects(Promise.resolve().then(() => e.run({}, () => undefined)), (err) => err.status === 400, e.endpoint.path);
   }
   await assert.rejects(Promise.resolve().then(() => PACKS_RESEARCH[2].run({}, (n) => (n === 'url' ? 'http://127.0.0.1/' : undefined))), (err) => err.status === 400);
