@@ -625,7 +625,7 @@ app.get("/metrics/callers", (c) => fromMetrics(async () => {
 // Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
 app.get("/status", async (c) => {
   const generatedAt = new Date().toISOString();
-  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx, and a target URL that did not answer), which are never charged; server errors (5xx) are never charged either.";
+  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx, and a target URL that did not answer), which are never charged; server errors (5xx) are never charged either. `recent` is the same count over the newest 3 UTC days (today included); byDay shows each day.";
   if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
   const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
   return fromMetrics(async () => {

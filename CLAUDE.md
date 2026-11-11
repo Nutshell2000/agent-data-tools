@@ -1380,3 +1380,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `integrations/openclaw`: `node integrations/openclaw/check.cjs <saved openapi.json>` checks the skill against the live API description; the bundle's SKILL.md must stay byte-identical to the skill's (LF endings, `.gitattributes`).
 - Not in the repository on purpose: the storefront test (two Workers, branch claude/storefronts, judged 18 Nov) and the gateway prototype (branch claude/gateway-proto, test network only, the owner decides).
 
+
+
+## The recent window on /status (1.133.0, 11 Nov 2026)
+
+- `/status` carries `recent` (newest `RECENT_DAYS` = 3 UTC days, today included) on the totals and on every tool, beside the unchanged 7-day fields. Why: the 7 Nov incident kept the week at 57% and most tools at 20-40% while every later day was above 98%. Never drop or reweight the 7-day figures: both are shown so a reader can judge for itself.
+
