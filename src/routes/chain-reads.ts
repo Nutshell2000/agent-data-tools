@@ -120,6 +120,17 @@ const BLOCK_WINDOW: Record<string, string> = { base: "7 minutes", op: "67 minute
   avax: "32 minutes", gnosis: "2.8 hours", linea: "5.6 hours", zksync: "2.4 hours", scroll: "4.1 hours", mantle: "67 minutes", celo: "33 minutes",
   sonic: "53 minutes", unichain: "33 minutes", hyperevm: "33 minutes", bera: "67 minutes", ink: "33 minutes", sei: "16 minutes" };
 
+/**
+ * Base makes ten blocks for each one it made before about 5 Nov 2026 (0.2 s instead of 2 s), so the block-count inputs
+ * of the growing-window log scans (token transfers, token buyers, new pools) take ten times the blocks there: the
+ * defaults cover the same time as before for one or two more node calls (windows grow 4x, at most `LOG_WINDOW_MAX`).
+ */
+export const BLOCK_SCALE: Record<string, number> = { base: 10 };
+export const scaledBlocks = (slug: string, n: number) => n * (BLOCK_SCALE[slug] ?? 1);
+/** publicnode refuses address-filtered eth_getLogs over 50,000 blocks (11 Nov 2026). */
+export const LOG_WINDOW_MAX = 50_000n;
+const fmtBlocks = (n: number) => n.toLocaleString("en-US");
+
 /** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
 const tokenInput = (v: string | undefined, slug: string) => {
   const t = v?.trim();
@@ -356,17 +367,19 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("token-transfers"), `Token transfers, ${c.name}`,
-      `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-2,000, default 1,000): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
+      `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-${fmtBlocks(scaledBlocks(c.slug, 2000))}, default ${fmtBlocks(scaledBlocks(c.slug, 1000))}): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
       tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
         address: { type: "string", description: "0x wallet or contract address", required: true, example: busyAddress(c.slug) },
         token: { type: "string", description: "Token: a ticker such as USDT or WETH, or the 0x ERC-20 contract (default: USDC on this network)", example: USDC[c.slug] },
-        blocks: { type: "integer", description: `How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about ${BLOCK_WINDOW[c.slug]} on ${c.name})`, example: 1000 },
+        blocks: { type: "integer", description: BLOCK_SCALE[c.slug]
+          ? `How many recent blocks to scan (1-${scaledBlocks(c.slug, 2000)}, default ${scaledBlocks(c.slug, 1000)}; ${c.name} makes a block every 0.2 s, so ${fmtBlocks(scaledBlocks(c.slug, 1000))} blocks is about 33 minutes)`
+          : `How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about ${BLOCK_WINDOW[c.slug]} on ${c.name})`, example: 1000 },
       },
       head({ address: busyAddress(c.slug), fromBlock: 123456290, toBlock: 123456789, count: 1, truncated: false, transfers: [{ block: 123456780, tx: "0x…", token: USDC[c.slug], symbol: "USDC", direction: "in", counterparty: "0x…", amount: "2.5", raw: "2500000" }] }),
       async (env, q) => {
         const a = address(q("address"));
         const token = q("token") ? tokenInput(q("token"), c.slug) : USDC[c.slug];
-        const span = BigInt(num(q, "blocks", { min: 1, max: 2000, fallback: 1000, integer: true }));
+        const span = BigInt(num(q, "blocks", { min: 1, max: scaledBlocks(c.slug, 2000), fallback: scaledBlocks(c.slug, 1000), integer: true }));
         const cl = client(env, c);
         // The newest block as the log nodes see it: the main client's node can be ahead of them, and the scan of its newest
         // blocks then answered "header not found" (404 to buyers: 7 of 14 Base calls on 23-25 Oct, and a listing payment).
@@ -378,8 +391,8 @@ function chainEntries(c: ChainDef): Entry[] {
         // Sent and received Transfer events of this one token, newest first in growing windows (recentLogs): public nodes
         // refuse or time out on a single 1,000-block eth_getLogs, which made this tool fail about one call in four.
         const [sentScan, receivedScan] = await Promise.all([
-          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50),
-          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50, { max: LOG_WINDOW_MAX }),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50, { max: LOG_WINDOW_MAX }),
         ]).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
         const sent = sentScan.logs, received = receivedScan.logs;
         const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;
@@ -1029,11 +1042,11 @@ const WALLET_TRANSACTIONS: Entry = entry("/wallet/transactions", "Wallet transac
 const EXTRA_SKIP: ReadonlySet<string> = new Set(["/zksync/estimate-gas", "/hyperevm/token-transfers"]);
 const EXTRA_READS: Entry[] = EXTRA_CHAINS.flatMap(chainEntries).filter((e) => !EXTRA_SKIP.has(e.endpoint.path));
 /**
- * One-week price test, 26 Oct to 2 Nov 2026 (Peter's choice): the repeat-buying bots on Base pay $0.002-0.003 a call
+ * One-week price test, 26 Oct to 2 Nov 2026 (the owner's choice): the repeat-buying bots on Base pay $0.002-0.003 a call
  * (Claw402's chain reads at $0.003 drew 161k calls from 72 payers in a week) and almost never $0.01. Single-network reads
  * that cost $0.01 go to $0.003; the sweeper still pays every listing at or below $0.01. Keep it if repeat payers and calls
  * come; revert to PRICE if they do not (business/agentic/base-bots/payments-to-us.mjs, payer-profile.mjs).
- * Ended 27 Oct 2026 (Peter): the sweeper, our main payer, pays each listing at its live price about 1.3 times a week
+ * Ended 27 Oct 2026 (the owner): the sweeper, our main payer, pays each listing at its live price about 1.3 times a week
  * whatever the price, so the test cut its income on the 403 repriced tools by about 70% (~$3.5 a week), and the shopper
  * bots had not bought. Equal to PRICE, testPriced changes nothing; set it again to rerun the test.
  */

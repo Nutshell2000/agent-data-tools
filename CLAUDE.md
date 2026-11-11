@@ -5,7 +5,7 @@
 - Production runs 1.23.0 (167 tools, commit 413ae01), deployed 2026-10-18 ~19:00 UTC by the local
   Claude Code session through the guard. check:live 167/167, AgentCash discovery 1.7.5 all checks true,
   x402scan lists 167/167, tag v1.23.0 published to the MCP Registry. Baseline: docs/sales-baseline.md.
-- Deploys need Cloudflare access, which only Peter's PC has: prepare PRs and a runbook here, and the
+- Deploys need Cloudflare access, which only the owner's PC has: prepare PRs and a runbook here, and the
   local session deploys with `npm run deploy:production -- --expected-version <live uuid>`.
 - Sales plan: flagship tools /check/counterparty and /extract/rendered, free ?sample=1 previews,
   readable 402 bodies, MCP bundles at /mcp/<section>. Directory copy: docs/listings.md.
@@ -13,7 +13,7 @@
 - Ownership proof is live (PR #84, deployed 2026-10-18): Coinbase Wallet ERC-1271 signature in
   OWNERSHIP_PROOFS, verified on Base by `npm run check:ownership` in CI. AgentCash discovery reports
   trustTier ownership_verified; x402scan re-registered 167/167.
-- Pending on Peter: directory submissions, revoking the Cloudflare token pasted in chat.
+- Pending on the owner: directory submissions, revoking the Cloudflare token pasted in chat.
 - After a tool change: bump server.json and MCP_SERVER_VERSION, run `npm run update:mcp-contract`
   last (after any description edit), then `npm test` and `npm run check:mcp-contract`.
 
@@ -38,7 +38,7 @@ Deploy these together after they merge, then follow "After deploying" below.
 - Free calls:
   - A keyless `/mcp/account` sign-in no longer refills them.
   - Open `/mcp` tells cloud-app users (shared addresses) to use `/mcp/account` for their own.
-- Secrets (Peter sets them with `npx wrangler secret put <NAME>`; never in chat or Git):
+- Secrets (the owner sets them with `npx wrangler secret put <NAME>`; never in chat or Git):
 
   | Secret | Status | What it controls |
   |---|---|---|
@@ -50,7 +50,7 @@ Deploy these together after they merge, then follow "After deploying" below.
   2. `curl <origin>/credits` shows `cardReady: true` and 3 packs.
   3. `curl <origin>/metrics/callers` returns both keys.
   4. Fill in the first scorecard row in docs/sales-baseline.md.
-- Waiting on Peter: should the 26 tools still at $0.002 (`/extract`, AI text, fx, weather…) move to
+- Waiting on the owner: should the 26 tools still at $0.002 (`/extract`, AI text, fx, weather…) move to
   $0.003? Keep `/extract` at $0.002 as the entry price if so.
 
 ## Payment visibility and the staging proof (1.35.0, 2026-10-19)
@@ -66,7 +66,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   is our bug or a stale directory price, not a buyer who changed their mind. The v1 path accepts the
   variations real clients send (version as a string, network as a CAIP-2 id, value as a number at or above
   the quote). On 19 Oct a real, unidentified browser-based v1 buyer failed four times on `/eth/gas` before
-  any of this was deployed (Peter confirmed it was not him); watch `wrangler tail` for the next one.
+  any of this was deployed (the owner confirmed it was not their own test); watch `wrangler tail` for the next one.
 - The published client example (homepage, llms.txt, OpenAPI x-guidance) caps payments at `ORDINARY_PRICE`
   ($0.01 since 22 Oct, `src/discovery.ts`), so an agent that copies it can pay for every ordinary tool. Keep that
   constant equal to the catalog's common price.
@@ -90,11 +90,11 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
   `node scripts/register-402index.mjs` for new paths (10 per hour), and re-register the server on x402scan
   so its cached copy and prices match. Directories that still show an old price cause `refused_amount`
   attempts from v1 clients. Prices are frozen at the current catalog until 8 Nov 2026 (the x402 stop-rule
-  check) unless Peter decides otherwise.
-- Decisions that stay with Peter (not code): Bazaar seeding (one self-settled call per tool through the CDP
-  facilitator; the ledger marks self-payments, Peter's rule currently forbids it), app-directory submissions
+  check) unless the owner decides otherwise.
+- Decisions that stay with the owner (not code): Bazaar seeding (one self-settled call per tool through the CDP
+  facilitator; the ledger marks self-payments, the owner's rule currently forbids it), app-directory submissions
   (`docs/app-directory-submission.md`), and whether the 19 Oct browser payment attempts on `/eth/gas` were
-  his own tests.
+  the owner's own tests.
 
 ## Per-call MPP on the tools: evm on Base ON (1.36.0), Tempo ON (1.37.0)
 
@@ -106,7 +106,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 - Tempo proof on staging (Moderato testnet, faucet pathUSD via `tempo_fundAddress`): `node scripts/pay-test.mjs <staging>/time?zone=UTC --tempo`
   settled on 2026-10-20 (tx 0xb3c18072…). Staging has `TEMPO_NETWORK=testnet` and a test-only `TEMPO_PAY_TO`; production stays off.
 - `src/lib/mpp-tempo.ts`: a second challenge, tempo/charge (USDC.e on Tempo mainnet, pull mode, public RPC rpc.tempo.xyz),
-  broadcast only after the tool succeeded. ON since 1.37.0: `TEMPO_PAY_TO` = PAY_TO in `wrangler.jsonc`, Peter's decision of
+  broadcast only after the tool succeeded. ON since 1.37.0: `TEMPO_PAY_TO` = PAY_TO in `wrangler.jsonc`, the owner's decision of
   2026-10-20 (option A, docs/mpp-per-call.md). Empty switches it off. MPP buyers (AgentCash, Poncho, MPP credits) pay on Tempo,
   so this is the method that serves them; watch `wrangler tail` for `mpp tempo` lines and the Tempo RPC (`facilitator_unavailable`).
 - Credit packs `/credits/buy/*` answer GET only, and their Stripe challenge names a recipient (the MPPScan warnings).
@@ -114,7 +114,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 ## Discovery files (1.36.1)
 
 - `/discovery/resources` (src/lib/discovery-index.ts) is our own Bazaar-shaped index of every tool with exact USDC terms per network, paged (`limit` up to 500, `offset`); `/.well-known/x402.json` aliases `/.well-known/x402`. Directories that crawl sellers directly read these; the Coinbase Bazaar still needs a first settled payment per tool.
-- Directory PRs opened 2026-10-20: tempoxyz/mpp#1095 (mpp.dev services, 38 routes, evm/charge) and Pazificateur69/gold-402#1. Circle Agent Marketplace form (forms.gle/7YFzvdmMcn1JH5tF6) is Peter's to send (indemnification clause).
+- Directory PRs opened 2026-10-20: tempoxyz/mpp#1095 (mpp.dev services, 38 routes, evm/charge) and Pazificateur69/gold-402#1. Circle Agent Marketplace form (forms.gle/7YFzvdmMcn1JH5tF6) is the owner's to send (indemnification clause).
 
 ## Discovery order and page size (21 Oct 2026)
 
@@ -155,7 +155,7 @@ Bazaar, which lists a tool only after its first settled payment (2 of 175 are li
 
 - `POST /v1/responses` (src/lib/openai-responses.ts) maps the Responses body (input string or role/content items, instructions, max_output_tokens) onto the chat-completions body and runs through `completeChat()` in src/lib/openai-chat.ts, so the model routing, prices, quote and refusal rules are the chat front's; the answer is one completed message in `output` plus `output_text`.
 
-## First-payment readiness (2026-10-20, Peter: no self-funded seeding yet, no Solana)
+## First-payment readiness (2026-10-20, the owner: no self-funded seeding yet, no Solana)
 
 Why there are no payments: paying bots shop the Coinbase Bazaar, which lists a tool only after a settled CDP
 payment and drops it after 30 days without one (we have at most `/btc-fees`). Tanod's 9 Oct snapshot: chain reads
@@ -172,9 +172,9 @@ Until earnings fund seeding (PR #133), every organic first payment must convert 
   run the full seed order on staging (docs/bazaar-seeding.md, faucet USDC) as the paid proof; then deploy through
   the guard and re-register x402scan. Production seeding waits for earnings (`--budget <earned USD>`).
 - Data post that sells `/x402/check`: `node scripts/bazaar-quality-report.mjs --sample 300 --json survey.json`
-  (unpaid GETs only; keep survey.json out of Git), fill docs/bazaar-quality-post.md, Peter publishes.
+  (unpaid GETs only; keep survey.json out of Git), fill docs/bazaar-quality-post.md, the owner publishes.
 - Not built, on purpose: GDELT news and Stooq quote tools (both timed out from Cloudflare on 20 Oct; an
-  unreliable upstream is a lost first payment). Web search stays parked until Peter picks a paid key.
+  unreliable upstream is a lost first payment). Web search stays parked until the owner picks a paid key.
 
 ## Deploy checklist for the 20 Oct conversion work (PRs #161–#174)
 
@@ -200,7 +200,7 @@ node scripts/indexnow.mjs
 
 Search pages: every tool has `/tools/<slug>` (src/lib/tool-pages.ts; slug = path with `/` as `-`), a 200 page with
 canonical URL, schema.org WebAPI data, inputs, curl, example result and the free-trial/card buttons; `/tools`
-lists them and the sitemap carries them all. The tool URLs themselves stay 402 (not indexable). Google: Peter
+lists them and the sitemap carries them all. The tool URLs themselves stay 402 (not indexable). Google: the owner
 adds the origin in Search Console as a URL-prefix property with HTML-tag verification and gives a session the
 token (it is public; it goes in the homepage head), then submits `/sitemap.xml` there.
 
@@ -305,7 +305,7 @@ On 20 Oct the account's Durable Object quota ran out by about 18:00 UTC, and eve
 
 The report routes (`/status`, `/revenue`, `/metrics`, `/metrics/callers`) answer a 503 with `Retry-After: 600` that says the tools and x402 payments keep working (`fromMetrics` in src/index.ts), not a bare 500.
 
-Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasting fix is the Workers Paid plan ($5 a month), which raises the Durable Object limits. That is Peter's decision.
+Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasting fix is the Workers Paid plan ($5 a month), which raises the Durable Object limits. That is the owner's decision.
 
 ## Correctness under concurrency and odd inputs (cloud edge audit, 2026-10-20)
 
@@ -332,7 +332,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - token-transfers states how much time `blocks` covers on each chain.
   - MCP instructions include a pick-by-task map and the `/mcp/<section>` servers. The signed-in instructions must not mention crypto (tests/oauth).
 
-## New tools (1.44.0, 179 tools; Peter approved on 2026-10-20)
+## New tools (1.44.0, 179 tools; the owner approved on 2026-10-20)
 
 - **`/sec/filings`** (src/routes/gov-data.ts): SEC EDGAR filings by ticker or CIK, optionally one form type.
   - The data is public information under sec.gov's privacy notice.
@@ -343,7 +343,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - The XML is parsed with small regexes, because Workers have no DOMParser.
   - Cached 60 s.
 - **`/hyperliquid/market`** (src/routes/hyperliquid.ts): perpetuals price, hourly funding rate and its APR, open interest and 24 h volume, for one coin or the top 20.
-  - The terms of Hyperliquid's public info API say nothing about resale; Peter approved it anyway.
+  - The terms of Hyperliquid's public info API say nothing about resale; the owner approved it anyway.
   - Snapshots are kept 15 s as plain module data (never a shared promise), because of the 1,200-weight-a-minute limit per IP.
 - **Demand:** competitors with the same data had 29 (EDGAR), 23 (FAA) and 56/48 (Hyperliquid) paying bots on the Bazaar.
 - **Rejected on their terms:** Chainlink feeds (ToS §3 forbids resale), Polymarket (no market data distributors) and DefiLlama (non-commercial). The Treasury yield curve is too slow (18 s).
@@ -352,7 +352,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 ## Base Builder Code (PR #203)
 
 - Every x402 v2 route, `/buy/*` purchase, MCP payment and MPP evm settlement declares the `builder-code` extension (ERC-8021) with app code `bc_09e30bdm` (`BUILDER_APP_CODE` in src/lib/bazaar-extension.ts). The facilitator appends the CBOR suffix plus the `8021…8021` marker to the settlement calldata. This was proven on Base Sepolia on 2026-10-21: txs 0xf75a6618… (v2) and 0x192f6f1b… (MCP) both end with `a161616b62635f303965333062646d…80218021`. x402 v1 has no extensions and carries no code.
-- Why: the Base Builder Grants (up to $5,000, "x402 implementations") require Builder Codes. The application draft is `C:\MoneyWallet\x402-launch\base-grant-application.md`; Peter submits it.
+- Why: the Base Builder Grants (up to $5,000, "x402 implementations") require Builder Codes. The application draft is `C:\MoneyWallet\x402-launch\base-grant-application.md`; the owner submits it.
 
 ## Release train, reliability layer and listing names (1.47.12–1.47.15, 22 Oct 2026)
 
@@ -374,28 +374,28 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   before the colon, so summaries start with the exact task phrase ("Scrape website page to Markdown", "DNS lookup,
   WHOIS, domain lookup", "Payee screening"). Measured on 22 Oct: the search matches the phrase as written, not its
   words in any order ("Crypto token price" was found for "token price" and absent for "crypto price"), so a name may
-  carry two phrases ("Crypto price and token price"), within 32 characters. The Bazaar takes a new name only with the tool's next settlement: Peter runs
+  carry two phrases ("Crypto price and token price"), within 32 characters. The Bazaar takes a new name only with the tool's next settlement: the owner runs
   `C:\MoneyWallet\Refresh Bazaar names.cmd` (it computes the renamed and unlisted tools itself via
   `business/agentic/tools/bazaar-rename-diff.mjs`).
 - **Related tools (1.47.15):** every GET tool quote or answer carries three `Link: …; rel="related"` headers
   (`src/lib/related.ts`: same section first, then `salesOrdered`); the readable 402 body has a `related` list. Tool
   output bodies are unchanged. `TOOL_SEO` covers 109 tools; copy may only restate the tool's own description.
-- **Networks (1.47.13):** quotes list Base, Polygon, Arbitrum and Solana (SOLANA_PAY_TO = Peter's Phantom wallet, whose
+- **Networks (1.47.13):** quotes list Base, Polygon, Arbitrum and Solana (SOLANA_PAY_TO = the owner's Phantom wallet, whose
   USDC account exists). Monad and World Chain were dropped (never paid). Dexter's verifier still refuses to pay us with
   "could not settle on a chain this route accepts" and never sends a payment; it says the fault is on its side.
 
-## Web search ON (1.49.0, 22 Oct 2026, Peter: "I approve")
+## Web search ON (1.49.0, 22 Oct 2026, the owner: "I approve")
 
 - `/search` ($0.01, src/routes/search.ts) is live: one Brave Search API request per paid call, key in the secret `SEARCH_API_KEY`
   (production and staging, set 22 Oct; never in Git or chat). 182 tools.
 - Terms basis (api-dashboard.search.brave.com/terms-of-service, 1 Sep 2026): §3(a) licenses showing Search Results to the end users
   of a Customer Application; §4(c) wants those end users bound by the §3(b) duties, so the description and every answer carry
   `terms` (immediate use only, no storing, no resale, no model training); §3(b)(i) allows only transient storage, so nothing
-  about results is cached or logged. §3(b)(xii) ("redistribute, resell") is the clause Peter accepted the risk on; the worst
-  case is Brave closing the API account on 10 days' notice. Nobody contacts Brave on Peter's behalf.
+  about results is cached or logged. §3(b)(xii) ("redistribute, resell") is the clause the owner accepted the risk on; the worst
+  case is Brave closing the API account on 10 days' notice. Nobody contacts Brave on the owner's behalf.
 - Spend: Brave bills $5 per 1,000 from prepaid credits with free credits each month; `SEARCH_DAILY_CAP=120` (wrangler.jsonc)
   keeps a month under about $18. Over the cap, or when the credits are gone, the tool answers 503 uncharged. `/search` is
-  capacity-limited (no free calls) and first in `SALES_FIRST` after the payee checks; the Bazaar lists it after Peter's next
+  capacity-limited (no free calls) and first in `SALES_FIRST` after the payee checks; the Bazaar lists it after the owner's next
   Refresh click (seed-bazaar.mjs no longer skips it).
 - `scripts/check-live-readiness.mjs`: a 429 from the CDP validator pauses both workers and each tool gets up to five tries
   with Retry-After or doubling waits from 10 s (two 177/181 runs on 22 Oct were throttling, not outages).
@@ -420,7 +420,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `/ai/chat` is "LLM chat completions" and `/ai/embed` is "Embeddings, OpenAI compatible" ("embeddings" 19 results, we were
   #9; "openai compatible" 7 results, absent). Both need one settlement (Refresh click) to show on the Bazaar.
 - The busiest single resource on Base is blockrun.ai's chat completions at $0.002 (83k calls, 288 payers in 30 days);
-  ours is $0.01 since 22 Oct. Price is Peter's call; the daily report now lists the most-used resources.
+  ours is $0.01 since 22 Oct. Price is the owner's call; the daily report now lists the most-used resources.
 - release.ps1 staging proofs try up to four times (8, 30, 60 s) because the testnet facilitator's relayer wallet gets
   stuck ("nonce lower than the current nonce", "replacement transaction underpriced").
 
@@ -457,17 +457,17 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   set in FluxA's Studio through FluxA's facilitator, and forwards the call with the static header X-FluxA-Proxy-Secret.
   `marketplaceOf()` (src/lib/marketplace.ts) skips our paywall when it equals the Worker secret FLUXA_PROXY_SECRET (copy in
   %LOCALAPPDATA%\agent-data-tools\fluxa-proxy-secret.txt, never in Git or chat). GET and non-capacity tools only, like RapidAPI.
-  Listing is Peter's FluxA account; why: one FluxA buyer wallet paid 1,165 FluxA-listed sellers in 7 days (base-bots analysis).
+  Listing is the owner's FluxA account; why: one FluxA buyer wallet paid 1,165 FluxA-listed sellers in 7 days (base-bots analysis).
 - FluxA lists us as one catch-all endpoint `/` at $0.01, so only tools priced at most $0.01 pass its proxy unpaid; dearer
   tools (/package-audit, /trade-insight, /mev-simulator, the $0.02-0.03 risk checks) answer the normal 402, which FluxA's
   proxy returns to its buyer uncharged (tests/payment-delivery-runtime.test.cjs).
 
-## Price move to $0.01 (22 Oct 2026, Peter)
+## Price move to $0.01 (22 Oct 2026, the owner)
 
-- Peter decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.
+- The owner decided on 22 Oct to raise the common price from $0.003 to $0.01: every buyer bot traced pays $0.01 or more (buyer 0xec2a…6d034: 150 calls at $0.01 to one seller; bot C $0.03; bot A $0.01-0.05), and Bazaar search position ignores price.
 - `PRICE` (src/family.ts), `AI_PRICE` (src/routes/ai-text.ts), `ORDINARY_PRICE` and every explicit `"$0.003"` entry are now `$0.01`. Unchanged: the $0.002 entry tools (/extract, /btc-fees, /sitemap, /package, /base-gas, /base-allowance), the $0.005 and higher tools, and **/base-tx at $0.003**, which the published capped chain client (clients/chain, docs/chain-checks.md) promises.
 - tests/fixtures/price-freeze.json was regenerated at the new prices (freeze again until 8 Nov). Copy that quotes call counts uses $0.01 ($5 = 5,000 credits, about 500 calls).
-- The Bazaar shows each tool's last settled price until it sells again: Peter's `Refresh Bazaar names.cmd` can re-pay the repriced listings once (about $1.60). Run `scripts/update-402index-prices.mjs --dry` then for real after the deploy (the release train does not).
+- The Bazaar shows each tool's last settled price until it sells again: the owner's `Refresh Bazaar names.cmd` can re-pay the repriced listings once (about $1.60). Run `scripts/update-402index-prices.mjs --dry` then for real after the deploy (the release train does not).
 
 ## Contract reads on five networks (1.52.0, 23 Oct 2026; 237 tools)
 
@@ -673,7 +673,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Failure reasons: request-metrics.ts queues `#err <path> <status> <message>` (src/lib/failure-reason.ts strips URLs,
   e-mails, domains, hex, quoted values and digits) for failed/errored JSON answers; metrics.ts counts them in
   `errors:<day>` (capped at 200 keys, rest "other"); `/status` shows `topFailures` (top 3 over 7 days). Read it before
-  guessing why a tool fails: Workers Logs need a token with log read access that only Peter can create.
+  guessing why a tool fails: Workers Logs need a token with log read access that only the owner can create.
 - release.ps1 proofs wait 8, 30, 60, 120, 240 s for the testnet relayer.
 
 ## Answer quality pass, no new tools (1.67.0, 24 Oct 2026)
@@ -725,7 +725,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   assumes https for a scheme-less host (`assumedScheme: true`); `/mime` reverse-looks-up a type; `/package` defaults
   to npm and treats "latest" as no version.
 - 24 Oct, 13:00 UTC: the free plan's 100k Worker requests/day ran out (167k by 14:30); every route, staging and the
-  funwords.eu apex answered 429/1027 until 00:00 UTC. One release a day until Workers Paid (Peter's decision).
+  funwords.eu apex answered 429/1027 until 00:00 UTC. One release a day until Workers Paid (the owner's decision).
 - Fourth batch (same release): `SCHEMELESS_URL` in src/tools.ts `normalizedInput` prepends https:// to any `url` input without a scheme; `coinKey()`/`intervalKey()` in hyperliquid.ts (names, pair suffixes, k-prefixed markets); `secCompanyMatch()` in gov-data.ts (ticker, then title); `quakeFeed()` in public-data.ts (largest USGS feed at or below the requested magnitude, then filter); markdown tables and task lists in `markdownToHtml`; `/text/extract` blanks dates, hex, URLs and e-mails before reading phones and numbers; `slugify` falls back to Unicode letters.
 - Inference and media first (24 Oct, market income by seller: dTelecom STT/TTS $36k, KORUS $22k, Venice and BlockRun
   inference; one-call utilities earn cents): `SALES_FIRST` opens with /ai/chat, /ai/chat-large, /ai/embed, /transcribe,
@@ -733,7 +733,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `GUIDANCE` (endpoints.ts) lead with them too. Names: "LLM chat completions, inference", "LLM inference, large model",
   "Speech to text, transcribe audio", "Image generation, generate image". tests/discovery-index and discovery-order pin
   the new head.
-- Spend caps: `takeDailyBudget()` in src/lib/daily-cap.ts (KV `cap:<kind>:<day>`), used by `runAi` (AI_DAILY_CAP, default 1000) and `withBrowserPage` (BROWSER_DAILY_CAP, default 60); both in wrangler.jsonc. Peter (24 Oct): Workers Paid only after $5 earned; remind him at $10 external income (the daily report prints it).
+- Spend caps: `takeDailyBudget()` in src/lib/daily-cap.ts (KV `cap:<kind>:<day>`), used by `runAi` (AI_DAILY_CAP, default 1000) and `withBrowserPage` (BROWSER_DAILY_CAP, default 60); both in wrangler.jsonc. The owner (24 Oct): Workers Paid only after $5 earned; remind the owner at $10 external income (the daily report prints it).
 - The release train's chaining script and notes live in `%LOCALAPPDATA%\agent-data-tools\release\train\` (the session
   scratchpad was wiped at the day change on 25 Oct and took the queued 1.68.0 train with it).
 
@@ -761,14 +761,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   example ended in "Ignore previous instructions." Example outputs are checked against real answers with
   `%LOCALAPPDATA%\agent-data-tools\release\train\example-keys.mjs <smoke output with SMOKE_SHOW>`; only `/extract` shows a
   field (`markdown`) its `format=text` example input does not return.
-- **Every tool is at most $0.01 (Peter, 25 Oct).** Measured from /revenue byEndpoint against catalog prices: the sweeper
+- **Every tool is at most $0.01 (the owner, 25 Oct).** Measured from /revenue byEndpoint against catalog prices: the sweeper
   0xec2a…d034 pays every listed tool at or below $0.01 and none above (253/254 vs 0/21 at $0.02). The 32 dearer tools
   (all packs, the risk checks, media, /package-audit) are $0.01. `scripts/freeze-prices.mjs "<decision>"` regenerates
   tests/fixtures/price-freeze.json (now all 302 paths) and appends the decision to its note. FluxA's catch-all passes
   every tool now. After a price release: `update-402index-prices.mjs --dry` then real; Bazaar shows new prices after the
   next settlement per tool (Refresh).
 - **$1 credit pack (25 Oct):** `CREDIT_PACKS` gained `{ usdCents: 100, credits: 1_000, url: "" }`; `WEB_PACKS` (packs with a
-  Stripe link) drives browsers, 402/MCP hints and top-ups, `CREDIT_PACKS` drives MPP (`/credits/buy/1` works now). Peter's
+  Stripe link) drives browsers, 402/MCP hints and top-ups, `CREDIT_PACKS` drives MPP (`/credits/buy/1` works now). The owner's
   step: create the $1.00 payment link (metadata adt_credits=1000, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID})
   and paste its URL; then the hints switch to $1 by themselves (first WEB_PACKS entry). Per-call card payments are
   impossible (Stripe $0.50 minimum); do not add a stripe method to tool 402s (Tempo must stay the first challenge, and a
@@ -779,7 +779,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 ## Workers Paid and the AI text tools in the free calls (1.70.0, 25 Oct 2026)
 
-- Peter bought Workers Paid ($5/month) on 25 Oct ~11:30 UTC: no 100k requests/day cap, Paid Durable Object limits, CPU
+- The owner bought Workers Paid ($5/month) on 25 Oct ~11:30 UTC: no 100k requests/day cap, Paid Durable Object limits, CPU
   limit 30 s per request instead of 10 ms (no `cpu_ms` in wrangler.jsonc), Workers AI and Browser Rendering billed per
   use (AI_DAILY_CAP and BROWSER_DAILY_CAP stay). Releases may run at any hour; one directory registration a day stays.
 - `CAPACITY_LIMITED` (src/lib/capacity.ts) no longer holds the AI text paths, so /ai/chat and the other text models are in
@@ -913,7 +913,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   was read (`complete: false`); the first failing window is a 502.
 - index.ts POST flattener: arrays whose items hold a comma or line break are passed as JSON (`listInput` splits them back).
 - Not built on 25 Oct: OCR on Llama 4 Scout vision (two test calls timed out after 72 and 143 s; /describe uses the same
-  path, check its /status before relying on it), Llama 3.2 Vision (needs a licence acceptance on the account: Peter's
+  path, check its /status before relying on it), Llama 3.2 Vision (needs a licence acceptance on the account: the owner's
   decision), token counting (small demand: 31 payers).
 - src/routes/memory.ts: agent memory on KV `TRIALS` under `mem:<sha256(agent-memory:ns)>:<key>`; `DEMO_NS` is read-only (set and
   delete answer `saved/deleted: false, demo: true`) so published examples always answer. KV reads elsewhere may lag a write by
@@ -1445,7 +1445,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 ## SpellzCode company pages (1.139.0, 11 Nov 2026)
 
-- Agent Data Tools is the product, SpellzCode the maker. `/about`, `/changelog` and `/.well-known/security.txt` live in src/lib/legal.ts; `COMPANY_FOOTER` is the footer line of the tool pages, guides and browser 402 page. tests/company-pages.test.cjs fails if a personal name, a personnummer-shaped number or "Peter" appears on /about or /changelog.
+- Agent Data Tools is the product, SpellzCode the maker. `/about`, `/changelog` and `/.well-known/security.txt` live in src/lib/legal.ts; `COMPANY_FOOTER` is the footer line of the tool pages, guides and browser 402 page. tests/company-pages.test.cjs fails if a personal name, a personnummer-shaped number or "the owner" appears on /about or /changelog.
 - Seller details (legal form, organisation number, address) are added to /about only on the owner's word once the firm is registered.
 - `node scripts/build-changelog.mjs` rewrites src/data/changelog.generated.ts from the release commits on origin/main; run it before a release so the newest versions appear.
 - The routing layer never moves (plan: C:\MoneyWallet\business\spellzcode-professionalisation-plan-2026-11-11.md): the workers.dev origin, PAY_TO and the other payout wallets, tool paths and names, the io.github.Nutshell2000 registry names, the repo path and the Worker name. Never put "SpellzCode" into a tool name; `SERVICE_NAME` stays "Agent Data Tools".

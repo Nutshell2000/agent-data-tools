@@ -7,7 +7,7 @@ import { HttpError, type Env } from "../lib/env";
 import { recentBlockSeconds } from "../lib/block-time";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, client, codeKind, logsClient, recentLogs, rpc, topicLogsClient } from "./chain-reads";
+import { CHAINS, LOG_WINDOW_MAX, client, codeKind, logsClient, recentLogs, rpc, scaledBlocks, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -223,7 +223,7 @@ export const CHAIN_MORE: Entry[] = [
     ["new-pools", "new-pairs", "new-tokens", "dex", "uniswap", "aerodrome", "liquidity-pool", "token-launch"], {
       chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
       dex: { type: "string", description: "all (default), uniswap-v3, uniswap-v2 or aerodrome (Base only)", example: "all" },
-      blocks: { type: "string", description: "How many recent blocks to scan, 100 to 20000 (default 3000: about 10 minutes on Base, 10 hours on Ethereum)", example: "3000" },
+      blocks: { type: "string", description: "How many recent blocks to scan, 100 to 20000 (default 3000: about 10 hours on Ethereum); on Base, which makes a block every 0.2 s, ten times that (default 30000, about 100 minutes, up to 200000)", example: "3000" },
       limit: { type: "string", description: "Most pools to return, 1 to 30 (default 20)", example: "20" },
     },
     { chain: "Base", blocksScanned: 3000, fromBlock: 37000000, toBlock: 37002999, count: 2, pools: [{ dex: "uniswap-v2", pool: "0x1111111111111111111111111111111111111111", token0: { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18 }, token1: { address: "0x2222222222222222222222222222222222222222", symbol: "NEW", decimals: 18 }, feeTier: 3000, stable: null, block: 37002990, txHash: "0xabc", approxAgeMinutes: 0.3 }], source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live" },
@@ -232,7 +232,7 @@ export const CHAIN_MORE: Entry[] = [
       const want = (opt(q, "dex", 20) ?? "all").toLowerCase();
       const factories = DEX_FACTORIES[slug].filter((f) => want === "all" || f.dex === want);
       if (!factories.length) throw new HttpError(400, want === "aerodrome" ? "aerodrome is on Base only" : "dex must be all, uniswap-v3, uniswap-v2 or aerodrome");
-      const span = BigInt(num(q, "blocks", { min: 100, max: 20_000, fallback: 3000, integer: true }));
+      const span = BigInt(num(q, "blocks", { min: 100, max: scaledBlocks(slug, 20_000), fallback: scaledBlocks(slug, 3000), integer: true }));
       const limit = num(q, "limit", { min: 1, max: 30, fallback: 20, integer: true });
       const cl = client(env, def(slug));
       // Log scans go through the log-capable node order (logsClient) and a block a few behind the head, as /token/buyers
@@ -242,7 +242,7 @@ export const CHAIN_MORE: Entry[] = [
       const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
       let lastError: unknown;
       const settled = await Promise.all(factories.map(async (f) => {
-        try { return { f, ...(await recentLogs(logs, { address: f.address, topics: [f.topic] }, latest, span, limit)) }; }
+        try { return { f, ...(await recentLogs(logs, { address: f.address, topics: [f.topic] }, latest, span, limit, { max: LOG_WINDOW_MAX })) }; }
         catch (e) { lastError = e; return null; }
       }));
       const scans = settled.filter((s): s is NonNullable<typeof s> => s !== null);
@@ -275,7 +275,7 @@ export const CHAIN_MORE: Entry[] = [
     ["token-buyers", "who-bought", "smart-money", "token-flows", "wallet", "dex", "blockchain"], {
       token: { type: "string", description: "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC", required: true, example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },
       chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
-      blocks: { type: "integer", description: "How many recent blocks to read, 100 to 10000 (default 1800: about 6 minutes on Base, 6 hours on Ethereum)", example: 1800 },
+      blocks: { type: "integer", description: "How many recent blocks to read, 100 to 10000 (default 1800: about 6 hours on Ethereum); on Base, which makes a block every 0.2 s, ten times that (default 18000, about an hour, up to 100000)", example: 1800 },
       limit: { type: "integer", description: "Buyers and sellers to return each, 1 to 20 (default 10)", example: 10 },
     },
     { chain: "Base", token: { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", symbol: "AERO", decimals: 18 }, fromBlock: 37001200, toBlock: 37002999, transfersRead: 1840, truncated: false,
@@ -285,14 +285,14 @@ export const CHAIN_MORE: Entry[] = [
     async (env, q) => {
       const slug = chainSlug(opt(q, "chain", 30) ?? "base");
       const token = tokenInput(need(q, "token", 80), slug) as `0x${string}`;
-      const span = BigInt(num(q, "blocks", { min: 100, max: 10_000, fallback: 1800, integer: true }));
+      const span = BigInt(num(q, "blocks", { min: 100, max: scaledBlocks(slug, 10_000), fallback: scaledBlocks(slug, 1800), integer: true }));
       const limit = num(q, "limit", { min: 1, max: 20, fallback: 10, integer: true });
       const c = def(slug);
       const cl = client(env, c);
       const logs = logsClient(env, c);
       const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
       // A busy token fills 3,000 transfers in a few blocks: the window then shrinks to what was read (fromBlock says so).
-      const scan = await recentLogs(logs, { address: token, topics: [TRANSFER] }, latest, span, 3000);
+      const scan = await recentLogs(logs, { address: token, topics: [TRANSFER] }, latest, span, 3000, { max: LOG_WINDOW_MAX });
       const [decimals, symbol] = await Promise.all([
         (cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }) as Promise<number>).then(Number).catch(() => null),
         (cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }) as Promise<string>).catch(() => null),

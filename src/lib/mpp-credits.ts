@@ -1,7 +1,7 @@
 // Credit packs bought by the agent itself with MPP (Machine Payments Protocol, Stripe and Tempo): an agent
 // holding a Shared Payment Token from a Link agent wallet pays a pack by card with no checkout page and gets
 // the API key in the response. Card charges have a $0.50 minimum, so MPP sells packs, never single calls.
-// Off until Peter sets STRIPE_MPP_KEY (restricted: PaymentIntents write) and STRIPE_PROFILE_ID.
+// Off until the owner sets STRIPE_MPP_KEY (restricted: PaymentIntents write) and STRIPE_PROFILE_ID.
 import type { Context } from "hono";
 import { Mppx, stripe } from "mppx/server";
 import { Receipt } from "mppx";

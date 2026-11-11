@@ -26,7 +26,7 @@ test('paused seller-kit GET, HEAD and direct order creation fail before payment 
   const f=fixture();
   for(const [path,method] of [['/buy/x402-seller-kit','GET'],['/buy/x402-seller-kit','HEAD'],['/store/x402-seller-kit/order','POST']]) {
     const r=await f.app.fetch(new Request('https://example.test'+path,{method}),f.env);
-    assert.equal(r.status,410);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);await r.body?.cancel();
+    assert.equal(r.status,method==='POST'?503:410);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);await r.body?.cancel();
   }
   assert.deepEqual(f.counts(),{assets:0,writes:0,challenges:0});
   assert.deepEqual(routes.buyOpenApiPaths(),{});

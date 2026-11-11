@@ -8,7 +8,7 @@ export const MICROS_PER_CREDIT = 1000;
 
 /**
  * What each pack costs and gives. The Stripe payment links carry metadata adt_credits with the same number.
- * The $1 pack (25 Oct 2026, Peter's decision: a first card step cheaper than $5 for the people who land on a tool page) is
+ * The $1 pack (25 Oct 2026, the owner's decision: a first card step cheaper than $5 for the people who land on a tool page) is
  * sold over MPP at /credits/buy/1; its Stripe payment link ($1.00 USD, metadata adt_credits=1000, success URL
  * /credits/claim?session_id={CHECKOUT_SESSION_ID}, automatic tax off so the total stays $1.00) was created on 25 Oct.
  */
