@@ -213,7 +213,9 @@ export async function searchName(name: string, limit: number, fetcher: Fetcher =
     if (!words.every((w) => have.some((h) => h.startsWith(w)))) continue;
     seen.add(orgnr);
     const exact = have.join(" ") === words.join(" ") ? 0 : have[0]?.startsWith(words[0]) ? 1 : 2;
-    hits.push({ name: display, orgnr, legalForm: form, rank: exact * 1000 + have.length });
+    // Companies in Bolagsverket's register (letter form codes) before SCB-only entries such as foreign legal persons (96).
+    const scbOnly = form && /^\d+$/.test(form) ? 500 : 0;
+    hits.push({ name: display, orgnr, legalForm: form, rank: exact * 1000 + scbOnly + have.length });
   }
   if (!hits.length) throw new HttpError(404, `no registered Swedish company name holds "${name.slice(0, 60)}"; nothing was charged`);
   hits.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, "sv"));
@@ -234,8 +236,9 @@ export async function searchName(name: string, limit: number, fetcher: Fetcher =
 
 const EXAMPLE = {
   orgnr: "556703-7485", vatNumber: "SE556703748501", name: "Spotify AB", otherNames: [], legalForm: { code: "AB", name: "Aktiebolag (limited company)" },
-  status: "registered", registered: "2006-04-21", deregistered: null, proceedings: [], taxActive: true, industries: [{ sni: "63.120" }],
-  businessDescription: "Bolaget ska bedriva utveckling och försäljning av programvara samt tjänster inom digital musik och därmed förenlig verksamhet.",
+  // The tool's own answer for orgnr=556703-7485 on 11 Nov 2026 (data of 9 Nov).
+  status: "registered", registered: "2006-05-10", deregistered: null, proceedings: [], taxActive: true, industries: [{ sni: "60.100" }],
+  businessDescription: "Bolaget har till föremål för sin verksamhet att bedriva Internetrelaterade tjänster inom digitala medier som musik, spel och TV, samt att, direkt eller indirekt, äga och förvalta fast och lös egendom, äga aktier och andelar i dotterbolag och andra bolag samt tillhandahålla administrativa tjänster för dessa bolag och därmed förenlig verksamhet.",
   address: { street: "Regeringsgatan 19", postcode: "11153", city: "STOCKHOLM", country: "SE" },
   vat: null, dataAsOf: "2026-11-09", source: SOURCE, note: NOT_A_CREDIT_REPORT,
 };
