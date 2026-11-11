@@ -440,7 +440,7 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
   // AI
   "/ai/chat-large": {
     title: "Pay-per-call LLM API: Llama 3.3 70B or gpt-oss-120b, no subscription",
-    uses: ["Reasoning, drafting and Q&A when the 8B model is not enough", "Pick llama-3.3-70b (default) or gpt-oss-120b with the model input", "Call it through the OpenAI-compatible /v1/chat/completions by naming a 70b or gpt-oss model"],
+    uses: ["Reasoning, drafting and Q&A when Llama 4 Scout is not enough", "Pick llama-3.3-70b (default) or gpt-oss-120b with the model input", "Call it through the OpenAI-compatible /v1/chat/completions by naming a 70b or gpt-oss model"],
     faq: [["How is it different from /ai/chat?", "Same call and inputs (prompt, optional system prompt, up to 1,024 output tokens, temperature) with a stronger model, at its own price."]],
   },
   "/ai/translate": {
