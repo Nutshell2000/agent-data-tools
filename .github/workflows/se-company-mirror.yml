@@ -41,8 +41,19 @@ jobs:
           set -euo pipefail
           base=https://vardefulla-datamangder.bolagsverket.se
           curl -fsSI "$base/bolagsverket/bolagsverket_bulkfil.zip" | tr -d '\r' | grep -i '^last-modified:' | cut -d' ' -f2- > bv-date.txt || true
+          # The server closes long transfers part way (75 of 240 MB on 11 Nov 2026): resume until the size matches.
           for f in bolagsverket/bolagsverket_bulkfil.zip scb/scb_bulkfil.zip; do
-            curl -fSL --retry 5 --retry-delay 30 --speed-limit 1000 --speed-time 120 -o "$(basename "$f")" "$base/$f"
+            out=$(basename "$f")
+            want=$(curl -fsSI "$base/$f" | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)
+            rm -f "$out"
+            for try in $(seq 1 40); do
+              curl -sS -L -C - --speed-limit 1000 --speed-time 60 -o "$out" "$base/$f" || true
+              have=$(stat -c %s "$out" 2>/dev/null || echo 0)
+              echo "$out: $have of $want bytes after try $try"
+              [ "$have" = "$want" ] && break
+              sleep 5
+            done
+            test "$(stat -c %s "$out")" = "$want"
           done
           ls -l *.zip
           unzip -o -q bolagsverket_bulkfil.zip -d bv
