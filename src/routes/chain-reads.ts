@@ -253,9 +253,12 @@ function chainEntries(c: ChainDef): Entry[] {
         const raw = q("number")?.trim();
         const cl = client(env, c);
         let blockNumber: bigint | undefined;
-        if (raw && raw !== "latest") {
-          if (!/^\d{1,12}$/.test(raw)) throw new HttpError(400, "number must be a block number or 'latest'");
-          blockNumber = BigInt(raw);
+        // 11 Nov 2026 truth audit: hex numbers (as JSON-RPC and explorers write them) and "30,000,000" were refused.
+        const n = raw?.toLowerCase().replace(/[,_\s]/g, "");
+        if (n && n !== "latest") {
+          if (/^\d{1,12}$/.test(n)) blockNumber = BigInt(n);
+          else if (/^0x[0-9a-f]{1,10}$/.test(n)) blockNumber = BigInt(n);
+          else throw new HttpError(400, "number must be a block number (decimal or 0x hex) or 'latest'");
         }
         const b = await rpc(() => (blockNumber === undefined ? cl.getBlock() : cl.getBlock({ blockNumber })));
         return head({
@@ -727,8 +730,11 @@ function contractEntries(c: ChainDef): Entry[] {
         return head({ to, from: from ?? null, value: rawValue, gas: gas.toString(), gasPriceGwei: formatGwei(price), cost: formatEther(gas * price), symbol: c.symbol, block: Number(block) });
       }),
 
-    entry(p("gas-history"), `${short} gas history, gas price`,
-      `Gas price history on ${c.name} (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ${c.slug}_gas.`,
+    // 11 Nov 2026: was "<Chain> gas history, gas price". The Bazaar search for "base gas" then put /base/gas-history
+    // (2 payers) above /base-gas (5 payers), and the paid Service Finder keeps at most two listings per seller per job, so
+    // the sibling took the slot of the listing with the payers. The current price is <chain>_gas; this one is history only.
+    entry(p("gas-history"), `${short} gas history, fee history`,
+      `Fee history on ${c.name} (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ${c.slug}_gas.`,
       tags("gas", "gas-history", "fees", "fee-history"), {
         blocks: { type: "integer", description: "How many recent blocks, 5-100 (default 20)", example: 20 },
       },

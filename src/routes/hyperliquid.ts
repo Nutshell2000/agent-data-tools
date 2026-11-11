@@ -278,16 +278,19 @@ export const HYPERLIQUID: Entry[] = [
     { count: 3, prices: { BTC: 81870.5, ETH: 3920.15, SOL: 187.42 }, time: "2026-10-23T13:24:02.893Z", source: SOURCE },
     async (_e, q) => {
       const raw = opt(q, "coins", 400);
-      const wanted = raw ? raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) : [];
+      // 11 Nov 2026 truth audit: the same spellings the other Hyperliquid tools take (coinKey: names, BTC-PERP, BTCUSDT),
+      // and PEPE for the per-thousand kPEPE market, as /hyperliquid/candles already did.
+      const wanted = raw ? raw.split(",").map((s) => coinKey(s)).filter(Boolean) : [];
       if (wanted.length > 50) throw new HttpError(400, "at most 50 coins");
       if (wanted.some((c) => !/^[A-Z0-9]{1,20}$/.test(c))) throw new HttpError(400, "coins must be symbols such as BTC,ETH");
       const mids = await info<Record<string, string>>({ type: "allMids" });
       // Perpetuals only: spot pairs are keyed "@123" and outcome markets "#123".
       const perps = Object.entries(mids).filter(([k]) => /^[A-Za-z0-9]+$/.test(k));
       const byUpper = new Map(perps.map(([k, v]) => [k.toUpperCase(), [k, Number(v)] as const]));
-      const picked = wanted.length ? wanted.map((c) => byUpper.get(c)).filter((x): x is readonly [string, number] => !!x) : perps.map(([k, v]) => [k, Number(v)] as const);
+      const find = (c: string) => byUpper.get(c) ?? byUpper.get(`K${c}`);
+      const picked = wanted.length ? wanted.map(find).filter((x): x is readonly [string, number] => !!x) : perps.map(([k, v]) => [k, Number(v)] as const);
       if (wanted.length && !picked.length) throw new HttpError(404, "none of those coins has a Hyperliquid perpetual");
-      const missing = wanted.filter((c) => !byUpper.has(c));
+      const missing = wanted.filter((c) => !find(c));
       return { count: picked.length, prices: Object.fromEntries(picked), ...(missing.length ? { notFound: missing } : {}), time: new Date().toISOString(), source: SOURCE };
     }),
 ];

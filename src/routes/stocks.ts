@@ -27,7 +27,11 @@ export async function stockSearch(query: string, limit = 8) {
 
 /** A ticker as typed (AAPL, ^GSPC, BTC-USD, EURUSD=X, VOLV-B.ST) or a company name, resolved through search. */
 async function resolveSymbol(raw: string) {
-  const up = raw.trim().toUpperCase().replace(/^\$/, "");
+  let up = raw.trim().toUpperCase().replace(/^\$/, "");
+  // 11 Nov 2026 truth audit: share classes written with a dot (BRK.B, BF.B, the common US form) resolved to other
+  // instruments (a YieldMax ETF, an option). Yahoo writes US classes with a dash; exchange suffixes (VOLV-B.ST, SAP.DE)
+  // keep their dot because the part after it is longer than one letter.
+  if (/^[A-Z]{1,5}\.[A-Z]$/.test(up)) up = up.replace(".", "-");
   if (TICKER.test(up) && !/\s/.test(raw.trim())) return up;
   const hits = await stockSearch(raw, 1);
   if (!hits.length) throw new HttpError(404, `no ticker found for "${raw}"`);
