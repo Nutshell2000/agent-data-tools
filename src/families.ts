@@ -56,6 +56,7 @@ import { STOCKS } from "./routes/stocks";
 import { BOOKS } from "./routes/books";
 import { MERKLE } from "./routes/merkle";
 import { X402_FIND } from "./routes/x402-find";
+import { TRUST } from "./routes/trust";
 import { HL_ACCOUNT } from "./routes/hl-account";
 import { OPTIONS } from "./routes/options";
 import { LLM_PRICES } from "./routes/llm-prices";
@@ -73,7 +74,7 @@ import { CRYPTO_TRENDING } from "./routes/crypto-trending";
 import { TREASURY } from "./routes/treasury";
 import { ENTRY_PATHS } from "./routes/entry-paths";
 
-const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICES, ...FX_MORE, ...POLYMARKET, ...CRYPTO_TRENDING, ...STOCKS, ...GITHUB, ...CVE, ...ARXIV, ...SEARCH, ...KEYWORDS, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...X402_FIND, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...BOOKS, ...GEO_IP, ...EVM_TOOLS, ...MERKLE, ...BIC, ...WEB_CHECKS, ...SITE_AUDIT, ...CONTRACT_AUDIT, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...SEC_FINANCIALS, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...TREASURY, ...HYPERLIQUID, ...HL_ACCOUNT, ...OPTIONS, ...LLM_PRICES, ...DEFI_YIELDS, ...DEFI_TVL, ...AIRPORT_TOOLS, ...LIFI, ...REGISTRIES, ...SE_COMPANY, ...FEAR_GREED, ...ENTRY_PATHS, ...FUN, ...BASICS, ...AI_TEXT];
+const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICES, ...FX_MORE, ...POLYMARKET, ...CRYPTO_TRENDING, ...STOCKS, ...GITHUB, ...CVE, ...ARXIV, ...SEARCH, ...KEYWORDS, ...PDF, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...X402_FIND, ...TRUST, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...BOOKS, ...GEO_IP, ...EVM_TOOLS, ...MERKLE, ...BIC, ...WEB_CHECKS, ...SITE_AUDIT, ...CONTRACT_AUDIT, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_RESEARCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...SEC_FINANCIALS, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...TREASURY, ...HYPERLIQUID, ...HL_ACCOUNT, ...OPTIONS, ...LLM_PRICES, ...DEFI_YIELDS, ...DEFI_TVL, ...AIRPORT_TOOLS, ...LIFI, ...REGISTRIES, ...SE_COMPANY, ...FEAR_GREED, ...ENTRY_PATHS, ...FUN, ...BASICS, ...AI_TEXT];
 
 /**
  * Price test, part 2 (26 Oct to 2 Nov 2026, the owner's go-ahead): pure-computation tools (no outside data source, no
