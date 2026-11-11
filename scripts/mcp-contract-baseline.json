@@ -1,5 +1,5 @@
 {
-  "version": "1.139.0",
+  "version": "1.140.0",
   "tools": [
     {
       "name": "extract",
@@ -12325,6 +12325,115 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "x402_payout_check",
+      "description": "Check whether an x402 seller's payout wallet changed before you pay it: compares the wallet its live 402 quote names with the wallet its Coinbase Bazaar listing last settled to and with the seller's own /.well-known/paycheck.json. An undeclared change is how a hijacked endpoint looks; a declared rotation passes. Pass or review with reasons, plus the listing's 30-day payers. Never pays or signs. Use before paying a seller you bought from before. Example: url=https://agent-data-tools.revmesh2074.workers.dev/weather. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid x402 endpoint"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "x402_seller_record",
+      "description": "See whether other buyers pay an x402 seller before you do: every USDC transfer into its payout wallet over the last 1-7 days from public logs on Base, Ethereum, Arbitrum, Optimism or Polygon, with payments, distinct and repeat payers, total and median amount, first and last payment and top payers. Give the payout wallet or the paid endpoint's URL. Counts all USDC received, x402 or not. Use before the first payment to an unfamiliar seller. Example: address=0x6293ded2684F1A76E26bEcef87c137D691Fbf800. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "The seller's payout wallet (0x). Or send url instead"
+          },
+          "url": {
+            "type": "string",
+            "description": "Or: the paid x402 endpoint; its quote's payout wallet is read"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days back to read, 1-7 (default 1)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "x402_receipt",
+      "description": "Turn a settled x402 or USDC payment into a receipt to file: from the transaction hash, the payer, payee, amount, time, block, status and whether it was an EIP-3009 authorization (the x402 exact scheme), on Base, Ethereum, Arbitrum, Optimism or Polygon, with a stable receipt id and a SHA-256 of a canonical text for bookkeeping. Optionally name what was bought. Never signs. Use to keep proof of a purchase after an agent pays. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Transaction hash of the payment (0x, 64 hex characters)"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          },
+          "payTo": {
+            "type": "string",
+            "description": "Optional: the payee, when the transaction holds several USDC transfers"
+          },
+          "resource": {
+            "type": "string",
+            "description": "Optional: the URL or item the payment bought, written into the receipt"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "agent_readiness",
