@@ -8,6 +8,7 @@ import { TOOL_SEO } from "./tool-seo";
 import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { GUIDE_FOR_TOOL } from "../guides/task-guides";
+import { COMPANY_FOOTER } from "./legal";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -101,7 +102,7 @@ ${live ? `<p class="muted">The real answer to the request above, read ${esc(live
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
 ${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}
 ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) => `<li><a href="/tools/${esc(toolSlug(o.path))}">${esc(o.summary)}</a> · ${esc(o.price)}</li>`).join("")}</ul>` : ""}
-<footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
+<footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 

@@ -1441,3 +1441,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `NEEDS_REMOTE_DATA` in scripts/smoke-examples.mjs skips it locally. Prove it after the release with a free HTTP trial on production (`/se/company?orgnr=556703-7485&trial=1` and `?name=spotify&trial=1`) and one paid staging call: a Worker's fetch must keep the Range header through GitHub's redirect.
 - Not in it, on purpose: annual-report figures (the iXBRL files are a separate weekly folder; a later step if the lookup sells), board members (not in the free data; Bolagsverket's paid API), anything about persons.
 
+
+
+## SpellzCode company pages (1.139.0, 11 Nov 2026)
+
+- Agent Data Tools is the product, SpellzCode the maker. `/about`, `/changelog` and `/.well-known/security.txt` live in src/lib/legal.ts; `COMPANY_FOOTER` is the footer line of the tool pages, guides and browser 402 page. tests/company-pages.test.cjs fails if a personal name, a personnummer-shaped number or "Peter" appears on /about or /changelog.
+- Seller details (legal form, organisation number, address) are added to /about only on the owner's word once the firm is registered.
+- `node scripts/build-changelog.mjs` rewrites src/data/changelog.generated.ts from the release commits on origin/main; run it before a release so the newest versions appear.
+- The routing layer never moves (plan: C:\MoneyWallet\business\spellzcode-professionalisation-plan-2026-11-11.md): the workers.dev origin, PAY_TO and the other payout wallets, tool paths and names, the io.github.Nutshell2000 registry names, the repo path and the Worker name. Never put "SpellzCode" into a tool name; `SERVICE_NAME` stays "Agent Data Tools".
+

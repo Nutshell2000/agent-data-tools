@@ -6,6 +6,7 @@ import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
+import { COMPANY_FOOTER } from "./legal";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -64,7 +65,7 @@ ${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
 <p>Add this MCP server to Claude, Cursor or any MCP client. The tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 <p>Agents with a wallet pay per call over HTTP: x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). A card key from <a href="/credits">/credits</a> works over both HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</p>
-<footer><a href="/">All tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
+<footer><a href="/">All tools</a> · <a href="/llms.txt">Docs for agents</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
