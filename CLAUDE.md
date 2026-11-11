@@ -1236,3 +1236,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - If a buyer turns out to need the v1 body (watch `/metrics/callers` `v1_payment` and the daily payer list for a wallet that stops), set `QUOTE_BODY=v1` and redeploy; do not revert the code.
 - The payout signer's check: vAPI's nonce is 106 characters; the confirmation accepts yes in any case.
 
+
+
+## Truth audit of existing tools (1.122.0, 11 Nov 2026)
+
+- Method that found seven real faults in one evening (the stock quote's five-day "day change" in 1.117.0, then these six): run a tool's published example (`SMOKE_SHOW=1500 node scripts/smoke-examples.mjs /path`) and compare the answer with an independent source, the real site or the arithmetic, by hand. Shape and fuzz sweeps cannot see a plausible wrong number. Captures: `business/agentic/base-bots/data/truth-audit-2026-11-10*.txt`. Checked and right: prices, FX, funding APR, loan and compound interest, Black-Scholes, holidays, ISO weeks, ages, zodiac, distances, statistics, cron, IBAN, security headers, redirects, DNS propagation, e-mail authentication.
+- `/moon` (src/routes/public-data.ts): `lunarPhaseTime(k)` is Meeus's chapter 49 (k whole = new moon, k + 0.5 = full), UTC = dynamical time minus about 69 s; `moonPhase()` finds the lunation the moment is in and measures the phase between the true events. tests/moon.test.cjs holds nine published new and full moons.
+- World Bank snapshot: `scripts/fetch-world-bank.mjs` throws when an indicator's median country has under five years (the 22 Oct fetch got one year of `SL.UEM.TOTL.ZS` per country and nobody noticed for three weeks); tests/world-bank-depth.test.cjs checks every indicator. Rerun the script monthly as before.
+- `/pack/gas-tracker`: `nativeUsd` prices ETH and POL; POL comes from `/price/token` on Ethereum, best effort.
+- `rdapLookup` (src/routes/domain.ts) asks Verisign or PIR directly (`DIRECT_RDAP`) when rdap.org answers anything but 200 or 404; `/agent-readiness` reads the first `Sitemap:` line of robots.txt when the usual paths have none; `/package-audit` passes `includeWeeklyDownloads: true` (the 50-subrequest limit it avoided was the free plan's).
+- Still to audit the same way: the AI, search and browser tools (paid staging calls), the per-network chain reads against an explorer, `/sun` at high latitudes, the packs' derived scores, `/seo/audit`'s internal-link count on sites that span subdomains (www.wikipedia.org reads 0 internal, 380 external).
+

@@ -38,19 +38,37 @@ interface Rdap {
   secureDNS?: { delegationSigned?: boolean };
 }
 
+/**
+ * The registries of the largest TLDs, asked directly when rdap.org's redirect service does not answer (11 Nov 2026: one
+ * refused lookup from rdap.org made the trust report of cloudflare.com say its registration date was "not available
+ * for this TLD"). Verisign serves .com and .net, Public Interest Registry .org.
+ */
+const DIRECT_RDAP: Readonly<Record<string, string>> = Object.freeze({
+  com: "https://rdap.verisign.com/com/v1/domain/", net: "https://rdap.verisign.com/net/v1/domain/", org: "https://rdap.publicinterestregistry.org/rdap/domain/",
+});
+async function rdapRead(url: string): Promise<{ status: number; data: Rdap | null }> {
+  const res = await fetch(url, {
+    // rdap.org rejects requests that carry no user agent.
+    headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" },
+    signal: AbortSignal.timeout(6_000),
+  });
+  if (!res.ok) { await res.body?.cancel().catch(() => {}); return { status: res.status, data: null }; }
+  return { status: res.status, data: (await res.json()) as Rdap };
+}
 /** RDAP only knows registrable domains, so strip subdomain labels until one resolves. */
 async function rdapLookup(name: string): Promise<{ domain: string; data: Rdap } | null> {
   const labels = name.split(".");
   for (let i = 0; i < Math.min(labels.length - 1, 3); i++) {
     const candidate = labels.slice(i).join(".");
+    const tld = labels[labels.length - 1];
+    const direct = Object.hasOwn(DIRECT_RDAP, tld) ? DIRECT_RDAP[tld] + candidate : null;
     try {
-      const res = await fetch(RDAP + candidate, {
-        // rdap.org rejects requests that carry no user agent.
-        headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" },
-        signal: AbortSignal.timeout(6_000),
-      });
-      if (res.ok) return { domain: candidate, data: await res.json() };
+      const first = await rdapRead(RDAP + candidate);
+      if (first.data) return { domain: candidate, data: first.data };
+      // A 404 is an answer (not registered, or a subdomain): go on to the parent. Anything else is rdap.org refusing.
+      if (first.status !== 404 && direct) { const second = await rdapRead(direct).catch(() => null); if (second?.data) return { domain: candidate, data: second.data }; }
     } catch (e) {
+      if (direct) { const second = await rdapRead(direct).catch(() => null); if (second?.data) return { domain: candidate, data: second.data }; }
       // Some registries drop the connection instead of answering 404 for a
       // subdomain, so only a timeout ends the search.
       if (e instanceof Error && e.name === "TimeoutError") return null;
@@ -58,7 +76,6 @@ async function rdapLookup(name: string): Promise<{ domain: string; data: Rdap } 
   }
   return null;
 }
-
 /**
  * The host of whatever the caller sent: a bare domain, a URL (agents pass https://www.stripe.com/pricing), a domain
  * with a path or port, or a Unicode name (例え.テスト becomes its punycode form, which DNS and RDAP take).
