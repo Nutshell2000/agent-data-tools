@@ -38,8 +38,11 @@ interface ContractRiskResult {
 async function detectProxyPattern(env: Env, address: `0x${string}`): Promise<{ isProxy: boolean | null; impl?: string }> {
   const client = baseClient(env);
 
-  // EIP-1967: implementation slot 0x360894a13ba1a3210667c828492db98dca3e2f703ccf0b462f8b1d7b7ba7b206
-  const slot = "0x360894a13ba1a3210667c828492db98dca3e2f703ccf0b462f8b1d7b7ba7b206";
+  // EIP-1967 implementation slot: bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1). Until 1.131.1 this
+  // line held a different, wrong value (…2f703ccf0b462f8b1d7b7ba7b206), which is empty on every contract: the tool
+  // never reported a proxy. Found on 11 Nov 2026 when the same constant failed in /audit/contract; the proxy tools in
+  // chain-reads.ts (PROXY_SLOTS) always had the right one.
+  const slot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
   try {
     const val = await client.getStorageAt({ address, slot });
     if (!val || val === "0x") return { isProxy: null };
