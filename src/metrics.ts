@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { reserveAmount, claimTransfer, type AmountReservation, type TransferClaim } from "./store/checkout-state";
 import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/settlement-ledger";
 import { saveFunnel, funnelSummary, assertFunnelEvent, funnelLabel, COUNTED_ONLY, type FunnelEvent } from "./lib/funnel";
-import { issueCredits, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
+import { issueCredits, grantPlanInvoices, spendCredits, refundCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall, takeDailyCall, refundDailyCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
 import type { MetricsBatch } from "./lib/metrics-batch";
@@ -206,6 +206,7 @@ export class Metrics extends DurableObject {
 
   // Card credits. Called only on the instance named "credits" (see lib/credit-routes.ts).
   async issueCredits(grant: Parameters<typeof issueCredits>[1]) { return issueCredits(this.ctx.storage, grant); }
+  async grantPlanInvoices(keyHash: string, subscriptionId: string, invoiceIds: string[]) { return grantPlanInvoices(this.ctx.storage, keyHash, subscriptionId, invoiceIds); }
   async spendCredits(keyHash: string, micros: number) { return spendCredits(this.ctx.storage, keyHash, micros); }
   async refundCredits(keyHash: string, micros: number) { return refundCredits(this.ctx.storage, keyHash, micros); }
   async creditBalance(keyHash: string) { return creditBalance(this.ctx.storage, keyHash); }

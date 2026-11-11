@@ -81,7 +81,30 @@ export async function hashCreditKey(key: string): Promise<string> {
   return [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[] }
+/**
+ * The monthly plan (the owner, 11 Nov 2026: "$9 a month for 15,000 credits and $19 a month for 40,000 credits, with unused
+ * credits kept"; no free allowance; she creates the Stripe objects herself). A plan is an automatic monthly top-up of one
+ * key: a Stripe subscription whose every paid invoice adds the plan's credits to the same ledger the packs use, so credits
+ * never expire and nothing else about a key changes. Each payment link is a recurring price with metadata adt_credits
+ * equal to `credits`, automatic tax off, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID}.
+ * A plan with an empty `url` is not offered anywhere; while both are empty the service behaves exactly as before.
+ * `PLAN_PORTAL_URL` is Stripe's customer portal login link, where a subscriber cancels; plans are offered only when it is set.
+ * No webhook: renewals are read from Stripe when the key is used (lib/credit-routes.ts `syncPlan`), which needs read
+ * access to Invoices on STRIPE_READ_KEY. The portal must not allow switching plans: a renewal grants the credits of the
+ * plan the key was bought with.
+ */
+export const CREDIT_PLANS = [
+  { usdCents: 900, credits: 15_000, url: "" },
+  { usdCents: 1_900, credits: 40_000, url: "" },
+] as const;
+export const PLAN_PORTAL_URL: string = "";
+export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
+export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
+/** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
+export const PLAN_SYNC_MS = 12 * 3_600_000;
+
+interface PlanState { subscriptionId: string; credits: number; since: string; syncedAt: string }
+interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[]; plans?: PlanState[] }
 /** key is null for a top-up: the buyer already holds it and it is never seen here. */
 interface SessionRecord { key: string | null; keyHash: string; credits: number; at: string }
 interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void>; delete(key: string): Promise<boolean> }
@@ -89,14 +112,19 @@ export interface CreditStorage { transaction<T>(callback: (txn: Txn) => Promise<
 
 const accountKey = (hash: string) => `credit:acct:${hash}`;
 const sessionKey = (id: string) => `credit:session:${id}`;
+/** One record per subscription invoice whose credits were granted, so a renewal is never granted twice. */
+const invoiceKey = (id: string) => `credit:invoice:${id}`;
+const isInvoiceId = (id: unknown): id is string => typeof id === "string" && /^in_[A-Za-z0-9]{8,200}$/.test(id);
+const isSubscriptionId = (id: unknown): id is string => typeof id === "string" && /^sub_[A-Za-z0-9]{8,200}$/.test(id);
 
 /**
  * Credits a paid Checkout Session exactly once. A repeat claim of the same session returns the
  * key issued the first time, so a buyer who reloads the claim page sees the same key, never a second grant.
  * The raw key is kept with its session record for that reason; storage is private to this Worker.
  */
-export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string | null; keyHash: string }) {
+export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string | null; keyHash: string; plan?: { subscriptionId: string; invoiceId: string } }) {
   if (!Number.isSafeInteger(grant.credits) || grant.credits <= 0) throw new Error("invalid credit grant");
+  if (grant.plan && !(isSubscriptionId(grant.plan.subscriptionId) && isInvoiceId(grant.plan.invoiceId))) throw new Error("invalid plan grant");
   return storage.transaction(async (txn) => {
     const existing = await txn.get<SessionRecord>(sessionKey(grant.sessionId));
     if (existing) {
@@ -110,10 +138,61 @@ export async function issueCredits(storage: CreditStorage, grant: { sessionId: s
     account.balanceMicros += micros;
     account.purchasedMicros += micros;
     account.sessions.push(grant.sessionId);
+    if (grant.plan) {
+      // The checkout paid the subscription's first invoice: mark it granted, so the first renewal read does not add it again.
+      // A key can hold more than one subscription (a second checkout into the same key): each grants its own credits.
+      const subscriptionId = grant.plan.subscriptionId;
+      account.plans = [...(account.plans ?? []).filter((p) => p.subscriptionId !== subscriptionId), { subscriptionId, credits: grant.credits, since: at, syncedAt: at }];
+      await txn.put(invoiceKey(grant.plan.invoiceId), { keyHash: grant.keyHash, credits: grant.credits, at });
+    }
     await txn.put(accountKey(grant.keyHash), account);
     await txn.put(sessionKey(grant.sessionId), { key: grant.key, keyHash: grant.keyHash, credits: grant.credits, at } satisfies SessionRecord);
     return { key: grant.key, credits: grant.credits, balanceMicros: account.balanceMicros, repeated: false };
   });
+}
+
+/**
+ * Adds the plan's credits once for each paid invoice of the key's subscription that has not been granted yet, and
+ * stamps the read. Returns null when the key has no plan or the subscription is not the key's own.
+ */
+export async function grantPlanInvoices(storage: CreditStorage, keyHash: string, subscriptionId: string, invoiceIds: string[]) {
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(keyHash));
+    const plan = account?.plans?.find((p) => p.subscriptionId === subscriptionId);
+    if (!account || !plan) return null;
+    const at = new Date().toISOString();
+    const micros = plan.credits * MICROS_PER_CREDIT;
+    let added = 0;
+    for (const id of [...new Set(invoiceIds)].filter(isInvoiceId).slice(0, 36)) {
+      if (await txn.get(invoiceKey(id))) continue;
+      account.balanceMicros += micros;
+      account.purchasedMicros += micros;
+      account.sessions.push(id);
+      await txn.put(invoiceKey(id), { keyHash, credits: plan.credits, at });
+      // A renewal is a purchase into an existing key: it shows as a top-up in the card-credit summary.
+      await txn.put(sessionKey(id), { key: null, keyHash, credits: plan.credits, at } satisfies SessionRecord);
+      added += plan.credits;
+    }
+    plan.syncedAt = at;
+    await txn.put(accountKey(keyHash), account);
+    return { added, balanceMicros: account.balanceMicros };
+  });
+}
+
+/** The ids of a subscription's paid invoices, newest first, or null when Stripe could not be read (nothing is granted then). */
+export async function paidPlanInvoices(stripeKey: string | undefined, subscriptionId: string, fetchImpl: typeof fetch = fetch): Promise<string[] | null> {
+  if (!stripeKey || !isSubscriptionId(subscriptionId)) return null;
+  let res: Response;
+  try {
+    res = await fetchImpl(`https://api.stripe.com/v1/invoices?subscription=${subscriptionId}&status=paid&limit=36`, { headers: { authorization: `Bearer ${stripeKey}` } });
+  } catch {
+    return null;
+  }
+  if (!res.ok) { console.warn(`credits: Stripe answered ${res.status} for a plan's invoices (STRIPE_READ_KEY needs read access to Invoices)`); return null; }
+  const body = await res.json().catch(() => null) as { data?: { id?: unknown; status?: unknown; amount_paid?: unknown }[] } | null;
+  if (!Array.isArray(body?.data)) return null;
+  // A zero invoice (a trial, a full discount) pays for nothing.
+  return body.data.filter((i) => isInvoiceId(i.id) && i.status === "paid" && typeof i.amount_paid === "number" && i.amount_paid > 0).map((i) => i.id as string);
 }
 
 /**
@@ -164,7 +243,10 @@ export async function rotateKey(storage: CreditStorage, oldHash: string, newKey:
   });
 }
 
-export type SpendResult = { ok: true; balanceMicros: number } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number };
+/** `plans` is present for a key on the monthly plan: which subscriptions, and when their invoices were last read. */
+export type PlanRead = { subscriptionId: string; syncedAt: string };
+export type SpendResult = { ok: true; balanceMicros: number; plans?: PlanRead[] } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number; plans?: PlanRead[] };
+const planRead = (a: Account): { plans?: PlanRead[] } => a.plans?.length ? { plans: a.plans.map((p) => ({ subscriptionId: p.subscriptionId, syncedAt: p.syncedAt })) } : {};
 
 /** Takes the price before the tool runs; refundCredits gives it back if the call fails. */
 export async function spendCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<SpendResult> {
@@ -172,12 +254,12 @@ export async function spendCredits(storage: CreditStorage, keyHash: string, micr
   return storage.transaction(async (txn) => {
     const account = await txn.get<Account>(accountKey(keyHash));
     if (!account) return { ok: false, reason: "unknown_key", balanceMicros: 0 };
-    if (account.balanceMicros < micros) return { ok: false, reason: "insufficient", balanceMicros: account.balanceMicros };
+    if (account.balanceMicros < micros) return { ok: false, reason: "insufficient", balanceMicros: account.balanceMicros, ...planRead(account) };
     account.balanceMicros -= micros;
     account.spentMicros += micros;
     account.calls++;
     await txn.put(accountKey(keyHash), account);
-    return { ok: true, balanceMicros: account.balanceMicros };
+    return { ok: true, balanceMicros: account.balanceMicros, ...planRead(account) };
   });
 }
 
@@ -196,7 +278,7 @@ export async function refundCredits(storage: CreditStorage, keyHash: string, mic
 export async function creditBalance(storage: CreditStorage, keyHash: string) {
   return storage.transaction(async (txn) => {
     const a = await txn.get<Account>(accountKey(keyHash));
-    return a ? { balanceMicros: a.balanceMicros, purchasedMicros: a.purchasedMicros, spentMicros: a.spentMicros, calls: a.calls, createdAt: a.createdAt } : null;
+    return a ? { balanceMicros: a.balanceMicros, purchasedMicros: a.purchasedMicros, spentMicros: a.spentMicros, calls: a.calls, createdAt: a.createdAt, ...(a.plans?.length ? { plans: a.plans.map((p) => ({ ...p })) } : {}) } : null;
   });
 }
 
@@ -216,24 +298,29 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
   }
   if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
   if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
-  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null; currency_conversion?: { amount_total?: number; source_currency?: string } | null };
-  if (s.mode !== "payment" || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
+  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null; currency_conversion?: { amount_total?: number; source_currency?: string } | null; subscription?: unknown; invoice?: unknown };
+  if ((s.mode !== "payment" && s.mode !== "subscription") || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
   // Adaptive Pricing (on for the account): a buyer outside the US pays in their own currency, and the session then
   // carries that currency at the top level and the USD price in currency_conversion. Judge the pack on the USD price.
   const cc = s.currency_conversion;
   const usdTotal = cc?.source_currency === "usd" && typeof cc.amount_total === "number" ? cc.amount_total : s.currency === "usd" ? s.amount_total : undefined;
+  const topUpKeyHash = keyHashFromReference(s.client_reference_id);
+  if (s.mode === "subscription") {
+    // The monthly plan: the checkout paid the subscription's first invoice. Renewals are read later (paidPlanInvoices).
+    const plan = CREDIT_PLANS.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits);
+    if (usdTotal === undefined || !plan || !isSubscriptionId(s.subscription) || !isInvoiceId(s.invoice)) throw new CheckoutError(400, "this checkout is not a credits plan");
+    return { usdCents: plan.usdCents as number, credits: plan.credits as number, topUpKeyHash, plan: { subscriptionId: s.subscription, invoiceId: s.invoice } };
+  }
   const pack = CREDIT_PACKS.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits);
   if (usdTotal === undefined || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
-  return { ...pack, topUpKeyHash: keyHashFromReference(s.client_reference_id) };
+  return { usdCents: pack.usdCents as number, credits: pack.credits as number, topUpKeyHash, plan: undefined };
 }
 
 // What a prepaid key pays where that is less than the tool's public price (the owner, 10 Nov 2026: "I meant only that low
 // price for our regular buyer to entice it into buying"). The one large direct demand we have is a web caller reading
 // hundreds of PDFs a day on free calls; a caller cannot be identified, but the way a caller pays can: a prepaid key is
 // what a web user buys, and wallets and routers paying per call keep the public price. Entry paths are listed with their tool.
+// These are the tools named one by one. lib/key-prices.ts adds the one-credit price of the tools that only compute and is
+// where every caller reads a key price (`keyPrice`, `keyPriceFor`, `keyPriceLine`): it needs the catalog, which this
+// file must not import (the catalog reaches this file through lib/env.ts and metrics.ts).
 export const KEY_PRICES: Readonly<Record<string, string>> = { "/pdf/text": "$0.002", "/pdf/extract": "$0.002" };
-/** The price a prepaid key is charged for this tool. */
-export const keyPrice = (path: string, price: string) => (Object.hasOwn(KEY_PRICES, path) ? KEY_PRICES[path] : price);
-/** One sentence for a refusal: what this tool costs with a prepaid key, when that is less than its price. */
-export const keyPriceLine = (path: string, origin: string) => !Object.hasOwn(KEY_PRICES, path) ? undefined
-  : `With a prepaid key this tool costs ${KEY_PRICES[path]} a call instead of the price above: $1 pays for ${callsAt(1000, KEY_PRICES[path])} calls. Buy one by card at ${origin}/credits (from $1, no account) or with USDC at ${origin}/credits/usdc/1, and send it as Authorization: Bearer or as api_key= in the URL.`;

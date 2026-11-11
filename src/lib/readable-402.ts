@@ -7,7 +7,8 @@ import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import type { Endpoint } from "../endpoints";
 import { relatedList } from "./related";
-import { WEB_PACKS, callsAt, keyPriceLine, usdcPrepayLine } from "./credits";
+import { WEB_PACKS, callsAt, usdcPrepayLine } from "./credits";
+import { keyPriceLine } from "./key-prices";
 
 /**
  * The card route for callers without a wallet. While card payments can issue keys it is the first Stripe checkout as one
@@ -51,8 +52,8 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   const related = page ? relatedList(origin, page.endpoint.path) : undefined;
   // A wallet that will call more than once can prepay and stop paying per call (lib/usdc-credits.ts).
   const prepay = page ? usdcPrepayLine(origin) : undefined;
-  // Where a prepaid key pays less than the public price, the refusal says so (lib/credits.ts KEY_PRICES).
-  const withKey = page ? keyPriceLine(page.endpoint.path, origin) : undefined;
+  // Where a prepaid key pays less than the public price, the refusal says so (lib/key-prices.ts).
+  const withKey = page ? keyPriceLine(page.endpoint.path, page.endpoint.price, origin) : undefined;
   const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource, related, prepay, withKey } : { ...challenge, hint, related, prepay, withKey };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
