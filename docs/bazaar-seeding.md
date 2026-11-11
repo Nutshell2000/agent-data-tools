@@ -3,10 +3,10 @@
 Owner decision, 19 October 2026: the Coinbase Bazaar is where the only paying agents found us (both buyer
 bots of the week pay almost exclusively Bazaar-listed resources: 99% and 78% of their payees), and Coinbase
 indexes a resource only after its first payment settles through the CDP facilitator. So each tool is paid
-for once by the owner, from a buyer wallet he funds, into our own `PAY_TO`. Nothing leaves the business:
+for once by the owner, from a buyer wallet the owner funds, into our own `PAY_TO`. Nothing leaves the business:
 the USDC moves from one owner wallet to the other and the facilitator pays the gas.
 
-**Active since 22 Oct 2026 (Peter):** the buyer wallet is funded from Peter's own Binance USDC and he runs the seeding himself with `C:\MoneyWallet\Seed Bazaar listings.cmd` (it waits for the deposit, shows the dry-run plan and pays only after he types YES). The Base buyer-bot analysis of 15-22 Oct (`business/agentic/reports/base-bots-2026-10-22.md`) showed why: 76-78% of real buyer payments go to Bazaar-listed sellers, explorer bots buy listed tools only, and sellers with 21+ listings are bought 2-3x more often.
+**Active since 22 Oct 2026 (the owner):** the buyer wallet is funded from the owner's own Binance USDC and the owner runs the seeding with `C:\MoneyWallet\Seed Bazaar listings.cmd` (it waits for the deposit, shows the dry-run plan and pays only after he types YES). The Base buyer-bot analysis of 15-22 Oct (`business/agentic/reports/base-bots-2026-10-22.md`) showed why: 76-78% of real buyer payments go to Bazaar-listed sellers, explorer bots buy listed tools only, and sellers with 21+ listings are bought 2-3x more often.
 
 These settlements are never revenue or demand. The buyer wallet is listed in `OWNED_WALLETS`
 (`src/lib/settlement-ledger.ts`), so the ledger records them as `selfPayment: true` and `/revenue` excludes
@@ -26,7 +26,7 @@ are the most-paid category, with 400-700 one-call payers per endpoint like ours;
 
 Never seeded: `/package-audit` ($0.20) and the capacity-limited AI, media and rendering tools.
 
-## Steps (Peter, once per batch)
+## Steps (the owner, once per batch)
 
 1. `node scripts/seed-bazaar.mjs wallet` creates the buyer wallet (`.seed-bazaar-wallet.json`, git-ignored, never the
    payout wallet's key) and prints its address. Send that address about 1 USDC on Base from Coinbase Wallet.
@@ -57,7 +57,7 @@ Never seeded: `/package-audit` ($0.20) and the capacity-limited AI, media and re
 ## Rehearsal on staging (no real money)
 
 The same script runs against the Base Sepolia staging Worker with the faucet test wallet (already in
-`OWNED_WALLETS`), which proves the paying path before Peter uses it: set `SEED_ORIGIN` to the staging URL,
+`OWNED_WALLETS`), which proves the paying path before the owner uses it: set `SEED_ORIGIN` to the staging URL,
 `SEED_NETWORK=eip155:84532`, `SEED_USDC=0x036CbD53842c5426634e7929541eC2318f3dCF7e` and `BUYER_KEY` to the
 test wallet key, then `node scripts/seed-bazaar.mjs --only /fx,/btc-price --pay --ledger-excluded`.
 

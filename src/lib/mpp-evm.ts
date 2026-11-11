@@ -6,7 +6,7 @@
 // Why: MPP directories (MPPScan) list a tool only if it answers an MPP challenge, and they list without a first
 // settled payment, unlike the Coinbase Bazaar. This method needs no new address, no deposit and no secret beyond
 // what production already has, so it is on by default; MPP_EVM=off switches it off. The Tempo method
-// (lib/mpp-tempo.ts) can be offered next to it once Peter chooses a Tempo address.
+// (lib/mpp-tempo.ts) can be offered next to it once the owner chooses a Tempo address.
 import type { Context, Next } from "hono";
 import { Mppx, evm } from "mppx/server";
 import { Challenge, Credential, Errors, Receipt } from "mppx";

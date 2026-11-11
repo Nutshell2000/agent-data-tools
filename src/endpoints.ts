@@ -863,7 +863,7 @@ export const CORE_ENDPOINTS = [
       "Current weather by city name, or by latitude and longitude, for any place on Earth: temperature in Celsius, conditions (clear, cloudy, rain, snow), precipitation in mm, wind, humidity, cloud cover and air pressure, plus an hourly forecast for up to 48 hours. Data from the Norwegian Meteorological Institute; city names resolve via Wikidata. Use for travel and event planning, logistics, agriculture and any agent that needs the weather.",
     tags: ["weather", "forecast", "temperature", "climate", "geo"],
     params: {
-      city: { type: "string", description: "City or place name, e.g. London or Uppsala (used when lat and lon are not given; with no place at all the answer is for London)", example: "London" },
+      city: { type: "string", description: "City or place name, e.g. London or Lisbon (used when lat and lon are not given; with no place at all the answer is for London)", example: "London" },
       lat: { type: "number", description: "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)", example: 59.33 },
       lon: { type: "number", description: "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)", example: 18.07 },
       hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)", example: 12 },
@@ -936,7 +936,7 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   // Unpaused 5 Nov 2026: /air-quality, /uv, /elevation (Open-Meteo free tier), /crypto/price (CoinGecko keyless), /iss and
   // /hackernews/top were paused only because their sources' terms do not permit commercial resale. The owner lifted that
   // rule on 5 Nov 2026 and accepts the risk; if a source blocks Cloudflare or objects, pause the tool here again.
-  // /search is on since 1.49.0 (22 Oct 2026, Peter's decision): SEARCH_API_KEY is set and the Brave API terms' end-user
+  // /search is on since 1.49.0 (22 Oct 2026, the owner's decision): SEARCH_API_KEY is set and the Brave API terms' end-user
   // obligations are stated in the tool's description and answer (src/routes/search.ts).
 });
 /**

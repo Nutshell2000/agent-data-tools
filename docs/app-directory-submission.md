@@ -1,6 +1,6 @@
 # Claude and ChatGPT directory submission kit
 
-Paste-ready answers for the two app directories. Peter submits (the Claude directory needs a paid Claude
+Paste-ready answers for the two app directories. The owner submits (the Claude directory needs a paid Claude
 plan at claude.ai/directory/manage; ChatGPT apps need OpenAI business or individual verification).
 Update docs/listings.md when submitted. Facts only: no usage, customer or uptime claims beyond /status.
 
@@ -50,7 +50,7 @@ help, not an instruction.
 1. Add the connector with the URL above and sign in with "Continue with free calls".
 2. Try the example prompts below. Each uses one or two of the 25 free calls.
 3. AI, rendering, screenshot, transcription and search tools are excluded from free calls and answer with a
-   clear message. To test those, use the reviewer key provided in the submission form (Peter: buy a $5
+   clear message. To test those, use the reviewer key provided in the submission form (The owner: buy a $5
    pack, paste the key into the form's private notes, and record it as an owner purchase, not revenue).
 
 ## Example prompts (each works with free calls)

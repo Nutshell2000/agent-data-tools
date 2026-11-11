@@ -1,9 +1,9 @@
 // Web search, one Brave Search API request per paid call (key in SEARCH_API_KEY). Search is the largest category
-// agents pay for over x402 (723 real payers a week on the Bazaar, Oct 2026). ON since 1.49.0 by Peter's decision of
+// agents pay for over x402 (723 real payers a week on the Bazaar, Oct 2026). ON since 1.49.0 by the owner's decision of
 // 22 Oct 2026 under the Brave Search API terms (api-dashboard.search.brave.com/terms-of-service, 1 Sep 2026):
 // §3(a) licenses showing Search Results to the End Users of a Customer Application; §4(c) requires those end users
 // to carry the §3(b) obligations, so the description and every answer state them (`terms` below); §3(b)(i) allows
-// only transient storage, so nothing is cached here; §3(b)(xii) ("redistribute, resell") is the clause Peter accepted
+// only transient storage, so nothing is cached here; §3(b)(xii) ("redistribute, resell") is the clause the owner accepted
 // the risk on. Every paid call costs us one upstream request, so SEARCH_DAILY_CAP bounds the day's upstream spend
 // to Brave's free monthly credits; above it the tool answers 503, uncharged.
 import type { Param } from "../endpoints";

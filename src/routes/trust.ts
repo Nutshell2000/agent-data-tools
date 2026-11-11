@@ -20,6 +20,7 @@ import { formatUnits, getAddress, isHash, type PublicClient } from "viem";
 import { entry, getJson, num, opt, pick, type Entry } from "../family";
 import { HttpError, isAddress, type Env } from "../lib/env";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
+import { blockAtTime, recentBlockSeconds } from "../lib/block-time";
 import { CHAINS, USDC, client, historyRead, logsClient, rpc } from "./chain-reads";
 import { analyze } from "./x402-check";
 
@@ -130,29 +131,53 @@ async function payeeOf(env: Env, q: (n: string) => string | undefined, chainInpu
   return { payTo: getAddress(chosen.payTo!), slug: SLUG_OF_CAIP[chosen.network!], url: terms.url };
 }
 
-/** Seconds per block, for the day counts. */
-const BLOCK_SECONDS: Record<string, number> = { base: 2, op: 2, polygon: 2, arb: 0.25, eth: 12 };
-/** Blocks per eth_getLogs call: publicnode answers 50,000 for one address and topic (probed 11 Nov 2026). */
-const SCAN_WINDOW = 40_000n;
+/**
+ * Blocks per eth_getLogs call: publicnode refuses more than 50,000 for one address and topic ("exceed maximum block
+ * range: 50000", probed 11 Nov 2026). Base's 0.2 s blocks make seven days about 61 windows, so they run four at a time.
+ */
+const SCAN_WINDOW = 50_000n;
+const SCAN_PARALLEL = 4;
 type RawLog = { blockNumber: string; transactionHash: string; topics: string[]; data: string };
+type ReadLogs = (from: bigint, to: bigint) => Promise<RawLog[]>;
 
-async function inflows(cl: PublicClient, token: `0x${string}`, payTo: string, latest: bigint, span: bigint) {
-  const topic = `0x${"0".repeat(24)}${payTo.slice(2).toLowerCase()}` as `0x${string}`;
-  const floor = latest - span + 1n;
+/**
+ * USDC inflows from `floor` to `latest`, newest first. A refused window is retried once in quarters; the scan stops at
+ * the first window that still fails and keeps only the unbroken newest part, so `reached` (the oldest block read) and
+ * the counts always describe the same stretch of chain. Nothing read at all is the node's error (an uncharged 502).
+ */
+async function scanInflows(read: ReadLogs, latest: bigint, floor: bigint) {
+  const windows: [bigint, bigint][] = [];
+  for (let to = latest; to >= floor; to -= SCAN_WINDOW) windows.push([to - SCAN_WINDOW + 1n > floor ? to - SCAN_WINDOW + 1n : floor, to]);
+  const once = async ([from, to]: [bigint, bigint]): Promise<RawLog[] | null> => {
+    try { return await read(from, to); } catch { /* retried in quarters below */ }
+    const q = (to - from + 1n) / 4n || 1n;
+    const parts: RawLog[] = [];
+    for (let t = to; t >= from; t -= q) {
+      try { parts.push(...(await read(t - q + 1n > from ? t - q + 1n : from, t))); } catch { return null; }
+    }
+    return parts;
+  };
   let logs: RawLog[] = [];
-  let complete = true;
-  for (let to = latest; to >= floor; to -= SCAN_WINDOW) {
-    const from = to - SCAN_WINDOW + 1n > floor ? to - SCAN_WINDOW + 1n : floor;
-    try {
-      const chunk = await rpc(() => cl.request({ method: "eth_getLogs", params: [{ address: token, topics: [TRANSFER, null, topic], fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] })) as RawLog[];
+  let reached = latest + 1n;
+  for (let i = 0; i < windows.length; i += SCAN_PARALLEL) {
+    const batch = windows.slice(i, i + SCAN_PARALLEL);
+    const got = await Promise.all(batch.map(once));
+    for (let j = 0; j < batch.length; j++) {
+      const chunk = got[j];
+      if (!chunk) {
+        if (reached > latest) throw new HttpError(502, "the network's public log nodes did not answer; nothing was charged");
+        return { logs, complete: false, reached };
+      }
       logs = logs.concat(chunk);
-    } catch (e) {
-      if (!logs.length && to === latest) throw e;
-      complete = false;
-      break;
+      reached = batch[j][0];
     }
   }
-  return { logs, complete };
+  return { logs, complete: true, reached };
+}
+
+function inflows(cl: PublicClient, token: `0x${string}`, payTo: string, latest: bigint, floor: bigint) {
+  const topic = `0x${"0".repeat(24)}${payTo.slice(2).toLowerCase()}` as `0x${string}`;
+  return scanInflows((from, to) => rpc(() => cl.request({ method: "eth_getLogs", params: [{ address: token, topics: [TRANSFER, null, topic], fromBlock: `0x${from.toString(16)}`, toBlock: `0x${to.toString(16)}` }] })) as Promise<RawLog[]>, latest, floor);
 }
 
 const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -223,7 +248,7 @@ export const TRUST: Entry[] = [
     },
     {
       // A real answer (11 Nov 2026, 17:30 UTC): our own payout wallet's last day on Base.
-      payTo: EX_PAY_TO, chain: "base", url: null, days: 1, fromBlock: 56105625, toBlock: 56148824, complete: true,
+      payTo: EX_PAY_TO, chain: "base", url: null, days: 1, fromBlock: 56105625, toBlock: 56148824, complete: true, hoursCovered: 24,
       payments: 6, distinctPayers: 2, repeatPayers: 2, totalUsdc: "0.02", medianUsdc: "0.002", largestUsdc: "0.01",
       firstPaymentAt: "2026-11-11T15:55:37.000Z", lastPaymentAt: "2026-11-11T16:21:01.000Z",
       topPayers: [{ payer: "0x72c573fd7dE6a3DEc3035D48DB938ebF733D159b", payments: 4, usdc: "0.016" }, { payer: "0x82cef1CdC34D65Cf690235dc24e823a6585A6f86", payments: 2, usdc: "0.004" }],
@@ -235,8 +260,14 @@ export const TRUST: Entry[] = [
       const { payTo, slug, url } = await payeeOf(env, q, chainInput);
       const cl = slug === "base" || slug === "polygon" ? logsClient(env, chainOf(slug)) : client(env, chainOf(slug));
       const latest = await rpc(() => cl.getBlockNumber());
-      const span = BigInt(Math.round((days * 86_400) / BLOCK_SECONDS[slug]));
-      const { logs, complete } = await inflows(cl, USDC[slug], payTo, latest, span);
+      // The window starts at the block of that moment, read from real headers (Base's block time changed on ~5 Nov 2026).
+      const head = { block: latest, ts: Number((await rpc(() => cl.getBlock({ blockNumber: latest }))).timestamp) };
+      const secs = await recentBlockSeconds(cl, slug, latest);
+      const start = await rpc(() => blockAtTime(cl, head, head.ts - days * 86_400, { secs, tolerance: 600 }));
+      const floor = start.block;
+      const { logs, complete, reached } = await inflows(cl, USDC[slug], payTo, latest, floor);
+      const reachedTs = reached === floor ? start.ts : Number((await rpc(() => cl.getBlock({ blockNumber: reached }))).timestamp);
+      const hoursCovered = Math.round(((head.ts - reachedTs) / 3600) * 10) / 10;
       const byPayer = new Map<string, { payments: number; atomic: bigint }>();
       const amounts: number[] = [];
       let total = 0n;
@@ -253,7 +284,8 @@ export const TRUST: Entry[] = [
       const [firstAt, lastAt] = blocks.length ? await Promise.all([blockTime(env, slug, blocks[0]), blockTime(env, slug, blocks[blocks.length - 1])]) : [null, null];
       const fmt = (n: number | null) => (n === null ? null : String(Math.round(n * 1e6) / 1e6));
       return {
-        payTo, chain: slug, url, days, fromBlock: Number(latest - span + 1n), toBlock: Number(latest), complete,
+        payTo, chain: slug, url, days, fromBlock: Number(reached), toBlock: Number(latest), complete, hoursCovered,
+        ...(complete ? {} : { requestedFromBlock: Number(floor), coverageNote: `The public log nodes stopped answering after the newest ${hoursCovered} hours of the ${days * 24} asked: every count covers that part only.` }),
         payments: logs.length, distinctPayers: byPayer.size, repeatPayers: [...byPayer.values()].filter((r) => r.payments > 1).length,
         totalUsdc: formatUnits(total, 6), medianUsdc: fmt(median(amounts)), largestUsdc: fmt(amounts.length ? Math.max(...amounts) : null),
         firstPaymentAt: firstAt, lastPaymentAt: lastAt,
@@ -314,4 +346,4 @@ export const TRUST: Entry[] = [
     }),
 ];
 
-export const __test = { payoutVerdict, declaredWallets, canonicalJson };
+export const __test = { payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW };

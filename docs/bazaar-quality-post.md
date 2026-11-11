@@ -1,8 +1,8 @@
-# Draft post: what x402 listings get wrong (for dev.to and Peter's channels)
+# Draft post: what x402 listings get wrong (for dev.to and the owner's channels)
 
 **Status:** draft.
 - Fill each `{…}` from `node scripts/bazaar-quality-report.mjs --sample 300 --json survey.json`, run on the PC.
-- Peter publishes it. Keep the claims to what the survey measured.
+- The owner publishes it. Keep the claims to what the survey measured.
 - Never name or shame individual sellers.
 
 ---
@@ -36,7 +36,7 @@ What we found, across {answered402} sellers that answered with a 402:
 
 ---
 
-## Notes for Peter
+## Notes for the owner
 
 - Post on dev.to with the tags `ai`, `agents`, `web3` and `api`.
 - Cross-post to the x402 Discord or Telegram only if their rules allow self-promotion.
