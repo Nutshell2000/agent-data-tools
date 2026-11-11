@@ -14,9 +14,7 @@ import { vatParts, viesCheck } from "./registries";
 /** Keep equal to SHARDS in scripts/build-se-company-index.mjs (tests/se-company.test.cjs checks both). */
 export const SHARDS = 509;
 const MIRROR = "https://github.com/Nutshell2000/agent-data-tools/releases/download";
-const COMPANY_RELEASE = `${MIRROR}/se-company-data`;
-const NAME_RELEASE = `${MIRROR}/se-company-names`;
-const DAY = 86_400;
+const RELEASE = `${MIRROR}/se-register`;
 const SOURCE = "Bolagsverket and SCB open data (värdefulla datamängder), weekly bulk files";
 const NOT_A_CREDIT_REPORT = "Register facts only. This is not a credit report, credit score or rating.";
 
@@ -138,32 +136,63 @@ async function gunzipJson<T>(res: Response): Promise<T> {
 }
 
 type Fetcher = typeof fetch;
-async function asset<T>(url: string, fetcher: Fetcher): Promise<T> {
-  let res: Response;
+interface PackFile { file: string; bytes: number; index: [number, number][] }
+interface Manifest { dataAsOf?: string; shards?: number; files?: { companies?: PackFile; names?: PackFile } }
+const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
+const busy = (why: string) => new HttpError(503, `the Swedish company register copy ${why}; try again later, nothing was charged`);
+
+async function get(url: string, fetcher: Fetcher, init: RequestInit = {}): Promise<Response> {
   try {
-    res = await fetcher(url, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, redirect: "follow", signal: AbortSignal.timeout(10_000), cf: { cacheTtl: DAY } } as RequestInit);
+    return await fetcher(url, { ...init, headers: { ...UA, ...(init.headers as Record<string, string> | undefined) }, redirect: "follow", signal: AbortSignal.timeout(10_000) });
   } catch {
-    throw new HttpError(503, "the Swedish company register copy did not answer in time; try again");
-  }
-  if (res.status === 404) throw new HttpError(503, "the Swedish company register copy is being published; try again later");
-  if (!res.ok) throw new HttpError(503, `the Swedish company register copy answered HTTP ${res.status}; try again`);
-  try {
-    return await gunzipJson<T>(res);
-  } catch {
-    throw new HttpError(503, "the Swedish company register copy was unreadable; try again");
+    throw busy("did not answer in time");
   }
 }
 
-let manifest: { at: number; value: { dataAsOf?: string } | null } | null = null;
-async function dataAsOf(fetcher: Fetcher): Promise<string | null> {
-  if (manifest && Date.now() - manifest.at < 3_600_000) return manifest.value?.dataAsOf ?? null;
-  const value = await asset<{ dataAsOf?: string }>(`${COMPANY_RELEASE}/manifest.json`, fetcher).catch(() => null);
-  manifest = { at: Date.now(), value };
-  return value?.dataAsOf ?? null;
+let manifestMemo: { at: number; value: Manifest } | null = null;
+/** The newest build's manifest: file names and each shard's byte range. Kept an hour per isolate. */
+async function loadManifest(fetcher: Fetcher): Promise<Manifest> {
+  if (manifestMemo && Date.now() - manifestMemo.at < 3_600_000) return manifestMemo.value;
+  const res = await get(`${RELEASE}/manifest.json`, fetcher, { cf: { cacheTtl: 3_600 } } as RequestInit);
+  if (res.status === 404) throw busy("is being published");
+  if (!res.ok) throw busy(`answered HTTP ${res.status}`);
+  let value: Manifest;
+  try { value = (await res.json()) as Manifest; } catch { throw busy("was unreadable"); }
+  if (!value.files?.companies || !value.files?.names || value.shards !== SHARDS) throw busy("is being rebuilt");
+  manifestMemo = { at: Date.now(), value };
+  return value;
 }
 
+/**
+ * One shard, read with an HTTP Range request from the build's single file and kept a week in the edge cache under the
+ * build's own file name (a new build has new names, so nothing stale is ever served from the cache).
+ */
+async function readShard<T>(kind: "companies" | "names", i: number, fetcher: Fetcher): Promise<{ data: T; asOf: string | null }> {
+  const m = await loadManifest(fetcher);
+  const f = m.files![kind]!;
+  const range = Object.hasOwn(f.index, i) ? f.index[i] : undefined;
+  if (!range) throw busy("is incomplete");
+  const [offset, length] = range;
+  const store = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const key = new Request(`https://se-company.cache.invalid/${f.file}/${i}`);
+  let res = store ? await store.match(key).catch(() => undefined) : undefined;
+  if (!res) {
+    const got = await get(`${RELEASE}/${f.file}`, fetcher, { headers: { range: `bytes=${offset}-${offset + length - 1}` } });
+    // A 200 would be the whole file (about 150 MB): never read it.
+    if (got.status !== 206) { await got.body?.cancel().catch(() => {}); throw busy(got.status === 404 ? "is being published" : `answered HTTP ${got.status}`); }
+    const bytes = new Uint8Array(await got.arrayBuffer());
+    if (bytes.length !== length) throw busy("sent a short answer");
+    res = new Response(bytes, { headers: { "cache-control": "public, max-age=604800" } });
+    if (store) await store.put(key, res.clone()).catch(() => {});
+  }
+  try {
+    return { data: await gunzipJson<T>(res), asOf: m.dataAsOf ?? null };
+  } catch {
+    throw busy("was unreadable");
+  }
+}
 export async function lookupOrgnr(orgnr: string, fetcher: Fetcher = fetch) {
-  const [shard, asOf] = await Promise.all([asset<Record<string, SeRecord>>(`${COMPANY_RELEASE}/c${shardOf(orgnr)}.json.gz`, fetcher), dataAsOf(fetcher)]);
+  const { data: shard, asOf } = await readShard<Record<string, SeRecord>>("companies", shardOf(orgnr), fetcher);
   const rec = Object.hasOwn(shard, orgnr) ? shard[orgnr] : undefined;
   if (!rec) throw new HttpError(404, `no company with organisationsnummer ${formatted(orgnr)} in Bolagsverket's or SCB's register; nothing was charged`);
   return companyView(orgnr, rec, asOf);
@@ -175,7 +204,7 @@ export async function searchName(name: string, limit: number, fetcher: Fetcher =
   if (!words.length) throw new HttpError(400, "name needs at least one word of two letters or more besides the legal form (AB, HB…)");
   // The longest word narrows most; its shard holds every name containing a word that starts with its first three letters.
   const key = [...words].sort((a, b) => b.length - a.length)[0];
-  const [index, asOf] = await Promise.all([asset<[string, string, string | null][]>(`${NAME_RELEASE}/n${nameShardOf(key)}.json.gz`, fetcher), dataAsOf(fetcher)]);
+  const { data: index, asOf } = await readShard<[string, string, string | null][]>("names", nameShardOf(key), fetcher);
   const seen = new Set<string>();
   const hits: { name: string; orgnr: string; legalForm: string | null; rank: number }[] = [];
   for (const [display, orgnr, form] of index) {

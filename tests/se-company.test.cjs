@@ -41,11 +41,14 @@ before(async () => {
 });
 
 /** A fetch that serves the built files by their asset name, as the GitHub release would. */
-const served = (calls = []) => async (url) => {
+const served = (calls = []) => async (url, init = {}) => {
   calls.push(String(url));
   const file = join(out, String(url).split('/').pop());
   if (!existsSync(file)) return new Response('Not Found', { status: 404 });
-  return new Response(readFileSync(file), { status: 200 });
+  const body = readFileSync(file);
+  const range = /^bytes=(\d+)-(\d+)$/.exec(init.headers?.range ?? '');
+  if (!range) return new Response(body, { status: 200 });
+  return new Response(body.subarray(Number(range[1]), Number(range[2]) + 1), { status: 206 });
 };
 
 test('the build script and the Worker use the same shards and name normalisation', () => {
@@ -72,7 +75,14 @@ test('the build keeps legal persons only and never writes a c/o line or a person
   assert.equal(manifest.dataAsOf, '2026-11-09');
   assert.equal(manifest.skippedPersons, 1);
   assert.equal(manifest.unreadableRows, 0);
-  const all = require('node:fs').readdirSync(out).filter((f) => f.endsWith('.gz')).map((f) => require('node:zlib').gunzipSync(readFileSync(join(out, f))).toString('utf8')).join('\n');
+  assert.equal(manifest.files.companies.index.length, S.SHARDS);
+  assert.equal(manifest.files.names.index.length, S.SHARDS);
+  const all = ['companies', 'names'].flatMap((k) => {
+    const f = manifest.files[k];
+    const bin = readFileSync(join(out, f.file));
+    assert.equal(bin.length, f.bytes);
+    return f.index.map(([o, n]) => require('node:zlib').gunzipSync(bin.subarray(o, o + n)).toString('utf8'));
+  }).join('\n');
   assert.doesNotMatch(all, /Anna Andersson|PER PERSSON|198001011234|Svenssons|SVEN SVENSSON/);
   assert.match(all, /Konkursbo Test \\"Exempel\\" AB/, 'an escaped quote in a name is read as a quote');
 });
@@ -95,7 +105,8 @@ test('lookup by organisationsnummer: register facts merged from both files, plai
     assert.equal(a.vat, null);
     assert.equal(a.dataAsOf, '2026-11-09');
     assert.match(a.note, /not a credit report/);
-    assert.ok(calls.some((u) => u.endsWith(`/se-company-data/c${S.shardOf('5567037485')}.json.gz`)));
+    assert.ok(calls.some((u) => u.endsWith('/se-register/manifest.json')));
+    assert.ok(calls.some((u) => u.endsWith('/se-register/se-companies-2026-11-09.bin')));
 
     const k = await run({ orgnr: '5560000001' });
     assert.equal(k.status, 'registered, bankruptcy in progress');
