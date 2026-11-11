@@ -127,6 +127,8 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // 10 Nov 2026: the CVE lookup's input as other CVE sellers name it (id, cve_id, cveId) and as search agents send it.
   cve: ["id", "cve_id", "cveId", "cveid", "cve_ids", "vulnerability", "vuln", "q", "query", "name"],
   commodity: ["symbol", "name", "asset", "metal", "ticker", "q", "query", "item"],
+  // /sec/financials (11 Nov 2026): statement APIs name the period frequency or timeframe.
+  period: ["frequency", "timeframe", "periodicity"],
   user: ["username", "login", "owner", "account", "org", "organization", "handle", "name", "q", "query", "url"],
 };
 

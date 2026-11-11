@@ -41,6 +41,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     // Round 8 doors (10 Nov 2026): a door carries its tool's price, and /page/markdown runs /extract ($0.002).
     else if (e.path === "/page/markdown") assert.equal(e.price, "$0.002", e.path);
+    // Company financial statements and their two doors (owner, 11 Nov 2026: "Yes, at $0.02"): the Bazaar's statement sellers charge $0.02-0.10.
+    else if (["/sec/financials", "/stock/fundamentals", "/income-statement"].includes(e.path)) assert.equal(e.price, "$0.02", e.path);
     // Price test 5-19 Nov 2026 (owner): tools whose market leader charges more.
     else if (Object.hasOwn(PRICE_TEST, e.path)) assert.equal(e.price, PRICE_TEST[e.path], e.path);
     // Entry paths (src/routes/entry-paths.ts, 7 Nov 2026) carry their canonical tool's price: /sanctions/screen, /wallet/balance.
