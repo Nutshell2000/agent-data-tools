@@ -77,7 +77,7 @@ export async function assertProductAssetAvailable(env: Env, p: Product): Promise
 }
 
 function assertNewSalesEnabled() {
-  if (!NEW_PRODUCT_SALES_ENABLED) throw new HttpError(410, "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available");
+  if (!NEW_PRODUCT_SALES_ENABLED) throw new HttpError(503, "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available");
 }
 
 export function buyAssetPreflight(): MiddlewareHandler<{ Bindings: Env }> {

@@ -56,7 +56,7 @@ export const CITIES: Record<string, [string, number, number]> = Object.fromEntri
   ["Zurich", 47.3769, 8.5417], ["Vienna", 48.2082, 16.3738], ["Dublin", 53.3498, -6.2603], ["Lisbon", 38.7223, -9.1393],
   ["Barcelona", 41.3874, 2.1686], ["Warsaw", 52.2297, 21.0122], ["Austin", 30.2672, -97.7431], ["Denver", 39.7392, -104.9903],
   ["Vancouver", 49.2827, -123.1207], ["Melbourne", -37.8136, 144.9631], ["Delhi", 28.7041, 77.1025], ["Bangalore", 12.9716, 77.5946],
-  ["Jakarta", -6.2088, 106.8456], ["Uppsala", 59.8586, 17.6389],
+  ["Jakarta", -6.2088, 106.8456],
 ] as [string, number, number][]).map(([name, lat, lon]) => [name.toLowerCase(), [name, lat, lon]]));
 
 /** The place a call without any place answers for (stated in the inputs' descriptions and in the answer's note). */

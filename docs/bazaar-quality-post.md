@@ -2,7 +2,7 @@
 
 **Status:** draft.
 - Fill each `{…}` from `node scripts/bazaar-quality-report.mjs --sample 300 --json survey.json`, run on the PC.
-- the owner publishes it. Keep the claims to what the survey measured.
+- The owner publishes it. Keep the claims to what the survey measured.
 - Never name or shame individual sellers.
 
 ---
