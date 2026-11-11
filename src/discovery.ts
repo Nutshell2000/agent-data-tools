@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.138.0";
+export const MCP_SERVER_VERSION = "1.139.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -78,7 +78,7 @@ export function agentCard(origin: string, networks: readonly string[] = ["eip155
     name: SERVICE_NAME,
     description: SERVICE_SUMMARY,
     url: origin,
-    provider: { organization: "SpellzCode", url: origin },
+    provider: { organization: "SpellzCode", url: `${origin}/about` },
     version: MCP_SERVER_VERSION,
     documentationUrl: `${origin}/llms.txt`,
     iconUrl: SERVICE_ICON_URL,
@@ -400,7 +400,7 @@ ${rows}
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Most tools cost $0.01; a few cost up to $0.04, so raise the cap to call those.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
-<p class="note"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></p>
+<p class="note">Agent Data Tools is a service of <a href="/about">SpellzCode</a>, Sweden · <a href="/status">Status</a> · <a href="/changelog">Changelog</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></p>
 
 <h2>For agents and developers</h2>
 <ul>
