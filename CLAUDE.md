@@ -1360,3 +1360,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - OPEN, hers: `C:\MoneyWallet\List contract audit on Bazaar.cmd` pays the tool once from the seeding wallet ($1.00, into her own income wallet; the fee is $0.001) so the Coinbase Bazaar, and through it the finder, Mercator and vAPI, list it. The door `/contract/audit` needs a second dollar in the seeding wallet and can wait.
 - Judge it by outside payments of exactly 1,000,000 atomic USDC (`payments-to-us.mjs --days 7`), first by whether 0x4c29 and 0xa1d1 pay it after the Bazaar listing. Review on 25 Nov 2026: no outside sale by then means the listing does not reach its buyers, not that the price is wrong.
 
+
+
+## Contract audit: the key-holder read was broken from Cloudflare (1.131.1, 11 Nov 2026)
+
+- Found by the paid staging call of 1.131.0, not by the tests: `/audit/contract?address=…` answered `access.onChain: "not available"`. Cause: two hand-typed EIP-1967 slot constants in src/routes/contract-audit.ts were wrong (the admin slot had 65 hex digits; BlastAPI, nodies, publicnode and mainnet.base.org answer "Invalid params", Tenderly accepts it). On the PC the read succeeded through Tenderly, the last fallback, so `scripts/audit-contract-dev.mjs` and the local checks looked fine. LESSON: a chain read that works on the PC proves nothing about Cloudflare when the fallback list differs in strictness; read the outbound answers once (a local Worker with an `outboundService` that logs each request shows which node answered what) and never type a 32-byte constant: take it from `PROXY_SLOTS` or compute it, with a test.
+- `/contract-risk` had carried the same wrong implementation slot since October: it read an empty slot and never reported a proxy. Fixed in the same release. The proxy tools (`<network>/proxy`, `PROXY_SLOTS` in chain-reads.ts) were always right.
+- `chainFacts` now reads the EIP-1967, EIP-1822 and older OpenZeppelin (zos) implementation slots and both admin slots, each with its own catch, and logs `contract-audit chain facts <network> <address>: <reason>` when the whole read fails (visible in `wrangler tail`).
+- AFTER IT IS LIVE: one paid staging call by address (`/audit/contract?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain=base`, 1 test USDC) must show `access.owner`, `access.proxyAdmin` and `access.onChain: "read at audit time"`.
+
+
