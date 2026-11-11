@@ -17,6 +17,9 @@ export interface Env {
   RAPIDAPI_PROXY_SECRET?: string;
   // Secret FluxA's proxy sends as X-FluxA-Proxy-Secret (a static parameter in FluxA's Monetize Studio): lib/marketplace.ts.
   FLUXA_PROXY_SECRET?: string;
+  // Credential Orthogonal's proxy sends for its own paying buyers (set in its seller dashboard; one or more, comma
+  // separated, at least 16 characters each): lib/marketplace.ts `orthogonalSecret`.
+  ORTHOGONAL_PROXY_SECRET?: string;
   // Brave Search API key for /search (secret, set 22 Oct 2026), and the most upstream searches per UTC day (default 500;
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   /** Origin of the public site for people (canonical URLs), e.g. https://tools.funwords.eu; unset = each host names itself. */
