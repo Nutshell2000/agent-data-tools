@@ -18,6 +18,14 @@ import { extract } from "./extract";
 const DEFAULT_DAILY_CAP = 500;
 
 /** The Brave API terms' end-user obligations, stated in every answer (§4(c) of the terms). */
+/**
+ * Price test from 11 Nov 2026 (owner: "Yes, start now" to "Start $0.03 on the three Mercator-bought tools now instead of
+ * 19 Nov?"): /news, /pack/news-sentiment and /pack/web-research. Mercator's gateway (0x72c5…159b) bought these three about
+ * nine times a day at $0.01, at its own search ranks 5, 6 and 12, and pays other sellers $0.02-0.15 for the same jobs; price
+ * is 5% of its score. Entry paths (/news/search, /crypto/news) follow /news. Rule: if its calls to a tool stop for two days,
+ * that tool goes back to $0.01 (see CLAUDE.md, 1.130.0).
+ */
+export const MERCATOR_TEST_PRICE = "$0.03";
 const TERMS = "Results are for the caller's immediate use: no storing or caching beyond the current task, no resale and no model training (Brave Search API terms).";
 
 /** Counts one upstream request; KV is eventually consistent, so the cap is approximate. */
@@ -331,5 +339,5 @@ export const SEARCH: Entry[] = [
         .slice(0, count)
         .map((r) => ({ title: stripTags(r.title!), url: r.url!, snippet: stripTags(r.description ?? ""), source: r.meta_url?.hostname ?? new URL(r.url!).hostname, age: r.age ?? null }));
       return { query, provider: "Brave News", count: results.length, results, terms: TERMS };
-    }, "$0.01"),
+    }, MERCATOR_TEST_PRICE),
 ];
