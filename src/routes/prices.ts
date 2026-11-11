@@ -103,7 +103,7 @@ const poolOut = (p: PoolQuote | null) => p && { address: p.pool, feeTier: p.feeT
 
 const PRICE_TOOLS: Entry[] = [
   entry("/price/token", "Crypto price and token price: USD price of a token from Uniswap v3 pools",
-    "Token price in USD for a crypto token by symbol (ETH, BTC, USDC, AERO, ARB, OP, LINK…), coin name, CoinGecko id or ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns the pool, fee tier, quote reserve and a thin-liquidity flag. Spot price, not a time average. No pool returns 422, uncharged. Use to value a token or check a quote before a swap or payment.",
+    "Token price in USD for a crypto token by symbol, coin name or CoinGecko id from a built-in list of main tokens (ETH, BTC, USDC, AERO, ARB, OP, LINK, PEPE…) or any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns pool, fee tier, reserve and a thin-liquidity flag. Spot price; no pool is 422, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
       symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)", example: "ETH" },
       address: { type: "string", description: "0x ERC-20 token contract address (instead of symbol)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf" },
@@ -151,47 +151,60 @@ const PRICE_TOOLS: Entry[] = [
     }, "$0.01"),
 
   entry("/price/tokens", "Crypto prices in USD for up to 20 tokens in one call",
-    "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, USDC, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum or Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live from the chain, with pool, reserve and a thin-liquidity flag. Tokens without a pool are listed under unpriced instead of failing the call. Spot prices. Use to value a basket of tokens or refresh a watchlist in one paid call.",
+    "USD prices for up to 20 crypto tokens in one call, by ticker (ETH, BTC, LINK, AERO…) or ERC-20 0x address, on Base, Ethereum, Arbitrum and Optimism, each from its deepest Uniswap v3 pool against USDC or WETH, read live, with pool, reserve and a thin-liquidity flag. With no chain named each ticker is priced on the network that lists it. Tokens without a pool are listed as unpriced. Use to value a basket or refresh a watchlist in one paid call.",
     ["price", "token", "batch", "crypto", "market-data", "uniswap", "defi"], {
       symbols: { type: "string", description: "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all; an HTTP call with no input at all answers for BTC and ETH)", example: "ETH,BTC,AERO" },
       addresses: { type: "string", description: "Comma-separated 0x ERC-20 token addresses (with or instead of symbols; 1-20 tokens in all)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf,0x4200000000000000000000000000000000000006" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
     {
-      chain: "Base", chainId: 8453, ethUsd: 3850.12, block: 37000000,
-      prices: [{ address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", symbol: "cbBTC", decimals: 8, priceUsd: 104250.5, quotedIn: "USDC", pool: { address: "0x…", feeTier: 500, quoteReserve: 2500000.25, quoteReserveUsd: 2500000.25 }, thinLiquidity: false }],
-      unpriced: [{ address: "0x…", reason: "no Uniswap v3 pool against USDC or WETH" }], method: METHOD,
+      chain: "Base", chainId: 8453, ethUsd: 3850.12, block: 37000000, networks: [{ chain: "Base", chainId: 8453, block: 37000000 }],
+      prices: [{ address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", chain: "Base", symbol: "cbBTC", decimals: 8, priceUsd: 104250.5, quotedIn: "USDC", pool: { address: "0x…", feeTier: 500, quoteReserve: 2500000.25, quoteReserveUsd: 2500000.25 }, thinLiquidity: false }],
+      unpriced: [{ address: "0x…", chain: "Base", reason: "no Uniswap v3 pool against USDC or WETH" }], method: METHOD,
     },
     async (env, q) => {
       const raw = [q("symbols"), q("addresses")].flatMap((list) => (list ?? "").split(",")).map((a) => a.trim()).filter(Boolean);
       if (raw.length === 0 || raw.length > 20) throw new HttpError(400, "symbols and addresses must name 1 to 20 tokens in all");
+      const named = Boolean(q("chain")?.trim());
       const slug = pick(q, "chain", SLUGS, "base");
-      // A ticker this network does not list no longer refuses the whole call: the rest are priced and the unknown ones
-      // are named in `unknown`. Only when nothing can be priced is the call refused (with the list of known tickers).
-      const known = raw.filter((a) => /^0x[0-9a-fA-F]{40}$/.test(a) || knowsTicker(a, slug));
+      // No chain named: each ticker is priced on the first network that lists it, as /price/token does (11 Nov 2026 audit:
+      // symbols=BTC,ETH,SOL,LINK,UNI,DOGE priced 3 of 6 because LINK and UNI are not in Base's table). Addresses stay on
+      // the default network. A ticker no network knows does not refuse the whole call; only when nothing can be priced is
+      // the call refused (with the list of known tickers).
+      const isAddress = (a: string) => /^0x[0-9a-fA-F]{40}$/.test(a);
+      const networkOf = (a: string) => (named || isAddress(a) ? slug : tickerNetwork(a, slug, SLUGS));
+      const known = raw.filter((a) => isAddress(a) || knowsTicker(a, networkOf(a)));
       const unknown = raw.filter((a) => !known.includes(a));
       if (!known.length) tokenAddress(raw[0], slug);
-      const tokens = [...new Set(known.map((a) => tokenAddress(a, slug)))];
-      const c = CHAINS.find((x) => x.slug === slug)!;
-      const cl = client(env, c);
-      const p = pricer(cl, slug);
-      const [ethUsd, block] = await Promise.all([p.ethUsd(), rpc(() => cl.getBlockNumber().then(Number))]);
-      const results = await Promise.all(tokens.map(async (token) => {
-        try {
-          const [decimals, symbol] = await Promise.all([
-            cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }).then(Number),
-            cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
-          ]);
-          const best = await p.price(token, decimals);
-          if (!best) return { address: token, reason: "no Uniswap v3 pool against USDC or WETH" };
-          return { address: token, symbol, decimals, priceUsd: sig(best.priceUsd), quotedIn: best.quotedIn, pool: poolOut(best.pool), thinLiquidity: (best.pool?.quoteReserveUsd ?? Infinity) < THIN_USD };
-        } catch {
-          return { address: token, reason: "not an ERC-20 token on this network, or the node did not answer" };
-        }
+      const groups = new Map<string, Set<Address>>();
+      for (const a of known) { const s = networkOf(a); const set = groups.get(s) ?? new Set<Address>(); set.add(tokenAddress(a, s)); groups.set(s, set); }
+      const order = [...groups.keys()].sort((x, y) => (x === slug ? -1 : y === slug ? 1 : SLUGS.indexOf(x) - SLUGS.indexOf(y)));
+      const perNetwork = await Promise.all(order.map(async (s) => {
+        const c = CHAINS.find((x) => x.slug === s)!;
+        const cl = client(env, c);
+        const p = pricer(cl, s);
+        const [ethUsd, block] = await Promise.all([p.ethUsd(), rpc(() => cl.getBlockNumber().then(Number))]);
+        const results = await Promise.all([...groups.get(s)!].map(async (token) => {
+          try {
+            const [decimals, symbol] = await Promise.all([
+              cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }).then(Number),
+              cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
+            ]);
+            const best = await p.price(token, decimals);
+            if (!best) return { address: token, chain: c.name, reason: "no Uniswap v3 pool against USDC or WETH" };
+            return { address: token, chain: c.name, symbol, decimals, priceUsd: sig(best.priceUsd), quotedIn: best.quotedIn, pool: poolOut(best.pool), thinLiquidity: (best.pool?.quoteReserveUsd ?? Infinity) < THIN_USD };
+          } catch {
+            return { address: token, chain: c.name, reason: "not an ERC-20 token on this network, or the node did not answer" };
+          }
+        }));
+        return { c, ethUsd, block, results };
       }));
+      const head = perNetwork[0];
+      const results = perNetwork.flatMap((n) => n.results);
       return {
-        chain: c.name, chainId: c.chain.id, ethUsd: sig(ethUsd), block,
-        prices: results.filter((r) => "priceUsd" in r), unpriced: [...results.filter((r) => "reason" in r), ...unknown.map((ticker) => ({ ticker: ticker.slice(0, 20), reason: "not a ticker known on this network; pass the token's 0x address or another chain" }))], method: METHOD,
+        chain: head.c.name, chainId: head.c.chain.id, ethUsd: sig(head.ethUsd), block: head.block,
+        networks: perNetwork.map((n) => ({ chain: n.c.name, chainId: n.c.chain.id, block: n.block })),
+        prices: results.filter((r) => "priceUsd" in r), unpriced: [...results.filter((r) => "reason" in r), ...unknown.map((ticker) => ({ ticker: ticker.slice(0, 20), reason: named ? "not a ticker known on this network; pass the token's 0x address or another chain" : "not a ticker known on Base, Ethereum, Arbitrum or Optimism; pass the token's 0x address" }))], method: METHOD,
       };
     }, "$0.005"),
 
