@@ -50,6 +50,11 @@ for (const [code, key] of Object.entries(INDICATORS)) {
     if (r.value === null || !countries[r.countryiso3code]) continue;
     (byCountry[r.countryiso3code] ??= {})[r.date] = Number(r.value);
   }
+  // 11 Nov 2026: on 22 Oct the API answered this "all countries" request for total unemployment with one year per
+  // country, and the tool sold a one-year "history" for three weeks. A short answer stops the run.
+  const depths = Object.values(byCountry).map((years) => Object.keys(years).length).sort((a, b) => a - b);
+  const median = depths[Math.floor(depths.length / 2)] ?? 0;
+  if (median < Math.min(YEARS, 5)) throw new Error(`${code}: only ${median} years for the median country; the API answered short, run again`);
   series[key] = byCountry;
   console.error(`${code} ${key}: ${Object.keys(byCountry).length} countries`);
 }

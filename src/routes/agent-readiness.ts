@@ -11,7 +11,7 @@ type Check = { id: string; label: string; weight: number; paths: string[]; valid
 const isJson = (body: string) => { try { return typeof JSON.parse(body) === "object"; } catch { return false; } };
 const CHECKS: Check[] = [
   { id: "llms_txt", label: "llms.txt", weight: 20, paths: ["/llms.txt"], valid: (b, t) => !/html/i.test(t) && /^\s*#/.test(b), fix: "Publish /llms.txt: a Markdown summary of the site with links to its key pages (llmstxt.org)." },
-  { id: "sitemap", label: "sitemap.xml", weight: 10, paths: ["/sitemap.xml", "/sitemap_index.xml"], valid: (b) => /<(urlset|sitemapindex)\b/i.test(b), fix: "Publish /sitemap.xml and list it in robots.txt." },
+  { id: "sitemap", label: "sitemap.xml", weight: 10, paths: ["/sitemap.xml", "/sitemap_index.xml"], valid: (b) => /<(urlset|sitemapindex)\b/i.test(b), fix: "Publish a sitemap (usually /sitemap.xml) and name it in robots.txt with a Sitemap: line." },
   // Large specs pass the 300 KB read cut and no longer parse, so only the head is checked.
   { id: "openapi", label: "OpenAPI spec", weight: 15, paths: ["/openapi.json", "/.well-known/openapi.json", "/swagger.json"], valid: (b) => /^\s*\{/.test(b) && /"(openapi|swagger)"\s*:\s*"/.test(b.slice(0, 5000)), fix: "Publish an OpenAPI document at /openapi.json so agents can call your API without docs scraping." },
   { id: "mcp", label: "MCP server card", weight: 20, paths: ["/.well-known/mcp/server-card.json", "/.well-known/mcp.json", "/.well-known/mcp"], valid: (b) => isJson(b) && /"(serverInfo|name|endpoint|url|tools)"\s*:/.test(b), fix: "Run an MCP server and describe it at /.well-known/mcp/server-card.json." },
@@ -42,6 +42,14 @@ export const AGENT_READINESS: Entry[] = [
         const rs = await Promise.all(c.paths.map((p) => grab(origin, p)));
         return rs.find((r) => r && c.valid(r.text, r.type))?.url ?? null;
       })]);
+      // A sitemap anywhere counts when robots.txt names it (11 Nov 2026: stripe.com names /sitemap/sitemap.xml there and was
+      // told to publish a sitemap). One more read, only when the usual paths had none.
+      const sitemapAt = CHECKS.findIndex((c) => c.id === "sitemap");
+      if (sitemapAt >= 0 && !found[sitemapAt] && robots) {
+        const named = /^\s*sitemap:\s*(https?:\/\/\S+)/im.exec(robots.text)?.[1];
+        const page = named ? await grab(origin, named) : null;
+        if (page && CHECKS[sitemapAt].valid(page.text, page.type)) found[sitemapAt] = page.url;
+      }
       // Crawlers count as reachable if robots.txt is missing or lets them read the home page.
       const verdicts = AI_CRAWLERS.map((a) => ({ a, ok: robots ? robotsVerdict(robots.text, a, "/").allowed : true }));
       const crawlerShare = verdicts.filter((v) => v.ok).length / AI_CRAWLERS.length;

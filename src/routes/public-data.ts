@@ -52,18 +52,62 @@ export function sunTimes(date: Date, la: number, lo: number) {
     dayLengthMinutes: Math.round((2 * omega / 360) * 1440), polar: null,
   };
 }
+// True new and full moons (Meeus, Astronomical Algorithms, chapter 49): the mean lunation plus the periodic terms of the
+// Sun's and Moon's anomalies. Until 11 Nov 2026 this tool used the mean synodic month alone, and its "next new moon"
+// could be 14 hours from the real one (9 Nov 2026: 21:57 UTC shown, 07:02 UTC true). Checked against nine published new
+// and full moons from 1977 to 2026: within one minute each (tests/moon.test.cjs).
+const DEG = Math.PI / 180;
+const sind = (d: number) => Math.sin(d * DEG);
+/** [coefficient for a new moon, for a full moon, multiples of M, M', F, power of E]. */
+const LUNATION_TERMS: readonly (readonly [number, number, number, number, number, number])[] = [
+  [-0.40720, -0.40614, 0, 1, 0, 0], [0.17241, 0.17302, 1, 0, 0, 1], [0.01608, 0.01614, 0, 2, 0, 0], [0.01039, 0.01043, 0, 0, 2, 0],
+  [0.00739, 0.00734, -1, 1, 0, 1], [-0.00514, -0.00515, 1, 1, 0, 1], [0.00208, 0.00209, 2, 0, 0, 2], [-0.00111, -0.00111, 0, 1, -2, 0],
+  [-0.00057, -0.00057, 0, 1, 2, 0], [0.00056, 0.00056, 1, 2, 0, 1], [-0.00042, -0.00042, 0, 3, 0, 0], [0.00042, 0.00042, 1, 0, 2, 1],
+  [0.00038, 0.00038, 1, 0, -2, 1], [-0.00024, -0.00024, -1, 2, 0, 1], [-0.00007, -0.00007, 2, 1, 0, 0], [0.00004, 0.00004, 0, 2, -2, 0],
+  [0.00004, 0.00004, 3, 0, 0, 0], [0.00003, 0.00003, 1, 1, -2, 0], [0.00003, 0.00003, 0, 2, 2, 0], [-0.00003, -0.00003, 1, 1, 2, 0],
+  [0.00003, 0.00003, -1, 1, 2, 0], [-0.00002, -0.00002, -1, 1, -2, 0], [-0.00002, -0.00002, 1, 3, 0, 0], [0.00002, 0.00002, 0, 4, 0, 0],
+];
+/** Planetary arguments: [degrees at k = 0, degrees per lunation, coefficient in millionths of a day]. */
+const PLANETARY_TERMS: readonly (readonly [number, number, number])[] = [
+  [299.77, 0.107408, 325], [251.88, 0.016321, 165], [251.83, 26.651886, 164], [349.42, 36.412478, 126], [84.66, 18.206239, 110], [141.74, 53.303771, 62], [207.14, 2.453732, 60],
+  [154.84, 7.306860, 56], [34.52, 27.261239, 47], [207.19, 0.121824, 42], [291.34, 1.844379, 40], [161.72, 24.198154, 37], [239.56, 25.513099, 35], [331.55, 3.592518, 23],
+];
+const LUNATION_DAYS = 29.530588861, LUNATION_EPOCH_JD = 2451550.09766;
+/** Lunations since the new moon of 6 Jan 2000 for a moment, as a fraction (mean motion: good for picking the lunation). */
+const lunationOf = (ms: number) => (ms / 864e5 + 2440587.5 - LUNATION_EPOCH_JD) / LUNATION_DAYS;
+/** The moment of a true phase in UTC milliseconds: k whole is a new moon, k + 0.5 a full moon. */
+export function lunarPhaseTime(k: number): number {
+  const T = k / 1236.85, T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+  const E = 1 - 0.002516 * T - 0.0000074 * T2;
+  const M = 2.5534 + 29.10535670 * k - 0.0000014 * T2 - 0.00000011 * T3;
+  const Mp = 201.5643 + 385.81693528 * k + 0.0107582 * T2 + 0.00001238 * T3 - 0.000000058 * T4;
+  const F = 160.7108 + 390.67050284 * k - 0.0016118 * T2 - 0.00000227 * T3 + 0.000000011 * T4;
+  const full = Math.abs(k - Math.round(k)) > 0.25;
+  let jde = LUNATION_EPOCH_JD + LUNATION_DAYS * k + 0.00015437 * T2 - 0.000000150 * T3 + 0.00000000073 * T4;
+  for (const [forNew, forFull, m, mp, f, e] of LUNATION_TERMS) jde += (full ? forFull : forNew) * (e === 2 ? E * E : e === 1 ? E : 1) * sind(m * M + mp * Mp + f * F);
+  jde -= 0.00017 * sind(124.7746 - 1.56375588 * k + 0.0020672 * T2 + 0.00000215 * T3);
+  PLANETARY_TERMS.forEach(([at0, perK, millionths], i) => { jde += millionths * 1e-6 * sind(at0 + perK * k - (i === 0 ? 0.009173 * T2 : 0)); });
+  // Dynamical time to UTC: the difference is about 69 seconds in the 2020s (48 s in 1977, 64 s in 2000).
+  return (jde - 2440587.5) * 864e5 - 69_000;
+}
+const toMinute = (ms: number) => new Date(Math.round(ms / 60_000) * 60_000).toISOString();
+
 export function moonPhase(date: Date) {
-  const synodic = 29.530588853;
-  const known = Date.UTC(2000, 0, 6, 18, 14); // a new moon
-  const age = (((date.getTime() - known) / 864e5) % synodic + synodic) % synodic;
-  const fraction = age / synodic;
+  const now = date.getTime();
+  // The last true new moon at or before the moment: start one lunation early and step forward.
+  let k = Math.floor(lunationOf(now)) - 1;
+  while (lunarPhaseTime(k + 1) <= now) k++;
+  const lastNew = lunarPhaseTime(k), full = lunarPhaseTime(k + 0.5), nextNew = lunarPhaseTime(k + 1);
+  // Position in this lunation, 0 at new and 0.5 at full, measured between the true events on each side.
+  const fraction = now < full ? 0.5 * (now - lastNew) / (full - lastNew) : 0.5 + 0.5 * (now - full) / (nextNew - full);
   const illumination = Math.round(((1 - Math.cos(2 * Math.PI * fraction)) / 2) * 1000) / 10;
   const names = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"];
   const phase = names[Math.floor(((fraction * 8) + 0.5) % 8)];
-  const next = (target: number) => new Date(date.getTime() + ((((target - fraction) % 1) + 1) % 1) * synodic * 864e5).toISOString();
-  return { phase, illuminationPercent: illumination, ageDays: Math.round(age * 10) / 10, nextNewMoon: next(0), nextFullMoon: next(0.5) };
-}
-function dateParam(q: Parameters<Entry["run"]>[1]) {
+  return {
+    phase, illuminationPercent: illumination, ageDays: Math.round(((now - lastNew) / 864e5) * 10) / 10,
+    nextNewMoon: toMinute(nextNew), nextFullMoon: toMinute(now < full ? full : lunarPhaseTime(k + 1.5)),
+  };
+}function dateParam(q: Parameters<Entry["run"]>[1]) {
   const v = q("date")?.trim();
   if (!v) return new Date();
   const d = parseDate(v, "T12:00:00Z");
@@ -209,7 +253,7 @@ export const PUBLIC_DATA: Entry[] = [
     { date: "2026-12-21", sunrise: "2026-12-21T07:43:00.000Z", sunset: "2026-12-21T13:48:00.000Z", solarNoon: "2026-12-21T10:45:00.000Z", civilDawn: "2026-12-21T06:58:00.000Z", civilDusk: "2026-12-21T14:33:00.000Z", dayLengthMinutes: 365, polar: null },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...sunTimes(d, lat(q), lon(q)) }; }),
 
-  entry("/moon", "Moon phase", "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC). Computed locally from the mean synodic month. Use for calendars and night-sky planning.",
+  entry("/moon", "Moon phase", "Moon phase name, illuminated percentage and age in days for any date, plus the next new and full moon (UTC, to the minute). Computed locally from the Moon's and Sun's orbital terms; the times agree with published almanacs within about a minute. Use for calendars and night-sky planning.",
     ["moon", "astronomy", "date", ...P], { date: { type: "string", description: "Date or ISO time (default now)", example: "2026-10-18" } },
     { date: "2026-10-18", phase: "Waning Crescent", illuminationPercent: 12.4, ageDays: 26.3, nextNewMoon: "2026-10-21T…", nextFullMoon: "2026-11-05T…" },
     (_e, q) => { const d = dateParam(q); return { date: d.toISOString().slice(0, 10), ...moonPhase(d) }; }),
