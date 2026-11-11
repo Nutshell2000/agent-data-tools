@@ -4,7 +4,7 @@
 import { entry, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { capBytes, parseTarget } from "../lib/fetch";
-import { htmlToText } from "./utils";
+import { decodeEntities, htmlToText } from "./utils";
 
 const U = ["web", "utility"];
 const UA = "Mozilla/5.0 (compatible; AgentDataTools/1.0; +https://agent-data-tools.revmesh2074.workers.dev)";
@@ -137,7 +137,8 @@ export function seoAudit(html: string, pageUrl: string) {
 const STOP = new Set("a about above after again against all am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers herself him himself his how i if in into is it its itself just me more most my myself no nor not now of off on once only or other our ours ourselves out over own same she should so some such than that the their theirs them themselves then there these they this those through to too under until up very was we were what when where which while who whom why will with you your yours yourself yourselves also may one new us get use used using via per".split(" "));
 export function keywordDensity(text: string, top: number) {
   // Links and e-mail addresses are not words: "https" and "com" would otherwise top the list.
-  const prose = text.replace(/\b(?:https?:\/\/|www\.)\S+/gi, " ").replace(/\S+@\S+\.\S+/g, " ");
+  // HTML character references in pasted text ("it&#x27;s") are decoded first, as for fetched pages (11 Nov 2026 truth audit).
+  const prose = decodeEntities(text).replace(/\b(?:https?:\/\/|www\.)\S+/gi, " ").replace(/\S+@\S+\.\S+/g, " ");
   const words = (prose.toLowerCase().match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? []).map((w) => w.replace(/['’]s$/, ""));
   const total = words.length;
   if (total === 0) throw new HttpError(422, "no words found in the text");

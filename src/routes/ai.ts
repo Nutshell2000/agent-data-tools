@@ -60,7 +60,9 @@ interface WhisperResult {
 }
 
 export async function transcribe(env: Env, rawUrl: string | undefined) {
-  const file = await fetchFile(rawUrl, /^(audio|video)\/|^application\/(octet-stream|ogg)/i, 5 * MB, "an audio file");
+  // 11 Nov 2026 truth audit: S3 serves uploads without a type as "binary/octet-stream"; those are accepted too (Whisper
+  // refuses bytes that are not audio, and that refusal is uncharged).
+  const file = await fetchFile(rawUrl, /^(audio|video)\/|^(application|binary)\/(octet-stream|ogg)/i, 5 * MB, "an audio file");
   const out = await runAi<WhisperResult>(env, MODELS.speech, { audio: Buffer.from(file.bytes).toString("base64") });
   if (typeof out?.text !== "string") throw new HttpError(502, "the AI model returned no transcript");
   return {

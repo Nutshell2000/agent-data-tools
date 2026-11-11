@@ -10,6 +10,14 @@ import { nagerHolidays } from "./holidays-world";
 import { CITIES } from "./weather";
 import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
 
+/** Wikidata classes of inhabited places (city, big city, million city, metropolis, capital, town, village, human settlement, municipality seat, megacity). */
+const SETTLEMENT_TYPES: ReadonlySet<string> = new Set(["Q515", "Q1549591", "Q1637706", "Q200250", "Q5119", "Q3957", "Q532", "Q486972", "Q15284", "Q174844", "Q1093829", "Q7930989"]);
+/** A place's name: English, else the multilingual label, else any label; a bare Q-id only when the item has no label at all. */
+function placeLabel(e: Entity): string {
+  const labels = (e.labels ?? {}) as Record<string, { value?: string } | undefined>;
+  return labels.en?.value ?? labels.mul?.value ?? Object.values(labels).find((l) => l?.value)?.value ?? e.id;
+}
+
 // city=, place= or location= as a major city name (the weather tool's built-in table) when lat/lon are not given:
 // /sun?city=Stockholm answered "lat is required" in the 26 Oct 2026 probe.
 const knownCity = (q: Parameters<Entry["run"]>[1]) => {
@@ -223,14 +231,18 @@ export const PUBLIC_DATA: Entry[] = [
       const count = num(q, "count", { min: 1, max: 10, fallback: 5, integer: true });
       const ids = await searchItems(name, Math.min(20, count * 3));
       const entities = ids.length ? await getEntities(ids) : {};
-      const places = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e) && statements(e, "P625").length > 0).slice(0, count);
+      // 11 Nov 2026 truth audit: "New York" returned New York State first (so /pack/location-brief gave the weather of rural
+      // upstate NY). Among the matches, places that are cities, towns or villages come first; search order is kept otherwise.
+      const settled = (e: Entity) => itemIds(e, "P31").some((t) => SETTLEMENT_TYPES.has(t));
+      const located = ids.map((id) => entities[id]).filter((e): e is Entity => Boolean(e) && statements(e, "P625").length > 0);
+      const places = [...located.filter(settled), ...located.filter((e) => !settled(e))].slice(0, count);
       const labels = await labelsOf(places.flatMap((e) => [...itemIds(e, "P17").slice(0, 1), ...itemIds(e, "P131").slice(0, 1)]));
       return {
         count: places.length,
         results: places.map((e) => {
           const at = statements(e, "P625")[0].mainsnak.datavalue!.value as { latitude: number; longitude: number };
           return {
-            name: e.labels?.en?.value ?? e.id, description: e.descriptions?.en?.value ?? null,
+            name: placeLabel(e), description: e.descriptions?.en?.value ?? null,
             country: labels[itemIds(e, "P17")[0]] ?? null, region: labels[itemIds(e, "P131")[0]] ?? null,
             lat: Math.round(at.latitude * 1e4) / 1e4, lon: Math.round(at.longitude * 1e4) / 1e4,
             population: firstQuantity(e, "P1082"), elevation: firstQuantity(e, "P2044"), wikidataId: e.id,
@@ -264,7 +276,8 @@ export const PUBLIC_DATA: Entry[] = [
     async (_e, q) => {
       // An English country name too ("Sweden", "UK"), as agents send it (26 Oct 2026 probe); World Bank takes ISO2 or ISO3.
       const sent = need(q, "country", 80).trim();
-      const code = /^[A-Za-z]{2,3}$/.test(sent) ? sent.toUpperCase() : (countryCode(sent) ?? "");
+      // 11 Nov 2026 truth audit: "UK" (and "USA") skipped the alias table because they look like codes; UK is not an ISO code.
+      const code = /^[A-Za-z]{2,3}$/.test(sent) && !/^(uk|usa)$/i.test(sent) ? sent.toUpperCase() : (countryCode(sent) ?? "");
       if (!/^[A-Z]{2,3}$/.test(code)) throw new HttpError(400, "country must be a 2- or 3-letter ISO code or an English country name");
       type WB<T> = [unknown, T[] | null] | [{ message: unknown }];
       const info = await getJson<WB<{ id: string; iso2Code: string; name: string; region: { value: string }; incomeLevel: { value: string }; capitalCity: string; latitude: string; longitude: string }>>(`https://api.worldbank.org/v2/country/${code}?format=json`);

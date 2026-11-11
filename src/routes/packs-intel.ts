@@ -155,6 +155,9 @@ export function detectTech(html: string, headers: Headers) {
     if (!evidence && r.generator && generator && r.generator.test(generator)) evidence = `generator ${generator.slice(0, 60)}`;
     if (!evidence && r.cookie) { const c = cookies.find((n) => r.cookie!.test(n)); if (c) evidence = `cookie ${c}`; }
     if (!evidence && r.html) { const m = r.html.exec(html); if (m) evidence = `page ${m[0].slice(0, 60)}`; }
+    // 11 Nov 2026 truth audit: github.com itself answers "server: GitHub.com" too and was reported as GitHub Pages. GitHub's own
+    // pages carry its analytics meta tags and session cookies; a Pages site has neither.
+    if (evidence && r.name === "GitHub Pages" && (/<meta[^>]+name=["'](octolytics-[a-z-]+|github-keyboard-shortcuts|hostname)["']/i.test(html) || cookies.some((n) => n === "_gh_sess" || n === "logged_in" || n === "_octo"))) continue;
     if (evidence) found.push({ name: r.name, category: r.category, evidence });
   }
   const byCategory: Record<string, string[]> = {};
@@ -249,7 +252,11 @@ export function nameFromTitle(title: unknown, domain: string) {
 const hostOf = (raw: string) => {
   let v = raw.trim().toLowerCase();
   if (/^https?:\/\//.test(v)) { try { v = new URL(v).hostname; } catch { throw new HttpError(400, "domain must be a domain such as example.com or a URL"); } }
-  return v.replace(/^www\./, "").replace(/\.$/, "").split("/")[0];
+  // 11 Nov 2026 truth audit: an e-mail address (hello@linear.app, the usual lead-enrichment input) left the site and tech
+  // sections empty, because "hello@" made the home page URL carry credentials. Use the part after the last @.
+  v = v.split("/")[0];
+  if (v.includes("@")) v = v.slice(v.lastIndexOf("@") + 1);
+  return v.replace(/^www\./, "").replace(/\.$/, "").split(":")[0];
 };
 
 export const PACKS_INTEL: Entry[] = [
