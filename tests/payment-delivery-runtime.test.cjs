@@ -15,7 +15,7 @@ before(async()=>{
       settle:async p=>({success:!p.payload.authorization.nonce.endsWith('ffff'),network:'eip155:8453',transaction:'0x'+'2'.repeat(64),payer:'${payer}',amount:'2000',errorReason:'fixture-failure'})
     }}` }));
   }}]});
-  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture',REVENUE_TOKEN:'owner-fixture-token',FLUXA_PROXY_SECRET:'fluxa-fixture-secret-0123456789'},outboundService:async r=>{
+  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',compatibilityFlags:['nodejs_compat'],durableObjects:{METRICS:{className:'Metrics',useSQLite:true}},bindings:{PAY_TO:recipient,NETWORK:'eip155:8453',PAYWALL:'on',TRIALS_ENABLED:'off',FACILITATOR_URL:'https://fixture.invalid',BASE_RPC_URL:'https://fixture.invalid',STRIPE_READ_KEY:'rk_test_fixture',REVENUE_TOKEN:'owner-fixture-token',FLUXA_PROXY_SECRET:'fluxa-fixture-secret-0123456789',ORTHOGONAL_PROXY_SECRET:'orthogonal-fixture-secret-0123456789'},outboundService:async r=>{
     const path=new URL(r.url).pathname;
     if(new URL(r.url).hostname==='api.stripe.com'){assert.equal(r.headers.get('authorization'),'Bearer rk_test_fixture');return path.endsWith('cs_test_unpaidSession01')?Response.json({mode:'payment',status:'open',payment_status:'unpaid'}):Response.json({mode:'payment',status:'complete',payment_status:'paid',currency:'usd',amount_total:500,metadata:{adt_credits:'5000'}});}
     if(new URL(r.url).hostname==='mempool.space'){const value=path.endsWith('recommended')?(feeScenario==='invalid'?{fastestFee:3}:{fastestFee:3,halfHourFee:2,hourFee:1,economyFee:1,minimumFee:1}):path.endsWith('height')?950000:{count:20,vsize:10000,total_fee:20000};return Response.json(value);}
@@ -309,4 +309,11 @@ test('x402 v1: v1 terms in the 402 body on request (x402=1) beside the v2 header
  await new Promise(r=>setTimeout(r,200));
  const after=await revenue();assert.equal(after.settlements,before+2);
  const day=Object.values(after.funnel.days).at(-1);assert.ok(day['http:/extract:refused_amount']>=1);assert.ok(day['http:/extract:refused_network']>=2);assert.ok(day['http:/extract:verification_failed']>=1);
+});
+
+test("Orthogonal's credential serves any tool unpaid, from its header, X-API-Key or Bearer; a wrong one still gets the 402",async()=>{
+const s='orthogonal-fixture-secret-0123456789';
+for(const headers of [{'x-orthogonal-proxy-secret':s},{'x-api-key':s},{authorization:'Bearer '+s}]){const r=await mf.dispatchFetch('https://api.test/uuid?count=1',{headers:{...headers,accept:'application/json'}});assert.equal(r.status,200,JSON.stringify(Object.keys(headers)));assert.equal((await r.json()).uuids.length,1);}
+const wrong=await mf.dispatchFetch('https://api.test/uuid',{headers:{'x-orthogonal-proxy-secret':'x'.repeat(36),accept:'application/json'}});assert.equal(wrong.status,402);await wrong.arrayBuffer();
+const fluxaHeader=await mf.dispatchFetch('https://api.test/uuid',{headers:{'x-fluxa-proxy-secret':s,accept:'application/json'}});assert.equal(fluxaHeader.status,402,'its secret only works in its own places');await fluxaHeader.arrayBuffer();
 });
