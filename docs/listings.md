@@ -51,7 +51,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 
 ## Where to submit
 
-Status is updated by whoever submits (date, result). the owner submits; nothing here is automated except the
+Status is updated by whoever submits (date, result). The owner submits; nothing here is automated except the
 MCP Registry.
 
 | Directory | URL to submit | How | Status |
@@ -83,4 +83,4 @@ MCP Registry.
 | Ultravioleta DAO Bazaar | each tool URL | Keyless `POST facilitator.ultravioletadao.xyz/discovery/register` (about 5/min, 100 per host); crawled by Dexter | 100 tools registered 2026-10-20 (all 201) |
 | Dexter / OpenDexter / x402gle | each tool URL | `npx @dexterai/opendexter audition <tool url> --json` registers the route; the audit then pays a test call from Dexter's wallet (lists on the CDP Bazaar; never revenue). Origin-wide audition answers 500 ("could not persist 3 resource writes") | 11 routes registered 2026-10-20 (gas on 5 chains, /base-gas, /btc-fees, /btc-price, eth/base/arb block). Every test payment was "incomplete: could not settle a test payment on a chain this route accepts" on their side (Dexter pays mostly on Solana, which we do not take). Retry later; query-string URLs are skipped |
 | PayAPI Market | origin + one paid route | `POST payapi.market/api/submit-listing`; human review, then PayAPI pays one test call (up to $0.10) | submitted 2026-10-20 with /check/counterparty ($0.03) as the paid route, provider email the support address; status pending (the first attempt timed out client-side, so a duplicate pending entry may exist). Result by email |
-| PayAI Bazaar | each tool URL | Listed after a `/verify` of a signed payment (no funds move) | the owner: not now (2026-10-20) |
+| PayAI Bazaar | each tool URL | Listed after a `/verify` of a signed payment (no funds move) | The owner: not now (2026-10-20) |

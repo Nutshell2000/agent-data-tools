@@ -26,7 +26,7 @@ test('paused seller-kit GET, HEAD and direct order creation fail before payment 
   const f=fixture();
   for(const [path,method] of [['/buy/x402-seller-kit','GET'],['/buy/x402-seller-kit','HEAD'],['/store/x402-seller-kit/order','POST']]) {
     const r=await f.app.fetch(new Request('https://example.test'+path,{method}),f.env);
-    assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);await r.body?.cancel();
+    assert.equal(r.status,method==='POST'?503:410);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);await r.body?.cancel();
   }
   assert.deepEqual(f.counts(),{assets:0,writes:0,challenges:0});
   assert.deepEqual(routes.buyOpenApiPaths(),{});
@@ -49,12 +49,12 @@ test('existing paid seller-kit downloads continue to resolve while new sales are
 test('stale documentation links offer the current reader without redirecting, charging or creating an order',async()=>{
   const f=fixture();
   const json=await f.app.fetch(new Request('https://example.test/buy/x402-seller-kit'),f.env);
-  assert.equal(json.status,503);
+  assert.equal(json.status,410);
   assert.match(json.headers.get('link'), /\/guides\/web-reading/);
   assert.equal(json.headers.get('location'),null);
   assert.equal((await json.json()).documentationUrl,'/guides/web-reading');
   const html=await f.app.fetch(new Request('https://example.test/buy/x402-seller-kit',{headers:{accept:'text/html','PAYMENT-SIGNATURE':'unusable-operator-fixture'}}),f.env);
-  assert.equal(html.status,503);assert.match(html.headers.get('content-type'),/text\/html/);
+  assert.equal(html.status,410);assert.match(html.headers.get('content-type'),/text\/html/);
   assert.equal(html.headers.get('cache-control'),'no-store');
   assert.equal(html.headers.has('PAYMENT-REQUIRED'),false);assert.equal(html.headers.has('PAYMENT-RESPONSE'),false);
   const body=await html.text();assert.match(body,/href="\/guides\/web-reading"/);assert.match(body,/purchases are paused/);

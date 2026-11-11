@@ -5,7 +5,7 @@ Status (2026-10-20): two MPP methods exist on the tools, next to x402.
 - **evm/charge, USDC on Base to PAY_TO: ON by default** (1.36.0, `src/lib/mpp-evm.ts`, section "The evm method" below).
   It reuses the x402 facilitator and the CDP secret, so it needs no new address, deposit or self-payment.
 - **tempo/charge, USDC.e on Tempo: ON since 1.37.0 (2026-10-20)**, receiving address = PAY_TO (`src/lib/mpp-tempo.ts`).
-  the owner chose option A below after checking that his wallet shows the address on Tempo Mainnet (chain 4217) and can
+  The owner chose option A below after checking that the owner's wallet shows the address on Tempo Mainnet (chain 4217) and can
   send from it. No step needed money, a deposit or a self-payment.
 
 ## Why
@@ -27,7 +27,7 @@ one that costs us nothing to switch on, so it went live first.
 
 ## Decision: which address receives on Tempo (taken 2026-10-20: option A)
 
-the owner picked A on 2026-10-20 after the wallet check. Kept for the record; each option was free and needed no funds.
+The owner picked A on 2026-10-20 after the wallet check. Kept for the record; each option was free and needed no funds.
 
 - **A. Reuse PAY_TO, after a check (recommended if the check passes).** In the wallet that holds PAY_TO, add the
   network *Tempo Mainnet*: chain id 4217, RPC `https://rpc.tempo.xyz`, currency symbol USD, explorer

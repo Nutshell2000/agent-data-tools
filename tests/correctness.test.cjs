@@ -52,10 +52,10 @@ test('timeouts and unreachable sources are recognised as upstream failures, not 
 
 test('common other names for an input are read only when the input itself is missing', async () => {
   const { normalizedInput } = await load('src/tools.ts');
-  const q = normalizedInput((n) => ({ wallet: '0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045', tz: 'Europe/Oslo', zone: undefined, q: 'Uppsala' })[n]);
+  const q = normalizedInput((n) => ({ wallet: '0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045', tz: 'Europe/Oslo', zone: undefined, q: 'Lisbon' })[n]);
   assert.equal(q('address'), '0xd8da6bf26964af9d7eed9e03e53415d37aa96045', 'wallet= read as address, then normalized');
   assert.equal(q('zone'), 'Europe/Oslo');
-  assert.equal(q('name'), 'Uppsala');
+  assert.equal(q('name'), 'Lisbon');
   const real = normalizedInput((n) => ({ zone: 'UTC', tz: 'Europe/Oslo' })[n]);
   assert.equal(real('zone'), 'UTC', 'the real input wins');
 });
