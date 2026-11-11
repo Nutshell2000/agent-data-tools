@@ -6,7 +6,7 @@ import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, client, logsClient, recentLogs, rpc, topicLogsClient } from "./chain-reads";
+import { CHAINS, client, codeKind, logsClient, recentLogs, rpc, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -311,7 +311,7 @@ export const CHAIN_MORE: Entry[] = [
         const d = degree.get(a) ?? { n: 0, peers: new Set<string>() };
         d.n++; d.peers.add(b); degree.set(a, d);
       }
-      const isCode = (a: string) => cl.getCode({ address: a as `0x${string}` }).then((code) => !!code && code !== "0x").catch(() => false);
+      const isCode = (a: string) => cl.getCode({ address: a as `0x${string}` }).then((code) => codeKind(code ?? "0x").isContract).catch(() => false);
       const hubCandidates = [...degree.entries()].filter(([a, d]) => a !== ZERO && d.n >= 4 && d.peers.size >= 3).sort((x, y) => y[1].n - x[1].n).slice(0, 30).map(([a]) => a);
       const hubCode = await Promise.all(hubCandidates.map(isCode));
       const hubs = new Set(hubCandidates.filter((_, i) => hubCode[i]));
