@@ -3,7 +3,7 @@
   "name": "io.github.Nutshell2000/agent-data-tools",
   "title": "Agent Data Tools",
   "description": "683 agent tools: chain data, prices, sanctions, web, PDF. 25 free calls, then from $0.002.",
-  "version": "1.119.0",
+  "version": "1.120.0",
   "repository": {
     "url": "https://github.com/Nutshell2000/agent-data-tools",
     "source": "github"
@@ -17,6 +17,30 @@
           "isRequired": false,
           "description": "Optional. 'Bearer adt_...' API key from https://agent-data-tools.revmesh2074.workers.dev/credits to pay by card. Leave empty to pay each call with x402 (USDC).",
           "name": "Authorization",
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "agent-data-tools",
+      "version": "1.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "AGENT_DATA_TOOLS_KEY",
+          "description": "Optional. A prepaid key (adt_...) from https://agent-data-tools.revmesh2074.workers.dev/credits. Leave empty to use the free calls.",
+          "isRequired": false,
           "isSecret": true
         }
       ]
