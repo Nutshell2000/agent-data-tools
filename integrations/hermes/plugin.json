@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "agent-data-tools",
-  "version": "1.0.0",
-  "description": "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search and news, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
+  "version": "1.0.1",
+  "description": "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
   "author": {
     "name": "SpellzCode",
     "url": "https://agent-data-tools.revmesh2074.workers.dev"

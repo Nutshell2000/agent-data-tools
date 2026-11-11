@@ -14,7 +14,7 @@ import { LOCAL_KEY_PRICE } from "./key-prices";
 
 export const HERMES_PLUGIN_NAME = "agent-data-tools";
 /** Bump when plugin.json, mcp.json, the skill or the README of the package changes; the catalog entry carries the same number. */
-export const HERMES_PLUGIN_VERSION = "1.0.0";
+export const HERMES_PLUGIN_VERSION = "1.0.1";
 /**
  * The MCP address segment the package connects: the compact server's capped twin. Hermes counts spend from the cost
  * declared per tool name, so the package must connect an address where no call can cost more than the declared top;
@@ -53,7 +53,7 @@ export function hermesPluginFiles(): Record<string, unknown> {
       $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
       name: HERMES_PLUGIN_NAME,
       version: HERMES_PLUGIN_VERSION,
-      description: "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search and news, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
+      description: "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
       author: { name: "SpellzCode", url: HERMES_ORIGIN },
       homepage: `${HERMES_ORIGIN}/tools`,
       repository: "https://github.com/Nutshell2000/agent-data-tools",
