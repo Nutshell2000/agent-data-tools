@@ -20,7 +20,7 @@ import { runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 import { longInput } from "../lib/long-input";
 import { sourcify } from "./chain-more";
-import { CHAINS, client, codeKind } from "./chain-reads";
+import { CHAINS, PROXY_SLOTS, client, codeKind } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 export const CONTRACT_AUDIT_PRICE = "$1.00";
@@ -657,8 +657,11 @@ export function scoreOf(findings: Finding[]) {
 // ---------- on-chain facts ----------
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-const SLOT_IMPLEMENTATION = "0x360894a13ba1a3210667c828492db98dca3e2f703ccf0b462f8b1d7b7ba7b206";
-const SLOT_ADMIN = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8dee1178d6a717850b5d6103";
+// The slots come from chain-reads.ts (PROXY_SLOTS), which the proxy tools already read from every network. 1.131.0
+// carried two hand-typed constants here, both wrong: the admin one was 65 hex digits, so every strict node answered
+// "Invalid params" and the whole read failed from Cloudflare (it passed on this PC through one lenient fallback node).
+// The older OpenZeppelin layout (USDC's proxy) keeps its admin in its own slot, keccak256("org.zeppelinos.proxy.admin").
+export const ZOS_ADMIN_SLOT = "0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b";
 const factsAbi = [
   { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "getOwner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
@@ -687,14 +690,16 @@ export interface ChainFacts { codeBytes: number; isProxy: boolean; implementatio
 export async function chainFacts(env: Env, slug: string, address: `0x${string}`): Promise<ChainFacts | null> {
   try {
     const cl = client(env, CHAINS.find((c) => c.slug === slug)!);
-    const [code, implSlot, adminSlot] = await Promise.all([cl.getCode({ address }), cl.getStorageAt({ address, slot: SLOT_IMPLEMENTATION }), cl.getStorageAt({ address, slot: SLOT_ADMIN })]);
+    // Each slot is read on its own: a node that refuses one read must not cost the owner and the others.
+    const slot = (s: string) => cl.getStorageAt({ address, slot: s as `0x${string}` }).catch(() => undefined);
+    const [code, implSlot, uupsSlot, zosSlot, adminSlot, zosAdminSlot] = await Promise.all([cl.getCode({ address }), slot(PROXY_SLOTS.eip1967), slot(PROXY_SLOTS.eip1822), slot(PROXY_SLOTS.zos), slot(PROXY_SLOTS.admin), slot(ZOS_ADMIN_SLOT)]);
     const kind = codeKind(code ?? "0x");
     const slotAddress = (v: string | undefined) => (v && /^0x0{24}[0-9a-f]{40}$/i.test(v) && !/^0x0+$/.test(v) ? (getAddress(`0x${v.slice(-40)}`) as `0x${string}`) : null);
-    const implementation = slotAddress(implSlot) ?? (kind.implementation ? getAddress(kind.implementation) : null);
+    const implementation = slotAddress(implSlot) ?? slotAddress(uupsSlot) ?? slotAddress(zosSlot) ?? (kind.implementation ? getAddress(kind.implementation) : null);
     const c = { address, abi: factsAbi } as const;
     const [owner, getOwner, paused] = await cl.multicall({ allowFailure: true, contracts: [{ ...c, functionName: "owner" }, { ...c, functionName: "getOwner" }, { ...c, functionName: "paused" }] });
     const ownerAddress = owner.status === "success" ? owner.result : getOwner.status === "success" ? getOwner.result : null;
-    const adminAddress = slotAddress(adminSlot);
+    const adminAddress = slotAddress(adminSlot) ?? slotAddress(zosAdminSlot);
     let proxyAdmin: ChainFacts["proxyAdmin"] = null;
     if (adminAddress) {
       const holder = await holderOf(cl, adminAddress);
@@ -706,7 +711,8 @@ export async function chainFacts(env: Env, slug: string, address: `0x${string}`)
       proxyAdmin = { ...holder, controlledBy };
     }
     return { codeBytes: kind.codeBytes, isProxy: Boolean(implementation), implementation, owner: ownerAddress ? await holderOf(cl, ownerAddress as `0x${string}`) : null, proxyAdmin, paused: paused.status === "success" ? Boolean(paused.result) : null };
-  } catch {
+  } catch (e) {
+    console.error(`contract-audit chain facts ${slug} ${address}: ${String((e as { shortMessage?: string })?.shortMessage ?? (e as Error)?.message ?? e).slice(0, 300)}`);
     return null;
   }
 }
@@ -831,7 +837,7 @@ async function auditCore(run: RunModel, input: AuditInput, now: Date, graceMs: n
     summary,
     findings,
     access: {
-      owner: input.facts?.owner ?? null, proxyAdmin: input.facts?.proxyAdmin ?? null, upgradeable: Boolean(input.facts?.isProxy) || statics.upgradeable, paused: input.facts?.paused ?? null,
+      owner: input.facts?.owner ?? null, proxyAdmin: input.facts?.proxyAdmin ?? null, upgradeable: Boolean(input.facts?.isProxy) || Boolean(input.implementation) || statics.upgradeable, paused: input.facts?.paused ?? null,
       privilegedFunctions: statics.privileged, roles: [...roles].map(([role, powers]) => ({ role, powers: [...powers] })),
       onChain: input.address ? (input.facts ? "read at audit time" : "not available (the network did not answer); key holders are unknown") : "not applicable: source was sent without an address",
     },
