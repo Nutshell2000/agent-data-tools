@@ -58,6 +58,7 @@ import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
+import { LONG_INPUT_FIELDS, LONG_INPUT_MIN, holdLongInput, releaseLongInput } from "./lib/long-input";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
@@ -129,8 +130,17 @@ app.use(async (c, next) => {
   if (!endpoint) return next();
   const target = new URL(c.req.url);
   const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
+  // A whole source file does not fit in a URL that the payment quote repeats (lib/long-input.ts): it travels as a reference.
+  const longFields = LONG_INPUT_FIELDS[c.req.path];
+  const heldRefs: string[] = [];
   if (body && typeof body === "object" && !Array.isArray(body)) {
     for (const [name, value] of Object.entries(body)) {
+      if (longFields && typeof value === "string" && value.length >= LONG_INPUT_MIN && (longFields.includes(name) || ALIAS_OF[name]?.some((input) => longFields.includes(input)))) {
+        const ref = await holdLongInput(value);
+        heldRefs.push(ref);
+        target.searchParams.set(name, ref);
+        continue;
+      }
       // A field the tool knows under another name (Exa-style `query`, `numResults`, `urls`) is kept; the tool reads it
       // through INPUT_ALIASES. Nested objects (Exa's `contents`) are dropped as before.
       const aliased = ALIAS_OF[name]?.some((input) => input in endpoint.params);
@@ -146,7 +156,11 @@ app.use(async (c, next) => {
   const headers = new Headers(c.req.raw.headers);
   headers.delete("content-type");
   headers.delete("content-length");
-  return app.fetch(new Request(target.href, { method: "GET", headers }), c.env, c.executionCtx);
+  try {
+    return await app.fetch(new Request(target.href, { method: "GET", headers }), c.env, c.executionCtx);
+  } finally {
+    for (const ref of heldRefs) releaseLongInput(ref);
+  }
 });
 
 app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X402-Source") ?? null,

@@ -102,6 +102,8 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
   url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],
   urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
+  // /audit/contract (1.131.0): other audit sellers take the code as code or, in one free-text field, as description.
+  source: ["code", "source_code", "sourceCode", "solidity", "contract_source", "description"],
   from: ["from_currency", "fromCurrency", "base", "base_currency", "source", "pair", "currency"], to: ["to_currency", "toCurrency", "target", "quote", "symbols", "currencies", "vs"],
   // The request fields search agents already send (25 Oct 2026): Exa-style `query`, `numResults` and `urls`, and
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).

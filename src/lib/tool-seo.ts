@@ -52,6 +52,11 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Check a Base contract before approving it as a spender or calling it", "Get a low to critical tier with named flags such as proxy, unset implementation, tiny bytecode or zero supply", "Read the EIP-1967 implementation slot and ERC-20 owner, renounced and paused state"],
     faq: [["Is this a security audit?", "No. It is a limited set of bytecode, proxy and supply heuristics."], ["What about plain wallets?", "An address without code returns not-applicable."]],
   },
+  "/audit/contract": {
+    title: "Smart contract audit API: $1 security review in one call",
+    uses: ["Review a contract's source for security issues before deploying it or integrating with it", "Check a verified contract by address before buying or approving: findings, who holds the owner and upgrade keys, and a score", "Get a Markdown audit report an agent can hand to a person, in about a minute"],
+    faq: [["Is this a manual audit?", "No. It is automated: static checks, on-chain key-holder reads and AI reviewers whose findings are checked against the parsed source. Treat findings as leads to verify."], ["What can I send?", "A verified contract address on Ethereum, Base, Arbitrum, Optimism or Polygon, or Solidity or Vyper source up to 300,000 characters in a POST body."], ["What if the contract is not verified?", "The call fails and nothing is charged; send the source instead."]],
+  },
   "/liquidity-pool-audit": {
     title: "DEX liquidity pool check API for Base pairs",
     uses: ["Confirm a Base DEX pair is real before trading or adding liquidity", "Read its DEX, both tokens, liquidity, 24h volume and trades, and pair age", "Check a pool is deep enough for the size of a trade"],
