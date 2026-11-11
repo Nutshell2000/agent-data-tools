@@ -6,7 +6,7 @@
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
-import { KEY_PRICES, callsAt } from "../lib/credits";
+import { keyOfferNumbers } from "../lib/key-prices";
 import { TOOL_SEO } from "../lib/tool-seo";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -117,8 +117,9 @@ function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean)
   const params = Object.entries(e.params).filter(([n]) => n !== "only").map(([n, p]) => `${n}${p.required ? " (required)" : ""}: ${p.description}`);
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 1500 ? `${example.slice(0, 1500)}\n…` : example;
-  // Where a prepaid key pays less than the public price (lib/credits.ts KEY_PRICES), the guide leads with it.
-  const keyLine = Object.hasOwn(KEY_PRICES, e.path) ? `With prepaid credits this tool costs ${KEY_PRICES[e.path]} a call: $1 by card pays for ${callsAt(1000, KEY_PRICES[e.path])} calls, with no account and no subscription.` : "";
+  // Where a prepaid key pays less than the public price (lib/key-prices.ts), the guide leads with it.
+  const keyOffer = keyOfferNumbers(e.path, e.price);
+  const keyLine = keyOffer ? `With prepaid credits this tool costs ${keyOffer.price} a call: $1 by card pays for ${keyOffer.callsPerDollar} calls, with no account and no subscription.` : "";
   const lines = [
     `${e.summary}. ${e.price} per successful call; failed calls are never charged.`,
     e.description,

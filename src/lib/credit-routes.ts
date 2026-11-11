@@ -6,7 +6,8 @@ import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 import {
-  CREDIT_PACKS, WEB_PACKS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, verifyCheckout,
+  CREDIT_PACKS, PLAN_PORTAL_URL, PLAN_SYNC_MS, WEB_PACKS, WEB_PLANS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, paidPlanInvoices, planLinks, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, verifyCheckout,
+  type PlanRead, type SpendResult,
 } from "./credits";
 import { applyUnsavedCredits, buyCreditsWithUsdc } from "./usdc-credits";
 import { prefersHtml } from "./negotiate";
@@ -15,7 +16,48 @@ import { markStage } from "./funnel";
 
 type C = Context<{ Bindings: Env }>;
 const ledger = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
+type Ledger = NonNullable<ReturnType<typeof ledger>>;
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+/** A key that is out of credits reads its plan again at most this often, so a failing key cannot make us call Stripe per request. */
+const PLAN_RETRY_MS = 60_000;
+/** What the pages and answers say about the monthly plan. */
+export const PLAN_TERMS = "A plan is a monthly top-up of one key: the credits are added when each month's payment succeeds, unused credits stay, and it renews until you cancel.";
+
+/**
+ * The monthly plan has no webhook: a key's paid renewals are read from Stripe here and their credits added once each
+ * (lib/credits.ts `grantPlanInvoices`). `onlyStale` reads a plan only when its last read is older than PLAN_SYNC_MS.
+ * Never throws; a read that fails grants nothing, and a stale read that fails is stamped so the next calls do not repeat it.
+ * Returns the balance after the last grant, or undefined when nothing was read.
+ */
+async function syncPlans(env: Env, store: Ledger, keyHash: string, plans: PlanRead[], onlyStale: boolean): Promise<number | undefined> {
+  let balance: number | undefined;
+  for (const plan of plans) {
+    const age = Date.now() - Date.parse(plan.syncedAt);
+    if (age < (onlyStale ? PLAN_SYNC_MS : PLAN_RETRY_MS)) continue;
+    try {
+      const invoices = await paidPlanInvoices(env.STRIPE_READ_KEY, plan.subscriptionId);
+      const granted = await store.grantPlanInvoices(keyHash, plan.subscriptionId, invoices ?? []);
+      if (granted) balance = granted.balanceMicros;
+      if (granted?.added) console.log(`credits: plan renewal, ${granted.added} credits added to key ${keyHash.slice(0, 12)}`);
+    } catch (e) {
+      console.error("credits: plan read failed", e);
+    }
+  }
+  return balance;
+}
+
+/** Takes the price from a key. A key on the plan that is short gets its paid renewals applied first, then one more try. */
+async function spendWithPlans(env: Env, store: Ledger, keyHash: string, micros: number): Promise<SpendResult> {
+  let spent: SpendResult = await store.spendCredits(keyHash, micros);
+  if (!spent.plans) return spent;
+  if (spent.ok) {
+    const balance = await syncPlans(env, store, keyHash, spent.plans, true);
+    return balance === undefined ? spent : { ...spent, balanceMicros: balance };
+  }
+  if (spent.reason === "insufficient" && await syncPlans(env, store, keyHash, spent.plans, false) !== undefined) spent = await store.spendCredits(keyHash, micros);
+  return spent;
+}
 
 /**
  * cardReady is false while STRIPE_READ_KEY is unset: /credits/claim cannot issue keys then, so no pack
@@ -25,11 +67,13 @@ export function creditsInfo(origin: string, agentPurchase = false, cardReady = t
   return {
     ...(agentPurchase ? { agentPurchase: `Agents with an MPP client and a Link agent wallet can buy a pack themselves, with no checkout page: GET ${origin}/credits/buy/1, /credits/buy/5, /credits/buy/20 or /credits/buy/100 answers 402 with a Stripe card challenge; pay it and the response carries the API key. To top up a key you already have, send it as X-API-Key on the same request.` } : {}),
     what: cardReady
-      ? "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001, so every tool costs the same as with x402."
+      ? "Prepaid credits, paid by card through Stripe, for agents and people without a USDC wallet. 1 credit = $0.001. A key pays the listed price of a tool or less: PDF reading costs 2 credits, and the tools that only compute (hashes, converters, calculators, validators, generators) cost 1 credit a call."
       : "Card payments are being set up and are not available yet, so no pack can be bought here today. Pay per call with x402 (USDC) in the meantime.",
     cardReady,
     usdc: { what: usdcPrepayLine(origin), packs: usdcPackList(origin), topUp: "Send a key you already hold as X-API-Key on the same request to add the credits to it." },
     packs: cardReady ? WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
+    // The monthly plan is offered only once its Stripe links and the cancel page exist (lib/credits.ts CREDIT_PLANS).
+    ...(cardReady && WEB_PLANS.length ? { monthlyPlans: { what: PLAN_TERMS, plans: planLinks(), manageOrCancel: PLAN_PORTAL_URL } } : {}),
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
     use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp), or as `?api_key=adt_…` in the tool URL where a client can only fetch a URL. In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then. A key that travels in URLs can end up in logs: rotate it at POST /credits/rotate if it was shared.",
     charging: "The tool's price is taken before it runs and given back if the call fails (any 4xx or 5xx, or an MCP error). Responses carry X-Credits-Charged and X-Credits-Remaining.",
@@ -46,6 +90,8 @@ export const CARD_JOBS = [
   { path: "/screenshot", job: "Screenshot a web page", unit: "screenshots", credits: 10 },
   { path: "/transcribe", job: "Transcribe an audio clip", unit: "audio clips", credits: 10 },
   { path: "/pack/website-audit", job: "Audit a website: uptime, SEO, security headers", unit: "website audits", credits: 10 },
+  // One credit with a key (lib/key-prices.ts): the tools that only compute. /hash stands for all of them here.
+  { path: "/hash", job: "Hash, convert, validate or calculate: about 100 tools that only compute", unit: "small jobs", credits: 1 },
 ];
 const AGENT_JOBS = [
   { path: "/check/counterparty", job: "Vet an address before paying it" },
@@ -68,7 +114,9 @@ credits.get("/credits", (c) => {
   const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.01</small></a>`).join("");
   const previews = [...CARD_JOBS, ...AGENT_JOBS].map(({ path, job }) => `<li><a href="${path}?sample=1">${esc(job)}</a> <code>${path}</code></li>`).join("");
   const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job)}</li>`).join("");
-  return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try ${FREE_CALLS_PER_CALLER} calls free first on most tools; no card needed for those. ${esc(info.what)}</p><p>${packs}</p>
+  const planLinksHtml = info.cardReady ? planLinks().map((p) => `<a class="buy" href="${esc(p.buy)}">${esc(p.price)}: ${p.creditsEachMonth.toLocaleString("en-US")} credits each month<br><small>about ${calls(p.creditsEachMonth)} calls at $0.01</small></a>`).join("") : "";
+  const plansHtml = planLinksHtml ? `<h2>Or a monthly plan</h2><p>${esc(PLAN_TERMS)}</p><p>${planLinksHtml}</p><p><a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel a plan</a> at any time; Stripe asks for the e-mail you paid with.</p>` : "";
+  return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try ${FREE_CALLS_PER_CALLER} calls free first on most tools; no card needed for those. ${esc(info.what)}</p><p>${packs}</p>${plansHtml}
 <h2>Use it in your AI app</h2><ul>
 <li><b>Claude or ChatGPT:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and sign in with your key.</li>
 <li><b>Cursor, Claude Code and other MCP clients:</b> connect to <code>${esc(origin)}/mcp</code> with the header <code>Authorization: Bearer adt_…</code>, or use <code>${esc(origin)}/mcp/k/&lt;key&gt;</code> where only a URL fits.</li>
@@ -91,22 +139,26 @@ credits.get("/credits/claim", async (c) => {
     // A top-up link names an existing key by its hash; credits go to it and no new key is issued.
     // An unknown hash (mistyped link) falls back to a new key, so a payment is never lost.
     const topUp = pack.topUpKeyHash && await store.creditBalance(pack.topUpKeyHash) ? pack.topUpKeyHash : undefined;
-    const added = topUp ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: topUp }) : undefined;
+    // A monthly plan: the same grant, plus the subscription on the key so its renewals are found (lib/credits.ts).
+    const plan = pack.plan ? { plan: pack.plan } : {};
+    const planNote = pack.plan ? { monthlyPlan: `${pack.credits.toLocaleString("en-US")} credits are added to this key each month when the payment renews. ${PLAN_TERMS}`, managePlan: PLAN_PORTAL_URL } : {};
+    const planHtml = pack.plan ? `<h2>Your monthly plan</h2><p>${pack.credits.toLocaleString("en-US")} credits are added to this key each month when the payment renews. ${esc(PLAN_TERMS)} <a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel the plan</a> (Stripe asks for the e-mail you paid with).</p>` : "";
+    const added = topUp ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: topUp, ...plan }) : undefined;
     if (added) {
-      const result = { toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros), note: "Added to your existing key; keep using it as before." };
+      const result = { toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros), note: "Added to your existing key; keep using it as before.", ...planNote };
       if (!html) return c.json(result);
-      return c.html(page("Credits added", `<h1>Payment received</h1><p>${added.credits.toLocaleString("en-US")} credits were added to your existing key. Balance: ${result.balanceCredits.toLocaleString("en-US")} credits.</p><p>Nothing to change: keep using the same key in your apps.</p>`));
+      return c.html(page("Credits added", `<h1>Payment received</h1><p>${added.credits.toLocaleString("en-US")} credits were added to your existing key. Balance: ${result.balanceCredits.toLocaleString("en-US")} credits.</p><p>Nothing to change: keep using the same key in your apps.</p>${planHtml}`));
     }
     const fresh = newCreditKey();
-    const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: fresh, keyHash: await hashCreditKey(fresh) });
+    const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: fresh, keyHash: await hashCreditKey(fresh), ...plan });
     // A repeat claim returns the key stored for this session. Only a top-up session stores none,
     // and those are answered above, so this cannot show a key that was never issued.
     const key = issued.key;
     if (!key) throw new CheckoutError(400, "the key from this purchase was replaced, or the purchase topped up an existing key: use your current key (check it at /credits/balance)");
     const refill = topUpLinks(await hashCreditKey(key)).map((l) => `<a class="buy" href="${esc(l.buy)}">${l.price}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
-    const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use };
+    const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use, ...planNote };
     if (!html) return c.json(result);
-    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p><h2>Add credits to this key later</h2><p>These links top up this same key, so nothing in your apps changes. Bookmark this page; it keeps working.</p><p>${refill}</p>`));
+    return c.html(page("Your API key", `<h1>Payment received</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p><h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>${planHtml}<h2>Add credits to this key later</h2><p>These links top up this same key, so nothing in your apps changes. Bookmark this page; it keeps working.</p><p>${refill}</p>`));
   } catch (err) {
     if (!(err instanceof CheckoutError)) throw err;
     if (!html) return c.json({ error: err.message }, err.status);
@@ -149,9 +201,14 @@ credits.get("/credits/balance", async (c) => {
   const keyHash = await hashCreditKey(key);
   // A USDC purchase whose credits could not be written when it settled is applied here (lib/usdc-credits.ts).
   await applyUnsavedCredits(c.env, keyHash).catch((e: unknown) => { console.error("credits: applying parked credits failed", e); });
-  const account = await store.creditBalance(keyHash);
+  let account = await store.creditBalance(keyHash);
   if (!account) return c.json({ error: "unknown API key" }, 401);
-  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash) });
+  // A key on the monthly plan: apply any renewal Stripe has been paid for since the last read, then answer.
+  if (account.plans && await syncPlans(c.env, store, keyHash, account.plans, false) !== undefined) account = await store.creditBalance(keyHash) ?? account;
+  const monthly = account.plans?.length
+    ? { monthlyPlan: { creditsEachMonth: account.plans.reduce((n, p) => n + p.credits, 0), since: account.plans[0].since, what: PLAN_TERMS, manageOrCancel: PLAN_PORTAL_URL } }
+    : WEB_PLANS.length ? { monthlyPlans: planLinks(keyHash) } : {};
+  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash), ...monthly });
 });
 
 /** Below this many credits (about 20 calls at $0.01) a key is "low"; the call that crosses it says so once. */
@@ -166,7 +223,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   const keyHash = await hashCreditKey(key);
   const micros = priceMicros(price);
   // The credit store can be out of its daily Durable Object quota: nothing is spent then, so say so and when to retry.
-  const spent = await store.spendCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+  const spent = await spendWithPlans(c.env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
   if (!spent) return c.json({ error: "credits cannot be checked right now. Not charged; try again in a few minutes, or pay this call with x402." }, 503, { "Retry-After": "300" });
   if (!spent.ok) {
     const origin = new URL(c.req.url).origin;
@@ -276,7 +333,7 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
     if (!store) return fail("credits are unavailable right now; not charged");
     const keyHash = await hashCreditKey(key);
     const micros = priceMicros(price);
-    const spent = await store.spendCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+    const spent = await spendWithPlans(env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
     if (!spent) return fail("credits cannot be checked right now; not charged. Try again in a few minutes.");
     // The ChatGPT plugin server may not link to checkout: say the tool is not available on the current balance.
     if (!spent.ok && directory) return fail(spent.reason === "unknown_key"
