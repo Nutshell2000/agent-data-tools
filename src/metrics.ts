@@ -16,6 +16,9 @@ export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" |
 /** Outcomes where the tool ran and answered 2xx. */
 const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace", "credits"];
 const STATUS_DAYS = 7;
+/** Newest UTC days (today included) in /status `recent`, beside the 7-day figures. */
+const RECENT_DAYS = 3;
+const rate = (ok: number, errors: number): number | null => (ok + errors ? Math.round((ok / (ok + errors)) * 1000) / 1000 : null);
 interface PathMetrics extends Partial<Record<Outcome, number>> {
   /** USD multiplied by 1,000,000, tracked only for settled x402 API calls. */
   revenueUsdMicros?: number;
@@ -263,6 +266,10 @@ export class Metrics extends DurableObject {
   async status(paths: readonly string[]) {
     const dayRows = await this.listMerged<Day>({ prefix: "day:", reverse: true, limit: STATUS_DAYS });
     const days = [...dayRows.values()];
+    // Recent window (11 Nov 2026): the newest RECENT_DAYS UTC days, today included. One incident day (7 Nov) kept the
+    // 7-day rate of most tools at 20-40% for a week while every later day was above 98%. Both figures are shown; the
+    // 7-day fields keep their meaning, so readers that already parse them see no change.
+    const recentDays = [...dayRows].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, RECENT_DAYS).map(([, day]) => day);
     const last = await this.ctx.storage.list<string>({ prefix: "last:" });
     // Failure reasons ("<path> <status> <message without the caller's input>"), summed over the same days.
     const reasons = new Map<string, Map<string, number>>();
@@ -284,11 +291,18 @@ export class Metrics extends DurableObject {
         buyerErrors += row.failed ?? 0;
       }
       const ran = served + serverErrors;
+      let recentServed = 0, recentErrors = 0;
+      for (const day of recentDays) {
+        const row = day[path] ?? {};
+        recentServed += SERVED.reduce((n, o) => n + (row[o] ?? 0), 0);
+        recentErrors += row.errored ?? 0;
+      }
+      const recent = { days: RECENT_DAYS, served: recentServed, serverErrors: recentErrors, successRate: rate(recentServed, recentErrors) };
       const counted = [...(reasons.get(path) ?? [])].sort((a, b) => b[1] - a[1]);
       // Six, not three (7 Nov 2026): /extract's top three explained 56 of its 328 refused calls in a week.
       const topOf = (refused: boolean) => counted.filter(([reason]) => reason.startsWith(`${REFUSED_PAYMENT} `) === refused).slice(0, 6).map(([reason, count]) => ({ reason, count }));
       const top = topOf(false), refusals = topOf(true);
-      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}), ...(refusals.length ? { paymentRefusals: refusals } : {}) };
+      return { path, served, serverErrors, buyerErrors, successRate: ran ? Math.round((served / ran) * 1000) / 1000 : null, recent, lastSuccessAt: this.pendingLast.get(path) ?? last.get(`last:${path}`) ?? null, ...(top.length ? { topFailures: top } : {}), ...(refusals.length ? { paymentRefusals: refusals } : {}) };
     });
     const served = rows.reduce((n, r) => n + r.served, 0), serverErrors = rows.reduce((n, r) => n + r.serverErrors, 0);
     // Per day (11 Nov 2026): one bad hour that monitors hammered (7 Nov: 4,800 errors in two hours) made the week read 54%
@@ -300,8 +314,10 @@ export class Metrics extends DurableObject {
       return { day: key.slice("day:".length), served: ok, serverErrors: errors, successRate: ok + errors ? Math.round((ok / (ok + errors)) * 1000) / 1000 : null };
     }).sort((a, b) => (a.day < b.day ? 1 : -1));
     const rated = byDay.map((d) => d.successRate).filter((r): r is number => r !== null).sort((a, b) => a - b);
+    const recentServed = rows.reduce((n, r) => n + r.recent.served, 0), recentErrors = rows.reduce((n, r) => n + r.recent.serverErrors, 0);
     return {
       windowDays: STATUS_DAYS, served, serverErrors, successRate: served + serverErrors ? Math.round((served / (served + serverErrors)) * 1000) / 1000 : null,
+      recent: { days: RECENT_DAYS, served: recentServed, serverErrors: recentErrors, successRate: rate(recentServed, recentErrors) },
       medianDailySuccessRate: rated.length ? rated[rated.length >> 1] : null, daysAt99: rated.filter((r) => r >= 0.99).length, byDay, tools: rows,
     };
   }
