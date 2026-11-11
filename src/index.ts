@@ -18,6 +18,7 @@ import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
+import { toolErrorAnswer } from "./lib/tool-errors";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
@@ -716,7 +717,9 @@ app.onError((err, c) => {
       inputs: Object.fromEntries(Object.entries(tool.params).filter(([name]) => name !== "only").map(([name, p]) => [name, `${p.required ? "required" : "optional"} ${p.type}: ${p.description.slice(0, 140)}`])),
       example: `${origin(c.req.url)}${tool.path}?${exampleQuery(tool)}`,
     } : {};
-    return c.json({ error: err.message, ...(err.code ? { code: err.code } : {}), ...help }, err.status);
+    // "Nothing found" from a tool is 422 NOT_FOUND over HTTP, never 404: see src/lib/tool-errors.ts.
+    const answer = toolErrorAnswer(err, err.status === 404 && ENDPOINTS.some((e) => e.path === c.req.path), help);
+    return c.json(answer.body, answer.status as typeof err.status);
   }
   console.error(err);
   // An outside source that timed out or could not be reached (a tool without its own catch): say so, uncharged.

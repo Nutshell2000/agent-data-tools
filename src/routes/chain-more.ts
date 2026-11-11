@@ -146,7 +146,7 @@ export const CHAIN_MORE: Entry[] = [
     }),
 
   entry("/contract/abi", "Contract ABI, verified contract: ABI and source",
-    "The verified ABI of a smart contract on Ethereum, Base, Arbitrum, Optimism or Polygon from Sourcify's open verification repository: contract name, compiler, match quality, every function and event signature, the full ABI, and for proxies the implementation contract with its ABI. Optional source=true adds the main source file (up to 20,000 characters). Unverified contracts are an uncharged 404. Use before calling or decoding a contract.",
+    "The verified ABI of a smart contract on Ethereum, Base, Arbitrum, Optimism or Polygon from Sourcify's open verification repository: contract name, compiler, match quality, every function and event signature, the full ABI, and for proxies the implementation contract with its ABI. Optional source=true adds the main source file (up to 20,000 characters). Unverified contracts are an uncharged 422. Use before calling or decoding a contract.",
     ["contract-abi", "abi", "verified-contract", "contract-source", "evm"], {
       address: { type: "string", description: "Contract 0x address", required: true, example: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
       chain: { type: "string", description: "ethereum (default), base, arbitrum, optimism or polygon", example: "base" },

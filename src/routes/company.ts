@@ -93,7 +93,7 @@ function linkedIds(e: Entity): string[] {
 
 export const COMPANY: Entry[] = [
   entry("/company", "Company data lookup: profile, identifiers and website from Wikidata",
-    "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 404, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company.",
+    "Facts about a company by name or Wikidata ID: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and exchanges, and LEI, with Wikidata and Wikipedia links. Public domain data (CC0), best for established and listed companies. No match returns 422, uncharged. Use to enrich leads, vendors and counterparties or ground an answer about a company.",
     ["company", "enrichment", "business", "kyb", "wikidata"], {
       name: { type: "string", description: "Company name to search for (give name or id)", example: "Spotify" },
       id: { type: "string", description: "Wikidata item ID such as Q60269744, instead of name", example: "Q60269744" },
