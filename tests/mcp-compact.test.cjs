@@ -205,7 +205,7 @@ test('a call above the price ceiling needs its price named; the capped twin has 
     // Naming a price on an ordinary tool is harmless: it runs, free, as the tool it is.
     const ok = await client.callTool({ name: 'call_tool', arguments: { name: 'hash', arguments: { text: 'hello' }, max_price: '$1.00' } });
     assert.ok(!ok.isError && textOf(ok).includes(SHA_HELLO));
-    // No tool is above the ceiling today, so no pick asks for a price.
+    // A pick at or below the ceiling asks for no price.
     const found = jsonOf(await call(client, 'find_tool', { need: 'text to speech', count: 10 }));
     for (const t of found.tools) assert.equal(t.needsMaxPrice, undefined, t.tool);
   }, { ip: '203.0.113.77' });
@@ -220,4 +220,52 @@ test('a call above the price ceiling needs its price named; the capped twin has 
     const ok = await call(client, 'call_tool', { name: 'hash', arguments: { text: 'hello' } });
     assert.ok(!ok.isError && textOf(ok).includes(SHA_HELLO));
   }, { path: `/mcp/${COMPACT_CAPPED_BUNDLE}`, ip: '203.0.113.78' });
+});
+
+test('the $1 contract audit: refused without its price, quoted with it, absent from the capped twin', async () => {
+  const source = 'pragma solidity ^0.8.20; contract Vault { mapping(address => uint256) public balances; function withdraw() external { (bool ok, ) = msg.sender.call{value: balances[msg.sender]}(""); require(ok); balances[msg.sender] = 0; } }';
+  outbound = [];
+  await withClient(async (client) => {
+    const found = jsonOf(await call(client, 'find_tool', { need: 'smart contract audit' }));
+    const pick = found.tools.find((t) => t.tool === 'audit_contract');
+    assert.ok(pick, 'the finder offers the audit on the compact server');
+    assert.equal(pick.price, '$1.00');
+    assert.equal(pick.needsMaxPrice, '$1.00');
+    assert.equal(pick.inFreeCalls, false);
+    assert.equal(jsonOf(await call(client, 'tool_details', { name: 'audit_contract' })).needsMaxPrice, '$1.00');
+
+    // Without the price, and with one that does not cover it: refused before anything else happens.
+    for (const extra of [{}, { max_price: '$0.50' }, { max_price: 'yes' }]) {
+      const refused = await client.callTool({ name: 'call_tool', arguments: { name: 'audit_contract', arguments: { source }, ...extra } });
+      assert.equal(refused.isError, true);
+      const body = jsonOf(refused);
+      assert.match(body.error, /^audit_contract was not run: it costs \$1\.00 per successful call, more than the \$0\.10 .* Nothing was charged\.$/);
+      assert.equal(body.price, '$1.00');
+      assert.match(body.next, /add max_price: "\$1\.00"/);
+      // The refusal does not send the caller's arguments back (a contract's source can be tens of kilobytes).
+      assert.ok(!textOf(refused).includes('pragma solidity'));
+      assert.ok(!textOf(refused).includes('"accepts"'), 'no payment request before the price is named');
+    }
+    // A bad argument is still reported first, so the caller is not asked to name a price for a call that cannot run.
+    const bad = await client.callTool({ name: 'call_tool', arguments: { name: 'audit_contract', arguments: { source: 42 }, max_price: '$1.00' } });
+    assert.match(textOf(bad), /audit_contract was not run: source: .*Nothing was charged/);
+
+    // With the price named and no key: the tool's own payment request for $1.00, and the tool has not run.
+    const quoted = await client.callTool({ name: 'call_tool', arguments: { name: 'audit_contract', arguments: { source }, max_price: '$1.00' } });
+    assert.equal(quoted.isError, true);
+    const quote = JSON.parse(quoted.content.find((c) => c.type === 'text' && c.text.includes('"accepts"')).text);
+    assert.ok(quote.accepts.length > 0);
+    for (const terms of quote.accepts) assert.equal(String(terms.amount ?? terms.maxAmountRequired), '1000000', 'one dollar in USDC base units');
+    assert.deepEqual(outbound.filter((h) => !h.startsWith('fixture.invalid')), [], 'nothing outside the payment setup was called');
+  }, { ip: '203.0.113.90' });
+
+  await withClient(async (client) => {
+    const found = await call(client, 'find_tool', { need: 'smart contract audit' });
+    assert.ok(!textOf(found).includes('audit_contract'), 'the capped twin does not offer a tool above the ceiling');
+    for (const name of ['tool_details', 'call_tool']) {
+      const r = await client.callTool({ name, arguments: { name: 'audit_contract', ...(name === 'call_tool' ? { arguments: { source }, max_price: '$1.00' } : {}) } });
+      assert.equal(r.isError, true);
+      assert.match(jsonOf(r).error, /^no tool named "audit_contract" on this server\. Nothing was charged\.$/);
+    }
+  }, { path: '/mcp/compact-capped', ip: '203.0.113.91' });
 });

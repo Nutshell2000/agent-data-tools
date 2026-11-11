@@ -10,7 +10,7 @@ It gives a Hermes agent the catalog of [Agent Data Tools](https://agent-data-too
 | `tool_details` | every input, the price and an example call of one tool | free |
 | `call_tool` | runs a tool by name with its arguments | that tool's own price |
 
-What the catalog covers: web search and news, the text of a web page or PDF, screenshots, weather, FX, stock, commodity
+What the catalog covers: web search, the text of a web page or PDF, screenshots, weather, FX, stock, commodity
 and token prices, wallet and chain reads on EVM networks, sanctions, company and VAT checks, DNS and domain lookups,
 LLM chat, embeddings, speech to text and text to speech, and about a hundred converters, hashes and calculators.
 
@@ -35,7 +35,7 @@ Portable packages install disabled, so the second command is needed. The tools a
 
 - **Free to try.** `find_tool` and `tool_details` are always free. The first 25 successful `call_tool` calls need no
   key and no sign-up, and failed calls are never counted. The free calls cover the tools `find_tool` marks
-  `inFreeCalls`: reading pages and PDFs, prices, weather, chain reads, checks, lookups and the converters. Search, news,
+  `inFreeCalls`: reading pages and PDFs, prices, weather, chain reads, checks, lookups and the converters. Search,
   rendered pages, screenshots, speech, image and large-model tools cost us money per call and need a key from the first
   call.
 - **Then pay per successful call.** A prepaid key costs from $1 (1,000 credits; 1 credit = $0.001) at

@@ -249,7 +249,7 @@ function registerCompactTools(
       // A dear call is a decision the caller states, not one a model makes by picking a name (the capped twin has no such tool).
       const price = priceFor(e);
       if (!compactPricePermits(price, named)) {
-        return compactText({ error: `${toolName(e)} was not run: it costs ${price} per successful call, more than the ${COMPACT_PRICE_CEILING} this server spends on one call unless the call names a higher price. Nothing was charged.`, price, next: `to run it, repeat the call with max_price: "${price}"`, repeatWith: { name: toolName(e), arguments: given ?? {}, max_price: price } }, true);
+        return compactText({ error: `${toolName(e)} was not run: it costs ${price} per successful call, more than the ${COMPACT_PRICE_CEILING} this server spends on one call unless the call names a higher price. Nothing was charged.`, price, next: `to run it, repeat the same call (same name and arguments) and add max_price: "${price}"` }, true);
       }
       return trackedFor(e)(parsed.data as Args, extra);
     }) as never,
