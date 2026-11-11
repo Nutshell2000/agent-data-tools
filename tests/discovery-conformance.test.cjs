@@ -119,3 +119,25 @@ test('weather by city: the published example (London) needs no Wikidata call', a
     assert.match(asked[0], /api\.met\.no.*lat=51\.5074&lon=-0\.1278/);
   } finally { globalThis.fetch = realFetch; }
 });
+
+// 11 Nov 2026: Coinbase's curation requirements ask for documented error responses. Every tool names the five ways it
+// can fail to deliver, each a reference that resolves to a description saying it is not charged, with one shared body.
+test('every tool documents its error responses, and every reference resolves', async () => {
+  const d = await load('src/discovery.ts');
+  const { ENDPOINTS } = await load('src/endpoints.ts');
+  const doc = d.openApi('https://api.test', true, mpp);
+  assert.deepEqual(Object.keys(doc.components.schemas.ToolError.properties), ['error', 'code', 'inputs', 'example']);
+  for (const e of ENDPOINTS) {
+    const r = doc.paths[e.path].get.responses;
+    for (const code of ['400', '404', '422', '502', '503']) {
+      const name = r[code].$ref.replace('#/components/responses/', '');
+      const target = doc.components.responses[name];
+      assert.ok(target, `${e.path} ${code} resolves`);
+      assert.match(target.description, /Not charged/);
+      assert.equal(target.content['application/json'].schema.$ref, '#/components/schemas/ToolError');
+    }
+    assert.equal(r['402'].description, 'Payment Required');
+  }
+  // The document stays under the 2 MB that readers (our own /openapi/summary among them) accept.
+  assert.ok(JSON.stringify(doc).length < 2_000_000, `OpenAPI is ${JSON.stringify(doc).length} bytes`);
+});
