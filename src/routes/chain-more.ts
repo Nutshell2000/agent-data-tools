@@ -31,7 +31,7 @@ export function abiSummary(abi: { type?: string; name?: string; inputs?: { type:
 }
 
 type Sourcify = { match?: string; abi?: unknown[]; compilation?: { name?: string; compilerVersion?: string; language?: string; fullyQualifiedName?: string }; proxyResolution?: { isProxy?: boolean; proxyType?: string | null; implementations?: { address: string; name?: string }[] }; verifiedAt?: string; sources?: Record<string, { content?: string }> };
-async function sourcify(chainId: number, address: string, fields: string): Promise<Sourcify | null> {
+export async function sourcify(chainId: number, address: string, fields: string): Promise<Sourcify | null> {
   let res: Response;
   try { res = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}?fields=${fields}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000), cf: { cacheTtl: 86_400, cacheEverything: true } }); }
   catch { throw new HttpError(502, "Sourcify did not answer in time; try again"); }
