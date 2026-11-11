@@ -185,7 +185,8 @@ export const HYPERLIQUID: Entry[] = [
       const side = (rows: { px: string; sz: string; n: number }[] = []) => rows.slice(0, levels).map((r) => ({ px: Number(r.px), sz: Number(r.sz), n: r.n }));
       const bids = side(book.levels?.[0]), asks = side(book.levels?.[1]);
       const bestBid = bids[0]?.px, bestAsk = asks[0]?.px;
-      const mid = bestBid !== undefined && bestAsk !== undefined ? (bestBid + bestAsk) / 2 : null;
+      // Eight significant digits: (2069.1 + 2069.2) / 2 printed as 2069.1499999999996 (11 Nov 2026).
+      const mid = bestBid !== undefined && bestAsk !== undefined ? Number(((bestBid + bestAsk) / 2).toPrecision(8)) : null;
       const sum = (rows: { px: number; sz: number }[], usd: boolean) => Math.round(rows.reduce((s, r) => s + r.sz * (usd ? r.px : 1), 0) * (usd ? 1 : 1e5)) / (usd ? 1 : 1e5);
       return {
         coin: book.coin, time: new Date(book.time).toISOString(), mid,

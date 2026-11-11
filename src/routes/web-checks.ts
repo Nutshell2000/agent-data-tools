@@ -99,12 +99,17 @@ export function seoAudit(html: string, pageUrl: string) {
   const og = { title: metaContent(html, "og:title", "property"), description: metaContent(html, "og:description", "property"), image: metaContent(html, "og:image", "property") };
   const twitterCard = metaContent(html, "twitter:card");
   const jsonLd = (html.match(/<script[^>]+type\s*=\s*["']application\/ld\+json["']/gi) ?? []).length;
-  const host = new URL(pageUrl).hostname;
+  // A link is internal when it stays on the page's host, with or without "www.", or goes to a subdomain of it:
+  // www.wikipedia.org's 380 links to en.wikipedia.org and its siblings read "internal 0, external 380" until 11 Nov 2026.
+  const site = new URL(pageUrl).hostname.toLowerCase().replace(/^www\./, "");
   let internal = 0, external = 0;
   for (const a of tags(body, "a")) {
     const href = attr(a, "href");
     if (!href || /^(#|javascript:|mailto:|tel:)/i.test(href)) continue;
-    try { (new URL(href, pageUrl).hostname === host ? internal++ : external++); } catch { /* skip bad links */ }
+    try {
+      const h = new URL(href, pageUrl).hostname.toLowerCase().replace(/^www\./, "");
+      (h === site || h.endsWith(`.${site}`) ? internal++ : external++);
+    } catch { /* skip bad links */ }
   }
   const words = clean(body).split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
   const issues: string[] = [];
