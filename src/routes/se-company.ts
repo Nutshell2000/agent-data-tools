@@ -213,7 +213,7 @@ const EXAMPLE = {
 
 export const SE_COMPANY: Entry[] = [
   entry("/se/company", "Swedish company lookup, Bolagsverket register",
-    "Look up a Swedish company in Bolagsverket's and SCB's registers by organisationsnummer (556703-7485 or SE556703748501) or search by name: registered name and other names, legal form, registration date, status, deregistration date and reason, ongoing bankruptcy, liquidation or reconstruction, VAT/F-tax/employer activity, SNI industry codes, business description and postal address. Weekly open data. Use to verify a Swedish customer or supplier. Register facts only, not a credit report.",
+    "Swedish company by organisationsnummer (556703-7485 or SE556703748501) or name, from Bolagsverket and SCB: names, legal form, registration date, status, deregistration, bankruptcy, liquidation or reconstruction, VAT/F-tax/employer activity, SNI codes, business description, address. Weekly open data. Use to verify a Swedish customer or supplier before invoicing. Register facts only, not a credit report.",
     ["swedish-company", "bolagsverket", "organisationsnummer", "company-registry", "kyb", "sweden"], {
       orgnr: { type: "string", description: "Swedish organisationsnummer (10 digits, with or without the hyphen) or Swedish VAT number (give orgnr or name)", example: "556703-7485" },
       name: { type: "string", description: "Company name to search for, instead of orgnr: up to 10 registered companies whose name holds every word", example: "Spotify" },
