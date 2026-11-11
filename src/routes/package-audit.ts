@@ -574,7 +574,9 @@ export async function packageAudit(listParam: string | undefined) {
         settled[index] = {
           status: "fulfilled",
           value: await packageInfo(spec.ecosystem, spec.name, spec.version, {
-            includeWeeklyDownloads: false,
+            // One more read per npm package. It was left out for the free plan's 50 subrequests a request; the paid plan
+            // (since 25 Oct 2026) allows 1,000, and ten packages use about 60.
+            includeWeeklyDownloads: true,
             maxAdvisoryDetails: spec.version ? 0 : 1,
           }),
         };

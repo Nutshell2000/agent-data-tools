@@ -17,7 +17,7 @@ export async function domainReport(_env: Env, name: string) {
       if (reg.ageDays < 30) flags.push({ level: "high", code: "very_new", message: `Registered only ${reg.ageDays} day(s) ago.` });
       else if (reg.ageDays < 180) flags.push({ level: "medium", code: "new", message: `Registered ${reg.ageDays} days ago (under 6 months).` });
     } else {
-      flags.push({ level: "info", code: "age_unknown", message: "Registration date not available for this TLD." });
+      flags.push({ level: "info", code: "age_unknown", message: "Registration date could not be read: the registry did not answer, or this TLD publishes none." });
     }
     if (reg?.expiresAt) {
       const left = Math.floor((Date.parse(reg.expiresAt) - Date.now()) / 86_400_000);
