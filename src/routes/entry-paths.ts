@@ -39,6 +39,7 @@ import { CHAIN_MORE } from "./chain-more";
 import { GOV_DATA } from "./gov-data";
 import { HYPERLIQUID } from "./hyperliquid";
 import { CVE } from "./cve";
+import { SEC_FINANCIALS } from "./sec-financials";
 import { CRYPTO_TRENDING } from "./crypto-trending";
 import { timeInZone } from "./time";
 import { MEDIA_TEXT } from "./media-text";
@@ -371,6 +372,16 @@ export const ENTRY_PATHS: Entry[] = [
       textLength: 788, truncated: false, contentHash: "sha256:1a422ba91cd1edcba03aef51b09aaba9bc677a48efa55065b9284cf2bfec0ddd", hashFormat: "markdown", fetchedAt: "2026-11-10T22:01:30.410Z",
     }),
 
+  // Round 9 (11 Nov 2026): the two phrases the Bazaar's statement sellers are found by. Listings with "fundamentals" in the
+  // path or name had 60 calls in 30 days (three payers at $0.10 on the leader), "income-statement" and "balance-sheet" paths
+  // 3-4 payers each at $0.02 (financialdatasets.ai); /sec/financials keeps the SEC name for agents that search EDGAR.
+  door("/stock/fundamentals", "Stock fundamentals: financials by ticker",
+    "Stock fundamentals by ticker (AAPL, MSFT, NVDA): revenue, gross, operating and net income, EPS, margins, revenue and earnings growth, ROE, cash, debt, equity, free cash flow, dividends and buybacks for the last fiscal years or quarters, from the company's SEC 10-K and 10-Q filings. Use to screen a stock, value a company or compare two businesses.",
+    ["stock-fundamentals", "fundamentals", "financial-statements", "stocks", "earnings", "valuation"], from(SEC_FINANCIALS, "/sec/financials")),
+
+  door("/income-statement", "Income statement, balance sheet: by ticker",
+    "Income statement, balance sheet and cash flow statement of a US-listed company by ticker: revenue, cost of revenue, gross profit, R&D, operating income, net income, EPS, assets, liabilities, equity, cash and debt, operating cash flow and capex, annual or quarterly, read from its SEC 10-K and 10-Q XBRL filings. Use to read a company's financial statements without parsing the filing.",
+    ["income-statement", "balance-sheet", "cash-flow-statement", "financial-statements", "sec", "xbrl"], from(SEC_FINANCIALS, "/sec/financials")),
   door("/cve/lookup", "CVE vulnerability lookup: by CVE ID",
     "CVE vulnerability lookup by ID (CVE-2021-44228): the description, CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, decide what to patch first, or check an advisory before upgrading a dependency.",
     ["cve-lookup", "vulnerability-lookup", "cve", "security-advisory", "kev", "epss"], from(CVE, "/cve")),

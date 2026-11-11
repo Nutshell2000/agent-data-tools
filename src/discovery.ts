@@ -249,6 +249,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/arxiv/search": "Web, documents and search", "/page/markdown": "Web, documents and search",
   "/cve/lookup": "Company, compliance and checks", "/github/user": "Company, compliance and checks", "/wiki/summary": "Web, documents and search",
   "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi",
+  "/sec/financials": "Company, compliance and checks", "/stock/fundamentals": "Company, compliance and checks", "/income-statement": "Company, compliance and checks",
 });
 export const categoryOf = (path: string) => (Object.hasOwn(CATEGORY_OF_PATH, path) ? CATEGORY_OF_PATH[path] : CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities");
 /**

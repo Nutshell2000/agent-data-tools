@@ -47,6 +47,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "cve lookup": "/cve", "cve": "/cve", "vulnerability lookup": "/cve", "known exploited": "/cve", "kev": "/cve", "epss": "/cve", "cvss score": "/cve",
   "timezone convert": "/time", "time zone converter": "/time", "current time": "/time", "what time is it": "/time",
   "perp funding": "/hyperliquid/market", "funding rate": "/hyperliquid/market", "open interest": "/hyperliquid/market",
+  "income statement": "/sec/financials", "balance sheet": "/sec/financials", "cash flow statement": "/sec/financials", "financial statements": "/sec/financials", "company financials": "/sec/financials", "stock fundamentals": "/sec/financials", "fundamentals": "/sec/financials", "company facts": "/sec/financials", "earnings per share": "/sec/financials",
   "arxiv": "/arxiv/search", "arxiv search": "/arxiv/search", "preprint": "/arxiv/search", "preprints": "/arxiv/search",
   "url to markdown": "/extract", "page to markdown": "/extract", "html to markdown": "/extract",
   "wikipedia summary": "/wikipedia", "wiki summary": "/wikipedia", "trending crypto": "/crypto/trending", "trending coins": "/crypto/trending", "crypto ohlcv": "/hyperliquid/candles", "crypto candles": "/hyperliquid/candles",
