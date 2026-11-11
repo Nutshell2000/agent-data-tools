@@ -1470,3 +1470,30 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - The Worker refuses an estate's number with an uncharged 404 and skips estates in name search, which also covers copies built before the build skipped them.
 - If any other legal form turns out to carry a private person's name, add it the same way in both files.
 
+
+
+## Truth-audit fixes, second batch (1.142.0, 11 Nov 2026, no new tools)
+
+- `/keywords/ideas` filters suggestions that only add the requester's location (`addsForeignPlace`, `seedNamesPlace` in
+  src/lib/place-names.ts). The engines localise by the caller's IP whatever `country` says, and in production the caller
+  is a Cloudflare data centre. The gazetteer is the scheduled-service airport cities in src/data/airports.generated.ts
+  plus Intl country names; `ORDINARY` and `ORDINARY_COUNTRY` keep city or country names that are ordinary words (nice,
+  mobile, page, jordan, turkey…). Add a word there when a real keyword shows up in `removedAsLocation`. Districts that
+  are not airport cities (Södertälje, Florissant-Malagnou) still pass. `AMAZON_MARKETS` maps a country to its Amazon
+  completion host and marketplace id; India's host failed on 11 Nov and is left out.
+- Tickers (src/lib/tickers.ts): add a token only after `symbol()` and `decimals()` match on-chain AND its Uniswap price
+  is within about 2% of an independent spot price; a thin pool can price a listed token far off (SNX was 8% high).
+  `NOT_ERC20` names coins that have no ERC-20 on our networks; the refusal points them to /hyperliquid/prices.
+  Tickers resolve on the first network in SLUGS order that knows them, so adding a token to Ethereum's table moves
+  ticker-only calls for it to Ethereum (ARB was kept off Ethereum for that reason).
+- `/price/tokens` groups tickers by network when no chain is named; the top-level chain, ethUsd and block are the
+  default network's when any token is priced there, otherwise the first network read.
+- `/geocode/reverse`: `SETTLEMENT_CLASSES` (src/routes/geo-more.ts) decides "largest". Never use FILTER NOT EXISTS in
+  this query: Paris took over 25 s with it; the OPTIONAL plus a filter in `shapePlaces` costs nothing. PowerShell's
+  `-replace` is case-insensitive: replacing a placeholder like RAD in a SPARQL template also rewrote "radius" (use
+  `-creplace`).
+- `/ai/chat` prompt calls go through `nativeChat`, which returns the model's usage; `usageEstimated: true` marks the
+  character estimate when the model reports none.
+- `isQuoteAsset` (src/routes/token-report.ts): DexScreener lists a token's pairs only where it is the base token, so
+  market figures for USDC, WETH and the like are labelled `representative: false` and raise no liquidity flags.
+
