@@ -52,7 +52,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 654);
+  assert.equal(families.length, 657);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
