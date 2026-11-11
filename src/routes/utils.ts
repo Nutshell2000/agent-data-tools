@@ -506,9 +506,33 @@ export function htmlToText(html: string) {
     .replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h[1-6]|li|tr|blockquote|pre|section|article)>/gi, "\n")
     .replace(/<li[^>]*>/gi, "• ").replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-    .replace(/&#(\d+);/g, (m, d) => String.fromCodePoint(Number(d)))
+    .replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z][a-z0-9]{1,8});/gi, decodeEntity)
     .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+// 11 Nov 2026 truth audit: hex references (&#x27;, BBC News has 47) were left in the text and /text/keyword-density
+// listed "x27" as a top keyword. Numeric references of both kinds and the named ones pages use for punctuation are decoded;
+// an unknown name is left as written.
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", ndash: "–", mdash: "—", hellip: "…", lsquo: "‘", rsquo: "’",
+  ldquo: "“", rdquo: "”", laquo: "«", raquo: "»", copy: "©", reg: "®", trade: "™", middot: "·", bull: "•", euro: "€",
+  pound: "£", yen: "¥", cent: "¢", deg: "°", times: "×", divide: "÷", shy: "", zwj: "", zwnj: "", thinsp: " ", ensp: " ", emsp: " ",
+  aacute: "á", agrave: "à", acirc: "â", auml: "ä", aring: "å", atilde: "ã", aelig: "æ", ccedil: "ç", eacute: "é", egrave: "è",
+  ecirc: "ê", euml: "ë", iacute: "í", igrave: "ì", icirc: "î", iuml: "ï", ntilde: "ñ", oacute: "ó", ograve: "ò", ocirc: "ô",
+  ouml: "ö", otilde: "õ", oslash: "ø", uacute: "ú", ugrave: "ù", ucirc: "û", uuml: "ü", yacute: "ý", yuml: "ÿ", szlig: "ß",
+};
+// The capital letters (&Eacute; &Ouml; &AElig;…).
+for (const [k, v] of Object.entries(NAMED_ENTITIES)) if (/^(a|e|i|o|u|y|n|c)(acute|grave|circ|uml|ring|tilde|cedil|slash|elig)$/.test(k) && v !== v.toUpperCase()) NAMED_ENTITIES[k === "aelig" ? "AElig" : k[0].toUpperCase() + k.slice(1)] = v.toUpperCase();
+/** Decodes HTML character references (numeric, hex and the common named ones) in plain text. */
+export const decodeEntities = (s: string) => s.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z][a-z0-9]{1,8});/gi, decodeEntity);
+function decodeEntity(m: string, body: string): string {
+  if (body[0] === "#") {
+    const n = body[1] === "x" || body[1] === "X" ? parseInt(body.slice(2), 16) : Number(body.slice(1));
+    return Number.isInteger(n) && n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : m;
+  }
+  // Named references are case-sensitive (&Eacute; is É); only the all-caps forms of the markup ones (&AMP;) are folded.
+  if (Object.hasOwn(NAMED_ENTITIES, body)) return NAMED_ENTITIES[body];
+  const k = body.toLowerCase();
+  return /^(amp|lt|gt|quot)$/.test(k) && body === body.toUpperCase() ? NAMED_ENTITIES[k] : m;
 }
 
 const HTTP_STATUS: Record<number, [string, string]> = {
@@ -516,8 +540,16 @@ const HTTP_STATUS: Record<number, [string, string]> = {
   301: ["Moved Permanently", "Use the URL in the Location header from now on."], 302: ["Found", "Temporarily at the URL in the Location header."], 304: ["Not Modified", "Your cached copy is still valid."], 307: ["Temporary Redirect", "Repeat the same request at the Location URL."], 308: ["Permanent Redirect", "Repeat the same request at the Location URL from now on."],
   400: ["Bad Request", "The request was malformed or had invalid input."], 401: ["Unauthorized", "Authentication is missing or invalid."], 402: ["Payment Required", "Payment is needed; with x402 the body or headers say how to pay."], 403: ["Forbidden", "Authenticated but not allowed."], 404: ["Not Found", "Nothing exists at this URL."], 405: ["Method Not Allowed", "This URL does not accept that HTTP method."], 408: ["Request Timeout", "The server gave up waiting for the request."], 409: ["Conflict", "Conflicts with the current state of the resource."], 410: ["Gone", "Removed permanently."], 413: ["Content Too Large", "The request body is too big."], 415: ["Unsupported Media Type", "The body's content type is not accepted."], 422: ["Unprocessable Content", "Well-formed but semantically invalid."], 429: ["Too Many Requests", "Rate limited; wait (see Retry-After) and retry."],
   500: ["Internal Server Error", "The server failed unexpectedly."], 501: ["Not Implemented", "The server does not support this."], 502: ["Bad Gateway", "An upstream server sent a bad answer."], 503: ["Service Unavailable", "Temporarily overloaded or down; retry later."], 504: ["Gateway Timeout", "An upstream server did not answer in time."],
+  // 11 Nov 2026 truth audit: the rest of the IANA registry (RFC 9110 and its extensions), which came back "unlisted".
+  100: ["Continue", "Send the request body."], 101: ["Switching Protocols", "The server switches to the protocol in the Upgrade header."], 102: ["Processing", "WebDAV: received and still working."], 103: ["Early Hints", "Preload hints before the final answer."],
+  203: ["Non-Authoritative Information", "Succeeded; a proxy changed the body."], 205: ["Reset Content", "Succeeded; reset the form or view."], 206: ["Partial Content", "Part of the resource, as the Range header asked."], 207: ["Multi-Status", "WebDAV: several results in the body."], 208: ["Already Reported", "WebDAV: listed earlier in this answer."], 226: ["IM Used", "Delta encoding applied."],
+  300: ["Multiple Choices", "Several representations; pick one."], 303: ["See Other", "Fetch the Location URL with GET."], 305: ["Use Proxy", "Deprecated."],
+  406: ["Not Acceptable", "No representation matches the Accept headers."], 407: ["Proxy Authentication Required", "Authenticate with the proxy first."], 411: ["Length Required", "Send a Content-Length header."], 412: ["Precondition Failed", "A conditional header (If-Match and so on) did not hold."], 414: ["URI Too Long", "The URL is too long."], 416: ["Range Not Satisfiable", "The Range asked for is outside the resource."], 417: ["Expectation Failed", "The Expect header cannot be met."], 418: ["I'm a teapot", "An April Fools' code (RFC 2324), sometimes used to refuse bots."], 421: ["Misdirected Request", "Sent to a server that cannot answer for this host."], 423: ["Locked", "WebDAV: the resource is locked."], 424: ["Failed Dependency", "WebDAV: an earlier request failed."], 425: ["Too Early", "The server will not risk replaying early data."], 426: ["Upgrade Required", "Switch to the protocol in the Upgrade header."], 428: ["Precondition Required", "Send a conditional request."], 431: ["Request Header Fields Too Large", "The headers are too big."], 451: ["Unavailable For Legal Reasons", "Blocked for legal reasons, e.g. a court order or a country block."],
+  505: ["HTTP Version Not Supported", "The server does not support that HTTP version."], 506: ["Variant Also Negotiates", "Content negotiation is misconfigured on the server."], 507: ["Insufficient Storage", "WebDAV: the server is out of space."], 508: ["Loop Detected", "WebDAV: an infinite loop was found."], 511: ["Network Authentication Required", "Sign in to the network (a captive portal)."],
 };
-const MIME: Record<string, string> = { html: "text/html", htm: "text/html", css: "text/css", js: "text/javascript", mjs: "text/javascript", json: "application/json", xml: "application/xml", txt: "text/plain", csv: "text/csv", md: "text/markdown", pdf: "application/pdf", zip: "application/zip", gz: "application/gzip", tar: "application/x-tar", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml", ico: "image/vnd.microsoft.icon", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", mp4: "video/mp4", webm: "video/webm", woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation", wasm: "application/wasm", yaml: "application/yaml", yml: "application/yaml" };
+const MIME: Record<string, string> = { html: "text/html", htm: "text/html", css: "text/css", js: "text/javascript", mjs: "text/javascript", json: "application/json", xml: "application/xml", txt: "text/plain", csv: "text/csv", md: "text/markdown", pdf: "application/pdf", zip: "application/zip", gz: "application/gzip", tar: "application/x-tar", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml", ico: "image/vnd.microsoft.icon", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg", mp4: "video/mp4", webm: "video/webm", woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation", wasm: "application/wasm", yaml: "application/yaml", yml: "application/yaml",
+  // 11 Nov 2026 truth audit: common types that came back unknown. ts is TypeScript source (video/mp2t is .m2ts streams).
+  heic: "image/heic", heif: "image/heif", "7z": "application/x-7z-compressed", rar: "application/vnd.rar", bz2: "application/x-bzip2", xz: "application/x-xz", ts: "text/typescript", tsx: "text/typescript", jsx: "text/javascript", m4a: "audio/mp4", aac: "audio/aac", flac: "audio/flac", opus: "audio/opus", mov: "video/quicktime", mkv: "video/x-matroska", avi: "video/x-msvideo", m3u8: "application/vnd.apple.mpegurl", epub: "application/epub+zip", rtf: "application/rtf", odt: "application/vnd.oasis.opendocument.text", ods: "application/vnd.oasis.opendocument.spreadsheet", toml: "application/toml", sql: "application/sql", sh: "application/x-sh", py: "text/x-python", jsonl: "application/jsonl", ndjson: "application/x-ndjson", ics: "text/calendar", vcf: "text/vcard", bmp: "image/bmp", tif: "image/tiff", tiff: "image/tiff", psd: "image/vnd.adobe.photoshop", apk: "application/vnd.android.package-archive", exe: "application/vnd.microsoft.portable-executable", dmg: "application/x-apple-diskimage", iso: "application/x-iso9660-image" };
 
 // ---------- Catalog ----------
 const T = (t: string, d: string) => ({ type: "string" as const, description: d, required: true, example: t });

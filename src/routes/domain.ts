@@ -105,6 +105,16 @@ export async function domainInfo(input: string) {
 
   const txtRecords = answers(txt, 16).map(unquote);
   const spf = txtRecords.find((t) => /^v=spf1(\s|$)/i.test(t)) ?? null;
+  // 11 Nov 2026 truth audit: hubspot.com's SPF is "v=spf1 … redirect=_spf.hubspot.com" with no "all" of its own, so the policy
+  // read as null and /email and the packs reported "no ~all or -all". Follow one redirect= (RFC 7208 §6.1) for the policy.
+  let spfPolicy = spf?.match(/[-~?+]all\b/)?.[0] ?? null;
+  const spfRedirect = spf && !spfPolicy ? /\bredirect=([a-z0-9._-]{1,253})/i.exec(spf)?.[1] : undefined;
+  if (spfRedirect) {
+    try {
+      const target = answers(await doh(spfRedirect, "TXT"), 16).map(unquote).find((t) => /^v=spf1(\s|$)/i.test(t));
+      spfPolicy = target?.match(/[-~?+]all\b/)?.[0] ?? null;
+    } catch { /* the policy stays unknown */ }
+  }
   const dmarc =
     answers(dmarcTxt, 16)
       .map(unquote)
@@ -140,7 +150,7 @@ export async function domainInfo(input: string) {
     email: {
       acceptsMail: mxRecords.some((m) => m.host && m.host !== "."),
       spf,
-      spfPolicy: spf?.match(/[-~?+]all\b/)?.[0] ?? null,
+      spfPolicy,
       dmarc,
       dmarcPolicy: dmarc?.match(/\bp=(\w+)/i)?.[1]?.toLowerCase() ?? null,
     },

@@ -1,5 +1,5 @@
 {
-  "version": "1.136.0",
+  "version": "1.137.0",
   "tools": [
     {
       "name": "extract",
@@ -2014,7 +2014,7 @@
     },
     {
       "name": "base_gas_history",
-      "description": "Gas price history on Base (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use base_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Base (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use base_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2548,7 +2548,7 @@
     },
     {
       "name": "eth_gas_history",
-      "description": "Gas price history on Ethereum (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use eth_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Ethereum (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use eth_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3116,7 +3116,7 @@
     },
     {
       "name": "arb_gas_history",
-      "description": "Gas price history on Arbitrum One (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use arb_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Arbitrum One (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use arb_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3684,7 +3684,7 @@
     },
     {
       "name": "op_gas_history",
-      "description": "Gas price history on Optimism (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use op_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Optimism (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use op_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4252,7 +4252,7 @@
     },
     {
       "name": "polygon_gas_history",
-      "description": "Gas price history on Polygon PoS (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use polygon_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Polygon PoS (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use polygon_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4926,7 +4926,7 @@
     },
     {
       "name": "avax_gas_history",
-      "description": "Gas price history on Avalanche (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use avax_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Avalanche (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use avax_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5399,7 +5399,7 @@
     },
     {
       "name": "gnosis_gas_history",
-      "description": "Gas price history on Gnosis (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use gnosis_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Gnosis (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use gnosis_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5872,7 +5872,7 @@
     },
     {
       "name": "linea_gas_history",
-      "description": "Gas price history on Linea (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use linea_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Linea (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use linea_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6400,7 +6400,7 @@
     },
     {
       "name": "zksync_gas_history",
-      "description": "Gas price history on zkSync Era (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use zksync_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on zkSync Era (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use zksync_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6873,7 +6873,7 @@
     },
     {
       "name": "scroll_gas_history",
-      "description": "Gas price history on Scroll (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use scroll_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Scroll (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use scroll_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7346,7 +7346,7 @@
     },
     {
       "name": "mantle_gas_history",
-      "description": "Gas price history on Mantle (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use mantle_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Mantle (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use mantle_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -7914,7 +7914,7 @@
     },
     {
       "name": "celo_gas_history",
-      "description": "Gas price history on Celo (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use celo_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Celo (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use celo_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8387,7 +8387,7 @@
     },
     {
       "name": "sonic_gas_history",
-      "description": "Gas price history on Sonic (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use sonic_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Sonic (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use sonic_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -8955,7 +8955,7 @@
     },
     {
       "name": "unichain_gas_history",
-      "description": "Gas price history on Unichain (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use unichain_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Unichain (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use unichain_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9394,7 +9394,7 @@
     },
     {
       "name": "hyperevm_gas_history",
-      "description": "Gas price history on HyperEVM (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use hyperevm_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on HyperEVM (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use hyperevm_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -9867,7 +9867,7 @@
     },
     {
       "name": "bera_gas_history",
-      "description": "Gas price history on Berachain (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use bera_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Berachain (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use bera_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10340,7 +10340,7 @@
     },
     {
       "name": "ink_gas_history",
-      "description": "Gas price history on Ink (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ink_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Ink (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use ink_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -10813,7 +10813,7 @@
     },
     {
       "name": "sei_gas_history",
-      "description": "Gas price history on Sei (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use sei_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fee history on Sei (eth_feeHistory): base fee in gwei for each of the last N blocks (5-100, default 20), how full each block was, and the 10th, 50th and 90th percentile priority fees, with the low, average and high base fee over the window. Use to judge whether fees are rising, pick a priority fee or time a transaction; for the current price alone use sei_gas. Example: blocks=20. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

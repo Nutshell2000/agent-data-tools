@@ -109,6 +109,8 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // `question`/`statement` for the answer and fact-check tools. A list of URLs reads its first one (one URL per call).
   q: ["query", "question", "search", "term", "keyword", "keywords", "topic", "search_query", "searchQuery", "text", "prompt", "input"],
   count: ["numResults", "num_results", "limit", "n", "max_results", "maxResults", "size"], claim: ["statement", "query", "q", "text"],
+  // 11 Nov 2026 truth audit: /mime callers send the extension as ext or extension, which was refused "file is required".
+  file: ["ext", "extension", "filename", "file_name", "fileName", "type"],
   // 10 Nov 2026: paying buyers were refused after their payment verified because they named the input differently:
   // /weather lost 9 of 19 paid attempts ("send city or lat and lon") and /llm/chat 3 of 4 ("prompt is required", an OpenAI
   // body). A weather buyer sends location or q; a chat buyer sends message, input or an OpenAI `messages` array (read by
