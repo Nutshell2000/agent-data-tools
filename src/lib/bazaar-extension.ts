@@ -46,7 +46,7 @@ export function bazaarInputProperties(e: Endpoint) {
 export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/price/token", "/token/price", "/price/crypto", "/price/tokens",
   "/sanctions/check", "/sanctions/screen", "/ofac/check", "/company", "/company/lookup",
-  "/sec/filings", "/sec/edgar", "/sec/8k", "/sec/insider", "/sec/13f", "/polymarket/orderbook", "/polymarket/price-history",
+  "/sec/filings", "/sec/edgar", "/sec/8k", "/sec/insider", "/sec/13f", "/sec/financials", "/stock/fundamentals", "/income-statement", "/polymarket/orderbook", "/polymarket/price-history",
   "/number/roman", "/book/search", "/text/keyword-density", "/gov/clinical-trials", "/airport/lookup", "/lei/lookup",
   // Without ip these answer for the caller's own address over HTTP; a listing names the example's ip so a router plans a real lookup.
   "/ip/lookup", "/ip/geolocate",

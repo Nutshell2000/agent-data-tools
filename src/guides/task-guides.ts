@@ -81,7 +81,7 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
   { slug: "domain-whois-dns-lookup-api", phrase: "Domain WHOIS and DNS lookup API", tools: ["/domain", "/dns/lookup", "/domain-report"] },
   { slug: "wallet-balance-api", phrase: "Wallet balance API, multi-chain", tools: ["/eth/balance", "/wallet/balances", "/wallet/portfolio"] },
   { slug: "gas-price-api", phrase: "Gas price API", tools: ["/base-gas", "/eth/gas", "/pack/gas-tracker"] },
-  { slug: "sec-filings-api", phrase: "SEC filings API", tools: ["/sec/filings", "/sec/insider"] },
+  { slug: "sec-filings-api", phrase: "SEC filings API", tools: ["/sec/filings", "/sec/financials", "/sec/insider"] },
   { slug: "hyperliquid-funding-rate-api", phrase: "Hyperliquid funding rate API", tools: ["/hyperliquid/market", "/hyperliquid/funding-history"] },
   { slug: "currency-exchange-rate-api", phrase: "Currency exchange rate API", tools: ["/fx", "/btc-price"] },
   { slug: "public-holidays-api", phrase: "Public holidays API", tools: ["/holidays", "/date/business-days"] },
