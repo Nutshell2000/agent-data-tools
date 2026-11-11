@@ -176,14 +176,35 @@ async function main() {
       }
     }
   }
-  for (let i = 0; i < SHARDS; i++) {
-    writeFileSync(join(outDir, `c${i}.json.gz`), gzipSync(JSON.stringify(shards[i]), { level: 9 }));
-    writeFileSync(join(outDir, `n${i}.json.gz`), gzipSync(JSON.stringify(names[i]), { level: 9 }));
-  }
+  // Two files, each the gzip shards back to back, with every shard's [offset, length] in the manifest: the Worker
+  // reads one shard with an HTTP Range request. One file per kind instead of 1,018 assets keeps the weekly upload
+  // under GitHub's limit of about 500 uploads an hour. The tag makes every build's file names new, so a manifest
+  // never points into a file that a later build is overwriting (the workflow keeps the previous build's files).
   const dataAsOf = process.env.SE_DATA_AS_OF || new Date().toISOString().slice(0, 10);
-  const manifest = { dataAsOf, shards: SHARDS, companies: records.size, bolagsverketRows: bvRows, skippedPersons: persons, unreadableRows: broken, scbRows, scbOnly, builtAt: new Date().toISOString() };
-  writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 1));
-  console.log(JSON.stringify(manifest));
+  const tag = process.env.SE_FILE_TAG || dataAsOf;
+  const pack = (kind, parts) => {
+    const file = `se-${kind}-${tag}.bin`;
+    const index = [];
+    const bufs = [];
+    let offset = 0;
+    for (const part of parts) {
+      const gz = gzipSync(JSON.stringify(part), { level: 9 });
+      index.push([offset, gz.length]);
+      bufs.push(gz);
+      offset += gz.length;
+    }
+    writeFileSync(join(outDir, file), Buffer.concat(bufs));
+    return { file, bytes: offset, index };
+  };
+  const companies = pack("companies", shards);
+  const nameIndex = pack("names", names);
+  const manifest = {
+    dataAsOf, shards: SHARDS, companies: records.size, bolagsverketRows: bvRows, skippedPersons: persons, unreadableRows: broken, scbRows, scbOnly, builtAt: new Date().toISOString(),
+    files: { companies, names: nameIndex },
+  };
+  writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest));
+  const { files: _files, ...summary } = manifest;
+  console.log(JSON.stringify({ ...summary, companyBytes: companies.bytes, nameBytes: nameIndex.bytes }));
 }
 
 if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, "/").replace(/^(?=[A-Za-z]:)/, "/")}`) {
