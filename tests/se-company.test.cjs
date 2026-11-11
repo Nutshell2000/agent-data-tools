@@ -16,6 +16,8 @@ const BV = [
   '"5560000001$ORGNR-IDORG";"1";"SE-LAND";"Konkursbo Test \\"Exempel\\" AB$FORETAGSNAMN-ORGNAM$1990-01-01|Exempel Handel$SARS_FORNAMN-ORGNAM$1995-02-02$Handel.";"AB-ORGFO";"";"";"KK-AVOMFO$2026-10-01";"1990-01-01";"Handel med varor.";"Box 1$$GÖTEBORG$40010$SE-LAND"',
   '"5560000019$ORGNR-IDORG";"1";"SE-LAND";"Gammal Firma AB$FORETAGSNAMN-ORGNAM$1980-01-01";"AB-ORGFO";"2001-05-05";"KKAV-AVORG";"";"1980-01-01";"Skogsbruk.";"Gatan 2$$UMEÅ$90101$SE-LAND"',
   '"198001011234$PERSON-IDORG";"1";"SE-LAND";"Svenssons Snickeri$FORETAGSNAMN-ORGNAM$2010-01-01";"E-ORGFO";"";"";"";"2010-01-01";"Snickeri.";"Hemvägen 1$$LUND$22100$SE-LAND"',
+  '"5560427220$ORGNR-IDORG";"1";"SE-LAND";"H & M Hennes & Mauritz AB$FORETAGSNAMN-ORGNAM$1974-01-01";"AB-ORGFO";"";"";"";"1974-01-01";"Handel med kläder.";"Box 1421$$STOCKHOLM$11184$SE-LAND"',
+  '"8025043061$ORGNR-IDORG";"1";"SE-LAND";"HENNES & MAURITZ HK, UNIONENKLUBBEN$FORETAGSNAMN-ORGNAM$2001-01-01";"I-ORGFO";"";"";"";"2001-01-01";"Fackklubb.";"Box 9$$STOCKHOLM$11184$SE-LAND"',
   '"5560000027$ORGNR-IDORG";"1";"SE-LAND";"Lång beskrivning AB$FORETAGSNAMN-ORGNAM$2020-01-01";"AB-ORGFO";"";"";"";"2020-01-01";"Rad ett',
   'rad två.";"Vägen 3$$MALMÖ$21100$SE-LAND"',
 ].join('\n');
@@ -59,6 +61,10 @@ test('the build script and the Worker use the same shards and name normalisation
   for (const w of ['spotify', 'göteborg', 'åkersberga', 'ab', 'x1']) assert.equal(B.nameShardOf(w), S.nameShardOf(w));
   assert.deepEqual(B.nameWords('Aktiebolaget Åkersberga Storband HB'), S.nameWords('Aktiebolaget Åkersberga Storband HB'));
   assert.deepEqual(S.nameWords('Spotify AB (publ)'), ['spotify']);
+  for (const n of ['H & M Hennes & Mauritz AB', 'A P Møller Mærsk A/S', 'Bygg i Umeå AB', '3 M Svenska AB']) assert.deepEqual(B.nameWords(n), S.nameWords(n));
+  assert.deepEqual(S.nameWords('H & M Hennes & Mauritz AB'), ['hm', 'hennes', 'mauritz'], 'initials are one word');
+  assert.deepEqual(S.nameWords('A P Møller Mærsk A/S'), ['ap', 'moller', 'maersk', 'as']);
+  assert.deepEqual(S.nameWords('H&M'), ['hm']);
 });
 
 test('organisationsnummer input: hyphen, 16 prefix, VAT number; personal numbers and bad check digits refused', () => {
@@ -150,6 +156,19 @@ test('name search: every word must match, exact and leading matches first, dereg
     assert.equal(e.matches[0].orgnr, '556000-0001');
     await assert.rejects(run({ name: 'gammal firma' }), (x) => x.status === 404);
     await assert.rejects(run({ name: 'AB' }), (x) => x.status === 400);
+
+    // Initials: "H&M" finds the company, and a trading company ranks above an association that only starts with the words.
+    const hm = await run({ name: 'H&M' });
+    assert.equal(hm.matches[0].orgnr, '556042-7220');
+    const hennes = await run({ name: 'hennes & mauritz' });
+    assert.deepEqual(hennes.matches.map((m) => m.orgnr), ['556042-7220', '802504-3061']);
+    assert.equal(hennes.matches[0].city, 'STOCKHOLM');
+
+    // City narrows the search (diacritics and case ignored); a city with no match is a 404.
+    const gbg = await run({ name: 'exempel', city: 'goteborg' });
+    assert.deepEqual(gbg.matches.map((m) => m.orgnr), ['556000-0001']);
+    assert.equal(gbg.city, 'goteborg');
+    await assert.rejects(run({ name: 'spotify', city: 'Göteborg' }), (x) => x.status === 404 && /in Göteborg/.test(x.message));
   } finally {
     globalThis.fetch = fetchBefore;
   }
