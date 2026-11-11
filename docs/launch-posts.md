@@ -1,4 +1,4 @@
-# Launch posts (drafts for Peter to post)
+# Launch posts (drafts for the owner to post)
 
 Updated 22 Oct 2026 for 1.50.x (187 tools, web search and news, World Bank data, $0.01 a call). Every post is honest
 about where we are: almost no paying customers yet. Each one offers the 25 free calls and the card packs, which pay into

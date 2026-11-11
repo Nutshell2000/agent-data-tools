@@ -232,7 +232,7 @@ const ai = (path: string, summary: string, description: string, tags: string[], 
 
 /**
  * /ai/chat matches the busiest single resource on Base, BlockRun's chat completions at $0.002 (83k calls and 288 payers
- * in 30 days, Bazaar 22 Oct 2026); Peter's decision of 23 Oct. The 8B model runs on the free Workers AI allowance, and
+ * in 30 days, Bazaar 22 Oct 2026); the owner's decision of 23 Oct. The 8B model runs on the free Workers AI allowance, and
  * when that is used up the call answers 503, uncharged.
  */
 export const CHAT_PRICE = "$0.002";

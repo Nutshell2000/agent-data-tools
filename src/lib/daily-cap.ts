@@ -3,7 +3,7 @@ import { HttpError, type Env } from "./env";
 /**
  * A per-UTC-day call budget for a metered upstream (Workers AI, Browser Rendering), counted in KV like the search cap.
  * On the Workers free plan the platform's own daily allowance stops these first; on Workers Paid they are billed per
- * use, so the cap is what keeps the bill at the plan price (Peter, 24 Oct 2026: the $5 plan only once $5 has been
+ * use, so the cap is what keeps the bill at the plan price (the owner, 24 Oct 2026: the $5 plan only once $5 has been
  * earned, and never a bill above it). Over the cap the tool answers 503 and nothing is charged. KV is eventually
  * consistent, so the cap is approximate.
  */

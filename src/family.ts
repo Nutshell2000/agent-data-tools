@@ -11,7 +11,7 @@ export interface Entry {
   run: (env: Env, q: Input) => Promise<unknown> | unknown;
 }
 
-/** Price for the families: Coinbase's facilitator minimum, the band with the most distinct payers (Peter approved 2026-10-18). */
+/** Price for the families: Coinbase's facilitator minimum, the band with the most distinct payers (the owner approved 2026-10-18). */
 export const PRICE = "$0.01";
 
 export function entry(

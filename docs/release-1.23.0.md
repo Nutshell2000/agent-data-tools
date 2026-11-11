@@ -34,7 +34,7 @@ The OFAC mirror release `ofac-latest` is already published (SDN.CSV, ALT.CSV, of
 
 `ORIGIN=https://agent-data-tools.revmesh2074.workers.dev`
 
-## Waiting on Peter
+## Waiting on the owner
 
 - Ownership proof: run `scripts/sign-ownership-proof.mjs` locally and share only the printed signature.
 - Directory submissions from `docs/listings.md` (Glama claim, Smithery, PulseMCP, mcp.so, x402 directories,
