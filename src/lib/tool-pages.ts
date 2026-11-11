@@ -5,6 +5,7 @@ import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { TOOL_SEO } from "./tool-seo";
+import { KEY_PRICES, callsAt } from "./credits";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { GUIDE_FOR_TOOL } from "../guides/task-guides";
 
@@ -82,6 +83,7 @@ ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${qu
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
 <a class="btn" href="${esc(`${e.path}?${query}&sample=1`)}">Example result (JSON)</a>
 </div>
+${Object.hasOwn(KEY_PRICES, e.path) ? `<p><strong>${esc(KEY_PRICES[e.path])} per call with prepaid credits:</strong> $1 by card pays for ${callsAt(1000, KEY_PRICES[e.path])} calls, with no account and no subscription.</p>` : ""}
 ${freeCalls ? tryForm(e) : ""}
 ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>Type</th><th>Description</th></tr>${params.map(([name, p]) => `<tr><td><code>${esc(name)}</code>${p.required ? " (required)" : ""}</td><td>${esc(p.type)}</td><td>${esc(p.description)}${p.enum ? `${/[.!?]$/.test(p.description) ? "" : "."}` : ""}${p.enum ? ` One of: ${p.enum.map((v) => `<code>${esc(v)}</code>`).join(", ")}.` : ""}</td></tr>`).join("")}</table></div>` : ""}
 <h2>Request</h2>

@@ -1220,3 +1220,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Acquisition-priced with the other GitHub tools; category through `CATEGORY_OF_PATH`. Needs `GITHUB_TOKEN` like the others.
 - Two sessions wrote release files under the same version number twice on 10 Nov and overwrote each other. Before writing any notes-, claude- or queue- file in business\agentic\release\train, list the folder for that version number.
 
+
+## The npm package in the MCP Registry (1.120.0, 10 Nov 2026)
+
+- server.json `packages[0]`: registryType npm, identifier `agent-data-tools`, version 1.1.1, transport stdio, packageArguments `mcp`, optional secret env `AGENT_DATA_TOOLS_KEY` (schema 2025-12-11 read from static.modelcontextprotocol.io). The registry verifies that the npm version's package.json has `mcpName` equal to the server name. After the tag, read the "Publish to MCP Registry" workflow run: a refused publish is only a warning there. Check `https://registry.modelcontextprotocol.io/v0/servers?search=agent-data-tools` for `packages`.
+- When the npm client gets a new version: publish to npm first (owner), then change `packages[0].version`. Keep top-level `version` above `packages` in the file (bump-version.mjs replaces the first "version").
+- The task guides (`toolBlock` in src/guides/task-guides.ts) and the tool page print the prepaid price for any tool in `KEY_PRICES`, so a new key price shows there without further copy.
+
