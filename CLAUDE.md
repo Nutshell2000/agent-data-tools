@@ -1386,3 +1386,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `/status` carries `recent` (newest `RECENT_DAYS` = 3 UTC days, today included) on the totals and on every tool, beside the unchanged 7-day fields. Why: the 7 Nov incident kept the week at 57% and most tools at 20-40% while every later day was above 98%. Never drop or reweight the 7-day figures: both are shown so a reader can judge for itself.
 
+
+
+## The compact server's price rule, proven on a real dear tool (1.134.0, 11 Nov 2026)
+
+- `/audit/contract` ($1.00, 1.131.0) is the first tool above `COMPACT_PRICE_CEILING`. Checked on production on 11 Nov before this release: on `/mcp/compact` find_tool and tool_details mark it `needsMaxPrice: "$1.00"`; `call_tool` without `max_price`, or with "$0.50", is refused uncharged; with "$1.00" and no key it answers the tool's own payment request; `/mcp/compact-capped` has no such tool. tests/mcp-compact.test.cjs now pins all of that (it never runs the audit: three large-model calls and up to 90 s).
+- The refusal carries `price` and `next` only. It used to carry `repeatWith` with the caller's whole arguments; do not bring that back, a contract's source can be tens of kilobytes.
+- When the price ladder moves /news and the two packs above $0.10, they need `max_price` on `/mcp/compact` and leave `/mcp/compact-capped` (and so the Hermes package) by themselves. The Hermes package (1.0.1) therefore names none of them: tests/hermes-plugin.test.cjs refuses `news`, `pack_news_sentiment`, `pack_web_research` and `crypto_news` in its skill and README. Add a tool to that list when it is put on a ladder that ends above the ceiling, and never name a tool there whose price is about to pass it: the catalogue pins one commit and a pinned skill cannot be corrected without a new reviewed pull request.
+- After this release the catalogue entry needs the new pin and `version: "1.0.1"` (texts in `C:\MoneyWallet\business\agentic\hermes-catalog\`): amend NousResearch/hermes-agent#153406 if it is still open, otherwise open a pin-bump pull request.
