@@ -78,6 +78,9 @@ test('seo audit: fields, bare alt is fine, issues and score', () => {
   assert.equal(r.score, 91);
   const bare = W.seoAudit('<html><body><p>hi</p></body></html>', 'https://g.example/');
   assert.ok(bare.issues.includes('missing <title>') && bare.issues.includes('no <h1>'));
+  // 11 Nov 2026: a subdomain of the page's site, and the same host with or without www, are internal; a host that only ends with the same letters is not.
+  const links = W.seoAudit('<html><body><a href="https://en.site.example/a">a</a><a href="https://site.example/b">b</a><a href="https://WWW.site.example/c">c</a><a href="https://notsite.example/d">d</a><a href="https://site.example.evil.test/e">e</a></body></html>', 'https://www.site.example/');
+  assert.deepEqual(links.links, { internal: 3, external: 2 });
 });
 
 test('keyword density: stop words removed, phrases repeated at least twice, empty text refused', async () => {

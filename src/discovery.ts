@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.123.0";
+export const MCP_SERVER_VERSION = "1.124.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -442,7 +442,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
     },
     externalDocs: { description: "Reader buying guide, real examples and capped CLI", url: `${origin}/guides/web-reading` },
     // Optional alternative to x402, so not applied as a requirement on any operation.
-    components: { securitySchemes: { cardCredits: { type: "http", scheme: "bearer", description: `Optional: an adt_ API key bought by card at ${origin}/credits pays any call instead of x402.` } } },
+    components: { securitySchemes: { cardCredits: { type: "http", scheme: "bearer", description: `Optional: an adt_ API key bought by card at ${origin}/credits pays any call instead of x402.` } }, ...TOOL_ERROR_COMPONENTS },
     // x-agentcash-provenance is the current field; x-discovery is the older one some indexers still read.
     ...(OWNERSHIP_PROOFS.length
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
@@ -482,7 +482,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
                 },
               },
               "402": { description: "Payment Required" },
-              "400": { description: "Invalid input (not charged)" },
+              ...TOOL_ERROR_REFS,
             },
           },
         },
@@ -497,6 +497,39 @@ type Operation = { responses?: Record<string, { description?: string; content?: 
  * Every 200 an agent can be charged for describes its body: a GET variant without content takes its POST's 200, and
  * a 200 with only an example gets a schema derived from it (MPP discovery warns "output-schema-missing" otherwise).
  */
+// What a tool answers when it does not deliver, documented once and referenced from every tool (11 Nov 2026). Coinbase's
+// curation requirements ask for "documented error responses"; until now each tool said only "400: Invalid input".
+// A payment is settled only after the tool succeeded, so none of these is charged. The body is what src/index.ts
+// writes: `error` always, `code` on the named conditions, `inputs` and `example` on a 400.
+const errorResponse = (description: string) => ({ description, content: { "application/json": { schema: { $ref: "#/components/schemas/ToolError" } } } });
+export const TOOL_ERROR_COMPONENTS = {
+  schemas: {
+    ToolError: {
+      type: "object", required: ["error"],
+      properties: {
+        error: { type: "string", description: "What went wrong, in plain words" },
+        code: { type: "string", description: "A stable name for the condition, when it has one (for example TARGET_UNAVAILABLE)" },
+        inputs: { type: "object", description: "On a 400: the tool's inputs and which are required" },
+        example: { type: "string", description: "On a 400: a call that works" },
+      },
+    },
+  },
+  responses: {
+    InvalidInput: errorResponse("Invalid or missing input. Not charged. The body names the inputs and shows a working example."),
+    NotFound: errorResponse("Nothing exists for this input (unknown name, address, ID or no data). Not charged."),
+    Unprocessable: errorResponse("The input was understood but could not be processed (for example an unreadable page or a reverted contract call). Not charged."),
+    SourceFailed: errorResponse("An outside data source or the target site failed or timed out. Not charged; retry."),
+    Unavailable: errorResponse("Temporarily unavailable or at capacity. Not charged; retry after the Retry-After header."),
+  },
+} as const;
+export const TOOL_ERROR_REFS = {
+  "400": { $ref: "#/components/responses/InvalidInput" },
+  "404": { $ref: "#/components/responses/NotFound" },
+  "422": { $ref: "#/components/responses/Unprocessable" },
+  "502": { $ref: "#/components/responses/SourceFailed" },
+  "503": { $ref: "#/components/responses/Unavailable" },
+} as const;
+
 export function completeResponses<T extends Record<string, Record<string, unknown>>>(paths: T): T {
   for (const item of Object.values(paths)) {
     const get = item.get as Operation | undefined;

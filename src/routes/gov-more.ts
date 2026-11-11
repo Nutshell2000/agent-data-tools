@@ -171,12 +171,13 @@ export const GOV_MORE: Entry[] = [
     }),
 
   entry("/gov/federal-register", "Federal Register search: US rules and notices",
-    "Search the US Federal Register: final rules, proposed rules, notices and presidential documents, newest first, with title, type, agencies, abstract, publication date, comment deadline, effective date and links. Filter by type and agency. From the Federal Register API (US government work). Use to track new regulations or open comment periods on a topic.",
+    "Search the US Federal Register: final rules, proposed rules, notices and presidential documents, newest first, with title, type, agencies, abstract, publication date, comment deadline, effective date and links. Filter by type and agency; sort=relevance puts the documents that are most about the words first. From the Federal Register API (US government work). Use to track new regulations or open comment periods on a topic.",
     ["federal-register", "regulations", "rulemaking", "government", "compliance"], {
       q: { type: "string", description: "Search words, e.g. artificial intelligence", required: true, example: "artificial intelligence" },
       type: { type: "string", description: "rule, proposed_rule, notice or presidential (default all)", example: "rule" },
       agency: { type: "string", description: "Agency slug, e.g. securities-and-exchange-commission (optional)", example: "securities-and-exchange-commission" },
       limit: { type: "string", description: "Documents to return, 1-20 (default 10)", example: "10" },
+      sort: { type: "string", description: "newest (default) or relevance", example: "relevance" },
     },
     { query: "artificial intelligence", total: 1605, count: 1, documents: [{ title: "Outbound Investment Security Program Regulations", type: "Rule", agencies: ["Treasury Department"], abstract: "…", published: "2026-10-24", commentsClose: null, effective: "2026-11-24", documentNumber: "2026-21001", url: "https://www.federalregister.gov/documents/2026/10/24/2026-21001/…", pdf: "https://www.govinfo.gov/…" }], source: "Federal Register API (federalregister.gov)" },
     async (_e, q) => {
@@ -190,7 +191,11 @@ export const GOV_MORE: Entry[] = [
       const u = new URL("https://www.federalregister.gov/api/v1/documents.json");
       u.searchParams.set("conditions[term]", term);
       u.searchParams.set("per_page", String(limit));
-      u.searchParams.set("order", "newest");
+      // Newest first is the default and what the description promises; a full-text match puts documents that only
+      // mention the words on top (11 Nov 2026: a HUD reorganisation notice led "artificial intelligence"), so a caller may ask for relevance.
+      const sortIn = (opt(q, "sort", 20) ?? "newest").toLowerCase();
+      if (sortIn !== "newest" && sortIn !== "relevance") throw new HttpError(400, "sort must be newest or relevance");
+      u.searchParams.set("order", sortIn);
       if (typeIn) u.searchParams.append("conditions[type][]", TYPES[typeIn]);
       if (agency) u.searchParams.append("conditions[agencies][]", agency);
       for (const f of ["title", "type", "abstract", "document_number", "html_url", "pdf_url", "publication_date", "agencies", "comments_close_on", "effective_on"]) u.searchParams.append("fields[]", f);

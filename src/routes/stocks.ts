@@ -72,7 +72,8 @@ export async function stockQuote(raw: string) {
   return {
     symbol: String(m.symbol ?? symbol), name: (m.longName ?? m.shortName ?? null) as string | null, exchange: (m.fullExchangeName ?? m.exchangeName ?? null) as string | null,
     type: (m.instrumentType ?? null) as string | null, currency: (m.currency ?? null) as string | null,
-    price, previousClose: prev, change: r4(change), changePercent: change !== null && prev ? r4((change / prev) * 100) : null,
+    // Chart closes are 32-bit floats widened to doubles (4030.199951171875 for 4030.2); round like every other figure.
+    price, previousClose: r4(prev), change: r4(change), changePercent: change !== null && prev ? r4((change / prev) * 100) : null,
     dayHigh: num(m.regularMarketDayHigh), dayLow: num(m.regularMarketDayLow), volume: num(m.regularMarketVolume),
     fiftyTwoWeekHigh: num(m.fiftyTwoWeekHigh), fiftyTwoWeekLow: num(m.fiftyTwoWeekLow),
     marketTime: typeof m.regularMarketTime === "number" ? new Date(m.regularMarketTime * 1000).toISOString() : null,

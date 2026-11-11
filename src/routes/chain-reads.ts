@@ -142,7 +142,7 @@ const EX_BUSY: Record<string, string> = {
   unichain: "0x1f98400000000000000000000000000000000004", gnosis: "0xb45373129b4220160b92bd2320869f44d48ecd01", linea: "0x90e8a5b881d211f418d77ba8978788b62544914b",
   scroll: "0x04566bf83399e4f750728d1ef57008aedda00e71", sonic: "0xcfd41df89d060b72ebdd50d65f9021e4457c477e", bera: "0x69fbaa80b560e425ff0ab0222335dc7f1eca7d90",
   sei: "0xe62fd4661c85e126744cc335e9bca8ae3d5d19d1", celo: "0x1a810e0b6c2dd5629afa2f0c898b9512c6f78846", mantle: "0xa875ac23d106394d1baaae5bc42b951268bc04e2",
-  zksync: "0x7b217443bfa96950fb23ce9a387fbf0cb452e0c8", ink: "0xdfa03426d54e4f19ce789973731b82a2e7f5dc87",
+  zksync: "0xdd6f2bc0f4f15329a9a712e46b2d988529df80e4", ink: "0xdfa03426d54e4f19ce789973731b82a2e7f5dc87",
 };
 const busyAddress = (slug: string) => EX_BUSY[slug] ?? EX_ADDR;
 /**
@@ -316,15 +316,13 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("is-contract"), `${lead} is-contract check`,
-      `Check whether a 0x address on ${c.name} is a smart contract or a plain wallet: bytecode size, and whether it is an EIP-1167 minimal proxy and which implementation it points to. Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged.`,
+      `Check whether a 0x address on ${c.name} is a smart contract or a plain wallet: bytecode size, whether it is an EIP-1167 minimal proxy and which implementation it points to, and whether it is a wallet that delegates to contract code (EIP-7702; delegatedTo names the code, isContract stays false). Use before sending funds or approving a spender; for a fuller risk verdict use check_counterparty. A malformed address is rejected with 400, uncharged.`,
       tags("contract", "security", "address"), { address: { type: "string", description: "0x address", required: true, example: USDC[c.slug] } },
-      head({ address: USDC[c.slug], isContract: true, codeBytes: 1855, minimalProxy: false, implementation: null }),
+      head({ address: USDC[c.slug], isContract: true, codeBytes: 1855, minimalProxy: false, implementation: null, delegatedTo: null }),
       async (env, q) => {
         const a = address(q("address"));
         const code = (await rpc(() => client(env, c).getCode({ address: a }))) ?? "0x";
-        const bytes = (code.length - 2) / 2;
-        const m = /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/i.exec(code);
-        return head({ address: a, isContract: bytes > 0, codeBytes: bytes, minimalProxy: !!m, implementation: m ? `0x${m[1]}` : null });
+        return head({ address: a, ...codeKind(code) });
       }),
 
     entry(p("logs"), `${lead} event logs`,
@@ -557,6 +555,18 @@ export async function readMetadata(uri: string): Promise<{ metadata: unknown; so
     const why = e instanceof HttpError ? e.message : e instanceof SyntaxError ? "the metadata is not valid JSON" : "the metadata could not be fetched";
     return { metadata: null, source: data ? "data-uri" : uri, error: why };
   }
+}
+
+// What the code at an address says about it. Since EIP-7702 (Ethereum's Pectra upgrade, May 2025) a plain wallet can
+// carry 23 bytes of code, 0xef0100 followed by the address whose code it runs. It is still a wallet with a private key,
+// so it must not read as a contract: found on 11 Nov 2026, when the example wallet of /pack/wallet-profile read
+// "isContract: true" (an independent node returned 0xef0100… for it on Ethereum and Base).
+export function codeKind(code: string): { isContract: boolean; codeBytes: number; minimalProxy: boolean; implementation: string | null; delegatedTo: string | null } {
+  const hex = /^0x[0-9a-f]*$/i.test(code) ? code.toLowerCase() : "0x";
+  const bytes = (hex.length - 2) / 2;
+  const delegated = /^0xef0100([0-9a-f]{40})$/.exec(hex);
+  const m = /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/.exec(hex);
+  return { isContract: bytes > 0 && !delegated, codeBytes: bytes, minimalProxy: !!m, implementation: m ? `0x${m[1]}` : null, delegatedTo: delegated ? `0x${delegated[1]}` : null };
 }
 
 function contractEntries(c: ChainDef): Entry[] {
@@ -939,7 +949,7 @@ const WALLET_RELATED: Entry = entry("/wallet/related", "Related wallets, counter
     const shownTokens = [...new Set(top.flatMap(([, g]) => [...g.tokens]))].slice(0, 15) as `0x${string}`[];
     const [symbols, kinds] = await Promise.all([
       Promise.all(shownTokens.map(async (t) => [t, await cl.readContract({ address: t, abi: erc20Abi, functionName: "symbol" }).catch(() => null) as string | null] as const)),
-      Promise.all(top.map(async ([o]) => (o === ZERO_ADDR ? "mint/burn" : await cl.getCode({ address: o as `0x${string}` }).then((code) => (code && code !== "0x" ? "contract" : "wallet")).catch(() => null)))),
+      Promise.all(top.map(async ([o]) => (o === ZERO_ADDR ? "mint/burn" : await cl.getCode({ address: o as `0x${string}` }).then((code) => (codeKind(code ?? "0x").isContract ? "contract" : "wallet")).catch(() => null)))),
     ]);
     const sym = new Map(symbols);
     const partial = !sentScan.complete || !receivedScan.complete;

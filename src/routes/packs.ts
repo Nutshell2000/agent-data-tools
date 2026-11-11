@@ -272,7 +272,7 @@ export const PACKS: Entry[] = [
   entry("/pack/wallet-profile", "Wallet profile: balances, activity, contract check and sanctions",
     "One call to profile an EVM wallet: native and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon, transaction counts on Base and Ethereum, whether it is a contract or a plain wallet, its recent USDC transfers on Base, and an OFAC sanctions screen. Cheaper than the tools bought one by one. Use before paying, onboarding or trusting a counterparty wallet; for a single risk verdict use check_counterparty.",
     ["wallet-profile", "wallet-analysis", "wallet", "pack", "sanctions", "crypto"], { address: { type: "string", description: "0x wallet address", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" } },
-    { pack: "wallet-profile", address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045", isContract: false, balances: { usdcTotal: "12.5", networks: [{ chain: "Base", native: "0.0123", usdc: "12.5" }] }, activity: { baseNonce: 120, ethNonce: 1204 }, recentUsdc: { count: 2, transfers: [{ direction: "in", amount: "2.5", counterparty: "0x…" }] }, sanctions: { verdict: "pass" }, failed: {} },
+    { pack: "wallet-profile", address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045", isContract: false, delegatedTo: null, balances: { usdcTotal: "12.5", networks: [{ chain: "Base", native: "0.0123", usdc: "12.5" }] }, activity: { baseNonce: 120, ethNonce: 1204 }, recentUsdc: { count: 2, transfers: [{ direction: "in", amount: "2.5", counterparty: "0x…" }] }, sanctions: { verdict: "pass" }, failed: {} },
     async (env, q) => {
       const address = need(q, "address", 64).trim().toLowerCase();
       if (!/^0x[0-9a-f]{40}$/.test(address)) throw new HttpError(400, "address must be a 0x address (40 hex characters)");
@@ -289,6 +289,7 @@ export const PACKS: Entry[] = [
       return {
         pack: "wallet-profile", address,
         isContract: (data.contract as { isContract?: boolean } | undefined)?.isContract ?? null,
+        delegatedTo: (data.contract as { delegatedTo?: string | null } | undefined)?.delegatedTo ?? null,
         balances: data.balances ?? null,
         activity: { baseNonce: (data.baseNonce as { nonce?: number } | undefined)?.nonce ?? null, ethNonce: (data.ethNonce as { nonce?: number } | undefined)?.nonce ?? null },
         recentUsdc: tr ? { count: tr.count, transfers: tr.transfers.slice(0, 10).map((t) => pick2(t, ["block", "direction", "amount", "counterparty", "tx"])) } : null,
