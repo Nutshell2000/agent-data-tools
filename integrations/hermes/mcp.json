@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "agent-data-tools": {
+      "type": "streamable-http",
+      "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp/compact-capped"
+    }
+  }
+}

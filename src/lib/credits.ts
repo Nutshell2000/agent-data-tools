@@ -93,11 +93,15 @@ export async function hashCreditKey(key: string): Promise<string> {
  * access to Invoices on STRIPE_READ_KEY. The portal must not allow switching plans: a renewal grants the credits of the
  * plan the key was bought with.
  */
+// The links were created on 11 Nov 2026 in the owner's Stripe account on her instruction ("you do it all"): payment links
+// plink_1UaY2EDhGrPcm8Sc0Ng5cNSZ ($9) and plink_1UaY2NDhGrPcm8ScJrv9YvFo ($19), recurring monthly in USD, automatic tax
+// off like the packs, metadata adt_credits 15000 and 40000, redirect to /credits/claim. The portal link is the account's
+// default portal configuration: cancel at the end of the period on, switching plans and changing quantity off.
 export const CREDIT_PLANS = [
-  { usdCents: 900, credits: 15_000, url: "" },
-  { usdCents: 1_900, credits: 40_000, url: "" },
+  { usdCents: 900, credits: 15_000, url: "https://buy.stripe.com/4gMbJ19Cq8XBbFU5MNbII07" },
+  { usdCents: 1_900, credits: 40_000, url: "https://buy.stripe.com/fZu7sLdSG0r5dO22ABbII08" },
 ] as const;
-export const PLAN_PORTAL_URL: string = "";
+export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28r15U4Hl9xMfnnbII00";
 export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
 export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
 /** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
