@@ -1227,3 +1227,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - When the npm client gets a new version: publish to npm first (owner), then change `packages[0].version`. Keep top-level `version` above `packages` in the file (bump-version.mjs replaces the first "version").
 - The task guides (`toolBlock` in src/guides/task-guides.ts) and the tool page print the prepaid price for any tool in `KEY_PRICES`, so a new key price shows there without further copy.
 
+
+## The 402 body is x402 v2 (1.121.0, 10 Nov 2026)
+
+- `readable402` (src/lib/readable-402.ts) now writes the decoded v2 challenge into the body of every tool's unpaid 402 (version 2, accepts, resource, extensions incl. Bazaar), with `hint`, `related` and `prepay`. This replaces the 19 Oct design (a v1 PaymentRequired in the body beside the v2 header). `wantsV1Body()` decides the exception: `x402=1` in the query (a control parameter, so it never counts as tool input) or the setting `QUOTE_BODY=v1`. The v1 payment path itself (src/lib/x402-v1.ts: X-PAYMENT, verify, settle after success, X-PAYMENT-RESPONSE) is unchanged, and its own refusals still answer with v1 bodies.
+- Why: vAPI Call (self-listing live since 10 Nov, account = the owner's Phantom wallet, listing "Agent Data Tools", 20 endpoints, "Verification requested") graded every endpoint with `offer_version_mismatch` and read no input description from the challenge. Its wizard takes endpoint URLs one at a time (our 1.6 MB /openapi.json was read as a plain 200 page, and the origin gave only 20 operations), so the challenge is its only source for inputs.
+- After this is live: in the owner's Chrome session run the wizard's "Check endpoint" on one tool (Discover step only) and confirm the two findings are gone. A listing stores what its probe saw when it was published; if My APIs still shows "Request schema: Not declared", the listing has to be revised or re-added there (her wallet session and `C:\MoneyWallet\Sign vAPI payout message.cmd`).
+- If a buyer turns out to need the v1 body (watch `/metrics/callers` `v1_payment` and the daily payer list for a wallet that stops), set `QUOTE_BODY=v1` and redeploy; do not revert the code.
+- The payout signer's check: vAPI's nonce is 106 characters; the confirmation accepts yes in any case.
+
