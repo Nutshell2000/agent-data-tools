@@ -27,8 +27,9 @@ const inputFrom = (params) => (name) => (params[name] ? String(params[name].exam
 const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParams(endpoint)); return (name) => (p[name] ? String(p[name].example) : undefined); };
 
 // /text-to-speech (11 Nov 2026): 2,000 characters of Aura-2 cost $0.06, so it cannot be a one-cent tool; the owner asked for tools that sell for more.
-// From 11 Nov 2026 (owner: "Yes, start now"): /news, its two doors and the two research packs Mercator's gateway buys daily, $0.03.
-const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08", "/news": "$0.03", "/news/search": "$0.03", "/crypto/news": "$0.03", "/pack/web-research": "$0.03", "/pack/news-sentiment": "$0.03" };
+// /news, its two doors and the two research packs were $0.03 for a few hours on 11 Nov 2026 (1.130.0) and are $0.01 again
+// since 1.136.0: Mercator's gateway, their daily buyer, does not pay a quote above the price its own catalogue holds.
+const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08" };
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
