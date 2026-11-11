@@ -245,6 +245,8 @@ export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utiliti
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/cve": "Company, compliance and checks",
   "/se/company": "Company, compliance and checks",
+  "/no/company": "Company, compliance and checks",
+  "/fi/company": "Company, compliance and checks",
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
