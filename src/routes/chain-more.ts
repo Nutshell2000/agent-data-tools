@@ -4,6 +4,7 @@
 import { formatUnits, getAddress, type PublicClient } from "viem";
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { recentBlockSeconds } from "../lib/block-time";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
 import { CHAINS, client, codeKind, logsClient, recentLogs, rpc, topicLogsClient } from "./chain-reads";
@@ -65,7 +66,6 @@ export const DEX_FACTORIES: Record<string, DexFactory[]> = Object.fromEntries(Ob
   { dex: "uniswap-v2" as Dex, address: V2_FACTORY[slug], topic: V2_CREATED },
   ...(slug === "base" ? [{ dex: "aerodrome" as Dex, address: "0x420DD381b31aEf6683db6B902084cB0FFECe40Da" as `0x${string}`, topic: AERO_CREATED }] : []),
 ]]));
-const BLOCK_SECONDS: Record<string, number> = { eth: 12, base: 2, arb: 0.25, op: 2, polygon: 2 };
 const topicAddr = (t: string) => getAddress("0x" + t.slice(26));
 const word = (data: string, i: number) => data.slice(2 + 64 * i, 2 + 64 * (i + 1));
 
@@ -223,7 +223,7 @@ export const CHAIN_MORE: Entry[] = [
     ["new-pools", "new-pairs", "new-tokens", "dex", "uniswap", "aerodrome", "liquidity-pool", "token-launch"], {
       chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
       dex: { type: "string", description: "all (default), uniswap-v3, uniswap-v2 or aerodrome (Base only)", example: "all" },
-      blocks: { type: "string", description: "How many recent blocks to scan, 100 to 20000 (default 3000: about 100 minutes on Base, 10 hours on Ethereum)", example: "3000" },
+      blocks: { type: "string", description: "How many recent blocks to scan, 100 to 20000 (default 3000: about 10 minutes on Base, 10 hours on Ethereum)", example: "3000" },
       limit: { type: "string", description: "Most pools to return, 1 to 30 (default 20)", example: "20" },
     },
     { chain: "Base", blocksScanned: 3000, fromBlock: 37000000, toBlock: 37002999, count: 2, pools: [{ dex: "uniswap-v2", pool: "0x1111111111111111111111111111111111111111", token0: { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18 }, token1: { address: "0x2222222222222222222222222222222222222222", symbol: "NEW", decimals: 18 }, feeTier: 3000, stable: null, block: 37002990, txHash: "0xabc", approxAgeMinutes: 0.3 }], source: "Uniswap v3, Uniswap v2 and Aerodrome factory events, read live" },
@@ -259,7 +259,7 @@ export const CHAIN_MORE: Entry[] = [
         return [t, { symbol, decimals }] as const;
       })));
       const fromBlock = Number(scans.reduce((m, s) => (s.fromBlock < m ? s.fromBlock : m), latest));
-      const secs = BLOCK_SECONDS[slug];
+      const secs = await recentBlockSeconds(cl, slug, latest);
       return {
         chain: def(slug).name, blocksScanned: Number(latest) - fromBlock + 1, fromBlock, toBlock: Number(latest), count: pools.length,
         pools: pools.map((p) => ({ ...p, token0: { address: p.token0, ...meta.get(p.token0 as `0x${string}`) }, token1: { address: p.token1, ...meta.get(p.token1 as `0x${string}`) }, approxAgeMinutes: sig6((Number(latest) - p.block) * secs / 60) })),
@@ -275,7 +275,7 @@ export const CHAIN_MORE: Entry[] = [
     ["token-buyers", "who-bought", "smart-money", "token-flows", "wallet", "dex", "blockchain"], {
       token: { type: "string", description: "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC", required: true, example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },
       chain: { type: "string", description: "base (default), ethereum, arbitrum, optimism or polygon", example: "base" },
-      blocks: { type: "integer", description: "How many recent blocks to read, 100 to 10000 (default 1800: about an hour on Base, 6 hours on Ethereum)", example: 1800 },
+      blocks: { type: "integer", description: "How many recent blocks to read, 100 to 10000 (default 1800: about 6 minutes on Base, 6 hours on Ethereum)", example: 1800 },
       limit: { type: "integer", description: "Buyers and sellers to return each, 1 to 20 (default 10)", example: 10 },
     },
     { chain: "Base", token: { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", symbol: "AERO", decimals: 18 }, fromBlock: 37001200, toBlock: 37002999, transfersRead: 1840, truncated: false,
@@ -347,7 +347,7 @@ export const CHAIN_MORE: Entry[] = [
   entry("/dex/trending", "Trending tokens, Base DEX",
     "Trending tokens on Base now: the tokens with the most DEX swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, with swaps, pools, share of swaps, symbol, name and busiest pool. Majors (WETH, USDC, cbBTC, stables) are left out unless asked; symbolClash marks copied symbols, so match by address. Use to spot what traders buy now; check token_report before trading.",
     ["trending-tokens", "trending", "dex", "base", "memecoins", "uniswap", "aerodrome"], {
-      blocks: { type: "integer", description: "How many recent Base blocks to count, 30 to 300 (default 150, about 5 minutes; a block every 2 s)", example: 150 },
+      blocks: { type: "integer", description: "How many recent Base blocks to count, 30 to 3000 (default 1500, about 5 minutes; Base makes a block every 0.2 s)", example: 1500 },
       limit: { type: "integer", description: "Most tokens to return, 1 to 25 (default 15)", example: 15 },
       majors: { type: "string", description: "include to keep WETH, USDC, cbBTC and stables in the list (default: left out)", enum: ["exclude", "include"], example: "exclude" },
     },
@@ -355,7 +355,7 @@ export const CHAIN_MORE: Entry[] = [
       { rank: 1, address: "0x2222222222222222222222222222222222222222", symbol: "NEW", name: "New Token", swaps: 412, pools: 2, shareOfSwaps: 0.045, topPool: { address: "0x1111111111111111111111111111111111111111", swaps: 380 }, symbolClash: false },
     ], source: "Uniswap v2/v3, Aerodrome and Slipstream Swap events on Base, read live" },
     async (_env, q) => {
-      const span = BigInt(num(q, "blocks", { min: 30, max: 300, fallback: 150, integer: true }));
+      const span = BigInt(num(q, "blocks", { min: 30, max: 3000, fallback: 1500, integer: true }));
       const limit = num(q, "limit", { min: 1, max: 25, fallback: 15, integer: true });
       const majors = (opt(q, "majors", 10) ?? "exclude").toLowerCase() === "include";
       const c = def("base");
@@ -366,15 +366,17 @@ export const CHAIN_MORE: Entry[] = [
       if (hit) return hit.json();
       const logs = topicLogsClient(c);
       const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
-      // 25-block slices, three at a time: one 150-block answer is about 6 MB, which the staging proof from Cloudflare could
-      // not get back in time (5 Nov 2026), while 25 blocks is about 1 MB. A slice that fails is retried once.
-      const SLICE = 25n;
+      // 250-block slices, three at a time. On 5 Nov 2026 (2 s blocks) 25 blocks were about 1 MB of swaps; with Base's
+      // 0.2 s blocks 250 blocks are about 0.4 MB (447 swaps, Tenderly, 11 Nov 2026), so five minutes is six slices. A slice
+      // that fails is read again in 25-block pieces, the size the fallback nodes (drpc, 1rpc, Nodies) accept.
+      const SLICE = 250n, PIECE = 25n;
       const from0 = latest - span + 1n;
-      const slices: [bigint, bigint][] = [];
-      for (let to = latest; to >= from0; to -= SLICE) slices.push([to - SLICE + 1n > from0 ? to - SLICE + 1n : from0, to]);
+      const cut = (lo: bigint, hi: bigint, size: bigint) => { const out: [bigint, bigint][] = []; for (let to = hi; to >= lo; to -= size) out.push([to - size + 1n > lo ? to - size + 1n : lo, to]); return out; };
+      const slices = cut(from0, latest, SLICE);
       const getSlice = ([a, b]: [bigint, bigint]) => rpc(() => logs.request({ method: "eth_getLogs", params: [{ topics: [SWAP_TOPICS], fromBlock: `0x${a.toString(16)}`, toBlock: `0x${b.toString(16)}` }] }) as Promise<{ address?: string }[]>);
+      const inPieces = async ([a, b]: [bigint, bigint]) => { const out: { address?: string }[] = []; for (const p of cut(a, b, PIECE)) out.push(...await getSlice(p)); return out; };
       const chunks: { address?: string }[][] = [];
-      for (let i = 0; i < slices.length; i += 3) chunks.push(...await Promise.all(slices.slice(i, i + 3).map((s) => getSlice(s).catch(() => getSlice(s)))).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "Base's log nodes did not answer; try again (nothing was charged)") : e; }));
+      for (let i = 0; i < slices.length; i += 3) chunks.push(...await Promise.all(slices.slice(i, i + 3).map((s) => getSlice(s).catch(() => inPieces(s)))).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "Base's log nodes did not answer; try again (nothing was charged)") : e; }));
       const scan = { logs: chunks.flat(), fromBlock: from0 };
       const perPool = new Map<string, number>();
       for (const l of scan.logs as { address?: string }[]) if (l.address) perPool.set(l.address.toLowerCase(), (perPool.get(l.address.toLowerCase()) ?? 0) + 1);
@@ -404,7 +406,7 @@ export const CHAIN_MORE: Entry[] = [
       ])));
       const fromBlock = Number(scan.fromBlock);
       const out = {
-        chain: "Base", fromBlock, toBlock: Number(latest), minutes: sig6(((Number(latest) - fromBlock + 1) * BLOCK_SECONDS.base) / 60),
+        chain: "Base", fromBlock, toBlock: Number(latest), minutes: sig6(((Number(latest) - fromBlock + 1) * (await recentBlockSeconds(logs, "base", latest))) / 60),
         swapsCounted: total, poolsSeen: perPool.size, count: ranked.length,
         tokens: ranked.map(([t, v], i) => ({ rank: i + 1, address: getAddress(t), symbol: meta[i][0], name: meta[i][1], swaps: v.swaps, pools: v.pools, shareOfSwaps: sig6(v.swaps / total), topPool: v.topPool,
           // Copycat tokens reuse a famous symbol (two "AERO" in one list, 5 Nov 2026): flag every symbol that appears twice.

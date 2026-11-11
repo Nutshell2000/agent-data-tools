@@ -1497,3 +1497,23 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `isQuoteAsset` (src/routes/token-report.ts): DexScreener lists a token's pairs only where it is the base token, so
   market figures for USDC, WETH and the like are labelled `representative: false` and raise no liquidity flags.
 
+## Block times are read from the chain (1.143.0, 11 Nov 2026)
+
+- Base moved from 2 s to 0.2 s blocks around 5 Nov 2026. Never convert days or minutes into a block count with a fixed
+  number: `src/lib/block-time.ts` has `recentBlockSeconds(client, slug, latest)` (two headers 20,000 blocks apart,
+  kept ten minutes per network as a plain number) and `blockAtTime(client, head, unixTime, { secs, tolerance, samples })`
+  (interpolation over real headers, bisection after two reads on the same side, so it holds across a change of block
+  time; share `samples` between targets). `NOMINAL_BLOCK_SECONDS` is the fallback only, measured 11 Nov 2026.
+- Users: /x402/seller-record (window start, `hoursCovered`, `requestedFromBlock` and `coverageNote` when partial),
+  /wallet/balance-history (one block per day by time, `blockTime` per point), /whale/transfers, /dex/new-pools ages,
+  /dex/trending minutes. Copy that states "N blocks is about M minutes" comes from the same measurement
+  (`BLOCK_WINDOW` in src/routes/chain-reads.ts); re-measure before trusting it.
+- publicnode answers address-filtered eth_getLogs up to 50,000 blocks ("exceed maximum block range: 50000"); Tenderly
+  1,000 for filtered and at least 500 for topic-only Swap scans. `scanInflows` (src/routes/trust.ts) keeps only the
+  unbroken newest part of a scan, so counts and coverage always describe the same blocks.
+- Still on block counts, now stated in honest time: /<network>/token-transfers (default 1,000 = about 3 minutes on
+  Base), /wallet/related and /wallet/transactions (2,000 = 7 minutes), /token/buyers (1,800 = 6 minutes), /dex/new-pools
+  (3,000 = 10 minutes). Raising those Base defaults would cost more log calls per answer: decide per tool with a
+  staging proof, not by copy.
+- Paused /buy/* paths answer 410 (they answered 503, which trust graders read as an outage: Lumière F, uptime 0).
+

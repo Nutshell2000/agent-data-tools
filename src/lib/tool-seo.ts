@@ -344,7 +344,7 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
   "/base/token-transfers": {
     title: "Base USDC transfer history API: recent ERC-20 transfers of a wallet",
     uses: ["Confirm a USDC payment arrived at a Base address", "See what a wallet sent or received, newest first, with counterparty, amount and transaction", "Check another ERC-20 token by ticker or contract address"],
-    faq: [["How far back does it look?", "The last 1 to 2,000 blocks (default 1,000); 2,000 blocks is about 67 minutes on Base. Up to 50 transfers are returned."], ["Which token is the default?", "USDC on Base; pass token for USDT, WETH or any ERC-20 contract. For the current balance use base_token_balance."]],
+    faq: [["How far back does it look?", "The last 1 to 2,000 blocks (default 1,000); 2,000 blocks is about 7 minutes on Base (a block every 0.2 s). Up to 50 transfers are returned."], ["Which token is the default?", "USDC on Base; pass token for USDT, WETH or any ERC-20 contract. For the current balance use base_token_balance."]],
   },
   "/eth/token-transfers": {
     title: "Ethereum USDC transfer history API: recent ERC-20 wallet transfers",
