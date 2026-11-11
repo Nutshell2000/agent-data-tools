@@ -1,6 +1,11 @@
 import { dexscreener } from "../lib/dexscreener";
 import { HttpError, type Env } from "../lib/env";
 import { tokenInfo } from "./token";
+import { TICKERS } from "../lib/tickers";
+
+/** Base tokens other tokens are quoted in: stablecoins, wrapped ether and wrapped bitcoin from the shared ticker table. */
+const QUOTE_ASSETS = new Set(["WETH", "USDC", "USDBC", "DAI", "EURC", "USDT", "CBBTC"].map((t) => TICKERS.base[t].toLowerCase()));
+export const isQuoteAsset = (address: string) => QUOTE_ASSETS.has(address.toLowerCase());
 
 interface Pair {
   chainId: string;
@@ -56,6 +61,11 @@ export async function tokenReport(env: Env, address: string) {
   if (t.proxy?.isProxy) flags.push({ level: "medium", code: "upgradeable", message: "Upgradeable proxy: contract logic can be replaced by its admin." });
 
   let market: Record<string, unknown> | null = null;
+  // DexScreener lists a token's pairs where it is the base token. For the assets other tokens are priced in (USDC, WETH,
+  // DAI…) most trading sits in pairs where they are the quote, so the figures below would read as a thin, quiet market
+  // (11 Nov 2026 audit: Base USDC showed $2,754 of 24-hour volume). They are kept, labelled, and raise no liquidity flags.
+  const quoteAsset = isQuoteAsset(address);
+  if (quoteAsset) flags.push({ level: "info", code: "quote_asset", message: "This is a quote asset: DexScreener's pairs for it cover only markets where it is the base token, so volume and liquidity here understate its real trading." });
   if (found === null) {
     flags.push({ level: "info", code: "market_data_unavailable", message: "Market data source did not respond." });
   } else if (found.length === 0) {
@@ -75,10 +85,12 @@ export async function tokenReport(env: Env, address: string) {
       pairCount: found.length,
       topPair: { dex: top.dexId, quote: top.quoteToken.symbol, address: top.pairAddress, url: top.url, ageDays },
       trades24h: tx ? { buys: tx.buys, sells: tx.sells } : null,
+      ...(quoteAsset ? { coverage: "pairs where this token is the base token only", representative: false } : {}),
     };
-    if (totalLiquidity < 10_000) flags.push({ level: "high", code: "low_liquidity", message: `Total liquidity is only about $${Math.round(totalLiquidity)}.` });
+    if (quoteAsset) { /* liquidity and pair-age flags would describe a side market, not the token */ }
+    else if (totalLiquidity < 10_000) flags.push({ level: "high", code: "low_liquidity", message: `Total liquidity is only about $${Math.round(totalLiquidity)}.` });
     else if (totalLiquidity < 100_000) flags.push({ level: "medium", code: "thin_liquidity", message: `Liquidity is thin (about $${Math.round(totalLiquidity)}).` });
-    if (ageDays !== null && ageDays < 7) flags.push({ level: "medium", code: "new_pair", message: `Top-liquidity listed pair is only ${ageDays} day(s) old.` });
+    if (!quoteAsset && ageDays !== null && ageDays < 7) flags.push({ level: "medium", code: "new_pair", message: `Top-liquidity listed pair is only ${ageDays} day(s) old.` });
     if (tx && tx.buys > 20 && tx.sells === 0) flags.push({ level: "high", code: "no_sells", message: "Buys but no sells in 24h, a possible honeypot pattern." });
   }
 

@@ -185,9 +185,15 @@ export async function nativeChat(env: Env, input: NativeInput, maxTokens: number
   const response = typeof content === "string" ? content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim() : content == null ? "" : JSON.stringify(content);
   if (!response && !toolCalls.length) throw new HttpError(502, "the AI model returned an empty answer");
   const u = out?.usage;
+  const counted = typeof u?.prompt_tokens === "number" || typeof u?.completion_tokens === "number";
+  // Workers AI normally reports usage; when it does not, the counts are estimated from characters and say so.
+  const sent = JSON.stringify(input.messages).length + (input.tools ? JSON.stringify(input.tools).length : 0);
+  const usage = counted
+    ? { prompt_tokens: u?.prompt_tokens ?? 0, completion_tokens: u?.completion_tokens ?? 0, total_tokens: u?.total_tokens ?? (u?.prompt_tokens ?? 0) + (u?.completion_tokens ?? 0) }
+    : { prompt_tokens: Math.ceil(sent / 4), completion_tokens: Math.ceil(response.length / 4), total_tokens: Math.ceil((sent + response.length) / 4) };
   return {
     model: CHAT_MODEL, response, tool_calls: toolCalls, finish_reason: toolCalls.length ? "tool_calls" : choice?.finish_reason ?? "stop",
-    usage: { prompt_tokens: u?.prompt_tokens ?? 0, completion_tokens: u?.completion_tokens ?? 0, total_tokens: u?.total_tokens ?? (u?.prompt_tokens ?? 0) + (u?.completion_tokens ?? 0) },
+    usage, ...(counted ? {} : { usageEstimated: true }),
   };
 }
 
@@ -263,10 +269,11 @@ export const AI_TEXT: Entry[] = [
       if (native) return nativeChat(env, native, maxTokens, temperature);
       const prompt = need(q, "prompt", 8000);
       const system = opt(q, "system", 2000) ?? "You are a helpful, concise assistant.";
-      const response = await chat(env, system, prompt, maxTokens, temperature, CHAT_MODEL);
-      return { model: CHAT_MODEL, response, tool_calls: [], finish_reason: "stop", usage: { prompt_tokens: Math.ceil((prompt.length + system.length) / 4), completion_tokens: Math.ceil(response.length / 4), total_tokens: Math.ceil((prompt.length + system.length + response.length) / 4) } };
+      // The prompt path runs as two messages through the native call, so `usage` is the model's own token count (11 Nov 2026
+      // audit: it was characters divided by four, presented as tokens to buyers who meter on it).
+      return nativeChat(env, { messages: [{ role: "system", content: system }, { role: "user", content: prompt }] }, maxTokens, temperature);
     }, CHAT_PRICE),
-  entry("/ai/chat-large", "LLM inference, large model: Llama 3.3 70B or gpt-oss-120b", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when the 8B model is not enough: reasoning, drafting and Q&A.",
+  entry("/ai/chat-large", "LLM inference, large model: Llama 3.3 70B or gpt-oss-120b", "Send a prompt, get an answer from a larger open model: Llama 3.3 70B Instruct (default) or OpenAI gpt-oss-120b, with an optional system prompt, up to 1,024 output tokens and adjustable temperature. Same call as /ai/chat with a stronger model. Use when Llama 4 Scout is not enough: reasoning, drafting and Q&A.",
     ["chat", "completion", "llama", "gpt-oss", ...T], {
       prompt: { type: "string", description: "User prompt, up to 8,000 characters", required: true, example: "Explain HTTP status code 402 in one sentence." },
       model: { type: "string", description: "llama-3.3-70b (default) or gpt-oss-120b", example: "llama-3.3-70b", enum: ["llama-3.3-70b", "gpt-oss-120b"] },
