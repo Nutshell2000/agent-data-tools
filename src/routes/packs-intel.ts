@@ -294,20 +294,26 @@ export const PACKS_INTEL: Entry[] = [
     }, "$0.01"),
 
   entry("/pack/gas-tracker", "Gas tracker, multichain gas: 5 EVM chains and Bitcoin fees",
-    "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and, for the ETH chains, in US dollars (Uniswap ETH price), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet.",
+    "One call for current gas prices on Base, Ethereum, Arbitrum, Optimism and Polygon: gas price, base fee and priority fee in gwei and what a plain transfer costs in the native coin and in US dollars (Uniswap prices), sorted cheapest first, plus Bitcoin fee rates in sat/vB. Cheaper than the tools bought one by one. Use to pick the cheapest chain, time a transaction or show fees in a wallet.",
     ["gas-tracker", "multichain-gas", "gas-price", "gas-fees", "pack", "crypto"], {},
     { pack: "gas-tracker", ethUsd: 2371.36, chains: [{ chain: "Optimism", gasPriceGwei: "0.001000292", baseFeeGwei: "0.000000292", priorityFeeGwei: "0.001", transferCost: "0.000000021006132", symbol: "ETH", transferUsd: 0.00005 }], cheapest: "Optimism", bitcoin: { nextBlock: 3, hour: 2, unit: "sat/vB" }, failed: {} },
     async (env) => {
       const { data, failed } = await runSections({
         ...Object.fromEntries(GAS_CHAINS.map(([slug]) => [slug, call(env, `/${slug}/gas`, {})])),
         ethUsd: call(env, "/price/token", { symbol: "ETH", chain: "base" }),
+        // POL for Polygon's cost in dollars (11 Nov 2026: it was always null there). Best effort: a failed or thin-pool
+        // price leaves that one figure null and is not reported as a failed section.
+        polUsd: call(env, "/price/token", { symbol: "POL", chain: "eth" }).catch(() => null),
         bitcoin: bitcoinFees(),
       });
       const usd = (data.ethUsd as { usd?: number; priceUsd?: number } | undefined);
       const ethUsd = usd?.usd ?? usd?.priceUsd ?? null;
+      const pol = data.polUsd as { priceUsd?: number; thinLiquidity?: boolean } | null | undefined;
+      const nativeUsd: Record<string, number | null> = { ETH: ethUsd, POL: pol && !pol.thinLiquidity && typeof pol.priceUsd === "number" ? pol.priceUsd : null };
       const chains = GAS_CHAINS.filter(([slug]) => data[slug]).map(([slug, name, symbol]) => {
         const g = data[slug] as { gasPriceGwei: string; baseFeeGwei: string | null; priorityFeeGwei?: string | null; transferCost: string };
-        const transferUsd = symbol === "ETH" && ethUsd ? Math.round(Number(g.transferCost) * ethUsd * 1e6) / 1e6 : null;
+        const price = Object.hasOwn(nativeUsd, symbol) ? nativeUsd[symbol] : null;
+        const transferUsd = price ? Math.round(Number(g.transferCost) * price * 1e6) / 1e6 : null;
         return { chain: name, gasPriceGwei: g.gasPriceGwei, baseFeeGwei: g.baseFeeGwei, priorityFeeGwei: g.priorityFeeGwei ?? null, transferCost: g.transferCost, symbol, transferUsd };
       }).sort((a, b) => (a.transferUsd ?? Infinity) - (b.transferUsd ?? Infinity));
       const fees = data.bitcoin as { fees?: { nextBlock: number; hour: number }; unit?: string } | undefined;

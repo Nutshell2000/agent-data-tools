@@ -3,7 +3,7 @@
 // 7-20 s for a cold country/indicator pair on 22 Oct 2026 (a paid call has an 8 s budget) and the data changes yearly.
 // Licence: World Bank Open Data, CC BY 4.0 (datacatalog.worldbank.org/public-licenses#cc-by); every answer names it.
 //   node scripts/fetch-world-bank.mjs        (about 10 requests; rerun monthly or when a tool adds an indicator)
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 
 const YEARS = 10;
 /** Indicator code -> short key used in the tools. Keep in step with src/routes/econ.ts. */
@@ -50,6 +50,11 @@ for (const [code, key] of Object.entries(INDICATORS)) {
     if (r.value === null || !countries[r.countryiso3code]) continue;
     (byCountry[r.countryiso3code] ??= {})[r.date] = Number(r.value);
   }
+  // 11 Nov 2026: on 22 Oct the API answered this "all countries" request for total unemployment with one year per
+  // country, and the tool sold a one-year "history" for three weeks. A short answer stops the run.
+  const depths = Object.values(byCountry).map((years) => Object.keys(years).length).sort((a, b) => a - b);
+  const median = depths[Math.floor(depths.length / 2)] ?? 0;
+  if (median < Math.min(YEARS, 5)) throw new Error(`${code}: only ${median} years for the median country; the API answered short, run again`);
   series[key] = byCountry;
   console.error(`${code} ${key}: ${Object.keys(byCountry).length} countries`);
 }
