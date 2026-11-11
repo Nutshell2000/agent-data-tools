@@ -244,6 +244,7 @@ export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utiliti
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/cve": "Company, compliance and checks",
+  "/se/company": "Company, compliance and checks",
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
   "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
