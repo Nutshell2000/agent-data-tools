@@ -1,0 +1,73 @@
+name: Mirror the Swedish company register
+
+# /se/company reads Bolagsverket's and SCB's free weekly bulk files (EU high-value datasets, "värdefulla datamängder":
+# no agreement, commercial reuse allowed). The two zips are 250 MB and 70 MB, too large for a Worker, so this job
+# downloads them on GitHub's servers, keeps legal persons only (no sole traders, no c/o lines) and publishes 509
+# company shards plus a name index as release assets. Bolagsverket refreshes the files on Mondays; this runs on
+# Tuesdays, on demand, and when the builder or this workflow changes.
+on:
+  schedule:
+    - cron: "41 5 * * 2"
+  workflow_dispatch:
+  push:
+    branches: [main, claude/se-company]
+    paths:
+      - scripts/build-se-company-index.mjs
+      - .github/workflows/se-company-mirror.yml
+
+concurrency:
+  group: se-company-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: write # Create and update the se-company-data and se-company-names releases
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: repo
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Download the two bulk files
+        run: |
+          set -euo pipefail
+          base=https://vardefulla-datamangder.bolagsverket.se
+          curl -fsSI "$base/bolagsverket/bolagsverket_bulkfil.zip" | tr -d '\r' | grep -i '^last-modified:' | cut -d' ' -f2- > bv-date.txt || true
+          for f in bolagsverket/bolagsverket_bulkfil.zip scb/scb_bulkfil.zip; do
+            curl -fSL --retry 5 --retry-delay 30 --speed-limit 1000 --speed-time 120 -o "$(basename "$f")" "$base/$f"
+          done
+          ls -l *.zip
+          unzip -o -q bolagsverket_bulkfil.zip -d bv
+          unzip -o -q scb_bulkfil.zip -d scb
+          ls -l bv scb
+
+      - name: Build the shards
+        run: |
+          set -euo pipefail
+          export SE_DATA_AS_OF=$(date -u -d "$(cat bv-date.txt)" +%F 2>/dev/null || date -u +%F)
+          node repo/scripts/build-se-company-index.mjs bv/*.txt out scb/*.txt
+          ls out | wc -l
+          test -f out/manifest.json && test -f out/c0.json.gz && test -f out/n0.json.gz
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          for rel in se-company-data se-company-names; do
+            gh release view "$rel" --repo "$repo" >/dev/null 2>&1 || gh release create "$rel" --repo "$repo" --prerelease \
+              --title "Swedish company register ($rel)" \
+              --notes "Legal persons from Bolagsverket's and SCB's weekly open bulk files (värdefulla datamängder, free for reuse), split into shards for /se/company. Sole traders and c/o lines are left out. Register facts only, not credit information. Source: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/nedladdningsbarafiler.2517.html"
+          done
+          gh release upload se-company-names out/n*.json.gz --repo "$repo" --clobber
+          gh release upload se-company-data out/c*.json.gz --repo "$repo" --clobber
+          # The manifest goes last: its date then names data that is all in place.
+          gh release upload se-company-data out/manifest.json --repo "$repo" --clobber
+          cat out/manifest.json
