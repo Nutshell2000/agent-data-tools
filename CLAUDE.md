@@ -1450,3 +1450,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `node scripts/build-changelog.mjs` rewrites src/data/changelog.generated.ts from the release commits on origin/main; run it before a release so the newest versions appear.
 - The routing layer never moves (plan: C:\MoneyWallet\business\spellzcode-professionalisation-plan-2026-11-11.md): the workers.dev origin, PAY_TO and the other payout wallets, tool paths and names, the io.github.Nutshell2000 registry names, the repo path and the Worker name. Never put "SpellzCode" into a tool name; `SERVICE_NAME` stays "Agent Data Tools".
 
+
+
+## Trust and evidence tools (1.140.0, 11 Nov 2026)
+
+- src/routes/trust.ts. Why: the 11 Nov research (reports/Agentic payments market for SpellzCode.md) found trust the thinnest layer of agent payments and the one niche SpellzCode can lead without a licence: on stablecoin rails there are no chargebacks, so buyers need checks before paying and receipts after. /check/payee and /check/x402-seller already screen the payee; these add what they do not answer.
+- `/x402/payout-check`: `payoutVerdict(live, listing, declaration)`. The Bazaar listing is found with the discovery search queried by the resource URL (it returns the exact resource first, checked 11 Nov 2026) and matched on `bare()` URL. `declaredWallets()` reads `payTo` (Lumiere's format, ours), `wallets` or `payouts`, strings or {address}. A declared rotation needs BOTH the live and the listed wallet in the file.
+- `/x402/seller-record`: `inflows()` scans USDC Transfer logs filtered by the payee topic in windows of `SCAN_WINDOW` 40,000 blocks, newest first; publicnode answers up to 50,000 blocks for one address and topic, tenderly 1,000, nodies 50, mainnet.base.org rate-limits (probed from the PC 11 Nov 2026). Prove it from staging after release: Cloudflare egress may meet other limits. A later window that fails keeps what was read with `complete: false`. It counts every USDC transfer in, x402 or not.
+- `/x402/receipt`: `canonicalJson()` (sorted keys) of the receipt core and its SHA-256; `receiptId` = `rcpt_` + 16 hex of SHA-256(chain|hash|logIndex). `method` is `eip3009-authorization` when the USDC contract emitted AuthorizationUsed in the same transaction (the x402 exact scheme). Example: Mercator's $0.01 payment of 11 Nov 2026, tx 0x778c8c1b…b933.
+- Rules: never add a credit score, a person's name or anything that rates a person (IMY permit, AI Act high-risk from 2 Dec 2027); describe wallets, listings and transactions only. Nothing here may hold, move or sign funds.
+
