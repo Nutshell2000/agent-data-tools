@@ -8,7 +8,7 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
-import { readable402 } from "./lib/readable-402";
+import { readable402, wantsV1Body } from "./lib/readable-402";
 import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
@@ -51,7 +51,7 @@ import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
 import { paycheckDeclaration } from "./lib/payout-wallets";
 /** Query parameters that steer the call and are not tool input. */
-const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key"]);
+const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key", "x402"]);
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
@@ -358,7 +358,7 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && httpFree(c.req.path) && !activeTrace()?.stages.has("free_exhausted"), endpoint ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
+  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && httpFree(c.req.path) && !activeTrace()?.stages.has("free_exhausted"), endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }

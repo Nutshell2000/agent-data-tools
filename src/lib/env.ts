@@ -8,6 +8,8 @@ export interface Env {
   FACILITATOR_URL: string;
   PAYWALL: string;
   TRIALS_ENABLED?: string;
+  /** "v1" puts the x402 v1 terms back in every tool's 402 body (the behaviour before 1.117.0); unset means the body mirrors the v2 header. */
+  QUOTE_BODY?: string;
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
