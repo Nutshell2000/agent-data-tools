@@ -85,7 +85,7 @@ test('an unpaid POST for a large model is quoted at the /ai/chat-large price', a
   const res = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'gpt-oss-120b', messages: [{ role: 'user', content: 'Hi' }] }) });
   assert.equal(res.status, 402);
   const quote = await res.json();
-  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
+  assert.equal(quote.accepts[0].amount, '10000');
   assert.equal(res.headers.get('x-tool'), '/ai/chat-large');
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
   assert.deepEqual(models.data.map((m) => m.id).slice(0, 3), ['@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
@@ -163,9 +163,9 @@ test('an unpaid POST gets the /ai/chat quote with x402 terms and MPP challenges,
     assert.ok(res.headers.get('payment-required'), 'x402 v2 terms');
     assert.match(res.headers.get('www-authenticate') ?? '', /method="evm"/, 'MPP challenge');
     const quote = await res.json();
-    assert.equal(quote.x402Version, 1);
-    assert.equal(quote.accepts[0].maxAmountRequired, '2000', 'the /ai/chat price');
-    assert.equal(quote.accepts[0].resource, 'https://api.test/v1/chat/completions', 'the v1 quote names the front');
+    assert.equal(quote.x402Version, 2);
+    assert.equal(quote.accepts[0].amount, '2000', 'the /ai/chat price');
+    assert.equal(quote.resource.url, 'https://api.test/v1/chat/completions', 'the body names the front, as the header does');
     const terms = JSON.parse(Buffer.from(res.headers.get('payment-required'), 'base64').toString());
     assert.equal(terms.resource.url, 'https://api.test/v1/chat/completions', 'the v2 quote names the front, without a query');
     assert.match(terms.resource.description, /^OpenAI-compatible chat completions/);
@@ -213,8 +213,8 @@ test('a GET carries the same inputs in the query: a bare GET is quoted, prompt= 
   const get = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=Hi&model=llama-3.3-70b');
   assert.equal(get.status, 402);
   const quote = await get.json();
-  assert.equal(quote.accepts[0].maxAmountRequired, '10000');
-  assert.equal(quote.accepts[0].resource, 'https://api.test/v1/chat/completions');
+  assert.equal(quote.accepts[0].amount, '10000');
+  assert.equal(quote.resource.url, 'https://api.test/v1/chat/completions');
   const head = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=Hi', { method: 'HEAD' });
   assert.equal(head.status, 402);
   await head.arrayBuffer();

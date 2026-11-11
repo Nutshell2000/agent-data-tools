@@ -81,7 +81,7 @@ test('each tool offers evm/charge next to x402 by default: USDC on Base to PAY_T
   assert.equal(quote.status, 402);
   assert.ok(quote.headers.get('payment-required'), 'x402 v2 terms stay');
   const body = await quote.json();
-  assert.equal(body.x402Version, 1, 'x402 v1 body stays');
+  assert.equal(body.x402Version, 2, 'the body mirrors the v2 header');
   const { Challenge } = await import('mppx');
   const challenges = Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers }));
   const challenge = challenges.find((ch) => ch.method === 'evm');

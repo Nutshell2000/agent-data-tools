@@ -283,9 +283,11 @@ export async function asFrontQuote(answer: Response, outer: URL, description: st
   }
   let body: string | null = await answer.text();
   try {
-    const parsed = JSON.parse(body) as { accepts?: Array<Record<string, unknown>> };
+    const parsed = JSON.parse(body) as { x402Version?: number; resource?: Record<string, unknown>; accepts?: Array<Record<string, unknown>> };
     if (Array.isArray(parsed.accepts)) {
-      for (const a of parsed.accepts) { a.resource = url; if (description) a.description = description; }
+      // The body mirrors the v2 header since 1.117.0 (v1 terms only on request): name the front in the same place.
+      if (parsed.x402Version === 2) parsed.resource = { ...parsed.resource, url, ...(description ? { description } : {}) };
+      else for (const a of parsed.accepts) { a.resource = url; if (description) a.description = description; }
       body = JSON.stringify(parsed);
       headers.delete("content-length");
     }

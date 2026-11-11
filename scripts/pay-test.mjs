@@ -85,7 +85,10 @@ async function httpV2(url) {
 
 /** x402 v1: terms come from the 402 body; the payment is an EIP-3009 authorization in the X-PAYMENT header. */
 async function httpV1(url) {
-  const plain = await fetch(url);
+  // Since 1.121.0 the body mirrors the v2 header; a v1 client asks for v1 terms with x402=1 (the paid call needs no flag).
+  const quoteUrl = new URL(url);
+  quoteUrl.searchParams.set("x402", "1");
+  const plain = await fetch(quoteUrl);
   console.log(`unpaid: HTTP ${plain.status}`);
   const body = await plain.json().catch(() => null);
   if (plain.status !== 402 || body?.x402Version !== 1) { console.log(`REFUSING: no x402 v1 terms in the body (${JSON.stringify(body).slice(0, 200)})`); process.exit(1); }

@@ -115,7 +115,7 @@ test('each tool offers tempo/charge next to x402, with recipient, expiry and pul
   assert.equal(quote.status, 402);
   assert.ok(quote.headers.get('payment-required'), 'x402 v2 terms stay');
   const body = await quote.json();
-  assert.equal(body.x402Version, 1, 'x402 v1 body stays');
+  assert.equal(body.x402Version, 2, 'the body mirrors the v2 header');
   const { Challenge } = await import('mppx');
   const challenge = Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers })).find((ch) => ch.method === 'tempo');
   assert.ok(challenge, 'a tempo challenge is offered next to the evm one');

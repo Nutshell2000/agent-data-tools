@@ -69,8 +69,8 @@ test('actual HTTP paywall links successful payment to completed output and never
   const q=await mf.dispatchFetch(url);assert.equal(q.status,402);
   const requirements=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
   assert.equal(requirements.amount,'2000');
-  // The body carries the same terms in x402 v1 shape for v1 clients (v2 clients read the header).
-  const body=await q.json();assert.equal(body.x402Version,1);const v1base=body.accepts.find(a=>a.network==='base');assert.equal(v1base.maxAmountRequired,requirements.amount);assert.equal(v1base.payTo.toLowerCase(),requirements.payTo.toLowerCase());assert.equal(v1base.asset.toLowerCase(),requirements.asset.toLowerCase());assert.match(body.hint,/llms\.txt/);
+  // The body mirrors the v2 header (1.117.0): same version, same terms, and the Bazaar extension that describes the inputs.
+  const body=await q.json();assert.equal(body.x402Version,2);assert.deepEqual(body.accepts[0],requirements);assert.ok(body.extensions?.bazaar?.info?.input,'the body describes the inputs');assert.equal(body.resource.url,JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).resource.url);assert.match(body.hint,/llms\.txt/);assert.match(body.hint,/x402=1/);
   // Card payments are ready here, so a caller without a wallet gets the $5 Stripe checkout as one link.
   assert.match(body.hint,/No wallet\? Pay \$1 by card in one step at https:\/\/buy\.stripe\.com\/fZufZhdSGgq3bFU5MNbII06 \(1,000 credits, about 500 calls at \$0\.002; the key is shown right after payment/);
   // A free sample shows the documented example without running the tool or settling.
@@ -271,16 +271,18 @@ test('MCP connections are counted by client name on /metrics/callers',async()=>{
   assert.ok(seen&&seen.open>=1,'initialize from an open /mcp connection is counted');
 });
 
-test('x402 v1: v1 terms in the 402 body beside the v2 header, X-PAYMENT settles only successful calls and is recorded',async()=>{
+test('x402 v1: v1 terms in the 402 body on request (x402=1) beside the v2 header, X-PAYMENT settles only successful calls and is recorded',async()=>{
  const before=(await revenue()).settlements;
  const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
- const quote=await mf.dispatchFetch(url);assert.equal(quote.status,402);
+ // v1 terms are in the body on request (x402=1); without it the body mirrors the v2 header.
+ const plain=await (await mf.dispatchFetch(url)).json();assert.equal(plain.x402Version,2,'the default body is v2');
+ const quote=await mf.dispatchFetch(url+'&x402=1');assert.equal(quote.status,402);
  assert.ok(quote.headers.get('payment-required'),'v2 header kept');
  const body=await quote.json();
- assert.equal(body.x402Version,1);
+ assert.equal(body.x402Version,1);assert.match(body.hint,/terms in this body, pay with X-PAYMENT/);
  const base=body.accepts.find(a=>a.network==='base');
  assert.equal(base.maxAmountRequired,'2000');assert.equal(base.payTo,getAddress(recipient),'payTo is quoted checksummed');assert.equal(base.payTo.toLowerCase(),recipient);assert.equal(base.asset.toLowerCase(),'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
- assert.equal(base.resource,url);assert.deepEqual(base.extra,{name:'USD Coin',version:'2'});
+ assert.equal(base.resource,url+'&x402=1');assert.deepEqual(base.extra,{name:'USD Coin',version:'2'});
  const v1=(nonce,value='2000')=>Buffer.from(JSON.stringify({x402Version:1,scheme:'exact',network:'base',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value,validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+nonce}}})).toString('base64');
  const paid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa01')}});
  assert.equal(paid.status,200);
