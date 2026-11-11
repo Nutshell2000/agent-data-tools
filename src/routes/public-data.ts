@@ -224,8 +224,8 @@ export const PUBLIC_DATA: Entry[] = [
     }),
 
   entry("/geocode", "Geocode address, geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
-    ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Uppsala" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
-    { count: 1, results: [{ name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.858, lon: 17.645, population: 170000, elevation: 15, wikidataId: "Q…" }], source: "Wikidata (CC0 public domain)" },
+    ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Lisbon" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
+    { count: 1, results: [{ name: "Lisbon", description: "municipality and capital city of Portugal", country: "Portugal", region: "Lisbon", lat: 38.708, lon: -9.139, population: 545796, elevation: 100, wikidataId: "Q597" }], source: "Wikidata (CC0 public domain)" },
     async (_e, q) => {
       const name = need(q, "name", 100);
       const count = num(q, "count", { min: 1, max: 10, fallback: 5, integer: true });

@@ -281,7 +281,7 @@ export const PACKS: Entry[] = [
         contract: call(env, "/base/is-contract", { address }),
         baseNonce: call(env, "/base/nonce", { address }),
         ethNonce: call(env, "/eth/nonce", { address }),
-        // 1,000 blocks (about 33 minutes on Base): the published example took 11.9 s at 2,000, past many buyers' patience.
+        // 1,000 blocks (about 3 minutes on Base since its 0.2 s blocks; 33 minutes before 5 Nov 2026): the published example took 11.9 s at 2,000, past many buyers' patience.
         transfers: call(env, "/base/token-transfers", { address, blocks: 1000 }),
         sanctions: call(env, "/sanctions/check", { address }),
       });

@@ -4,19 +4,23 @@
 import { formatUnits } from "viem";
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { recentBlockSeconds } from "../lib/block-time";
 import { tokenAddress } from "../lib/tickers";
 import { CHAINS, logsClient, rpc } from "./chain-reads";
 
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const ZERO_TOPIC = "0x" + "0".repeat(64);
 // Seconds per block, blocks per eth_getLogs window (keeps each answer to a few thousand logs) and the most blocks one call
-// scans. Base USDC carries ~270 transfers a block, so Base covers the fewest minutes.
+// scans. `secs` is only the fallback: the span and minutesCovered use the block time read from the chain
+// (`recentBlockSeconds`). Base went from 2 s to 0.2 s blocks around 5 Nov 2026 and a block now carries about a tenth
+// of the transfers (~27 USDC transfers), so its window and cap are ten times the old 10 and 90: the same log volume
+// per call, and the same three minutes it covered before.
 const PACE: Record<string, { secs: number; window: number; max: number }> = {
   eth: { secs: 12, window: 10, max: 75 },
-  base: { secs: 2, window: 10, max: 90 },
-  arb: { secs: 0.25, window: 400, max: 2400 },
+  base: { secs: 0.2, window: 100, max: 900 },
+  arb: { secs: 0.31, window: 400, max: 2400 },
   op: { secs: 2, window: 50, max: 300 },
-  polygon: { secs: 2, window: 30, max: 300 },
+  polygon: { secs: 1.5, window: 30, max: 300 },
 };
 const CHAIN_NAMES: Record<string, string> = { ethereum: "eth", eth: "eth", mainnet: "eth", base: "base", arbitrum: "arb", arb: "arb", "arbitrum one": "arb", optimism: "op", op: "op", polygon: "polygon", matic: "polygon", pol: "polygon", "polygon pos": "polygon" };
 
@@ -60,7 +64,8 @@ export async function whaleTransfers(env: Env, chainRaw?: string, tokenRaw?: str
   for (const s of symbols) { try { tokens.push({ symbol: s, address: tokenAddress(s, slug).toLowerCase() }); } catch { if (symbols.length === 1) throw new HttpError(400, `${s} is not tracked on ${def.name}`); } }
   const cl = logsClient(env, def);
   const latest = await rpc(() => cl.getBlockNumber());
-  const span = BigInt(Math.min(pace.max, Math.max(1, Math.round((minutes * 60) / pace.secs))));
+  const secs = await recentBlockSeconds(cl, slug, latest);
+  const span = BigInt(Math.min(pace.max, Math.max(1, Math.round((minutes * 60) / secs))));
   const floor = latest - span + 1n;
   const min = BigInt(Math.round(minUsd)) * 1_000_000n;
   const bySymbol = new Map(tokens.map((t) => [t.address, t.symbol]));
@@ -88,7 +93,7 @@ export async function whaleTransfers(env: Env, chainRaw?: string, tokenRaw?: str
     tokens: tokens.map((t) => t.symbol),
     minUsd,
     fromBlock, toBlock: Number(latest),
-    minutesCovered: Math.round(((Number(latest) - fromBlock + 1) * pace.secs) / 6) / 10,
+    minutesCovered: Math.round(((Number(latest) - fromBlock + 1) * secs) / 6) / 10,
     complete: to < floor,
     transfersScanned: scanned,
     count: found.length,
