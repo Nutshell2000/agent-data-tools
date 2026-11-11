@@ -1,5 +1,5 @@
 {
-  "version": "1.140.0",
+  "version": "1.141.0",
   "tools": [
     {
       "name": "extract",
@@ -18110,6 +18110,38 @@
         }
       },
       "price": "$0.01"
+    },
+    {
+      "name": "claims_check",
+      "description": "Check product copy or page text (up to 20,000 characters; English, Swedish, German, French, Spanish) for environmental claims the EU bans since 27 Sep 2026: generic claims ('eco-friendly'), offset-based 'climate neutral', own labels, whole-product claims, future promises, legal requirements sold as features. Returns each finding with severity, the rule cited and a fix. Rules only, not legal advice. Use before publishing shop copy. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The product text to check (up to 20,000 characters)"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language of the text if known: en, sv, de, fr or es (detected otherwise; English is always checked too)"
+          },
+          "explain": {
+            "type": "string",
+            "description": "Language of the explanations: en (default) or sv"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.02"
     },
     {
       "name": "crypto_fear_greed",

@@ -47,6 +47,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (e.path === "/page/markdown") assert.equal(e.price, "$0.002", e.path);
     // Company financial statements and their two doors (owner, 11 Nov 2026: "Yes, at $0.02"): the Bazaar's statement sellers charge $0.02-0.10.
     else if (["/sec/financials", "/stock/fundamentals", "/income-statement"].includes(e.path)) assert.equal(e.price, "$0.02", e.path);
+    // Sann green-claims checker (owner, 11 Nov 2026: "Pro $9.99, call $0.02").
+    else if (e.path === "/claims/check") assert.equal(e.price, "$0.02", e.path);
     // Price test 5-19 Nov 2026 (owner): tools whose market leader charges more.
     else if (Object.hasOwn(PRICE_TEST, e.path)) assert.equal(e.price, PRICE_TEST[e.path], e.path);
     // Entry paths (src/routes/entry-paths.ts, 7 Nov 2026) carry their canonical tool's price: /sanctions/screen, /wallet/balance.
@@ -56,7 +58,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 663);
+  assert.equal(families.length, 664);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -84,7 +86,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,692);
+  assert.equal(ENDPOINTS.length,693);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

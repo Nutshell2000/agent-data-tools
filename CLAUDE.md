@@ -1460,3 +1460,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/x402/receipt`: `canonicalJson()` (sorted keys) of the receipt core and its SHA-256; `receiptId` = `rcpt_` + 16 hex of SHA-256(chain|hash|logIndex). `method` is `eip3009-authorization` when the USDC contract emitted AuthorizationUsed in the same transaction (the x402 exact scheme). Example: Mercator's $0.01 payment of 11 Nov 2026, tx 0x778c8c1b…b933.
 - Rules: never add a credit score, a person's name or anything that rates a person (IMY permit, AI Act high-risk from 2 Dec 2027); describe wallets, listings and transactions only. Nothing here may hold, move or sign funds.
 
+## Sann green-claims checker (1.141.0, 11 Nov 2026)
+
+- Owner, 11 Nov 2026: Sann is SpellzCode's flagship (plan `C:\SpellzCode\02-Affarsomraden\G-Sann\SANN-plan-steg-1.md`); price "Pro $9.99, call $0.02". `/claims/check` (src/routes/claims.ts) runs the Sann engine in `src/lib/sann/*.ts`, which is GENERATED: edit `C:\SpellzCode\02-Affarsomraden\G-Sann\sann-engine\src`, run its `npm test` (known-answer cases), then `node scripts/copy-to-api.mjs <this repo>`. tests/claims.test.cjs fails if the generated header is missing.
+- Rule citations were checked against EUR-Lex CELEX 32024L0825 (EN and SV) on 11 Nov 2026. Durability and repair are Annex I 23g and 23h; Art. 7(7) is about comparison services, so ad comparisons cite Art. 2(o) and 6(1)(b). Sweden had not transposed the directive on 11 Nov 2026 (no bill; Commission formal notice 28 May 2026): copy must not say the rules are Swedish law yet.
+- Legal line, keep it: every answer carries `disclaimer` (risk flags, not legal advice; images, colours and logos are not checked). Fixes never write an environmental fact for the shop.
+
