@@ -1,5 +1,5 @@
 {
-  "version": "1.135.0",
+  "version": "1.136.0",
   "tools": [
     {
       "name": "extract",
@@ -11814,7 +11814,7 @@
     },
     {
       "name": "news",
-      "description": "News headlines on any topic, crypto included, as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures return 503, uncharged. Use when an agent needs current news on a topic. Example: q=bitcoin ETF. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "News headlines on any topic, crypto included, as JSON: title, URL, snippet, publisher domain and age, from the Brave Search API's news index. 1-20 results per call; freshness limits results to the past day, week or month. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Upstream failures return 503, uncharged. Use when an agent needs current news on a topic. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11844,7 +11844,7 @@
           "q"
         ]
       },
-      "price": "$0.03"
+      "price": "$0.01"
     },
     {
       "name": "keywords_ideas",
@@ -15579,7 +15579,7 @@
     },
     {
       "name": "pack_web_research",
-      "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15611,7 +15611,7 @@
           "q"
         ]
       },
-      "price": "$0.03"
+      "price": "$0.01"
     },
     {
       "name": "ai_answer",
@@ -15663,7 +15663,7 @@
     },
     {
       "name": "pack_news_sentiment",
-      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15693,7 +15693,7 @@
           "q"
         ]
       },
-      "price": "$0.03"
+      "price": "$0.01"
     },
     {
       "name": "pack_url_safety",
@@ -18427,7 +18427,7 @@
     },
     {
       "name": "news_search",
-      "description": "News search API: current news articles on any topic from the Brave news index, as JSON with title, URL, snippet, publisher and age, 1-20 results, optionally only from the past day, week or month. Results are for immediate use only (Brave API terms). Use when an agent needs the latest news or headlines on a company, coin, person or event. Example: q=bitcoin ETF. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "News search API: current news articles on any topic from the Brave news index, as JSON with title, URL, snippet, publisher and age, 1-20 results, optionally only from the past day, week or month. Results are for immediate use only (Brave API terms). Use when an agent needs the latest news or headlines on a company, coin, person or event. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18457,7 +18457,7 @@
           "q"
         ]
       },
-      "price": "$0.03"
+      "price": "$0.01"
     },
     {
       "name": "ai_summarize",
@@ -19771,7 +19771,7 @@
     },
     {
       "name": "crypto_news",
-      "description": "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest. Example: q=bitcoin ETF. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest. Example: q=bitcoin ETF. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19798,7 +19798,7 @@
           }
         }
       },
-      "price": "$0.03"
+      "price": "$0.01"
     },
     {
       "name": "bitcoin_price",

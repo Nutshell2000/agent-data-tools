@@ -1403,3 +1403,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - SET on production 11 Nov 2026 (before the release; unused until it ships). The value is in `C:\MoneyWallet\private\orthogonal-proxy-secret.txt` (outside every repository; %LOCALAPPDATA% is a sandbox overlay). The owner pastes the same value as the credential in Orthogonal's dashboard ("Add credential securely"). Never in Git or chat.
 - Tests: tests/marketplace-secret.test.cjs (header precedence, own keys refused) and tests/payment-delivery-runtime.test.cjs (all three placements serve `/uuid` unpaid; a wrong value and the FluxA header still get the 402).
 
+
+
+## The $0.03 step on the news tools is taken back; how a price reaches Mercator (1.136.0, 11 Nov 2026)
+
+- `MERCATOR_TEST_PRICE` (src/routes/search.ts) is `$0.01` again for /news, its doors /news/search and /crypto/news, /pack/news-sentiment and /pack/web-research. The fixture, tests/families.test.cjs `PRICE_TEST` and tests/packs-research.test.cjs follow.
+- **Evidence** (a live `wrangler tail`, 11 Nov 13:54-13:59 UTC, two hours after 1.130.0): `mercator-gateway/0.2` sent `GET /pack/news-sentiment?q=…` with an `idempotency-key` header four times (two calls, each asked twice two seconds apart), was quoted $0.03 and sent no payment. `/metrics/callers` for that day: challenged 6 / paid 6 before the step, challenged 10 / paid 6 after. Mercator's search API (`mercator.sh/v1/services/search`) shows `estimatedPrice: { amount: "0.01", dynamic: false }` for all three tools: its gateway pays the price in its own catalogue or nothing.
+- **So a price step never reaches Mercator through our quote.** Its catalogue takes a price at an import of the Coinbase Bazaar, and the Bazaar shows a listing's last SETTLED price; while Mercator pays $0.01 the listing shows $0.01. A higher price there needs a reviewed listing with its own price (the provider review asked for on 10 and 11 Nov, or the Orthogonal listing, which Mercator reads as reviewed) or an import that falls in a window where our quote and the listing both show the new price, during which Mercator buys nothing. The 1.130.0 ladder ($0.10 on 13 Nov, $0.25 after) cannot be run by date: do not step again until one of those two is true, and put it to the owner first.
+- How to see a refused quote the same hour, without waiting two days: `npx wrangler tail agent-data-tools --format json` filtered on the caller's user agent (requests with no payment header that repeat within seconds), and the caller's `challenged` against `paid` in `/metrics/callers`.
+- After the release: `node scripts/update-402index-prices.mjs` from a checkout at current main. The Bazaar listings still show $0.01 (the owner's optional $0.03 refresh was not needed).
+
