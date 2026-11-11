@@ -3,3 +3,6 @@ clients/releases/** -text
 # Buyer instruction downloads and repository copies use the same bytes across hosts.
 skills/**/SKILL.md text eol=lf
 claude-plugin/skills/**/SKILL.md text eol=lf
+# Client integrations: the same bytes on every checkout (prettier and the ClawHub fingerprint read them).
+integrations/** text eol=lf
+integrations/**/*.png binary

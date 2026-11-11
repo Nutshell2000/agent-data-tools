@@ -11,7 +11,11 @@ import { dirname, join, resolve } from "node:path";
 import { AgentDataTools, ORIGIN, PaymentRequired, ToolError } from "./index.mjs";
 
 const NAME = "agent-data-tools";
-const STDIO = { command: "npx", args: ["-y", NAME, "mcp"] };
+// The server a client is connected to. The default is the compact one: three tools (find_tool, tool_details, call_tool)
+// that reach the whole catalog, so the assistant does not carry several hundred tool definitions. --full picks the
+// server that lists every tool as its own definition.
+const serverPath = (full) => (full ? "/mcp" : "/mcp/compact");
+const stdio = (full) => ({ command: "npx", args: full ? ["-y", NAME, "mcp", "--full"] : ["-y", NAME, "mcp"] });
 const TARGETS = ["claude-code", "claude-desktop", "cursor", "vscode"];
 
 const origin = () => (process.env.AGENT_DATA_TOOLS_ORIGIN || ORIGIN).replace(/\/$/, "");
@@ -33,25 +37,29 @@ function resolveKey(flag) {
   return { key: undefined, source: undefined };
 }
 
-/** Split `--key <value>`, `--key=<value>` and `--print` from the other arguments. */
+/** Split `--key <value>`, `--key=<value>`, `--print` and `--full` from the other arguments. */
 function parseArgs(args) {
   const rest = [];
-  let key, print = false;
+  let key, print = false, full = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--print") print = true;
+    else if (a === "--full") full = true;
     else if (a === "--key") { key = args[++i]; if (!key) throw new ToolError("--key needs a value (adt_...)", 400, null); }
     else if (a.startsWith("--key=")) key = a.slice(6);
     else rest.push(a);
   }
   if (key !== undefined && !validKey(key)) throw new ToolError("the key must start with adt_", 400, null);
-  return { rest, key, print };
+  return { rest, key, print, full };
 }
 
 const HELP = `Usage:
-  agent-data-tools setup [claude-code|claude-desktop|cursor|vscode] [--key adt_...] [--print]
+  agent-data-tools setup [claude-code|claude-desktop|cursor|vscode] [--key adt_...] [--print] [--full]
                                          add the tools to that client (--print shows the change without writing)
-  agent-data-tools mcp [--key adt_...]   stdio MCP server that forwards to ${ORIGIN}/mcp
+  agent-data-tools mcp [--key adt_...] [--full]
+                                         stdio MCP server that forwards to ${ORIGIN}/mcp/compact
+  The client gets three tools that find, describe and run any tool in the catalog.
+  --full connects ${ORIGIN}/mcp instead: every tool as its own definition (several hundred).
   agent-data-tools key [adt_...]         save a prepaid key; without a key, show whether one is set and its balance
   agent-data-tools credits               where to get a prepaid key (card or USDC)
   agent-data-tools list [words]          tools and prices
@@ -68,6 +76,7 @@ function menu() {
   agent-data-tools setup vscode           writes .vscode/mcp.json in the current folder
 
 Add --print to see the change without writing, and --key adt_... to connect with a prepaid key.
+The client gets three tools that reach the whole catalog; add --full for every tool as its own definition.
 Without a key the server gives 25 free calls. Keys: agent-data-tools credits`;
 }
 
@@ -99,10 +108,11 @@ function mergeInto(file, section, entry, print) {
   return true;
 }
 
-function setup(target, { key, print }) {
+function setup(target, { key, print, full }) {
   if (!target) { console.log(menu()); return; }
   if (!TARGETS.includes(target)) throw new ToolError(`unknown client "${target}"; use one of: ${TARGETS.join(", ")}`, 400, null);
-  const url = `${origin()}/mcp`;
+  const url = `${origin()}${serverPath(full)}`;
+  const STDIO = stdio(full);
   const saved = key ? undefined : resolveKey().key;
   const savedNote = `A key is already saved for this computer; pass it with --key to connect ${target} with it.`;
   if (target === "claude-code") {
@@ -166,9 +176,9 @@ try {
     console.log(HELP);
   } else if (command === "mcp") {
     // Nothing but JSON-RPC may reach stdout here.
-    const { key } = parseArgs(rest);
+    const { key, full } = parseArgs(rest);
     const { runStdioProxy } = await import("./mcp-stdio.mjs");
-    await runStdioProxy({ origin: origin(), key: resolveKey(key).key });
+    await runStdioProxy({ origin: origin(), key: resolveKey(key).key, path: serverPath(full) });
   } else if (command === "setup") {
     const args = parseArgs(rest);
     setup(args.rest[0], args);

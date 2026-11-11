@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.131.1";
+export const MCP_SERVER_VERSION = "1.132.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -288,12 +288,16 @@ export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data,
  * One-click installs of the MCP server: Cursor and VS Code deep links (each opens the editor's own "add server"
  * prompt), the Claude Code command and the Claude.ai/ChatGPT connector URL. Directories send developers to the
  * homepage and the README; before these, both only showed the bare URL to copy.
+ * Since 1.132.0 the links, the command and our own packages (Claude plugin, Gemini extension, npm client) connect the
+ * compact server, /mcp/compact: three tools instead of several hundred definitions in the assistant's context. `full`
+ * is the server with every tool as its own definition.
  */
 export function mcpInstallLinks(origin: string) {
-  const url = `${origin}/mcp`;
+  const url = `${origin}/mcp/compact`;
   const vscodeConfig = encodeURIComponent(JSON.stringify({ name: "agent-data-tools", type: "http", url }));
   return {
     url,
+    full: `${origin}/mcp`,
     cursor: `cursor://anysphere.cursor-deeplink/mcp/install?name=agent-data-tools&config=${encodeURIComponent(btoa(JSON.stringify({ url })))}`,
     vscode: `vscode:mcp/install?${vscodeConfig}`,
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
@@ -373,7 +377,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
 <li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
-Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. That server lists hundreds of tools. To keep your assistant's context small, connect <code>${esc(origin)}/mcp/compact</code> instead: three tools that find, describe and run any of them at the same prices. Or add one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
+Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). These connect the compact server, <code>${esc(install.url)}</code>: three tools that find, describe and run any tool in the catalog at the same prices, so your assistant's context stays small. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. For every tool as its own definition, connect <code>${esc(install.full)}</code>, or one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>

@@ -1,0 +1,394 @@
+{
+	"source": "https://agent-data-tools.revmesh2074.workers.dev/openapi.json",
+	"serviceVersion": "1.126.0",
+	"toolCount": 683,
+	"voices": {
+		"en": [
+			"amalthea",
+			"andromeda",
+			"apollo",
+			"arcas",
+			"aries",
+			"asteria",
+			"athena",
+			"atlas",
+			"aurora",
+			"callista",
+			"cora",
+			"cordelia",
+			"delia",
+			"draco",
+			"electra",
+			"harmonia",
+			"helena",
+			"hera",
+			"hermes",
+			"hyperion",
+			"iris",
+			"janus",
+			"juno",
+			"jupiter",
+			"luna",
+			"mars",
+			"minerva",
+			"neptune",
+			"odysseus",
+			"ophelia",
+			"orion",
+			"orpheus",
+			"pandora",
+			"phoebe",
+			"pluto",
+			"saturn",
+			"thalia",
+			"theia",
+			"vesta",
+			"zeus"
+		],
+		"es": [
+			"sirio",
+			"nestor",
+			"carina",
+			"celeste",
+			"alvaro",
+			"diana",
+			"aquila",
+			"selena",
+			"estrella",
+			"javier"
+		]
+	},
+	"tools": {
+		"/search": {
+			"price": "$0.01",
+			"params": {
+				"q": {
+					"required": true,
+					"type": "string"
+				},
+				"count": {
+					"required": false,
+					"type": "integer"
+				},
+				"includeDomains": {
+					"required": false,
+					"type": "string"
+				},
+				"excludeDomains": {
+					"required": false,
+					"type": "string"
+				},
+				"startPublishedDate": {
+					"required": false,
+					"type": "string"
+				},
+				"endPublishedDate": {
+					"required": false,
+					"type": "string"
+				},
+				"category": {
+					"required": false,
+					"type": "string"
+				},
+				"includeText": {
+					"required": false,
+					"type": "string"
+				},
+				"excludeText": {
+					"required": false,
+					"type": "string"
+				},
+				"textChars": {
+					"required": false,
+					"type": "integer"
+				},
+				"highlights": {
+					"required": false,
+					"type": "string"
+				},
+				"numSentences": {
+					"required": false,
+					"type": "integer"
+				},
+				"highlightsPerUrl": {
+					"required": false,
+					"type": "integer"
+				},
+				"summary": {
+					"required": false,
+					"type": "string"
+				},
+				"summaryQuery": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/extract": {
+			"price": "$0.002",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				},
+				"maxChars": {
+					"required": false,
+					"type": "integer"
+				},
+				"format": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"text",
+						"markdown",
+						"both"
+					]
+				},
+				"section": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/extract/rendered": {
+			"price": "$0.01",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				},
+				"format": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"text",
+						"markdown",
+						"both"
+					]
+				},
+				"maxChars": {
+					"required": false,
+					"type": "integer"
+				},
+				"section": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/audit/website": {
+			"price": "$0.01",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				}
+			}
+		},
+		"/news": {
+			"price": "$0.01",
+			"params": {
+				"q": {
+					"required": true,
+					"type": "string"
+				},
+				"count": {
+					"required": false,
+					"type": "integer"
+				},
+				"freshness": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/pack/news-sentiment": {
+			"price": "$0.01",
+			"params": {
+				"q": {
+					"required": true,
+					"type": "string"
+				},
+				"count": {
+					"required": false,
+					"type": "integer"
+				},
+				"freshness": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/github/repo": {
+			"price": "$0.002",
+			"params": {
+				"repo": {
+					"required": true,
+					"type": "string"
+				},
+				"owner": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/cve": {
+			"price": "$0.002",
+			"params": {
+				"cve": {
+					"required": true,
+					"type": "string"
+				}
+			}
+		},
+		"/ai/speech": {
+			"price": "$0.01",
+			"params": {
+				"text": {
+					"required": true,
+					"type": "string"
+				},
+				"lang": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"en",
+						"es"
+					]
+				},
+				"voice": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/text-to-speech": {
+			"price": "$0.08",
+			"params": {
+				"text": {
+					"required": true,
+					"type": "string"
+				},
+				"lang": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"en",
+						"es"
+					]
+				},
+				"voice": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/price/token": {
+			"price": "$0.002",
+			"params": {
+				"symbol": {
+					"required": false,
+					"type": "string"
+				},
+				"address": {
+					"required": false,
+					"type": "string"
+				},
+				"chain": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"base",
+						"eth",
+						"arb",
+						"op"
+					]
+				}
+			}
+		},
+		"/hyperliquid/indicators": {
+			"price": "$0.01",
+			"params": {
+				"coin": {
+					"required": false,
+					"type": "string"
+				},
+				"interval": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/company": {
+			"price": "$0.01",
+			"params": {
+				"name": {
+					"required": false,
+					"type": "string"
+				},
+				"id": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/sec/filings": {
+			"price": "$0.002",
+			"params": {
+				"ticker": {
+					"required": false,
+					"type": "string"
+				},
+				"cik": {
+					"required": false,
+					"type": "string"
+				},
+				"form": {
+					"required": false,
+					"type": "string"
+				},
+				"limit": {
+					"required": false,
+					"type": "integer"
+				}
+			}
+		},
+		"/sanctions/check": {
+			"price": "$0.009",
+			"params": {
+				"address": {
+					"required": false,
+					"type": "string"
+				},
+				"name": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		},
+		"/check/payee": {
+			"price": "$0.005",
+			"params": {
+				"address": {
+					"required": true,
+					"type": "string"
+				},
+				"chain": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"base",
+						"eth",
+						"arb",
+						"op",
+						"polygon"
+					]
+				},
+				"domain": {
+					"required": false,
+					"type": "string"
+				}
+			}
+		}
+	}
+}

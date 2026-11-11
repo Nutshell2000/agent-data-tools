@@ -4,7 +4,7 @@ Data tools for AI agents, one HTTP call each: PDF to text, web page to Markdown,
 
 ## Use it in your AI client
 
-One command per client. Each connects the client to the MCP server at `https://agent-data-tools.revmesh2074.workers.dev/mcp`.
+One command per client. Each connects the client to the compact MCP server at `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact`: three tools (`find_tool`, `tool_details`, `call_tool`) that find, describe and run any tool in the catalog, so the assistant does not carry several hundred tool definitions. Add `--full` to `setup` or `mcp` for the server that lists every tool as its own definition (`https://agent-data-tools.revmesh2074.workers.dev/mcp`).
 
 ```sh
 npx agent-data-tools setup claude-code      # prints the `claude mcp add --transport http ...` command to run
@@ -65,4 +65,4 @@ When payment is needed and none is set up, `call()` throws `PaymentRequired` wit
 
 ## Also
 
-Full catalog and prices: [`/tools`](https://agent-data-tools.revmesh2074.workers.dev/tools), [`/openapi.json`](https://agent-data-tools.revmesh2074.workers.dev/openapi.json). MCP server: `https://agent-data-tools.revmesh2074.workers.dev/mcp`. Terms: [`/terms`](https://agent-data-tools.revmesh2074.workers.dev/terms).
+Full catalog and prices: [`/tools`](https://agent-data-tools.revmesh2074.workers.dev/tools), [`/openapi.json`](https://agent-data-tools.revmesh2074.workers.dev/openapi.json). MCP servers: `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (three tools for the whole catalog) and `https://agent-data-tools.revmesh2074.workers.dev/mcp` (every tool). Terms: [`/terms`](https://agent-data-tools.revmesh2074.workers.dev/terms).

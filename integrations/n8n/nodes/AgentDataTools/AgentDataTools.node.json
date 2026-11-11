@@ -1,0 +1,38 @@
+{
+	"node": "n8n-nodes-agent-data-tools.agentDataTools",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Development", "Finance & Accounting"],
+	"alias": [
+		"web search",
+		"scrape",
+		"markdown",
+		"news",
+		"sentiment",
+		"text to speech",
+		"tts",
+		"website audit",
+		"seo",
+		"accessibility",
+		"cve",
+		"sec filings",
+		"edgar",
+		"ofac",
+		"sanctions",
+		"token price",
+		"rsi",
+		"github"
+	],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n#readme"
+			}
+		]
+	}
+}
