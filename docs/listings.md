@@ -51,7 +51,7 @@ finance, crypto, blockchain, compliance, web-scraping, data, x402, payments, mcp
 
 ## Where to submit
 
-Status is updated by whoever submits (date, result). Peter submits; nothing here is automated except the
+Status is updated by whoever submits (date, result). The owner submits; nothing here is automated except the
 MCP Registry.
 
 | Directory | URL to submit | How | Status |
@@ -68,7 +68,7 @@ MCP Registry.
 | x402scan | origin | x402scan.com/resources/register or `npx agentcash register <origin>` | 182 of 186 registered 2026-10-20 12:25 UTC via `npx agentcash register` (3 skipped, 0 failed) |
 | MPPScan | origin | mppscan.com/register or the same CLI | 186 of 186 registered 2026-10-20 12:25 UTC |
 | 402 Index | each tool URL | `scripts/register-402index.mjs` (token file, 10 per hour) | all tools listed |
-| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; tools entry (tempo + evm, 41 routes incl. /v1/chat/completions, /v1/responses, /v1/embeddings) plus `agent-data-tools-credits` (stripe card packs at serviceUrl /credits); `pnpm check:services` 44/44 and 7/7; feeds the Stripe Directory's machine-payments index | PR 1095 open, updated 2026-10-20 12:30. Their bot asks for the service PR template (`.github/PULL_REQUEST_TEMPLATE/service.md`) in the PR description before review, and `stale-service-prs.yml` closes service PRs 14 days after opening (#1095: about 2 Nov). Filled template sent to Peter 2026-10-20; this session cannot edit tempoxyz PRs. |
+| mpp.dev services | PR to tempoxyz/mpp (schemas/services.ts) | curated; tools entry (tempo + evm, 41 routes incl. /v1/chat/completions, /v1/responses, /v1/embeddings) plus `agent-data-tools-credits` (stripe card packs at serviceUrl /credits); `pnpm check:services` 44/44 and 7/7; feeds the Stripe Directory's machine-payments index | PR 1095 open, updated 2026-10-20 12:30. Their bot asks for the service PR template (`.github/PULL_REQUEST_TEMPLATE/service.md`) in the PR description before review, and `stale-service-prs.yml` closes service PRs 14 days after opening (#1095: about 2 Nov). Filled template sent to the owner 2026-10-20; this session cannot edit tempoxyz PRs. |
 | gold-402 | PR to Pazificateur69/gold-402 (directory/apis.md) | one line, live 402 probe | PR 1 open |
 | awesome-remote-mcp-servers | PR to punkpeye/awesome-remote-mcp-servers | needs the Glama connector badge and a starred repo | PR 2339 open, CI green |
 | mcpservers.org | `/mcp` | Free form at mcpservers.org/submit | submitted 2026-10-20, 2-week review |
@@ -83,4 +83,4 @@ MCP Registry.
 | Ultravioleta DAO Bazaar | each tool URL | Keyless `POST facilitator.ultravioletadao.xyz/discovery/register` (about 5/min, 100 per host); crawled by Dexter | 100 tools registered 2026-10-20 (all 201) |
 | Dexter / OpenDexter / x402gle | each tool URL | `npx @dexterai/opendexter audition <tool url> --json` registers the route; the audit then pays a test call from Dexter's wallet (lists on the CDP Bazaar; never revenue). Origin-wide audition answers 500 ("could not persist 3 resource writes") | 11 routes registered 2026-10-20 (gas on 5 chains, /base-gas, /btc-fees, /btc-price, eth/base/arb block). Every test payment was "incomplete: could not settle a test payment on a chain this route accepts" on their side (Dexter pays mostly on Solana, which we do not take). Retry later; query-string URLs are skipped |
 | PayAPI Market | origin + one paid route | `POST payapi.market/api/submit-listing`; human review, then PayAPI pays one test call (up to $0.10) | submitted 2026-10-20 with /check/counterparty ($0.03) as the paid route, provider email the support address; status pending (the first attempt timed out client-side, so a duplicate pending entry may exist). Result by email |
-| PayAI Bazaar | each tool URL | Listed after a `/verify` of a signed payment (no funds move) | Peter: not now (2026-10-20) |
+| PayAI Bazaar | each tool URL | Listed after a `/verify` of a signed payment (no funds move) | The owner: not now (2026-10-20) |

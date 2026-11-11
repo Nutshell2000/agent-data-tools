@@ -10,7 +10,7 @@
 //   node scripts/seed-bazaar.mjs --only /btc-address,/ens     dry run for named paths
 //   node scripts/seed-bazaar.mjs --pay --ledger-excluded      pay (needs BUYER_KEY in the environment)
 //   --budget 0.25      seed in demand order until this many USD is planned (the "earned -> seed" trigger:
-//                      Peter moves what the service earned into the buyer wallet and seeds that much)
+//                      the owner moves what the service earned into the buyer wallet and seeds that much)
 //   --max-total 1.00   refuse to spend more than this many USD in one run (default 1.00)
 //   --force            include tools that are already listed in the Bazaar
 //

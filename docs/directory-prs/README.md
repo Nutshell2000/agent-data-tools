@@ -1,7 +1,7 @@
 # Directory pull requests: follow-ups for the local session
 
-Pull requests to other repositories can only be edited from Peter's GitHub login (the cloud session cannot
-fork or push there). Run these from Peter's PC.
+Pull requests to other repositories can only be edited from the owner's GitHub login (the cloud session cannot
+fork or push there). Run these from the owner's PC.
 
 ## tempoxyz/mpp#1095 (mpp.dev services)
 

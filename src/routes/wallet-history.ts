@@ -8,6 +8,7 @@
 import { formatEther, formatUnits, getAddress, type PublicClient } from "viem";
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError, isAddress } from "../lib/env";
+import { blockAtTime, recentBlockSeconds, type Sample } from "../lib/block-time";
 import { erc20Abi } from "../lib/rpc";
 import { CHAINS, client, rpc } from "./chain-reads";
 import { priceFromSqrt } from "./prices";
@@ -19,8 +20,6 @@ const MULTICALL3: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
 const WETH: Address = "0x4200000000000000000000000000000000000006";
 const USDC: Address = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const UNI_FACTORY: Address = "0x33128a8fC17869897dcE68Ed026d694621f6FDfD";
-/** Base makes a block every 2 seconds. */
-const BLOCKS_PER_DAY = 43_200n;
 const USD_STABLES = new Set(["0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca"]);
 const MAX_EXTRA = 5;
 const EX_ADDR = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
@@ -60,9 +59,24 @@ export async function balanceHistory(cl: PublicClient, address: string, days: nu
     symbol: meta[i * 2].status === "success" ? String(meta[i * 2].result) : t,
     decimals: meta[i * 2 + 1].status === "success" ? Number(meta[i * 2 + 1].result) : null,
   })).filter((t): t is typeof t & { decimals: number } => t.decimals !== null);
-  const head = latest.number;
-  const points = Array.from({ length: days + 1 }, (_, i) => days - i).map((back) => ({ back, block: head - BigInt(back) * BLOCKS_PER_DAY }));
-  const rows = await inBatches(points, 6, async ({ back, block }) => {
+  const head: Sample = { block: latest.number, ts: Number(latest.timestamp) };
+  // One block per day, found from real block times: Base went from 2 s to 0.2 s blocks around 5 Nov 2026, so a fixed
+  // blocks-per-day count labelled points 2.4 hours apart as days. The oldest point first, then eight headers spread
+  // between it and now, so every other day is one interpolation (and usually one check) away.
+  const secs = await recentBlockSeconds(cl, "base", head.block);
+  const samples: Sample[] = [head];
+  const oldest = await rpc(() => blockAtTime(cl, head, head.ts - days * 86_400, { secs, tolerance: 300, samples }));
+  const step = (head.block - oldest.block) / 9n;
+  if (step > 0n) {
+    const spread = await Promise.all(Array.from({ length: 8 }, (_, i) => oldest.block + step * BigInt(i + 1)).map(async (b) => ({ block: b, ts: Number((await rpc(() => cl.getBlock({ blockNumber: b }))).timestamp) })));
+    samples.push(...spread);
+  }
+  const backs = Array.from({ length: days + 1 }, (_, i) => days - i);
+  const points = await inBatches(backs, 6, async (back) => {
+    const at = back === days ? oldest : await rpc(() => blockAtTime(cl, head, head.ts - back * 86_400, { secs, tolerance: 300, samples }));
+    return { back, block: at.block, ts: at.ts };
+  });
+  const rows = await inBatches(points, 6, async ({ block, ts }) => {
     // Three ABIs in one multicall: viem's tuple typing cannot mix them, so the list is passed untyped and read back by index.
     const contracts = [
       { address: MULTICALL3, abi: multicallAbi, functionName: "getEthBalance", args: [a] },
@@ -85,8 +99,9 @@ export async function balanceHistory(cl: PublicClient, address: string, days: nu
       else if (lower === WETH.toLowerCase() && ethUsd) valueUsd += Number(amount) * ethUsd;
     });
     return {
-      date: new Date((Number(latest.timestamp) - back * 86_400) * 1000).toISOString().slice(0, 10),
+      date: new Date(ts * 1000).toISOString().slice(0, 10),
       block: Number(block),
+      blockTime: new Date(ts * 1000).toISOString(),
       eth: wei === null ? null : formatEther(wei),
       tokens: balances,
       ethUsd: ethUsd === null ? null : round(ethUsd),
@@ -101,7 +116,7 @@ export async function balanceHistory(cl: PublicClient, address: string, days: nu
     address: a, chain: "Base", chainId: 8453, days, points: rows,
     change: { valueUsd: change, percent: first?.valueUsd && change !== null ? round((change / first.valueUsd) * 100) : null },
     tokensChecked: info.map((t) => t.symbol),
-    note: "Balances read at one block per day (Base makes a block every 2 s). valueUsd counts ETH, WETH (Uniswap v3 WETH/USDC pool price at that block), USDC and USDbC only; other tokens are listed without a value. A value change includes deposits and withdrawals, so it is not profit.",
+    note: "Balances read at one block per day, each found from real block times (blockTime is that block's own time). valueUsd counts ETH, WETH (Uniswap v3 WETH/USDC pool price at that block), USDC and USDbC only; other tokens are listed without a value. A value change includes deposits and withdrawals, so it is not profit.",
   };
 }
 
@@ -116,12 +131,12 @@ const BALANCE_HISTORY: Entry = entry("/wallet/balance-history", "Historical bala
   {
     address: EX_ADDR, chain: "Base", chainId: 8453, days: 1,
     points: [
-      { date: "2026-11-04", block: 37900000, eth: "0.5", tokens: { USDC: "120.5" }, ethUsd: 3500.12, valueUsd: 1870.56 },
-      { date: "2026-11-05", block: 37943200, eth: "0.4", tokens: { USDC: "480.5" }, ethUsd: 3550.4, valueUsd: 1900.66 },
+      { date: "2026-11-04", block: 37900000, blockTime: "2026-11-04T20:00:01.000Z", eth: "0.5", tokens: { USDC: "120.5" }, ethUsd: 3500.12, valueUsd: 1870.56 },
+      { date: "2026-11-05", block: 37943200, blockTime: "2026-11-05T20:00:01.000Z", eth: "0.4", tokens: { USDC: "480.5" }, ethUsd: 3550.4, valueUsd: 1900.66 },
     ],
     change: { valueUsd: 30.1, percent: 1.61 },
     tokensChecked: ["USDC", "WETH", "cbBTC", "DAI", "USDbC", "cbETH", "AERO", "EURC"],
-    note: "Balances read at one block per day (Base makes a block every 2 s). valueUsd counts ETH, WETH, USDC and USDbC only.",
+    note: "Balances read at one block per day, each found from real block times. valueUsd counts ETH, WETH, USDC and USDbC only.",
   },
   async (env, q) => {
     const address = q("address")?.trim() ?? "";

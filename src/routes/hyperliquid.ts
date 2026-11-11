@@ -1,5 +1,5 @@
 // Hyperliquid perpetuals market data from its public L1 info API (keyless; the interface terms say nothing about the
-// API; Peter approved this tool on 2026-10-20). Funding, open interest and volume are the most-paid derivatives data.
+// API; the owner approved this tool on 2026-10-20). Funding, open interest and volume are the most-paid derivatives data.
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 

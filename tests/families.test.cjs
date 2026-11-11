@@ -34,12 +34,12 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
   for (const { endpoint: e } of families) {
-    // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (Peter: the Bazaar sweeper pays only tools at or
+    // Packs (several tools in one call) cost $0.01 since 25 Oct 2026 (The owner: the Bazaar sweeper pays only tools at or
     // below one cent, so dearer packs never got a payer), always below their tools bought one by one.
     // The price tests of 26-27 Oct 2026 (LOCAL_TEST_PRICE, READ_TEST_PRICE) ended on 27 Oct: their tools are back at $0.01.
     // Price test 5-19 Nov 2026 (owner): /pack/token-analysis at $0.03, still below its five tools bought one by one.
     if (e.path.startsWith("/pack/")) assert.equal(e.price, e.path === "/pack/token-analysis" ? "$0.03" : PRICE_TEST[e.path] ?? "$0.01", e.path);
-    // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (Peter, 25 Oct: every tool at most $0.01).
+    // Named open models (/ai/model/<slug>) and moderation are priced per model, from $0.002 to $0.01 (the owner, 25 Oct: every tool at most $0.01).
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     // The smart contract audit and its door (owner, 11 Nov 2026: "a tool we can sell for 1$ a call and above"): the one comparable seller on the Bazaar charges $1.00.
     else if (["/audit/contract", "/contract/audit"].includes(e.path)) assert.equal(e.price, "$1.00", e.path);
@@ -525,11 +525,11 @@ test("geocode keeps Wikidata hits with coordinates and resolves country and regi
   global.fetch = async (url) => {
     const u = new URL(String(url));
     if (u.searchParams.get("action") === "wbsearchentities") return Response.json({ search: [{ id: "Q1" }, { id: "Q2" }] });
-    if (u.searchParams.get("props") === "labels") return Response.json({ entities: { Q34: { labels: { en: { value: "Sweden" } } }, Q500: { labels: { en: { value: "Uppsala Municipality" } } } } });
+    if (u.searchParams.get("props") === "labels") return Response.json({ entities: { Q34: { labels: { en: { value: "Portugal" } } }, Q500: { labels: { en: { value: "Lisbon Municipality" } } } } });
     return Response.json({ entities: {
-      Q1: { id: "Q1", labels: { en: { value: "Uppsala (disambiguation)" } }, claims: { P31: [item("Q4167410")] } },
-      Q2: { id: "Q2", labels: { en: { value: "Uppsala" } }, descriptions: { en: { value: "city in Sweden" } }, claims: {
-        P625: [{ mainsnak: { datavalue: { value: { latitude: 59.858056, longitude: 17.644722 } } } }],
+      Q1: { id: "Q1", labels: { en: { value: "Lisbon (disambiguation)" } }, claims: { P31: [item("Q4167410")] } },
+      Q2: { id: "Q2", labels: { en: { value: "Lisbon" } }, descriptions: { en: { value: "capital of Portugal" } }, claims: {
+        P625: [{ mainsnak: { datavalue: { value: { latitude: 38.707721, longitude: -9.136621 } } } }],
         P17: [item("Q34")], P131: [item("Q500")],
         P1082: [{ rank: "normal", mainsnak: { datavalue: { value: { amount: "+100000" } } } }, { rank: "preferred", mainsnak: { datavalue: { value: { amount: "+177074" } } } }],
       } },
@@ -537,9 +537,9 @@ test("geocode keeps Wikidata hits with coordinates and resolves country and regi
   };
   try {
     const run = data.PUBLIC_DATA.find((f) => f.endpoint.path === "/geocode").run;
-    const out = await run({}, (n) => ({ name: "Uppsala" })[n]);
+    const out = await run({}, (n) => ({ name: "Lisbon" })[n]);
     assert.equal(out.count, 1);
-    assert.deepEqual(out.results[0], { name: "Uppsala", description: "city in Sweden", country: "Sweden", region: "Uppsala Municipality", lat: 59.8581, lon: 17.6447, population: 177074, elevation: null, wikidataId: "Q2" });
+    assert.deepEqual(out.results[0], { name: "Lisbon", description: "capital of Portugal", country: "Portugal", region: "Lisbon Municipality", lat: 38.7077, lon: -9.1366, population: 177074, elevation: null, wikidataId: "Q2" });
   } finally {
     global.fetch = realFetch;
   }
