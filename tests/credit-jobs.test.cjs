@@ -16,7 +16,8 @@ let ENDPOINTS, CARD_JOBS, callsAt, keyPrice, paymentHint, isHumanPage;
 before(async () => {
   ({ ENDPOINTS } = await loadTypeScript(require.resolve("../src/endpoints.ts")));
   ({ CARD_JOBS, paymentHint } = await loadTypeScript(require.resolve("../src/lib/credit-routes.ts")));
-  ({ callsAt, keyPrice } = await loadTypeScript(require.resolve("../src/lib/credits.ts")));
+  ({ callsAt } = await loadTypeScript(require.resolve("../src/lib/credits.ts")));
+  ({ keyPrice } = await loadTypeScript(require.resolve("../src/lib/key-prices.ts")));
   ({ isHumanPage } = await loadTypeScript(require.resolve("../src/lib/funnel.ts")));
 });
 
@@ -24,7 +25,7 @@ test("what $1 buys on /credits matches the catalog prices", () => {
   for (const { path, credits } of CARD_JOBS) {
     const tool = ENDPOINTS.find((e) => e.path === path);
     assert.ok(tool, path);
-    // A key pays the key price where one exists (KEY_PRICES: PDF reading), otherwise the catalog price.
+    // A key pays the key price where one exists (lib/key-prices.ts: PDF reading, the tools that only compute), otherwise the catalog price.
     assert.equal(Math.round(Number(keyPrice(path, tool.price).slice(1)) * 1000), credits, path);
   }
 });
@@ -43,16 +44,4 @@ test("task guides count as pages people read, other paths under /guides do not",
   assert.equal(isHumanPage("/guides/a/b"), false);
 });
 
-test("a prepaid key pays the key price for PDF reading; the public price and every other tool are unchanged", async () => {
-  const { KEY_PRICES, keyPriceLine } = await loadTypeScript(require.resolve("../src/lib/credits.ts"));
-  for (const [path, price] of Object.entries(KEY_PRICES)) {
-    const tool = ENDPOINTS.find((e) => e.path === path);
-    assert.ok(tool, `${path} is a live tool`);
-    assert.ok(Number(price.slice(1)) < Number(tool.price.slice(1)), `${path}: a key price must be below the public price`);
-    assert.equal(keyPrice(path, tool.price), price);
-    assert.match(keyPriceLine(path, "https://api.test"), /\$1 pays for 500 calls.*https:\/\/api\.test\/credits/);
-  }
-  assert.equal(ENDPOINTS.find((e) => e.path === "/pdf/text").price, "$0.005");
-  assert.equal(keyPrice("/weather", "$0.002"), "$0.002");
-  assert.equal(keyPriceLine("/weather", "https://api.test"), undefined);
-});
+// The key prices themselves are tested in tests/key-prices.test.cjs.

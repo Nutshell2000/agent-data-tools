@@ -4,7 +4,7 @@
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
 import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
-import { KEY_PRICES, callsAt } from "./credits";
+import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -50,7 +50,7 @@ footer{margin-top:36px;color:var(--muted);font-size:.9rem}
 ${freeCalls ? TRY_FORM_CSS : ""}
 </style></head><body><main>
 <h1>${esc(endpoint.summary)}</h1>
-<p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>${keyOffer(endpoint.path)}
+<p class="meta"><span class="price">${esc(endpoint.price)} per call</span> · failed calls are never charged · no account needed</p>${keyOffer(endpoint.path, endpoint.price)}
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)</a>` : ""}
@@ -165,8 +165,9 @@ ${again}
 </main></body></html>`;
 }
 
-/** For a tool a prepaid key pays less for: the offer, right under the price (lib/credits.ts KEY_PRICES). */
-function keyOffer(path: string): string {
-  if (!Object.hasOwn(KEY_PRICES, path)) return "";
-  return `\n<p><strong>${esc(KEY_PRICES[path])} per call with prepaid credits:</strong> $1 by card pays for ${callsAt(1000, KEY_PRICES[path])} calls, with no account and no subscription. <a href="/credits">Get a key</a>, then add <code>&amp;api_key=adt_…</code> to the address or send it as a header.</p>`;
+/** For a tool a prepaid key pays less for: the offer, right under the price (lib/key-prices.ts). */
+function keyOffer(path: string, price: string): string {
+  const offer = keyOfferNumbers(path, price);
+  if (!offer) return "";
+  return `\n<p><strong>${esc(offer.price)} per call with prepaid credits:</strong> $1 by card pays for ${offer.callsPerDollar} calls, with no account and no subscription. <a href="/credits">Get a key</a>, then add <code>&amp;api_key=adt_…</code> to the address or send it as a header.</p>`;
 }

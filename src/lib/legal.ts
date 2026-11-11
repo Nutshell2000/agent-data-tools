@@ -3,6 +3,7 @@
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
+import { PLAN_PORTAL_URL, WEB_PLANS } from "./credits";
 
 const UPDATED = "26 October 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -59,7 +60,8 @@ export const TERMS_HTML = page("Terms of service", `<h1>Terms of service</h1>
 <ul>
 <li>Each tool's price is shown in its listing and in its payment request. You pay only for successful calls; failed calls are not charged.</li>
 <li>Every caller gets a small number of free calls; we may change or end free calls.</li>
-<li>Card credits: 1 credit = $0.001. Credits do not expire. Unused credits can be refunded on request to ${mail}; used credits are not refundable.</li>
+<li>Card credits: 1 credit = $0.001. Credits do not expire. Unused credits can be refunded on request to ${mail}; used credits are not refundable.</li>${WEB_PLANS.length ? `
+<li>Monthly plan: a card payment through Stripe that repeats every month until you cancel it. Each successful payment adds the plan's credits to your key; they are ordinary credits under the line above. You can cancel at any time at <a href="${esc(PLAN_PORTAL_URL)}">Stripe's customer page</a> (it asks for the e-mail you paid with); cancelling stops future payments and leaves the credits you already have. A payment that fails adds nothing.</li>` : ""}
 <li>Crypto payments are final once settled on chain, except where a call failed after payment, which you can report to ${mail}.</li>
 </ul>
 <h2>Acceptable use</h2>
