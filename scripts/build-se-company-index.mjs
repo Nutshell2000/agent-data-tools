@@ -24,7 +24,20 @@ export const shardOf = (orgnr) => Number(orgnr.slice(0, 9)) % SHARDS;
 
 /** Name normalisation shared with the Worker: lower case, diacritics off, legal-form words dropped. */
 const LEGAL_WORDS = new Set(["ab", "aktiebolag", "aktiebolaget", "publ", "hb", "kb", "handelsbolag", "kommanditbolag", "ek", "for", "forening", "ekonomisk", "ideell", "brf", "bostadsrattsforening", "stiftelsen", "stiftelse", "med", "firma", "i", "och", "the", "&"]);
-export const nameWords = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !LEGAL_WORDS.has(w));
+const FOLD = { "ø": "o", "æ": "ae", "ß": "ss", "đ": "d", "ł": "l", "þ": "th" };
+export const nameWords = (s) => {
+  const raw = s.toLowerCase().replace(/[øæßđłþ]/g, (c) => FOLD[c]).normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter((w) => w && !LEGAL_WORDS.has(w));
+  // A run of single letters is one word: "H & M" is "hm", "A P Møller" is "ap moller".
+  const out = [];
+  let run = "";
+  for (const w of raw) {
+    if (w.length === 1) { run += w; continue; }
+    if (run) { out.push(run); run = ""; }
+    out.push(w);
+  }
+  if (run) out.push(run);
+  return out;
+};
 
 /** The name-index shard of a word: by its first three letters, so a search for "spot" or "spotify" lands in one shard. */
 export const nameShardOf = (word) => {
@@ -178,7 +191,8 @@ async function main() {
         const s = nameShardOf(w);
         if (seen.has(s)) continue;
         seen.add(s);
-        names[s].push([name, o, rec.f ?? rec.jf ?? null]);
+        // The city (fourth item) tells same-named companies apart and lets a search narrow to one place.
+        names[s].push([name, o, rec.f ?? rec.jf ?? null, rec.a?.[2] ?? null]);
       }
     }
   }

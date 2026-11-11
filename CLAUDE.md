@@ -1517,3 +1517,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - The paused seller kit page (GET/HEAD /buy/x402-seller-kit) answers 410 (it answered 503, which trust graders read as an outage: Lumière F, uptime 0). Direct order creation keeps 503: `HttpError` allows no 410.
 - `BLOCK_SCALE` (src/routes/chain-reads.ts): Base's growing-window log scans (token transfers, /token/buyers, /dex/new-pools) take ten times the blocks, windows capped at `LOG_WINDOW_MAX` 50,000. Wallet scans with fixed 1,000-block windows are not scaled (ten times the calls).
 
+
+
+## Swedish company name search (1.144.0, 11 Nov 2026)
+
+- `nameWords` (src/routes/se-company.ts and scripts/build-se-company-index.mjs, kept equal by tests/se-company.test.cjs) folds ø, æ, ß, đ, ł, þ and joins a run of single-letter words into one word ("H & M" is "hm", "A/S" is "as"). Change both files together: the name index is built with the build script's copy, and a change reaches searches only after the mirror workflow has rebuilt the index (it runs on push of the builder to main, or `gh workflow run se-company-mirror.yml --ref <branch>`). Publishing a rebuilt index before the Worker release is safe: the Worker reads index entries by position and ignores extra items.
+- Name-search order: exact name, then `TRADING_FORMS` (AB, HB, KB, bank, insurer, SE…, and the SCB number codes for them), then other Bolagsverket forms, then SCB-only entries (municipalities, foreign legal persons), then names that start with the first word, then fewer words.
+- Index entries are `[name, orgnr, form, city]` since this build; `city` (optional input) narrows a search by the start of the postal city with `nameWords` normalisation. An index without the city item lets every name through the city filter instead of dropping all matches.
+- Quality check for this tool: run its handler in Node against the live release (a copy of `se-company-live.local.cjs` from the session scratchpad into scripts/, deleted afterwards) on real names: initials, municipalities, banks, deregistered and bankrupt companies. The PC reads GitHub at about 37 KB/s, so the first call of a cold shard can time out locally; Cloudflare does not.
+
