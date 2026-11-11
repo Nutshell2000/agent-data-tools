@@ -104,6 +104,9 @@ test('the skill and the README name only tools the compact server has or reaches
   }
   for (const name of own) assert.ok(mentioned.has(name), `${name} is not explained`);
   const called = [...mentioned].filter((name) => !own.has(name));
+  // No name here may be a tool on the approved price ladder (11 Nov 2026: /news and the two research packs go to $0.25, above
+  // the capped address's limit): a pinned skill must not name a tool that is about to leave the address it connects.
+  for (const laddered of ['news', 'pack_news_sentiment', 'pack_web_research', 'crypto_news']) assert.ok(!mentioned.has(laddered), ` is on the price ladder`);
   assert.ok(called.length >= 15, `expected the skill to name tools for call_tool, found ${called.length}`);
   for (const name of called) assert.ok(names.has(name), `${name} is not a tool call_tool can run`);
   // No catalog tool may be named like one of the compact server's own tools.
@@ -115,7 +118,7 @@ test('what the texts say about free calls, prices, approvals and counts is what 
   const readme = read('README.md');
   const byName = (name) => reach.find((e) => contract.toolName(e) === name);
   // Tools named as needing a key from the first call are capacity-limited; the reading tools are in the free calls.
-  for (const paidOnly of ['search', 'news', 'extract_rendered', 'screenshot', 'transcribe']) assert.ok(CAPACITY_LIMITED.has(byName(paidOnly).path), `${paidOnly} is named as needing a key`);
+  for (const paidOnly of ['search', 'extract_rendered', 'screenshot', 'transcribe']) assert.ok(CAPACITY_LIMITED.has(byName(paidOnly).path), `${paidOnly} is named as needing a key`);
   for (const free of ['extract', 'pdf_text', 'contents', 'wikipedia', 'weather', 'fx', 'price_token', 'sanctions_check', 'dns_lookup', 'hash']) assert.ok(!CAPACITY_LIMITED.has(byName(free).path), `${free} is described as in the free calls`);
   // "Most tools cost 10 credits, reading a page or a PDF 2, a converter or hash 1, and none more than 100."
   const cost = (name) => credits(keyPrice(byName(name).path, byName(name).price));
