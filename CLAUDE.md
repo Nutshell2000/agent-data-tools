@@ -1460,3 +1460,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/x402/receipt`: `canonicalJson()` (sorted keys) of the receipt core and its SHA-256; `receiptId` = `rcpt_` + 16 hex of SHA-256(chain|hash|logIndex). `method` is `eip3009-authorization` when the USDC contract emitted AuthorizationUsed in the same transaction (the x402 exact scheme). Example: Mercator's $0.01 payment of 11 Nov 2026, tx 0x778c8c1b…b933.
 - Rules: never add a credit score, a person's name or anything that rates a person (IMY permit, AI Act high-risk from 2 Dec 2027); describe wallets, listings and transactions only. Nothing here may hold, move or sign funds.
 
+
+
+## Estates out of /se/company (1.141.0, 11 Nov 2026)
+
+- SCB's register holds about 2,000 dödsbon (SCB legal form 91, organisationsnummer starting 10). Each is named after the deceased person ("NILSSONS DÖDSBO, SVEN OLOF …") with an address that is often a relative's home. That is personal data, so the tool never shows one. Owner, 11 Nov 2026: "Yes, fix it".
+- `isEstate()` exists in both `src/routes/se-company.ts` and `scripts/build-se-company-index.mjs`, and tests/se-company.test.cjs holds the two equal.
+  - The build drops estates and counts them in the manifest's `skippedEstates`.
+  - The Worker refuses an estate's number with an uncharged 404 and skips estates in name search, which also covers copies built before the build skipped them.
+- If any other legal form turns out to carry a private person's name, add it the same way in both files.
+
