@@ -104,3 +104,14 @@ test('the guides are reachable: index page, homepage, tool pages, llms.txt and t
   assert.equal((await mf.dispatchFetch('https://api.test/guides/no-such-guide')).status, 404);
   assert.equal((await mf.dispatchFetch('https://api.test/guides/sitemap')).status, 200, 'the specific guide routes still win');
 });
+
+test('the PDF guide and tool page lead with the prepaid price; a tool without one says nothing of it', async () => {
+  const guide = await (await mf.dispatchFetch('https://api.test/guides/pdf-to-text-api')).text();
+  assert.match(guide, /With prepaid credits this tool costs \$0\.002 a call: \$1 by card pays for 500 calls/);
+  const md = await (await mf.dispatchFetch('https://api.test/guides/pdf-to-text-api.md')).text();
+  assert.match(md, /\$1 by card pays for 500 calls/);
+  const page = await (await mf.dispatchFetch('https://api.test/tools/pdf-text', { headers: { accept: 'text/html' } })).text();
+  assert.match(page, /\$0\.002 per call with prepaid credits/);
+  const other = await (await mf.dispatchFetch('https://api.test/tools/weather', { headers: { accept: 'text/html' } })).text();
+  assert.doesNotMatch(other, /with prepaid credits:/);
+});
