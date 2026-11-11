@@ -36,6 +36,7 @@ import { screenshot } from "./screenshot";
 import { SEARCH } from "./search";
 import { weather } from "./weather";
 import { CHAIN_MORE } from "./chain-more";
+import { CONTRACT_AUDIT } from "./contract-audit";
 import { GOV_DATA } from "./gov-data";
 import { HYPERLIQUID } from "./hyperliquid";
 import { CVE } from "./cve";
@@ -472,6 +473,11 @@ export const ENTRY_PATHS: Entry[] = [
   door("/tx/decode", "Transaction decoder: what a tx did",
     "Transaction decoder for EVM chains: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting or reporting it.",
     ["transaction-decoder", "decode-transaction", "tx-decoder", "explain-transaction", "evm", "onchain-data"], from(PACKS_MORE, "/pack/tx-explain")),
+
+  // 1.131.0: the same audit under the path order other sellers and searches use ("contract audit").
+  door("/contract/audit", "Contract audit: Solidity security review by address or source",
+    "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, in about a minute. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract.",
+    ["contract-audit", "solidity-audit", "smart-contract-audit", "security-review", "audit", "evm"], from(CONTRACT_AUDIT, "/audit/contract")),
 
   door("/url/unshorten", "URL unshortener: final destination",
     "URL unshortener: expand a short link (bit.ly, t.co and others) to its final destination without loading the page, with every redirect hop's status code and Location, total hops, timing and whether it loops. Each hop is checked before it is requested; redirects to private addresses are reported, not followed. Use to see where a link really goes before opening or sharing it.",

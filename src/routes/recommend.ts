@@ -41,6 +41,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "text to speech": "/ai/speech", "tts": "/ai/speech", "read aloud": "/ai/speech", "voice over": "/ai/speech", "speak text": "/ai/speech",
   "long text to speech": "/text-to-speech", "narrate": "/text-to-speech", "narration": "/text-to-speech",
   "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
+  "smart contract audit": "/audit/contract", "contract audit": "/audit/contract", "audit contract": "/audit/contract", "audit smart contract": "/audit/contract", "solidity audit": "/audit/contract", "audit solidity": "/audit/contract", "contract security review": "/audit/contract", "security audit": "/audit/contract", "code audit": "/audit/contract",
   "website audit": "/audit/website", "site audit": "/audit/website", "audit bundle": "/audit/website", "accessibility audit": "/audit/website", "page speed": "/audit/website", "lighthouse": "/audit/website",
   "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
   // 10 Nov 2026 (base-bots/mercator-jobs.mjs, bazaar-word-demand.mjs): jobs sold elsewhere under a path that names them.

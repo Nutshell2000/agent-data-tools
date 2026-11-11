@@ -1,5 +1,5 @@
 {
-  "version": "1.130.0",
+  "version": "1.131.0",
   "tools": [
     {
       "name": "extract",
@@ -14525,6 +14525,39 @@
       "price": "$0.01"
     },
     {
+      "name": "audit_contract",
+      "description": "Smart contract audit in one call: send a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or Solidity source and get, within a minute or two, findings by severity with function, line, exploit scenario and fix, the owner and upgrade keys read on chain, a score and a Markdown report. Automated (static checks plus AI reviewers), not a manual audit. Use before deploying, integrating with or buying into a contract. Price $1.00/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Solidity or Vyper source code, or the compiler's standard JSON input, up to 300,000 characters; POST it in a JSON body when it is long. Send this or address"
+          },
+          "address": {
+            "type": "string",
+            "description": "Verified contract 0x address (a proxy is followed to its implementation). Send this or source"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon; used with address"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional notes for the reviewers, up to 1,000 characters: what the contract is for or what worries you"
+          }
+        }
+      },
+      "price": "$1.00"
+    },
+    {
       "name": "date_business_days",
       "description": "Count business (working) days between two dates, skipping weekends and the nationwide public holidays of over 100 countries (our statutory rules for US, UK, SE, DE, FR, NO, DK, FI; Nager.Date for the rest, e.g. JP, NZ, CA, AU, IN), and list the holidays skipped; or give add=N for the date N business days after (or before) a date. Use for delivery estimates, SLAs, payment terms and payroll dates. Example: from=2026-12-01. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -19881,6 +19914,39 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "contract_audit",
+      "description": "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, in about a minute. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract. Price $1.00/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Solidity or Vyper source code, or the compiler's standard JSON input, up to 300,000 characters; POST it in a JSON body when it is long. Send this or address"
+          },
+          "address": {
+            "type": "string",
+            "description": "Verified contract 0x address (a proxy is followed to its implementation). Send this or source"
+          },
+          "chain": {
+            "type": "string",
+            "description": "ethereum (default), base, arbitrum, optimism or polygon; used with address"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional notes for the reviewers, up to 1,000 characters: what the contract is for or what worries you"
+          }
+        }
+      },
+      "price": "$1.00"
     },
     {
       "name": "url_unshorten",
