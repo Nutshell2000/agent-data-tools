@@ -107,12 +107,13 @@ test('the homepage offers one-click MCP installs (Cursor, VS Code) and the Claud
   const html = await (await mf.dispatchFetch('https://api.test/', { headers: browser })).text();
   const cursor = /href="cursor:\/\/anysphere\.cursor-deeplink\/mcp\/install\?name=agent-data-tools&amp;config=([^"]+)"/.exec(html);
   assert.ok(cursor, 'Cursor deep link');
-  assert.deepEqual(JSON.parse(Buffer.from(decodeURIComponent(cursor[1]), 'base64').toString()), { url: 'https://api.test/mcp' });
+  assert.deepEqual(JSON.parse(Buffer.from(decodeURIComponent(cursor[1]), 'base64').toString()), { url: 'https://api.test/mcp/compact' });
   const vscode = /href="vscode:mcp\/install\?([^"]+)"/.exec(html);
   assert.ok(vscode, 'VS Code deep link');
-  assert.deepEqual(JSON.parse(decodeURIComponent(vscode[1])), { name: 'agent-data-tools', type: 'http', url: 'https://api.test/mcp' });
+  assert.deepEqual(JSON.parse(decodeURIComponent(vscode[1])), { name: 'agent-data-tools', type: 'http', url: 'https://api.test/mcp/compact' });
   assert.match(html, /href="vscode-insiders:mcp\/install\?/);
-  assert.match(html, /claude mcp add --transport http agent-data-tools https:\/\/api\.test\/mcp/);
+  assert.match(html, /claude mcp add --transport http agent-data-tools https:\/\/api\.test\/mcp\/compact</);
+  assert.match(html, /<code>https:\/\/api\.test\/mcp<\/code>/, 'the full server is still named');
   assert.match(html, /https:\/\/api\.test\/mcp\/account/);
 });
 

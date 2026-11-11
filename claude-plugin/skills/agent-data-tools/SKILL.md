@@ -66,7 +66,7 @@ curl -H "Authorization: Bearer adt_…" "https://agent-data-tools.revmesh2074.wo
 
 A client that can only fetch a URL adds `&api_key=adt_…` instead of the header. Without a key or a free call the answer is HTTP 402 with the price and payment terms; nothing is charged until a call succeeds.
 
-MCP clients can use the same tools at `https://agent-data-tools.revmesh2074.workers.dev/mcp` (tool names are the paths with `/` and `-` as `_`, for example `price_token`), with a key in the Authorization header or at `https://agent-data-tools.revmesh2074.workers.dev/mcp/k/<key>`.
+MCP clients can use the same tools at `https://agent-data-tools.revmesh2074.workers.dev/mcp` (tool names are the paths with `/` and `-` as `_`, for example `price_token`), with a key in the Authorization header or at `https://agent-data-tools.revmesh2074.workers.dev/mcp/k/<key>`. `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` reaches the same tools through three: `find_tool`, `tool_details` and `call_tool` (name and arguments).
 
 ## 3. Pay
 
