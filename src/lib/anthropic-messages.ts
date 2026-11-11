@@ -125,12 +125,12 @@ export function anthropicMessagesOpenApiPath(origin: string, prices: { small: st
           content: {
             "application/json": {
               schema: { type: "object", required: ["messages", "max_tokens"], properties: { model: { type: "string", description: `Open model name (default ${CHAT_MODEL}); Claude names are refused` }, system: {}, messages: { type: "array", items: { type: "object" } }, tools: { type: "array", items: { type: "object" } }, tool_choice: { type: "object" }, max_tokens: { type: "integer", minimum: 1, maximum: 1024 }, temperature: { type: "number" }, stream: { type: "boolean" } } },
-              example: { model: "llama-4-scout", max_tokens: 200, system: "You are a concise assistant.", messages: [{ role: "user", content: "Explain x402 in one sentence." }] },
+              example: { model: "llama-4-scout", max_tokens: 200, system: "You are a concise assistant.", messages: [{ role: "user", content: "Explain HTTP status code 402 in one sentence." }] },
             },
           },
         },
         responses: {
-          "200": { description: "Message", content: { "application/json": { example: { id: "msg_0123456789abcdef01234567", type: "message", role: "assistant", model: CHAT_MODEL, content: [{ type: "text", text: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 24, output_tokens: 22 } } } } },
+          "200": { description: "Message", content: { "application/json": { example: { id: "msg_0123456789abcdef01234567", type: "message", role: "assistant", model: CHAT_MODEL, content: [{ type: "text", text: "HTTP 402 Payment Required is a status code that tells a client it must pay before the server will fulfil the request." }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 24, output_tokens: 22 } } } } },
           "400": { description: "Invalid request body or a Claude model name (not charged)" },
           "402": { description: "Payment Required" },
           "503": { description: "Daily AI capacity used up (not charged)" },

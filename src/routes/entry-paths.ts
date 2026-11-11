@@ -208,7 +208,7 @@ export const ENTRY_PATHS: Entry[] = [
     ["whois-lookup", "domain-lookup", "whois", "dns-records", "domain-age", "registrar"], CORE_DOMAIN),
 
   door("/company/lookup", "Company lookup, company data: profile of any company by name, domain or id",
-    "Company lookup by name, website domain or Wikidata id: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and LEI, from Wikidata (CC0). No match is an uncharged 404. Use to enrich a lead, vendor or counterparty with company data, or to ground an answer about a business.",
+    "Company lookup by name, website domain or Wikidata id: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and LEI, from Wikidata (CC0). No match is an uncharged 422. Use to enrich a lead, vendor or counterparty with company data, or to ground an answer about a business.",
     ["company-lookup", "company-data", "company-enrichment", "business-data", "kyb", "wikidata"], from(COMPANY, "/company")),
 
   door("/geocode/address", "Geocode an address, coordinates: place or address name to latitude and longitude",
