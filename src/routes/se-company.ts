@@ -20,6 +20,14 @@ const NOT_A_CREDIT_REPORT = "Register facts only. This is not a credit report, c
 
 export const shardOf = (orgnr: string) => Number(orgnr.slice(0, 9)) % SHARDS;
 
+/**
+ * SCB legal form 91 is a dödsbo, the estate of a deceased person: it is named after that person and its address is often
+ * a relative's home, so the tool never shows one (11 Nov 2026). The build leaves them out too (isEstate in
+ * scripts/build-se-company-index.mjs); this check also covers a copy built before that change.
+ */
+export const isEstate = (jurForm: string | null | undefined) => String(jurForm ?? "").trim() === "91";
+const ESTATE_REFUSAL = "that organisationsnummer belongs to a dödsbo (the estate of a deceased person); this tool covers companies and does not show estates; nothing was charged";
+
 const LEGAL_WORDS = new Set(["ab", "aktiebolag", "aktiebolaget", "publ", "hb", "kb", "handelsbolag", "kommanditbolag", "ek", "for", "forening", "ekonomisk", "ideell", "brf", "bostadsrattsforening", "stiftelsen", "stiftelse", "med", "firma", "i", "och", "the", "&"]);
 export const nameWords = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !LEGAL_WORDS.has(w));
 export const nameShardOf = (word: string) => {
@@ -195,6 +203,7 @@ export async function lookupOrgnr(orgnr: string, fetcher: Fetcher = fetch) {
   const { data: shard, asOf } = await readShard<Record<string, SeRecord>>("companies", shardOf(orgnr), fetcher);
   const rec = Object.hasOwn(shard, orgnr) ? shard[orgnr] : undefined;
   if (!rec) throw new HttpError(404, `no company with organisationsnummer ${formatted(orgnr)} in Bolagsverket's or SCB's register; nothing was charged`);
+  if (isEstate(rec.jf)) throw new HttpError(404, ESTATE_REFUSAL);
   return companyView(orgnr, rec, asOf);
 }
 
@@ -208,7 +217,7 @@ export async function searchName(name: string, limit: number, fetcher: Fetcher =
   const seen = new Set<string>();
   const hits: { name: string; orgnr: string; legalForm: string | null; rank: number }[] = [];
   for (const [display, orgnr, form] of index) {
-    if (seen.has(orgnr)) continue;
+    if (seen.has(orgnr) || isEstate(form)) continue;
     const have = nameWords(display);
     if (!words.every((w) => have.some((h) => h.startsWith(w)))) continue;
     seen.add(orgnr);

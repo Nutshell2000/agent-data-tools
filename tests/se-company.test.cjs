@@ -25,6 +25,8 @@ const SCB = [
   '1\t\t\t1\tREGERINGSGATAN 19\t1\t49\tSPOTIFY AB\t63120\t62010\t\t\t\t165567037485\t11153\tSTOCKHOLM\t20060421\t1',
   '1\tPER PERSSON\t\t1\tSTORGATAN 1\t1\t82\tTESTKOMMUN\t84110\t\t\t\t\t162120000001\t11111\tTESTSTAD\t19710101\t1',
   '1\t\t\t1\tHEMVÄGEN 1\t2\t10\tSVEN SVENSSON\t43320\t\t\t\t\t198001011234\t22100\tLUND\t20100101\t1',
+  // A dödsbo (SCB legal form 91): named after the deceased person, address often a relative's home. Must never be written.
+  '1\t\t\t1\tTESTVÄGEN 9\t1\t91\tTESTSSONS DÖDSBO, KARL\t68209\t\t\t\t\t161029999990\t12345\tTESTBY\t20200101\t1',
 ].join('\n');
 
 before(async () => {
@@ -74,6 +76,7 @@ test('the build keeps legal persons only and never writes a c/o line or a person
   const manifest = JSON.parse(readFileSync(join(out, 'manifest.json'), 'utf8'));
   assert.equal(manifest.dataAsOf, '2026-11-09');
   assert.equal(manifest.skippedPersons, 1);
+  assert.equal(manifest.skippedEstates, 1, 'the dödsbo row is counted and left out');
   assert.equal(manifest.unreadableRows, 0);
   assert.equal(manifest.files.companies.index.length, S.SHARDS);
   assert.equal(manifest.files.names.index.length, S.SHARDS);
@@ -83,7 +86,7 @@ test('the build keeps legal persons only and never writes a c/o line or a person
     assert.equal(bin.length, f.bytes);
     return f.index.map(([o, n]) => require('node:zlib').gunzipSync(bin.subarray(o, o + n)).toString('utf8'));
   }).join('\n');
-  assert.doesNotMatch(all, /Anna Andersson|PER PERSSON|198001011234|Svenssons|SVEN SVENSSON/);
+  assert.doesNotMatch(all, /Anna Andersson|PER PERSSON|198001011234|Svenssons|SVEN SVENSSON|DÖDSBO|TESTSSONS|1029999990|TESTVÄGEN/);
   assert.match(all, /Konkursbo Test \\"Exempel\\" AB/, 'an escaped quote in a name is read as a quote');
 });
 
@@ -160,6 +163,14 @@ test('a missing release is an uncharged 503, never a 404 that reads as "no such 
   } finally {
     globalThis.fetch = fetchBefore;
   }
+});
+
+test('estates (dödsbon, SCB legal form 91) are refused by the Worker and skipped by the build, with one rule', () => {
+  for (const v of ['91', ' 91', 91]) { assert.equal(S.isEstate(v), true); assert.equal(B.isEstate(v), true); }
+  for (const v of ['49', '9', '191', null, undefined, '']) { assert.equal(S.isEstate(v), false); assert.equal(B.isEstate(v), false); }
+  const src = readFileSync(join(__dirname, '..', 'src', 'routes', 'se-company.ts'), 'utf8');
+  assert.match(src, /if \(isEstate\(rec\.jf\)\) throw new HttpError\(404, ESTATE_REFUSAL\)/, 'lookup refuses an estate even in a copy built before the build skipped them');
+  assert.match(src, /seen\.has\(orgnr\) \|\| isEstate\(form\)/, 'name search skips estates');
 });
 
 test('the copy never offers a credit score, rating or opinion', () => {

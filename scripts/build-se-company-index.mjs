@@ -94,6 +94,9 @@ export function bolagsverketRecord(f) {
   return rec;
 }
 
+/** SCB legal form 91: dödsbo (estate of a deceased person). Keep equal to isEstate in src/routes/se-company.ts. */
+export const isEstate = (jurForm) => String(jurForm ?? "").trim() === "91";
+
 /** One SCB row (header-mapped) as the fields merged into the record, or null for a natural person. */
 export function scbFields(row) {
   const id = row.PeOrgNr ?? "";
@@ -135,7 +138,7 @@ async function main() {
     if (prev) prev.n = [...(prev.n ?? []), ...(rec.n ?? [])];
     else records.set(rec.o, rec);
   }
-  let scbRows = 0, scbOnly = 0;
+  let scbRows = 0, scbOnly = 0, estates = 0;
   for (const p of scbPaths) {
     let cols = null;
     for await (const raw of lines(p, "latin1")) {
@@ -145,6 +148,9 @@ async function main() {
       const s = scbFields(row);
       if (!s) continue;
       scbRows++;
+      // A dödsbo (SCB legal form 91, the estate of a deceased person) is named after that person and its address is
+      // often a relative's home: personal data, so it is never written (11 Nov 2026, owner: "Yes, fix it").
+      if (isEstate(s.jf)) { estates++; records.delete(s.o); continue; }
       const rec = records.get(s.o);
       if (rec) Object.assign(rec, { s: s.s, j: s.j, jf: s.jf, sni: s.sni });
       else {
@@ -199,7 +205,7 @@ async function main() {
   const companies = pack("companies", shards);
   const nameIndex = pack("names", names);
   const manifest = {
-    dataAsOf, shards: SHARDS, companies: records.size, bolagsverketRows: bvRows, skippedPersons: persons, unreadableRows: broken, scbRows, scbOnly, builtAt: new Date().toISOString(),
+    dataAsOf, shards: SHARDS, companies: records.size, bolagsverketRows: bvRows, skippedPersons: persons, skippedEstates: estates, unreadableRows: broken, scbRows, scbOnly, builtAt: new Date().toISOString(),
     files: { companies, names: nameIndex },
   };
   writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest));
