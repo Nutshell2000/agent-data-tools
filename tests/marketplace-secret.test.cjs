@@ -39,3 +39,22 @@ test("anything other than an exact listed secret is refused", () => {
   assert.equal(viaMarketplace({}, a), false);
   assert.equal(viaMarketplace({ RAPIDAPI_PROXY_SECRET: "short,also-short" }, "short"), false);
 });
+
+test("Orthogonal's credential is read from its header, X-API-Key or a Bearer token, never from our own keys", async () => {
+  const { orthogonalSecret } = await loadTypeScript(require.resolve("../src/lib/marketplace.ts"));
+  const o = "o".repeat(40);
+  const h = (map) => (name) => map[name];
+  assert.equal(orthogonalSecret(h({ "x-orthogonal-proxy-secret": o })), o);
+  assert.equal(orthogonalSecret(h({ "x-api-key": o })), o);
+  assert.equal(orthogonalSecret(h({ authorization: `Bearer ${o}` })), o);
+  assert.equal(orthogonalSecret(h({ "x-api-key": "adt_" + "k".repeat(30) })), undefined, "our prepaid key");
+  assert.equal(orthogonalSecret(h({ authorization: "Bearer adt_" + "k".repeat(30) })), undefined, "our prepaid key as Bearer");
+  assert.equal(orthogonalSecret(h({ authorization: "Payment id=x" })), undefined, "an MPP credential");
+  assert.equal(orthogonalSecret(h({})), undefined);
+  const env = { RAPIDAPI_PROXY_SECRET: a, FLUXA_PROXY_SECRET: b, ORTHOGONAL_PROXY_SECRET: o };
+  assert.equal(marketplaceOf(env, undefined, undefined, o), "orthogonal");
+  assert.equal(marketplaceOf(env, undefined, undefined, a), false, "the RapidAPI secret as Orthogonal's");
+  assert.equal(marketplaceOf(env, o, undefined, undefined), false, "Orthogonal's secret in the RapidAPI header");
+  assert.equal(marketplaceOf({ RAPIDAPI_PROXY_SECRET: a }, undefined, undefined, o), false, "not configured");
+  assert.equal(marketplaceOf(env, undefined, undefined, o.slice(1)), false);
+});
