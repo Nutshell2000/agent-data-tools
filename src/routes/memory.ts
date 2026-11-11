@@ -93,7 +93,7 @@ export const MEMORY: Entry[] = [
     "$0.002"),
 
   entry("/memory/get", "Agent memory, recall: read a saved value",
-    `Read the value saved under a key in your namespace with /memory/set, with when it was saved and when it expires. A key that was never saved or has expired is a 404 and is not charged. ${NOTE} Use to recall what an agent saved in an earlier run.`,
+    `Read the value saved under a key in your namespace with /memory/set, with when it was saved and when it expires. A key that was never saved or has expired is a 422 and is not charged. ${NOTE} Use to recall what an agent saved in an earlier run.`,
     ["agent-memory", "memory-recall", "key-value-store", "kv-store", "memory"], { namespace: NS_PARAM, key: KEY_PARAM },
     { key: "user-preferences", value: "{\"language\":\"en\",\"units\":\"metric\"}", updatedAt: "2026-10-25T15:00:00.000Z", expiresAt: "2026-11-24T15:00:00.000Z", size: 34 },
     async (env, q) => memoryGet(store(env), need(q, "namespace", 128), need(q, "key", MAX_KEY)),

@@ -252,7 +252,7 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
   "/company": {
     title: "Company data API: website, founders, tickers and LEI",
     uses: ["Enrich a lead, vendor or counterparty with its official website and country", "Look up founding date, headquarters, CEO, parent company and employee count", "Find a listed company's stock tickers, exchanges and LEI"],
-    faq: [["Where does the data come from?", "Wikidata (public domain, CC0), with Wikidata and Wikipedia links. It is best for established and listed companies."], ["What if there is no match?", "The call returns 404 and is not charged."]],
+    faq: [["Where does the data come from?", "Wikidata (public domain, CC0), with Wikidata and Wikipedia links. It is best for established and listed companies."], ["What if there is no match?", "The call returns 422 and is not charged."]],
   },
   "/weather": {
     title: "Weather API: current weather and 48-hour forecast by city",
@@ -354,7 +354,7 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
   "/base/token-balance": {
     title: "Base USDC balance API: ERC-20 token balance of a wallet",
     uses: ["Check a wallet's USDC, USDT, WETH or any ERC-20 balance on Base before a transfer or trade", "Pass a ticker or the token's 0x contract address", "Get the raw amount, decimals, symbol and human-readable amount from balanceOf"],
-    faq: [["What if the token address is wrong?", "No contract returns 404 and a non-ERC-20 contract 422, both uncharged."], ["What about ETH itself?", "Use base_balance for the native coin."]],
+    faq: [["What if the token address is wrong?", "No contract or a non-ERC-20 contract returns 422, uncharged."], ["What about ETH itself?", "Use base_balance for the native coin."]],
   },
   "/mev-simulator": {
     title: "Base gas cost estimator API: swap fees under priority-fee scenarios",
