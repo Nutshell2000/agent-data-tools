@@ -290,6 +290,23 @@ test("status reports success rate and last success from executed calls only", as
   assert.deepEqual([status.windowDays, status.served, status.serverErrors], [7, 2, 1]);
 });
 
+test("status shows the newest three days beside the seven-day figures", async () => {
+  // One incident day four days ago, three clean days since: the week reads low, the recent window does not.
+  const day = (n) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+  const { metrics } = createMetrics(new Map([
+    [`day:${day(4)}`, { "/search": { paid: 1, errored: 9 } }],
+    [`day:${day(2)}`, { "/search": { paid: 2 } }],
+    [`day:${day(1)}`, { "/search": { paid: 1, errored: 1 } }],
+  ]));
+  await metrics.bump("/search", "paid");
+  const status = await metrics.status(["/search"]);
+  const [tool] = status.tools;
+  assert.deepEqual([tool.served, tool.serverErrors, tool.successRate], [5, 10, 0.333]);
+  assert.deepEqual(tool.recent, { days: 3, served: 4, serverErrors: 1, successRate: 0.8 });
+  assert.deepEqual(status.recent, { days: 3, served: 4, serverErrors: 1, successRate: 0.8 });
+  assert.deepEqual([status.served, status.serverErrors, status.successRate], [5, 10, 0.333], "the 7-day fields keep their meaning");
+});
+
 test("caller family names the software, never the full User-Agent", async () => {
   const { callerFamily } = await loadTypeScript(require.resolve("../src/lib/caller.ts"));
   assert.equal(callerFamily("Mozilla/5.0 (compatible; x402scan/1.0; +https://x402.org)"), "x402scan");
