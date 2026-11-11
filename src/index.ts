@@ -33,7 +33,7 @@ import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
 import { buyAssetPreflight, BUY_PATHS, buyOpenApiPaths, store } from "./store/routes";
 import { ALIAS_OF, NO_INPUT, TOOLS } from "./tools";
-import { marketplaceOf } from "./lib/marketplace";
+import { marketplaceOf, orthogonalSecret } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
@@ -297,10 +297,11 @@ app.use(async (c, next) => {
   if (endpoint && v1Payment) return payV1(c, endpoint, v1Payment, next);
   // Trials cover the per-call tools only, never store purchases.
   const trialable = !c.req.path.startsWith("/buy/");
-  const market = trialable && c.req.method === "GET" && !CAPACITY_LIMITED.has(c.req.path) ? marketplaceOf(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret")) : false;
+  const market = trialable && c.req.method === "GET" && !CAPACITY_LIMITED.has(c.req.path) ? marketplaceOf(c.env, c.req.header("x-rapidapi-proxy-secret"), c.req.header("x-fluxa-proxy-secret"), orthogonalSecret((n) => c.req.header(n))) : false;
   // FluxA lists us as one catch-all endpoint at $0.01, so only tools priced at most $0.01 pass its proxy unpaid; the
   // dearer ones (/package-audit, /trade-insight, the risk checks) get the normal 402, which FluxA's proxy returns uncharged.
-  if (market === "rapidapi" || (market === "fluxa" && Number(endpoint?.price.slice(1) ?? Infinity) <= 0.01)) return next();
+  // Orthogonal bills its buyer at our listed price before forwarding, so every price passes.
+  if (market === "rapidapi" || market === "orthogonal" || (market === "fluxa" && Number(endpoint?.price.slice(1) ?? Infinity) <= 0.01)) return next();
   // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;
