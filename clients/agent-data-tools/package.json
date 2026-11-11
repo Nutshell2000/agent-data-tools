@@ -1,6 +1,6 @@
 {
   "name": "agent-data-tools",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "mcpName": "io.github.Nutshell2000/agent-data-tools",
   "description": "Data tools for AI agents, one call each: PDF to text, web page to Markdown, web search, news, token prices, OFAC sanctions checks, chain reads, IP geolocation, hosted pages. 25 free calls, then card credits or x402.",
   "type": "module",

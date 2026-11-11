@@ -1370,3 +1370,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - AFTER IT IS LIVE: one paid staging call by address (`/audit/contract?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain=base`, 1 test USDC) must show `access.owner`, `access.proxyAdmin` and `access.onChain: "read at audit time"`.
 
 
+
+
+## Our own packages connect the compact server; the client pack is in the repository (1.132.0, 11 Nov 2026)
+
+- `mcpInstallLinks(origin)` (src/discovery.ts): `url` is `/mcp/compact` and drives the Cursor and VS Code links and the Claude Code command; `full` is `/mcp`; `claudeAi` stays `/mcp/account`. The README's three buttons are hard-coded copies of those links (base64 and URL-encoded configs): change them together. The Claude plugin (`claude-plugin/.claude-plugin/plugin.json`) and `gemini-extension.json` name the same address (tests/gemini-extension.test.cjs keeps the two equal); bump both versions when the address changes. `server.json` `remotes` still names `/mcp`: registries list the full server.
+- npm client (clients/agent-data-tools, repository copy 1.2.0): `serverPath(full)` and `stdio(full)` in cli.mjs; `--full` on `setup` and `mcp` picks `/mcp`. npm still carries 1.1.1, which connects `/mcp`, and `server.json` `packages[0].version` must stay at the published version until the owner publishes 1.2.0 (the registry checks the package).
+- `integrations/n8n` (package `n8n-nodes-agent-data-tools`) is its own npm package with its own lockfile, tests (`npm test` inside the folder) and n8n lint; the Worker's `npm test` and tsconfig do not read it. `.github/workflows/publish-n8n-node.yml` runs only on a tag `n8n-node-<version>` whose version equals the package's; the first version is published by the owner's click (`C:\MoneyWallet\Publish n8n node.cmd`), later ones by that tag once she has saved the trusted publisher on npmjs.com.
+- `integrations/openclaw`: `node integrations/openclaw/check.cjs <saved openapi.json>` checks the skill against the live API description; the bundle's SKILL.md must stay byte-identical to the skill's (LF endings, `.gitattributes`).
+- Not in the repository on purpose: the storefront test (two Workers, branch claude/storefronts, judged 18 Nov) and the gateway prototype (branch claude/gateway-proto, test network only, the owner decides).
+

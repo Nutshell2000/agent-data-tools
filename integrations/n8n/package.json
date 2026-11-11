@@ -1,0 +1,67 @@
+{
+	"name": "n8n-nodes-agent-data-tools",
+	"version": "0.1.0",
+	"description": "n8n node for Agent Data Tools: web search, page text, GitHub data, text to speech, website audits, news, crypto prices and indicators, CVE, company and SEC lookups, sanctions screening and about 680 more pay-per-call tools behind one prepaid API key.",
+	"license": "MIT",
+	"homepage": "https://agent-data-tools.revmesh2074.workers.dev",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"web-search",
+		"web-scraping",
+		"markdown",
+		"text-to-speech",
+		"website-audit",
+		"news",
+		"crypto",
+		"cve",
+		"sec-filings",
+		"sanctions-screening",
+		"github"
+	],
+	"author": {
+		"name": "SpellzCode",
+		"email": "spellz111122@gmail.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Nutshell2000/agent-data-tools.git",
+		"directory": "integrations/n8n"
+	},
+	"bugs": {
+		"url": "https://github.com/Nutshell2000/agent-data-tools/issues"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "n8n-node build && node --test test/description.test.cjs",
+		"test:engine": "node test/engine-dry-run.cjs",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/AgentDataToolsApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/AgentDataTools/AgentDataTools.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.56.2",
+		"eslint": "9.39.4",
+		"prettier": "3.8.3",
+		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
