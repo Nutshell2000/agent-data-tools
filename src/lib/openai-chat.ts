@@ -371,7 +371,7 @@ export function openAiOpenApiPaths(origin: string, prices: { small: string; larg
                   response_format: { type: "object", description: "{\"type\":\"json_object\"} or a json_schema" },
                 },
               },
-              example: { model: CHAT_MODEL, messages: [{ role: "system", content: "You are a concise assistant." }, { role: "user", content: "Explain x402 in one sentence." }], max_tokens: 200 },
+              example: { model: CHAT_MODEL, messages: [{ role: "system", content: "You are a concise assistant." }, { role: "user", content: "Explain HTTP status code 402 in one sentence." }], max_tokens: 200 },
             },
           },
         },
@@ -381,7 +381,7 @@ export function openAiOpenApiPaths(origin: string, prices: { small: string; larg
             content: {
               "application/json": {
                 schema: { type: "object", properties: { id: { type: "string" }, object: { type: "string" }, created: { type: "integer" }, model: { type: "string" }, choices: { type: "array", items: { type: "object", properties: { index: { type: "integer" }, message: { type: "object", properties: { role: { type: "string" }, content: { type: "string" } } }, finish_reason: { type: "string" } } } }, usage: { type: "object", properties: { prompt_tokens: { type: "integer" }, completion_tokens: { type: "integer" }, total_tokens: { type: "integer" }, estimated: { type: "boolean" } } } } },
-                example: { id: "chatcmpl-0123456789abcdef01234567", object: "chat.completion", created: 1792400000, model: CHAT_MODEL, choices: [{ index: 0, message: { role: "assistant", content: "x402 lets software pay for an HTTP request with a stablecoin by answering a 402 Payment Required challenge." }, finish_reason: "stop" }], usage: { prompt_tokens: 12, completion_tokens: 24, total_tokens: 36, estimated: true } },
+                example: { id: "chatcmpl-0123456789abcdef01234567", object: "chat.completion", created: 1792400000, model: CHAT_MODEL, choices: [{ index: 0, message: { role: "assistant", content: "HTTP 402 Payment Required is a status code that tells a client it must pay before the server will fulfil the request." }, finish_reason: "stop" }], usage: { prompt_tokens: 12, completion_tokens: 24, total_tokens: 36, estimated: true } },
               },
             },
           },

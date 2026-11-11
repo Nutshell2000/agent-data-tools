@@ -129,7 +129,7 @@ test('every tool documents its error responses, and every reference resolves', a
   assert.deepEqual(Object.keys(doc.components.schemas.ToolError.properties), ['error', 'code', 'inputs', 'example']);
   for (const e of ENDPOINTS) {
     const r = doc.paths[e.path].get.responses;
-    for (const code of ['400', '404', '422', '502', '503']) {
+    for (const code of ['400', '422', '502', '503']) {
       const name = r[code].$ref.replace('#/components/responses/', '');
       const target = doc.components.responses[name];
       assert.ok(target, `${e.path} ${code} resolves`);
@@ -137,6 +137,7 @@ test('every tool documents its error responses, and every reference resolves', a
       assert.equal(target.content['application/json'].schema.$ref, '#/components/schemas/ToolError');
     }
     assert.equal(r['402'].description, 'Payment Required');
+    assert.equal(r['404'], undefined, 'a tool never answers 404: nothing found is 422 NOT_FOUND');
   }
   // The document stays under the 2 MB that readers (our own /openapi/summary among them) accept.
   assert.ok(JSON.stringify(doc).length < 2_000_000, `OpenAPI is ${JSON.stringify(doc).length} bytes`);

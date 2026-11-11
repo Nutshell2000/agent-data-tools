@@ -85,7 +85,7 @@ export const SOLANA: Entry[] = [
     }),
 
   entry("/solana/token", "Solana token info: supply, decimals, mint and freeze authority",
-    "Look up a Solana SPL token by its mint address, live from mainnet: decimals, total supply, whether a mint authority can still create more and whether a freeze authority can freeze holders (two common rug-pull risks), the token program, and, on request, the largest holder accounts with their share of supply. Use before buying or accepting an unknown Solana token. A mint that does not exist is 404, uncharged.",
+    "Look up a Solana SPL token by its mint address, live from mainnet: decimals, total supply, whether a mint authority can still create more and whether a freeze authority can freeze holders (two common rug-pull risks), the token program, and, on request, the largest holder accounts with their share of supply. Use before buying or accepting an unknown Solana token. A mint that does not exist is 422, uncharged.",
     ["solana-token", "solana", "spl-token", "token-security", "crypto", "data"], {
       mint: { type: "string", description: "SPL token mint address (base58)", required: true, example: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
       holders: { type: "integer", description: "Largest holder accounts to list, 0-20 (default 0; best effort, the public node rate-limits this lookup)", example: 0 },
@@ -109,7 +109,7 @@ export const SOLANA: Entry[] = [
     }),
 
   entry("/solana/tx", "Solana transaction lookup: status, fee and signers",
-    "Look up a Solana transaction by signature, live from mainnet: success or the error, slot and block time, fee in SOL, compute units used, signers, the programs it called and SOL balance changes per account. Use to confirm a Solana payment landed or see what a transaction did. A signature that is not base58 is 400; an unknown or too old signature is 404, both uncharged.",
+    "Look up a Solana transaction by signature, live from mainnet: success or the error, slot and block time, fee in SOL, compute units used, signers, the programs it called and SOL balance changes per account. Use to confirm a Solana payment landed or see what a transaction did. A signature that is not base58 is 400; an unknown or too old signature is 422, both uncharged.",
     ["solana-transaction", "solana", "transaction", "confirmation", "data"], { signature: { type: "string", description: "Transaction signature (base58, 64 bytes)", required: true, example: "3vsCBRhEzKZ5gkQ59x9qkzVFddwVNFtz5HUW7G1JvMqEaYABtJH1Parn84FAUF2dct2viSXHVVDDRKSbytSSdMU" } },
     { signature: "5UfDuX…", status: "success", error: null, slot: 460000000, blockTime: "2026-10-24T08:00:00.000Z", feeSol: 0.000005, computeUnits: 450, signers: ["…"], programs: ["11111111111111111111111111111111"], solChanges: [{ account: "…", changeSol: -0.010005 }] },
     async (_e, q) => {

@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.126.0";
+export const MCP_SERVER_VERSION = "1.127.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -516,15 +516,14 @@ export const TOOL_ERROR_COMPONENTS = {
   },
   responses: {
     InvalidInput: errorResponse("Invalid or missing input. Not charged. The body names the inputs and shows a working example."),
-    NotFound: errorResponse("Nothing exists for this input (unknown name, address, ID or no data). Not charged."),
-    Unprocessable: errorResponse("The input was understood but could not be processed (for example an unreadable page or a reverted contract call). Not charged."),
+    // No 404: a tool that finds nothing answers 422 with code NOT_FOUND (src/index.ts), because routers read a 404 as a broken endpoint.
+    Unprocessable: errorResponse("Nothing exists for this input (code NOT_FOUND: unknown name, address, ID or no data), or the input was understood but could not be processed (for example an unreadable page or a reverted contract call). Not charged."),
     SourceFailed: errorResponse("An outside data source or the target site failed or timed out. Not charged; retry."),
     Unavailable: errorResponse("Temporarily unavailable or at capacity. Not charged; retry after the Retry-After header."),
   },
 } as const;
 export const TOOL_ERROR_REFS = {
   "400": { $ref: "#/components/responses/InvalidInput" },
-  "404": { $ref: "#/components/responses/NotFound" },
   "422": { $ref: "#/components/responses/Unprocessable" },
   "502": { $ref: "#/components/responses/SourceFailed" },
   "503": { $ref: "#/components/responses/Unavailable" },
