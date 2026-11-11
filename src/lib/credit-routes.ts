@@ -13,6 +13,7 @@ import { applyUnsavedCredits, buyCreditsWithUsdc } from "./usdc-credits";
 import { prefersHtml } from "./negotiate";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
 import { markStage } from "./funnel";
+import { REVIEW_CALLS_PER_DAY, REVIEW_CALLS_TOTAL_PER_DAY, REVIEW_MAX_PRICE, REVIEW_NOTE, isReviewKey, reviewAllows, reviewCaller } from "./review-keys";
 
 type C = Context<{ Bindings: Env }>;
 const ledger = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
@@ -193,12 +194,33 @@ credits.post("/credits/rotate", async (c) => {
   });
 });
 
+/**
+ * One call of the day for a review key (lib/review-keys.ts), or why not: "price" (the tool is above the review ceiling),
+ * "used" (the day is used up), "unavailable" (the counter cannot be reached). Nothing is written to the credit ledger.
+ */
+async function takeReviewCall(env: Env, keyHash: string, price: string): Promise<{ left: number; refund: () => Promise<void> } | "price" | "used" | "unavailable"> {
+  if (!reviewAllows(price)) return "price";
+  const store = ledger(env);
+  if (!store) return "unavailable";
+  const caller = reviewCaller(keyHash);
+  const day = utcDay();
+  const left = await store.takeDailyCall(caller, day, REVIEW_CALLS_PER_DAY, REVIEW_CALLS_TOTAL_PER_DAY).catch((e: unknown) => { console.error("review key: counter unavailable", e); return undefined; });
+  if (left === undefined) return "unavailable";
+  if (left === null) return "used";
+  return { left, refund: () => store.refundDailyCall(caller, day).catch((e: unknown) => { console.error("review key: refund failed", e); }) };
+}
+const reviewRefusal = (why: "price" | "used" | "unavailable") => why === "price"
+  ? `a review key runs tools priced up to ${REVIEW_MAX_PRICE}; this one costs more. Not charged.`
+  : why === "used" ? `this review key has used its ${REVIEW_CALLS_PER_DAY} calls for today (UTC). Not charged.`
+  : "the review key's counter cannot be read right now. Not charged; try again in a few minutes.";
+
 credits.get("/credits/balance", async (c) => {
   const key = apiKeyFrom((n) => c.req.header(n));
   if (!key) return c.json({ error: "send your key as Authorization: Bearer adt_… or X-API-Key" }, 401);
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now" }, 503);
   const keyHash = await hashCreditKey(key);
+  if (isReviewKey(c.env, keyHash)) return c.json({ reviewKey: true, callsPerDay: REVIEW_CALLS_PER_DAY, maxPrice: REVIEW_MAX_PRICE, note: REVIEW_NOTE });
   // A USDC purchase whose credits could not be written when it settled is applied here (lib/usdc-credits.ts).
   await applyUnsavedCredits(c.env, keyHash).catch((e: unknown) => { console.error("credits: applying parked credits failed", e); });
   let account = await store.creditBalance(keyHash);
@@ -221,6 +243,15 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now; pay with x402 instead. Not charged." }, 503);
   const keyHash = await hashCreditKey(key);
+  if (isReviewKey(c.env, keyHash)) {
+    const call = await takeReviewCall(c.env, keyHash, price);
+    if (typeof call === "string") return c.json({ error: reviewRefusal(call) }, call === "unavailable" ? 503 : call === "price" ? 402 : 429, call === "unavailable" ? { "Retry-After": "300" } : undefined);
+    try { await next(); } catch (err) { await call.refund(); throw err; }
+    if (c.res.status >= 400) await call.refund();
+    c.res.headers.set("X-Credits-Charged", "0");
+    c.res.headers.set("X-Review-Calls-Left", String(c.res.status >= 400 ? call.left + 1 : call.left));
+    return;
+  }
   const micros = priceMicros(price);
   // The credit store can be out of its daily Durable Object quota: nothing is spent then, so say so and when to retry.
   const spent = await spendWithPlans(c.env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
@@ -332,6 +363,14 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
     const fail = (text: string) => ({ isError: true as const, content: [{ type: "text" as const, text }] });
     if (!store) return fail("credits are unavailable right now; not charged");
     const keyHash = await hashCreditKey(key);
+    if (isReviewKey(env, keyHash)) {
+      const call = await takeReviewCall(env, keyHash, price);
+      if (typeof call === "string") return fail(reviewRefusal(call));
+      let reviewed: R;
+      try { reviewed = await run(); } catch (err) { await call.refund(); throw err; }
+      if (reviewed.isError) await call.refund();
+      return reviewed;
+    }
     const micros = priceMicros(price);
     const spent = await spendWithPlans(env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
     if (!spent) return fail("credits cannot be checked right now; not charged. Try again in a few minutes.");
