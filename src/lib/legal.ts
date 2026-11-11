@@ -4,13 +4,17 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
 import { PLAN_PORTAL_URL, WEB_PLANS } from "./credits";
+import { CHANGELOG } from "../data/changelog.generated";
 
 const UPDATED = "26 October 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
 function page(title: string, body: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Agent Data Tools</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></small></p></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Agent Data Tools</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> is a SpellzCode service · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · <a href="/status">Status</a> · <a href="/changelog">Changelog</a></small></p></body></html>`;
 }
+
+/** One line for the footers of the other public pages (tool pages, guides, the browser 402 page). */
+export const COMPANY_FOOTER = `<a href="/about">A SpellzCode service</a> · <a href="/status">Reliability</a> · <a href="/changelog">Changelog</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>`;
 
 const mail = `<a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`;
 
@@ -87,7 +91,53 @@ export const SUPPORT_HTML = page("Support", `<h1>Support</h1>
 </ul>
 <p>Buying and using tools: <a href="/credits">pay by card</a>, <a href="/llms.txt">llms.txt</a>, <a href="/openapi.json">OpenAPI</a>.</p>`);
 
+// Seller details. Registration details (legal form, organisation number, address) are added here only on the
+// owner's word once the registration is complete; until then this page says so and names no person.
+export const ABOUT_HTML = page("About", `<h1>About</h1>
+<p>Agent Data Tools is a service of <strong>SpellzCode</strong>, a small software business in Sweden. It sells pay-per-call data, web, chain and AI tools to AI agents over HTTP and MCP, paid per call in USDC (x402, MPP) or with prepaid card credits.</p>
+<h2>The seller</h2>
+<ul>
+<li>Name: SpellzCode, Sweden.</li>
+<li>Company registration: in progress. The registration details will be listed on this page when it is complete.</li>
+<li>Contact: ${mail}. We answer within one to two working days.</li>
+</ul>
+<h2>Payments</h2>
+<ul>
+<li>Every tool's price is in its listing and its payment request; failed calls are not charged (<a href="/terms">terms</a>).</li>
+<li>The wallets that receive payments are declared at <a href="/.well-known/paycheck.json">/.well-known/paycheck.json</a>, including earlier ones that are still ours. A request to pay any other address does not come from us.</li>
+<li>Card payments and prepaid credits are handled by Stripe.</li>
+</ul>
+<h2>Reliability</h2>
+<p>Per-tool success rates for the last seven days, by day, are public at <a href="/status">/status</a>. We do not offer a contractual uptime guarantee. Every change to the service is listed in the <a href="/changelog">changelog</a>.</p>
+<h2 id="security">Security</h2>
+<p>Report a vulnerability to ${mail} with "security" in the subject; please do not test against other people's keys or data. Our contact details for researchers are also in <a href="/.well-known/security.txt">security.txt</a>.</p>
+<h2>Data sources</h2>
+<p>Each tool names its sources in its description. Sources whose licences ask for attribution include Wikipedia (CC BY-SA 4.0), Wikidata (CC0), World Bank Open Data (CC BY 4.0), arXiv (thanks to arXiv for use of its open access interoperability) and Alternative.me's Crypto Fear and Greed Index. AI tools run on Cloudflare Workers AI.</p>`);
+
+/** /changelog: the release history, newest first, from the snapshot written by scripts/build-changelog.mjs. */
+export const CHANGELOG_HTML = page("Changelog", `<h1>Changelog</h1>
+<p>Every release of Agent Data Tools, newest first. Prices and tools in each release are as they were on that day; current prices are in each tool's listing.</p>
+<ul>${CHANGELOG.map((r) => `<li><strong>${esc(r.version)}</strong> (${esc(r.date)}): ${esc(r.text)}</li>`).join("")}</ul>`);
+
+/** RFC 9116 security.txt; Expires is always about six months ahead, as the RFC asks for less than a year. */
+export function securityTxt(origin: string, now = Date.now()): string {
+  const expires = new Date(now + 182 * 86_400_000);
+  expires.setUTCHours(0, 0, 0, 0);
+  return [
+    `Contact: mailto:${SUPPORT_EMAIL}`,
+    `Expires: ${expires.toISOString().replace(".000Z", "Z")}`,
+    "Preferred-Languages: en, sv",
+    `Canonical: ${origin}/.well-known/security.txt`,
+    `Policy: ${origin}/about#security`,
+    "",
+  ].join("\n");
+}
+
 export const legal = new Hono<{ Bindings: Env }>();
 legal.get("/privacy", (c) => c.html(PRIVACY_HTML));
 legal.get("/terms", (c) => c.html(TERMS_HTML));
 legal.get("/support", (c) => c.html(SUPPORT_HTML));
+legal.get("/about", (c) => c.html(ABOUT_HTML));
+legal.get("/changelog", (c) => c.html(CHANGELOG_HTML));
+legal.get("/.well-known/security.txt", (c) => c.text(securityTxt(new URL(c.req.url).origin), 200, { "Cache-Control": "public, max-age=86400" }));
+legal.get("/security.txt", (c) => c.redirect("/.well-known/security.txt", 301));
