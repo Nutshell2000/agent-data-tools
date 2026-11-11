@@ -69,8 +69,8 @@ export async function forward(ctx, message) {
 }
 
 /** Run the proxy on stdin/stdout until stdin closes. */
-export async function runStdioProxy({ origin, key, input = process.stdin, output = process.stdout }) {
-  const ctx = { url: `${origin.replace(/\/$/, "")}/mcp`, key, session: {}, write: (m) => output.write(`${JSON.stringify(m)}\n`) };
+export async function runStdioProxy({ origin, key, path = "/mcp/compact", input = process.stdin, output = process.stdout }) {
+  const ctx = { url: `${origin.replace(/\/$/, "")}${path}`, key, session: {}, write: (m) => output.write(`${JSON.stringify(m)}\n`) };
   log(`forwarding to ${ctx.url}${key ? " with a key" : " without a key (free calls)"}`);
   const pending = new Set();
   let gate = Promise.resolve(); // initialize finishes before anything after it is sent, so the session id is known

@@ -97,7 +97,7 @@ test('the Claude Code plugin is its own small folder: manifest, icon and the sam
   assert.equal(plugin.privacyPolicyUrl, `${PRODUCTION}/privacy`);
   // The directory's listing links: without these it took support and documentation from the README (/openapi.json and a download).
   for (const [field, path] of Object.entries({ termsOfServiceUrl: '/terms', supportUrl: '/support', documentationUrl: '/tools' })) assert.equal(plugin[field], `${PRODUCTION}${path}`, field);
-  assert.deepEqual(plugin.mcpServers['agent-data-tools'], { type: 'http', url: `${PRODUCTION}/mcp` });
+  assert.deepEqual(plugin.mcpServers['agent-data-tools'], { type: 'http', url: `${PRODUCTION}/mcp/compact` });
   // The plugin's skill is the repository skill, byte for byte (scripts/build-catalog-skill.mjs writes both).
   assert.equal(readFileSync('claude-plugin/skills/agent-data-tools/SKILL.md', 'utf8'), readFileSync('skills/agent-data-tools/SKILL.md', 'utf8'));
   // A square PNG of at least 512 px, as the directory asks (width and height are in the PNG header).

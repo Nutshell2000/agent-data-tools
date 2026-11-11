@@ -1,0 +1,10 @@
+{
+  "name": "agent-data-tools",
+  "version": "1.0.0",
+  "description": "680+ pay-per-call data and AI tools for agents: web search and page text, news, website audits, speech, token prices, chain reads, sanctions checks, CVE, company and SEC lookups, weather, FX and more. Free tool finder and free calls to start, then USDC per call over x402 or a prepaid key.",
+  "author": { "name": "SpellzCode" },
+  "homepage": "https://agent-data-tools.revmesh2074.workers.dev",
+  "repository": "https://github.com/Nutshell2000/agent-data-tools",
+  "license": "MIT",
+  "keywords": ["data", "web-search", "crypto", "x402", "mcp"]
+}

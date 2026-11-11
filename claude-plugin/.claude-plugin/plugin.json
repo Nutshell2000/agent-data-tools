@@ -1,6 +1,6 @@
 {
   "name": "agent-data-tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "600+ pay-per-call data and AI tools for agents: web search and page text, LLM chat, token prices, chain reads, sanctions checks, weather, FX and more. 25 free calls, then card credits or USDC.",
   "author": { "name": "SpellzCode" },
   "homepage": "https://agent-data-tools.revmesh2074.workers.dev",
@@ -12,6 +12,6 @@
   "documentationUrl": "https://agent-data-tools.revmesh2074.workers.dev/tools",
   "keywords": ["data", "web-search", "crypto", "x402", "mcp"],
   "mcpServers": {
-    "agent-data-tools": { "type": "http", "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp" }
+    "agent-data-tools": { "type": "http", "url": "https://agent-data-tools.revmesh2074.workers.dev/mcp/compact" }
   }
 }
