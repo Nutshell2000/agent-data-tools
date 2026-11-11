@@ -1,5 +1,5 @@
 {
-  "version": "1.122.0",
+  "version": "1.123.0",
   "tools": [
     {
       "name": "extract",
@@ -11547,7 +11547,7 @@
     },
     {
       "name": "cve",
-      "description": "Look up a CVE by its ID: what the vulnerability is, its CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, CISA's SSVC points, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, rank what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Look up a CVE by its ID: what the vulnerability is, its CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, CISA's SSVC points, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, rank what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11567,7 +11567,7 @@
           "cve"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "arxiv_search",
@@ -19321,7 +19321,7 @@
     },
     {
       "name": "cve_lookup",
-      "description": "CVE vulnerability lookup by ID (CVE-2021-44228): the description, CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, decide what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "CVE vulnerability lookup by ID (CVE-2021-44228): the description, CVSS score and severity, whether CISA lists it as exploited in the wild (KEV) and since when, the EPSS probability of exploitation in the next 30 days, the weakness (CWE), affected products with fixed versions, and patch and advisory links. Use to triage a security alert, decide what to patch first, or check an advisory before upgrading a dependency. Example: cve=CVE-2021-44228. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19341,7 +19341,7 @@
           "cve"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "wiki_summary",
@@ -19425,7 +19425,7 @@
     },
     {
       "name": "timezone_convert",
-      "description": "Timezone convert: turn a moment (or now) into up to 10 other time zones in one call, with each zone's local time, UTC offset, weekday and abbreviation, daylight saving time handled. Zones as IANA names or cities (Europe/Stockholm, New York, Tokyo, UTC+2). Use to schedule a meeting across time zones, convert a timestamp for a user, or check business hours somewhere else. Example: to=America/New_York,Asia/Tokyo. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Timezone convert: turn a moment (or now) into up to 10 other time zones in one call, with each zone's local time, UTC offset, weekday and abbreviation, daylight saving time handled. Zones as IANA names or cities (Europe/Stockholm, New York, Tokyo, UTC+2). Use to schedule a meeting across time zones, convert a timestamp for a user, or check business hours somewhere else. Example: to=America/New_York,Asia/Tokyo. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19450,11 +19450,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "time_now",
-      "description": "Current time in any time zone or city: the exact date and time now with UTC offset, weekday, zone abbreviation and Unix timestamp (UTC when no zone is given), daylight saving time handled. Use when an agent needs to know what time or date it is right now, to timestamp a record, or to check whether a place is inside business hours. Example: zone=Europe/Stockholm. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current time in any time zone or city: the exact date and time now with UTC offset, weekday, zone abbreviation and Unix timestamp (UTC when no zone is given), daylight saving time handled. Use when an agent needs to know what time or date it is right now, to timestamp a record, or to check whether a place is inside business hours. Example: zone=Europe/Stockholm. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19479,7 +19479,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "perp_funding",

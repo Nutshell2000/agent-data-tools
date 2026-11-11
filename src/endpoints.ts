@@ -957,6 +957,10 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/perp/funding", // the 10 Nov door to /hyperliquid/market shares its price
   "/market/trending", "/market/ohlcv", "/wiki/summary", // round 8 doors to /crypto/trending, /hyperliquid/candles and /wikipedia
   "/github/user", // 11 Nov 2026: with the other GitHub lookups
+  // 11 Nov 2026, owner ("Cut them", to "Cut the three new $0.01 time and CVE listings to $0.002 like their leaders?"): the
+  // Bazaar leaders for these searches charge $0.001-0.009 and vAPI sorts by price. /cve/lookup follows /cve, the tool it
+  // runs. /time itself stays at $0.01: only its two doors were put to her.
+  "/cve", "/cve/lookup", "/timezone/convert", "/time/now",
   "/eth/gas", "/arb/gas", "/op/gas", "/polygon/gas", "/pack/gas-tracker", "/base/estimate-gas",
   "/base/block", "/eth/block", "/arb/block", "/op/block", "/polygon/block",
   "/eth/balance", "/base/balance", "/arb/balance", "/op/balance", "/polygon/balance", "/solana/balance", "/wallet/balances", "/ens",

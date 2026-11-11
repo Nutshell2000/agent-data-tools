@@ -1247,3 +1247,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `rdapLookup` (src/routes/domain.ts) asks Verisign or PIR directly (`DIRECT_RDAP`) when rdap.org answers anything but 200 or 404; `/agent-readiness` reads the first `Sitemap:` line of robots.txt when the usual paths have none; `/package-audit` passes `includeWeeklyDownloads: true` (the 50-subrequest limit it avoided was the free plan's).
 - Still to audit the same way: the AI, search and browser tools (paid staging calls), the per-network chain reads against an explorer, `/sun` at high latitudes, the packs' derived scores, `/seo/audit`'s internal-link count on sites that span subdomains (www.wikipedia.org reads 0 internal, 380 external).
 
+
+
+## CVE and time doors at the acquisition price (1.123.0, 11 Nov 2026)
+
+- Owner, 11 Nov 2026: "Cut them" to the question "Cut the three new $0.01 time and CVE listings to $0.002 like their leaders?". `/cve`, `/cve/lookup`, `/timezone/convert` and `/time/now` are in `ACQUISITION_PATHS`; `/time` stays $0.01 because only its doors were put to her, so tests/entry-paths.test.cjs names those two doors as the one place a door's price differs from its tool's. Review with the other acquisition prices on 20 Nov. After the release: `update-402index-prices.mjs`, and the Bazaar shows the new price only after each listing's next settlement.
+
