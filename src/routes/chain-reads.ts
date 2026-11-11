@@ -111,10 +111,14 @@ const address = (v: string | undefined, name = "address") => {
   if (!a || !isAddress(a)) throw new HttpError(400, `${name} must be a 0x address (40 hex characters)`);
   return a;
 };
-/** What 2,000 blocks cover per chain (Base, Optimism and Polygon 2 s blocks, Arbitrum 0.25 s, Ethereum 12 s). */
-const BLOCK_WINDOW: Record<string, string> = { base: "67 minutes", op: "67 minutes", polygon: "67 minutes", arb: "8 minutes", eth: "6.7 hours",
-  avax: "32 minutes", gnosis: "2.8 hours", linea: "2.4 hours", zksync: "33 minutes", scroll: "4.3 hours", mantle: "67 minutes", celo: "33 minutes",
-  sonic: "64 minutes", unichain: "33 minutes", hyperevm: "33 minutes", bera: "67 minutes", ink: "33 minutes", sei: "15 minutes" };
+/**
+ * What 2,000 blocks cover per chain, from block times measured on 11 Nov 2026 over 20,000 blocks of each public node
+ * (`NOMINAL_BLOCK_SECONDS` in src/lib/block-time.ts). Base went from 2 s to 0.2 s blocks around 5 Nov 2026; zkSync,
+ * Linea, Polygon, Arbitrum and Sonic had also drifted from the 24 Oct table. Re-measure before trusting a row.
+ */
+const BLOCK_WINDOW: Record<string, string> = { base: "7 minutes", op: "67 minutes", polygon: "50 minutes", arb: "10 minutes", eth: "6.7 hours",
+  avax: "32 minutes", gnosis: "2.8 hours", linea: "5.6 hours", zksync: "2.4 hours", scroll: "4.1 hours", mantle: "67 minutes", celo: "33 minutes",
+  sonic: "53 minutes", unichain: "33 minutes", hyperevm: "33 minutes", bera: "67 minutes", ink: "33 minutes", sei: "16 minutes" };
 
 /** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
 const tokenInput = (v: string | undefined, slug: string) => {
@@ -861,7 +865,7 @@ const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 const WALLET_SCAN_PARAMS = {
   address: { type: "string", description: "0x wallet or contract address", required: true, example: EX_BUSY.base },
   chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: [...RELATED_CHAINS], example: "base" },
-  blocks: { type: "integer", description: "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)", example: 2000 },
+  blocks: { type: "integer", description: "How many recent blocks to scan (100-10000, default 2000; Base makes a block every 0.2 s, so 2,000 is about 7 minutes there, 67 minutes on Optimism; Ethereum every 12 s)", example: 2000 },
 } as const;
 
 /**

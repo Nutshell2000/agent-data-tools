@@ -77,7 +77,7 @@ export async function assertProductAssetAvailable(env: Env, p: Product): Promise
 }
 
 function assertNewSalesEnabled() {
-  if (!NEW_PRODUCT_SALES_ENABLED) throw new HttpError(503, "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available");
+  if (!NEW_PRODUCT_SALES_ENABLED) throw new HttpError(410, "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available");
 }
 
 export function buyAssetPreflight(): MiddlewareHandler<{ Bindings: Env }> {
@@ -88,9 +88,9 @@ export function buyAssetPreflight(): MiddlewareHandler<{ Bindings: Env }> {
       c.header("Cache-Control", "no-store");
       c.header("Link", '</guides/web-reading>; rel="help"; type="text/html"');
       if (c.req.method === "GET" && (c.req.header("accept") ?? "").includes("text/html")) {
-        return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,follow"><title>Seller kit paused | Current API documentation</title><style>:root{color-scheme:light dark}body{font:18px/1.6 system-ui;max-width:720px;margin:60px auto;padding:0 20px}a{color:LinkText}h1{line-height:1.2}</style></head><body><main><h1>Seller-kit purchases are paused</h1><p>This request did not request or settle a payment. Existing paid orders retain their download access.</p><h2>Looking for our API documentation?</h2><p>Some older directory links point here. Our current reader turns public static documentation into text, Markdown, code and tables for $0.002 USDC per successful call.</p><p><a href="/guides/web-reading">View a real result, inspect a free quote, then choose whether to buy one page</a></p><p>No JavaScript rendering, authenticated pages or paywall access. Opening the guide does not make a purchase.</p><p><a href="/">Current tools and documentation</a></p></main></body></html>`, 503);
+        return c.html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,follow"><title>Seller kit paused | Current API documentation</title><style>:root{color-scheme:light dark}body{font:18px/1.6 system-ui;max-width:720px;margin:60px auto;padding:0 20px}a{color:LinkText}h1{line-height:1.2}</style></head><body><main><h1>Seller-kit purchases are paused</h1><p>This request did not request or settle a payment. Existing paid orders retain their download access.</p><h2>Looking for our API documentation?</h2><p>Some older directory links point here. Our current reader turns public static documentation into text, Markdown, code and tables for $0.002 USDC per successful call.</p><p><a href="/guides/web-reading">View a real result, inspect a free quote, then choose whether to buy one page</a></p><p>No JavaScript rendering, authenticated pages or paywall access. Opening the guide does not make a purchase.</p><p><a href="/">Current tools and documentation</a></p></main></body></html>`, 410);
       }
-      return c.json({ error: "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available", documentationUrl: "/guides/web-reading", paymentRequested: false }, 503);
+      return c.json({ error: "new seller-kit purchases are paused for template verification; no payment requested. Existing paid downloads remain available", documentationUrl: "/guides/web-reading", paymentRequested: false }, 410);
     }
     const p =
       c.req.method === "GET" ? PRODUCTS.find((product) => c.req.path === `/buy/${product.slug}`) : undefined;

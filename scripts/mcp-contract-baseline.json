@@ -1,5 +1,5 @@
 {
-  "version": "1.142.0",
+  "version": "1.143.0",
   "tools": [
     {
       "name": "extract",
@@ -1775,7 +1775,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 67 minutes on Base)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 7 minutes on Base)"
           }
         },
         "required": [
@@ -2877,7 +2877,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 8 minutes on Arbitrum One)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 10 minutes on Arbitrum One)"
           }
         },
         "required": [
@@ -4013,7 +4013,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 67 minutes on Polygon PoS)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 50 minutes on Polygon PoS)"
           }
         },
         "required": [
@@ -4363,7 +4363,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)"
+            "description": "How many recent blocks to scan (100-10000, default 2000; Base makes a block every 0.2 s, so 2,000 is about 7 minutes there, 67 minutes on Optimism; Ethereum every 12 s)"
           }
         },
         "required": [
@@ -4404,7 +4404,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (100-10000, default 2000; Base and Optimism make a block every 2 s, so 2,000 is about 67 minutes; Ethereum every 12 s)"
+            "description": "How many recent blocks to scan (100-10000, default 2000; Base makes a block every 0.2 s, so 2,000 is about 7 minutes there, 67 minutes on Optimism; Ethereum every 12 s)"
           }
         },
         "required": [
@@ -5728,7 +5728,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 2.4 hours on Linea)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 5.6 hours on Linea)"
           }
         },
         "required": [
@@ -6201,7 +6201,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 33 minutes on zkSync Era)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 2.4 hours on zkSync Era)"
           }
         },
         "required": [
@@ -6729,7 +6729,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 4.3 hours on Scroll)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 4.1 hours on Scroll)"
           }
         },
         "required": [
@@ -8243,7 +8243,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 64 minutes on Sonic)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 53 minutes on Sonic)"
           }
         },
         "required": [
@@ -10669,7 +10669,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 15 minutes on Sei)"
+            "description": "How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about 16 minutes on Sei)"
           }
         },
         "required": [
@@ -16575,7 +16575,7 @@
             "description": "all (default), uniswap-v3, uniswap-v2 or aerodrome (Base only)"
           },
           "blocks": {
-            "description": "How many recent blocks to scan, 100 to 20000 (default 3000: about 100 minutes on Base, 10 hours on Ethereum)",
+            "description": "How many recent blocks to scan, 100 to 20000 (default 3000: about 10 minutes on Base, 10 hours on Ethereum)",
             "type": [
               "string",
               "number",
@@ -16619,7 +16619,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about an hour on Base, 6 hours on Ethereum)"
+            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about 6 minutes on Base, 6 hours on Ethereum)"
           },
           "limit": {
             "type": "integer",
@@ -16636,7 +16636,7 @@
     },
     {
       "name": "dex_trending",
-      "description": "Trending tokens on Base now: the tokens with the most DEX swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, with swaps, pools, share of swaps, symbol, name and busiest pool. Majors (WETH, USDC, cbBTC, stables) are left out unless asked; symbolClash marks copied symbols, so match by address. Use to spot what traders buy now; check token_report before trading. Example: blocks=150. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Trending tokens on Base now: the tokens with the most DEX swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, with swaps, pools, share of swaps, symbol, name and busiest pool. Majors (WETH, USDC, cbBTC, stables) are left out unless asked; symbolClash marks copied symbols, so match by address. Use to spot what traders buy now; check token_report before trading. Example: blocks=1500. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16651,7 +16651,7 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
-            "description": "How many recent Base blocks to count, 30 to 300 (default 150, about 5 minutes; a block every 2 s)"
+            "description": "How many recent Base blocks to count, 30 to 3000 (default 1500, about 5 minutes; Base makes a block every 0.2 s)"
           },
           "limit": {
             "type": "integer",
