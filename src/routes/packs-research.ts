@@ -9,7 +9,7 @@ import { AI_TEXT } from "./ai-text";
 import { domainReport } from "./domain-report";
 import { extract } from "./extract";
 import { call, runSections } from "./packs";
-import { SEARCH } from "./search";
+import { MERCATOR_TEST_PRICE, SEARCH } from "./search";
 
 function run(list: Entry[], env: Env, path: string, inputs: Record<string, string | number | undefined>) {
   const e = list.find((x) => x.endpoint.path === path);
@@ -81,7 +81,7 @@ export const PACKS_RESEARCH: Entry[] = [
       }));
       const failed = Object.fromEntries(read.filter((p) => p.error).map((p) => [p.url, p.error as string]));
       return { pack: "web-research", query, pages: read, otherResults: found.results.slice(pages).map((r) => ({ title: r.title, url: r.url })), terms: found.terms, failed };
-    }, "$0.01"),
+    }, MERCATOR_TEST_PRICE),
 
   // 25 Oct 2026 probe, summed 30-day payers over the top 20, nothing of ours: "answer" 60, "search answer" 51, "web answer"
   // 49, "ai answer" 41, "grounded answer" 41 (most #1s have 2-3 payers; BlockRun's answer endpoint sold 4,953 calls to 18).
@@ -146,7 +146,7 @@ export const PACKS_RESEARCH: Entry[] = [
       const positive = scored.filter((a) => a.sentiment === "POSITIVE").length, negative = scored.length - positive;
       const tone = avg == null ? null : avg > 0.5 ? "positive" : avg < -0.5 ? "negative" : avg > 0.1 ? "mixed, leaning positive" : avg < -0.1 ? "mixed, leaning negative" : "mixed";
       return { pack: "news-sentiment", query, summary: { articles: articles.length, positive, negative, averageScore: avg, tone }, articles, terms: found.terms, failed };
-    }, "$0.01"),
+    }, MERCATOR_TEST_PRICE),
 
   entry("/pack/url-safety", "URL safety check, scam signals: domain age, redirects and HTTPS",
     "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website.",
