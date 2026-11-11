@@ -14,7 +14,8 @@ const SEMVER = /^\d+\.\d+\.\d+$/;
 /** file -> [regex with one capture group for the value, replacement kind, expected matches] */
 export const PINS = {
   "server.json": [
-    [/("version":\s*")(\d+\.\d+\.\d+)(")/, "version", 1],
+    // The top-level version only (not one indented four spaces or more): packages[].version is the npm client's own version.
+    [/(?<!\n {4,})("version":\s*")(\d+\.\d+\.\d+)(")/, "version", 1],
     [/("description":\s*")(\d+)( agent tools:)/, "count", 1],
   ],
   "src/discovery.ts": [[/(MCP_SERVER_VERSION = ")(\d+\.\d+\.\d+)(")/, "version", 1]],
