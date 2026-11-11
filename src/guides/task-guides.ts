@@ -8,6 +8,7 @@ import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
 import { keyOfferNumbers } from "../lib/key-prices";
 import { TOOL_SEO } from "../lib/tool-seo";
+import { COMPANY_FOOTER } from "../lib/legal";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -178,7 +179,7 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
 ${uses.length ? `<h2>When an agent wants this</h2><ul>${uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${tools.map((e) => toolBlock(e, origin, freeCalls, false)).join("\n")}
 <h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
-<footer><a href="/guides">All guides</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/status">Reliability</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></footer>
+<footer><a href="/guides">All guides</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
