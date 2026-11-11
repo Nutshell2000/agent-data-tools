@@ -1,5 +1,5 @@
 {
-  "version": "1.127.0",
+  "version": "1.128.0",
   "tools": [
     {
       "name": "extract",
@@ -16249,6 +16249,51 @@
       "price": "$0.01"
     },
     {
+      "name": "sec_financials",
+      "description": "Company financial statements for a US-listed company by ticker or CIK, from its SEC 10-K and 10-Q filings (XBRL): revenue, gross profit, operating and net income, EPS, cash, assets, debt, equity, operating cash flow, capex, free cash flow, dividends and buybacks, with margins, growth, ROE and current ratio. Annual or quarterly, up to 10 periods. Use for fundamentals, a valuation or a company comparison. Example: ticker=AAPL. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker or company name, e.g. AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "annual",
+              "quarterly"
+            ],
+            "description": "annual (default) or quarterly"
+          },
+          "limit": {
+            "description": "Periods to return, newest first: 1-10 (default 4)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.02"
+    },
+    {
       "name": "stablecoin_supply",
       "description": "Live total supply of USDC and USDT on Ethereum, Base, Arbitrum, Optimism and Polygon, read from each token contract (totalSupply), per network and summed per token, plus the grand total. A network whose nodes do not answer is listed with an error instead of failing the call. Use to track stablecoin issuance, liquidity on a chain or mints and burns over time. Example: token=both. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -19322,6 +19367,96 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "stock_fundamentals",
+      "description": "Stock fundamentals by ticker (AAPL, MSFT, NVDA): revenue, gross, operating and net income, EPS, margins, revenue and earnings growth, ROE, cash, debt, equity, free cash flow, dividends and buybacks for the last fiscal years or quarters, from the company's SEC 10-K and 10-Q filings. Use to screen a stock, value a company or compare two businesses. Example: ticker=AAPL. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker or company name, e.g. AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "annual",
+              "quarterly"
+            ],
+            "description": "annual (default) or quarterly"
+          },
+          "limit": {
+            "description": "Periods to return, newest first: 1-10 (default 4)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "income_statement",
+      "description": "Income statement, balance sheet and cash flow statement of a US-listed company by ticker: revenue, cost of revenue, gross profit, R&D, operating income, net income, EPS, assets, liabilities, equity, cash and debt, operating cash flow and capex, annual or quarterly, read from its SEC 10-K and 10-Q XBRL filings. Use to read a company's financial statements without parsing the filing. Example: ticker=AAPL. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Stock ticker or company name, e.g. AAPL (or give cik)"
+          },
+          "cik": {
+            "description": "SEC Central Index Key, e.g. 320193 (instead of ticker)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "annual",
+              "quarterly"
+            ],
+            "description": "annual (default) or quarterly"
+          },
+          "limit": {
+            "description": "Periods to return, newest first: 1-10 (default 4)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "price": "$0.02"
     },
     {
       "name": "cve_lookup",
