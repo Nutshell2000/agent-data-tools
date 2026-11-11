@@ -326,6 +326,58 @@ test('who holds the keys: a single-key upgrade admin and a single-key owner are 
   assert.deepEqual(A.keyFindings(null, 4, true), []);
 });
 
+test('proxy storage slots are the hashes of their names (1.131.0 shipped two hand-typed ones that were wrong)', async () => {
+  const { keccak256, toHex } = require('viem');
+  const { PROXY_SLOTS } = await load('src/routes/chain-reads.ts');
+  const minusOne = (h) => `0x${(BigInt(h) - 1n).toString(16).padStart(64, '0')}`;
+  assert.equal(PROXY_SLOTS.eip1967, minusOne(keccak256(toHex('eip1967.proxy.implementation'))));
+  assert.equal(PROXY_SLOTS.admin, minusOne(keccak256(toHex('eip1967.proxy.admin'))));
+  assert.equal(PROXY_SLOTS.beacon, minusOne(keccak256(toHex('eip1967.proxy.beacon'))));
+  assert.equal(PROXY_SLOTS.zos, keccak256(toHex('org.zeppelinos.proxy.implementation')));
+  assert.equal(A.ZOS_ADMIN_SLOT, keccak256(toHex('org.zeppelinos.proxy.admin')));
+  // No source file carries a 32-byte slot literal that is not one of the known ones (a typo answers "Invalid params" or reads an empty slot).
+  const fs = require('node:fs');
+  const known = new Set([...Object.values(PROXY_SLOTS), A.ZOS_ADMIN_SLOT].map((s) => s.toLowerCase()));
+  for (const file of ['src/routes/contract-audit.ts', 'src/routes/contract-risk.ts']) {
+    for (const m of fs.readFileSync(file, 'utf8').matchAll(/"(0x[0-9a-fA-F]{60,70})"/g)) assert.ok(/^0x0+$/.test(m[1]) || known.has(m[1].toLowerCase()), `${file}: ${m[1]} is not a known proxy slot`);
+  }
+});
+
+test('the key-holder read: each slot fails alone, the older proxy layout is read, and a failed read is reported, not thrown', async () => {
+  const OWNER = '0x1111111111111111111111111111111111111111', IMPL = '0x2222222222222222222222222222222222222222', ADMIN = '0x3333333333333333333333333333333333333333';
+  const word = (a) => `0x${'0'.repeat(24)}${a.slice(2)}`;
+  const { PROXY_SLOTS } = await load('src/routes/chain-reads.ts');
+  const asked = [];
+  const realFetch = globalThis.fetch;
+  // A JSON-RPC node: the EIP-1967 admin read errors, the older layout holds implementation and admin, owner() answers.
+  const answer = (call) => {
+    asked.push(call.method === 'eth_getStorageAt' ? `slot:${call.params[1]}` : call.method);
+    const ok = (result) => ({ jsonrpc: '2.0', id: call.id, result });
+    if (call.method === 'eth_getCode') return ok(call.params[0].toLowerCase() === OWNER || call.params[0].toLowerCase() === ADMIN ? '0x' : '0x6080');
+    if (call.method === 'eth_getStorageAt') {
+      if (call.params[1] === PROXY_SLOTS.admin) return { jsonrpc: '2.0', id: call.id, error: { code: -32602, message: 'Invalid params' } };
+      if (call.params[1] === PROXY_SLOTS.zos) return ok(word(IMPL));
+      if (call.params[1] === A.ZOS_ADMIN_SLOT) return ok(word(ADMIN));
+      return ok(`0x${'0'.repeat(64)}`);
+    }
+    if (call.method === 'eth_chainId') return ok('0x2105');
+    return { jsonrpc: '2.0', id: call.id, error: { code: 3, message: 'execution reverted' } };
+  };
+  globalThis.fetch = async (_url, init) => { const body = JSON.parse(init.body); return new Response(JSON.stringify(Array.isArray(body) ? body.map(answer) : answer(body)), { headers: { 'content-type': 'application/json' } }); };
+  try {
+    const facts = await A.chainFacts({}, 'base', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
+    assert.ok(facts, 'one refused slot read does not lose the rest');
+    assert.equal(facts.isProxy, true);
+    assert.equal(facts.implementation.toLowerCase(), IMPL);
+    assert.equal(facts.proxyAdmin.address.toLowerCase(), ADMIN);
+    assert.equal(facts.proxyAdmin.type, 'eoa');
+    for (const s of [PROXY_SLOTS.eip1967, PROXY_SLOTS.admin, PROXY_SLOTS.zos, A.ZOS_ADMIN_SLOT]) assert.ok(asked.includes(`slot:${s}`), s);
+    // Every node down: no facts, no exception; the audit goes on and says the key holders are unknown.
+    globalThis.fetch = async () => { throw new Error('NET'); };
+    assert.equal(await A.chainFacts({}, 'base', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'), null);
+  } finally { globalThis.fetch = realFetch; }
+});
+
 test('inputs: refused before any model runs when neither a source nor an address is usable', async () => {
   const q = (o) => (n) => o[n];
   const audit = A.__test.contractAudit;
