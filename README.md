@@ -108,7 +108,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 ## MCP
 
-All 179 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless), and in smaller section servers at `/mcp/<section>`. Listing tools is free. Every MCP caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
+All 179 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless), in smaller section servers at `/mcp/<section>`, and behind three tools at `/mcp/compact` (`find_tool`, `tool_details`, `call_tool`: the whole catalog without hundreds of tool definitions in the assistant's context; same prices, same free calls). Listing tools is free. Every MCP caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, MCP tool, OpenAPI document and web page are generated from that catalog.
 

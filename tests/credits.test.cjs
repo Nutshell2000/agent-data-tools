@@ -169,8 +169,11 @@ test('paywall charges a key per successful call and refunds failed calls', async
 
   res = await fetch('/credits/balance', auth);
   const balance = await res.json();
-  const { since, topUp, ...rest } = balance;
+  const { since, topUp, monthlyPlans, ...rest } = balance;
   assert.deepEqual(rest, { balanceCredits: 1, purchasedCredits: 5, spentCredits: 4, calls: 2 });
+  // A key without a plan is offered the monthly plans, each link naming this key so the plan tops it up (11 Nov 2026).
+  assert.deepEqual(monthlyPlans.map((p) => [p.price, p.creditsEachMonth]), [['$9 a month', 15000], ['$19 a month', 40000]]);
+  for (const p of monthlyPlans) assert.match(p.buy, new RegExp(`^https://buy\\.stripe\\.com/[A-Za-z0-9]+\\?client_reference_id=topup_${await credits.hashCreditKey(key)}$`));
   assert.equal(topUp.length, 4);
   for (const l of topUp) assert.ok(l.buy.endsWith(`?client_reference_id=topup_${await credits.hashCreditKey(key)}`));
 
