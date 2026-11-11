@@ -13,37 +13,67 @@ type Binding = Record<string, { value: string } | undefined>;
  * named by its bare Wikidata id (Q65194616, a Swedish locality, 24 Oct 2026).
  */
 const LABEL_LANGUAGES = "en,mul,sv,no,da,fi,de,fr,es,it,nl,pt,pl,cs,ru,uk,tr,ar,ja,zh,ko,hi,id,vi";
+/**
+ * Wikidata classes that mark a town or city (city, big city, capital, human settlement, town, village, million city,
+ * metropolis, global city, city in the United States and similar). Population alone let dioceses, eparchies and
+ * historical states win "largest" (11 Nov 2026 audit: New York returned an Armenian Catholic eparchy of 342 million
+ * people, Paris the First French Empire).
+ */
+export const SETTLEMENT_CLASSES = ["Q515", "Q1549591", "Q5119", "Q486972", "Q3957", "Q532", "Q1637706", "Q200250", "Q208511", "Q1093829", "Q484170", "Q15284", "Q123705", "Q2154459",
+  // Swedish urban area and minor locality, locality, hamlet, US census-designated place and unincorporated community.
+  "Q12813115", "Q14839548", "Q3257686", "Q5084", "Q498162", "Q17343829"];
 export function sparqlAround(lat: number, lon: number, radiusKm: number, limit: number) {
-  return `SELECT ?place ?placeLabel ?placeDescription ?dist ?pop ?countryLabel ?iso ?adminLabel WHERE {
+  return `SELECT ?place ?placeLabel ?placeDescription ?dist ?pop ?countryLabel ?iso ?adminLabel ?settled ?ended WHERE {
   SERVICE wikibase:around { ?place wdt:P625 ?loc . bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral .
     bd:serviceParam wikibase:radius "${radiusKm}" . bd:serviceParam wikibase:distance ?dist . }
   ?place wdt:P1082 ?pop .
   OPTIONAL { ?place wdt:P17 ?country . ?country wdt:P297 ?iso . }
   OPTIONAL { ?place wdt:P131 ?admin . }
+  OPTIONAL { ?place wdt:P31 ?settled . VALUES ?settled { ${SETTLEMENT_CLASSES.map((q) => `wd:${q}`).join(" ")} } }
+  OPTIONAL { ?place wdt:P576 ?ended . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}" . }
 } ORDER BY ?dist LIMIT ${limit}`;
 }
+/** Items that carry a population but are not places a person would name as where a point is. */
+const NOT_A_PLACE_TEXT = /\b(eparchy|diocese|archdiocese|archeparchy|exarchate|parish|församling|socken|pfarrei|paroisse|parroquia|assembly|congregation|church|cathedral|census division|statistical|electoral|constituency|empire|kingdom of|dynasty)\b/i;
+/** Area words count in the name only: Swedish towns are described as "urban area in … Municipality". */
+const NOT_A_PLACE_NAME = /\b(metropolitan area|urban area|conurbation|agglomeration|metropolitan region)\b/i;
+const NOT_A_PLACE = { test: (s: string) => NOT_A_PLACE_TEXT.test(s) || NOT_A_PLACE_NAME.test(s.split("\u0000")[0]) };
 export function shapePlaces(rows: Binding[]) {
   const seen = new Set<string>();
-  const places = [];
+  const idOf = (r: Binding) => r.place?.value.split("/").pop() ?? "";
+  const settledIds = new Set(rows.filter((r) => r.settled?.value).map(idOf));
+  // Dissolved or abolished items (P576: historical states, merged municipalities) are not where a point is today. As an
+  // OPTIONAL rather than FILTER NOT EXISTS: the filter made dense cities time out (Paris over 25 s on 11 Nov 2026).
+  const endedIds = new Set(rows.filter((r) => r.ended?.value).map(idOf));
+  const places: {
+    name: string | null; description: string | null; distanceKm: number; population: number | null; region: string | null;
+    country: string | null; countryCode: string | null; wikidataId: string; settlement: boolean;
+  }[] = [];
   for (const r of rows) {
-    const id = r.place?.value.split("/").pop() ?? "";
-    if (!id || seen.has(id)) continue;
+    const id = idOf(r);
+    if (!id || seen.has(id) || endedIds.has(id)) continue;
     seen.add(id);
     places.push({
       // The label service answers a bare id when an item has no label in any listed language: no name beats a fake one.
       name: r.placeLabel?.value && !/^Q\d+$/.test(r.placeLabel.value) ? r.placeLabel.value : null, description: r.placeDescription?.value ?? null, distanceKm: Math.round(Number(r.dist?.value ?? 0) * 100) / 100,
       population: r.pop ? Math.round(Number(r.pop.value)) : null, region: r.adminLabel?.value ?? null, country: r.countryLabel?.value ?? null,
-      countryCode: r.iso?.value ?? null, wikidataId: id,
+      countryCode: r.iso?.value ?? null, wikidataId: id, settlement: settledIds.has(id),
     });
   }
   // The most populous place nearby is usually the town or city the point is in; the nearest may be a parish or district.
   // Administrative areas (municipality, county, parish…) often hold the largest population figure, so they are skipped
   // when a settlement is available.
+  // Items typed as a town or city win; without one, administrative areas, dioceses, urban areas and the like are skipped.
   const admin = /municipality|county|province|parish|district|region|state of|prefecture|oblast|kommun|commune|department/i;
-  const settlements = places.filter((p) => !admin.test(`${p.name} ${p.description ?? ""}`));
-  const largest = (settlements.length ? settlements : places).reduce<(typeof places)[number] | null>((best, p) => ((p.population ?? 0) > (best?.population ?? -1) ? p : best), null);
-  return { nearest: places.find((p) => p.name) ?? places[0] ?? null, largest, places };
+  const text = (p: (typeof places)[number]) => `${p.name}\u0000 ${p.description ?? ""}`;
+  const typed = places.filter((p) => p.settlement && !NOT_A_PLACE.test(text(p)));
+  const plain = places.filter((p) => !admin.test(text(p)) && !NOT_A_PLACE.test(text(p)));
+  const pool = typed.length ? typed : plain.length ? plain : places;
+  const largest = pool.reduce<(typeof places)[number] | null>((best, p) => ((p.population ?? 0) > (best?.population ?? -1) ? p : best), null);
+  const named = places.filter((p) => p.name);
+  const nearest = named.find((p) => !NOT_A_PLACE.test(text(p))) ?? named[0] ?? places[0] ?? null;
+  return { nearest, largest, places };
 }
 
 export const GEO_MORE: Entry[] = [
@@ -60,11 +90,11 @@ export const GEO_MORE: Entry[] = [
       const radius = num(q, "radius", { min: 1, max: 50, fallback: 10 });
       // Round to about 100 m so nearby points share a cache entry.
       const rl = Math.round(lat * 1000) / 1000, ro = Math.round(lon * 1000) / 1000;
-      const url = `${WDQS}?format=json&query=${encodeURIComponent(sparqlAround(rl, ro, radius, 25))}`;
+      const url = `${WDQS}?format=json&query=${encodeURIComponent(sparqlAround(rl, ro, radius, 80))}`;
       const cache = typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
       let res = cache ? await cache.match(url).catch(() => undefined) : undefined;
       if (!res) {
-        try { res = await fetch(url, { headers: { accept: "application/sparql-results+json", "user-agent": "AgentDataTools/1.0 (https://agent-data-tools.revmesh2074.workers.dev; reverse geocoding)" }, signal: AbortSignal.timeout(9_000) }); }
+        try { res = await fetch(url, { headers: { accept: "application/sparql-results+json", "user-agent": "AgentDataTools/1.0 (https://agent-data-tools.revmesh2074.workers.dev; reverse geocoding)" }, signal: AbortSignal.timeout(12_000) }); }
         catch { throw new HttpError(502, "Wikidata did not answer in time; try again"); }
         if (res.status === 429) throw new HttpError(502, "Wikidata is rate-limiting; try again shortly");
         if (!res.ok) throw new HttpError(502, `Wikidata answered HTTP ${res.status}; try again`);
