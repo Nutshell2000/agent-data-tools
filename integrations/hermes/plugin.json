@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agent-data-tools",
+  "version": "1.0.0",
+  "description": "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search and news, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
+  "author": {
+    "name": "SpellzCode",
+    "url": "https://agent-data-tools.revmesh2074.workers.dev"
+  },
+  "homepage": "https://agent-data-tools.revmesh2074.workers.dev/tools",
+  "repository": "https://github.com/Nutshell2000/agent-data-tools",
+  "license": "ISC",
+  "keywords": [
+    "mcp",
+    "web-search",
+    "web-scraping",
+    "pdf",
+    "market-data",
+    "blockchain",
+    "compliance",
+    "pay-per-call",
+    "agent-tools"
+  ],
+  "extensions": {
+    "com.nousresearch.hermes": {
+      "servers": {
+        "agent-data-tools": {
+          "trust": "untrusted",
+          "costs": {
+            "find_tool": 0,
+            "tool_details": 0,
+            "call_tool": {
+              "credits": [
+                1,
+                100
+              ],
+              "note": "the called tool's own price, most often 10; find_tool shows it"
+            }
+          },
+          "spend_limit": 1000,
+          "cost_unit": "credits"
+        }
+      }
+    }
+  }
+}

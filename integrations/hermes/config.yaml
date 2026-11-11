@@ -1,0 +1,8 @@
+# Agent Data Tools with your own prepaid key: merge into ~/.hermes/config.yaml, put AGENT_DATA_TOOLS_KEY=adt_... in the
+# profile .env, then run /reload-mcp. This entry replaces the plugin's keyless one and keeps the costs it declares.
+# A key costs from $1 at https://agent-data-tools.revmesh2074.workers.dev/credits (no account).
+mcp_servers:
+  agent-data-tools:
+    url: "https://agent-data-tools.revmesh2074.workers.dev/mcp/compact-capped"
+    headers:
+      Authorization: "Bearer ${AGENT_DATA_TOOLS_KEY}"

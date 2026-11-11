@@ -35,6 +35,34 @@ export const annotationsFor = (path: string) => Object.hasOwn(WRITE_TOOLS, path)
   ? { readOnlyHint: false, destructiveHint: WRITE_TOOLS[path].destructive, idempotentHint: WRITE_TOOLS[path].idempotent, openWorldHint: WRITE_TOOLS[path].openWorld }
   : LOCAL_PATHS.has(path) || path.startsWith("/memory/") || path === "/time" ? { ...toolAnnotations, openWorldHint: false } : toolAnnotations;
 
+/** The compact server's address segment: /mcp/compact (mcp.ts registerCompactTools). */
+export const COMPACT_BUNDLE = "compact";
+/** The names of the compact server's own tools; no catalog tool may take one (tests/mcp-compact.test.cjs). */
+export const COMPACT_TOOLS = ["find_tool", "tool_details", "call_tool"] as const;
+/**
+ * The capped twin, /mcp/compact-capped: the same three tools, but a tool priced above the ceiling does not exist there
+ * and call_tool takes no max_price. For hosts that count spend from a declared cost per tool name (the Hermes package):
+ * the top of the declared range is then a figure the server enforces.
+ */
+export const COMPACT_CAPPED_BUNDLE = "compact-capped";
+/**
+ * The dearest call call_tool makes on its own, as a public price (owner, 11 Nov 2026: "do what is best for the whole
+ * operation", on whether dearer tools should be reachable). A client knows call_tool by one name, and a model picks the
+ * tool, so one call must not be able to empty a $1 key by accident. On /mcp/compact a dearer tool is found and
+ * described like any other and runs only when the call names its price in `max_price`; on the capped twin it is absent.
+ * tests/hermes-plugin.test.cjs keeps the Hermes package's declared top cost equal to this.
+ */
+export const COMPACT_PRICE_CEILING = "$0.10";
+const usd = (price: string) => Number(price.slice(1));
+/** True when a call at this price needs the caller to name the price first. */
+export const aboveCompactCeiling = (price: string) => usd(price) > usd(COMPACT_PRICE_CEILING);
+/** A price a caller named: "$1.00", "1", 1 or "1 USD", in dollars; NaN when it is not a price. */
+const namedUsd = (value: unknown) => typeof value === "number" ? value : typeof value === "string" && /^\s*\$?\s*\d+(\.\d+)?\s*(usdc?)?\s*$/i.test(value) ? Number(value.replace(/[^\d.]/g, "")) : Number.NaN;
+/** May call_tool run a call at this price, given the max_price the caller named (or none)? */
+export const compactPricePermits = (price: string, named: unknown) => !aboveCompactCeiling(price) || namedUsd(named) >= usd(price);
+/** The tools the compact server reaches: every tool that only reads; on the capped twin, only up to the price ceiling. */
+export const compactReach = (e: Endpoint, capped = false) => annotationsFor(e.path).readOnlyHint === true && !(capped && aboveCompactCeiling(e.price));
+
 /**
  * A short "Example: name=value" from the published example call (directories score descriptions with examples). It is
  * exactly the call the Bazaar lists, so it never pairs alternatives that override each other (city with lat/lon,
