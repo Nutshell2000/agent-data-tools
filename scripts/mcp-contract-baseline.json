@@ -1,5 +1,5 @@
 {
-  "version": "1.137.0",
+  "version": "1.138.0",
   "tools": [
     {
       "name": "extract",
@@ -17960,6 +17960,45 @@
         "required": [
           "name"
         ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "se_company",
+      "description": "Swedish company by organisationsnummer (556703-7485 or SE556703748501) or name, from Bolagsverket and SCB: names, legal form, registration date, status, deregistration, bankruptcy, liquidation or reconstruction, VAT/F-tax/employer activity, SNI codes, business description, address. Weekly open data. Use to verify a Swedish customer or supplier before invoicing. Register facts only, not a credit report. Example: orgnr=556703-7485. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "orgnr": {
+            "type": "string",
+            "description": "Swedish organisationsnummer (10 digits, with or without the hyphen) or Swedish VAT number (give orgnr or name)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name to search for, instead of orgnr: up to 10 registered companies whose name holds every word"
+          },
+          "checkVat": {
+            "description": "true to also check the VAT number live in the EU VIES service (adds about a second)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Matches for a name search (1-10, default 5)"
+          }
+        }
       },
       "price": "$0.01"
     },
