@@ -93,6 +93,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   expr: ["expression", "cron", "schedule"], values: ["numbers", "data", "nums", "list"], number: ["phone", "phone_number", "tel"], principal: ["amount", "loan", "loan_amount"],
   country: ["name", "country_code", "code", "countryCode"],
   // /se/company (11 Nov 2026): the names Swedish and English company APIs give the organisationsnummer.
+  siren: ["siren_number", "sirenNumber", "numero_siren"],
   businessId: ["business_id", "businessid", "ytunnus", "y_tunnus", "y-tunnus", "company_id"],
   orgnr: ["organisationsnummer", "organisasjonsnummer", "org_nr", "orgNr", "org_number", "orgNumber", "organization_number", "organisation_number", "company_number", "registration_number", "vat_number", "vatNumber"],
   // Price lists as other price APIs take them (openverbs /v1/price?ids=coingecko:bitcoin,...).

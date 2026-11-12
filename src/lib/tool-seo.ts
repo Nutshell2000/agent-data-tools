@@ -259,6 +259,26 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Enrich a lead, vendor or counterparty with its official website and country", "Look up founding date, headquarters, CEO, parent company and employee count", "Find a listed company's stock tickers, exchanges and LEI"],
     faq: [["Where does the data come from?", "Wikidata (public domain, CC0), with Wikidata and Wikipedia links. It is best for established and listed companies."], ["What if there is no match?", "The call returns 422 and is not charged."]],
   },
+  "/se/company": {
+    title: "Swedish company lookup API: Bolagsverket and SCB register",
+    uses: ["Verify a Swedish customer or supplier by organisationsnummer or VAT number before invoicing", "Find a company's organisationsnummer from its name, narrowed to a city", "See whether a company is deregistered, bankrupt, in liquidation or reconstruction"],
+    faq: [["Where does the data come from?", "Bolagsverket's and SCB's free weekly bulk files (EU high-value datasets), refreshed every Tuesday."], ["Is this a credit report?", "No. It shows register facts only: no score, rating or opinion. Sole traders are not included."]],
+  },
+  "/no/company": {
+    title: "Norwegian company lookup API: Brønnøysund register",
+    uses: ["Verify a Norwegian customer or supplier by organisasjonsnummer or VAT number", "Find a company's organisasjonsnummer from its name, narrowed to a city", "See bankruptcy, liquidation, VAT registration and employee count"],
+    faq: [["Where does the data come from?", "Brønnøysundregistrene's Enhetsregisteret, read live (NLOD open licence)."], ["Is this a credit report?", "No. It shows register facts only: no score, rating or opinion. Sole proprietorships are not shown."]],
+  },
+  "/fi/company": {
+    title: "Finnish company lookup API: PRH trade register",
+    uses: ["Verify a Finnish customer or supplier by business ID (Y-tunnus) or VAT number", "Find a company's business ID from its name, narrowed to a town", "See bankruptcy, liquidation or re-organisation and the VAT and employer registers"],
+    faq: [["Where does the data come from?", "The Finnish Patent and Registration Office (PRH) open data, read live (CC BY 4.0)."], ["Is this a credit report?", "No. It shows register facts only: no score, rating or opinion."]],
+  },
+  "/fr/company": {
+    title: "French company lookup API: SIREN, SIRET and Sirene register",
+    uses: ["Verify a French customer or supplier by SIREN, SIRET or VAT number", "Find a company's SIREN from its name, narrowed to a town", "See whether a company is active or ceased, its legal form, size and head office"],
+    faq: [["Where does the data come from?", "The French State's company search API (INSEE Sirene and the RNE), read live under the Licence Ouverte."], ["Is this a credit report?", "No. It shows register facts only: no score, rating or opinion. Sole traders are not shown."]],
+  },
   "/weather": {
     title: "Weather API: current weather and 48-hour forecast by city",
     uses: ["Get the current temperature, conditions, wind and humidity for a city or coordinates", "Plan travel, events or logistics with an hourly forecast up to 48 hours", "Give an AI agent the weather without a provider account"],
