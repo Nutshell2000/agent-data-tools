@@ -3,7 +3,7 @@
 // no upstream service and no per-call cost beyond CPU.
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { fetchFile } from "../lib/fetch";
+import { fetchFile, parseTarget } from "../lib/fetch";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PAGES = 200;
@@ -68,6 +68,42 @@ export async function readPdf(bytes: Uint8Array, firstPage: number, want: number
   };
 }
 
+const isPdf = (b: Uint8Array) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
+const WAYBACK = "https://web.archive.org/web/2id_/";
+
+/** The target refused or lacks the file (401/403/451/429/404/410), or answered a bot-check page instead of a PDF. */
+const fallbackWorthy = (e: unknown) =>
+  e instanceof HttpError && ((e.status === 422 && /refused automated access|was not found/.test(e.message)) || (e.status === 502 && /HTTP 429/.test(e.message)) || (e.status === 415 && /web page/.test(e.message)));
+
+/**
+ * The PDF's bytes. Many PDF hosts refuse Cloudflare's shared egress addresses (bot walls answering 403, or a 200 with a
+ * challenge page), which made /pdf/text fail on about half of the real targets (audit of 11 Nov 2026). When the site
+ * itself refuses, the Internet Archive's copy is read instead, and the answer says so (`source`, `snapshot`): the caller
+ * gets the text of a dated copy and knows it is one. Nothing is spoofed: we never pretend to be a browser.
+ */
+export async function loadPdf(rawUrl: string | undefined) {
+  const url = pdfUrl(rawUrl);
+  let first: unknown;
+  try {
+    const file = await fetchFile(url, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
+    if (isPdf(file.bytes)) return { url: file.url, bytes: file.bytes, source: "origin" as const, snapshot: null };
+    first = new HttpError(415, "url returned a web page, not a PDF file; read web pages with extract (nothing was charged)");
+  } catch (e) {
+    if (!fallbackWorthy(e)) throw e;
+    first = e;
+  }
+  const target = parseTarget(url).href;
+  try {
+    const copy = await fetchFile(WAYBACK + target, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 25_000 });
+    if (isPdf(copy.bytes)) {
+      const stamp = /\/web\/(\d{14})/.exec(copy.finalUrl)?.[1] ?? null;
+      const snapshot = stamp ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}` : null;
+      return { url: target, bytes: copy.bytes, source: "internet-archive" as const, snapshot };
+    }
+  } catch { /* no archived copy: the site's own answer is the better error */ }
+  throw first;
+}
+
 /** An arXiv abstract page (arxiv.org/abs/2401.01234) becomes its PDF (arxiv.org/pdf/2401.01234); other URLs are kept. */
 export function pdfUrl(raw: string | undefined) {
   if (!raw) return raw;
@@ -77,7 +113,7 @@ export function pdfUrl(raw: string | undefined) {
 
 export const PDF: Entry[] = [
   entry("/pdf/text", "PDF to text, PDF text extraction",
-    "Extract the text of a PDF from its URL: downloads a public PDF (up to 10 MB) and returns the text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200); cap the output with maxChars. arXiv abstract links are read as the PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent.",
+    "Extract the text of a public PDF (up to 10 MB) from its URL, page by page, with title, author and page count. Choose the first page, how many pages (up to 200) and maxChars. arXiv abstract links work. If a site blocks our fetch, the Internet Archive's dated copy is read and the answer says so. Scanned, encrypted and non-PDF files fail uncharged. Use to read papers, invoices, reports and manuals into an agent.",
     ["pdf", "documents", "text", "extract", "rag"], {
       // The example must load from Cloudflare's network: w3.org's dummy PDF answers Workers with 403.
       url: { type: "string", description: "Absolute public http(s) URL of the PDF", required: true, example: "https://bitcoin.org/bitcoin.pdf" },
@@ -96,8 +132,12 @@ export const PDF: Entry[] = [
       const maxChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
       // Any content type: servers label PDFs binary/octet-stream, application/download or nothing at all, and readPdf
       // checks the %PDF signature itself, so the type check only refused real PDFs.
-      const file = await fetchFile(pdfUrl(q("url")), /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
-      return { url: file.url, ...(await readPdf(file.bytes, firstPage, want, maxChars)) };
+      const file = await loadPdf(q("url"));
+      return {
+        url: file.url,
+        ...(await readPdf(file.bytes, firstPage, want, maxChars)),
+        ...(file.source === "origin" ? {} : { source: file.source, snapshot: file.snapshot, note: `the site refused our fetch, so this is the Internet Archive's copy${file.snapshot ? ` from ${file.snapshot}` : ""}; it may differ from the live file` }),
+      };
       // $0.005 for a wallet paying per call; a prepaid key pays less (KEY_PRICES in lib/credits.ts, the owner, 10 Nov 2026).
   }, "$0.005"),
 ];
