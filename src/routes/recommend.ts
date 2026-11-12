@@ -67,6 +67,11 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "rug check": "/token/verdict", "honeypot": "/token/verdict", "token preflight": "/token/verdict", "token verdict": "/token/verdict",
   "wallet screen": "/sanctions/check", "sanctions check": "/sanctions/check", "ofac": "/sanctions/check",
   "company lookup": "/company", "company enrich": "/pack/domain-intel", "company enrichment": "/pack/domain-intel",
+  // 12 Nov 2026: the national registers, by the names buyers use for them and their company numbers.
+  "swedish company": "/se/company", "organisationsnummer": "/se/company", "bolagsverket": "/se/company", "sweden company": "/se/company",
+  "norwegian company": "/no/company", "organisasjonsnummer": "/no/company", "brreg": "/no/company", "norway company": "/no/company",
+  "finnish company": "/fi/company", "ytunnus": "/fi/company", "y tunnus": "/fi/company", "finland company": "/fi/company",
+  "french company": "/fr/company", "siren": "/fr/company", "siret": "/fr/company", "sirene": "/fr/company", "france company": "/fr/company",
   "rss": "/feed", "feed json": "/feed", "pdf to text": "/pdf/text", "web page to markdown": "/extract", "scrape": "/extract",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
