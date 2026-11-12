@@ -157,6 +157,9 @@ async function scanInflows(read: ReadLogs, latest: bigint, floor: bigint, budget
   for (let to = latest; to >= floor; to -= SCAN_WINDOW) windows.push([to - SCAN_WINDOW + 1n > floor ? to - SCAN_WINDOW + 1n : floor, to]);
   const once = async ([from, to]: [bigint, bigint]): Promise<RawLog[] | null> => {
     try { return await read(from, to); } catch { /* retried in quarters below */ }
+    // Late in the budget a refused window is not retried piece by piece: each piece can meet the same rate limit, and
+    // the 12 Nov production run of a seven-day record took 46 s that way against a 25 s budget.
+    if (now() - started > budgetMs * 0.6) return null;
     const q = (to - from + 1n) / 4n || 1n;
     const parts: RawLog[] = [];
     for (let t = to; t >= from; t -= q) {
