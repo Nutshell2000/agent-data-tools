@@ -1552,3 +1552,24 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   `hoursCovered` and a `coverageNote` asking for fewer days.
 - The durable fix is a keyed Base RPC in `BASE_RPC_URL` (a provider account: the owner's decision).
 
+
+
+## Swedish annual-report figures mirror (1.147.0, 12 Nov 2026)
+
+- **What it is:** `scripts/se-financials/*.mjs` plus `.github/workflows/se-financials-mirror.yml`. It reads Bolagsverket's weekly iXBRL bulk zips (listing: `vardefulla-datamangder.bolagsverket.se/arsredovisningar-bulkfiler`, S3-style).
+  - There are 1,469 files and 127 GB since 2020. The first build read 2024 onward (879 files).
+  - Each weekly zip holds one zip per company, named `<orgnr>_<fiscal year end>.zip`, with one or two xhtml documents.
+- **What it publishes:** release `se-financials`, with the same shard layout as `se-register` (`shardOf` = first nine digits mod 509) and the manifest `row`. Each record is `{fw, cur, latest, y:[[start, end, ...figures, fromReport]]}`, newest year first, up to six years.
+- **Rules:**
+  - Only the facts in `FIELDS` are read, so no personal data. tests/se-financials.test.cjs feeds signatory and auditor names and checks they never reach the output.
+  - Dimensional contexts are ignored.
+  - `agreed()` keeps the most frequent value. On a tie between values a factor 1,000 apart it keeps the larger, because filers drop `scale` on one occurrence.
+  - No computed ratios or credit wording; the test enforces this. "Soliditet" passes through only as reported.
+- **Runs:**
+  - Tuesdays 06:17 UTC, a push to main that touches the pipeline, or dispatch (`full=true` rebuilds from `from_year`).
+  - A run processes only files missing from the previous manifest's `processed` list, which holds only files whose extract job uploaded its results. An upload failure (11 Nov, during the GitHub outage) is retried on the next run.
+- **Coverage, 11 Nov:**
+  - 529,188 companies: K2 503,069 and K3 26,119.
+  - Listed companies' ESEF reports are not in the bulk; Ericsson is absent from every 2026 week.
+- **No tool reads it yet.** `/se/company/financials` exists only as a local draft and waits for the owner's decision and price.
+
