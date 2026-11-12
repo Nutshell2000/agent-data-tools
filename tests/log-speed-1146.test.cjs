@@ -84,3 +84,17 @@ test("seller record scan stops starting batches after its time budget and says s
   assert.equal(full.complete, true);
   assert.equal(full.outOfTime, undefined);
 });
+
+test("a log scan stops starting windows after its time budget and says it is incomplete", async () => {
+  const C = await load(require.resolve("../src/routes/chain-reads.ts"));
+  let clock = 0, calls = 0;
+  const cl = { request: async () => { calls++; clock += 15_000; return []; } };
+  const r = await C.recentLogs(cl, { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" }, 1_000_000n, 100_000n, 50, { now: () => clock });
+  assert.equal(r.complete, false);
+  assert.equal(calls, 2, "two windows of 15 s pass the 20 s budget");
+  // Inside the budget the same scan reads the whole span.
+  clock = 0; calls = 0;
+  const fast = await C.recentLogs({ request: async () => { calls++; return []; } }, { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" }, 1_000_000n, 100_000n, 50, { now: () => 0 });
+  assert.equal(fast.complete, true);
+  assert.equal(C.LOG_SCAN_BUDGET_MS, 20_000);
+});
