@@ -1589,3 +1589,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - /fr/company (src/routes/fr-company.ts; $0.01, the owner's answer of 12 Nov 2026: "$0.01 per call"): echerche-entreprises.api.gouv.fr/search (Licence Ouverte 2.0; about 7 requests a second per address; a 429 after getJson's one retry is an uncharged 503). sirenOf reads SIREN, SIRET and FR VAT (key = (12 + 3 x (SIREN mod 97)) mod 97, checked) with the Luhn check. Every request carries st_entrepreneur_individuel=false; legal category 1xxx and statut_diffusion other than "O" are never shown. Never read dirigeants (people), inances or coordinates into an answer: tests/fr-company.test.cjs feeds them and asserts none come out. The search sends the town inside q (it matches addresses) and filters on the head office's town; ank() puts GE/ETI first, then exact name, whole words, size, starts-with. The API also matches establishment signs and addresses, so a match must hold every query word in its own name unless none does.
 - Finder JOBS (src/routes/recommend.ts) and TOOL_SEO (src/lib/tool-seo.ts) cover all four registers. "verify a supplier in Norway" still lands on the wrong tools: a bare country word was left out of JOBS on purpose ("norway weather").
 
+## Our own hosts through SELF (1.150.0, 12 Nov 2026)
+
+- A Worker cannot fetch its own public hostname over the network. Any tool that reads a caller-named URL must try
+  `selfFetch(env, url, accept)` (src/lib/self-fetch.ts) before `fetchPublic` when the URL may be one of ours; it returns
+  null for other hosts. Done for /agent-readiness and the trust and x402 checks. Not yet: /extract, /url/meta, /seo/audit,
+  /sitemap, /robots and the website packs (they still fail on our own pages); add it there when one of them is asked
+  about our own site.
+
