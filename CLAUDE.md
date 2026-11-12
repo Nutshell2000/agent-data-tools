@@ -1537,3 +1537,18 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Not built: France (recherche-entreprises.api.gouv.fr, Licence Ouverte 2.0, open but rate-limited; users reported 429s in April 2026; test from Cloudflare and measure demand first), Denmark (CVR needs an account), the UK (Companies House needs a key).
 - Check after release: one paid staging call each from a worktree with a funded test wallet (x402-w11): `/no/company?orgnr=923609016`, `/fi/company?name=kone` (KONE Oyj first).
 
+## Log reads under rate limits (1.146.0, 12 Nov 2026)
+
+- From Cloudflare's egress the free log nodes rate-limit by the call: Base publicnode answers in tens of milliseconds or
+  holds a refused call 3.0 s ("Rate limit exceeded"), Tenderly refused everything on 12 Nov, Nodies hung. `logTransport()`
+  (src/lib/rpc.ts) gives publicnode 1.5 s tries with three quick retries and every other public node one try of at most
+  4 s; viem retries a timeout like an error (tests/log-speed-1146.test.cjs runs a real client against a stalling node).
+  Do not raise publicnode's timeout back to seconds: a healthy answer takes under 0.1 s.
+- Measure nodes only from Cloudflare (a throwaway Worker, then `wrangler delete`): the PC is never rate-limited and saw
+  publicnode answer every call.
+- `SPARSE_FIRST_WINDOW` (500 blocks) for scans of sparse logs (token-transfers, new pools); busy contracts keep the
+  10-block start.
+- /x402/seller-record has a 25 s scan budget (`SCAN_BUDGET_MS`); a cut-short read answers `complete: false`,
+  `hoursCovered` and a `coverageNote` asking for fewer days.
+- The durable fix is a keyed Base RPC in `BASE_RPC_URL` (a provider account: the owner's decision).
+
