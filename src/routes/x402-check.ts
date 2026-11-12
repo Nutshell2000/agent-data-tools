@@ -5,6 +5,7 @@ import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { getAddress } from "viem";
 import { entry, type Entry } from "../family";
 import { HttpError, isAddress } from "../lib/env";
+import { isSelfHost } from "../lib/self-fetch";
 import { CHAINS, client, rpc } from "./chain-reads";
 import { domainReport } from "./domain-report";
 import { screen, sdnIndex } from "./sanctions";
@@ -24,8 +25,6 @@ const USDC: Record<string, string> = {
 };
 /** v1 used network names instead of CAIP-2 ids. */
 const V1_NETWORKS: Record<string, string> = { base: "eip155:8453", "base-sepolia": "eip155:84532", ethereum: "eip155:1", arbitrum: "eip155:42161", optimism: "eip155:10", polygon: "eip155:137" };
-/** This service's public host; requests to it go through the SELF binding instead of the network. */
-const SELF_HOST = "agent-data-tools.revmesh2074.workers.dev";
 /** Coinbase's facilitator rejects payments below 0.001 USDC. */
 const FACILITATOR_MIN_ATOMIC = 1000n;
 
@@ -106,7 +105,7 @@ export const X402_CHECK: Entry[] = [
     },
     async (env, q) => {
       const target = parseTarget(q("url"));
-      const res = target.hostname === SELF_HOST && env.SELF
+      const res = isSelfHost(env, target.hostname) && env.SELF
         ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" } })
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
@@ -130,7 +129,7 @@ export const X402_CHECK: Entry[] = [
     },
     async (env, q) => {
       const target = parseTarget(q("url"));
-      const res = target.hostname === SELF_HOST && env.SELF
+      const res = isSelfHost(env, target.hostname) && env.SELF
         ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" } })
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";

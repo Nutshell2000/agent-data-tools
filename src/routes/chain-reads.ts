@@ -135,6 +135,8 @@ export const LOG_WINDOW_MAX = 50_000n;
  * three. Busy contracts (a whole token's transfers, /base/logs) keep the 10-block start, so they never pull megabytes.
  */
 export const SPARSE_FIRST_WINDOW = 500n;
+/** How long a log scan may keep starting new windows before it answers what it has (see `recentLogs`). */
+export const LOG_SCAN_BUDGET_MS = 20_000;
 const fmtBlocks = (n: number) => n.toLocaleString("en-US");
 
 /** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
@@ -816,7 +818,13 @@ type RawLog = { blockNumber: string; transactionHash: string; logIndex: string; 
  * pulling megabytes over the whole span; a quiet one covers 1,000 blocks in five calls. Small windows also suit nodes
  * that cap the range. Returns the logs oldest first and the first block actually scanned.
  */
-export async function recentLogs(cl: PublicClient, filter: { address?: `0x${string}`; topics?: (`0x${string}` | `0x${string}`[] | null)[] }, latest: bigint, span: bigint, want: number, window: { first?: bigint; max?: bigint } = {}) {
+export async function recentLogs(cl: PublicClient, filter: { address?: `0x${string}`; topics?: (`0x${string}` | `0x${string}`[] | null)[] }, latest: bigint, span: bigint, want: number, window: { first?: bigint; max?: bigint; budgetMs?: number; now?: () => number } = {}) {
+  // A paid call settles only after the answer: when the log nodes are slow (12 Nov 2026: a Lumiere paid test of
+  // /dex/trending ended payment_failed while Base reads took up to 110 s), the scan stops starting new windows after
+  // `budgetMs` and answers what it read, marked incomplete, instead of outlasting the buyer.
+  const now = window.now ?? Date.now;
+  const started = now();
+  const budget = window.budgetMs ?? LOG_SCAN_BUDGET_MS;
   const floor = latest - span + 1n;
   let logs: RawLog[] = [];
   let to = latest;
@@ -841,8 +849,16 @@ export async function recentLogs(cl: PublicClient, filter: { address?: `0x${stri
     logs = chunk.concat(logs);
     if (logs.length >= want || from === floor) return { logs, fromBlock: from, complete: from === floor };
     to = from - 1n;
-    size *= 4n;
-    if (maxSize !== undefined && size > maxSize) size = maxSize;
+    if (now() - started > budget) return { logs, fromBlock: from, complete: false };
+    // The next window comes from the density seen so far: large enough to fill `want` in one more call (with a fifth
+    // to spare), never smaller than the last one, never past `maxSize` or publicnode's 50,000. Growing x4 regardless
+    // took seven node calls for /token/buyers on AERO (12 Nov 2026), each one a chance to meet a rate-limited node; a
+    // quiet log now needs two, a busy one stays small so a call never pulls megabytes.
+    const perBlock = Math.max(logs.length, 0.5) / Number(latest - from + 1n);
+    const fill = BigInt(Math.ceil(((want - logs.length) / perBlock) * 1.2));
+    const cap = maxSize ?? LOG_WINDOW_MAX;
+    size = fill > size ? fill : size;
+    if (size > cap) size = cap;
   }
   return { logs, fromBlock: floor, complete: true };
 }
