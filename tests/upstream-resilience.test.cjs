@@ -32,11 +32,13 @@ test('recent logs: a busy contract stops after the first small window, newest lo
   assert.ok(Number(r.logs[0].blockNumber) <= Number(r.logs.at(-1).blockNumber));
 });
 
-test('recent logs: a quiet contract covers the whole span in growing windows', async () => {
+// Since 1.150.0 the second window is sized from what the first one saw: a quiet log reaches the floor in two calls
+// (it used to grow x4 per call: 10, 40, 160, 640 blocks, five calls for 1,000 blocks).
+test('recent logs: a quiet contract covers the whole span in two windows', async () => {
   const { recentLogs } = await load();
   const node = fakeNode(0);
   const r = await recentLogs(node, { address: '0x' + '1'.repeat(40) }, 10_000n, 1000n, 100);
-  assert.deepEqual(node.calls, [[9991, 10000], [9951, 9990], [9791, 9950], [9151, 9790], [9001, 9150]]);
+  assert.deepEqual(node.calls, [[9991, 10000], [9001, 9990]]);
   assert.equal(r.complete, true);
   assert.equal(Number(r.fromBlock), 9001);
 });
