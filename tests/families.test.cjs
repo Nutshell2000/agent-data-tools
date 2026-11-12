@@ -29,7 +29,8 @@ const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParam
 // /text-to-speech (11 Nov 2026): 2,000 characters of Aura-2 cost $0.06, so it cannot be a one-cent tool; the owner asked for tools that sell for more.
 // /news, its two doors and the two research packs were $0.03 for a few hours on 11 Nov 2026 (1.130.0) and are $0.01 again
 // since 1.136.0: Mercator's gateway, their daily buyer, does not pay a quote above the price its own catalogue holds.
-const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08" };
+// /hyperliquid/indicators (owner, 12 Nov 2026: "Yes, $0.05"): the finder buyer pays its pick ten times at the live quote.
+const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08", "/hyperliquid/indicators": "$0.05" };
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);

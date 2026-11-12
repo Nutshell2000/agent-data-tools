@@ -66,6 +66,8 @@ export function intervalKey(raw: string | undefined, fallback: string): string {
   return s.replace(/^1mo?$/, "1m");
 }
 const SOURCE = "Hyperliquid public info API";
+/** /hyperliquid/indicators only (owner's decision, 12 Nov 2026); every other Hyperliquid tool keeps the catalog price. */
+export const INDICATORS_PRICE = "$0.05";
 
 // ---- technical indicators (1.54.0), pure arithmetic on closed candles --------------------------------------------------
 const round = (v: number | null, d = 6) => (v === null || !Number.isFinite(v) ? null : Math.round(v * 10 ** d) / 10 ** d);
@@ -268,7 +270,10 @@ export const HYPERLIQUID: Entry[] = [
         bollinger: bb ? { upper: round(bb.upper, dp), middle: round(bb.middle, dp), lower: round(bb.lower, dp), percentB: round(bb.percentB, 4), bandwidth: round(bb.bandwidth, 4) } : null,
         atr14: round(atr(rows), dp), realizedVolPct: round(realizedVol(closes, step), 2), readings, source: SOURCE,
       };
-    }),
+    },
+    // The owner, 12 Nov 2026: "Yes, $0.05". The finder buyer pays its pick ten times at the live quote and we lead its
+    // "technical indicators" question by 0.10, which price (15% of its score) cannot flip; $0.05 is the finder's example cap.
+    INDICATORS_PRICE),
 
   entry("/hyperliquid/prices","All crypto prices, Hyperliquid: mid prices of every perpetual",
     "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market.",
