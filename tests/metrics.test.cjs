@@ -530,3 +530,24 @@ test("failure reasons are capped per day, the rest counted as other", async () =
   assert.equal(status.tools[0].topFailures[0].count, 1);
   assert.equal(status.tools[1].topFailures, undefined, "beyond the cap the reason is counted as other");
 });
+
+test("a review key's call is counted as review, never as a credits call (12 Nov 2026: 85 review calls read as card-credit sales)", async () => {
+  const { metrics } = createMetrics();
+  const pending = [];
+  const app = new Hono();
+  app.use(requestMetricsMiddleware(new Set(["/time"]), () => false));
+  app.get("/time", (c) => c.req.query("mode") === "review"
+    ? c.json({ ok: true }, 200, { "X-Credits-Charged": "0", "X-Review-Calls-Left": "149" })
+    : c.json({ ok: true }, 200, { "X-Credits-Charged": "10", "X-Credits-Remaining": "990" }));
+  const env = { METRICS: { idFromName: () => "global", get: () => metrics } };
+  const executionCtx = { waitUntil: (promise) => pending.push(promise) };
+  for (const mode of ["review", "review", "bought"]) {
+    await app.fetch(new Request(`https://example.test/time?mode=${mode}`), env, executionCtx);
+    await sendBatchNow(metrics); await Promise.all(pending.splice(0));
+  }
+  const row = (await sendBatchNow(metrics), await metrics.report())[today]["/time"];
+  assert.equal(row.review, 2);
+  assert.equal(row.credits, 1);
+  const status = await metrics.status(["/time"]);
+  assert.equal(status.served, 3, "a review call still ran the tool: it counts as served");
+});

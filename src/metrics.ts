@@ -12,9 +12,9 @@ import { FAILURE_PREFIX, REFUSED_PAYMENT } from "./lib/failure-reason";
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
  * "sample" a free ?sample=1 preview of the static example (the tool did not run).
  */
-export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample" | "credits" | "v1_payment" | "v2_payment" | "mpp_payment";
+export type Outcome = "challenged" | "paid" | "unsettled" | "trial" | "failed" | "errored" | "marketplace" | "sample" | "credits" | "review" | "v1_payment" | "v2_payment" | "mpp_payment";
 /** Outcomes where the tool ran and answered 2xx. */
-const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace", "credits"];
+const SERVED: readonly Outcome[] = ["paid", "unsettled", "trial", "marketplace", "credits", "review"];
 const STATUS_DAYS = 7;
 /** Newest UTC days (today included) in /status `recent`, beside the 7-day figures. */
 const RECENT_DAYS = 3;

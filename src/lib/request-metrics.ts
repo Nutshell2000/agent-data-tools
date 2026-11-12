@@ -34,6 +34,10 @@ export function requestMetricsMiddleware(
     else if (c.res.status >= 400) outcome = "failed";
     else if (c.res.headers.get("X-Sample") === "1") outcome = "sample";
     else if (c.res.headers.has("X-Free-Trial-Remaining")) outcome = "trial";
+    // A review key's call (lib/review-keys.ts) carries X-Credits-Charged: 0 too, but nothing was bought or spent:
+    // counted apart, so "credits" on /metrics/callers means calls that spent bought credits (12 Nov 2026: 85 review
+    // calls read as card-credit sales).
+    else if (c.res.headers.has("X-Review-Calls-Left")) outcome = "review";
     else if (c.res.headers.has("X-Credits-Charged")) outcome = "credits";
     else if (market) outcome = "marketplace";
     else {
