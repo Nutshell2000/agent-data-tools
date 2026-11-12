@@ -7,7 +7,7 @@ import { HttpError, type Env } from "../lib/env";
 import { recentBlockSeconds } from "../lib/block-time";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, LOG_WINDOW_MAX, client, codeKind, logsClient, recentLogs, rpc, scaledBlocks, topicLogsClient } from "./chain-reads";
+import { CHAINS, LOG_WINDOW_MAX, SPARSE_FIRST_WINDOW, client, codeKind, logsClient, recentLogs, rpc, scaledBlocks, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -242,7 +242,7 @@ export const CHAIN_MORE: Entry[] = [
       const latest = (await rpc(() => logs.getBlockNumber())) - 3n;
       let lastError: unknown;
       const settled = await Promise.all(factories.map(async (f) => {
-        try { return { f, ...(await recentLogs(logs, { address: f.address, topics: [f.topic] }, latest, span, limit, { max: LOG_WINDOW_MAX })) }; }
+        try { return { f, ...(await recentLogs(logs, { address: f.address, topics: [f.topic] }, latest, span, limit, { first: SPARSE_FIRST_WINDOW, max: LOG_WINDOW_MAX })) }; }
         catch (e) { lastError = e; return null; }
       }));
       const scans = settled.filter((s): s is NonNullable<typeof s> => s !== null);

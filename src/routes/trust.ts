@@ -145,7 +145,14 @@ type ReadLogs = (from: bigint, to: bigint) => Promise<RawLog[]>;
  * the first window that still fails and keeps only the unbroken newest part, so `reached` (the oldest block read) and
  * the counts always describe the same stretch of chain. Nothing read at all is the node's error (an uncharged 502).
  */
-async function scanInflows(read: ReadLogs, latest: bigint, floor: bigint) {
+/**
+ * A buyer's agent and a router wait about 30 s. When the public log nodes rate-limit Cloudflare (12 Nov 2026: a one-day
+ * record took over 120 s), the scan starts no new batch after this budget and answers what it has read, marked partial.
+ */
+const SCAN_BUDGET_MS = 25_000;
+
+async function scanInflows(read: ReadLogs, latest: bigint, floor: bigint, budgetMs = SCAN_BUDGET_MS, now = () => Date.now()) {
+  const started = now();
   const windows: [bigint, bigint][] = [];
   for (let to = latest; to >= floor; to -= SCAN_WINDOW) windows.push([to - SCAN_WINDOW + 1n > floor ? to - SCAN_WINDOW + 1n : floor, to]);
   const once = async ([from, to]: [bigint, bigint]): Promise<RawLog[] | null> => {
@@ -160,6 +167,7 @@ async function scanInflows(read: ReadLogs, latest: bigint, floor: bigint) {
   let logs: RawLog[] = [];
   let reached = latest + 1n;
   for (let i = 0; i < windows.length; i += SCAN_PARALLEL) {
+    if (i > 0 && now() - started > budgetMs) return { logs, complete: false, reached, outOfTime: true };
     const batch = windows.slice(i, i + SCAN_PARALLEL);
     const got = await Promise.all(batch.map(once));
     for (let j = 0; j < batch.length; j++) {
@@ -265,7 +273,8 @@ export const TRUST: Entry[] = [
       const secs = await recentBlockSeconds(cl, slug, latest);
       const start = await rpc(() => blockAtTime(cl, head, head.ts - days * 86_400, { secs, tolerance: 600 }));
       const floor = start.block;
-      const { logs, complete, reached } = await inflows(cl, USDC[slug], payTo, latest, floor);
+      const scan = await inflows(cl, USDC[slug], payTo, latest, floor);
+      const { logs, complete, reached } = scan;
       const reachedTs = reached === floor ? start.ts : Number((await rpc(() => cl.getBlock({ blockNumber: reached }))).timestamp);
       const hoursCovered = Math.round(((head.ts - reachedTs) / 3600) * 10) / 10;
       const byPayer = new Map<string, { payments: number; atomic: bigint }>();
@@ -285,7 +294,7 @@ export const TRUST: Entry[] = [
       const fmt = (n: number | null) => (n === null ? null : String(Math.round(n * 1e6) / 1e6));
       return {
         payTo, chain: slug, url, days, fromBlock: Number(reached), toBlock: Number(latest), complete, hoursCovered,
-        ...(complete ? {} : { requestedFromBlock: Number(floor), coverageNote: `The public log nodes stopped answering after the newest ${hoursCovered} hours of the ${days * 24} asked: every count covers that part only.` }),
+        ...(complete ? {} : { requestedFromBlock: Number(floor), coverageNote: "outOfTime" in scan ? `The public log nodes were slow, so the read stopped after the newest ${hoursCovered} hours of the ${days * 24} asked to answer in time: every count covers that part only. Ask for fewer days for a full read.` : `The public log nodes stopped answering after the newest ${hoursCovered} hours of the ${days * 24} asked: every count covers that part only.` }),
         payments: logs.length, distinctPayers: byPayer.size, repeatPayers: [...byPayer.values()].filter((r) => r.payments > 1).length,
         totalUsdc: formatUnits(total, 6), medianUsdc: fmt(median(amounts)), largestUsdc: fmt(amounts.length ? Math.max(...amounts) : null),
         firstPaymentAt: firstAt, lastPaymentAt: lastAt,
