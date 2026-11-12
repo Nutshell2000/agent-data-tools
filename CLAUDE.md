@@ -1582,3 +1582,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - At $0.001 a sale nets nothing once CDP's 1,000 free settlements a month are used (the reason `ACQUISITION_PRICE` is $0.002). Never put a tool Mercator buys here: it pays only its stored price.
 - Revert: empty the set and run `scripts/freeze-prices.mjs`, then `update-402index-prices.mjs`.
 
+
+
+## French company register; company tools in the finder (1.149.0, 12 Nov 2026)
+
+- /fr/company (src/routes/fr-company.ts; $0.01, the owner's answer of 12 Nov 2026: "$0.01 per call"): echerche-entreprises.api.gouv.fr/search (Licence Ouverte 2.0; about 7 requests a second per address; a 429 after getJson's one retry is an uncharged 503). sirenOf reads SIREN, SIRET and FR VAT (key = (12 + 3 x (SIREN mod 97)) mod 97, checked) with the Luhn check. Every request carries st_entrepreneur_individuel=false; legal category 1xxx and statut_diffusion other than "O" are never shown. Never read dirigeants (people), inances or coordinates into an answer: tests/fr-company.test.cjs feeds them and asserts none come out. The search sends the town inside q (it matches addresses) and filters on the head office's town; ank() puts GE/ETI first, then exact name, whole words, size, starts-with. The API also matches establishment signs and addresses, so a match must hold every query word in its own name unless none does.
+- Finder JOBS (src/routes/recommend.ts) and TOOL_SEO (src/lib/tool-seo.ts) cover all four registers. "verify a supplier in Norway" still lands on the wrong tools: a bare country word was left out of JOBS on purpose ("norway weather").
+

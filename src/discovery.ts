@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.148.0";
+export const MCP_SERVER_VERSION = "1.149.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -247,6 +247,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/se/company": "Company, compliance and checks",
   "/no/company": "Company, compliance and checks",
   "/fi/company": "Company, compliance and checks",
+  "/fr/company": "Company, compliance and checks",
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
