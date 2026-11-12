@@ -1,5 +1,5 @@
 {
-  "version": "1.147.0",
+  "version": "1.148.0",
   "tools": [
     {
       "name": "extract",
@@ -11379,7 +11379,7 @@
     },
     {
       "name": "commodity_price",
-      "description": "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief. Example: commodity=gold. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief. Example: commodity=gold. Price $0.001/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11399,7 +11399,7 @@
           "commodity"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.001"
     },
     {
       "name": "github_repo",
@@ -14085,7 +14085,7 @@
     },
     {
       "name": "robots",
-      "description": "Read a site's robots.txt and say whether a crawler may fetch a URL, by RFC 9309 rules as Google applies them (most specific user-agent group, longest matching Allow or Disallow, Allow on ties, * and $ wildcards). Returns the deciding rule, the group used, the rule count and the sitemaps listed. A missing robots.txt (4xx) allows everything. Use before scraping or crawling a site politely; for the sitemap URLs themselves use sitemap. Example: url=https://www.google.com/search. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Read a site's robots.txt and say whether a crawler may fetch a URL, by RFC 9309 rules as Google applies them (most specific user-agent group, longest matching Allow or Disallow, Allow on ties, * and $ wildcards). Returns the deciding rule, the group used, the rule count and the sitemaps listed. A missing robots.txt (4xx) allows everything. Use before scraping or crawling a site politely; for the sitemap URLs themselves use sitemap. Example: url=https://www.google.com/search. Price $0.001/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -14109,7 +14109,7 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.001"
     },
     {
       "name": "book_isbn",

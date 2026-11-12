@@ -1573,3 +1573,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - Listed companies' ESEF reports are not in the bulk; Ericsson is absent from every 2026 week.
 - **No tool reads it yet.** `/se/company/financials` exists only as a local draft and waits for the owner's decision and price.
 
+
+
+## Finder price test (1.148.0, 12 Nov 2026)
+
+- `FINDER_TEST_PATHS` (src/endpoints.ts): /robots and /commodity/price at `FINDER_TEST_PRICE` $0.001, the owner's decision of 12 Nov 2026 ("Yes, test those two"), review 26 Nov. It is checked before `ACQUISITION_PATHS`.
+- Why: the x402 Service Finder scores 0.30 relevance + 0.30 payers + 0.25 uptime + 0.15 price (price part = cheapest candidate / own price), fitted to its paid answers with a median error of 0.0003 (`business/agentic/base-bots/finder-price-sim.mjs`, which re-scores stored answers at any price). At $0.001 both become its #1 pick; they were #3 at $0.01. Its listings under 5 payers carry NOT_MONITORED (uptime part 0.70), so payers decide two of its four parts.
+- At $0.001 a sale nets nothing once CDP's 1,000 free settlements a month are used (the reason `ACQUISITION_PRICE` is $0.002). Never put a tool Mercator buys here: it pays only its stored price.
+- Revert: empty the set and run `scripts/freeze-prices.mjs`, then `update-402index-prices.mjs`.
+

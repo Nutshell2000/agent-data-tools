@@ -974,7 +974,18 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/price/crypto", "/balance/wallet", "/weather/current", "/dns/records", "/sec/edgar",
   "/bitcoin/price", "/gas/price", "/market/sentiment",
 ]);
-const acquisitionPriced = (e: Endpoint): Endpoint => (ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e);
+/**
+ * Finder price test (12 Nov 2026, the owner: "Yes, test those two"). The x402 Service Finder scores
+ * 0.30 relevance + 0.30 payers + 0.25 uptime + 0.15 price (price part = cheapest candidate / own price; fitted to its
+ * paid answers with a median error of 0.0003, business/agentic/base-bots/finder-price-sim.mjs). At $0.001 these two
+ * become its #1 pick for "can a crawler access this url robots.txt" and "commodity prices" (#3 at $0.01). Neither is a
+ * tool Mercator buys. At $0.001 a sale nets nothing once CDP's 1,000 free settlements a month are used: the test is for
+ * rank and payers, not income. Review on 26 Nov against the finder's picks and payers (buyer-today.mjs 0x4c29…).
+ */
+export const FINDER_TEST_PRICE = "$0.001";
+export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/commodity/price"]);
+const acquisitionPriced = (e: Endpoint): Endpoint =>
+  FINDER_TEST_PATHS.has(e.path) ? { ...e, price: FINDER_TEST_PRICE } : ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e;
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
 for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
