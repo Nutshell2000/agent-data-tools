@@ -49,6 +49,7 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/se/company",
   "/no/company",
   "/fi/company",
+  "/fr/company",
   "/x402/seller-record",
   "/sanctions/check", "/sanctions/screen", "/ofac/check", "/company", "/company/lookup",
   "/sec/filings", "/sec/edgar", "/sec/8k", "/sec/insider", "/sec/13f", "/sec/financials", "/stock/fundamentals", "/income-statement", "/polymarket/orderbook", "/polymarket/price-history",
