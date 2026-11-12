@@ -1526,3 +1526,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Index entries are `[name, orgnr, form, city]` since this build; `city` (optional input) narrows a search by the start of the postal city with `nameWords` normalisation. An index without the city item lets every name through the city filter instead of dropping all matches.
 - Quality check for this tool: run its handler in Node against the live release (a copy of `se-company-live.local.cjs` from the session scratchpad into scripts/, deleted afterwards) on real names: initials, municipalities, banks, deregistered and bankrupt companies. The PC reads GitHub at about 37 KB/s, so the first call of a cold shard can time out locally; Cloudflare does not.
 
+
+
+## Norwegian and Finnish company registers (1.145.0, 11 Nov 2026)
+
+- Owner, 11 Nov 2026: "$0.01 per call" for `/no/company` and `/fi/company` (src/routes/nordic-company.ts), the siblings of `/se/company`. Same legal line: register facts only, no score, rating, grade or "safe to" wording; tests/nordic-company.test.cjs fails on such words.
+- Norway: `data.brreg.no/enhetsregisteret/api` (NLOD 2.0, keyless; attribution in `source`). `noOrgnrOf` reads 9 digits, NO…MVA and spacing, with the mod-11 check. `PERSON_FORMS` (ENK) is refused on lookup and dropped from searches; `telefon`/`mobil` are never read into an answer; the `/roller` endpoint (board members, people) must never be called (the test checks the URLs). A deleted unit answers 410 with its record: status "deleted". Search reads one page of 100 (Brreg orders by relevance).
+- Finland: `avoindata.prh.fi/opendata-ytj-api/v3/companies` (CC BY 4.0, keyless; PRH asks that services built on it do not use its logos or look like PRH). `fiIdOf` reads 1234567-8, 12345678, FI12345678 and the old six-digit body. The API leaves out private traders; `FI_PERSON_FORMS` guards anyway. A name search answers about 70 companies per page in business-ID order, so `fiSearch` also asks "<name> Oyj" and "<name> Oy" in parallel (three requests per search) and merges by business ID; ended companies are left out of searches. Code lists: `/v3/description?code=YRMU|REK|KONK|SANE…&lang=en`.
+- `rankNames`: exact name (legal-form words ignored), then every query word whole, then `NO_TRADING` / `FI_TRADING` forms, then names starting with the first word, then shorter names.
+- Not built: France (recherche-entreprises.api.gouv.fr, Licence Ouverte 2.0, open but rate-limited; users reported 429s in April 2026; test from Cloudflare and measure demand first), Denmark (CVR needs an account), the UK (Companies House needs a key).
+- Check after release: one paid staging call each from a worktree with a funded test wallet (x402-w11): `/no/company?orgnr=923609016`, `/fi/company?name=kone` (KONE Oyj first).
+
