@@ -6,7 +6,7 @@ import { PRICE, entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
-import { EDGE_RPCS, LOG_RPCS, erc20Abi, requestClient, rpcUrls } from "../lib/rpc";
+import { EDGE_RPCS, LOG_RPCS, erc20Abi, logTransport, requestClient, rpcUrls } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
 import { fetchFile } from "../lib/fetch";
 
@@ -89,9 +89,9 @@ export function logsClient(env: Env, c: ChainDef): PublicClient {
   if (!(slug in LOG_RPCS)) return client(env, c);
   const custom = slug === "base" ? env?.BASE_RPC_URL?.trim() : undefined;
   const urls = custom && !LOG_RPCS[slug].includes(custom) && !(EDGE_RPCS.base as readonly string[]).includes(custom) ? [custom, ...LOG_RPCS[slug]] : [...LOG_RPCS[slug]];
-  const options = { timeout: 5_000, retryCount: 1, retryDelay: 100 };
+  // A private BASE_RPC_URL keeps the old patient options; the public nodes get logTransport()'s.
   return requestClient(`logs|${c.slug}|${urls.join("|")}`, () =>
-    createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, options)), { rank: false }) }) as PublicClient);
+    createPublicClient({ chain: c.chain, transport: fallback(urls.map((u) => http(u, u === custom ? { timeout: 5_000, retryCount: 1, retryDelay: 100 } : logTransport(u))), { rank: false }) }) as PublicClient);
 }
 
 /** Runs an RPC call; node failures become 502 so the caller is not charged. */
@@ -129,6 +129,12 @@ export const BLOCK_SCALE: Record<string, number> = { base: 10 };
 export const scaledBlocks = (slug: string, n: number) => n * (BLOCK_SCALE[slug] ?? 1);
 /** publicnode refuses address-filtered eth_getLogs over 50,000 blocks (11 Nov 2026). */
 export const LOG_WINDOW_MAX = 50_000n;
+/**
+ * First window for scans of sparse logs (one wallet's transfers of one token, factory pool creations): growing from 10
+ * blocks took six node calls to cover 10,000, and each call can meet a rate-limited node (12 Nov 2026); from 500 it is
+ * three. Busy contracts (a whole token's transfers, /base/logs) keep the 10-block start, so they never pull megabytes.
+ */
+export const SPARSE_FIRST_WINDOW = 500n;
 const fmtBlocks = (n: number) => n.toLocaleString("en-US");
 
 /** A token input: a 0x contract address, or a ticker this network knows (USDC, USDT, WETH…). */
@@ -391,8 +397,8 @@ function chainEntries(c: ChainDef): Entry[] {
         // Sent and received Transfer events of this one token, newest first in growing windows (recentLogs): public nodes
         // refuse or time out on a single 1,000-block eth_getLogs, which made this tool fail about one call in four.
         const [sentScan, receivedScan] = await Promise.all([
-          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50, { max: LOG_WINDOW_MAX }),
-          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50, { max: LOG_WINDOW_MAX }),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, padded as `0x${string}`] }, latest, span, 50, { first: SPARSE_FIRST_WINDOW, max: LOG_WINDOW_MAX }),
+          recentLogs(logs, { address: token, topics: [TRANSFER_TOPIC, null, padded as `0x${string}`] }, latest, span, 50, { first: SPARSE_FIRST_WINDOW, max: LOG_WINDOW_MAX }),
         ]).catch((e) => { throw e instanceof HttpError && e.status === 502 ? new HttpError(502, "the network's public nodes could not scan that range; try fewer blocks") : e; });
         const sent = sentScan.logs, received = receivedScan.logs;
         const scannedFrom = sentScan.fromBlock > receivedScan.fromBlock ? sentScan.fromBlock : receivedScan.fromBlock;

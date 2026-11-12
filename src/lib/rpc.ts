@@ -30,14 +30,31 @@ export const EDGE_RPCS = {
  * arbitrum.io and Tenderly (publicnode, drpc, BlastAPI refuse); Optimism publicnode, Tenderly, optimism.io (nodies caps
  * at 50); Polygon publicnode, Tenderly, QuickNode (drpc refuses). With the general order, /base/token-transfers spent
  * its budget on refusals and answered 502 on its own published example. Re-measure from Cloudflare before reordering.
+ *
+ * Measured again 12 Nov 2026 ~00:30 UTC from a throwaway Worker (Cloudflare egress, deleted after): Base publicnode
+ * answered address-filtered scans in 40-60 ms but refused about 4 in 10 with "Rate limit exceeded" after holding the
+ * call 3.0 s; Tenderly answered "rate limit exceeded" to everything; mainnet.base.org returned no log array; drpc's free
+ * plan took about 20 blocks; BlastAPI 10; Nodies hung past 8 s, so it is out of the Base list. Polygon publicnode was
+ * refused 2 of 2 while QuickNode (10,000-block limit) and drpc answered in 30-120 ms, so QuickNode leads there.
+ * `logTransport()` gives publicnode short tries (see there).
  */
 export const LOG_RPCS: { readonly [K in keyof typeof EDGE_RPCS]: readonly string[] } = {
-  base: ["https://base-rpc.publicnode.com", "https://base.gateway.tenderly.co", "https://mainnet.base.org", "https://base-mainnet.public.blastapi.io", "https://base-pokt.nodies.app"],
+  base: ["https://base-rpc.publicnode.com", "https://base.gateway.tenderly.co", "https://mainnet.base.org", "https://base-mainnet.public.blastapi.io"],
   eth: ["https://mainnet.gateway.tenderly.co", "https://rpc.mevblocker.io", "https://ethereum-rpc.publicnode.com", "https://eth.drpc.org", "https://eth-mainnet.public.blastapi.io"],
   arb: ["https://arb1.arbitrum.io/rpc", "https://arbitrum.gateway.tenderly.co", "https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.drpc.org", "https://arbitrum-one.public.blastapi.io"],
   op: ["https://optimism-rpc.publicnode.com", "https://optimism.gateway.tenderly.co", "https://mainnet.optimism.io", "https://op-pokt.nodies.app"],
-  polygon: ["https://polygon-bor-rpc.publicnode.com", "https://polygon.gateway.tenderly.co", "https://rpc-mainnet.matic.quiknode.pro", "https://polygon.drpc.org"],
+  polygon: ["https://rpc-mainnet.matic.quiknode.pro", "https://polygon-bor-rpc.publicnode.com", "https://polygon.gateway.tenderly.co", "https://polygon.drpc.org"],
 };
+
+/**
+ * Per-node options for log scans. publicnode answers Cloudflare in tens of milliseconds or holds a refused call for
+ * 3.0 s before "Rate limit exceeded", and whether it refuses changes from call to call. So it gets 1.5 s tries and up to
+ * three more at once (a timeout is retried like an error): six simulated calls against a node that limits 2 in 3 took
+ * 19 s instead of 39 s, all answered. Other nodes keep one 4 s try, so a hanging fallback costs at most 4 s.
+ */
+export function logTransport(url: string): { timeout: number; retryCount: number; retryDelay: number } {
+  return url.includes("publicnode.com") ? { timeout: 1_500, retryCount: 3, retryDelay: 50 } : { timeout: 4_000, retryCount: 0, retryDelay: 50 };
+}
 
 /**
  * The RPC list for a chain. BASE_RPC_URL goes first only when it is a private endpoint (not one of the public ones
