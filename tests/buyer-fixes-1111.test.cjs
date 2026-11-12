@@ -41,7 +41,7 @@ test('ip geolocation: a missing ip is refused before the data is read; the calle
 });
 
 test('vat: a busy VIES is asked again and then answers; a clear answer is kept; a lasting outage is an uncharged 502', async () => {
-  const { viesCheck } = await load('src/routes/registries.ts');
+  const { viesCheck, viesRead, VIES_TRIES } = await load('src/routes/registries.ts');
   const parts = { country: 'SE', number: '556703748501' };
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
   const waits = [];
@@ -53,7 +53,7 @@ test('vat: a busy VIES is asked again and then answers; a clear answer is kept; 
   const store = { match: async (k) => (stored.has(k) ? new Response(stored.get(k)) : undefined), put: async (k, res) => { stored.set(k, await res.text()); } };
   const a = await viesCheck(parts, busyTwice, sleep, store);
   assert.equal(calls, 3);
-  assert.deepEqual(waits, [500, 1300]);
+  assert.deepEqual(waits, [300, 300]);
   assert.deepEqual(a, { vat: 'SE556703748501', country: 'SE', number: '556703748501', valid: true, name: 'Spotify AB', address: 'REGERINGSGATAN 19, 111 53 STOCKHOLM', checkedAt: '2026-11-11T08:00:00.000Z', source: 'EU VIES (European Commission)' });
   // The same number again does not go to VIES, and keeps the time it was checked.
   const b = await viesCheck(parts, async () => { throw new Error('must not be called'); }, sleep, store);
@@ -64,10 +64,23 @@ test('vat: a busy VIES is asked again and then answers; a clear answer is kept; 
   assert.equal(calls, 1);
   assert.equal(invalid.valid, false);
   assert.equal(invalid.name, null);
-  // Busy every time: three tries, then a 502 that names the reason.
+  // Busy every time: every try, then a 502 that names the reason.
   calls = 0;
   await assert.rejects(viesCheck(parts, async () => { calls++; return json({ isValid: false, userError: 'MS_MAX_CONCURRENT_REQ' }); }, sleep, undefined), (e) => e.status === 502 && /MS_MAX_CONCURRENT_REQ/.test(e.message) && /nothing was charged/.test(e.message));
-  assert.equal(calls, 3);
+  assert.equal(calls, VIES_TRIES);
+  // 12 Nov 2026, France: the GET endpoint stays busy while the POST endpoint waits for a slot and answers. Tries
+  // alternate GET and POST, and the POST answer shape (valid, errorWrappers) is read as well.
+  const seen = [];
+  const france = await viesCheck({ country: 'FR', number: '40303265045' }, async (url, init) => {
+    seen.push(init?.method ?? 'GET');
+    if (init?.method !== 'POST') return json({ isValid: false, userError: 'MS_MAX_CONCURRENT_REQ' });
+    assert.deepEqual(JSON.parse(init.body), { countryCode: 'FR', vatNumber: '40303265045' });
+    return seen.length < 4 ? json({ actionSucceed: false, errorWrappers: [{ error: 'MS_MAX_CONCURRENT_REQ' }] }) : json({ countryCode: 'FR', vatNumber: '40303265045', valid: true, name: 'SA SODIMAS', address: '11 RUE AMPERE\n26600 PONT DE L ISERE', requestDate: '2026-11-12T07:33:04.397Z' });
+  }, sleep, undefined);
+  assert.deepEqual(seen, ['GET', 'POST', 'GET', 'POST']);
+  assert.deepEqual(france, { vat: 'FR40303265045', country: 'FR', number: '40303265045', valid: true, name: 'SA SODIMAS', address: '11 RUE AMPERE, 26600 PONT DE L ISERE', checkedAt: '2026-11-12T07:33:04.397Z', source: 'EU VIES (European Commission)' });
+  assert.deepEqual(viesRead({ actionSucceed: false, errorWrappers: [{ error: 'INVALID_INPUT' }] }), { valid: undefined, refused: 'INVALID_INPUT' });
+  assert.deepEqual(viesRead({ valid: false }), { valid: false, refused: null });
   // A network error is retried as well; an input VIES rejects is not.
   calls = 0;
   const flaky = await viesCheck(parts, async () => { if (++calls === 1) throw new Error('timeout'); return json({ isValid: true, userError: 'VALID' }); }, sleep, undefined);

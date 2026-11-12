@@ -101,7 +101,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   coin: ["symbol", "ticker", "asset", "token", "market", "pair", "name", "id"], ticker: ["symbol", "stock", "q", "query", "name"],
   a: ["version", "v1", "from"], b: ["other", "v2", "compare", "to"],
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
-  name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site", "address", "location", "place", "city", "search", "term", "entity", "person"],
+  name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site", "address", "location", "place", "city", "search", "term", "entity", "entity_name", "entityName", "legal_name", "legalName", "business_name", "businessName", "person"],
   domain: ["name", "host", "hostname", "website", "url", "site"],
   word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
   url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],

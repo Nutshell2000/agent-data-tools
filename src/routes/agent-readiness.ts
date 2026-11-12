@@ -2,7 +2,8 @@
 // /.well-known/agent…") had 36 payers at $0.03; we sold no such check. It reads only public files a site publishes for
 // agents and crawlers, each with its own short fetch, and scores what an AI agent can find and use.
 import { entry, need, type Entry } from "../family";
-import { HttpError } from "../lib/env";
+import { HttpError, type Env } from "../lib/env";
+import { selfFetch } from "../lib/self-fetch";
 import { fetchPublic } from "../lib/fetch";
 import { robotsVerdict } from "./lookups";
 
@@ -19,8 +20,10 @@ const CHECKS: Check[] = [
   { id: "x402", label: "x402 payments discovery", weight: 10, paths: ["/.well-known/x402", "/.well-known/x402.json"], valid: (b) => isJson(b), fix: "If you sell API calls, list them for agent payments at /.well-known/x402." },
 ];
 
-async function grab(origin: string, path: string) {
-  const res = await fetchPublic(new URL(path, origin), "*/*", Array.from({ length: 200 }, (_, i) => 300 + i), { budgetMs: 6_000 }).catch(() => null);
+async function grab(env: Env, origin: string, path: string) {
+  // Our own hosts are read through the SELF binding (src/lib/self-fetch.ts): over the network a Worker cannot reach itself.
+  const target = new URL(path, origin);
+  const res = await (selfFetch(env, target, "*/*") ?? fetchPublic(target, "*/*", Array.from({ length: 200 }, (_, i) => 300 + i), { budgetMs: 6_000 })).catch(() => null);
   if (!res || res.status >= 300) { await res?.body?.cancel().catch(() => {}); return null; }
   const text = (await res.text().catch(() => "")).slice(0, 300_000);
   return { url: new URL(path, origin).href, type: res.headers.get("content-type") ?? "", text };
@@ -33,13 +36,13 @@ export const AGENT_READINESS: Entry[] = [
       url: { type: "string", description: "The site: a domain or any URL on it (its origin is checked)", required: true, example: "https://stripe.com" },
     },
     { origin: "https://example.com", score: 45, grade: "C", checks: [{ id: "llms_txt", label: "llms.txt", found: true, url: "https://example.com/llms.txt", weight: 20 }, { id: "mcp", label: "MCP server card", found: false, weight: 20 }], aiCrawlers: { robotsTxt: true, allowed: ["GPTBot", "ClaudeBot"], blocked: ["CCBot"] }, fixes: ["Run an MCP server and describe it at /.well-known/mcp/server-card.json."] },
-    async (_env, q) => {
+    async (env, q) => {
       const raw = need(q, "url", 2_000).trim();
       let origin: string;
       try { origin = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).origin; } catch { throw new HttpError(400, "url must be a domain or an http(s) URL"); }
-      const [home, robots, ...found] = await Promise.all([grab(origin, "/"), grab(origin, "/robots.txt"), ...CHECKS.map(async (c) => {
+      const [home, robots, ...found] = await Promise.all([grab(env, origin, "/"), grab(env, origin, "/robots.txt"), ...CHECKS.map(async (c) => {
         // All of a check's paths at once (one after another took 18 s on github.com), first valid one in listed order.
-        const rs = await Promise.all(c.paths.map((p) => grab(origin, p)));
+        const rs = await Promise.all(c.paths.map((p) => grab(env, origin, p)));
         return rs.find((r) => r && c.valid(r.text, r.type))?.url ?? null;
       })]);
       // A sitemap anywhere counts when robots.txt names it (11 Nov 2026: stripe.com names /sitemap/sitemap.xml there and was
@@ -47,7 +50,7 @@ export const AGENT_READINESS: Entry[] = [
       const sitemapAt = CHECKS.findIndex((c) => c.id === "sitemap");
       if (sitemapAt >= 0 && !found[sitemapAt] && robots) {
         const named = /^\s*sitemap:\s*(https?:\/\/\S+)/im.exec(robots.text)?.[1];
-        const page = named ? await grab(origin, named) : null;
+        const page = named ? await grab(env, origin, named) : null;
         if (page && CHECKS[sitemapAt].valid(page.text, page.type)) found[sitemapAt] = page.url;
       }
       // Crawlers count as reachable if robots.txt is missing or lets them read the home page.
