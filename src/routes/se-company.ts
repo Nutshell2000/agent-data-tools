@@ -29,7 +29,23 @@ export const isEstate = (jurForm: string | null | undefined) => String(jurForm ?
 const ESTATE_REFUSAL = "that organisationsnummer belongs to a dödsbo (the estate of a deceased person); this tool covers companies and does not show estates; nothing was charged";
 
 const LEGAL_WORDS = new Set(["ab", "aktiebolag", "aktiebolaget", "publ", "hb", "kb", "handelsbolag", "kommanditbolag", "ek", "for", "forening", "ekonomisk", "ideell", "brf", "bostadsrattsforening", "stiftelsen", "stiftelse", "med", "firma", "i", "och", "the", "&"]);
-export const nameWords = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !LEGAL_WORDS.has(w));
+const FOLD: Record<string, string> = { "ø": "o", "æ": "ae", "ß": "ss", "đ": "d", "ł": "l", "þ": "th" };
+export const nameWords = (s: string) => {
+  const raw = s.toLowerCase().replace(/[øæßđłþ]/g, (c) => FOLD[c] ?? c).normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter((w) => w && !LEGAL_WORDS.has(w));
+  // A run of single letters is one word: "H & M" is "hm", "A P Møller" is "ap moller".
+  const out: string[] = [];
+  let run = "";
+  for (const w of raw) {
+    if (w.length === 1) { run += w; continue; }
+    if (run) { out.push(run); run = ""; }
+    out.push(w);
+  }
+  if (run) out.push(run);
+  return out;
+};
+/** Legal forms of trading companies (Bolagsverket letter codes and SCB number codes): they come first in a name search. */
+const TRADING_FORMS = new Set(["AB", "BAB", "FAB", "HB", "KB", "EK", "SE", "FL", "BFL", "TPAB", "SB", "MB", "EEIG", "SCE", "31", "41", "42", "43", "49", "51", "93"]);
+const placeKey = (s: string) => nameWords(s).join(" ");
 export const nameShardOf = (word: string) => {
   let h = 0;
   for (const c of word.slice(0, 3)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -208,33 +224,40 @@ export async function lookupOrgnr(orgnr: string, fetcher: Fetcher = fetch) {
 }
 
 /** Name search: registered companies whose name holds every word asked for, the ones starting with the words first. */
-export async function searchName(name: string, limit: number, fetcher: Fetcher = fetch) {
+export async function searchName(name: string, limit: number, fetcher: Fetcher = fetch, city?: string) {
   const words = nameWords(name).filter((w) => w.length >= 2);
-  if (!words.length) throw new HttpError(400, "name needs at least one word of two letters or more besides the legal form (AB, HB…)");
+  if (!words.length) throw new HttpError(400, "name needs at least one word of two letters or more besides the legal form (AB, HB…); initials such as H&M count as one word");
+  const place = city ? placeKey(city) : "";
   // The longest word narrows most; its shard holds every name containing a word that starts with its first three letters.
   const key = [...words].sort((a, b) => b.length - a.length)[0];
-  const { data: index, asOf } = await readShard<[string, string, string | null][]>("names", nameShardOf(key), fetcher);
+  const { data: index, asOf } = await readShard<[string, string, string | null, (string | null)?][]>("names", nameShardOf(key), fetcher);
   const seen = new Set<string>();
-  const hits: { name: string; orgnr: string; legalForm: string | null; rank: number }[] = [];
-  for (const [display, orgnr, form] of index) {
+  const hits: { name: string; orgnr: string; legalForm: string | null; city: string | null; rank: number }[] = [];
+  for (const [display, orgnr, form, town] of index) {
     if (seen.has(orgnr) || isEstate(form)) continue;
-    const have = nameWords(display);
+    const have = nameWords(display).filter((w) => w.length >= 2);
     if (!words.every((w) => have.some((h) => h.startsWith(w)))) continue;
+    // A build before 1.144.0 carries no city: the filter then lets the name through rather than drop every match.
+    if (place && town !== undefined && !(town && placeKey(town).startsWith(place))) continue;
     seen.add(orgnr);
-    const exact = have.join(" ") === words.join(" ") ? 0 : have[0]?.startsWith(words[0]) ? 1 : 2;
-    // Companies in Bolagsverket's register (letter form codes) before SCB-only entries such as foreign legal persons (96).
-    const scbOnly = form && /^\d+$/.test(form) ? 500 : 0;
-    hits.push({ name: display, orgnr, legalForm: form, rank: exact * 1000 + scbOnly + have.length });
+    // Order: the exact name, then trading companies (AB, HB, bank…) before associations, foundations and SCB-only
+    // entries (municipalities, foreign legal persons), then names that start with the words, then shorter names.
+    const exact = have.join(" ") === words.join(" ") ? 0 : 1;
+    const kind = form && TRADING_FORMS.has(form) ? 0 : form && !/^\d+$/.test(form) ? 1 : 2;
+    const starts = have[0]?.startsWith(words[0]) ? 0 : 1;
+    hits.push({ name: display, orgnr, legalForm: form, city: town ?? null, rank: exact * 100_000 + kind * 10_000 + starts * 1_000 + have.length });
   }
-  if (!hits.length) throw new HttpError(404, `no registered Swedish company name holds "${name.slice(0, 60)}"; nothing was charged`);
+  if (!hits.length) throw new HttpError(404, `no registered Swedish company name holds "${name.slice(0, 60)}"${place ? ` in ${city!.slice(0, 40)}` : ""}; nothing was charged`);
   hits.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, "sv"));
   return {
     query: name,
+    ...(place ? { city } : {}),
     count: Math.min(hits.length, limit),
     totalMatches: hits.length,
     matches: hits.slice(0, limit).map((h) => ({
       name: h.name, orgnr: formatted(h.orgnr),
       legalForm: h.legalForm ? own(FORMS, h.legalForm) ?? own(SCB_FORMS, h.legalForm) ?? h.legalForm : null,
+      city: h.city,
     })),
     next: "Call again with orgnr for the full register facts of one company.",
     dataAsOf: asOf,
@@ -259,6 +282,7 @@ export const SE_COMPANY: Entry[] = [
       orgnr: { type: "string", description: "Swedish organisationsnummer (10 digits, with or without the hyphen) or Swedish VAT number (give orgnr or name)", example: "556703-7485" },
       name: { type: "string", description: "Company name to search for, instead of orgnr: up to 10 registered companies whose name holds every word", example: "Spotify" },
       checkVat: { type: "string", description: "true to also check the VAT number live in the EU VIES service (adds about a second)", example: "false" },
+      city: { type: "string", description: "With name: only companies whose postal address is in this city (postort), such as Göteborg", example: "Stockholm" },
       limit: { type: "integer", description: "Matches for a name search (1-10, default 5)", example: 5 },
     },
     EXAMPLE,
@@ -269,7 +293,7 @@ export const SE_COMPANY: Entry[] = [
       if (!raw) {
         const limitRaw = opt(q, "limit", 4);
         const limit = Math.min(10, Math.max(1, Number.isInteger(Number(limitRaw)) && limitRaw ? Number(limitRaw) : 5));
-        return searchName(name!, limit);
+        return searchName(name!, limit, fetch, opt(q, "city", 60));
       }
       const orgnr = orgnrOf(raw);
       const view = await lookupOrgnr(orgnr);

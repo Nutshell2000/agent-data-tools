@@ -1,5 +1,5 @@
 {
-  "version": "1.143.0",
+  "version": "1.144.0",
   "tools": [
     {
       "name": "extract",
@@ -18100,6 +18100,10 @@
               "number",
               "boolean"
             ]
+          },
+          "city": {
+            "type": "string",
+            "description": "With name: only companies whose postal address is in this city (postort), such as Göteborg"
           },
           "limit": {
             "type": "integer",
