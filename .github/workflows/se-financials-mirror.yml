@@ -1,0 +1,172 @@
+name: Mirror Swedish annual-report figures
+
+# Key figures from Swedish digitally filed annual
+# reports: Bolagsverket's free weekly bulk files ("värdefulla datamängder", no agreement, commercial reuse allowed),
+# about 100 MB a week and 127 GB since 2020. Far too large for a Worker or the owner's PC, so this job reads them on
+# GitHub's servers, keeps only the figures each company filed (never the signatories' names), and publishes 509
+# shards in one file plus manifest.json and a state file as release assets of the release se-financials.
+# The weekly run reads only the files the previous build has not processed (manifest "processed").
+on:
+  schedule:
+    - cron: "17 6 * * 2"
+  push:
+    branches: [main]
+    paths:
+      - scripts/se-financials/**
+      - .github/workflows/se-financials-mirror.yml
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "First bulk year to read on a full build (files from earlier years are skipped)"
+        default: "2024"
+      full:
+        description: "true: ignore the previous build and read every file from from_year"
+        default: "false"
+
+concurrency:
+  group: se-financials-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write # Create and update the se-financials release
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Previous build
+        run: |
+          mkdir -p prev
+          if [ "${{ inputs.full }}" != "true" ]; then
+            gh release download se-financials --repo "${{ github.repository }}" --pattern manifest.json --dir prev || echo "no previous build"
+          fi
+      - id: plan
+        run: |
+          set -euo pipefail
+          prev=prev/manifest.json; [ -f "$prev" ] || prev=-
+          node scripts/se-financials/list.mjs "${{ inputs.from_year || '2024' }}" 16 chunks "$prev"
+          echo "matrix=$(cat chunks/matrix.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chunks
+          path: chunks
+
+  extract:
+    needs: plan
+    if: needs.plan.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 8 # be gentle with Bolagsverket's file server
+      matrix:
+        chunk: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: chunks
+          path: chunks
+      - name: Download and read each week
+        run: |
+          set -uo pipefail
+          base=https://vardefulla-datamangder.bolagsverket.se/arsredovisningar-bulkfiler
+          : > reports.jsonl
+          failed=0
+          while read -r key size; do
+            [ -n "$key" ] || continue
+            rm -f week.zip
+            # The server closes long transfers part way: resume until the size matches.
+            for try in $(seq 1 30); do
+              curl -sS -L -C - --speed-limit 1000 --speed-time 60 -o week.zip "$base/$key" || true
+              have=$(stat -c %s week.zip 2>/dev/null || echo 0)
+              [ "$have" = "$size" ] && break
+              sleep 5
+            done
+            if [ "$(stat -c %s week.zip 2>/dev/null || echo 0)" != "$size" ]; then
+              echo "::warning::$key: incomplete after 30 tries"; failed=$((failed+1)); continue
+            fi
+            if node scripts/se-financials/extract.mjs week.zip "$key" reports.jsonl; then
+              echo "$key $size" >> done.txt
+            else
+              echo "::warning::$key: unreadable"; failed=$((failed+1))
+            fi
+          done < "chunks/chunk-${{ matrix.chunk }}.txt"
+          rm -f week.zip
+          # Only files listed in done.txt are marked processed, so failed ones are tried again next run.
+          touch done.txt
+          echo "failed files: $failed"
+          gzip -9 reports.jsonl
+          ls -l reports.jsonl.gz done.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ matrix.chunk }}
+          path: |
+            reports.jsonl.gz
+            done.txt
+          retention-days: 3
+
+  build:
+    needs: [plan, extract]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: Previous state
+        run: |
+          mkdir -p prev
+          if [ "${{ inputs.full }}" != "true" ]; then
+            gh release download se-financials --repo "${{ github.repository }}" --pattern 'se-financials-state.jsonl.gz' --pattern manifest.json --dir prev || echo "no previous build"
+          fi
+      - name: Build
+        run: |
+          set -euo pipefail
+          ls -R art | head -50
+          # Each extract job lists the files it read in done.txt; only those are marked processed.
+          mkdir -p done
+          for d in art/reports-*/; do
+            i=$(basename "$d" | cut -d- -f2)
+            [ -f "$d/done.txt" ] && cp "$d/done.txt" "done/chunk-$i.txt"
+          done
+          st=prev/se-financials-state.jsonl.gz; [ -f "$st" ] || st=-
+          pm=prev/manifest.json; [ -f "$pm" ] || pm=-
+          export SE_DATA_AS_OF=$(date -u +%F)
+          export SE_FILE_TAG="$SE_DATA_AS_OF-${{ github.run_id }}"
+          node scripts/se-financials/build.mjs out "$st" "$pm" done art/reports-*/reports.jsonl.gz
+          ls -l out
+      - name: Publish
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          gh release view se-financials --repo "$repo" >/dev/null 2>&1 || gh release create se-financials --repo "$repo" --prerelease \
+            --title "Swedish annual-report figures" \
+            --notes "Key figures (revenue, results, assets, equity, liabilities, staff) as each Swedish company filed them in its digital annual report, from Bolagsverket's weekly open bulk files (värdefulla datamängder, free for reuse). Packed for lookup by organisationsnummer: one file of 509 gzip shards and manifest.json with each shard's byte range. No signatory names or other personal data. Figures as filed, not credit information. Source: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/nedladdningsbarafiler.2517.html"
+          # New data file first, then state, the manifest that points at them last.
+          gh release upload se-financials out/se-financials-*.bin --repo "$repo"
+          gh release upload se-financials out/se-financials-state.jsonl.gz --repo "$repo" --clobber
+          gh release upload se-financials out/manifest.json --repo "$repo" --clobber
+          # Keep this build's data file and the one before.
+          gh api "repos/$repo/releases/tags/se-financials" --jq '.assets[] | select(.name | endswith(".bin")) | [.created_at, .id] | @tsv' \
+            | sort -r | tail -n +3 | cut -f2 | while read -r id; do gh api -X DELETE "repos/$repo/releases/assets/$id"; done
+          node -e 'const m=require("./out/manifest.json"); delete m.files; m.processed=m.processed.length; console.log(JSON.stringify(m))'
