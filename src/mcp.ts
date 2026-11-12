@@ -2,7 +2,8 @@ import { pickFields } from "./lib/fields";
 import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
-import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
+import { WEB_PACKS, apiKeyFrom, hashCreditKey, isCreditKey } from "./lib/credits";
+import { isReviewKey } from "./lib/review-keys";
 import { keyPrice, keyPriceFor } from "./lib/key-prices";
 import { recommend } from "./routes/recommend";
 import { creditCharger, directoryInstructions, mcpInstructions, paymentHint, useDailyCall, useFreeCall } from "./lib/credit-routes";
@@ -306,6 +307,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // so the x402 facilitator is not needed (or contacted) for it.
   // The ChatGPT server never spends credits: a key that came with the sign-in is ignored there.
   const creditKey = paid && !directory ? (account ? account.key ?? undefined : apiKeyFrom((name) => c.req.header(name)) ?? urlKey) : undefined;
+  // A review key (lib/review-keys.ts) spends nothing, so its calls are never counted as credit calls.
+  const reviewKey = creditKey ? isReviewKey(env, await hashCreditKey(creditKey)) : false;
   // Free calls follow a signed-in person; anonymous callers are told apart by network address.
   const caller = account ? `sub:${account.sub}` : c.req.header("cf-connecting-ip");
   // x402 terms are prepared only when a tool is actually called, so initialize and tools/list stay fast.
@@ -360,7 +363,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
         if (free && result.isError) await free.refund();
         else if (free) markStage("free_call");
-        else if (creditKey && !result.isError) markStage("credits_call");
+        else if (creditKey && !reviewKey && !result.isError) markStage("credits_call");
         const trace = activeTrace();
         if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
         if (trace?.stages.has("settled") && !result.isError) markStage("completed");
