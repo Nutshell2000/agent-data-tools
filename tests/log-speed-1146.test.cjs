@@ -98,3 +98,22 @@ test("a log scan stops starting windows after its time budget and says it is inc
   assert.equal(fast.complete, true);
   assert.equal(C.LOG_SCAN_BUDGET_MS, 20_000);
 });
+
+test("log scan windows follow the density seen: quiet logs finish in two calls, busy ones stay small", async () => {
+  const C = await load(require.resolve("../src/routes/chain-reads.ts"));
+  const fake = (perBlock) => { const sizes = []; return { sizes, cl: { request: async ({ params: [{ fromBlock, toBlock }] }) => { const n = Number(BigInt(toBlock) - BigInt(fromBlock) + 1n); sizes.push(n); return Array.from({ length: Math.floor(n * perBlock) }, (_, i) => ({ blockNumber: toBlock, logIndex: "0x" + i.toString(16) })); } } }; };
+  // Quiet: one log every 20 blocks, want 3,000 over 18,000 blocks (the /token/buyers default on Base).
+  const quiet = fake(0.05);
+  const q = await C.recentLogs(quiet.cl, { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" }, 10_000_000n, 18_000n, 3000, { now: () => 0 });
+  assert.equal(q.complete, true);
+  assert.ok(quiet.sizes.length <= 2, `quiet scan took ${quiet.sizes.length} calls: ${quiet.sizes}`);
+  // Busy: 27 logs a block (USDC on Base), want 3,000: the second window asks for about what is missing, not 40 blocks x 4.
+  const busy = fake(27);
+  const b = await C.recentLogs(busy.cl, { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" }, 10_000_000n, 18_000n, 3000, { now: () => 0 });
+  assert.ok(b.logs.length >= 3000);
+  assert.ok(Math.max(...busy.sizes) <= 200, `busy windows ${busy.sizes}`);
+  // A caller's own cap still holds.
+  const capped = fake(0);
+  await C.recentLogs(capped.cl, { topics: [] }, 10_000_000n, 5_000n, 50, { first: 1000n, max: 1000n, now: () => 0 });
+  assert.ok(capped.sizes.every((n) => n <= 1000));
+});

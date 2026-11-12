@@ -850,8 +850,15 @@ export async function recentLogs(cl: PublicClient, filter: { address?: `0x${stri
     if (logs.length >= want || from === floor) return { logs, fromBlock: from, complete: from === floor };
     to = from - 1n;
     if (now() - started > budget) return { logs, fromBlock: from, complete: false };
-    size *= 4n;
-    if (maxSize !== undefined && size > maxSize) size = maxSize;
+    // The next window comes from the density seen so far: large enough to fill `want` in one more call (with a fifth
+    // to spare), never smaller than the last one, never past `maxSize` or publicnode's 50,000. Growing x4 regardless
+    // took seven node calls for /token/buyers on AERO (12 Nov 2026), each one a chance to meet a rate-limited node; a
+    // quiet log now needs two, a busy one stays small so a call never pulls megabytes.
+    const perBlock = Math.max(logs.length, 0.5) / Number(latest - from + 1n);
+    const fill = BigInt(Math.ceil(((want - logs.length) / perBlock) * 1.2));
+    const cap = maxSize ?? LOG_WINDOW_MAX;
+    size = fill > size ? fill : size;
+    if (size > cap) size = cap;
   }
   return { logs, fromBlock: floor, complete: true };
 }
