@@ -19,12 +19,12 @@
 import { formatUnits, getAddress, isHash, type PublicClient } from "viem";
 import { entry, getJson, num, opt, pick, type Entry } from "../family";
 import { HttpError, isAddress, type Env } from "../lib/env";
+import { isSelfHost } from "../lib/self-fetch";
 import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { blockAtTime, recentBlockSeconds } from "../lib/block-time";
 import { CHAINS, USDC, client, historyRead, logsClient, rpc } from "./chain-reads";
 import { analyze } from "./x402-check";
 
-const SELF_HOST = "agent-data-tools.revmesh2074.workers.dev";
 const SEARCH = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
 /** keccak256("AuthorizationUsed(address,bytes32)"): USDC emits it for an EIP-3009 transferWithAuthorization, the x402 exact scheme. */
@@ -39,7 +39,7 @@ const chainOf = (slug: string) => CHAINS.find((c) => c.slug === slug)!;
 
 /** The endpoint's 402 answer, through the SELF binding for our own host (a Worker cannot fetch its own workers.dev URL). */
 async function fetchFrom(env: Env, target: URL, accept: string, allow: number[]) {
-  return target.hostname === SELF_HOST && env.SELF
+  return isSelfHost(env, target.hostname) && env.SELF
     ? env.SELF.fetch(target.href, { headers: { accept } })
     : fetchPublic(target, accept, allow);
 }
