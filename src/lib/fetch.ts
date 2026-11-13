@@ -195,5 +195,5 @@ export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp,
   const bytes = tooBig ? new Uint8Array() : new Uint8Array(await bodyWithin(new Response(capBytes(res.body!, maxBytes + 1, () => {})).arrayBuffer(), options.budgetMs ?? BUDGET_MS));
   tooBig ||= bytes.byteLength > maxBytes;
   if (tooBig) throw new HttpError(422, `file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit`);
-  return { url: target.href, contentType: contentType.split(";")[0].trim(), bytes };
+  return { url: target.href, finalUrl: res.url || target.href, contentType: contentType.split(";")[0].trim(), bytes };
 }
