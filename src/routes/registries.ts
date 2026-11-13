@@ -45,17 +45,32 @@ export function vatParts(raw: string): { country: string; number: string } | nul
 }
 const VIES_COUNTRIES = new Set(["AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK", "XI"]);
 
-type ViesBody = { isValid?: boolean; requestDate?: string; userError?: string; name?: string; address?: string };
+/** The two answer shapes: GET /ms/<cc>/vat/<n> (isValid, userError) and POST /check-vat-number (valid, or actionSucceed false with errorWrappers). */
+type ViesBody = { isValid?: boolean; valid?: boolean; requestDate?: string; userError?: string; name?: string; address?: string; actionSucceed?: boolean; errorWrappers?: { error?: string }[] };
 /** VIES answers that mean "ask again in a moment": the member state's or the Commission's concurrency limits and short outages. */
 const VIES_BUSY = /^(MS_MAX_CONCURRENT_REQ|GLOBAL_MAX_CONCURRENT_REQ|MS_UNAVAILABLE|SERVICE_UNAVAILABLE|TIMEOUT)/;
-const VIES_WAITS_MS = [500, 1300];
+const VIES_REST = "https://ec.europa.eu/taxation_customs/vies/rest-api";
+export const VIES_TRIES = 8;
+const VIES_WAIT_MS = 300;
+const VIES_BUDGET_MS = 20_000;
 const VIES_CACHE_SECONDS = 3600;
+
+/** Valid or not, and the refusal code if VIES refused, from either answer shape. */
+export function viesRead(b: ViesBody | null): { valid: boolean | undefined; refused: string | null } {
+  if (!b) return { valid: undefined, refused: null };
+  const refused = b.userError && !["VALID", "INVALID"].includes(b.userError) ? b.userError : b.actionSucceed === false ? (b.errorWrappers?.[0]?.error ?? "ERROR") : null;
+  return { valid: typeof b.isValid === "boolean" ? b.isValid : typeof b.valid === "boolean" ? b.valid : undefined, refused };
+}
+
 /**
- * One VIES check with patience (11 Nov 2026). In the week before, 19 of 28 calls ended "VIES answered
- * MS_MAX_CONCURRENT_REQ": a member state allows few simultaneous checks and VIES refuses the rest at once, so the same
- * request passes a moment later. Up to three tries inside about 12 s; a busy or failed try is repeated after 0.5 s and
- * 1.3 s. A clear answer (valid or not) is kept at the edge for an hour, with its own check time, so a repeated number
- * does not queue at VIES again. `sleep` and `store` are parameters for the tests.
+ * One VIES check with patience. 11 Nov 2026: three GET tries inside about 12 s, after 19 of 28 calls had ended
+ * "VIES answered MS_MAX_CONCURRENT_REQ". That was not enough for France: on 12 Nov 2026 France's GET answered
+ * MS_MAX_CONCURRENT_REQ in 10 of 12 tries, while the POST endpoint /check-vat-number either refused at once (~0.2 s) or
+ * waited for a free slot and answered (~10 s) in 6 of 12. So tries now alternate GET and POST (GET first: it is the
+ * fast answer for every other member state), up to eight tries 0.3 s apart inside a 20 s budget, and a POST try gets
+ * 13 s to wait for its slot. Only busy signals, 429/5xx and timeouts are tried again. A clear answer (valid or not)
+ * is kept at the edge for an hour, with its own check time, so a repeated number does not queue at VIES again.
+ * `sleep` and `store` are parameters for the tests.
  */
 export async function viesCheck(parts: { country: string; number: string }, fetcher: typeof fetch = fetch, sleep: (ms: number) => Promise<unknown> = (ms) => new Promise((r) => setTimeout(r, ms)), store: Cache | undefined = (globalThis as { caches?: { default?: Cache } }).caches?.default) {
   const vat = `${parts.country}${parts.number}`;
@@ -64,17 +79,22 @@ export async function viesCheck(parts: { country: string; number: string }, fetc
   if (kept) { const hit = (await kept.json().catch(() => null)) as Record<string, unknown> | null; if (hit && typeof hit.valid === "boolean") return hit; }
   const started = Date.now();
   let problem = "VIES did not answer in time";
-  for (let attempt = 0; attempt <= VIES_WAITS_MS.length; attempt++) {
-    if (attempt) { if (Date.now() - started > 9_000) break; await sleep(VIES_WAITS_MS[attempt - 1]); }
+  for (let attempt = 0; attempt < VIES_TRIES; attempt++) {
+    const left = VIES_BUDGET_MS - (Date.now() - started);
+    if (attempt) { if (left < 1_500) break; await sleep(VIES_WAIT_MS); }
+    const viaPost = attempt % 2 === 1;
+    const signal = AbortSignal.timeout(Math.max(1_000, Math.min(viaPost ? 13_000 : 6_000, left)));
     let res: Response;
     try {
-      res = await fetcher(`https://ec.europa.eu/taxation_customs/vies/rest-api/ms/${parts.country}/vat/${encodeURIComponent(parts.number)}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(attempt ? 4_500 : 7_000) });
+      res = viaPost
+        ? await fetcher(`${VIES_REST}/check-vat-number`, { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ countryCode: parts.country, vatNumber: parts.number }), signal })
+        : await fetcher(`${VIES_REST}/ms/${parts.country}/vat/${encodeURIComponent(parts.number)}`, { headers: { accept: "application/json" }, signal });
     } catch { problem = "VIES did not answer in time"; continue; }
     const b = (await res.json().catch(() => null)) as ViesBody | null;
-    const refused = b?.userError && !["VALID", "INVALID"].includes(b.userError) ? b.userError : null;
-    if (res.ok && b && typeof b.isValid === "boolean" && !refused) {
+    const { valid, refused } = viesRead(b);
+    if (res.ok && b && typeof valid === "boolean" && !refused) {
       const clean = (s?: string) => (s && s !== "---" ? s.replace(/\s*\n\s*/g, ", ").trim() : null);
-      const answer = { vat, country: parts.country, number: parts.number, valid: b.isValid, name: clean(b.name), address: clean(b.address), checkedAt: b.requestDate ?? new Date().toISOString(), source: "EU VIES (European Commission)" };
+      const answer = { vat, country: parts.country, number: parts.number, valid, name: clean(b.name), address: clean(b.address), checkedAt: b.requestDate ?? new Date().toISOString(), source: "EU VIES (European Commission)" };
       await store?.put(cacheKey, new Response(JSON.stringify(answer), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${VIES_CACHE_SECONDS}` } })).catch(() => {});
       return answer;
     }

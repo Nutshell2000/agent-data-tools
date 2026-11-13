@@ -43,9 +43,21 @@ interface ChartResult {
   timestamp?: number[];
   indicators?: { quote?: { open?: (number | null)[]; high?: (number | null)[]; low?: (number | null)[]; close?: (number | null)[]; volume?: (number | null)[] }[]; adjclose?: { adjclose?: (number | null)[] }[] };
 }
+/** Yahoo serves the chart API from two hosts. 12 Nov 2026: the quote's only failure in three days was a timeout on one of them. */
+export const CHART_HOSTS = [CHART, CHART.replace("query1.", "query2.")];
+type ChartBody = { chart?: { result?: ChartResult[] | null; error?: { description?: string } | null } };
+/** The chart from the first host; on a timeout or a server error (502 from getJson) once more from the second, inside the same 8 s each. */
+export async function chartBody(symbol: string, range: string, interval: string, get: typeof getJson = getJson): Promise<ChartBody> {
+  const query = `${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`;
+  try {
+    return await get<ChartBody>(`${CHART_HOSTS[0]}${query}`, { notFound: `unknown ticker ${symbol}` });
+  } catch (e) {
+    if (!(e instanceof HttpError) || e.status !== 502) throw e;
+    return get<ChartBody>(`${CHART_HOSTS[1]}${query}`, { notFound: `unknown ticker ${symbol}` });
+  }
+}
 async function chart(symbol: string, range: string, interval: string) {
-  const r = await getJson<{ chart?: { result?: ChartResult[] | null; error?: { description?: string } | null } }>(
-    `${CHART}${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`, { notFound: `unknown ticker ${symbol}` });
+  const r = await chartBody(symbol, range, interval);
   const res = r.chart?.result?.[0];
   if (!res?.meta) throw new HttpError(404, r.chart?.error?.description ?? `unknown ticker ${symbol}`);
   return res;
