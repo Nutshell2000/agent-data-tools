@@ -47,3 +47,25 @@ test("gaps and short charts: empty bars are skipped, one bar falls back to the c
   assert.equal(none.change, null);
   assert.equal(none.changePercent, null);
 });
+
+test("a timeout or server error on Yahoo's first chart host is read from the second host (12 Nov 2026)", async () => {
+  const hosts = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    hosts.push(new URL(String(url)).host);
+    if (hosts.length === 1) return new Response("busy", { status: 500 });
+    return chart({ symbol: "AAPL", regularMarketPrice: 355.63, currency: "USD", regularMarketTime: 1794344400 }, [348.51, 355.63]);
+  };
+  try {
+    const q = await S.stockQuote("AAPL");
+    assert.equal(q.price, 355.63);
+    assert.deepEqual(hosts, ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]);
+  } finally { globalThis.fetch = real; }
+  // An unknown ticker (404) is not asked twice.
+  hosts.length = 0;
+  globalThis.fetch = async (url) => { hosts.push(new URL(String(url)).host); return new Response("{}", { status: 404 }); };
+  try {
+    await assert.rejects(S.chartBody("ZZZZQ", "5d", "1d"), (e) => e.status === 404);
+    assert.equal(hosts.length, 1);
+  } finally { globalThis.fetch = real; }
+});

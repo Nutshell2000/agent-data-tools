@@ -1597,3 +1597,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   /sitemap, /robots and the website packs (they still fail on our own pages); add it there when one of them is asked
   about our own site.
 
+
+## VIES: GET and POST alternate (1.151.0, 12 Nov 2026)
+
+- France's VIES service refuses most GET checks with MS_MAX_CONCURRENT_REQ, while the POST endpoint
+  `/check-vat-number` queues for a slot (about 10 s) and answers. `viesCheck` alternates the two inside 20 s; keep GET
+  first. If a member state stays busy after this, the next step is a national register fallback (France: SIREN via
+  recherche-entreprises, the /fr/company source), labelled as not a VIES answer.
+- Yahoo's chart API has two hosts (`CHART_HOSTS` in src/routes/stocks.ts); `chartBody()` tries the second on a 502.
+
