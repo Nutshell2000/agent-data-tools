@@ -1,5 +1,5 @@
 {
-  "version": "1.151.0",
+  "version": "1.152.0",
   "tools": [
     {
       "name": "extract",
@@ -18022,7 +18022,7 @@
     },
     {
       "name": "vat_validate",
-      "description": "Check an EU VAT number against the European Commission's VIES service: valid or not, and the registered company name and address where the member state shares them, with the check time. Accepts the number with its country prefix in any spacing (SE556703748501, DE 123 456 789, GR or EL for Greece, XI for Northern Ireland). Use to verify a B2B customer before invoicing without VAT, or to confirm a supplier. Example: vat=SE556703748501. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check an EU VAT number against the European Commission's VIES service: valid or not, with the registered name and address where the member state shares them. Any spacing (SE556703748501, DE 123 456 789; EL or GR for Greece, XI for Northern Ireland). Or verify a business by name: found or not in the French, Swedish, Norwegian and Finnish registers. Use to check a B2B customer before invoicing without VAT, or to confirm a supplier. Example: vat=SE556703748501. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18035,12 +18035,17 @@
         "properties": {
           "vat": {
             "type": "string",
-            "description": "VAT number with its 2-letter EU country prefix"
+            "description": "VAT number with its 2-letter EU country prefix (give vat or name)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name to verify instead of a VAT number: found or not in the FR, SE, NO and FI company registers"
+          },
+          "country": {
+            "type": "string",
+            "description": "With name: search only this register (FR, SE, NO or FI, or the country's name)"
           }
-        },
-        "required": [
-          "vat"
-        ]
+        }
       },
       "price": "$0.01"
     },
