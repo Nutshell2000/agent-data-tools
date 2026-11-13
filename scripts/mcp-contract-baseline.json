@@ -1,5 +1,5 @@
 {
-  "version": "1.153.0",
+  "version": "1.154.0",
   "tools": [
     {
       "name": "extract",
@@ -11892,7 +11892,7 @@
     },
     {
       "name": "pdf_text",
-      "description": "Extract the text of a PDF from its URL: downloads a public PDF (up to 10 MB) and returns the text page by page, with title, author, page count and character counts. Choose a first page and how many pages to read (up to 200); cap the output with maxChars. arXiv abstract links are read as the PDF. Scanned PDFs without a text layer, encrypted files and non-PDF URLs fail uncharged. Use to read papers, invoices, reports and manuals into an agent. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Extract the text of a public PDF (up to 10 MB) from its URL, page by page, with title, author and page count. Choose the first page, how many pages (up to 200) and maxChars. arXiv abstract links work. If a site blocks our fetch, the Internet Archive's dated copy is read and the answer says so. Scanned, encrypted and non-PDF files fail uncharged. Use to read papers, invoices, reports and manuals into an agent. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
