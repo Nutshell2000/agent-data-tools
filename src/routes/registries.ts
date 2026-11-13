@@ -171,12 +171,21 @@ export const REGISTRIES: Entry[] = [
     }),
 
   entry("/vat/validate", "VAT number validation, EU VIES",
-    "Check an EU VAT number against the European Commission's VIES service: valid or not, and the registered company name and address where the member state shares them, with the check time. Accepts the number with its country prefix in any spacing (SE556703748501, DE 123 456 789, GR or EL for Greece, XI for Northern Ireland). Use to verify a B2B customer before invoicing without VAT, or to confirm a supplier.",
+    "Check an EU VAT number against the European Commission's VIES service: valid or not, with the registered name and address where the member state shares them. Any spacing (SE556703748501, DE 123 456 789; EL or GR for Greece, XI for Northern Ireland). Or verify a business by name: found or not in the French, Swedish, Norwegian and Finnish registers. Use to check a B2B customer before invoicing without VAT, or to confirm a supplier.",
     ["vat-validation", "vat-number", "vies", "eu-vat", "kyb", "compliance"], {
-      vat: { type: "string", description: "VAT number with its 2-letter EU country prefix", required: true, example: "SE556703748501" },
+      vat: { type: "string", description: "VAT number with its 2-letter EU country prefix (give vat or name)", example: "SE556703748501" },
+      name: { type: "string", description: "Company name to verify instead of a VAT number: found or not in the FR, SE, NO and FI company registers", example: "Societe Generale" },
+      country: { type: "string", description: "With name: search only this register (FR, SE, NO or FI, or the country's name)", example: "FR" },
     },
     { vat: "SE556703748501", country: "SE", number: "556703748501", valid: true, name: "Spotify AB", address: "REGERINGSGATAN 19, 111 53 STOCKHOLM", checkedAt: "2026-11-06T14:36:47.903Z", source: "EU VIES (European Commission)" },
     async (_env, q) => {
+      const vatGiven = opt(q, "vat", 40);
+      const nameGiven = vatGiven ? undefined : opt(q, "name", 160);
+      if (!vatGiven && nameGiven) {
+        // Loaded on demand: the register modules import this one (vatParts, viesCheck), so a static import would be a cycle.
+        const { verifyCompanyByName, nameRegister } = await import("./company-verify");
+        return verifyCompanyByName(nameGiven, nameRegister(opt(q, "country", 60)));
+      }
       const raw = need(q, "vat", 40);
       const parts = vatParts(raw);
       if (!parts) throw new HttpError(400, "vat must start with a 2-letter EU country code, e.g. SE556703748501");

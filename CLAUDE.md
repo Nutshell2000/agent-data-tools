@@ -1606,3 +1606,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   recherche-entreprises, the /fr/company source), labelled as not a VIES answer.
 - Yahoo's chart API has two hosts (`CHART_HOSTS` in src/routes/stocks.ts); `chartBody()` tries the second on a 502.
 
+## Business verification by name on /vat/validate (1.152.0, 12 Nov 2026)
+
+- `src/routes/company-verify.ts`: `verifyCompanyByName(name, country)` searches the FR, SE, NO and FI registers (the
+  register tools' own search functions; `SEARCHERS` table) and answers `found`, `exactMatch`, `bestMatch`, `matches`,
+  `registersSearched`, `complete`. /vat/validate calls it when `vat` is absent and `name` (aliases entity_name,
+  company, legal_name, business_name) is given. It is loaded with `await import()` because the register modules import
+  registries.ts. `found: false` is a charged answer, like VIES's `valid: false`. A failed register is listed and makes
+  `complete: false`; all failed is a 502. Add a register here when a new country register tool ships.
+- Datacircle (datacircle.dev) benchmarks providers per job and country and publishes rankings. Its results for us
+  come by mail to spellz111122@gmail.com. Reading them is fine; answering is outreach (the owner's).
+
