@@ -83,19 +83,64 @@ export function buildIndex(sdnCsv: string, altCsv: string, listDate: string | nu
   return fromCompact(compactFromCsv(sdnCsv, altCsv, listDate));
 }
 
+/** How long a copy may still be served when every refresh fails. The answer names its listDate. */
+export const STALE_LIMIT_MS = 7 * 24 * 3600 * 1000;
+/** Edge-cache key for the last good compact index, so a new isolate can answer while the mirror is away. */
+const LAST_GOOD_KEY = "https://agent-data-tools.internal/ofac/last-good-index.json";
+const edgeCache = (): Cache | undefined => (typeof caches !== "undefined" ? (caches as unknown as { default?: Cache }).default : undefined);
+const usable = (c: CompactIndex | null | undefined): c is CompactIndex => c?.v === 1 && Array.isArray(c.parties) && c.parties.length >= 1000;
+
 let cached: SdnIndex | undefined;
+/** Test hook: forget the isolate copy. */
+export function resetSdnIndex(): void { cached = undefined; }
+
 export async function sdnIndex(): Promise<SdnIndex> {
   if (cached && Date.now() - cached.loadedAt < SIX_HOURS * 1000) return cached;
-  /** The mirror's pre-parsed index: parsing the CSVs here costs most of a second of CPU. */
+  try {
+    return await freshIndex();
+  } catch (err) {
+    // The mirror job replaces its files with --clobber every six hours, so they 404 for about half a minute,
+    // and OFAC's own hosts refuse Workers. A copy that is a few hours older beats a failed paid call.
+    if (cached && Date.now() - cached.loadedAt < STALE_LIMIT_MS) return cached;
+    const saved = await lastGood();
+    if (saved) return (cached = saved);
+    throw err;
+  }
+}
+
+async function lastGood(): Promise<SdnIndex | null> {
+  try {
+    const res = await edgeCache()?.match(LAST_GOOD_KEY);
+    if (!res) return null;
+    const compact = (await res.json()) as CompactIndex;
+    if (!usable(compact)) return null;
+    const index = fromCompact(compact);
+    // Served as a fallback only: counted as five minutes from expiry, so the mirror is tried again soon.
+    index.loadedAt = Date.now() - SIX_HOURS * 1000 + 5 * 60 * 1000;
+    return index;
+  } catch {
+    return null;
+  }
+}
+
+async function freshIndex(): Promise<SdnIndex> {
+  /** The mirror's pre-parsed index: parsing the CSVs here costs most of a second of CPU. Asked twice. */
   const prebuilt = async (): Promise<SdnIndex | null> => {
-    try {
-      const res = await fetch(`${MIRROR}/ofac-index.json`, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS } } as RequestInit);
-      if (!res.ok) { await res.body?.cancel().catch(() => {}); return null; }
-      const compact = (await res.json()) as CompactIndex;
-      return compact?.v === 1 && Array.isArray(compact.parties) ? fromCompact(compact) : null;
-    } catch {
-      return null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, 1500));
+      try {
+        const res = await fetch(`${MIRROR}/ofac-index.json`, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS } } as RequestInit);
+        if (!res.ok) { await res.body?.cancel().catch(() => {}); continue; }
+        const text = await res.text();
+        const compact = JSON.parse(text) as CompactIndex;
+        if (!usable(compact)) continue;
+        await edgeCache()?.put(LAST_GOOD_KEY, new Response(text, { headers: { "content-type": "application/json", "cache-control": `max-age=${STALE_LIMIT_MS / 1000}` } })).catch(() => {});
+        return fromCompact(compact);
+      } catch {
+        // try again, then the CSV sources
+      }
     }
+    return null;
   };
   /** First source that answers 200; the last failure is reported. */
   const get = async (urls: string[]) => {
