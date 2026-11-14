@@ -1,13 +1,13 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { documentDescription } from './resources/document';
 
-export class DocumentExtract implements INodeType {
+export class Glyphcall implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Document Extract',
-		name: 'documentExtract',
+		displayName: 'Glyphcall Documents',
+		name: 'glyphcall',
 		icon: {
-			light: 'file:../../icons/documentExtract.svg',
-			dark: 'file:../../icons/documentExtract.dark.svg',
+			light: 'file:../../icons/glyphcall.svg',
+			dark: 'file:../../icons/glyphcall.dark.svg',
 		},
 		group: ['transform'],
 		version: 1,
@@ -15,17 +15,17 @@ export class DocumentExtract implements INodeType {
 		description:
 			'Turn Word, Excel, PowerPoint and PDF files into text or Markdown, or pull named fields such as an invoice number and total out of them as JSON',
 		defaults: {
-			name: 'Document Extract',
+			name: 'Glyphcall Documents',
 		},
 		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
-		credentials: [{ name: 'documentExtractApi', required: true }],
+		credentials: [{ name: 'glyphcallApi', required: true }],
 		requestDefaults: {
-			baseURL: 'https://agent-data-tools.revmesh2074.workers.dev',
+			baseURL: 'https://glyphcall.com',
 			headers: {
 				Accept: 'application/json',
-				'User-Agent': 'n8n-nodes-document-extract',
+				'User-Agent': 'n8n-nodes-glyphcall',
 			},
 		},
 		properties: [
