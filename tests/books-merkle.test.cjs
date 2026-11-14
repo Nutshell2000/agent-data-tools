@@ -376,6 +376,16 @@ test('LEI, VAT and domain availability parse their registries correctly', async 
   assert.deepEqual(g.vatParts('se 5567-0374 8501'), { country: 'SE', number: '556703748501' });
   assert.deepEqual(g.vatParts('GR123456789'), { country: 'EL', number: '123456789' });
   assert.equal(g.vatParts('123'), null);
+  // As invoices print them: a label in front or behind is dropped, a country prefix never is.
+  assert.deepEqual(g.vatParts('NL810433941B01BTW'), { country: 'NL', number: '810433941B01' });
+  assert.deepEqual(g.vatParts('BTW NL810433941B01'), { country: 'NL', number: '810433941B01' });
+  assert.deepEqual(g.vatParts('VAT no: DE 232 446 240'), { country: 'DE', number: '232446240' });
+  assert.deepEqual(g.vatParts('USt-IdNr. DE232446240'), { country: 'DE', number: '232446240' });
+  assert.deepEqual(g.vatParts('N° TVA : FR40303265045'), { country: 'FR', number: '40303265045' });
+  assert.deepEqual(g.vatParts('IT00743110157'), { country: 'IT', number: '00743110157' });
+  assert.deepEqual(g.vatParts('IE6388047V'), { country: 'IE', number: '6388047V' });
+  assert.deepEqual(g.vatParts('ATU12345678'), { country: 'AT', number: 'U12345678' });
+  assert.deepEqual(g.vatParts('MT12345678'), { country: 'MT', number: '12345678' });
   const v = g.leiView({ id: 'x', attributes: { lei: 'HWUPKR0MPOU8FGXBT394', entity: { legalName: { name: 'Apple Inc.' }, otherNames: [{ name: 'Apple Computer, Inc.' }], status: 'ACTIVE', jurisdiction: 'US-CA', legalAddress: { addressLines: ['1 Infinite Loop'], city: 'Cupertino', country: 'US' } }, registration: { status: 'ISSUED', initialRegistrationDate: '2012-06-06T15:53:00Z' } } });
   assert.deepEqual([v.legalName, v.otherNames, v.registration.issued, v.legalAddress.city], ['Apple Inc.', ['Apple Computer, Inc.'], '2012-06-06', 'Cupertino']);
   // Registry RDAP 200 = taken, registry 404 = available, rdap.org's own 404 (no RDAP for the TLD) falls back to DNS.

@@ -265,6 +265,26 @@ test('list fields: row keys given in brackets are the keys every row gets, whate
   const plain = await A.extractFields(env, 'text', ['invoice_number']);
   assert.deepEqual(plain.data, { invoice_number: ['58231'] }, 'without list fields a value is passed through untouched');
   assert.ok(!/array/.test(prompts[0]));
+  assert.ok(!/YYYY-MM-DD|Meaning of the keys/.test(prompts[0]), 'the document rules are not sent for plain text');
+});
+
+test('a document extraction tells the model how files mislead: date and amount format, value before label, what the keys mean', async () => {
+  const A = await load('src/routes/ai-text.ts');
+  const H = await load('src/lib/extract-hints.ts');
+  const prompts = [];
+  const env = { AI: { run: async (model, input) => { prompts.push({ model, text: JSON.stringify(input) }); return { output: [{ type: 'message', content: [{ type: 'output_text', text: '{"Invoice No":"993548900","vendor":"Coolblue B.V.","colour":null,"line_items":[]}' }] }] }; } } };
+  const out = await A.extractFields(env, 'text', ['Invoice No', 'vendor', 'colour', 'line_items'], D.EXTRACT_MODEL, 1200, { line_items: ['description', 'quantity'] }, true);
+  assert.equal(out.data['Invoice No'], '993548900');
+  assert.equal(prompts[0].model, '@cf/openai/gpt-oss-120b');
+  const sent = prompts[0].text;
+  assert.match(sent, /Write every date as YYYY-MM-DD/);
+  assert.match(sent, /a value can stand directly before its label/);
+  assert.match(sent, /\\"Invoice No\\": the document's own number/, 'a known name is explained under the caller\'s own spelling');
+  assert.match(sent, /\\"vendor\\": the company that issued the invoice/, 'an alias is explained too');
+  assert.ok(!/\\"colour\\":/.test(sent.split('Meaning of the keys')[1]), 'an unknown name gets no invented meaning');
+  assert.match(sent, /In rows: \\"description\\".*\\"quantity\\": the number of units on that row; a position or item number/);
+  assert.equal(H.fieldHints(['colour', 'weight'], {}), '');
+  for (const name of ['constructor', '__proto__', 'toString']) assert.equal(H.fieldHints([name], { rows: [name] }), '');
 });
 
 test('Word: a text box is read once and footnotes follow the body; Excel: day numbers in date-styled cells become dates', async () => {

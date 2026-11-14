@@ -60,6 +60,13 @@ test('the file is found however it was sent, and a body without one is left alon
   assert.equal(raw.bytes.byteLength, pdf.length);
   const octet = await F.sentFile(post({ 'content-type': 'application/octet-stream' }, pdf), limit);
   assert.equal(octet.kind, 'file');
+  // A scan or a photo as the body: the document tools read images, so the upload must be seen as a file.
+  for (const type of ['image/png', 'image/jpeg', 'image/webp', 'IMAGE/PNG']) {
+    const image = await F.sentFile(post({ 'content-type': type }, new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4])), limit);
+    assert.equal(image.kind, 'file', type);
+    assert.equal(image.bytes.byteLength, 8);
+  }
+  assert.equal((await F.sentFile(post({ 'content-type': 'text/plain' }, 'hello there, no file here'), limit)).kind, 'none');
   const form = new FormData();
   form.set('file', new Blob([pdf], { type: 'application/pdf' }), 'invoice.pdf');
   form.set('pages', '1');
