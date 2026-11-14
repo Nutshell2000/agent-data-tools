@@ -5,6 +5,7 @@
 import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { parseCsv } from "./utils";
+import { LIST_NAMES, type IntlCompact, type ListKey } from "../lib/intl-sanctions";
 
 // Both OFAC hosts fail the TLS handshake with Workers (HTTP 525), so the first source is the
 // unmodified copy that .github/workflows/ofac-mirror.yml publishes every 6 hours; OFAC's own
@@ -196,12 +197,103 @@ export function screen(index: SdnIndex, address: string | undefined, name: strin
   return matches;
 }
 
+// ---- EU, UN and UK lists (src/lib/intl-sanctions.ts), published next to the OFAC files ----
+
+interface IntlIndex {
+  lists: IntlCompact["lists"];
+  parties: IntlCompact["parties"];
+  names: { pid: number; name: string; tokens: Set<string> }[];
+  byToken: Map<string, number[]>;
+  loadedAt: number;
+}
+const INTL_LAST_GOOD_KEY = "https://agent-data-tools.internal/sanctions/intl-last-good-index.json";
+const intlUsable = (c: IntlCompact | null | undefined): c is IntlCompact => c?.v === 1 && Array.isArray(c.parties) && c.parties.length >= 500 && !!c.lists;
+
+export function intlFromCompact(c: IntlCompact): IntlIndex {
+  const names: IntlIndex["names"] = c.parties.map((p, pid) => ({ pid, name: p[2], tokens: tokens(p[2]) }));
+  for (const [pid, name] of c.aliases) if (c.parties[pid]) names.push({ pid, name, tokens: tokens(name) });
+  const byToken = new Map<string, number[]>();
+  names.forEach((n, i) => { for (const t of n.tokens) (byToken.get(t) ?? byToken.set(t, []).get(t)!).push(i); });
+  return { lists: c.lists, parties: c.parties, names, byToken, loadedAt: Date.now() };
+}
+
+let intlCached: IntlIndex | undefined;
+/** Test hook: use this index (or forget it with undefined). */
+export function setIntlIndex(index: IntlIndex | undefined): void { intlCached = index; }
+
+/** The EU/UN/UK index, or null when it cannot be had: the call then answers from OFAC alone and says so. */
+export async function intlIndex(): Promise<IntlIndex | null> {
+  if (intlCached && Date.now() - intlCached.loadedAt < SIX_HOURS * 1000) return intlCached;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await fetch(`${MIRROR}/intl-sanctions-index.json`, { headers: { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, signal: AbortSignal.timeout(20_000), cf: { cacheTtl: SIX_HOURS } } as RequestInit);
+      if (!res.ok) { await res.body?.cancel().catch(() => {}); continue; }
+      const text = await res.text();
+      const compact = JSON.parse(text) as IntlCompact;
+      if (!intlUsable(compact)) continue;
+      await edgeCache()?.put(INTL_LAST_GOOD_KEY, new Response(text, { headers: { "content-type": "application/json", "cache-control": `max-age=${STALE_LIMIT_MS / 1000}` } })).catch(() => {});
+      return (intlCached = intlFromCompact(compact));
+    } catch {
+      // try again, then the copies below
+    }
+  }
+  if (intlCached && Date.now() - intlCached.loadedAt < STALE_LIMIT_MS) return intlCached;
+  try {
+    const res = await edgeCache()?.match(INTL_LAST_GOOD_KEY);
+    const compact = res ? ((await res.json()) as IntlCompact) : null;
+    if (intlUsable(compact)) {
+      const index = intlFromCompact(compact);
+      index.loadedAt = Date.now() - SIX_HOURS * 1000 + 5 * 60 * 1000;
+      return (intlCached = index);
+    }
+  } catch {
+    // no saved copy
+  }
+  return null;
+}
+
+/** Name hits on the chosen EU/UN/UK lists (every query word present in a listed name or alias), strongest first. */
+export function screenIntl(index: IntlIndex, name: string, lists: Set<ListKey>, limit = 15) {
+  const want = tokens(name);
+  if (want.size === 0) return [];
+  const best = new Map<number, { score: number; matchedName: string }>();
+  const postings = [...want].map((t) => index.byToken.get(t) ?? []).sort((x, y) => x.length - y.length);
+  for (const i of postings[0] ?? []) {
+    const n = index.names[i];
+    if (!lists.has(index.parties[n.pid][0])) continue;
+    if (![...want].every((t) => n.tokens.has(t))) continue;
+    const score = Math.round((want.size / n.tokens.size) * 100) / 100;
+    if ((best.get(n.pid)?.score ?? -1) < score) best.set(n.pid, { score, matchedName: n.name });
+  }
+  return [...best].sort((a, b) => b[1].score - a[1].score).slice(0, limit).map(([pid, b]) => {
+    const [list, id, pname, type, programs] = index.parties[pid];
+    return { list, listId: id, name: pname, type, programs, matchedOn: "name", matchedName: b.matchedName, score: b.score };
+  });
+}
+
+export const ALL_LISTS = ["ofac", "eu", "un", "uk"] as const;
+export type AnyList = (typeof ALL_LISTS)[number];
+/** Reads `lists`: all (default), or a comma list of ofac, eu, un, uk (also "us", "gb", "united nations"). */
+export function listsInput(raw: string | undefined): Set<AnyList> {
+  if (!raw || /^\s*(all|any|\*)\s*$/i.test(raw)) return new Set(ALL_LISTS);
+  const alias: Record<string, AnyList> = { ofac: "ofac", us: "ofac", usa: "ofac", sdn: "ofac", eu: "eu", europe: "eu", un: "un", "united nations": "un", unsc: "un", uk: "uk", gb: "uk", ofsi: "uk", fcdo: "uk" };
+  const out = new Set<AnyList>();
+  for (const part of raw.toLowerCase().split(/[,;+|]/).map((s) => s.trim()).filter(Boolean)) {
+    if (!Object.hasOwn(alias, part)) throw new HttpError(400, `lists: "${part.slice(0, 30)}" is not a list; use all, or any of ofac, eu, un, uk`);
+    out.add(alias[part]);
+  }
+  if (!out.size) throw new HttpError(400, "lists: use all, or any of ofac, eu, un, uk");
+  return out;
+}
+
 export const SANCTIONS: Entry[] = [
   entry("/sanctions/check", "Sanctions check (OFAC screening): SDN screening for a crypto wallet or name",
-    "Check a crypto wallet address against the OFAC SDN sanctions list before you pay it or accept funds: EVM (Ethereum, Base, Arbitrum, Polygon), BTC, USDT, TRX and more, or a person or company name with aliases. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and strength, and the list date. A screening aid, not legal advice. Use before paying; with wallet risk: check_counterparty.",
-    ["sanctions", "ofac", "compliance", "kyc", "aml", "wallet"], {
-      address: { type: "string", description: "Crypto address to check (give address, name or both)", example: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
+    "Check a crypto wallet against the OFAC SDN list before you pay it (EVM, BTC, TRX), or screen a person or company name, with aliases, against OFAC, the EU consolidated list, the UN Security Council list and the UK Sanctions List in one call. Returns a verdict (block, review, pass), each match with list, list ID, programme and strength, and every list's date. Screening aid, not legal advice. Use before paying; with wallet risk: check_counterparty.",
+    ["sanctions", "ofac", "eu-sanctions", "compliance", "kyc", "aml", "wallet"], {
+      address: { type: "string", description: "Crypto address to check against OFAC (give address, name or both)", example: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
       name: { type: "string", description: "Person or company name; matches when every word appears in a listed name or alias", example: "Lazarus Group" },
+      lists: { type: "string", description: "Lists for a name: all (default), or any of ofac, eu, un, uk, comma-separated. Addresses are checked against OFAC, the only list that publishes crypto addresses", example: "all" },
     },
     {
       query: { address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", name: "Lazarus Group" }, verdict: "block", listed: true,
@@ -210,7 +302,13 @@ export const SANCTIONS: Entry[] = [
         { sdnId: "…", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "name", matchedName: "LAZARUS GROUP", score: 1 },
       ],
       list: "OFAC Specially Designated Nationals (SDN)", listDate: "2026-10-17T20:15:00.000Z", entries: 18000,
-      note: "Screening aid only: confirm any match against the official OFAC record before acting.",
+      lists: [
+        { list: "ofac", name: "OFAC Specially Designated Nationals (SDN)", date: "2026-10-17T20:15:00.000Z", entries: 18000, checked: true },
+        { list: "eu", name: "EU consolidated financial sanctions list", date: "2026-10-23T15:05:43.888Z", entries: 6269, checked: true },
+        { list: "un", name: "UN Security Council Consolidated List", date: "2026-11-14T00:00:05.893Z", entries: 1007, checked: true },
+        { list: "uk", name: "UK Sanctions List (FCDO)", date: "2026-11-12T00:00:00.000Z", entries: 6440, checked: true },
+      ],
+      note: "Screening aid only: confirm any match against the official record of its list before acting.",
     },
     async (_env, q) => {
       const address = opt(q, "address", 128)?.trim();
@@ -220,15 +318,41 @@ export const SANCTIONS: Entry[] = [
       if (address && /^0x/i.test(address) && !/^0x[0-9a-fA-F]{40}$/.test(address)) {
         throw new HttpError(400, `address "${address.slice(0, 50)}" is not a valid 0x address (40 hex characters after 0x); check it before screening`);
       }
-      const index = await sdnIndex();
-      const matches = screen(index, address, name);
+      const chosen = listsInput(opt(q, "lists", 60));
+      const intlChosen = new Set([...chosen].filter((l): l is ListKey => l !== "ofac"));
+      if (name && tokens(name).size === 0) throw new HttpError(400, "name needs at least one word of two or more letters");
+      // OFAC is always read for an address; for a name only when chosen. The EU/UN/UK index only for a name.
+      const needOfac = !!address || chosen.has("ofac");
+      const [index, intl] = await Promise.all([
+        needOfac ? sdnIndex() : Promise.resolve(null),
+        name && intlChosen.size ? intlIndex() : Promise.resolve(null),
+      ]);
+      // Asked only for lists that could not be loaded: refuse (uncharged) rather than answer "pass".
+      if (!index && name && intlChosen.size && !intl) throw new HttpError(502, "the EU, UN and UK lists could not be loaded; try again");
+      const matches: Record<string, unknown>[] = [];
+      if (index) {
+        for (const m of screen(index, address, chosen.has("ofac") ? name : undefined)) matches.push({ list: "ofac", listId: m.sdnId, ...m });
+      }
+      if (intl && name) matches.push(...screenIntl(intl, name, intlChosen));
+      const lists: Record<string, unknown>[] = [];
+      if (index) lists.push({ list: "ofac", name: "OFAC Specially Designated Nationals (SDN)", date: index.listDate, entries: index.parties.size, checked: true });
+      for (const key of intlChosen) {
+        const info = intl?.lists[key];
+        lists.push(name
+          ? info ? { list: key, name: LIST_NAMES[key], date: info.date, entries: info.entries, checked: true } : { list: key, name: LIST_NAMES[key], checked: false, reason: "list unavailable right now" }
+          : { list: key, name: LIST_NAMES[key], checked: false, reason: "this list publishes no crypto addresses; give a name" });
+      }
+      const ofacOnly = lists.filter((l) => l.checked).length === 1 && !!index;
       return {
-        query: { address: address ?? null, name: name ?? null },
+        query: { address: address ?? null, name: name ?? null, lists: [...chosen] },
         // An address on the list is a hard stop; a name match can be a namesake and needs a person to look.
         verdict: matches.some((m) => m.matchedOn === "address") ? "block" : matches.length ? "review" : "pass",
         listed: matches.length > 0, matches,
-        list: "OFAC Specially Designated Nationals (SDN)", listDate: index.listDate, entries: index.parties.size,
-        note: "Screening aid only: confirm any match against the official OFAC record before acting.",
+        list: ofacOnly ? "OFAC Specially Designated Nationals (SDN)" : lists.filter((l) => l.checked).map((l) => l.name).join("; "),
+        listDate: index?.listDate ?? null,
+        entries: lists.reduce((n, l) => n + (typeof l.entries === "number" ? l.entries : 0), 0),
+        lists,
+        note: "Screening aid only: confirm any match against the official record of its list before acting.",
       };
     }, "$0.009"), // price test 5 Nov-19 Nov 2026 (owner): the market leader charges $0.009
 ];

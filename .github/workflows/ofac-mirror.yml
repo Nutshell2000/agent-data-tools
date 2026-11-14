@@ -13,6 +13,8 @@ on:
     branches: [main]
     paths:
       - scripts/build-ofac-index.mjs
+      - scripts/build-intl-sanctions-index.mjs
+      - src/lib/intl-sanctions.ts
       - .github/workflows/ofac-mirror.yml
 
 jobs:
@@ -59,3 +61,17 @@ jobs:
             --title "OFAC SDN list mirror" --prerelease \
             --notes "Unmodified copies of OFAC's SDN.CSV and ALT.CSV plus ofac-index.json (the same data pre-parsed), refreshed every 6 hours for /sanctions/check. Source: https://ofac.treasury.gov/"
           gh release upload ofac-latest SDN.CSV ALT.CSV ofac-index.json --repo "$repo" --clobber
+
+      # EU, UN and UK lists for name screening (src/lib/intl-sanctions.ts). All three must download and
+      # pass their size checks, or the step fails and the previous intl-sanctions-index.json stays published.
+      # Licences: EU Commission reuse policy (Decision 2011/833/EU), UN public, UK Open Government Licence v3.0.
+      - name: Build and publish the EU, UN and UK index
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o eu.xml "https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content?token=dG9rZW4tMjAxNw"
+          curl -fsSL --retry 3 -o un.xml "https://scsanctions.un.org/resources/xml/en/consolidated.xml"
+          curl -fsSL --retry 3 -o uk.xml "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml"
+          ls -l eu.xml un.xml uk.xml
+          (cd repo && node scripts/build-intl-sanctions-index.mjs ../eu.xml ../un.xml ../uk.xml ../intl-sanctions-index.json)
+          gh release upload ofac-latest intl-sanctions-index.json --repo "${{ github.repository }}" --clobber
