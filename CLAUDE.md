@@ -1649,3 +1649,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `clients/agent-data-tools/wallet-pay.mjs`: `walletPayer()` (lazy @x402/core, @x402/evm, viem), `spendGuard()` (per-call and daily limits, Base USDC only, refund on a failed call), `paymentRequiredOf()`. `mcp-stdio.mjs` `forward()` pays a tools/call whose result is an x402 payment request and resends it with `_meta["x402/payment"]`. Wallet mode is on only without a prepaid key. Staging proof: set `AGENT_DATA_TOOLS_ORIGIN` to staging, `AGENT_DATA_TOOLS_TESTNET=1` and the test wallet's key, pipe initialize + tools/call into `node clients/agent-data-tools/cli.mjs mcp [--full]`, and read the `x402/payment-response` in the result's `_meta`. The publish folder is `C:\MoneyWallet\business\agentic\npm-client` (copy the client files there after a change; the owner publishes). Mention wallet mode on the homepage, llms.txt and the catalog skill only after `npm view agent-data-tools version` answers 1.3.0.
 
+
+
+## AI SDK entry point, guide and install document (1.160.0, 14 Nov 2026)
+
+- `clients/agent-data-tools/ai-sdk.mjs` (`agentDataTools`) and `/guides/ai-sdk` (src/guides/ai-sdk.ts). To test the entry point as a user gets it: `npm pack clients/agent-data-tools`, install the tarball beside `ai` in an empty folder (a folder install is a symlink and cannot find `ai`), and run generateText with `MockLanguageModelV3` from `ai/test`. Keep the guide's code equal to what was run.
+- `llms-install.md` is what the Cline marketplace hands its agent; keep it in step with the MCP paths and the client's environment variables. `docs/assets/logo-400.png` is the icon it asks for.
+- When the npm client changes: publish first (owner), then `packages[0].version` in server.json, then copy on the homepage.
+
