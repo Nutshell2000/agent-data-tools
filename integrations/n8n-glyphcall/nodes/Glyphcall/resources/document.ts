@@ -169,8 +169,9 @@ export const documentDescription: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '',
-		placeholder: 'e.g. invoice_number, total, currency, due_date',
-		description: 'Comma-separated names of the fields to extract (1-30)',
+		placeholder: 'e.g. invoice_number, due_date, total, line_items[description,quantity,amount]',
+		description:
+			'Comma-separated names of the fields to extract (1-30). For rows such as invoice lines, give the row keys in brackets: line_items[description,quantity,unit_price,amount].',
 		displayOptions: { show: { resource: ['document'], operation: ['extractFields'] } },
 		routing: query('fields'),
 	},

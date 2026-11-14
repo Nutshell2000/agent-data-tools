@@ -243,6 +243,30 @@ test('fields out of a document: the file\'s text goes to the model once, and the
   m.exports.F.releaseFile(long);
 });
 
+test('list fields: row keys given in brackets are the keys every row gets, whatever the model called them', async () => {
+  const A = await load('src/routes/ai-text.ts');
+  assert.deepEqual(A.listFields('invoice_number, line_items[description, quantity,amount], total'), { fields: ['invoice_number', 'line_items', 'total'], lists: { line_items: ['description', 'quantity', 'amount'] } });
+  assert.deepEqual(A.listFields('a,b , a'), { fields: ['a', 'b'], lists: {} });
+  for (const bad of ['a[b', 'a]b', 'x[]', 'a[b[c]]', '', ',', `x[${Array.from({ length: 13 }, (_, i) => `k${i}`).join(',')}]`, Array.from({ length: 31 }, (_, i) => `f${i}`).join(','), 'drop{table}']) {
+    assert.throws(() => A.listFields(bad), (e) => e.status === 400, JSON.stringify(bad));
+  }
+  const prompts = [];
+  const reply = { invoice_number: ['58231'], total: '21662.5', line_items: [{ description: ['Resa'], qty: 2, quantity: 2, amount: 500, extra: 'x' }, 'not a row', { description: 'Material' }] };
+  const env = { AI: { run: async (_m, input) => { prompts.push(JSON.stringify(input)); return { response: JSON.stringify(reply) }; } } };
+  const out = await A.extractFields(env, 'text', ['invoice_number', 'line_items', 'total', 'due_date'], 'model-x', 900, { line_items: ['description', 'quantity', 'amount'] });
+  assert.deepEqual(out.data, { invoice_number: '58231', line_items: [{ description: 'Resa', quantity: 2, amount: 500 }, { description: 'Material', quantity: null, amount: null }], total: '21662.5', due_date: null });
+  assert.deepEqual(out.missing, ['due_date']);
+  assert.match(prompts[0], /exactly the keys \[\\"description\\",\\"quantity\\",\\"amount\\"\]/);
+  assert.match(prompts[0], /never an array/);
+  // No rows found is an empty list, reported as missing; a plain request is worded and answered as before.
+  const none = await A.extractFields({ AI: { run: async () => ({ response: '{"line_items":null}' }) } }, 'text', ['line_items'], 'model-x', 900, { line_items: ['a'] });
+  assert.deepEqual(none, { data: { line_items: [] }, missing: ['line_items'], model: 'model-x' });
+  prompts.length = 0;
+  const plain = await A.extractFields(env, 'text', ['invoice_number']);
+  assert.deepEqual(plain.data, { invoice_number: ['58231'] }, 'without list fields a value is passed through untouched');
+  assert.ok(!/array/.test(prompts[0]));
+});
+
 let mf;
 after(async () => { await mf?.dispose(); });
 test('through the Worker: an uploaded Word file is read, by its bytes and not its content type', async () => {
