@@ -46,7 +46,10 @@ test('missing, duplicate, hidden, unsupported and empty sections fail clearly',a
  const r=await call(page,id);assert.equal(r.status,422);assert.equal((await r.json()).code,code);
  }
  assert.equal((await call('plain','one')).status,415);
- for(const id of ['', 'x'.repeat(501), 'line\nbreak'])assert.equal((await call('long',id)).status,400);
+ for(const id of ['x'.repeat(501), 'line\nbreak'])assert.equal((await call('long',id)).status,400);
+});
+test('an empty section reads the whole page (planners send every listed input, filled or not)',async()=>{
+ for(const id of ['', '  ']){const r=await call('long',id);assert.equal(r.status,200);const v=await r.json();assert.equal(v.section,null);}
 });
 test('IDs match exactly after source entity decoding and do not bypass HTML complexity limits',async()=>{
  const v=await result('odd','a&"日');assert.match(v.text,/ODD_BODY/);assert.doesNotMatch(v.text,/EXCLUDE/);assert.equal(v.section.id,'a&"日');assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));

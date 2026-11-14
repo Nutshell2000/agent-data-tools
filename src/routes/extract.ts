@@ -26,7 +26,9 @@ export function extractOptions(
   const format = allowedValue(formatParam, ["text", "markdown", "both"] as const);
   if (!format) throw new HttpError(400, "format must be text, markdown or both");
   formatParam = format;
-  if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
+  // An empty section (a form or planner that sends every listed input, filled or not) means no section, not a bad one.
+  if (sectionParam !== undefined && !sectionParam.trim()) sectionParam = undefined;
+  if (sectionParam !== undefined && (sectionParam.length > 500 || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
     throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
   return { target, maxChars, formatParam, sectionParam };
 }
@@ -50,6 +52,7 @@ export async function extract(
   const options = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
   const { target, maxChars } = options;
   formatParam = options.formatParam;
+  sectionParam = options.sectionParam;
   // 15 s, not the default 8 s (5 Nov 2026): github.com repository pages took longer than 8 s from Cloudflare and paid
   // reads of heavy pages timed out as 504s that the buyer could have had.
   let res: Response;
@@ -85,6 +88,10 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
   const markdownSource = markdownMime || markdownPath;
   if (!html && !plain && !markdownMime) {
     await res.body?.cancel();
+    // A PDF link is the most common wrong file here (/status, 14 Nov 2026: 2 of 3 content-type refusals): name the tool
+    // that reads it, with the same URL, so the caller's next paid call succeeds instead of the job ending here.
+    if (/^application\/(x-)?pdf(?:;|$)/i.test(contentType) || /\.pdf$/i.test(new URL(finalUrl).pathname))
+      throw new HttpError(415, `this URL is a PDF file, not a web page; read it with /pdf/text?url=${encodeURIComponent(target.href)} (nothing was charged)`, "EXTRACTION_PDF");
     throw new HttpError(
       415,
       `unsupported content type: ${contentType || "unknown"}`,
