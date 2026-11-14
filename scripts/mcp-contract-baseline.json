@@ -1,5 +1,5 @@
 {
-  "version": "1.183.0",
+  "version": "1.184.0",
   "tools": [
     {
       "name": "extract",
@@ -21747,6 +21747,160 @@
         ]
       },
       "price": "$0.08"
+    },
+    {
+      "name": "company_search",
+      "description": "Search a company name across official registers in one call: France, Sweden, Norway, Finland, Czechia and Estonia, plus GLEIF LEI records for every other country. One ranked list: register ID, legal form, city, LEI, a link to the register's own page, time read. A source that does not answer is named; the rest still answer. Use for KYB, supplier and customer checks, and facts about a European company. Example: q=Spotify. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company name, with or without the legal form (AB, Oy, SA, GmbH…)"
+          },
+          "country": {
+            "type": "string",
+            "description": "Only these countries: ISO codes or names, comma-separated (FR, SE, NO, FI, CZ, EE search their registers; any other country searches GLEIF). Default: all"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Results (1-20, default 10)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "law_search",
+      "description": "Search 47 EU acts article by article: GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, Data Act, VAT Directive, CSRD, PSD2 and more, in their latest consolidated English text, plus recitals. Ask in plain words; get the matching articles with act, article number, heading, full text, EUR-Lex link and version. Our own index (keyword + meaning, reranked), hosted in the EU. Use for compliance questions and citing EU law. Not legal advice. Example: q=which AI practices are banned. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Question or keywords, in English (at most 400 characters)"
+          },
+          "act": {
+            "type": "string",
+            "description": "Only this act: short name (GDPR, AI Act, DSA, VAT Directive…), full name or CELEX number"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "article",
+              "recital"
+            ],
+            "description": "article or recital (default both)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Results (1-10, default 5)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.005"
+    },
+    {
+      "name": "cz_company",
+      "description": "Czech company by IČO (00177041 or VAT CZ00177041) or name, live from ARES, the Czech Ministry of Finance's register of economic subjects: name, legal form, status, founding and dissolution dates, commercial-register, VAT and insolvency-register records, industry codes, registered address. Use to verify a Czech customer or supplier. Register facts only, not a credit report. Example: ico=00177041. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ico": {
+            "description": "Czech identification number IČO (8 digits) or VAT number CZ… (give ico or name)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name to search for, instead of ico: up to 10 current companies whose name holds every word"
+          },
+          "city": {
+            "type": "string",
+            "description": "With name: only companies whose registered office is in this town"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Matches for a name search (1-10, default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "ee_company",
+      "description": "Estonian company by register code (registrikood, 10137319) or name, from the Estonian e-Business Register: name, former names, legal form, status (registered, in liquidation, in bankruptcy), registered address and a link to the register's page. Use to verify an Estonian customer or supplier. Register facts only, not a credit report. Example: regCode=10137319. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "regCode": {
+            "description": "Estonian register code (registrikood, 8 digits) (give regCode or name)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name to search for, instead of regCode: up to 10 current companies whose name holds every word"
+          },
+          "city": {
+            "type": "string",
+            "description": "With name: only companies whose registered address is in this town"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Matches for a name search (1-10, default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
     }
   ]
 }
