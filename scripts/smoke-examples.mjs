@@ -23,7 +23,7 @@ new Function("module", "exports", "require", catalog.outputFiles[0].text)(mod, m
 const { ENDPOINTS, exampleParams, CAPACITY_LIMITED, ENTRY_OF } = mod.exports;
 // An entry path (src/routes/entry-paths.ts) runs its canonical tool: an AI door such as /llm/chat is skipped like /ai/chat.
 // /document/extract reads the file here and then asks the chat model for the fields: it needs Workers AI like the /ai/ tools.
-const NEEDS_AI = new Set(["/document/extract"]);
+const NEEDS_AI = new Set(["/document/extract", "/invoice/check"]);
 const isAi = (p) => (ENTRY_OF[p] ?? p).startsWith("/ai/") || NEEDS_AI.has(ENTRY_OF[p] ?? p);
 
 const worker = await build({ entryPoints: ["src/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, external: ["cloudflare:workers", "node:*"], plugins: [urlShim] });
