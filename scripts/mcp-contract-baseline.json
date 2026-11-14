@@ -1,5 +1,5 @@
 {
-  "version": "1.192.0",
+  "version": "1.193.0",
   "tools": [
     {
       "name": "extract",
@@ -21832,6 +21832,14 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Results (1-10, default 5)"
+          },
+          "answer": {
+            "description": "true: also a short answer written only from the articles found, with [n] citations (an AI reading, not legal advice)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
           }
         },
         "required": [

@@ -221,6 +221,7 @@ export const PRODUCTS: readonly Product[] = [
       "EU law: the exact article, not a page about it. Right article in the top 5 for 19 of 20 questions, Exa's web search 13 (14 Nov 2026, method published)",
       "Companies from official registers (France, Sweden, Norway, Finland, Czechia, Estonia) plus GLEIF LEIs for every country, with register links",
       "Exa's own SDKs work: point exa-js or exa-py at our /v1 base URL",
+      "Exa categories answered from sources of record: category \"company\" from the registers (with register IDs and LEIs as entities), \"research paper\" from OpenAlex and Crossref, \"github\" from GitHub's own search",
       "The EU law database is hosted in Cloudflare's EU jurisdiction; uploaded files are never stored",
     ],
     limits: [
@@ -230,7 +231,7 @@ export const PRODUCTS: readonly Product[] = [
     unit: "searches",
     faq: [
       ["Why use this instead of Exa?", "When the question is about Europe. Exa crawls the web and processes requests in the US; its company data comes from web pages and its legal sources are US. Here, law comes from the EU's own consolidated texts and companies from the official registers, searched from the EU."],
-      ["Do I need to rewrite my Exa code?", "No. Exa's SDKs accept a base URL: new Exa(apiKey, \"https://tools.funwords.eu/v1\"). Search, contents, findSimilar and answer work; searches restricted to eur-lex.europa.eu, or with category \"law\", are answered from the EU law index."],
+      ["Do I need to rewrite my Exa code?", "No. Exa's SDKs accept a base URL: new Exa(apiKey, \"https://tools.funwords.eu/v1\"). Search, contents, findSimilar and answer work; searches restricted to eur-lex.europa.eu, or with category \"law\", are answered from the EU law index; category \"company\" with a company name from the official registers, \"research paper\" from the scholarly indexes and \"github\" from GitHub."],
       ["How do I pay?", "With an API key from a monthly plan or a one-off pack; AI agents with a wallet can also pay per call with no account (see For AI agents below)."],
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
