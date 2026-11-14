@@ -42,3 +42,21 @@ test("a suggested title is looked up in the index and put first only when the in
     global.fetch = real;
   }
 });
+test("the OpenAlex key is sent, and a refused key (not activated yet) falls back to a keyless call", async () => {
+  const P = await load();
+  const real = global.fetch;
+  const keys = [];
+  global.fetch = async (url) => {
+    const k = new URL(String(url)).searchParams.get("api_key");
+    keys.push(k);
+    if (k) return new Response("{}", { status: 401 });
+    return new Response(JSON.stringify({ meta: { count: 1 }, results: [work("Noise2Noise", "10.1/b")] }), { status: 200 });
+  };
+  try {
+    const r = await P.searchPapers("Noise2Noise", "1", undefined, undefined, "test-key");
+    assert.deepEqual(keys, ["test-key", null]);
+    assert.equal(r.results[0].title, "Noise2Noise");
+  } finally {
+    global.fetch = real;
+  }
+});

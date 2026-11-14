@@ -52,13 +52,18 @@ function rebuildAbstract(index?: Record<string, number[]>): string | null {
   return words.join(" ").replace(/\s+/g, " ").trim() || null;
 }
 
-async function fromOpenAlex(query: string, limit: number, fromYear: number | null) {
+/** The OpenAlex key for this isolate's calls; set by searchPapers from the Worker secret. */
+let openAlexKey = "";
+async function fromOpenAlex(query: string, limit: number, fromYear: number | null, keyed = true): Promise<{ total: number; results: Paper[]; source: string }> {
   const url = new URL(OPENALEX);
+  if (keyed && openAlexKey) url.searchParams.set("api_key", openAlexKey);
   url.searchParams.set("search", query);
   url.searchParams.set("per-page", String(limit));
   url.searchParams.set("select", "id,title,authorships,publication_year,primary_location,type,cited_by_count,doi,abstract_inverted_index");
   if (fromYear) url.searchParams.set("filter", `from_publication_date:${fromYear}-01-01`);
   const res = await fetch(url, { signal: AbortSignal.timeout(8_000), headers: HEADERS });
+  // A key that is not activated yet, or revoked, is refused: ask again without it (the shared keyless budget).
+  if ((res.status === 401 || res.status === 403) && keyed && openAlexKey) return fromOpenAlex(query, limit, fromYear, false);
   if (!res.ok) throw new Error(`OpenAlex HTTP ${res.status}`);
   const body = (await res.json()) as { meta?: { count?: number }; results?: OpenAlexWork[] };
   const results: Paper[] = (body.results ?? []).map((w) => ({
@@ -113,7 +118,8 @@ async function fromCrossref(query: string, limit: number, fromYear: number | nul
 
 let openAlexPausedUntil = 0;
 
-export async function searchPapers(queryParam: string | undefined, limitParam?: string, fromYearParam?: string, guess?: TitleGuess) {
+export async function searchPapers(queryParam: string | undefined, limitParam?: string, fromYearParam?: string, guess?: TitleGuess, key?: string) {
+  openAlexKey = key ?? "";
   const query = (queryParam ?? "").trim();
   if (query.length < 3 || query.length > 300) throw new HttpError(400, "query must be 3 to 300 characters");
   const limit = Math.min(Math.max(Math.trunc(Number(limitParam)) || 5, 1), 20);
