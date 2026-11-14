@@ -11,6 +11,7 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/pdf/extract": 10 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
+  "/invoice/check": 10 * 1024 * 1024,
 });
 /** The query name the reference travels under. */
 export const FILE_INPUT = "file";

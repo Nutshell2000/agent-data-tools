@@ -219,6 +219,15 @@
 				}
 			}
 		},
+		"/invoice/check": {
+			"price": "$0.05",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				}
+			}
+		},
 		"/document/extract": {
 			"price": "$0.03",
 			"params": {

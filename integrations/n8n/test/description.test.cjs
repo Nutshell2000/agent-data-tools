@@ -89,7 +89,7 @@ test('"Find a tool" is free and needs no credential', () => {
 
 test('every flagship operation calls a real tool with real inputs', () => {
 	const flagship = operations().filter((o) => o.resource !== 'tool');
-	assert.equal(flagship.length, 17);
+	assert.equal(flagship.length, 18);
 	const called = new Set();
 	for (const op of flagship) {
 		const label = `${op.resource}.${op.operation}`;
