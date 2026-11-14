@@ -1,5 +1,5 @@
 {
-  "version": "1.177.0",
+  "version": "1.178.0",
   "tools": [
     {
       "name": "extract",
@@ -35,7 +35,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section."
+            "description": "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section. Leave it out to read the whole page."
           }
         },
         "required": [
@@ -19030,7 +19030,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters"
+            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
           }
         },
         "required": [
@@ -19756,7 +19756,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters"
+            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
           }
         },
         "required": [
@@ -20072,7 +20072,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters"
+            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
           }
         },
         "required": [

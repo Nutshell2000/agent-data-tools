@@ -70,3 +70,16 @@ test('hex inputs: calldata without 0x, with 0X or spaces is accepted; odd digits
   assert.throws(() => hexInput('totalSupply()', 'data', 100), /0x-prefixed hex/);
   assert.throws(() => hexInput('', 'data', 100), /required/);
 });
+
+test('contract ABI: the pre-1.178 listing pair (Ethereum USDC with chain=base) reads Ethereum and says so; other misses stay 404', async () => {
+  const { CHAIN_MORE } = await load();
+  const abi = CHAIN_MORE.find((x) => x.endpoint.path === '/contract/abi');
+  const real = globalThis.fetch; const asked = [];
+  globalThis.fetch = async (url) => { asked.push(String(url)); return String(url).includes('/contract/1/') ? Response.json({ match: 'exact_match', compilation: { name: 'FiatTokenProxy' }, abi: [] }) : new Response('', { status: 404 }); };
+  try {
+    const q = (o) => (k) => o[k];
+    const r = await abi.run({}, q({ address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', chain: 'base' }));
+    assert.equal(r.chain, 'Ethereum'); assert.match(r.note, /no contract on Base/); assert.equal(r.name, 'FiatTokenProxy');
+    await assert.rejects(abi.run({}, q({ address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', chain: 'base' })), (e) => e.status === 404);
+  } finally { globalThis.fetch = real; }
+});
