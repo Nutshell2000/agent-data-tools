@@ -20,4 +20,4 @@ for (const p of ["/linkedin/profile", "/linkedin/company-posts", "/x/search"]) C
 /** True when a plain HTTP request with trial=1 may run this tool free (lib/free-calls.ts): not capacity-limited, and not taken out of the HTTP trial. */
 export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_FREE_EXCLUDED.has(path);
 // Glyphcall Voice (1.189.0, routes/voice.ts): Whisper over up to an hour of audio and Aura-1 speech: paid only.
-for (const p of ["/transcribe/long", "/text-to-speech/lite"]) CAPACITY_LIMITED.add(p);
+for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summary"]) CAPACITY_LIMITED.add(p);
