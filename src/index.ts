@@ -46,6 +46,8 @@ import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { httpFree } from "./lib/capacity";
+import { quoteCacheKey, readQuote, writeQuote } from "./lib/quote-cache";
+import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
@@ -309,10 +311,15 @@ app.use(async (c, next) => {
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;
   // The capped PDF try (lib/pdf-try.ts): off unless PDF_TRY=on; a browser only, inside the day's total.
-  const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent")) && await takePdfTry(c.env);
-  if (pdfTry) pdfTryRequests.add(c.req.raw);
+  const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"));
   if (endpoint && trialable && (httpFree(c.req.path) || pdfTry) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
+    // visitor who is out of tries cannot use up the total for everyone else.
+    if (free && pdfTry) {
+      if (await takePdfTry(c.env)) pdfTryRequests.add(c.req.raw);
+      else { await free.refund(); free = null; }
+    }
     if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
     if (freePaused && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
@@ -354,6 +361,11 @@ app.use(async (c, next) => {
   // building the terms on a cold isolate). /status counted 1-2 of these on seven unrelated tools in the week to 7 Nov:
   // each one a quote or a paid attempt lost. Nothing has run or been charged then, so one more try on a fresh gateway is
   // safe; if that fails too the caller gets an uncharged 503 with Retry-After, which clients retry, instead of a 500.
+  // An unpaid quote this colo answered in the last half hour comes from the edge cache and never starts the gateway
+  // (lib/quote-cache.ts). Anything with a payment, a key, a free-call request or a browser gets no key and goes on below.
+  const quoteKey = endpoint ? quoteCacheKey(c.env, MCP_SERVER_VERSION, c.req.method, c.req.url, (name) => c.req.header(name)) : undefined;
+  let answer = quoteKey ? await readQuote(quoteKey) : undefined;
+  if (!answer) {
   let ran = false;
   const tool = () => { ran = true; return next(); };
   let candidate = paywall ?? buildPaywall(c.env);
@@ -381,7 +393,12 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && (httpFree(c.req.path) || pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"))) && !activeTrace()?.stages.has("free_exhausted"), endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
+  answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && (httpFree(c.req.path) || pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"))) && !activeTrace()?.stages.has("free_exhausted"), endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
+  if (quoteKey && answer.status === 402 && !freePaused) {
+    const copy = answer.clone();
+    c.executionCtx.waitUntil(writeQuote(quoteKey, copy));
+  }
+  }
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }
