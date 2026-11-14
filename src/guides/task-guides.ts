@@ -27,6 +27,8 @@ export interface TaskGuide {
   /** When an agent wants this (default: the main tool's TOOL_SEO uses). */
   uses?: string[];
   faq?: [string, string][];
+  /** A further page for a tool that already has its guide: the tool's own page keeps linking the main one. */
+  secondary?: boolean;
 }
 const leadOf = (g: TaskGuide, main: Endpoint) => g.lead ?? main.description;
 const usesOf = (g: TaskGuide, main: Endpoint) => g.uses ?? TOOL_SEO[main.path]?.uses ?? [];
@@ -36,6 +38,20 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
     lead: "Give a public PDF's URL and get its text page by page as JSON, with title, author, page count and character counts; choose the page range.",
     uses: ["Feed a whitepaper, filing, invoice or paper to an LLM", "Read only a page range of a long report", "Index PDF content for retrieval"],
     faq: [["Does it OCR scanned PDFs?", "No. It extracts the text layer; scanned images without a text layer return little or nothing."], ["How large a file?", "Up to 10 MB; the default read is 20 pages, settable with pages."]] },
+  // 14 Nov 2026: three more PDF pages. Search Console and the funnel: the PDF tool page and its guide took most of the 540
+  // Google visits of 1-14 Nov. Each page answers a different search and restates only what /pdf/text does.
+  { slug: "extract-text-from-pdf-url", secondary: true, phrase: "Extract text from a PDF URL", tools: ["/pdf/text"],
+    lead: "Send the link to a public PDF and get the text of the pages you ask for, one entry per page, without downloading or parsing the file yourself.",
+    uses: ["Read a PDF your agent was given as a link", "Take pages 10 to 15 of a long report with firstPage and pages", "Check a PDF's page count, title and author before reading it"],
+    faq: [["Which pages do I get?", "The first 20 by default. Set firstPage and pages (up to 200) to choose the range; totalPages in the answer says how long the file is."], ["What if the site blocks the download?", "The Internet Archive's dated copy of the same URL is read when there is one, and the answer says so with the date of the copy. With no copy the call fails and is not charged."]] },
+  { slug: "pdf-parser-api-for-llm-and-rag", secondary: true, phrase: "PDF parser API for LLMs and RAG", tools: ["/pdf/text", "/ai/embed"],
+    lead: "Turn a PDF at a URL into page-by-page text with a character count per page, capped at the length you set, ready to chunk and embed.",
+    uses: ["Chunk a PDF by page for a retrieval index", "Keep a document inside a model's context with maxChars", "Embed the pages with the embeddings tool in the same workflow"],
+    faq: [["Does it return tables and images?", "It returns the text layer in reading order. Images are not returned, and a table comes back as its text."], ["How do I keep the answer small?", "maxChars caps the text returned across all pages (1,000 to 200,000 characters); truncated in the answer says when the cap was hit."]] },
+  { slug: "arxiv-paper-to-text-api", secondary: true, phrase: "arXiv paper to text API", tools: ["/pdf/text", "/arxiv/search"],
+    lead: "Give an arXiv link, abstract page or PDF, and get the paper's text page by page; find the paper first by topic or ID with the arXiv search tool.",
+    uses: ["Read a preprint into an LLM from its arXiv link", "Search arXiv by topic, then read the papers that matter", "Pull only the first pages (abstract and introduction) of many papers"],
+    faq: [["Do abstract links work?", "Yes. An arxiv.org/abs/ link is read as the paper's PDF."], ["Does it work for scanned old papers?", "Only when the PDF has a text layer; scanned images without one return little or nothing."]] },
   { slug: "url-to-markdown-api", phrase: "URL to Markdown API", tools: ["/extract", "/extract/rendered"],
     lead: "Give a public web page's URL and get it back as clean Markdown or text for an LLM, with the page's links, tables and code blocks kept and boilerplate removed.",
     uses: ["Read documentation, articles and product pages into a RAG pipeline", "Pull one section of a long page by heading", "Read JavaScript-rendered pages with the rendered variant"],
@@ -108,7 +124,7 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
 
 const BY_SLUG = new Map(TASK_GUIDES.map((g) => [g.slug, g]));
 /** The guide that covers a tool, for the link on its tool page. */
-export const GUIDE_FOR_TOOL: ReadonlyMap<string, TaskGuide> = new Map(TASK_GUIDES.flatMap((g) => g.tools.map((t) => [t, g] as const)));
+export const GUIDE_FOR_TOOL: ReadonlyMap<string, TaskGuide> = new Map(TASK_GUIDES.filter((g) => !g.secondary).flatMap((g) => g.tools.map((t) => [t, g] as const)));
 export const taskGuide = (slug: string) => BY_SLUG.get(slug);
 
 function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean) {

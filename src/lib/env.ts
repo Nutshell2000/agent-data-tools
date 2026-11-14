@@ -8,6 +8,10 @@ export interface Env {
   FACILITATOR_URL: string;
   PAYWALL: string;
   TRIALS_ENABLED?: string;
+  /** "on" opens the capped free try for PDF reading to browsers (lib/pdf-try.ts); unset means PDF reading is paid only. The owner's switch. */
+  PDF_TRY?: string;
+  /** Free PDF tries per UTC day in total (default 150). */
+  PDF_TRY_DAILY_CAP?: string;
   /** "v1" puts the x402 v1 terms back in every tool's 402 body (the behaviour before 1.117.0); unset means the body mirrors the v2 header. */
   QUOTE_BODY?: string;
   BASE_RPC_URL: string;

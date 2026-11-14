@@ -56,6 +56,9 @@
     // Free calls (src/lib/free-calls.ts): 25 per caller, automatic over MCP, trial=1 over HTTP.
     // Without the exact value "on", every unpaid call receives the normal payment challenge.
     "TRIALS_ENABLED": "on",
+    // The capped free PDF try for browsers (src/lib/pdf-try.ts): 2 pages a read, 3 a visitor, 150 a day in total.
+    // The owner, 14 Nov 2026: "Yes, switch it on". Remove the line to make PDF reading paid only again.
+    "PDF_TRY": "on",
     // Only a private endpoint here changes anything: public ones keep their measured order (src/lib/rpc.ts EDGE_RPCS).
     "BASE_RPC_URL": "https://mainnet.base.org",
     // /search: at most this many Brave Search API requests per UTC day (src/routes/search.ts). Brave bills $5 per 1,000
