@@ -91,6 +91,10 @@ const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICE
  */
 export const LOCAL_TEST_PRICE = PRICE;
 const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENERATORS, TOOLBOXES, TOOLBOXES2, FUN];
+// Glyphcall Voice tools (1.189.0, routes/voice.ts): /transcribe/long and /text-to-speech/lite. Placed between the lines
+// other releases add pushes around (after LOCAL_TEST_PRICE, before FAMILIES), so parallel releases do not collide.
+import { VOICE } from "./routes/voice";
+CATALOG.push(...VOICE);
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
   "/yaml/to-json", "/json/to-yaml", "/phone/validate", "/geo/distance", "/useragent/parse", "/text/language", "/keccak",
@@ -100,9 +104,5 @@ export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   "/sun", "/moon", "/holidays", "/econ/gdp", "/econ/inflation", "/econ/population", "/econ/unemployment",
   "/text/prompt-injection", "/text/pii", "/dockerfile/lint",
 ]);
-// Glyphcall Voice tools (1.189.0, routes/voice.ts): /transcribe/long and /text-to-speech/lite. Added here, right before
-// FAMILIES is built and away from the pushes other releases add after LOCAL_TEST_PRICE, so parallel releases do not collide.
-import { VOICE } from "./routes/voice";
-CATALOG.push(...VOICE);
 export const FAMILIES: Entry[] = CATALOG.map((e) =>
   LOCAL_PATHS.has(e.endpoint.path) && e.endpoint.price === PRICE ? { ...e, endpoint: { ...e.endpoint, price: LOCAL_TEST_PRICE } } : e);
