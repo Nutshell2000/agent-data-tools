@@ -287,12 +287,13 @@ export const DOCUMENT: Entry[] = [
     "Extract named fields from a document as JSON: give a PDF, Word (.docx), Excel (.xlsx) or PowerPoint (.pptx) file by URL or in a POST body (up to 10 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file's text and returns one JSON object, with null where a value is not stated. Scanned files without text fail uncharged. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
-      fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "title,product_name,supported_formats" },
+      fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
     },
     {
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
-      type: "docx", data: { title: "Demonstration of DOCX support in calibre", product_name: "calibre", supported_formats: "AZW3, EPUB" },
-      missing: [], charsRead: 9617, truncated: false, model: CHAT_MODEL,
+      // A real answer, read on 14 Nov 2026 from a local run against Workers AI (twice, the same both times).
+      type: "docx", data: { title: "Demonstration of DOCX support in calibre", ebook_formats: ["EPUB", "AZW3"], pens_needed: 3, scissors_needed: 1 },
+      missing: [], model: CHAT_MODEL, charsRead: 8934, truncated: false,
     },
     async (env, q) => {
       const fields = fieldNames(need(q, "fields", 1000));
