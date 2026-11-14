@@ -3,7 +3,7 @@
 // queries measured on 31 Oct our tool pages were absent from Exa's top 10 while Keenable's and Exa's agents were already
 // calling our readers. Each guide only restates what the tool's own description says, gives the request in every way
 // an agent can make it (free trial, card key in a header or in the URL, x402/MPP, MCP) and links the tool pages.
-import { PRODUCT_FOR_TOOL } from "../lib/product-pages";
+import { PRODUCT_FOR_TOOL, PRODUCTS } from "../lib/product-pages";
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
@@ -241,7 +241,8 @@ export function taskGuideMarkdown(slug: string, origin: string, freeCalls: boole
   if (!g) return undefined;
   const tools = g.tools.map((p) => byPath.get(p)).filter((e): e is Endpoint => Boolean(e));
   const uses = usesOf(g, tools[0]);
-  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(g.code ? [`## ${g.code.language} example`, g.code.text.replaceAll("{origin}", origin).split("\n").map((l) => `    ${l}`).join("\n")] : []), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
+  const product = PRODUCT_FOR_TOOL.get(tools[0].path);
+  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(product ? [`${product.name}, by monthly plan or one-off packs with one API key: ${origin}/${product.slug}`] : []), ...(g.code ? [`## ${g.code.language} example`, g.code.text.replaceAll("{origin}", origin).split("\n").map((l) => `    ${l}`).join("\n")] : []), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
     ...tools.map((e) => `## ${e.summary}\n\n${toolBlock(e, origin, freeCalls, true)}`),
     `## Questions`, ...(g.faq ?? []).map(([q, a]) => `**${q}** ${a}`),
     `Docs for agents: ${origin}/llms.txt · OpenAPI: ${origin}/openapi.json · All guides: ${origin}/guides`].join("\n\n") + "\n";
@@ -253,6 +254,7 @@ export function guidesIndexHtml(origin: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Guides: pay-per-call data tools for AI agents · ${esc(SERVICE_NAME)}</title><meta name="description" content="How to do common agent jobs with Agent Data Tools: PDF to text, URL to Markdown, OFAC wallet screening, news headlines, image description, chat completions and token prices, pay per call with a free trial."><link rel="canonical" href="${esc(origin)}/guides"><link rel="icon" href="/favicon.ico"><style>${STYLE}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › Guides</nav><h1>Guides</h1>
 <p>One page per job, with the request in every way an agent can make it: free trial, card key, x402 or MPP, MCP.</p>
+<p><strong>By monthly plan, one API key:</strong> ${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name)}</a>`).join(" · ")}</p>
 <ul>${TASK_GUIDES.map((g) => { const e = byPath.get(g.tools[0]); return `<li><a href="/guides/${esc(g.slug)}">${esc(g.phrase)}</a>${e ? ` · from ${esc(e.price)}: ${esc(leadOf(g, e).slice(0, 160))}` : ""}</li>`; }).join("")}</ul>
 <h2>Buying guides and clients</h2><ul>${older.map(([h, t]) => `<li><a href="${esc(h)}">${esc(t)}</a></li>`).join("")}</ul>
 <footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a></footer></main></body></html>`;
