@@ -13,7 +13,11 @@ import { paymentOptions } from "./networks";
  * What is cached: the finished quote (status, headers, body) of a request that carried no payment, key, trial or
  * browser, for 30 minutes, under a key that holds the release version, the payment settings and the exact URL.
  * What is never cached or served from cache: anything with a payment or credential header, free-call requests,
- * browsers (they get a page), and the MPP challenges, which are made fresh for every answer because they expire.
+ * browsers (they get a page), and the MPP challenges, which are made fresh for every answer.
+ *
+ * Never cache an MPP challenge (tried and reverted 14 Nov 2026): a challenge pays once. mppx uses the hash of the
+ * evm challenge as the EIP-3009 nonce and binds a Tempo payment to the challenge id in its memo, so two buyers handed
+ * the same challenge would have the second payment refused as a replay (tests/mpp-evm.test.cjs caught it).
  */
 export const QUOTE_TTL_SECONDS = 1800;
 
