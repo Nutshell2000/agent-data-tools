@@ -276,7 +276,8 @@ export const DOCUMENT: Entry[] = [
       }
       const file = await fetchFile(q("url"), /^/, DOCUMENT_MAX_BYTES, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
       return { url: file.url, ...(await readDocument(file.bytes, format, maxChars)) };
-    }),
+      // $0.005, the PDF tool's price (the owner delegated prices on 14 Nov 2026: "you decide prices").
+    }, "$0.005"),
 
   // Named fields out of a document (14 Nov 2026): the file is read as above and the fields are found by the chat model.
   // Why: "the invoice number, total and due date of this attachment" is the job automation builders bring a document
@@ -311,5 +312,6 @@ export const DOCUMENT: Entry[] = [
       const doc = await readDocument(bytes, "text", EXTRACT_CHARS);
       const found = await extractFields(env, doc.text, fields, CHAT_MODEL, 900);
       return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...found, charsRead: doc.chars, truncated: doc.truncated };
-    }),
+      // $0.03 a document: one model call, and a tenth to a half of what document-extraction sellers charge (14 Nov 2026).
+    }, "$0.03"),
 ];

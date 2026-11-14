@@ -220,7 +220,7 @@
 			}
 		},
 		"/document/extract": {
-			"price": "$0.01",
+			"price": "$0.03",
 			"params": {
 				"url": {
 					"required": true,
@@ -233,7 +233,7 @@
 			}
 		},
 		"/document/text": {
-			"price": "$0.01",
+			"price": "$0.005",
 			"params": {
 				"url": {
 					"required": true,
