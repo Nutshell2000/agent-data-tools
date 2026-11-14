@@ -25,7 +25,7 @@ export interface NameMatch { country: NameRegister; name: string; id: string; id
 type Found = { name: string; legalForm?: string | null; city?: string | null; siren?: string; orgnr?: string; businessId?: string };
 type Searcher = (name: string, limit: number) => Promise<{ matches: Found[] }>;
 
-const SEARCHERS: Record<NameRegister, { search: Searcher; idType: string; id: (m: Found) => string | undefined; tool: string; source: string }> = {
+export const SEARCHERS: Record<NameRegister, { search: Searcher; idType: string; id: (m: Found) => string | undefined; tool: string; source: string }> = {
   FR: { search: (n, l) => frSearch(n, l), idType: "SIREN", id: (m) => m.siren, tool: "/fr/company?siren=", source: "INSEE Sirene and INPI RNE (France)" },
   SE: { search: (n, l) => searchName(n, l), idType: "organisationsnummer", id: (m) => m.orgnr, tool: "/se/company?orgnr=", source: "Bolagsverket and SCB (Sweden)" },
   NO: { search: (n, l) => noSearch(n, l), idType: "organisasjonsnummer", id: (m) => m.orgnr, tool: "/no/company?orgnr=", source: "Brønnøysund Register Centre (Norway)" },
@@ -33,9 +33,15 @@ const SEARCHERS: Record<NameRegister, { search: Searcher; idType: string; id: (m
 };
 
 /** Legal-form words dropped before two names are compared: "Spotify AB" is "Spotify", "DANONE SA" is "DANONE". */
-const FORMS = new Set(["sa", "sas", "sasu", "sarl", "eurl", "snc", "sci", "scop", "se", "ab", "publ", "hb", "kb", "as", "asa", "ans", "da", "oy", "oyj", "ky", "ay", "ltd", "limited", "inc", "gmbh", "ag", "plc", "llc", "bv", "nv"]);
+// Spelled-out forms too (14 Nov 2026, /company/search): registers write "Aktiebolaget Volvo" and GLEIF "Siemens
+// Aktiengesellschaft", which are the companies a search for "Volvo" or "Siemens" means.
+const FORMS = new Set(["sa", "sas", "sasu", "sarl", "eurl", "snc", "sci", "scop", "se", "ab", "publ", "hb", "kb", "as", "asa", "ans", "da", "oy", "oyj", "ky", "ay", "ltd", "limited", "inc", "gmbh", "ag", "plc", "llc", "bv", "nv",
+  "aktiebolag", "aktiebolaget", "aktiengesellschaft", "aksjeselskap", "aksjeselskapet", "allmennaksjeselskap", "osakeyhtio", "julkinen", "spa", "srl", "corp", "corporation", "incorporated",
+  // Czech and Estonian forms (14 Nov 2026, /company/search over ARES and the e-Business Register): "Škoda Auto a.s." is "Škoda Auto".
+  "sro", "spol", "vos", "ops", "ou", "osauhing", "aktsiaselts", "mtu"]);
 const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
-export const coreName = (s: string) => fold(s).split(/[^a-z0-9]+/).filter((w) => w && !FORMS.has(w)).join(" ");
+// Dotted abbreviations are joined first ("a.s." and "a. s." -> "as", "s.r.o." -> "sro"), so they meet the form words above.
+export const coreName = (s: string) => fold(s).replace(/\b([a-z])\. ?(?=[a-z]\b)/g, "$1").split(/[^a-z0-9]+/).filter((w) => w && !FORMS.has(w)).join(" ");
 
 const OWN_NAMES: Record<string, NameRegister> = { france: "FR", sweden: "SE", sverige: "SE", norway: "NO", norge: "NO", finland: "FI", suomi: "FI" };
 /** FR, SE, NO or FI from a code or an English name; anything else is refused (other countries have no name register here). */
