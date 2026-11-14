@@ -521,6 +521,21 @@ export const ENTRY_PATHS: Entry[] = [
     async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("anthropic")(q)), providerParams("anthropic", "sonnet"),
     { count: 1, matched: 32, sort: "input", models: [{ id: "anthropic/claude-haiku-5.5:batch", name: "Anthropic: Claude Haiku 5.5 (batch)", provider: "anthropic", contextLength: 1000000, maxOutputTokens: 128000, inputPerMillionUsd: 0.05, outputPerMillionUsd: 0.25, free: false, inputs: ["text", "image", "file"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T03:00:00.000Z" }),
 
+  // Round 11 (14 Nov 2026): Mercator's gateway paid modelprices.xyz 54 times on 14 Nov alone, at $0.01, for /grok-pricing
+  // and /minimax-pricing (about 30 calls each in 30 days, one payer: Mercator). The Bazaar search held no listing of ours for
+  // "grok pricing" or "minimax pricing". Same tool, provider preset (OpenRouter ids x-ai and minimax).
+  door("/grok/pricing", "Grok pricing: xAI API prices",
+    "Grok pricing for every xAI model: USD per million input and output tokens, context length, max output and modalities for Grok 4.x and the other xAI models, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=grok-4), price cap, context or image input. Source: OpenRouter's public model list. Use to pick a Grok model for a job or to estimate what a prompt will cost before sending it.",
+    ["grok-pricing", "xai-pricing", "xai-api-prices", "grok-token-cost", "llm-pricing", "model-prices"], from(LLM_PRICES, "/llm/prices"),
+    async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("x-ai")(q)), providerParams("x-ai", "grok"),
+    { count: 1, matched: 10, sort: "input", models: [{ id: "x-ai/grok-4.3:batch", name: "SpaceXAI: Grok 4.3 (batch)", provider: "x-ai", contextLength: 1000000, maxOutputTokens: 900000, inputPerMillionUsd: 1, outputPerMillionUsd: 2, free: false, inputs: ["text", "image", "file"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T13:00:00.000Z" }),
+
+  door("/minimax/pricing", "MiniMax pricing: MiniMax API prices",
+    "MiniMax pricing for every MiniMax model: USD per million input and output tokens, context length, max output and modalities for MiniMax M3 and the other MiniMax models, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=m3), price cap, context or image input. Source: OpenRouter's public model list. Use to pick a MiniMax model for a job or to estimate what a prompt will cost before sending it.",
+    ["minimax-pricing", "minimax-api-prices", "minimax-token-cost", "llm-pricing", "model-prices", "ai-model-cost"], from(LLM_PRICES, "/llm/prices"),
+    async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("minimax")(q)), providerParams("minimax", "minimax"),
+    { count: 1, matched: 5, sort: "input", models: [{ id: "minimax/minimax-m3.1-flash", name: "MiniMax: MiniMax M3.1 Flash", provider: "minimax", contextLength: 1048576, maxOutputTokens: 524288, inputPerMillionUsd: 0.15, outputPerMillionUsd: 0.6, free: false, inputs: ["text", "image", "video"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T13:00:00.000Z" }),
+
   // Round 10 (14 Nov 2026): one coin, named. The returning agent 0xe629 buys the listing that is first in the Bazaar
   // search for its job: ours for "describe image" and "bitcoin price", another seller's "Solana Token Price" 24 times in
   // three days. The search had no listing of ours for "solana price" or "sol price" and showed our gas tools for
