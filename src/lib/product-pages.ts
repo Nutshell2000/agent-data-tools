@@ -118,6 +118,64 @@ export const PRODUCTS: readonly Product[] = [
     guides: ["eu-vat-number-validation-api", "eu-vat-number-validation-api-python", "eu-vat-number-validation-api-nodejs", "eu-vat-number-validation-api-php", "company-lookup-api", "ofac-wallet-screening-api"],
     more: [["/vat-number-check", "VAT number formats and a live check for every EU country"]],
   },
+  // The document toolkit (14 Nov 2026), for people who build automations and hold a file, not a link. Research of that
+  // day (reports\Focused API product for 10k monthly.md): inside n8n, Make and Power Automate the installs go to
+  // document conversion, and field extraction is what sellers there price per document.
+  {
+    slug: "invoice-data-extraction-api",
+    name: "Invoice data extraction API",
+    tagline: "Send an invoice, receipt or any document and the field names you want; get them back as JSON. PDF, Word, Excel, scans and photos. One request, no template to train.",
+    tool: "/document/extract",
+    also: ["/document/text", "/pdf/text"],
+    points: [
+      "You name the fields (invoice_number, total, due_date, supplier…) and get one JSON object; a value the file does not state comes back as null, never guessed",
+      "Reads PDF, Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) files, and scans or photos (PNG, JPEG, WebP) by OCR",
+      "Send the file itself in a POST body or give its public URL; up to 10 MB (images 3 MB)",
+      "A file that cannot be read is never charged",
+    ],
+    limits: [
+      "An AI model reads the file: check amounts and dates that matter before you act on them.",
+      "It reads the first 24,000 characters of a file, and at most three pages of a scanned PDF.",
+      "Old .doc, .xls and .ppt files and password-protected files are refused; save them in the current format first.",
+    ],
+    unit: "documents",
+    faq: [
+      ["Do I have to set up a template per supplier?", "No. You send the field names with each request and the model finds them in the file, whatever its layout or language."],
+      ["Does it read scanned invoices and photos?", "Yes, by OCR: PNG, JPEG and WebP images up to 3 MB, and scanned PDFs whose pages are stored as JPEG images, which is how scanners write them. At most three pages of a scan in one call."],
+      ["What happens to a field that is not in the document?", "It comes back as null and is listed under missing. The model is told never to guess."],
+      ["Are my files stored?", "No. A file sent in a request is held in memory for that request only. It is not stored, cached or logged."],
+      ["Can I use it in n8n, Make or Power Automate?", "Yes. It is one HTTP request with the file as the body, and there is an n8n community node, n8n-nodes-agent-data-tools, with an Extract Fields action."],
+      ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
+    ],
+    guides: [],
+  },
+  {
+    slug: "document-to-text-api",
+    name: "Document to text API",
+    tagline: "Turn Word, Excel, PowerPoint and PDF files, scans and photos into clean Markdown or plain text. Send the file or its URL; one request, no SDK.",
+    tool: "/document/text",
+    also: ["/document/extract", "/pdf/text", "/extract"],
+    points: [
+      "Word (.docx) with its headings, lists and tables kept as Markdown",
+      "Excel (.xlsx) with each sheet as a table; PowerPoint (.pptx) slide by slide",
+      "PDFs by their text layer; scanned PDFs and images (PNG, JPEG, WebP) by OCR",
+      "Send the file itself in a POST body or give its public URL; up to 10 MB (images 3 MB)",
+    ],
+    limits: [
+      "Old .doc, .xls and .ppt files and password-protected files are refused and not charged.",
+      "Excel cells hold the values the file stores: a formula's last result, and dates as Excel's day numbers.",
+      "OCR reads at most three pages of a scanned PDF in one call, and is read by an AI model: check what matters.",
+    ],
+    unit: "documents",
+    faq: [
+      ["Which file types does it read?", "Word .docx, Excel .xlsx, PowerPoint .pptx, PDF, and PNG, JPEG and WebP images. The kind of file is read from the file itself, not from its name."],
+      ["Does it OCR scanned files?", "Yes. Images, and scanned PDFs whose pages are stored as JPEG images, are read by a vision model, up to three pages of a scan in one call."],
+      ["Can I send a file instead of a URL?", "Yes. POST the file as the request body, as a multipart form field named file, or as base64 in JSON."],
+      ["Are my files stored?", "No. A file sent in a request is held in memory for that request only. It is not stored, cached or logged."],
+      ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
+    ],
+    guides: [],
+  },
 ];
 
 const BY_SLUG = new Map(PRODUCTS.map((p) => [p.slug, p]));
