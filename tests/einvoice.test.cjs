@@ -169,3 +169,17 @@ test('the XML inside an official ZUGFeRD / Factur-X PDF is found, read and valid
   // A PDF without an embedded invoice gives null, not an error.
   assert.equal(await X.embeddedInvoiceXml(new TextEncoder().encode('%PDF-1.4\n1 0 obj\n<< /Length 5 >>\nstream\nhello\nendstream\nendobj\n%%EOF')), null);
 });
+
+test('what an invoice reader returns becomes a valid e-invoice without naming a VAT rate', () => {
+  // The fields of /document/extract and /invoice/check for the Coolblue sample: amounts, no rate.
+  const read = { invoice_number: '993548900', invoice_date: '2014-04-19', due_date: '2014-05-19', currency: 'EUR', seller_name: 'Coolblue B.V.', seller_vat_number: 'NL810433941B01',
+    seller_address: 'Weena 664, 3012 CN Rotterdam', buyer_name: 'Klant B.V.', buyer_country: 'NL', iban: 'NL50INGB0683251309', net_amount: 593.36, vat_amount: 124.61, total_amount: 717.97,
+    line_items: [{ description: 'Laptop', quantity: 1, unit_price: 593.36, amount: 593.36 }] };
+  const made = route.createEinvoice(read, 'zugferd');
+  assert.equal(made.invoice.lines[0].vatRate, 21);
+  assert.deepEqual(made.invoice.vat, [{ category: 'S', rate: 21, basis: 593.36, tax: 124.61 }]);
+  assert.deepEqual(rules(V.validateInvoice(P.readInvoice(made.xml).invoice)), []);
+  // A stated rate wins over the implied one; no amounts means no implied rate.
+  assert.equal(M.fromInput({ ...read, vatRate: 9 }).lines[0].vatRate, 9);
+  assert.equal(M.fromInput({ line_items: [{ description: 'x', amount: 10 }] }).lines[0].vatRate, 0);
+});
