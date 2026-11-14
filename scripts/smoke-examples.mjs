@@ -62,7 +62,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
 // Reads KV shards that only production and staging hold, so this local run cannot answer it; prove it on staging.
 // /defi/yields reads a 10 MB file that Cloudflare serves from its cache in milliseconds but a home connection in ~48 s (6 Nov 2026);
 // the staging proof of its release covers it.
-const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate", "/defi/yields", "/defi/usdc-yield", "/econ/national-debt", "/econ/treasury-rates", "/se/company"]);
+const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate", "/defi/yields", "/defi/usdc-yield", "/econ/national-debt", "/econ/treasury-rates", "/se/company", "/law/search"]);
 const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !isAi(e.path) && (!filter || e.path.includes(filter)));
 let results = [];
 async function runExample(e) {

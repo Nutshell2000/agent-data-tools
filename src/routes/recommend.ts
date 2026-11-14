@@ -71,6 +71,8 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "swedish company": "/se/company", "organisationsnummer": "/se/company", "bolagsverket": "/se/company", "sweden company": "/se/company",
   "norwegian company": "/no/company", "organisasjonsnummer": "/no/company", "brreg": "/no/company", "norway company": "/no/company",
   "finnish company": "/fi/company", "ytunnus": "/fi/company", "y tunnus": "/fi/company", "finland company": "/fi/company",
+  "czech company": "/cz/company", "czechia company": "/cz/company", "ico number": "/cz/company", "ares register": "/cz/company",
+  "estonian company": "/ee/company", "estonia company": "/ee/company", "registrikood": "/ee/company", "ariregister": "/ee/company",
   "french company": "/fr/company", "siren": "/fr/company", "siret": "/fr/company", "sirene": "/fr/company", "france company": "/fr/company",
   "rss": "/feed", "feed json": "/feed", "pdf to text": "/pdf/text", "web page to markdown": "/extract", "scrape": "/extract",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",

@@ -47,5 +47,8 @@
     "TEMPO_NETWORK": "testnet",
     "TEMPO_PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     "BASE_RPC_URL": "https://mainnet.base.org"
-  }
+  },
+  // The same EU law index as production (read-only from the Worker), so /law/search can be proven here first.
+  "d1_databases": [{ "binding": "LAW_DB", "database_name": "eu-law", "database_id": "287b65ee-e792-4b26-aeac-74212865007c" }],
+  "vectorize": [{ "binding": "LAW_VECTORS", "index_name": "eu-law" }]
 }

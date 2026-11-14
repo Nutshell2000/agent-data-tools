@@ -54,6 +54,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (["/sec/financials", "/stock/fundamentals", "/income-statement"].includes(e.path)) assert.equal(e.price, "$0.02", e.path);
     // Price test 5-19 Nov 2026 (owner): tools whose market leader charges more.
     else if (Object.hasOwn(PRICE_TEST, e.path)) assert.equal(e.price, PRICE_TEST[e.path], e.path);
+    // EU law search on our own index (14 Nov 2026; prices delegated): under Exa's $0.007 auto search, above the $0.001 settlement fee.
+    else if (e.path === "/law/search") assert.equal(e.price, "$0.005", e.path);
     // Entry paths (src/routes/entry-paths.ts, 7 Nov 2026) carry their canonical tool's price: /sanctions/screen, /wallet/balance.
     else assert.equal(e.price, e.path === "/ai/chat" || e.path === "/x402/find" || e.path === "/llm/chat" || e.path === "/scrape" || e.path === "/web/fetch" || e.path === "/bitcoin/fees" ? "$0.002" : e.path === "/image/generate" || e.path === "/document/extract" ? "$0.03" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" || e.path === "/llm/inference" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/sanctions/check", "/sanctions/screen", "/ofac/check"].includes(e.path) ? "$0.009" : ["/pdf/text", "/pdf/extract", "/document/text", "/price/tokens", "/wallet/portfolio", "/wallet/balances", "/wallet/balance", "/balance/wallet"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
@@ -61,7 +63,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 679);
+  assert.equal(families.length, 683);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -89,7 +91,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,705);
+  assert.equal(ENDPOINTS.length,709);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
