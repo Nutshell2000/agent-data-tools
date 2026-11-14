@@ -48,6 +48,24 @@ test('twitter:image is used when there is no og:image', async () => {
   assert.equal(pagePreviewImage(html, 'https://site.example/'), 'https://cdn.example/c.jpg');
 });
 
+test('a page without og:image is read through the first content image it shows', async () => {
+  const { describeImage } = await load();
+  const body = '<!doctype html><html><head><title>Shop</title></head><body><img src="/logo.png"><img src="data:image/gif;base64,R0l"><img src="/px.gif" width="1" height="1"><img src="/i/icon.svg"><img src="/products/dice.jpg" alt="Dice"></body></html>';
+  route((u) => u.includes('/item') ? new Response(body, { status: 200, headers: { 'content-type': 'text/html' } }) : PNG());
+  const out = await describeImage(env, 'https://shop.example/item/7');
+  assert.equal(out.imageUrl, 'https://shop.example/products/dice.jpg');
+  assert.match(out.note, /first content image/);
+  assert.deepEqual(calls, ['https://shop.example/item/7', 'https://shop.example/products/dice.jpg']);
+});
+
+test('og:image still wins over page images', async () => {
+  const { pagePreviewImage, pageMainImage } = await load();
+  const html = new TextEncoder().encode('<html><head><meta property="og:image" content="https://cdn.example/og.png"></head><body><img src="/a.jpg"></body></html>');
+  assert.equal(pagePreviewImage(html, 'https://site.example/'), 'https://cdn.example/og.png');
+  assert.equal(pageMainImage(html, 'https://site.example/'), 'https://site.example/a.jpg');
+  assert.equal(pageMainImage(new TextEncoder().encode('<html><body><img src="/logo.png"></body></html>'), 'https://site.example/'), null);
+});
+
 test('a page without a preview image is refused 415 and nothing else is fetched', async () => {
   const { describeImage } = await load();
   route(() => page(''));
