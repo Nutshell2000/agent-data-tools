@@ -1735,3 +1735,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Lesson for any price step on a tool that real buyers use: Mercator refuses any quote above its stored price (see the 1.136.0 note), so a step up loses that buyer at once; read `/metrics/callers` challenged vs paid within an hour instead of waiting days.
 - After the release: `node scripts/update-402index-prices.mjs --dry`, then for real.
 
+
+
+## Product pages for the document toolkit (1.169.0, 14 Nov 2026)
+
+- `PRODUCTS` (src/lib/product-pages.ts) gained `invoice-data-extraction-api` (tool /document/extract) and `document-to-text-api` (tool /document/text). Their code samples come from the tools' published examples, so the extraction page shows the calibre demo file, not an invoice: give those entries the upload form and an invoice sample once the `upload` option of 1.167.0 is on main. `guides` is empty on both: write task guides (TASK_GUIDES, with `secondary: true` where a tool already has one) and list their slugs.
+- State of the document product on 14 Nov, 09:45: tools live in 1.166.0 (staging proof of /document/text paid; /document/extract and OCR proven only on a local run against Workers AI, never by a paid production call); n8n-nodes-agent-data-tools 0.3.0 published through the tag workflow; n8n-nodes-document-extract not published; free keys off; Make and Power Automate drafts wait for the domain.
+
