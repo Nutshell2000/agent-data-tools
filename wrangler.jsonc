@@ -12,7 +12,10 @@
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
   // fails at once instead of spending ~300 ms of CPU per cold start (see src/lib/ajv-unavailable.ts).
   "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
-  "observability": { "enabled": true },
+  // Stored logs are sampled at 1% (14 Nov 2026). At 100% every request stored about 19 log events (one invocation line,
+  // plus 701 library warnings on each cold start): about 238 million a month against the 20 million the plan includes,
+  // billed per extra million. `wrangler tail` is live and is not affected by this setting.
+  "observability": { "enabled": true, "head_sampling_rate": 0.01 },
   // Workers AI and Browser Rendering run on the account's free daily allowance.
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
