@@ -121,7 +121,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: ["eu-vat-number-validation-api", "eu-vat-number-validation-api-python", "eu-vat-number-validation-api-nodejs", "eu-vat-number-validation-api-php", "company-lookup-api", "ofac-wallet-screening-api"],
-    more: [["/vat-number-check", "VAT number formats and a live check for every EU country"]],
+    more: [["/vat-number-check", "VAT number formats and a live check for every EU country"], ["/company-register", "Company registers of Sweden, Norway, Finland and France: number formats and a live lookup"]],
   },
 ];
 
