@@ -4,7 +4,7 @@ const { build } = require('esbuild');
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 
 async function load() {
-  const b = await build({ entryPoints: ['src/lib/search-api.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
+  const b = await build({ entryPoints: ['src/lib/search-api.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['cloudflare:workers'] });
   const m = { exports: {} };
   new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
   return m.exports;
@@ -132,4 +132,60 @@ test('an unpaid search-API request is quoted under its own path at the tool pric
   }
   const bad = await mf.dispatchFetch('https://api.test/v1/search', { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'x' }, body: JSON.stringify({ numResults: 3 }) });
   assert.equal(bad.status, 400);
+});
+
+test('Exa categories company, research paper and github go to sources of record, not the web search', async () => {
+  const lib = await load();
+  assert.deepEqual(lib.toToolQuery('/v1/search', { query: 'Spotify', category: 'company', numResults: 5 }), { query: { q: 'Spotify', limit: '5' }, text: 0, tool: '/company/search' });
+  // A description of companies is not a name: a register cannot answer it, so it stays on the web search.
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'AI startups in Berlin', category: 'company' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'companies like Klarna', category: 'company' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'Volvo', category: 'company', includeDomains: ['volvo.com'] }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'Volvo', category: 'company', includeText: 'trucks' }).tool, undefined);
+  const paper = lib.toToolQuery('/v1/search', { query: 'retrieval augmented generation', category: 'research paper', startPublishedDate: '2023-01-01T00:00:00.000Z', contents: { text: true } });
+  assert.deepEqual(paper, { query: { query: 'retrieval augmented generation', limit: '10', fromYear: '2023' }, text: 3000, tool: '/papers' });
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'attention', category: 'papers', includeDomains: ['arxiv.org'] }).tool, '/arxiv/search');
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'attention', category: 'research paper', includeDomains: ['nature.com'] }).tool, undefined);
+  assert.deepEqual(lib.toToolQuery('/v1/search', { query: 'vector database', category: 'github', numResults: 50, excludeDomains: ['x.com'] }), { query: { q: 'vector database', count: '20' }, text: 0, tool: '/github/search', ignored: ['excludeDomains: results come from a source of record, not web pages'] });
+  assert.equal(lib.looksLikeCompanyName('Bank of America'), true);
+  assert.equal(lib.looksLikeCompanyName('best payroll software vendors'), false);
+});
+
+test('register, paper, arXiv and GitHub answers take the neural-search shape; companies carry register entities', async () => {
+  const lib = await load();
+  const co = lib.toSearchApi('/v1/search', { results: [{ name: 'Spotify AB', country: 'SE', idType: 'organisationsnummer', id: '556703-7485', legalForm: 'Aktiebolag', city: 'STOCKHOLM', exact: true, details: '/se/company?orgnr=556703-7485', lei: '5493004INDUJX1TDHI57', source: 'Bolagsverket and SCB (Sweden)' }], retrievedAt: '2026-11-14T00:00:00.000Z', note: 'N', searched: ['SE'] }, '/company/search', { text: 500, origin: 'https://o' });
+  assert.equal(co.resolvedSearchType, 'company-registers');
+  assert.equal(co.results[0].url, 'https://search.gleif.org/#/record/5493004INDUJX1TDHI57');
+  assert.equal(co.results[0].entities[0].type, 'company');
+  assert.equal(co.results[0].entities[0].properties.registration.id, '556703-7485');
+  assert.equal(co.results[0].entities[0].properties.headquarters.country, 'Sweden');
+  assert.equal(co.results[0].entities[0].properties.headquarters.countryCode, 'SE');
+  assert.match(co.results[0].text, /organisationsnummer 556703-7485/);
+  const noText = lib.toSearchApi('/v1/search', { results: [{ name: 'X Oy', country: 'FI', details: '/fi/company?id=1' }] }, '/company/search', { origin: 'https://o' });
+  assert.equal(noText.results[0].url, 'https://o/fi/company?id=1');
+  assert.equal(noText.results[0].text, undefined);
+  const pa = lib.toSearchApi('/v1/search', { results: [{ title: 'RAG', authors: ['A', 'B'], year: 2020, doi: '10.1/x', url: 'https://doi.org/10.1/x', abstract: 'Long abstract', citations: 9 }, { title: 'no link' }], source: 'OpenAlex' }, '/papers', { text: 4 });
+  assert.equal(pa.results.length, 1);
+  assert.equal(pa.results[0].text, 'Long');
+  assert.equal(pa.results[0].author, 'A, B');
+  assert.equal(pa.results[0].year, 2020);
+  const ax = lib.toSearchApi('/v1/search', { papers: [{ id: '2005.11401', title: 'RAG', summary: 'S', authors: ['P'], published: '2020-05-22', url: 'https://arxiv.org/abs/2005.11401' }] }, '/arxiv/search', {});
+  assert.equal(ax.results[0].publishedDate, '2020-05-22T00:00:00.000Z');
+  const gh = lib.toSearchApi('/v1/search', { repos: [{ repo: 'coinbase/x402', url: 'https://github.com/coinbase/x402', description: 'Payments', stars: 5, language: 'TypeScript', pushedAt: '2026-11-09T22:10:44Z' }] }, '/github/search', {});
+  assert.equal(gh.results[0].title, 'coinbase/x402');
+  assert.equal(gh.results[0].author, null);
+});
+test('an EU-law question on /v1/answer is answered from the law index; other questions stay on the web answer', async () => {
+  const lib = await load();
+  assert.deepEqual(lib.toToolQuery('/v1/answer', { query: 'When is processing lawful under the GDPR?' }), { query: { q: 'When is processing lawful under the GDPR?', count: '5', answer: 'true' }, text: 0, tool: '/law/search' });
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What does DORA require for ICT incident reporting?' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'anything', category: 'law' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'How do I write an invoice in Python?' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'How do instant payments work?' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What does the Instant Payments Regulation require of banks?' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What is the CRA tax deadline?' }).tool, undefined);
+  const out = lib.toSearchApi('/v1/answer', { answer: 'Processing is lawful only if one of six conditions applies [1].', model: 'm', results: [{ citation: 'GDPR, Article 6', heading: 'Lawfulness of processing', url: 'https://eur-lex.europa.eu/x#art_6' }], attribution: 'A' }, '/law/search');
+  assert.equal(out.answer, 'Processing is lawful only if one of six conditions applies [1].');
+  assert.deepEqual(out.citations, [{ id: 'https://eur-lex.europa.eu/x#art_6', url: 'https://eur-lex.europa.eu/x#art_6', title: 'GDPR, Article 6: Lawfulness of processing' }]);
+  assert.equal(out.resolvedSearchType, 'eu-law-index');
 });
