@@ -47,6 +47,7 @@ Free in this node:
 | Web | Read Page | A public page as clean Markdown or text | `/extract` | $0.002 |
 | Web | Read Page with **Render JavaScript** | The same for pages built with JavaScript, loaded in a real browser | `/extract/rendered` | $0.01 |
 | Web | Audit Website | Accessibility (WCAG 2.1 A/AA), page speed, on-page SEO and security headers, with a score | `/audit/website` | $0.01 |
+| Document | Extract Text From PDF | The text of a PDF, page by page, from a file in your workflow (up to 10 MB) or a public URL; a prepaid key pays less than the listed price | `/pdf/text` | $0.005 |
 | News | Search | Current news articles on a topic | `/news` | $0.01 |
 | News | Get Sentiment | Headlines on a topic, each scored positive or negative, and the balance | `/pack/news-sentiment` | $0.01 |
 | GitHub Repository | Get | Stars, forks, issues, languages, license, dates and latest release of a public repository | `/github/repo` | $0.002 |
@@ -80,6 +81,10 @@ Every paid operation has an **Options** list with the tool's optional inputs, pl
 2. Add a second node with **Tool > Call**, set **Tool Path** to the `tool` value (`/base-gas`) and **Parameters** to a JSON object with the inputs, for example `{ "city": "London" }` for `/weather`.
 
 **Tool Path** only accepts a path on the service, such as `/weather` or `/price/token`. Full URLs are refused, so the key cannot be sent anywhere else.
+
+### Documents
+
+**Document > Extract Text From PDF** reads a PDF that an earlier node put in a binary field (an e-mail attachment, a downloaded file, a form upload): keep **PDF Source** on *File From an Earlier Node* and name the field in **Input Binary Field** (`data` by default). The file is sent to the service and read there; nothing is stored. Choose *Public URL* for a PDF anyone can download. The answer holds `totalPages`, `title`, `author` and one entry per page with its text. A scanned PDF without a text layer is refused and not charged.
 
 ### Speech
 

@@ -4,6 +4,7 @@
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { fetchFile, parseTarget } from "../lib/fetch";
+import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PAGES = 200;
@@ -143,6 +144,14 @@ export const PDF: Entry[] = [
       const maxChars = freeTry ? Math.min(askedChars, PDF_TRY_CHARS) : askedChars;
       // Any content type: servers label PDFs binary/octet-stream, application/download or nothing at all, and readPdf
       // checks the %PDF signature itself, so the type check only refused real PDFs.
+      // A file sent in a POST body (lib/file-input.ts) is read as it is; nothing is fetched.
+      const sent = q(FILE_REF_INPUT);
+      if (isFileRef(sent)) {
+        const bytes = heldFile(sent);
+        if (!bytes) throw new HttpError(400, "send the PDF file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON); a file reference cannot be used in a GET");
+        if (!isPdf(bytes)) throw new HttpError(415, "the file sent is not a PDF (nothing was charged)");
+        return { url: null, source: "upload", bytes: bytes.byteLength, ...(await readPdf(bytes, firstPage, want, maxChars)) };
+      }
       const file = await loadPdf(q("url"));
       return {
         url: file.url,
