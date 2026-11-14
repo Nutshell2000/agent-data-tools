@@ -79,10 +79,10 @@ const toolOf = (c: RegisterCountry) => ENDPOINTS.find((e) => e.path === c.tool) 
 const queryOf = (e: Endpoint) => exampleParams(e).map(([k, p]) => `${k}=${encodeURIComponent(String(p.example ?? ""))}`).join("&");
 
 /** The page for one register. `tryIt`: a browser may run the lookup free here. */
-export function registerCountryPage(c: RegisterCountry, origin: string, tryIt: boolean): string {
+export function registerCountryPage(c: RegisterCountry, origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const e = toolOf(c);
   const url = `${origin}${REGISTER_BASE}/${c.slug}`;
-  const title = `${c.adjective} company register lookup and API: ${c.numberName.replace(/ \(.*$/, "")} check · ${SERVICE_NAME}`;
+  const title = `${c.adjective} company register lookup and API: ${c.numberName.replace(/ \(.*$/, "")} check · ${brand}`;
   const description = `Look up a ${c.adjective} company by ${c.numberName.replace(/ \(.*$/, "")} or name, from ${c.authority}. The number's format and check digit, a live lookup, and an API for your own code.`.slice(0, 300);
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 2200 ? `${example.slice(0, 2200)}\n…` : example;
@@ -101,7 +101,7 @@ export function registerCountryPage(c: RegisterCountry, origin: string, tryIt: b
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>
 <style>${PAGE_STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a> › <a href="${REGISTER_BASE}">Company registers</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/company-check-api">Company check API</a> › <a href="${REGISTER_BASE}">Company registers</a></nav>
 <h1>${esc(c.adjective)} company register lookup</h1>
 <p class="tag">Look up a company in ${esc(c.country)} by its ${esc(c.numberName.replace(/ \(.*$/, ""))} or name, here or from your own code.</p>
 <div class="wrap"><table>
@@ -130,9 +130,9 @@ ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 }
 
 /** /company-register: the registers side by side. */
-export function registerIndexPage(origin: string): string {
+export function registerIndexPage(origin: string, brand: string = SERVICE_NAME): string {
   const url = `${origin}${REGISTER_BASE}`;
-  const title = `Company register lookup: Sweden, Norway, Finland, France · ${SERVICE_NAME}`;
+  const title = `Company register lookup: Sweden, Norway, Finland, France · ${brand}`;
   const description = "Look up companies in the Swedish, Norwegian, Finnish and French registers by company number or name: number formats, check digits, VAT numbers, and one API for all four.";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -142,7 +142,7 @@ export function registerIndexPage(origin: string): string {
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <style>${PAGE_STYLE}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/company-check-api">Company check API</a></nav>
 <h1>Company register lookup</h1>
 <p class="tag">Four national company registers behind one API key: look a company up by its number or name and get its register facts as JSON.</p>
 <div class="wrap"><table><tr><th>Country</th><th>Company number</th><th>Format</th><th>Register</th></tr>
