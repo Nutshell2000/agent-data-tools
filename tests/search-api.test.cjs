@@ -82,6 +82,18 @@ test('Exa SDK parity (14 Nov 2026): duplicate pages dropped, costDollars, a stre
   assert.deepEqual(chunks.at(-1), { requestId: 'r1', citations: [{ id: 'u', url: 'u', title: 't' }], costDollars: { total: 0.01 } });
 });
 
+test('an Exa search for EU law (category law, or only eur-lex.europa.eu) goes to the EU law index', async () => {
+  const lib = await load();
+  assert.deepEqual(lib.toToolQuery('/v1/search', { query: 'lawful processing', category: 'law', numResults: 3 }), { query: { q: 'lawful processing', count: '3' }, text: 0, tool: '/law/search' });
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', includeDomains: ['https://eur-lex.europa.eu/'] }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', includeDomains: ['eur-lex.europa.eu', 'github.com'] }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', category: 'news' }).tool, undefined);
+  const out = lib.toSearchApi('/v1/search', { results: [{ citation: 'GDPR, Article 6', heading: 'Lawfulness of processing', text: '1. Processing shall be lawful only if…', url: 'https://eur-lex.europa.eu/x#art_6', version: 'consolidated text of 2016-05-04', score: 1.02 }], attribution: 'A' }, '/law/search');
+  assert.equal(out.results[0].title, 'GDPR, Article 6: Lawfulness of processing');
+  assert.equal(out.results[0].text, '1. Processing shall be lawful only if…');
+  assert.equal(out.resolvedSearchType, 'eu-law-index');
+});
+
 test('find similar leaves out pages about the source itself', async () => {
   const b = await build({ entryPoints: ['src/routes/search.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['cloudflare:workers'] });
   const m = { exports: {} };

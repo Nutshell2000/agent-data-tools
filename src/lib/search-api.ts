@@ -73,7 +73,15 @@ export function searchFields(b: Record<string, unknown>): { query: Record<string
 }
 
 /** Maps a request body to the inner tool's query, or an error that is refused 400 when a payment came with it. */
-export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number } | { error: string } {
+/** The EU law index answers a search with a law category, or one limited to EUR-Lex (14 Nov 2026, the beat-Exa plan). */
+const LAW_CATEGORIES = new Set(["law", "legal", "legislation", "regulation", "eu law", "eu legislation"]);
+export function isLawSearch(b: Record<string, unknown>): boolean {
+  if (typeof b.category === "string" && LAW_CATEGORIES.has(b.category.trim().toLowerCase())) return true;
+  const domains = asList(b.includeDomains).map((d) => d.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, ""));
+  return domains.length > 0 && domains.every((d) => d === "eur-lex.europa.eu");
+}
+
+export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number; tool?: string } | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object" };
   const b = body as Record<string, unknown>;
   if (path === "/v1/search" || path === "/v1/findSimilar") {
@@ -83,6 +91,11 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
       if (!q) return { error: "query must be a non-empty string" };
       if (q.length > 400) return { error: "query must be at most 400 characters" };
       out.q = q;
+      if (isLawSearch(b)) {
+        const n = b.numResults === undefined || b.numResults === "" ? 5 : Number(b.numResults);
+        if (!Number.isInteger(n) || n < 1) return { error: "numResults must be a whole number from 1 (at most 10 are returned for EU law)" };
+        return { query: { q, count: String(Math.min(10, n)) }, text: 0, tool: "/law/search" };
+      }
     } else {
       const url = typeof b.url === "string" ? b.url.trim() : "";
       if (!url) return { error: "url must be a non-empty string" };
@@ -166,7 +179,20 @@ type SearchOut = {
   terms?: string; filters?: Record<string, unknown>; ignored?: string[]; query?: string;
 };
 /** The tool's answer in the neural-search response shape. The tool already read, highlighted and summarized what was asked. */
-export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>) {
+export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>, tool?: string) {
+  if (tool === "/law/search") {
+    // EU law passages as search results: the title is the citation, the text the provision, highlights its opening.
+    const r = inner as { results?: { citation: string; heading?: string; text: string; url: string; version: string; score?: number }[]; attribution?: string };
+    return {
+      requestId: requestId(),
+      resolvedSearchType: "eu-law-index",
+      results: (r.results ?? []).map((h) => ({
+        id: h.url, url: h.url, title: h.heading ? `${h.citation}: ${h.heading}` : h.citation, publishedDate: null, author: null, score: h.score ?? null,
+        text: h.text, highlights: [h.text.slice(0, 300)], version: h.version,
+      })),
+      terms: r.attribution,
+    };
+  }
   if (path === "/v1/search" || path === "/v1/findSimilar") {
     const r = inner as SearchOut;
     return {
@@ -201,7 +227,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const stream = path === "/v1/answer" && !!body && typeof body === "object" && ((body as Record<string, unknown>).stream === true || (body as Record<string, unknown>).stream === "true");
   const mapped = toToolQuery(path, body);
   if ("error" in mapped && paying) return c.json({ error: mapped.error }, 400);
-  const tool = SEARCH_API_PATHS[path];
+  const tool = ("tool" in mapped && mapped.tool) || SEARCH_API_PATHS[path];
   const outer = new URL(c.req.url);
   const inner = new URL(tool, outer.origin);
   // An unpaid or empty request gets the tool's quote for its published example, under this front's own path.
@@ -219,7 +245,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const priced = ENDPOINTS.find((e) => e.path === tool);
   const how = answer.headers.get("x-free-trial-remaining") !== null ? "free" : c.req.header("authorization") || c.req.header("x-api-key") ? "key" : "paid";
   const cost = costDollars(priced?.price, priced ? keyPrice(priced.path, priced.price) : undefined, how);
-  const shaped = { ...toSearchApi(path, result), ...(cost ? { costDollars: cost } : {}) };
+  const shaped = { ...toSearchApi(path, result, tool), ...(cost ? { costDollars: cost } : {}) };
   const out = stream
     ? new Response(answerStream(shaped as Parameters<typeof answerStream>[0]), { status: 200, headers: { "Content-Type": "text/event-stream; charset=utf-8" } })
     : c.json(shaped, 200);
