@@ -214,3 +214,53 @@ test('every rule and every business term has German wording, and both page langu
   const map = EN.withEinvoicePages('<urlset><url><loc>https://example.test/</loc></url></urlset>', origin);
   assert.equal((map.match(/<loc>/g) || []).length, 1 + paths.length);
 });
+
+test('the ZUGFeRD PDF is a well-formed PDF/A-3 shaped file that carries the same XML', async () => {
+  const PDF = await load('src/lib/einvoice/pdf.ts'), X = await load('src/lib/einvoice/pdf-xml.ts');
+  const made = route.createEinvoice({ ...PLAIN, note: 'Größere Mengen auf Anfrage – Preise in € zzgl. USt. Łódź' }, 'zugferd');
+  const options = { now: new Date('2026-11-14T12:00:00Z'), id: 'ab'.repeat(16) };
+  const pdf = PDF.writeZugferdPdf(made.invoice, made.xml, options);
+  assert.deepEqual(PDF.writeZugferdPdf(made.invoice, made.xml, options), pdf, 'same input, same bytes');
+  const text = Buffer.from(pdf).toString('latin1');
+  assert.ok(text.startsWith('%PDF-1.7\n%') && text.trimEnd().endsWith('%%EOF'));
+  // Every cross-reference entry points at its object.
+  const xrefAt = Number(/startxref\n(\d+)\n%%EOF/.exec(text)[1]);
+  assert.ok(text.startsWith('xref\n0 ', xrefAt));
+  const entries = text.slice(xrefAt).split('\n').filter((l) => /^\d{10} 00000 n $/.test(l));
+  assert.ok(entries.length >= 17);
+  entries.forEach((line, i) => assert.ok(text.startsWith(`${i + 1} 0 obj\n`, Number(line.slice(0, 10))), `object ${i + 1}`));
+  assert.equal(Number(/\/Size (\d+)/.exec(text.slice(xrefAt))[1]), entries.length + 1);
+  // Stream lengths are exact.
+  for (const m of text.matchAll(/\/Length (\d+) >>\nstream\n/g)) assert.ok(text.startsWith('\nendstream', m.index + m[0].length + Number(m[1])), 'stream length');
+  // What PDF/A-3 and Factur-X ask for.
+  for (const part of ['/Type /Catalog', '/Metadata 3 0 R', '/AF [4 0 R]', '/AFRelationship /Alternative', '/Type /EmbeddedFile /Subtype /text#2Fxml', '/EmbeddedFiles << /Names [(factur-x.xml) 4 0 R]',
+    '<pdfaid:part>3</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance>', '<fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>', '<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>',
+    '/Subtype /CIDFontType2', '/FontFile2', '/ToUnicode', '/CalGray']) assert.ok(text.includes(part), part);
+  for (const banned of ['/DeviceRGB', '/DeviceGray', '/DeviceCMYK', '/Encrypt', '/JavaScript', '/SMask', ' rg', ' RG', ' g\n', ' G\n']) assert.ok(!text.includes(banned), `no ${banned}`);
+  assert.equal(await X.embeddedInvoiceXml(pdf), made.xml);
+  assert.ok(pdf.length < 120000);
+  // German labels for a German seller, English otherwise or on request.
+  const glyphHex = (font, s) => [...s].map((ch) => font.cmap.get(ch.codePointAt(0)).toString(16).padStart(4, '0').toUpperCase()).join('');
+  const F = await load('src/data/invoice-font.generated.ts');
+  assert.ok(text.includes(glyphHex(F.FONT_BOLD, 'Rechnung')));
+  assert.ok(Buffer.from(PDF.writeZugferdPdf(made.invoice, made.xml, { ...options, lang: 'en' })).toString('latin1').includes(glyphHex(F.FONT_BOLD, 'Invoice')));
+  for (const ch of 'äöüßÄÖÜ€–„“éèçñøåŁłńśźżČčŘřŠšŽžğı') assert.ok(F.FONT_REGULAR.cmap.has(ch.codePointAt(0)) && F.FONT_BOLD.cmap.has(ch.codePointAt(0)), `font has ${ch}`);
+});
+
+test('create returns the PDF as pdfBase64, and MCP hands it over as a file, not as text', async () => {
+  const create = route.EINVOICE[0];
+  const out = await create.run({}, (n) => ({ invoice: route.EXAMPLE_INVOICE_JSON, format: 'zugferd-pdf', language: 'en' })[n]);
+  assert.equal(out.format, 'zugferd-pdf');
+  assert.equal(out.filename, 'RE-2026-0042.pdf');
+  assert.equal(out.contentType, 'application/pdf');
+  const bytes = Buffer.from(out.pdfBase64, 'base64');
+  assert.equal(bytes.length, out.bytes);
+  assert.ok(bytes.subarray(0, 8).toString('latin1') === '%PDF-1.7' && out.xml.includes('CrossIndustryInvoice') && /PDF\/A-3b/.test(out.note));
+  assert.throws(() => create.run({}, (n) => ({ invoice: route.EXAMPLE_INVOICE_JSON, format: 'pdf', language: 'fr' })[n]), /language must be one of/);
+  assert.ok(create.endpoint.params.format.enum.includes('zugferd-pdf') && create.endpoint.description.length <= 450);
+  const mcp = await load('src/mcp.ts');
+  const content = mcp.toContent(out);
+  assert.equal(content.length, 2);
+  assert.ok(!content[0].text.includes(out.pdfBase64.slice(0, 200)), 'the PDF is not repeated in the text block');
+  assert.deepEqual(content[1], { type: 'resource', resource: { uri: 'file:///RE-2026-0042.pdf', mimeType: 'application/pdf', blob: out.pdfBase64 } });
+});

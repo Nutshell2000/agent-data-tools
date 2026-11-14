@@ -184,7 +184,7 @@ export function einvoiceIndexPage(origin: string, tryIt: boolean, brand: string 
   const description = "Create XRechnung and ZUGFeRD / Factur-X XML from JSON, validate e-invoices against EN 16931 and XRechnung business rules with plain-language errors, and convert e-invoice XML to JSON. One HTTP call each, no library to run.";
   const faq: [string, string][] = [
     ["Which formats does it handle?", "XRechnung 3.0 in both syntaxes (UN/CEFACT CII and UBL), the XML of ZUGFeRD 2.x and Factur-X in the EN 16931 profile, and other EN 16931 UBL or CII invoices such as Peppol BIS Billing 3.0. A ZUGFeRD or Factur-X PDF can be sent as it is: the embedded XML is read."],
-    ["Does it create the ZUGFeRD PDF?", "No. It creates the XML part (factur-x.xml). Producing the PDF/A-3 that carries the XML is not done here yet."],
+    ["Does it create the ZUGFeRD PDF?", "Yes, with format zugferd-pdf: a readable A4 invoice with the factur-x.xml embedded, built to PDF/A-3b with embedded fonts. The layout is plain and fixed (no logo, no custom design), and the file has not been certified by a PDF/A validator. It does not attach XML to a PDF you made yourself."],
     ["Is this the official validator?", "No. It runs a subset of the EN 16931 and XRechnung 3.0 business rules, listed on the rules page, and explains each failure. A file that passes here can still fail the official KoSIT validator, which also checks the XML schema and every code list."],
     ["When do German companies have to issue e-invoices?", "As the law stands on 14 November 2026: companies with more than EUR 800,000 turnover in the previous year from 1 January 2027, all companies from 1 January 2028, for invoices between businesses in Germany. Receiving e-invoices has been mandatory since 1 January 2025. A postponement has been proposed; check the current state with your tax adviser."],
     ["Are my invoices stored?", "No. A file is read in memory for the one request and is not stored or logged."],
@@ -194,7 +194,7 @@ export function einvoiceIndexPage(origin: string, tryIt: boolean, brand: string 
 <h1>E-invoice API: create, validate, convert</h1>
 <p class="tag">XRechnung, ZUGFeRD and Factur-X from one HTTP call each, for shops, ERPs, automation workflows and AI agents that cannot run a Java or Node library.</p>
 <div class="wrap"><table>
-<tr><th><a href="/tools/${esc(toolSlug(create.path))}">Create</a></th><td>Plain JSON in (seller, buyer, lines, VAT rate, IBAN), XRechnung or ZUGFeRD / Factur-X XML out. Line totals, VAT breakdown and totals are computed and checked first.</td></tr>
+<tr><th><a href="/tools/${esc(toolSlug(create.path))}">Create</a></th><td>Plain JSON in (seller, buyer, lines, VAT rate, IBAN), XRechnung XML or a ZUGFeRD / Factur-X PDF out. Line totals, VAT breakdown and totals are computed and checked first.</td></tr>
 <tr><th><a href="/tools/${esc(toolSlug(validate.path))}">Validate</a></th><td>Every broken business rule with its number (BR-DE-15, BR-CO-15), the figures from your file and the fix. <a href="${EINVOICE_RULES}">${RULES.length} rules</a>.</td></tr>
 <tr><th><a href="/tools/${esc(toolSlug(toJson.path))}">Convert to JSON</a></th><td>An incoming e-invoice (XML, or the PDF with the XML inside) as JSON: parties, lines, VAT, totals, bank account. Exact values, no AI.</td></tr>
 </table></div>
@@ -203,7 +203,7 @@ ${tryIt ? validatorForm("Validate an e-invoice now") : ""}
 <pre><code>curl -X POST "${esc(origin)}/einvoice/create" \\
   -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \\
   -d '${esc(JSON.stringify({ format: "xrechnung", invoice: JSON.parse(EXAMPLE_INVOICE_JSON) }, null, 1))}'</code></pre>
-<p><code>format</code>: <code>xrechnung</code> (CII), <code>xrechnung-ubl</code>, <code>zugferd</code> (the factur-x.xml) or <code>ubl</code>. Data that breaks a rule is refused with the rule numbers and is not charged.</p>
+<p><code>format</code>: <code>xrechnung</code> (CII), <code>xrechnung-ubl</code>, <code>zugferd-pdf</code> (a readable PDF/A-3 invoice with the XML inside, returned as <code>pdfBase64</code>), <code>zugferd</code> (the factur-x.xml alone) or <code>ubl</code>. Data that breaks a rule is refused with the rule numbers and is not charged.</p>
 <h2>Validate or convert a file</h2>
 <pre><code>curl -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/xml" \\
   --data-binary @invoice.xml "${esc(origin)}/einvoice/validate"
@@ -215,7 +215,7 @@ curl -H "Authorization: Bearer $API_KEY" \\
 <h2>Pricing</h2>
 <p>Each call counts as one ordinary call of your key. Keys and monthly plans: <a href="/credits">pricing</a>. A failed or refused call is never charged.</p>
 <h2>What it does not do</h2>
-<ul><li>No ZUGFeRD / Factur-X PDF: the XML part only.</li><li>No sending: it does not transmit to Peppol, to a French platform or to a public-sector portal.</li><li>Not the official KoSIT validator, and not tax advice.</li><li>Allowances and charges, attachments, card and direct-debit payments are not written, and their rules are not checked.</li></ul>
+<ul><li>The ZUGFeRD / Factur-X PDF has one plain layout: no logo, no custom design, and no attaching XML to your own PDF.</li><li>No sending: it does not transmit to Peppol, to a French platform or to a public-sector portal.</li><li>Not the official KoSIT validator, and not tax advice.</li><li>Allowances and charges, attachments, card and direct-debit payments are not written, and their rules are not checked.</li></ul>
 <h2>Questions</h2>
 ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 ${foot()}`;
