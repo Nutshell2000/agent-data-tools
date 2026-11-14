@@ -179,7 +179,7 @@ footer{margin-top:40px;color:var(--muted);font-size:.9rem}`;
  * `tryLabel` names a capped try. `guideTitle` resolves a guide slug to its phrase (the guides module imports
  * nothing from here, so the route passes it in).
  */
-export function productPage(p: Product, origin: string, tryIt: boolean, guideTitle: (slug: string) => string | undefined, tryLabel?: string, cardReady = true): string {
+export function productPage(p: Product, origin: string, tryIt: boolean, guideTitle: (slug: string) => string | undefined, tryLabel?: string, cardReady = true, brand: string = SERVICE_NAME): string {
   const e = BY_PATH.get(p.tool)!;
   const url = `${origin}/${p.slug}`;
   const s = samples(e, origin);
@@ -188,14 +188,14 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
   const keyPrice = keyPriceOf(e);
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 2500 ? `${example.slice(0, 2500)}\n…` : example;
-  const title = `${p.name}: ${lead ? `from ${lead.label.replace(" once", "")}` : `${keyPrice} per call`} · ${SERVICE_NAME}`;
+  const title = `${p.name}: ${lead ? `from ${lead.label.replace(" once", "")}` : `${keyPrice} per call`} · ${brand}`;
   const description = `${p.tagline} ${lead ? `${lead.label}: ${lead.calls} ${p.unit}.` : ""} Failed calls are never charged.`.slice(0, 300);
   const also = p.also.map((path) => BY_PATH.get(path)).filter((o): o is Endpoint => Boolean(o));
   const guides = p.guides.map((g) => [g, guideTitle(g)] as const).filter((g): g is readonly [string, string] => Boolean(g[1]));
   const params = Object.entries(e.params).filter(([name]) => name !== "only");
   const ld = {
     "@context": "https://schema.org", "@type": "WebAPI", name: p.name, description: p.tagline, url, documentation: `${origin}/tools/${toolSlug(e.path)}`,
-    provider: { "@type": "Organization", name: SERVICE_NAME, url: origin },
+    provider: { "@type": "Organization", name: brand, url: origin },
     offers: offers.map((o) => ({ "@type": "Offer", price: o.label.replace(/[^0-9.]/g, ""), priceCurrency: "USD", description: `${o.label}: ${o.calls} ${p.unit}` })),
   };
   const faqLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: p.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
@@ -210,7 +210,7 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd(faqLd)}</script>
 <style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a></nav>
 <h1>${esc(p.name)}</h1>
 <p class="tag">${esc(p.tagline)}</p>
 <ul class="points">${p.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
