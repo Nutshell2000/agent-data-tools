@@ -57,6 +57,8 @@ export interface CompanyHit {
   status?: string | null;
   /** A register's entry for a company incorporated in another country (a branch or foreign legal person). */
   branchOfForeign?: boolean;
+  /** The ultimate parent of the best match, put first because its name holds the name asked for. */
+  groupParent?: boolean;
 }
 
 type LeiRecord = Parameters<typeof leiView>[0];
@@ -83,6 +85,12 @@ export function countriesOf(raw: string | undefined): string[] | null {
 }
 
 const digits = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
+/** Two core names are the same company name when they match word for word, a plural "s" aside ("Volvo Cars", "Volvo Car"). */
+export const sameName = (a: string, b: string) => a === b || (a.split(" ").length === b.split(" ").length && a.split(" ").every((w, i) => w.replace(/s$/, "") === b.split(" ")[i].replace(/s$/, "")));
+/** The link to the ultimate parent's own LEI record, when a GLEIF record reports one (the entity belongs to a group); else "". */
+const parentLink = (r: unknown) => (r as { relationships?: { "ultimate-parent"?: { links?: Record<string, string> } } }).relationships?.["ultimate-parent"]?.links?.["lei-record"] ?? "";
+export type ParentRead = (link: string) => Promise<LeiRecord | null>;
+const parentRead: ParentRead = async (link) => (link.startsWith("https://api.gleif.org/") ? (await getJson<{ data?: LeiRecord }>(link, { timeoutMs: 4_000 })).data ?? null : null);
 
 /**
  * A register's entry for a company incorporated abroad: Sweden's "utländsk juridisk person", Norway's NUF ("norskregistrert
@@ -96,7 +104,7 @@ export const isForeignBranch = (h: Pick<CompanyHit, "country" | "legalForm">) =>
   || (h.country === "CZ" && /^Zahraniční osoba/.test(h.legalForm ?? ""))
   || (h.country === "EE" && /filiaal/i.test(h.legalForm ?? ""));
 
-export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: Searchers; lei?: LeiSearch; now?: () => Date } = {}) {
+export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: Searchers; lei?: LeiSearch; parent?: ParentRead; now?: () => Date } = {}) {
   const searchers = deps.searchers ?? ALL_SEARCHERS;
   const lei = deps.lei ?? leiSearch;
   const want = coreName(name);
@@ -122,7 +130,7 @@ export async function companySearch(name: string, countries: string[] | null, li
         const extra = m as { bankrupt?: boolean };
         return {
           name: m.name, country: c, idType: s.idType, id, legalForm: m.legalForm ?? null, city: m.city ?? null,
-          exact: coreName(m.name) === want, url: PAGES[c](id), details: `${DETAIL[c]}${encodeURIComponent(id)}`, lei: null, source: s.source,
+          exact: sameName(coreName(m.name), want), url: PAGES[c](id), details: `${DETAIL[c]}${encodeURIComponent(id)}`, lei: null, source: s.source,
           ...(extra.bankrupt ? { status: "bankrupt" } : {}),
         } satisfies CompanyHit;
       }).filter((h): h is NonNullable<typeof h> => h !== null);
@@ -145,10 +153,10 @@ export async function companySearch(name: string, countries: string[] | null, li
         const v = leiView(r);
         return {
           name: v.legalName ?? "", country: v.legalAddress?.country ?? (v.jurisdiction ?? "").slice(0, 2), idType: "LEI", id: v.lei,
-          legalForm: null, city: v.legalAddress?.city ?? null, exact: coreName(v.legalName ?? "") === want, url: v.url,
+          legalForm: null, city: v.legalAddress?.city ?? null, exact: sameName(coreName(v.legalName ?? ""), want), url: v.url,
           details: `/lei/lookup?lei=${v.lei}`, lei: v.lei, source: "GLEIF (CC0)", status: v.entityStatus === "ACTIVE" ? "active" : (v.entityStatus ?? "").toLowerCase() || null,
-          registeredAs: v.registeredAs,
-        } as CompanyHit & { registeredAs: string | null };
+          registeredAs: v.registeredAs, parent: parentLink(r),
+        } as CompanyHit & { registeredAs: string | null; parent: string };
       }).filter((h) => h.name);
     } catch {
       failed.push(label);
@@ -161,10 +169,13 @@ export async function companySearch(name: string, countries: string[] | null, li
   // A GLEIF record of an entity a register already returned (same country, same register number) adds its LEI there.
   const registerHits = reg.flat();
   const leiRest: CompanyHit[] = [];
-  for (const h of leiHits.flat() as (CompanyHit & { registeredAs?: string | null })[]) {
-    const { registeredAs, ...hit } = h;
+  // Group members: the link to their ultimate parent's LEI record (see the parent step below the sort).
+  const parents = new Map<CompanyHit, string>();
+  for (const h of leiHits.flat() as (CompanyHit & { registeredAs?: string | null; parent?: string })[]) {
+    const { registeredAs, parent, ...hit } = h;
     const twin = registerHits.find((r) => r.country === hit.country && digits(registeredAs) !== "" && digits(r.id) === digits(registeredAs));
-    if (twin) { twin.lei = hit.id; continue; }
+    if (twin) { twin.lei = hit.id; if (parent) parents.set(twin, parent); continue; }
+    if (parent) parents.set(hit, parent);
     // GLEIF's full-text search also matches other names and addresses ("Nokia" found "PO & MS Oy"): an LEI-only entity
     // is kept only when its own name holds every word asked for.
     const own = ` ${coreName(hit.name)} `;
@@ -177,7 +188,7 @@ export async function companySearch(name: string, countries: string[] | null, li
   for (const h of registerHits) if (isForeignBranch(h)) h.branchOfForeign = true;
   // Whole words: "Equinor OTS AB" starts with "Equinor", "EquiNorr AB" does not.
   const starts = (h: CompanyHit) => { const core = coreName(h.name); return core === want || core.startsWith(`${want} `); };
-  const results = [...registerHits, ...leiRest]
+  const ordered = [...registerHits, ...leiRest]
     .map((h, i) => ({ h, i }))
     .sort((a, b) => Number(b.h.exact) - Number(a.h.exact)
       || Number(Boolean(a.h.branchOfForeign)) - Number(Boolean(b.h.branchOfForeign))
@@ -188,7 +199,27 @@ export async function companySearch(name: string, countries: string[] | null, li
       || Number(starts(b.h)) - Number(starts(a.h))
       || coreName(a.h.name).length - coreName(b.h.name).length
       || a.i - b.i)
-    .map(({ h }) => h)
+    .map(({ h }) => h);
+  // The group behind the name: when the best match belongs to a group (its GLEIF record reports an ultimate parent) and
+  // the parent's own name holds every word asked for, the parent comes first. 14 Nov 2026 benchmark against Exa: "Klarna"
+  // gave KLARNA INC. (the US subsidiary), "Danone" DANONE AS in Norway, "Kone" KONE INC. Asked once per search and only
+  // then; a slow or failed read changes nothing.
+  const top = ordered[0];
+  if (top && parents.has(top)) {
+    const rec = await (deps.parent ?? parentRead)(parents.get(top)!).catch(() => null);
+    const v = rec ? leiView(rec) : null;
+    const own = v?.legalName ? coreName(v.legalName).split(" ") : [];
+    if (v?.legalName && want.split(" ").every((w) => own.some((o) => sameName(o, w)))) {
+      const twin = ordered.findIndex((h) => h.lei === v.lei);
+      const group: CompanyHit = twin >= 0 ? { ...ordered.splice(twin, 1)[0], groupParent: true } : {
+        name: v.legalName, country: v.legalAddress?.country ?? (v.jurisdiction ?? "").slice(0, 2), idType: "LEI", id: v.lei, legalForm: null,
+        city: v.legalAddress?.city ?? null, exact: sameName(coreName(v.legalName), want), url: v.url, details: `/lei/lookup?lei=${v.lei}`, lei: v.lei,
+        source: "GLEIF (CC0)", status: v.entityStatus === "ACTIVE" ? "active" : (v.entityStatus ?? "").toLowerCase() || null, groupParent: true,
+      };
+      ordered.unshift(group);
+    }
+  }
+  const results = ordered
     .slice(0, limit)
     // A field a source does not give is left out rather than sent as null: the published output schema is derived from
     // the example's first result, and an absent field never contradicts it.

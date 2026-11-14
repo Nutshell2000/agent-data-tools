@@ -17,7 +17,7 @@ import { mevSimulator } from "./routes/mev-simulator";
 import { packageInfo } from "./routes/package";
 import { packageAudit } from "./routes/package-audit";
 import { baseGas } from "./routes/gas";
-import { searchPapers } from "./routes/papers";
+import { modelTitleGuess, searchPapers } from "./routes/papers";
 import { bitcoinPriceIn, exchangeRates } from "./routes/rates";
 import { timeInZone } from "./routes/time";
 import { tradeInsight } from "./routes/trade-insight";
@@ -58,7 +58,7 @@ const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown
   "/package-audit": (_env, q) => packageAudit(q("packages")),
   "/package": (_env, q) => packageInfo(q("ecosystem") ?? "", q("name") ?? "", q("version")),
   "/email": (_env, q) => emailCheck(q("address") ?? ""),
-  "/papers": (_env, q) => searchPapers(q("query"), q("limit"), q("fromYear")),
+  "/papers": (env, q) => searchPapers(q("query"), q("limit"), q("fromYear"), modelTitleGuess(env), env.OPENALEX_API_KEY),
   "/fx": (_env, q) => exchangeRates(q("from") ?? "", q("to"), q("amount")),
   "/btc-price": (_env, q) => bitcoinPriceIn(q("currency")),
   "/base-gas": (env) => baseGas(env),
