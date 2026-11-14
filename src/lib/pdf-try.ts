@@ -18,10 +18,16 @@ export const pdfTryOn = (env: Pick<Env, "PDF_TRY">, path: string): boolean => en
 export const pdfTryFor = (env: Pick<Env, "PDF_TRY">, path: string, accept: string | undefined, userAgent: string | undefined): boolean =>
   pdfTryOn(env, path) && isBrowser(accept, userAgent);
 
-/** Takes one read from the day's total; false when the day is used up (the caller then gets the ordinary payment request). */
-export async function takePdfTry(env: Env): Promise<boolean> {
+/**
+ * Takes one read from the day's total; false when the day is used up (the caller then gets the ordinary payment request).
+ * A try on an uploaded file draws from its own total (PDF_TRY_UPLOAD_DAILY_CAP, default 150): on 14 Nov 2026 the URL
+ * tries were used up by 10:20 local time (146 of 150, by fetchers that send a browser's headers), so a visitor with a
+ * file on the product page got the payment request. A fetcher reads URLs; it does not post files.
+ */
+export async function takePdfTry(env: Env, upload = false): Promise<boolean> {
   try {
-    await takeDailyBudget(env, "pdftry", env.PDF_TRY_DAILY_CAP, 150, "free PDF try");
+    if (upload) await takeDailyBudget(env, "pdftry-upload", env.PDF_TRY_UPLOAD_DAILY_CAP, 150, "free PDF try on an uploaded file");
+    else await takeDailyBudget(env, "pdftry", env.PDF_TRY_DAILY_CAP, 150, "free PDF try");
     return true;
   } catch {
     return false;
