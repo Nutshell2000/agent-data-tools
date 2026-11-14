@@ -121,7 +121,7 @@ test('Excel: each sheet as a table, cells placed by their reference', async () =
   assert.equal(md.type, 'xlsx');
   assert.deepEqual(md.sheets, [{ name: 'Sales', rows: 2, columns: 4 }, { name: 'Empty', rows: 0, columns: 0 }]);
   assert.equal(md.text, '## Sales\n\n| Region |  | Total |  |\n| --- | --- | --- | --- |\n| Nordics | note | 1250.5 | TRUE |');
-  assert.match(md.note, /dates as Excel's day numbers/);
+  assert.match(md.note, /Dates and times are given in ISO form/);
   const plain = await D.readDocument(xlsx(), 'text', 50_000);
   assert.equal(plain.text, 'Sales\nRegion\t\tTotal\nNordics\tnote\t1250.5\tTRUE');
 });
@@ -243,6 +243,51 @@ test('fields out of a document: the file\'s text goes to the model once, and the
   m.exports.F.releaseFile(long);
 });
 
+test('list fields: row keys given in brackets are the keys every row gets, whatever the model called them', async () => {
+  const A = await load('src/routes/ai-text.ts');
+  assert.deepEqual(A.listFields('invoice_number, line_items[description, quantity,amount], total'), { fields: ['invoice_number', 'line_items', 'total'], lists: { line_items: ['description', 'quantity', 'amount'] } });
+  assert.deepEqual(A.listFields('a,b , a'), { fields: ['a', 'b'], lists: {} });
+  for (const bad of ['a[b', 'a]b', 'x[]', 'a[b[c]]', '', ',', `x[${Array.from({ length: 13 }, (_, i) => `k${i}`).join(',')}]`, Array.from({ length: 31 }, (_, i) => `f${i}`).join(','), 'drop{table}']) {
+    assert.throws(() => A.listFields(bad), (e) => e.status === 400, JSON.stringify(bad));
+  }
+  const prompts = [];
+  const reply = { invoice_number: ['58231'], total: '21662.5', line_items: [{ description: ['Resa'], qty: 2, quantity: 2, amount: 500, extra: 'x' }, 'not a row', { description: 'Material' }] };
+  const env = { AI: { run: async (_m, input) => { prompts.push(JSON.stringify(input)); return { response: JSON.stringify(reply) }; } } };
+  const out = await A.extractFields(env, 'text', ['invoice_number', 'line_items', 'total', 'due_date'], 'model-x', 900, { line_items: ['description', 'quantity', 'amount'] });
+  assert.deepEqual(out.data, { invoice_number: '58231', line_items: [{ description: 'Resa', quantity: 2, amount: 500 }, { description: 'Material', quantity: null, amount: null }], total: '21662.5', due_date: null });
+  assert.deepEqual(out.missing, ['due_date']);
+  assert.match(prompts[0], /exactly the keys \[\\"description\\",\\"quantity\\",\\"amount\\"\]/);
+  assert.match(prompts[0], /never an array/);
+  // No rows found is an empty list, reported as missing; a plain request is worded and answered as before.
+  const none = await A.extractFields({ AI: { run: async () => ({ response: '{"line_items":null}' }) } }, 'text', ['line_items'], 'model-x', 900, { line_items: ['a'] });
+  assert.deepEqual(none, { data: { line_items: [] }, missing: ['line_items'], model: 'model-x' });
+  prompts.length = 0;
+  const plain = await A.extractFields(env, 'text', ['invoice_number']);
+  assert.deepEqual(plain.data, { invoice_number: ['58231'] }, 'without list fields a value is passed through untouched');
+  assert.ok(!/array/.test(prompts[0]));
+});
+
+test('Word: a text box is read once and footnotes follow the body; Excel: day numbers in date-styled cells become dates', async () => {
+  const box = `<w:document ${W} xmlns:mc="mc"><w:body><w:p><w:r><mc:AlternateContent><mc:Choice><w:txbxContent>${p('Datum plane')}</w:txbxContent></mc:Choice><mc:Fallback><w:txbxContent>${p('Datum plane')}</w:txbxContent></mc:Fallback></mc:AlternateContent></w:r></w:p>${p('Body text')}</w:body></w:document>`;
+  const notes = `<w:footnotes ${W}><w:footnote w:type="separator"><w:p/></w:footnote><w:footnote w:id="1">${p('See the 2025 report.')}</w:footnote></w:footnotes>`;
+  const word = await D.readDocument(zip({ 'word/document.xml': box, 'word/footnotes.xml': notes }), 'markdown', 50_000);
+  assert.equal(word.text, 'Datum plane\n\nBody text\n\n## Footnotes\n\nSee the 2025 report.');
+
+  assert.deepEqual([45975, 45975.5, 0.39583333, 1, 59, 61].map((n) => D.excelDate(n)), ['2025-11-14', '2025-11-14T12:00:00', '09:30:00', '1900-01-01', '1900-02-28', '1900-03-01']);
+  assert.equal(D.excelDate(44513, true), '2025-11-14');
+  for (const bad of [-1, NaN, 3_000_000]) assert.equal(D.excelDate(bad), null);
+  for (const [code, is] of [['yyyy-mm-dd', true], ['[$-409]d-mmm-yy', true], ['h:mm', true], ['0.00', false], ['#,##0 "kr"', false], ['General', false], ['0%', false], ['"day" 0', false]]) assert.equal(D.isDateFormat(code), is, code);
+  const styles = '<styleSheet><numFmts><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="165" formatCode="#,##0.00 &quot;kr&quot;"/></numFmts><cellXfs><xf numFmtId="0"/><xf numFmtId="164"/><xf numFmtId="165"/><xf numFmtId="14"/><xf numFmtId="20"/></cellXfs></styleSheet>';
+  assert.deepEqual(D.dateStyles(styles), [false, true, false, true, true]);
+  const book = (pr = '') => zip({
+    'xl/workbook.xml': `<workbook xmlns:r="r">${pr}<sheets><sheet name="Orders" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>',
+    'xl/styles.xml': styles,
+    'xl/worksheets/sheet1.xml': '<worksheet><sheetData><row r="1"><c r="A1" s="1"><v>45975</v></c><c r="B1" s="2"><v>1250.5</v></c><c r="C1" s="3"><v>45975.5</v></c><c r="D1" s="4"><v>0.39583333</v></c><c r="E1"><v>45975</v></c><c r="F1" s="0"><v>2.6303323046962774324020672609</v></c><c r="G1" s="1" t="str"><v>45975</v></c></row></sheetData></worksheet>',
+  });
+  assert.equal((await D.readDocument(book(), 'text', 50_000)).text, 'Orders\n2025-11-14\t1250.5\t2025-11-14T12:00:00\t09:30:00\t45975\t2.630332304696277\t45975');
+  assert.match((await D.readDocument(book('<workbookPr date1904="1"/>'), 'text', 50_000)).text, /^Orders\n2029-11-15\t/);
+});
 let mf;
 after(async () => { await mf?.dispose(); });
 test('through the Worker: an uploaded Word file is read, by its bytes and not its content type', async () => {

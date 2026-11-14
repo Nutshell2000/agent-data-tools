@@ -17,7 +17,7 @@ import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
-import { withPublicCanonical } from "./lib/public-site";
+import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
 import { publicBrand } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
@@ -117,9 +117,17 @@ app.use(async (c, next) => {
 app.use(async (c, next) => {
   await next();
   const site = c.env.PUBLIC_SITE_ORIGIN;
-  if (!site || c.req.method !== "GET" || c.res.status !== 200 || !(c.res.headers.get("content-type") ?? "").includes("text/html")) return;
+  if (!site || c.req.method !== "GET" || c.res.status !== 200) return;
+  // The sitemap moves with the pages: left on a retired host, search engines would keep reading the old addresses from it.
+  const isPage = (c.res.headers.get("content-type") ?? "").includes("text/html");
+  if (!isPage && c.req.path !== "/sitemap.xml") return;
   const here = origin(c.req.url);
   if (here === site) return;
+  // A host that used to be the public home sends people and search engines on to the new one, page for page. Only
+  // pages move: tool calls, catalogs and payments on that host answer as before.
+  const moved = movedPageUrl(c.req.url, site, c.env.RETIRED_PUBLIC_HOSTS);
+  if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600" } }); return; }
+  if (!isPage) return;
   const html = await c.res.text();
   const headers = new Headers(c.res.headers);
   headers.delete("content-length");
