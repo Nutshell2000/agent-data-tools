@@ -669,6 +669,8 @@
     "/market/sentiment": "$0.002",
     "/gpt/pricing": "$0.01",
     "/claude/pricing": "$0.01",
+    "/grok/pricing": "$0.01",
+    "/minimax/pricing": "$0.01",
     "/solana/price": "$0.002",
     "/ethereum/price": "$0.002",
     "/coin": "$0.01",
