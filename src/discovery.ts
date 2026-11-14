@@ -14,7 +14,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.179.0";
+export const MCP_SERVER_VERSION = "1.180.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -247,6 +247,9 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
+  // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
+  "/invoice/check": "Company, compliance and checks",
+  "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/cve": "Company, compliance and checks",
   "/se/company": "Company, compliance and checks",
   "/no/company": "Company, compliance and checks",
