@@ -46,6 +46,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (["/audit/contract", "/contract/audit"].includes(e.path)) assert.equal(e.price, "$1.00", e.path);
     // The one-call invoice check (1.180.0): a model call plus up to two VIES checks; per-document invoice products cost $0.05-0.16.
     else if (e.path === "/invoice/check") assert.equal(e.price, "$0.05", e.path);
+    // Resold LinkedIn and X data (1.180.0): the upstream's $0.007 plus margin and the facilitator fee.
+    else if (["/linkedin/profile", "/linkedin/company-posts", "/x/search"].includes(e.path)) assert.equal(e.price, "$0.012", e.path);
     // Round 8 doors (10 Nov 2026): a door carries its tool's price, and /page/markdown runs /extract ($0.002).
     else if (e.path === "/page/markdown") assert.equal(e.price, "$0.002", e.path);
     // Company financial statements and their two doors (owner, 11 Nov 2026: "Yes, at $0.02"): the Bazaar's statement sellers charge $0.02-0.10.
