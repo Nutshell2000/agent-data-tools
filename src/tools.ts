@@ -1,4 +1,5 @@
 import { assertToolOutput } from "./lib/output-contract";
+import { messagesAsArray } from "./lib/chat-messages";
 import { sitemap } from "./routes/sitemap";
 import { HttpError, type Env } from "./lib/env";
 import { ENDPOINTS, PAUSED_FAMILY_TOOLS } from "./endpoints";
@@ -148,8 +149,10 @@ const messageText = (content: unknown): string => typeof content === "string" ? 
  * (/ai/chat-large, the models by name, /image): the system and developer turns are the system prompt; one user turn is the
  * prompt as sent, a longer conversation becomes a "User: … / Assistant: …" transcript. Anything unreadable is no input.
  */
-export function messagePart(raw: string | undefined, part: "prompt" | "system"): string | undefined {
-  if (!raw?.trim().startsWith("[")) return undefined;
+export function messagePart(sentRaw: string | undefined, part: "prompt" | "system"): string | undefined {
+  // One message object or plain text count as a one-message list (src/lib/chat-messages.ts, 14 Nov 2026).
+  const raw = messagesAsArray(sentRaw);
+  if (!raw?.startsWith("[")) return undefined;
   let list: unknown;
   try { list = JSON.parse(raw); } catch { return undefined; }
   if (!Array.isArray(list)) return undefined;
@@ -176,6 +179,8 @@ export const normalizedInput = (sent: Input): Input => (name) => {
     const v = sent(alias);
     if (alias === "urls") return v?.split(",")[0]?.trim() || undefined;
     if (alias === "messages") return n === "prompt" || n === "system" ? messagePart(v, n) : undefined;
+    // A Responses-style `input` (or a `message`) holding role/content items is a conversation, not prompt text.
+    if (n === "prompt" && (alias === "input" || alias === "message") && /^[[{]/.test(v?.trim() ?? "")) return messagePart(v, "prompt") ?? v;
     // An empty alias is no input: location= must not hide q=London.
     return v?.trim() ? v : undefined;
   };
