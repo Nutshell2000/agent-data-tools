@@ -31,7 +31,9 @@ test('search-API bodies map onto our tools; bad bodies are named', async () => {
   });
   assert.deepEqual(lib.toToolQuery('/v1/findSimilar', { url: 'https://x402.org/', numResults: 5, excludeSourceDomain: true, contents: { highlights: true } }).query,
     { url: 'https://x402.org/', excludeSourceDomain: 'true', count: '5', highlights: 'true' });
-  assert.equal(lib.toToolQuery('/v1/findSimilar', { url: 'https://x402.org/' }).query.excludeSourceDomain, 'false');
+  // Without a choice the tool's own default (leave the source site out) applies; an explicit false is passed on.
+  assert.equal(lib.toToolQuery('/v1/findSimilar', { url: 'https://x402.org/' }).query.excludeSourceDomain, undefined);
+  assert.equal(lib.toToolQuery('/v1/findSimilar', { url: 'https://x402.org/', excludeSourceDomain: false }).query.excludeSourceDomain, 'false');
   assert.match(lib.toToolQuery('/v1/findSimilar', {}).error, /url/);
   assert.deepEqual(lib.bodyFromQuery({ url: 'https://x402.org/' }), { url: 'https://x402.org/' });
   assert.deepEqual(lib.toToolQuery('/v1/contents', { ids: ['https://a.example/x,y'], text: { maxCharacters: 2000 } }), { query: { urls: '["https://a.example/x,y"]', maxChars: '2000' }, text: 0 });
@@ -56,6 +58,54 @@ test('search-API answers: results with id, url and title; page text only when as
   assert.deepEqual(answer.citations, [{ id: 'https://x402.org/', url: 'https://x402.org/', title: 'x402' }]);
   const contents = lib.toSearchApi('/v1/contents', { results: [{ id: 'u', url: 'u', text: 't' }], statuses: [{ id: 'u', status: 'success' }] });
   assert.equal(contents.results.length, 1);
+});
+
+test('Exa SDK parity (14 Nov 2026): duplicate pages dropped, costDollars, a streamed answer the SDK can read', async () => {
+  const lib = await load();
+  // Tracking parameters, www, scheme and trailing slash do not make a different page; a real query parameter does.
+  assert.equal(lib.pageKey('https://www.firecrawl.dev/?dub_id=abc&via=_root'), lib.pageKey('http://firecrawl.dev'));
+  assert.notEqual(lib.pageKey('https://a.example/item?id=1'), lib.pageKey('https://a.example/item?id=2'));
+  const out = lib.toSearchApi('/v1/search', { results: [{ title: 'A', url: 'https://www.a.example/' }, { title: 'A again', url: 'https://a.example/?utm_source=x' }, { title: 'B', url: 'https://b.example/' }] });
+  assert.deepEqual(out.results.map((r) => r.title), ['A', 'B']);
+  // What the caller paid: nothing on a free trial, the key price with a key, the tool price otherwise.
+  assert.deepEqual(lib.costDollars('$0.01', '$0.008', 'free'), { total: 0 });
+  assert.deepEqual(lib.costDollars('$0.01', '$0.008', 'key'), { total: 0.008 });
+  assert.deepEqual(lib.costDollars('$0.01', undefined, 'key'), { total: 0.01 });
+  assert.deepEqual(lib.costDollars('$0.01', '$0.008', 'paid'), { total: 0.01 });
+  assert.equal(lib.costDollars(undefined, undefined, 'paid'), undefined);
+  // The stream is what exa-js streamAnswer parses: delta.content chunks, then citations and cost, then [DONE].
+  const sse = lib.answerStream({ requestId: 'r1', answer: 'First sentence. Second one!', citations: [{ id: 'u', url: 'u', title: 't' }], costDollars: { total: 0.01 } });
+  const events = sse.split('\n\n').filter(Boolean).map((e) => e.replace(/^data: /, ''));
+  assert.equal(events.at(-1), '[DONE]');
+  const chunks = events.slice(0, -1).map((e) => JSON.parse(e));
+  assert.equal(chunks.filter((c) => c.choices).map((c) => c.choices[0].delta.content).join(''), 'First sentence. Second one!');
+  assert.deepEqual(chunks.at(-1), { requestId: 'r1', citations: [{ id: 'u', url: 'u', title: 't' }], costDollars: { total: 0.01 } });
+});
+
+test('an Exa search for EU law (category law, or only eur-lex.europa.eu) goes to the EU law index', async () => {
+  const lib = await load();
+  assert.deepEqual(lib.toToolQuery('/v1/search', { query: 'lawful processing', category: 'law', numResults: 3 }), { query: { q: 'lawful processing', count: '3' }, text: 0, tool: '/law/search' });
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', includeDomains: ['https://eur-lex.europa.eu/'] }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', includeDomains: ['eur-lex.europa.eu', 'github.com'] }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/search', { query: 'x', category: 'news' }).tool, undefined);
+  const out = lib.toSearchApi('/v1/search', { results: [{ citation: 'GDPR, Article 6', heading: 'Lawfulness of processing', text: '1. Processing shall be lawful only if…', url: 'https://eur-lex.europa.eu/x#art_6', version: 'consolidated text of 2016-05-04', score: 1.02 }], attribution: 'A' }, '/law/search');
+  assert.equal(out.results[0].title, 'GDPR, Article 6: Lawfulness of processing');
+  assert.equal(out.results[0].text, '1. Processing shall be lawful only if…');
+  assert.equal(out.resolvedSearchType, 'eu-law-index');
+});
+
+test('find similar leaves out pages about the source itself', async () => {
+  const b = await build({ entryPoints: ['src/routes/search.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['cloudflare:workers'] });
+  const m = { exports: {} };
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require);
+  const { aboutSource } = m.exports;
+  for (const u of ['https://www.firecrawl.dev/', 'https://docs.firecrawl.dev/x', 'https://github.com/firecrawl/firecrawl', 'https://www.ycombinator.com/companies/firecrawl', 'https://github.com/mendableai/firecrawl-py'])
+    assert.equal(aboutSource(u, 'firecrawl.dev'), true, u);
+  for (const u of ['https://www.scrapingbee.com/', 'https://jina.ai/reader/', 'https://apify.com/store', 'https://example.com/firecrawling-guide'])
+    assert.equal(aboutSource(u, 'firecrawl.dev'), false, u);
+  // Short brands are too common to match inside other URLs.
+  assert.equal(aboutSource('https://github.com/x/ai', 'ai.com'), false);
+  assert.equal(aboutSource('not a url', 'firecrawl.dev'), false);
 });
 
 let mf;

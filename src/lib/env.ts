@@ -90,6 +90,10 @@ export interface Env {
   FREE_KEYS?: string;
   FREE_KEY_FROM?: string;
   EMAIL?: { send(message: { to: string; from: string; subject: string; text: string; html?: string }): Promise<{ messageId: string }> };
+  // EU law search index (routes/law-search.ts): passages and their full-text index in D1 (EU jurisdiction), their
+  // bge-m3 vectors in Vectorize. Built by scripts/law-index/build.mjs. Optional: without them /law/search answers 503.
+  LAW_DB?: D1Database;
+  LAW_VECTORS?: VectorizeIndex;
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }

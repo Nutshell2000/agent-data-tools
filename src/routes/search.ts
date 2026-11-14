@@ -246,6 +246,23 @@ async function searchAnswer(env: Env, query: string, count: number, q: Input, ex
   };
 }
 
+/**
+ * True when a result URL is about the source site rather than like it: its host is the source's (any subdomain), or a
+ * path segment or host label is the source's brand name (github.com/firecrawl, ycombinator.com/companies/firecrawl).
+ * Brands of three letters or fewer are too common to match on ("ai", "app").
+ */
+export function aboutSource(url: string, sourceHost: string): boolean {
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  const host = u.hostname.replace(/^www\./, "").toLowerCase();
+  const src = sourceHost.replace(/^www\./, "").toLowerCase();
+  if (host === src || host.endsWith(`.${src}`)) return true;
+  const brand = src.split(".")[0];
+  if (brand.length < 4) return false;
+  const words = [...host.split("."), ...u.pathname.toLowerCase().split(/[/_.]+/)].filter(Boolean);
+  return words.some((w) => w === brand || w.startsWith(`${brand}-`));
+}
+
 /** A search query that finds pages like this one: its title without the site name, plus its most frequent topic words. */
 export function similarQuery(page: { title?: string | null; description?: string | null; text?: string }, url: URL): string {
   const title = (page.title ?? "").split(/\s+[|\-–—·:]\s+/).sort((a, b) => b.length - a.length)[0]?.trim() ?? "";
@@ -297,11 +314,18 @@ export const SEARCH: Entry[] = [
       const count = num(q, "count", { min: 1, max: 20, fallback: 10, integer: true });
       const dropDomain = q("excludeSourceDomain") === undefined ? true : flag(q, "excludeSourceDomain");
       const page = await extract(target.href, "6000", "text", undefined, { budgetMs: 8_000 }).then((p) => p as { title?: string | null; description?: string | null; text?: string }, () => ({}));
-      const query = similarQuery(page, target);
       const host = target.hostname.replace(/^www\./, "");
-      const answer = await searchAnswer(env, query, count + 1, q, { url: target.href }, dropDomain ? [host] : []);
+      const brand = host.split(".")[0];
+      // Searching on the source's own brand name finds the source again, so it leaves the query when the source is left out.
+      const query = dropDomain && brand.length >= 4
+        ? similarQuery(page, target).replace(new RegExp(`(^|\\s)${brand.replace(/[^a-z0-9]/gi, "")}(?=\\s|$)`, "gi"), " ").replace(/\s+/g, " ").trim() || similarQuery(page, target)
+        : similarQuery(page, target);
+      // Ask for more than needed: pages about the source itself are dropped after the search.
+      const answer = await searchAnswer(env, query, Math.min(20, count + (dropDomain ? 6 : 1)), q, { url: target.href }, dropDomain ? [host] : []);
       const same = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "") === target.href.replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
-      const results = answer.results.filter((r) => !same(r.url)).slice(0, count);
+      // With the source site left out, pages that are only about the source itself (its GitHub, its listing on a
+      // directory) are left out too: the search ran on the page's own words, so its brand name pulls them in.
+      const results = answer.results.filter((r) => !same(r.url) && !(dropDomain && aboutSource(r.url, host))).slice(0, count);
       return { ...answer, count: results.length, results };
     }, "$0.01"),
 
