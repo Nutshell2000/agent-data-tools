@@ -7,6 +7,7 @@ import { keccak256, toBytes } from "viem";
 import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
 import { messagesAsArray } from "../lib/chat-messages";
+import { DOCUMENT_RULES, fieldHints } from "../lib/extract-hints";
 import { HttpError, type Env } from "../lib/env";
 
 export const AI_PRICE = "$0.01";
@@ -235,14 +236,14 @@ export function fieldNames(raw: string): string[] {
   return fields;
 }
 /** Named fields out of a text as one JSON object, null where the text does not state a value. Shared by /ai/extract-json and /document/extract. */
-export async function extractFields(env: Env, source: string, fields: string[], model: string = MODELS.text, maxTokens = 700, lists: Readonly<Record<string, readonly string[]>> = {}) {
+export async function extractFields(env: Env, source: string, fields: string[], model: string = MODELS.text, maxTokens = 700, lists: Readonly<Record<string, readonly string[]>> = {}, fromDocument = false) {
   // A list field ("line_items[description,quantity,amount]", parsed by listFields): every row has exactly those keys.
   const listRule = Object.keys(lists).length
     ? ` ${Object.entries(lists).map(([name, keys]) => `The value of "${name}" is an array with one object per row of the text, each object with exactly the keys ${JSON.stringify(keys)}, or an empty array when the text has no such rows.`).join(" ")} The value of every other key, and of every key inside a row, is a single string or number, never an array. Write amounts and quantities as JSON numbers.`
     : "";
   // A single value the model wrapped in a one-item array is that value.
   const single = (v: unknown): unknown => (Array.isArray(v) && v.length === 1 && (v[0] === null || typeof v[0] !== "object") ? v[0] : v);
-  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}.${listRule} Use null when a value is not stated in the text; never guess.`, source, maxTokens, 0, model));
+  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}.${listRule}${fromDocument ? DOCUMENT_RULES : ""} Use null when a value is not stated in the text; never guess.${fromDocument ? fieldHints(fields, lists) : ""}`, source, maxTokens, 0, model));
   if (!r || typeof r !== "object" || Array.isArray(r)) throw new HttpError(502, "the AI model did not return an object");
   const data = Object.fromEntries(fields.map((f) => {
     const value = (r as Record<string, unknown>)[f] ?? null;

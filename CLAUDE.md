@@ -1846,3 +1846,24 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Check after a release that touches this: POST `/keys/free` with the shop mailbox, open the link, call `/document/extract` with the key, read `/credits/balance`. Funnel stage `free_key_issued` counts keys; a free key is not a customer.
 - Integrations that hand a key to builders: the Dify plugin (github.com/Nutshell2000/glyphcall-dify-plugin, marketplace PR langgenius/dify-plugins#3774, local copy C:\MoneyWallet\business\integrations\dify-glyphcall) and the n8n node. Their README says where to get a key; point them at `/keys/free` in their next version.
 
+
+
+## VAT numbers as invoices print them (1.182.0, 14 Nov 2026)
+
+- `vatParts()` (src/routes/registries.ts) drops a leading label only when a separator follows it and a trailing BTW/VAT/TVA/MWST/UST/IVA; tests in tests/books-merkle.test.cjs. Found by running the n8n invoice template on invoice2data's coolblue1.pdf ("NL810433941B01BTW"). When a document tool hands a value to a lookup tool, test with values as documents print them, not as the lookup's example writes them.
+
+
+## Invoice extraction accuracy is measured (1.182.0, 14 Nov 2026)
+
+- Harness: `C:\MoneyWallet\business\integrations\bench-invoices` (`node bench.mjs texts <dir>` caches each PDF's text through the live /document/text with the review key; `node bench.mjs run <dir> <variant>` runs a prompt from variants.mjs on Workers AI with the wrangler token and scores it against the expected JSON; `BENCH_MODEL` picks the model, `BENCH_SHOW=<name>` prints one answer). Test set: invoice2data's tests/compare (11 PDFs with expected answers, MIT). Results on 14 Nov: bare prompt on Llama 4 Scout 43/57, with the rules 46-47, Llama 3.3 70B 48, Qwen3 30B 33 (it returned nulls for whole invoices), gpt-oss-120b 52.
+- `EXTRACT_MODEL` (src/routes/document.ts) and `DOCUMENT_RULES` / `fieldHints()` (src/lib/extract-hints.ts) are what /document/extract sends; `extractFields(..., fromDocument)` keeps /ai/extract-json on the bare prompt. gpt-oss reasons before it answers, so it gets 1,200 output tokens (2,600 with rows).
+- Change a rule or the model only with a before and after run of the harness, and keep the hints general: an example copied from a test invoice into the prompt is cheating the measurement. Two expected answers in the set are doubtful (QualityHosting's invoice number is its customer number; AmazonWebServices' "iban" is an account number), and saeco's IBAN is inside an image.
+- More rules on the small model traded one error for another (date order, a null date): the model was the limit, not the wording.
+- /invoice/check (1.180.0) still calls the chat model with its own prompt: moving it onto `extractFields(..., true)` with `EXTRACT_MODEL` is the next step, measured with the same harness.
+
+
+## Image uploads as the request body (1.182.0, 14 Nov 2026)
+
+- `sentFile()` accepts an `image/*` body. Before, a raw PNG or JPEG body was "no file" and the caller got "missing required query parameter: url"; every integration that posts binary data (n8n HTTP Request, the Dify plugin, curl --data-binary) hit it. The example sweeps did not: they send the published URL example. After a change to uploads, run `node bench.mjs api <dir> png` and `... pdf` in C:\MoneyWallet\business\integrations\bench-invoices: it posts real files the way integrations do.
+
+

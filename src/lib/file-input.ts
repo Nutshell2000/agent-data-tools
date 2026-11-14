@@ -87,13 +87,15 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
   } else if (type.includes("json")) {
     const body = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object" || Array.isArray(body)) return { kind: "none", fields };
-    for (const name of [FILE_INPUT, "data", "content", "base64", "pdf", "document"]) {
+    for (const name of [FILE_INPUT, "data", "content", "base64", "pdf", "document", "image"]) {
       const value = body[name];
       if (typeof value !== "string" || value.length < 16) continue;
       bytes = fromBase64(value);
       if (bytes) break;
     }
-  } else if (type === "" || /^(application\/(pdf|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/)/.test(type)) {
+  // image/*: a scan or a photo sent as the body. Until 1.187.0 it was read as "no file" and the caller was asked for a
+  // url, although the document tools read PNG, JPEG and WebP (found 14 Nov 2026 by sending invoice2data's PNG invoices).
+  } else if (type === "" || /^(application\/(pdf|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/|image\/)/.test(type)) {
     const buffer = await request.clone().arrayBuffer().catch(() => null);
     if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
   }
