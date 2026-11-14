@@ -1803,3 +1803,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `scripts/build-registry-manifests.mjs` writes `registry/<slug>.json` for the sections, the focused servers and `compact`; publish-mcp.yml publishes them on every v* tag. A new focused server gets its registry entry with the next tag, and Glama lists it as its own connector after that.
 - Glama server listing (glama.ai/mcp/servers/Nutshell2000/agent-data-tools, admin signed in as GitHub Nutshell2000): build spec = `npm install -g agent-data-tools@<published version>`, CMD `mcp-proxy -- agent-data-tools mcp` (the compact server over stdio), placeholder `{}`. Without a successful build and a Glama release the listing is left out of Glama search and gets no quality score. Raise the pinned npm version there after publishing a new client.
 
+
+
+## Source fallbacks for VIES and the Polymarket CLOB (1.177.0, 14 Nov 2026)
+
+- `/vat/validate`: when VIES stays busy after all tries, `viesCheck` answers VIES's own earlier answer for that number from the last 7 days (`VIES_KEEP_SECONDS`, key `vies.cache.invalid/kept/<vat>` in `caches.default`, so per location), marked `fromEarlierCheck: true` with its original `checkedAt`. Only busy/unreachable VIES uses it.
+- `/polymarket/orderbook`: `clobBook` retries a 502 once (400 ms), then answers the book this location read in the last 120 s (`BOOK_KEEP_SECONDS`) with `fromEarlierRead: true`. Do not lengthen it much: an order book older than a few minutes misleads a trader.
+- Apply the same pattern (keep the last clear answer, answer it marked with its own timestamp only when the source is busy) to other tools whose /status `topFailures` are an outside source's busy signal, and only where the answer changes slowly.
+
+
+## The OFAC list survives the mirror's republish (14 Nov 2026)
+
+- `.github/workflows/ofac-mirror.yml` uploads with `--clobber` (delete, then upload), so the mirror's files 404 for about half a minute every six hours. `sdnIndex()` serves the last good copy on a failed refresh (isolate memory up to `STALE_LIMIT_MS`, 7 days, then the edge-cache copy under `LAST_GOOD_KEY`) and asks the mirror twice. Any tool that reads a file from our GitHub release mirror needs the same fallback. tests/ofac-stale-copy.test.cjs simulates the outage.
+
