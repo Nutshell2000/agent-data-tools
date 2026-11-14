@@ -108,7 +108,9 @@ export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$
 export const PLAN_SYNC_MS = 12 * 3_600_000;
 
 interface PlanState { subscriptionId: string; credits: number; since: string; syncedAt: string }
-interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[]; plans?: PlanState[] }
+/** A free key's monthly allowance of calls (14 Nov 2026): `used` counts this `month` (UTC, "2026-11") and starts again in the next. */
+export interface FreeAllowance { emailHash: string; perMonth: number; month: string; used: number }
+interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[]; plans?: PlanState[]; free?: FreeAllowance }
 /** key is null for a top-up: the buyer already holds it and it is never seen here. */
 interface SessionRecord { key: string | null; keyHash: string; credits: number; at: string }
 interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void>; delete(key: string): Promise<boolean> }
@@ -118,6 +120,9 @@ const accountKey = (hash: string) => `credit:acct:${hash}`;
 const sessionKey = (id: string) => `credit:session:${id}`;
 /** One record per subscription invoice whose credits were granted, so a renewal is never granted twice. */
 const invoiceKey = (id: string) => `credit:invoice:${id}`;
+/** One record per confirmed e-mail address (its hash), so an address gets one free key however often it signs up. */
+const freeKey = (emailHash: string) => `credit:free:${emailHash}`;
+interface FreeRecord { key: string | null; keyHash: string; at: string }
 const isInvoiceId = (id: unknown): id is string => typeof id === "string" && /^in_[A-Za-z0-9]{8,200}$/.test(id);
 const isSubscriptionId = (id: unknown): id is string => typeof id === "string" && /^sub_[A-Za-z0-9]{8,200}$/.test(id);
 
@@ -239,6 +244,8 @@ export async function rotateKey(storage: CreditStorage, oldHash: string, newKey:
     if (!account || oldHash === newHash) return null;
     await txn.put(accountKey(newHash), account);
     await txn.delete(accountKey(oldHash));
+    // A free key's e-mail record follows the account and stops showing the old key.
+    if (account.free) await txn.put(freeKey(account.free.emailHash), { key: null, keyHash: newHash, at: new Date().toISOString() } satisfies FreeRecord);
     for (const id of account.sessions) {
       const record = await txn.get<SessionRecord>(sessionKey(id));
       if (record) await txn.put(sessionKey(id), { ...record, key: null, keyHash: newHash });
@@ -249,16 +256,26 @@ export async function rotateKey(storage: CreditStorage, oldHash: string, newKey:
 
 /** `plans` is present for a key on the monthly plan: which subscriptions, and when their invoices were last read. */
 export type PlanRead = { subscriptionId: string; syncedAt: string };
-export type SpendResult = { ok: true; balanceMicros: number; plans?: PlanRead[] } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number; plans?: PlanRead[] };
+export type SpendResult = { ok: true; balanceMicros: number; plans?: PlanRead[]; free?: { left: number; perMonth: number } } | { ok: false; reason: "unknown_key" | "insufficient"; balanceMicros: number; plans?: PlanRead[]; freeKey?: boolean };
 const planRead = (a: Account): { plans?: PlanRead[] } => a.plans?.length ? { plans: a.plans.map((p) => ({ subscriptionId: p.subscriptionId, syncedAt: p.syncedAt })) } : {};
 
 /** Takes the price before the tool runs; refundCredits gives it back if the call fails. */
-export async function spendCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<SpendResult> {
+export async function spendCredits(storage: CreditStorage, keyHash: string, micros: number, freeMonth?: string): Promise<SpendResult> {
   if (!Number.isSafeInteger(micros) || micros <= 0) throw new Error("invalid spend");
   return storage.transaction(async (txn) => {
     const account = await txn.get<Account>(accountKey(keyHash));
     if (!account) return { ok: false, reason: "unknown_key", balanceMicros: 0 };
-    if (account.balanceMicros < micros) return { ok: false, reason: "insufficient", balanceMicros: account.balanceMicros, ...planRead(account) };
+    // A free key's monthly calls come first, for a tool they cover (the caller passes the month only then): nothing is spent.
+    if (account.free && freeMonth) {
+      if (account.free.month !== freeMonth) { account.free.month = freeMonth; account.free.used = 0; }
+      if (account.free.used < account.free.perMonth) {
+        account.free.used++;
+        account.calls++;
+        await txn.put(accountKey(keyHash), account);
+        return { ok: true, balanceMicros: account.balanceMicros, free: { left: account.free.perMonth - account.free.used, perMonth: account.free.perMonth }, ...planRead(account) };
+      }
+    }
+    if (account.balanceMicros < micros) return { ok: false, reason: "insufficient", balanceMicros: account.balanceMicros, ...(account.free ? { freeKey: true } : {}), ...planRead(account) };
     account.balanceMicros -= micros;
     account.spentMicros += micros;
     account.calls++;
@@ -267,10 +284,17 @@ export async function spendCredits(storage: CreditStorage, keyHash: string, micr
   });
 }
 
-export async function refundCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<number> {
+export async function refundCredits(storage: CreditStorage, keyHash: string, micros: number, freeCall = false): Promise<number> {
   return storage.transaction(async (txn) => {
     const account = await txn.get<Account>(accountKey(keyHash));
     if (!account) return 0;
+    if (freeCall) {
+      // A failed call that used one of the month's free calls gives it back; no credits moved.
+      if (account.free && account.free.used > 0) account.free.used--;
+      account.calls--;
+      await txn.put(accountKey(keyHash), account);
+      return account.balanceMicros;
+    }
     account.balanceMicros += micros;
     account.spentMicros -= micros;
     account.calls--;
@@ -282,7 +306,7 @@ export async function refundCredits(storage: CreditStorage, keyHash: string, mic
 export async function creditBalance(storage: CreditStorage, keyHash: string) {
   return storage.transaction(async (txn) => {
     const a = await txn.get<Account>(accountKey(keyHash));
-    return a ? { balanceMicros: a.balanceMicros, purchasedMicros: a.purchasedMicros, spentMicros: a.spentMicros, calls: a.calls, createdAt: a.createdAt, ...(a.plans?.length ? { plans: a.plans.map((p) => ({ ...p })) } : {}) } : null;
+    return a ? { balanceMicros: a.balanceMicros, purchasedMicros: a.purchasedMicros, spentMicros: a.spentMicros, calls: a.calls, createdAt: a.createdAt, ...(a.plans?.length ? { plans: a.plans.map((p) => ({ ...p })) } : {}), ...(a.free ? { free: { perMonth: a.free.perMonth, month: a.free.month, used: a.free.used } } : {}) } : null;
   });
 }
 
@@ -328,3 +352,29 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
 // where every caller reads a key price (`keyPrice`, `keyPriceFor`, `keyPriceLine`): it needs the catalog, which this
 // file must not import (the catalog reaches this file through lib/env.ts and metrics.ts).
 export const KEY_PRICES: Readonly<Record<string, string>> = { "/pdf/text": "$0.002", "/pdf/extract": "$0.002" };
+
+/** Calls a free key may make each calendar month (UTC). The owner, 14 Nov 2026: "Yes, 100 a month". */
+export const FREE_KEY_CALLS = 100;
+export const utcMonth = (now = new Date()) => now.toISOString().slice(0, 7);
+
+/**
+ * The free key of one confirmed e-mail address, made on first use. A repeat for the same address returns the same key
+ * (or `key: null` once it was rotated), never a second one. It is an ordinary key in the same ledger with a monthly
+ * allowance of calls and no credits: credits bought later go to it like to any key. Not a purchase: no session record,
+ * so the card-sales summary does not count it.
+ */
+export async function issueFreeKey(storage: CreditStorage, grant: { emailHash: string; key: string; keyHash: string; perMonth: number; month: string }) {
+  if (!/^[0-9a-f]{64}$/.test(grant.emailHash) || !Number.isSafeInteger(grant.perMonth) || grant.perMonth <= 0) throw new Error("invalid free key grant");
+  return storage.transaction(async (txn) => {
+    const existing = await txn.get<FreeRecord>(freeKey(grant.emailHash));
+    if (existing) {
+      const account = await txn.get<Account>(accountKey(existing.keyHash));
+      return { key: existing.key, repeated: true, perMonth: account?.free?.perMonth ?? grant.perMonth };
+    }
+    const at = new Date().toISOString();
+    const account: Account = { balanceMicros: 0, purchasedMicros: 0, spentMicros: 0, calls: 0, createdAt: at, sessions: [], free: { emailHash: grant.emailHash, perMonth: grant.perMonth, month: grant.month, used: 0 } };
+    await txn.put(accountKey(grant.keyHash), account);
+    await txn.put(freeKey(grant.emailHash), { key: grant.key, keyHash: grant.keyHash, at } satisfies FreeRecord);
+    return { key: grant.key, repeated: false, perMonth: grant.perMonth };
+  });
+}

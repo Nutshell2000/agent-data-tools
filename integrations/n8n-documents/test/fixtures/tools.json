@@ -1,0 +1,61 @@
+{
+  "source": "https://agent-data-tools.revmesh2074.workers.dev/openapi.json",
+  "note": "The three document tools, copied from the service catalog (src/routes/document.ts, src/routes/pdf.ts) on 14 Nov 2026.",
+  "tools": {
+    "/document/extract": {
+      "price": "$0.03",
+      "params": {
+        "url": {
+          "required": true,
+          "type": "string"
+        },
+        "fields": {
+          "required": true,
+          "type": "string"
+        }
+      }
+    },
+    "/document/text": {
+      "price": "$0.005",
+      "params": {
+        "url": {
+          "required": true,
+          "type": "string"
+        },
+        "format": {
+          "required": false,
+          "type": "string",
+          "enum": [
+            "markdown",
+            "text"
+          ]
+        },
+        "maxChars": {
+          "required": false,
+          "type": "integer"
+        }
+      }
+    },
+    "/pdf/text": {
+      "price": "$0.005",
+      "params": {
+        "url": {
+          "required": true,
+          "type": "string"
+        },
+        "firstPage": {
+          "required": false,
+          "type": "integer"
+        },
+        "pages": {
+          "required": false,
+          "type": "integer"
+        },
+        "maxChars": {
+          "required": false,
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+name: Publish n8n document node
+
+# Publishes integrations/n8n-documents (the npm package n8n-nodes-document-extract) with an npm provenance
+# statement. n8n only verifies community nodes that were published from GitHub Actions with
+# provenance (required since 1 May 2026), never ones published from a local machine.
+#
+# It runs only when a tag of the form n8n-document-node-<version> is pushed, for example n8n-document-node-0.1.0,
+# and the version must equal the one in integrations/n8n-documents/package.json. The repository's own
+# release tags (v1.2.3) do not match and never start it.
+#
+# One-time setup on npmjs.com, by the package owner (see integrations/CLIENT-PACK-STEPS.md):
+#   package settings -> Trusted Publishers -> GitHub Actions:
+#     organization or user: Nutshell2000    repository: agent-data-tools
+#     workflow filename:    publish-n8n-document-node.yml    environment: (empty)
+#   With that in place no secret is stored here: npm accepts GitHub's OIDC token.
+#   Fallback: a granular npm access token in the repository secret NPM_TOKEN.
+#
+# Adapted from https://github.com/n8n-io/n8n-nodes-starter/blob/master/.github/workflows/publish.yml
+# for a package that lives in a subfolder. `npm run release` inside GitHub Actions runs the n8n
+# linter and the build, then `npm publish` with provenance; it prompts for nothing.
+on:
+  push:
+    tags:
+      - 'n8n-document-node-*.*.*'
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to mint the OIDC token for npm trusted publishing and the provenance statement.
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        working-directory: integrations/n8n-documents
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: npm
+          cache-dependency-path: integrations/n8n-documents/package-lock.json
+
+      - name: The tag must name the version in package.json
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "n8n-document-node-$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package version $version (expected n8n-document-node-$version)"
+            exit 1
+          fi
+
+      # No install scripts: lint, build and tests do not need them, and nothing a dependency
+      # ships should run in a job that can publish.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Test
+        run: npm test
+
+      - name: Release
+        run: |
+          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm run release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

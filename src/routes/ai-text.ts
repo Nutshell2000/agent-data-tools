@@ -227,6 +227,20 @@ export function keywordList(reply: string): string[] {
 const text = (q: Input, max = TEXT_MAX) => need(q, "text", max);
 const list = (raw: string) => raw.split(",").map((s) => s.trim()).filter(Boolean);
 
+/** The field names of an extraction request: 1 to 30, comma-separated. */
+export function fieldNames(raw: string): string[] {
+  const fields = list(raw);
+  if (fields.length < 1 || fields.length > 30) throw new HttpError(400, "fields must list 1 to 30 comma-separated names");
+  return fields;
+}
+/** Named fields out of a text as one JSON object, null where the text does not state a value. Shared by /ai/extract-json and /document/extract. */
+export async function extractFields(env: Env, source: string, fields: string[], model: string = MODELS.text, maxTokens = 700) {
+  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}. Use null when a value is not stated in the text; never guess.`, source, maxTokens, 0, model));
+  if (!r || typeof r !== "object" || Array.isArray(r)) throw new HttpError(502, "the AI model did not return an object");
+  const data = Object.fromEntries(fields.map((f) => [f, (r as Record<string, unknown>)[f] ?? null]));
+  return { data, missing: fields.filter((f) => data[f] === null), model };
+}
+
 const ai = (path: string, summary: string, description: string, tags: string[], params: Parameters<typeof entry>[4], example: Record<string, unknown>, run: Entry["run"], price = AI_PRICE) =>
   entry(path, summary, description, [...tags, ...T], params, example, run, price);
 
@@ -402,14 +416,7 @@ export const AI_TEXT: Entry[] = [
   ai("/ai/extract-json", "Extract JSON fields from text", "Pull named fields out of unstructured text (emails, invoices, listings, bios) and get them back as a JSON object, with null for anything not present. Use to turn messy text into structured data for an agent.",
     ["extraction", "json", "structured-data"], { text: { type: "string", description: "Source text, up to 12,000 characters", required: true, example: "Invoice 1043 from Acme AB, due 2026-11-01, total 2 450 SEK incl. VAT." }, fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "invoice_number,company,due_date,total,currency" } },
     { data: { invoice_number: "1043", company: "Acme AB", due_date: "2026-11-01", total: 2450, currency: "SEK" }, missing: [], model: MODELS.text },
-    async (env, q) => {
-      const fields = list(need(q, "fields", 1000));
-      if (fields.length < 1 || fields.length > 30) throw new HttpError(400, "fields must list 1 to 30 comma-separated names");
-      const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}. Use null when a value is not stated in the text; never guess.`, text(q), 700, 0));
-      if (!r || typeof r !== "object" || Array.isArray(r)) throw new HttpError(502, "the AI model did not return an object");
-      const data = Object.fromEntries(fields.map((f) => [f, (r as Record<string, unknown>)[f] ?? null]));
-      return { data, missing: fields.filter((f) => data[f] === null), model: MODELS.text };
-    }),
+    async (env, q) => extractFields(env, text(q), fieldNames(need(q, "fields", 1000)))),
   entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
     ["tts", "text-to-speech", "voice", "audio", "voice-generation", ...T], {
       text: { type: "string", description: "Text to speak, up to 300 characters", required: true, example: "Your payment was received. Thank you!" },
