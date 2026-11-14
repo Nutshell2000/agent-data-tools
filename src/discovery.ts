@@ -258,6 +258,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/stablecoin/charts": "Prices and DeFi",
   "/document/text": "Web, documents and search", "/document/extract": "Web, documents and search",
   "/invoice/check": "Company, compliance and checks",
+  "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/gpt/pricing": "Utilities", "/claude/pricing": "Utilities",
   "/solana/price": "Utilities", "/ethereum/price": "Utilities", // with /crypto/price, the tool they run
   "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
