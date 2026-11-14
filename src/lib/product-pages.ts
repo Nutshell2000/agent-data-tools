@@ -36,6 +36,8 @@ export interface Product {
   faq: readonly (readonly [string, string])[];
   /** Guides to link, by slug. */
   guides: readonly string[];
+  /** Further pages of the product: path and link text. */
+  more?: readonly (readonly [string, string])[];
 }
 
 export const PRODUCTS: readonly Product[] = [
@@ -113,7 +115,8 @@ export const PRODUCTS: readonly Product[] = [
       ["How fresh is the data?", "Norway, Finland and France are read live from the register. Sweden is the register's weekly open data. VAT numbers are checked live against VIES."],
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
-    guides: ["company-lookup-api", "ofac-wallet-screening-api"],
+    guides: ["eu-vat-number-validation-api", "eu-vat-number-validation-api-python", "eu-vat-number-validation-api-nodejs", "eu-vat-number-validation-api-php", "company-lookup-api", "ofac-wallet-screening-api"],
+    more: [["/vat-number-check", "VAT number formats and a live check for every EU country"]],
   },
 ];
 
@@ -239,7 +242,7 @@ ${also.length ? `<h2>Also on the same key</h2><ul>${also.map((o) => `<li><a href
 <h2>Questions</h2>
 ${p.faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 
-${guides.length ? `<h2>Guides</h2><ul>${guides.map(([g, t]) => `<li><a href="/guides/${esc(g)}">${esc(t)}</a></li>`).join("")}</ul>` : ""}
+${guides.length || p.more?.length ? `<h2>Guides</h2><ul>${(p.more ?? []).map(([h, t]) => `<li><a href="${esc(h)}">${esc(t)}</a></li>`).join("")}${guides.map(([g, t]) => `<li><a href="/guides/${esc(g)}">${esc(t)}</a></li>`).join("")}</ul>` : ""}
 
 <h2>For AI agents</h2>
 <p>The same tool is on the MCP server <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free), and an agent with a wallet can pay per call in USDC: the tool URL answers <code>402 Payment Required</code> with x402 and MPP terms. Reference: <a href="/tools/${esc(toolSlug(e.path))}">tool page</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/llms.txt">docs for agents</a>.</p>

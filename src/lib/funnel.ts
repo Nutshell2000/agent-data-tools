@@ -95,7 +95,7 @@ export async function funnelSummary(storage: DurableObjectStorage, list: (option
 }
 
 /** Pages a person reads before buying: home, tool index, tool pages, task guides and the card-credit pages. */
-export const isHumanPage = (path: string) => path === "/" || path === "/tools" || /^\/tools\/[a-z0-9-]{1,60}$/.test(path) || /^\/guides\/[a-z0-9-]{1,80}$/.test(path) || path === "/credits" || path === "/credits/claim" || /^\/[a-z0-9-]{3,60}-api$/.test(path);
+export const isHumanPage = (path: string) => path === "/" || path === "/tools" || /^\/tools\/[a-z0-9-]{1,60}$/.test(path) || /^\/guides\/[a-z0-9-]{1,80}$/.test(path) || path === "/credits" || path === "/credits/claim" || /^\/[a-z0-9-]{3,60}-api$/.test(path) || /^\/vat-number-check(\/[a-z-]{4,20})?$/.test(path);
 
 const REFERRER_FAMILIES: [RegExp, string][] = [
   [/(^|\.)google\./, "google"], [/(^|\.)bing\.com$/, "bing"], [/(^|\.)duckduckgo\.com$/, "duckduckgo"],
