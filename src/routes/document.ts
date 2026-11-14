@@ -10,7 +10,7 @@ import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { isZip, zipEntries, zipText, type ZipEntry } from "../lib/zip";
 import { readPdf } from "./pdf";
-import { CHAT_MODEL, extractFields, listFields } from "./ai-text";
+import { extractFields, listFields } from "./ai-text";
 import { Buffer } from "node:buffer";
 import { MODELS, runAi } from "../lib/ai";
 import type { Env } from "../lib/env";
@@ -25,6 +25,12 @@ const MAX_COLUMNS = 50;
 const MAX_SLIDES = 300;
 /** How much of a document the extraction model reads. */
 export const EXTRACT_CHARS = 24_000;
+/**
+ * The model that finds the fields (Apache 2.0, about the same cost a call as the chat model). Chosen by measurement,
+ * see lib/extract-hints.ts: with the same rules Llama 4 Scout got 46 of 57 invoice fields right, Llama 3.3 70B 48,
+ * this one 52. It reasons before it answers, so it gets more output tokens than the answer needs.
+ */
+export const EXTRACT_MODEL = "@cf/openai/gpt-oss-120b";
 
 type Format = "text" | "markdown";
 export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf" | "image";
@@ -437,7 +443,7 @@ export const DOCUMENT: Entry[] = [
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
       // A real answer, read on 14 Nov 2026 from a local run against Workers AI (twice, the same both times).
       type: "docx", data: { title: "Demonstration of DOCX support in calibre", ebook_formats: ["EPUB", "AZW3"], pens_needed: 3, scissors_needed: 1 },
-      missing: [], model: CHAT_MODEL, charsRead: 8934, truncated: false,
+      missing: [], model: EXTRACT_MODEL, charsRead: 8934, truncated: false,
     },
     async (env, q) => {
       const { fields, lists } = listFields(need(q, "fields", 1000));
@@ -455,7 +461,7 @@ export const DOCUMENT: Entry[] = [
       }
       // Plain text for the model: Markdown table rules add characters and no information.
       const doc = await readDocument(bytes, "text", EXTRACT_CHARS, visionOcr(env));
-      const found = await extractFields(env, doc.text, fields, CHAT_MODEL, Object.keys(lists).length ? 2000 : 900, lists);
+      const found = await extractFields(env, doc.text, fields, EXTRACT_MODEL, Object.keys(lists).length ? 2600 : 1200, lists, true);
       return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...("ocr" in doc ? { ocr: true } : {}), ...found, charsRead: doc.chars, truncated: doc.truncated };
       // $0.03 a document: one model call, and a tenth to a half of what document-extraction sellers charge (14 Nov 2026).
     }, "$0.03"),
