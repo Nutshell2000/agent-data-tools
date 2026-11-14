@@ -8,6 +8,8 @@
 import type { Context } from "hono";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
+import { ENDPOINTS } from "../endpoints";
+import { keyPrice } from "./key-prices";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -86,8 +88,11 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
       if (!url) return { error: "url must be a non-empty string" };
       if (url.length > 2000) return { error: "url must be at most 2000 characters" };
       out.url = url;
-      // Exa's default: the source domain stays in unless excludeSourceDomain is true.
-      out.excludeSourceDomain = String(b.excludeSourceDomain === true || b.excludeSourceDomain === "true");
+      // Only an explicit choice is passed on; otherwise the tool leaves the source site out. Exa's own default keeps
+      // it, which suits a neural index of similar pages, but our results come from a keyword search on the page's own
+      // title and topic words, and with the source site kept they were the source site again (14 Nov 2026: the
+      // official SDK's findSimilar("https://www.firecrawl.dev") returned firecrawl.dev twice, its GitHub and its YC page).
+      if (b.excludeSourceDomain !== undefined && b.excludeSourceDomain !== "") out.excludeSourceDomain = String(b.excludeSourceDomain === true || b.excludeSourceDomain === "true");
     }
     // Neural-search clients ask for up to 100; one Brave request returns at most 20, so larger asks get 20.
     const n = b.numResults === undefined || b.numResults === "" ? 10 : Number(b.numResults);
@@ -120,6 +125,42 @@ export function bodyFromQuery(params: Record<string, string>): Record<string, un
 
 const requestId = () => crypto.randomUUID().replace(/-/g, "");
 
+/** Query parameters that only track a click; two results that differ only in them are the same page. */
+const TRACKING = /^(utm_[a-z]+|dub_id|via|ref|ref_src|fbclid|gclid|mc_cid|mc_eid|_hs(enc|mi))$/i;
+/** A result's identity: scheme, www, trailing slash, fragment and tracking parameters do not make a different page. */
+export function pageKey(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k)) u.searchParams.delete(k);
+    const query = u.searchParams.toString();
+    return `${u.hostname.replace(/^www\./, "").toLowerCase()}${u.pathname.replace(/\/+$/, "")}${query ? `?${query}` : ""}`;
+  } catch { return url; }
+}
+const unique = <T extends { url: string }>(rows: T[]): T[] => { const seen = new Set<string>(); return rows.filter((r) => { const k = pageKey(r.url); if (seen.has(k)) return false; seen.add(k); return true; }); };
+
+/**
+ * What the call cost the caller, in the `costDollars` shape the neural-search SDKs read (they surface `total`).
+ * A free trial costs nothing; a prepaid key pays its key price; any other paid call pays the tool's price.
+ */
+export function costDollars(price: string | undefined, keyPrice: string | undefined, how: "free" | "key" | "paid"): { total: number } | undefined {
+  const usd = (p: string | undefined) => (p && /^\$\d+(\.\d+)?$/.test(p) ? Number(p.slice(1)) : undefined);
+  const total = how === "free" ? 0 : how === "key" ? usd(keyPrice ?? price) : usd(price);
+  return total === undefined ? undefined : { total };
+}
+
+/**
+ * /v1/answer with `stream: true` as Server-Sent Events, the shape the SDKs' streamAnswer reads: the answer text as
+ * `choices[0].delta.content` chunks (cut at sentence ends, since our model answers in one piece), then one chunk with
+ * the citations and the cost, then `[DONE]`. Before this the SDK got plain JSON and yielded no text at all.
+ */
+export function answerStream(answer: { answer: string; citations: unknown[]; costDollars?: unknown; requestId: string }): string {
+  const parts = answer.answer.match(/[^.!?\n]+[.!?]*\s*|\n+/g) ?? (answer.answer ? [answer.answer] : []);
+  const lines = parts.map((p) => `data: ${JSON.stringify({ requestId: answer.requestId, choices: [{ index: 0, delta: { content: p } }] })}\n\n`);
+  lines.push(`data: ${JSON.stringify({ requestId: answer.requestId, citations: answer.citations, ...(answer.costDollars ? { costDollars: answer.costDollars } : {}) })}\n\n`);
+  lines.push("data: [DONE]\n\n");
+  return lines.join("");
+}
+
 type SearchOut = {
   results?: { title: string; url: string; snippet?: string; age?: string | null; publishedDate?: string | null; author?: string | null; image?: string | null; favicon?: string | null; text?: string; highlights?: string[]; highlightScores?: number[]; summary?: string | null }[];
   terms?: string; filters?: Record<string, unknown>; ignored?: string[]; query?: string;
@@ -131,7 +172,7 @@ export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>)
     return {
       requestId: requestId(),
       resolvedSearchType: "keyword",
-      results: (r.results ?? []).map((h) => ({
+      results: unique(r.results ?? []).map((h) => ({
         id: h.url, url: h.url, title: h.title, publishedDate: h.publishedDate ?? null, author: h.author ?? null, score: null,
         ...(h.image ? { image: h.image } : {}), ...(h.favicon ? { favicon: h.favicon } : {}),
         ...(h.text !== undefined ? { text: h.text } : {}),
@@ -156,7 +197,9 @@ export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>)
 /** Handles /v1/search, /v1/findSimilar, /v1/contents and /v1/answer by forwarding the equivalent tool GET through the middleware. */
 export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Promise<Response> {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
-  const mapped = toToolQuery(path, await requestBody(c, bodyFromQuery));
+  const body = await requestBody(c, bodyFromQuery);
+  const stream = path === "/v1/answer" && !!body && typeof body === "object" && ((body as Record<string, unknown>).stream === true || (body as Record<string, unknown>).stream === "true");
+  const mapped = toToolQuery(path, body);
   if ("error" in mapped && paying) return c.json({ error: mapped.error }, 400);
   const tool = SEARCH_API_PATHS[path];
   const outer = new URL(c.req.url);
@@ -173,7 +216,13 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   if (answer.status === 402) return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", tool);
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as Record<string, unknown>;
-  const out = c.json(toSearchApi(path, result), 200);
+  const priced = ENDPOINTS.find((e) => e.path === tool);
+  const how = answer.headers.get("x-free-trial-remaining") !== null ? "free" : c.req.header("authorization") || c.req.header("x-api-key") ? "key" : "paid";
+  const cost = costDollars(priced?.price, priced ? keyPrice(priced.path, priced.price) : undefined, how);
+  const shaped = { ...toSearchApi(path, result), ...(cost ? { costDollars: cost } : {}) };
+  const out = stream
+    ? new Response(answerStream(shaped as Parameters<typeof answerStream>[0]), { status: 200, headers: { "Content-Type": "text/event-stream; charset=utf-8" } })
+    : c.json(shaped, 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   out.headers.set("Cache-Control", "no-store");
   return out;
