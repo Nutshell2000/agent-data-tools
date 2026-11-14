@@ -11,6 +11,9 @@ import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { isZip, zipEntries, zipText, type ZipEntry } from "../lib/zip";
 import { readPdf } from "./pdf";
 import { CHAT_MODEL, extractFields, fieldNames } from "./ai-text";
+import { Buffer } from "node:buffer";
+import { MODELS, runAi } from "../lib/ai";
+import type { Env } from "../lib/env";
 
 export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 /** The most one XML part may expand to, and all parts of one file together. */
@@ -24,7 +27,74 @@ const MAX_SLIDES = 300;
 export const EXTRACT_CHARS = 24_000;
 
 type Format = "text" | "markdown";
-export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf";
+export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf" | "image";
+
+/** OCR (14 Nov 2026): the largest page image the vision model is given, and how many pages of a scan are read. */
+const OCR_IMAGE_BYTES = 3 * 1024 * 1024;
+const OCR_MAX_PAGES = 3;
+/** Smaller embedded images are logos and stamps, not pages. */
+const OCR_MIN_IMAGE_BYTES = 15 * 1024;
+
+/** Reads the text of one page image, or throws. Passed in by the tools, so the readers stay testable without a model. */
+export type Ocr = (image: Uint8Array, type: string) => Promise<string>;
+
+/** The image type from the file's first bytes: PNG, JPEG or WebP (what the vision model takes). */
+export function imageType(b: Uint8Array): string | null {
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+
+const indexOfBytes = (hay: Uint8Array, needle: Uint8Array, from: number): number => {
+  outer: for (let i = from, end = hay.length - needle.length; i <= end; i++) {
+    for (let j = 0; j < needle.length; j++) if (hay[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+};
+const ascii = (s: string) => new TextEncoder().encode(s);
+
+/**
+ * The page images of a scanned PDF, in file order. A scanner writes each page as one JPEG and stores it in the PDF
+ * unchanged (the DCTDecode filter), so the JPEG can be lifted out as it is: no page rendering, which a Worker cannot
+ * do. Scans stored another way (fax-style CCITT or JBIG2) are not found here, and the caller says so.
+ */
+export function pdfPageImages(bytes: Uint8Array): Uint8Array[] {
+  const marker = ascii("/DCTDecode"), streamWord = ascii("stream"), endWord = ascii("endstream");
+  const images: Uint8Array[] = [];
+  let at = 0;
+  while (images.length < 40) {
+    const hit = indexOfBytes(bytes, marker, at);
+    if (hit < 0) break;
+    const s = indexOfBytes(bytes, streamWord, hit);
+    if (s < 0 || s - hit > 2000) { at = hit + marker.length; continue; }
+    let start = s + streamWord.length;
+    if (bytes[start] === 0x0d) start++;
+    if (bytes[start] === 0x0a) start++;
+    const end = indexOfBytes(bytes, endWord, start);
+    if (end < 0) break;
+    let stop = end;
+    while (stop > start && (bytes[stop - 1] === 0x0a || bytes[stop - 1] === 0x0d)) stop--;
+    const image = bytes.subarray(start, stop);
+    if (image[0] === 0xff && image[1] === 0xd8 && image.length >= OCR_MIN_IMAGE_BYTES && image.length <= OCR_IMAGE_BYTES) images.push(image);
+    at = end + endWord.length;
+  }
+  return images;
+}
+
+/** One page image to text with the vision model. Empty text is a refusal upstream: nothing readable is not an answer. */
+export const visionOcr = (env: Env): Ocr => async (image, type) => {
+  const out = await runAi<{ response?: string }>(env, MODELS.vision, {
+    messages: [{ role: "user", content: [
+      { type: "text", text: "Transcribe all text in this document image, top to bottom, exactly as written. Keep each line on its own line and keep the columns of a table on one line separated by tabs. Output only the transcribed text, with no comments. If the image holds no text, output nothing." },
+      { type: "image_url", image_url: { url: `data:${type};base64,${Buffer.from(image).toString("base64")}` } },
+    ] }],
+    max_tokens: 2000,
+    temperature: 0,
+  });
+  return (out?.response ?? "").trim();
+};
 
 /** Walks an XML part: element names without their prefix handling (office XML is read by its literal names). */
 function walk(xml: string, on: { open?: (name: string, attributes: Record<string, string>) => void; text?: (text: string) => void; close?: (name: string) => void }) {
@@ -202,6 +272,7 @@ async function pptxText(entries: Map<string, ZipEntry>, format: Format, read: (n
 /** What kind of file the bytes are, read from the bytes and never from a name or a content type. */
 export function documentType(bytes: Uint8Array, entries: Map<string, ZipEntry> | null): DocumentType | null {
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "pdf";
+  if (imageType(bytes)) return "image";
   if (!entries) return null;
   if (entries.has("word/document.xml")) return "docx";
   if (entries.has("xl/workbook.xml")) return "xlsx";
@@ -209,14 +280,14 @@ export function documentType(bytes: Uint8Array, entries: Map<string, ZipEntry> |
   return null;
 }
 
-export async function readDocument(bytes: Uint8Array, format: Format, maxChars: number) {
+export async function readDocument(bytes: Uint8Array, format: Format, maxChars: number, ocr?: Ocr) {
   const entries = isZip(bytes) ? zipEntries(bytes) : null;
   const type = documentType(bytes, entries);
   if (!type) {
     const old = bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0;
     throw new HttpError(415, old
       ? "this is an old binary Office file (.doc, .xls or .ppt); save it as .docx, .xlsx or .pptx and send that (nothing was charged)"
-      : "the file is not a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file (nothing was charged)");
+      : "the file is not a Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF or image (PNG, JPEG, WebP) file (nothing was charged)");
   }
   let budget = TOTAL_LIMIT;
   const read = async (name: string) => {
@@ -228,10 +299,27 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
   let extra: Record<string, unknown> = {};
   let cut = false;
   if (type === "pdf") {
-    const pdf = await readPdf(bytes, 1, 200, maxChars);
-    text = pdf.pages.map((p) => p.text).join("\n\n");
-    extra = { pages: pdf.totalPages };
-    cut = pdf.truncated;
+    try {
+      // PDF.js takes over the buffer it is given, so it reads a copy: a scan's page images are lifted from the original below.
+      const pdf = await readPdf(ocr ? bytes.slice() : bytes, 1, 200, maxChars);
+      text = pdf.pages.map((p) => p.text).join("\n\n");
+      extra = { pages: pdf.totalPages };
+      cut = pdf.truncated;
+    } catch (e) {
+      // A scan: no text layer. Its page images are read with the vision model, when they are stored as JPEGs.
+      if (!ocr || !(e instanceof HttpError) || !/no text layer/.test(e.message)) throw e;
+      const images = pdfPageImages(bytes);
+      if (images.length === 0) throw new HttpError(422, "this scanned PDF has no text layer and its pages are not stored as JPEG images, so it cannot be read here (nothing was charged)");
+      const read = await Promise.all(images.slice(0, OCR_MAX_PAGES).map((image) => ocr(image, "image/jpeg")));
+      text = read.filter(Boolean).join("\n\n");
+      extra = { ocr: true, pagesRead: Math.min(images.length, OCR_MAX_PAGES), note: `Scanned PDF: the text was read from its page images by an AI model (at most ${OCR_MAX_PAGES} pages a call). Check values that matter.` };
+      cut = images.length > OCR_MAX_PAGES;
+    }
+  } else if (type === "image") {
+    if (!ocr) throw new HttpError(415, "this tool does not read images (nothing was charged)");
+    if (bytes.length > OCR_IMAGE_BYTES) throw new HttpError(422, "the image is larger than 3 MB; send a smaller scan or photo (nothing was charged)");
+    text = await ocr(bytes, imageType(bytes)!);
+    extra = { ocr: true, note: "Image: the text was read by an AI model. Check values that matter." };
   } else if (type === "docx") {
     text = docxText((await read("word/document.xml"))!, format);
   } else if (type === "xlsx") {
@@ -249,13 +337,13 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
   if (!text) throw new HttpError(422, "the file holds no text (nothing was charged)");
   const truncated = cut || text.length > maxChars;
   if (text.length > maxChars) text = text.slice(0, maxChars);
-  return { type, format: type === "pdf" ? "text" as const : format, chars: text.length, truncated, ...extra, text };
+  return { type, format: type === "pdf" || type === "image" ? "text" as const : format, chars: text.length, truncated, ...extra, text };
 }
 
 export const DOCUMENT: Entry[] = [
   entry("/document/text", "Document to text: Word, Excel, PowerPoint, PDF",
-    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) with each sheet as a table, PowerPoint (.pptx) slide by slide, or a PDF's text layer. Give the URL of a public file, or send the file itself in a POST body (up to 10 MB). Old .doc/.xls/.ppt, scanned and password-protected files fail uncharged. Use to read attachments, reports and spreadsheets into an agent, RAG or a workflow.",
-    ["docx-to-text", "word-to-markdown", "xlsx-to-json", "document", "pptx", "office", "rag"], {
+    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scanned PDFs or images (PNG, JPEG, WebP) by OCR. Give a public file's URL, or send the file in a POST body (10 MB; images 3 MB). Old .doc/.xls/.ppt and password-protected files fail uncharged. Use to read attachments, scans and spreadsheets into an agent, RAG or a workflow.",
+    ["docx-to-text", "word-to-markdown", "ocr", "xlsx-to-json", "document", "pptx", "office", "rag"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
       format: { type: "string", description: "markdown (default: headings, lists and tables kept) or text", enum: ["markdown", "text"], example: "markdown" },
       maxChars: { type: "integer", description: "Maximum characters of text returned (1000-200000, default 50000)", example: 1000 },
@@ -265,17 +353,17 @@ export const DOCUMENT: Entry[] = [
       type: "docx", format: "markdown", chars: 1000, truncated: true,
       text: "# Demonstration of DOCX support in calibre\n\nThis document demonstrates the ability of the calibre DOCX Input plugin to convert the various typographic features in a Microsoft Word (2007 and newer) document.",
     },
-    async (_env, q) => {
+    async (env, q) => {
       const format = pick(q, "format", ["markdown", "text"] as const, "markdown");
       const maxChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
       const sent = q(FILE_REF_INPUT);
       if (isFileRef(sent)) {
         const bytes = heldFile(sent);
         if (!bytes) throw new HttpError(400, "send the file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON); a file reference cannot be used in a GET");
-        return { url: null, source: "upload", bytes: bytes.byteLength, ...(await readDocument(bytes, format, maxChars)) };
+        return { url: null, source: "upload", bytes: bytes.byteLength, ...(await readDocument(bytes, format, maxChars, visionOcr(env))) };
       }
       const file = await fetchFile(q("url"), /^/, DOCUMENT_MAX_BYTES, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
-      return { url: file.url, ...(await readDocument(file.bytes, format, maxChars)) };
+      return { url: file.url, ...(await readDocument(file.bytes, format, maxChars, visionOcr(env))) };
       // $0.005, the PDF tool's price (the owner delegated prices on 14 Nov 2026: "you decide prices").
     }, "$0.005"),
 
@@ -284,7 +372,7 @@ export const DOCUMENT: Entry[] = [
   // tool, and sellers price it per document, far above plain text. One Workers AI call per document; AI_DAILY_CAP
   // bounds the bill. The model reads at most EXTRACT_CHARS characters, and the answer says when the file held more.
   entry("/document/extract", "Extract data from a document: invoice, receipt, contract fields as JSON",
-    "Extract named fields from a document as JSON: give a PDF, Word (.docx), Excel (.xlsx) or PowerPoint (.pptx) file by URL or in a POST body (up to 10 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file's text and returns one JSON object, with null where a value is not stated. Scanned files without text fail uncharged. Use to turn invoices, receipts, orders and contracts into rows.",
+    "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
       fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
@@ -310,9 +398,9 @@ export const DOCUMENT: Entry[] = [
         url = file.url;
       }
       // Plain text for the model: Markdown table rules add characters and no information.
-      const doc = await readDocument(bytes, "text", EXTRACT_CHARS);
+      const doc = await readDocument(bytes, "text", EXTRACT_CHARS, visionOcr(env));
       const found = await extractFields(env, doc.text, fields, CHAT_MODEL, 900);
-      return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...found, charsRead: doc.chars, truncated: doc.truncated };
+      return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...("ocr" in doc ? { ocr: true } : {}), ...found, charsRead: doc.chars, truncated: doc.truncated };
       // $0.03 a document: one model call, and a tenth to a half of what document-extraction sellers charge (14 Nov 2026).
     }, "$0.03"),
 ];
