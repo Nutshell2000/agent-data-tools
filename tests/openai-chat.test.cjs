@@ -115,7 +115,9 @@ test('/ai/chat native mode: messages, tools and JSON mode passed to the model as
   const { nativeChatInput, nativeChat, CHAT_MODEL } = m.exports;
   const q = (o) => (n) => o[n];
   assert.equal(nativeChatInput(q({ prompt: 'x' })), null);
-  assert.throws(() => nativeChatInput(q({ messages: 'not json' })), (e) => e.status === 400);
+  // 14 Nov 2026: plain text is one user message (src/lib/chat-messages.ts); a malformed array is still refused.
+  assert.deepEqual(nativeChatInput(q({ messages: 'not json' })).messages, [{ role: 'user', content: 'not json' }]);
+  assert.throws(() => nativeChatInput(q({ messages: '[{"role":"user"' })), (e) => e.status === 400);
   assert.throws(() => nativeChatInput(q({ messages: '[{"role":"function","content":"x"}]' })), (e) => e.status === 400);
   assert.throws(() => nativeChatInput(q({ messages: JSON.stringify([{ role: 'user', content: 'a'.repeat(21000) }]) })), (e) => e.status === 400);
   const input = nativeChatInput(q({ messages: '[{"role":"developer","content":"Be brief."},{"role":"user","content":"Weather?"}]', tools: '[{"type":"function","function":{"name":"get_weather"}}]', tool_choice: 'auto', response_format: '{"type":"json_object"}' }));
