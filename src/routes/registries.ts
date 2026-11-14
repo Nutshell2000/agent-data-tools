@@ -43,7 +43,7 @@ export function vatParts(raw: string): { country: string; number: string } | nul
   if (!m) return null;
   return { country: m[1] === "GR" ? "EL" : m[1], number: m[2] };
 }
-const VIES_COUNTRIES = new Set(["AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK", "XI"]);
+export const VIES_COUNTRIES = new Set(["AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK", "XI"]);
 
 /** The two answer shapes: GET /ms/<cc>/vat/<n> (isValid, userError) and POST /check-vat-number (valid, or actionSucceed false with errorWrappers). */
 type ViesBody = { isValid?: boolean; valid?: boolean; requestDate?: string; userError?: string; name?: string; address?: string; actionSucceed?: boolean; errorWrappers?: { error?: string }[] };
