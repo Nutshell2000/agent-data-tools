@@ -180,7 +180,7 @@ async function audioBytes(q: Input): Promise<{ bytes: Uint8Array; url: string | 
 
 export const VOICE: Entry[] = [
   entry(LONG_TRANSCRIBE_PATH, "Transcribe long audio: up to 60 minutes of MP3 or WAV, with subtitles",
-    "Transcribe a podcast, meeting, interview or lecture: up to 60 minutes of MP3 or WAV audio (25 MB) from a public URL or uploaded in a POST body, in 90+ languages with Whisper large-v3-turbo. The file is cut into parts and the timings are joined, so subtitles=srt or vtt and timestamps=true cover the whole recording. Longer audio is refused before anything runs. Use for meeting notes, podcast show notes, video subtitles and interview transcripts; for a short clip in any format, transcribe costs less.",
+    "Transcribe a podcast, meeting, interview or lecture: up to 60 minutes of MP3 or WAV (25 MB) by URL or uploaded in a POST body, 90+ languages, Whisper large-v3-turbo. Parts are joined, so subtitles=srt or vtt and timestamps=true cover the whole recording; longer audio is refused before anything runs. Use for meeting notes, podcast show notes, video subtitles and interviews; for a short clip in any format, transcribe costs less.",
     ["transcription", "speech-to-text", "long-audio", "podcast-transcription", "subtitles", "whisper", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of an MP3 or WAV file (max 25 MB, 60 minutes); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
       subtitles: { type: "string", description: "srt or vtt: also return subtitle text for the whole recording", example: "srt" },
