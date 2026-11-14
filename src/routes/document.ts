@@ -130,7 +130,8 @@ export function docxText(xml: string, format: Format): string {
   let skip = 0; // deleted text and field codes are not part of what the reader sees
   walk(xml, {
     open(name, a) {
-      if (name === "w:del" || name === "w:instrText" || name === "w:delText") skip++;
+      // mc:Fallback repeats, for old readers, what mc:Choice already holds (text boxes, shapes): reading both doubled the text.
+      if (name === "w:del" || name === "w:instrText" || name === "w:delText" || name === "mc:Fallback") skip++;
       else if (name === "w:tbl") tables.push({ rows: [], row: null, cell: null });
       else if (name === "w:tr") { const t = tables.at(-1); if (t) t.row = []; }
       else if (name === "w:tc") { const t = tables.at(-1); if (t) t.cell = []; }
@@ -143,7 +144,7 @@ export function docxText(xml: string, format: Format): string {
     },
     text(t) { if (inText && skip === 0 && para) para.push(t); },
     close(name) {
-      if (name === "w:del" || name === "w:instrText" || name === "w:delText") skip--;
+      if (name === "w:del" || name === "w:instrText" || name === "w:delText" || name === "mc:Fallback") skip--;
       else if (name === "w:t") inText = false;
       else if (name === "w:p" && para) {
         const text = para.join("").replace(/[ \t]+\n/g, "\n").trim();
@@ -192,18 +193,58 @@ function sharedStrings(xml: string | null): string[] {
   return out;
 }
 
-function sheetRows(xml: string, strings: string[]): { rows: string[][]; cut: boolean } {
+/** Number formats Excel ships that show a date or a time (ECMA-376 18.8.30, plus the East Asian ones). */
+const BUILTIN_DATE_FORMATS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 58]);
+/** A custom format code is a date or time when, outside quoted text and [brackets], it holds a d, m, y, h or s. */
+export const isDateFormat = (code: string) => /[dmyhs]/i.test(code.replace(/"[^"]*"/g, "").replace(/\[[^\]]*\]/g, "").replace(/\\./g, "")) && !/^general$/i.test(code.trim());
+
+/** For each cell style index, whether it shows a date or a time (xl/styles.xml: numFmts and cellXfs). */
+export function dateStyles(xml: string | null): boolean[] {
+  if (!xml) return [];
+  const custom = new Map<number, string>();
+  const styles: boolean[] = [];
+  let inCellXfs = false;
+  walk(xml, {
+    open(name, a) {
+      if (name === "numFmt" && a.numFmtId) custom.set(Number(a.numFmtId), a.formatCode ?? "");
+      else if (name === "cellXfs") inCellXfs = true;
+      else if (name === "xf" && inCellXfs && styles.length < 5000) {
+        const id = Number(a.numFmtId ?? 0);
+        styles.push(custom.has(id) ? isDateFormat(custom.get(id)!) : BUILTIN_DATE_FORMATS.has(id));
+      }
+    },
+    close(name) { if (name === "cellXfs") inCellXfs = false; },
+  });
+  return styles;
+}
+
+/** Excel's day number as an ISO date, date-time or time. Day 60 of the 1900 system is the 29 February 1900 that never was. */
+export function excelDate(serial: number, date1904 = false): string | null {
+  if (!Number.isFinite(serial) || serial < 0 || serial > 2_958_465) return null;
+  const days = Math.floor(serial);
+  const seconds = Math.round((serial - days) * 86_400);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${pad(Math.floor(seconds / 3600) % 24)}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`;
+  if (days === 0 && !date1904) return time;
+  const epoch = date1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, days < 60 ? 31 : 30);
+  const d = new Date(epoch + (days + (seconds >= 86_400 ? 1 : 0)) * 86_400_000);
+  const date = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  return seconds === 0 || seconds >= 86_400 ? date : `${date}T${time}`;
+}
+
+function sheetRows(xml: string, strings: string[], dates: boolean[] = [], date1904 = false): { rows: string[][]; cut: boolean } {
   const rows: string[][] = [];
   let row: string[] | null = null;
   let ref = "";
   let type = "";
+  let style = -1;
   let value: string[] | null = null;
   let reading = false;
   let cut = false;
   walk(xml, {
     open(name, a) {
       if (name === "row") { if (rows.length >= MAX_ROWS) { cut = true; row = null; } else row = []; }
-      else if (name === "c") { ref = a.r ?? ""; type = a.t ?? ""; value = []; }
+      else if (name === "c") { ref = a.r ?? ""; type = a.t ?? ""; style = a.s === undefined ? -1 : Number(a.s); value = []; }
       else if (name === "v" || name === "t") reading = true;
     },
     text(t) { if (reading && value) value.push(t); },
@@ -212,7 +253,11 @@ function sheetRows(xml: string, strings: string[]): { rows: string[][]; cut: boo
       else if (name === "c" && row && value) {
         const raw = value.join("");
         value = null;
-        const text = type === "s" ? strings[Number(raw)] ?? "" : type === "b" ? (raw === "1" ? "TRUE" : "FALSE") : raw;
+        // A plain number in a cell whose style shows a date is a day number: give the date it shows.
+        const asDate = (type === "" || type === "n") && raw !== "" && dates[style] ? excelDate(Number(raw), date1904) : null;
+        // A number stored with more digits than a double holds (2.6303323046962774324020672609) is shown as the number it is.
+        const number = (type === "" || type === "n") && /^-?\d*\.\d{16,}$/.test(raw) ? String(Number(raw)) : raw;
+        const text = type === "s" ? strings[Number(raw)] ?? "" : type === "b" ? (raw === "1" ? "TRUE" : "FALSE") : asDate ?? number;
         const at = ref ? columnIndex(ref) : row.length;
         if (at < 0 || at >= MAX_COLUMNS) { if (text !== "") cut = true; return; }
         while (row.length < at) row.push("");
@@ -228,18 +273,23 @@ async function xlsxText(bytes: Uint8Array, entries: Map<string, ZipEntry>, forma
   const workbook = await read("xl/workbook.xml");
   if (!workbook) throw new HttpError(422, "the workbook has no sheet list");
   const sheets: { name: string; id: string }[] = [];
-  walk(workbook, { open(name, a) { if (name === "sheet" && sheets.length < 200) sheets.push({ name: a.name ?? `Sheet ${sheets.length + 1}`, id: a["r:id"] ?? "" }); } });
+  let date1904 = false;
+  walk(workbook, { open(name, a) {
+    if (name === "sheet" && sheets.length < 200) sheets.push({ name: a.name ?? `Sheet ${sheets.length + 1}`, id: a["r:id"] ?? "" });
+    else if (name === "workbookPr" && /^(1|true)$/i.test(a.date1904 ?? "")) date1904 = true;
+  } });
   const targets = new Map<string, string>();
   const rels = await read("xl/_rels/workbook.xml.rels");
   if (rels) walk(rels, { open(name, a) { if (name === "Relationship" && a.Id && a.Target) targets.set(a.Id, a.Target.startsWith("/") ? a.Target.slice(1) : `xl/${a.Target}`); } });
   const strings = sharedStrings(await read("xl/sharedStrings.xml"));
+  const dates = dateStyles(await read("xl/styles.xml"));
   const parts: string[] = [];
   const summary: { name: string; rows: number; columns: number }[] = [];
   let cut = sheets.length > MAX_SHEETS;
   for (const [i, sheet] of sheets.slice(0, MAX_SHEETS).entries()) {
     const xml = await read(targets.get(sheet.id) ?? `xl/worksheets/sheet${i + 1}.xml`);
     if (!xml) continue; // a chart sheet or a missing part
-    const { rows, cut: sheetCut } = sheetRows(xml, strings);
+    const { rows, cut: sheetCut } = sheetRows(xml, strings, dates, date1904);
     cut ||= sheetCut;
     summary.push({ name: sheet.name, rows: rows.length, columns: rows.reduce((n, r) => Math.max(n, r.length), 0) });
     if (rows.length === 0) continue;
@@ -322,10 +372,16 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
     extra = { ocr: true, note: "Image: the text was read by an AI model. Check values that matter." };
   } else if (type === "docx") {
     text = docxText((await read("word/document.xml"))!, format);
+    // Footnotes and endnotes live in their own parts; their text follows the body under a heading of its own.
+    for (const [part, title] of [["word/footnotes.xml", "Footnotes"], ["word/endnotes.xml", "Endnotes"]] as const) {
+      const xml = await read(part);
+      const notes = xml ? docxText(xml, "text").trim() : "";
+      if (notes) text += `\n\n${format === "markdown" ? `## ${title}` : title}\n\n${notes}`;
+    }
   } else if (type === "xlsx") {
     const sheet = await xlsxText(bytes, entries!, format, read);
     text = sheet.text;
-    extra = { sheets: sheet.sheets, note: "Cells hold the values the file stores: a formula's last calculated result, and dates as Excel's day numbers." };
+    extra = { sheets: sheet.sheets, note: "Cells hold the values the file stores: a formula's last calculated result. Dates and times are given in ISO form (2026-11-14, 2026-11-14T09:30:00, 09:30:00)." };
     cut = sheet.cut;
   } else {
     const deck = await pptxText(entries!, format, read);
