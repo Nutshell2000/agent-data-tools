@@ -8,6 +8,12 @@ An [n8n](https://n8n.io) community node that turns files into data your workflow
 - **Extract Fields**: the fields you name, as JSON. Give it an invoice and ask for `supplier, invoice_number, due_date, total, currency`; a field the file does not state comes back empty instead of guessed.
 - **Extract Text From PDF**: a PDF page by page, with its page count, title and author.
 
+And it works with EU e-invoices (XRechnung, ZUGFeRD, Factur-X and other EN 16931 invoices):
+
+- **E-Invoice > Create**: invoice data as JSON in, XRechnung 3.0 (CII or UBL) or the ZUGFeRD / Factur-X XML out, also as a file in a binary field. Line totals, the VAT breakdown and the totals are computed and checked first; data that breaks a rule is refused with the rule numbers and not charged.
+- **E-Invoice > Validate**: every broken business rule with its number (`BR-DE-15`, `BR-CO-15`), the field, the figures from your file and the fix.
+- **E-Invoice > Convert to JSON**: an incoming e-invoice as JSON, from the XML or from the PDF with the XML inside. Exact values, no AI.
+
 Every operation takes a file from an earlier node (an e-mail attachment, a download, a form upload) or a public URL. Files are read by the Glyphcall API and are not stored.
 
 ## Installation
@@ -27,6 +33,9 @@ A call costs a fixed price in credits (1 credit = $0.001). Failed calls are not 
 | Convert to Text | `/document/text` | $0.005 |
 | Extract Fields | `/document/extract` | $0.03 |
 | Extract Text From PDF | `/pdf/text` | $0.005 |
+| E-Invoice > Create | `/einvoice/create` | $0.01 |
+| E-Invoice > Validate | `/einvoice/validate` | $0.01 |
+| E-Invoice > Convert to JSON | `/einvoice/to-json` | $0.01 |
 
 Credits come in packs from $1 (1,000 credits) or by monthly plan; both give one key. These are the prices on 14 November 2026; the current ones are at <https://glyphcall.com/tools>.
 
@@ -59,6 +68,7 @@ A ready workflow is in [templates/invoice-attachment-to-sheet.json](templates/in
 - Excel cells hold the values the file stores: a formula's last result, and dates as Excel's day numbers.
 - **Extract Fields** is read by an AI model from the first 24,000 characters of the file. Check values that matter, such as amounts, before you act on them.
 - The node can be attached to an n8n AI Agent as a tool.
+- E-invoices: files up to 5 MB. **Create** writes the XML only, not the ZUGFeRD PDF, and does not send the invoice anywhere. Allowances and charges, attachments, card and direct-debit payments are not written. **Validate** runs a subset of the EN 16931 and XRechnung 3.0 business rules; it is not the official KoSIT validator and not tax advice.
 
 ## Compatibility
 

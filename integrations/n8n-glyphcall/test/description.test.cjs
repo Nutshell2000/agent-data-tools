@@ -10,6 +10,7 @@ const dist = path.join(__dirname, '..', 'dist');
 const { Glyphcall } = require(path.join(dist, 'nodes/Glyphcall/Glyphcall.node.js'));
 const { GlyphcallApi } = require(path.join(dist, 'credentials/GlyphcallApi.credentials.js'));
 const document = require(path.join(dist, 'nodes/Glyphcall/resources/document.js'));
+const einvoice = require(path.join(dist, 'nodes/Glyphcall/resources/einvoice.js'));
 const fixture = require('./fixtures/tools.json');
 const pkg = require('../package.json');
 
@@ -19,16 +20,16 @@ const description = new Glyphcall().description;
 const properties = description.properties;
 
 function operations() {
-	const selector = properties.find((p) => p.name === 'operation');
-	return selector.options.map((option) => {
-		const fields = properties.filter((p) => p.name !== 'operation' && p.name !== 'resource' && p.displayOptions?.show?.operation?.includes(option.value));
+	return properties.filter((p) => p.name === 'operation').flatMap((selector) => selector.options.map((option) => {
+		const resource = selector.displayOptions.show.resource[0];
+		const fields = properties.filter((p) => p.name !== 'operation' && p.name !== 'resource' && p.displayOptions?.show?.resource?.includes(resource) && p.displayOptions?.show?.operation?.includes(option.value));
 		const sent = [];
 		for (const field of fields) {
 			if (field.routing?.send?.property) sent.push({ name: field.routing.send.property, required: Boolean(field.required) });
 			for (const sub of field.type === 'collection' ? field.options : []) if (sub.routing?.send?.property) sent.push({ name: sub.routing.send.property, required: false });
 		}
 		return { operation: option.value, option, path: option.routing.request.url, sent, fields };
-	});
+	}));
 }
 
 test('package manifest follows the n8n community node rules', () => {
@@ -94,4 +95,45 @@ test('a file from an earlier node is sent as the request body; a URL stays a pla
 	assert.equal(sent.baseURL, HOST);
 	await assert.rejects(document.sendFile.call(context({ source: 'file', binaryPropertyName: 'data' }, {}), base), /No file found in the binary field "data"/);
 	await assert.rejects(document.sendFile.call(context({ source: 'file' }, { data: Buffer.alloc(document.MAX_FILE_BYTES + 1) }), base), /largest file this operation reads is 10 MB/);
+});
+
+test('an e-invoice goes as a file body, as XML text in JSON, or as a URL in a plain GET', async () => {
+	const base = { baseURL: HOST, headers: { Accept: 'application/json' }, method: 'GET', url: '/einvoice/validate', qs: { url: 'https://example.com/a.xml', profile: 'xrechnung' } };
+	assert.deepEqual(await einvoice.sendEinvoice.call(context({ source: 'url' }, {}), base), base);
+	const file = Buffer.from('<Invoice/>');
+	const asFile = await einvoice.sendEinvoice.call(context({ source: 'file', binaryPropertyName: 'attachment_0' }, { attachment_0: file }), base);
+	assert.equal(asFile.method, 'POST');
+	assert.equal(asFile.body, file);
+	assert.deepEqual(asFile.qs, { profile: 'xrechnung' });
+	assert.equal(asFile.headers['Content-Type'], 'application/octet-stream');
+	const asText = await einvoice.sendEinvoice.call(context({ source: 'xml' }, {}), { ...base, qs: { xml: ' <Invoice/> ', profile: 'auto' } });
+	assert.equal(asText.method, 'POST');
+	assert.deepEqual(asText.body, { xml: '<Invoice/>' });
+	assert.deepEqual(asText.qs, { profile: 'auto' }, 'the XML never travels in the URL');
+	assert.equal(asText.json, true);
+	await assert.rejects(einvoice.sendEinvoice.call(context({ source: 'xml' }, {}), { ...base, qs: { xml: 'not xml' } }), /does not hold XML/);
+	await assert.rejects(einvoice.sendEinvoice.call(context({ source: 'file' }, {}), base), /No file found in the binary field "data"/);
+	await assert.rejects(einvoice.sendEinvoice.call(context({ source: 'file' }, { data: Buffer.alloc(einvoice.MAX_EINVOICE_BYTES + 1) }), base), /largest e-invoice this operation reads is 5 MB/);
+});
+
+test('Create sends the invoice as a JSON object in the body and attaches the XML as a file', async () => {
+	const base = { baseURL: HOST, headers: { Accept: 'application/json' }, method: 'GET', url: '/einvoice/create', qs: { invoice: '{"number":"RE-1","lines":[]}', format: 'zugferd', only: 'xml' } };
+	const sent = await einvoice.sendInvoiceData.call(context({}, {}), base);
+	assert.equal(sent.method, 'POST');
+	assert.deepEqual(sent.body, { invoice: { number: 'RE-1', lines: [] }, format: 'zugferd' });
+	assert.deepEqual(sent.qs, { only: 'xml' });
+	const fromObject = await einvoice.sendInvoiceData.call(context({}, {}), { ...base, qs: { invoice: { number: 'RE-2' } } });
+	assert.deepEqual(fromObject.body, { invoice: { number: 'RE-2' } });
+	await assert.rejects(einvoice.sendInvoiceData.call(context({}, {}), { ...base, qs: { invoice: '{broken' } }), /not valid JSON/);
+	await assert.rejects(einvoice.sendInvoiceData.call(context({}, {}), { ...base, qs: { invoice: '[1]' } }), /must be a JSON object/);
+
+	const prepared = [];
+	const ctx = { ...context({ outputBinaryPropertyName: 'invoiceXml' }, {}) };
+	ctx.helpers.prepareBinaryData = async (buffer, fileName, mimeType) => { prepared.push({ text: buffer.toString('utf8'), fileName, mimeType }); return { data: 'x', fileName, mimeType }; };
+	const items = await einvoice.attachXml.call(ctx, [{ json: { xml: '<a/>', filename: 'RE-1.xml' } }, { json: { error: 'refused' } }], {});
+	assert.deepEqual(prepared, [{ text: '<a/>', fileName: 'RE-1.xml', mimeType: 'application/xml' }]);
+	assert.equal(items[0].binary.invoiceXml.fileName, 'RE-1.xml');
+	assert.equal(items[1].binary, undefined);
+	const none = await einvoice.attachXml.call({ ...ctx, getNodeParameter: () => '' }, [{ json: { xml: '<a/>' } }], {});
+	assert.equal(none[0].binary, undefined, 'an empty field name means text only');
 });

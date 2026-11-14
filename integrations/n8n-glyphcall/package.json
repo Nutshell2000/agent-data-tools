@@ -1,7 +1,7 @@
 {
 	"name": "n8n-nodes-glyphcall",
-	"version": "0.1.0",
-	"description": "n8n node that turns Word, Excel, PowerPoint and PDF files into text or Markdown and extracts named fields (invoice number, total, due date...) as JSON, from a file in your workflow or a URL.",
+	"version": "0.2.0",
+	"description": "n8n node that turns Word, Excel, PowerPoint and PDF files into text or fields as JSON, and creates, validates and reads XRechnung, ZUGFeRD and Factur-X e-invoices.",
 	"license": "MIT",
 	"homepage": "https://glyphcall.com",
 	"keywords": [
@@ -16,6 +16,11 @@
 		"powerpoint",
 		"markdown",
 		"invoice",
+		"e-invoice",
+		"xrechnung",
+		"zugferd",
+		"factur-x",
+		"en16931",
 		"document-extraction",
 		"ocr-alternative",
 		"attachments"
