@@ -87,10 +87,10 @@ ul{padding-left:20px}footer{margin-top:40px;color:var(--muted);font-size:.9rem}`
 const HOW = "The check asks VIES, the European Commission's VAT Information Exchange System, which in turn asks the member state's own tax database. Valid means the number is registered for intra-EU trade at the moment of the check.";
 
 /** The page for one country. `tryIt`: a browser may run the check free here. */
-export function vatCountryPage(c: VatCountry, origin: string, tryIt: boolean): string {
+export function vatCountryPage(c: VatCountry, origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const e = tool();
   const url = `${origin}${VAT_BASE}/${c.slug}`;
-  const title = `Check a ${c.adjective} VAT number: format ${c.shape}, live VIES check · ${SERVICE_NAME}`;
+  const title = `Check a ${c.adjective} VAT number: format ${c.shape}, live VIES check · ${brand}`;
   const description = `Validate a ${c.adjective} VAT number (${c.localName}) against VIES: ${c.code} followed by ${c.format}. Check one here, or use the API from your invoicing or checkout code.`.slice(0, 300);
   const register = c.register ? ENDPOINTS.find((o) => o.path === c.register) : undefined;
   const faq: [string, string][] = [
@@ -109,7 +109,7 @@ export function vatCountryPage(c: VatCountry, origin: string, tryIt: boolean): s
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>
 <style>${PAGE_STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a> › <a href="${VAT_BASE}">VAT number check</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/company-check-api">Company check API</a> › <a href="${VAT_BASE}">VAT number check</a></nav>
 <h1>Check a ${esc(c.adjective)} VAT number</h1>
 <p class="tag">Validate a VAT number from ${esc(c.country)} against the EU's VIES service, here or from your own code.</p>
 <div class="wrap"><table>
@@ -137,10 +137,10 @@ ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 }
 
 /** /vat-number-check: every country's format in one table, and the check. */
-export function vatIndexPage(origin: string, tryIt: boolean): string {
+export function vatIndexPage(origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const e = tool();
   const url = `${origin}${VAT_BASE}`;
-  const title = `EU VAT number check: formats for all ${VAT_COUNTRIES.length} VIES countries and a live check · ${SERVICE_NAME}`;
+  const title = `EU VAT number check: formats for all ${VAT_COUNTRIES.length} VIES countries and a live check · ${brand}`;
   const description = `Validate any EU VAT number against VIES and see each country's format: prefix, length and local name for all ${VAT_COUNTRIES.length} VIES countries. Check one here or use the API.`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -150,7 +150,7 @@ export function vatIndexPage(origin: string, tryIt: boolean): string {
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <style>${PAGE_STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/company-check-api">Company check API</a></nav>
 <h1>EU VAT number check</h1>
 <p class="tag">Validate a VAT number from any EU member state or Northern Ireland against VIES, and see how each country writes its numbers.</p>
 ${tryIt ? tryForm(e, undefined, "Check a VAT number now") : `<p><a class="btn primary" href="/company-check-api">Check a VAT number</a></p>`}

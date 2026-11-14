@@ -17,7 +17,7 @@ import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
-import { withPublicCanonical } from "./lib/public-site";
+import { movedTo, publicBrand, withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -107,6 +107,12 @@ app.use(async (c, next) => {
   }
 });
 
+// Pages for people on a host that used to be the public home move to the public home with a 301 (lib/public-site.ts).
+app.use(async (c, next) => {
+  if (c.req.method !== "GET" || !c.env.PREVIOUS_SITE_ORIGINS || !(c.req.path === "/sitemap.xml" || ((isHumanPage(c.req.path) || c.req.path === "/guides") && prefersHtml(c.req.header("accept"), c.req.header("user-agent"))))) return next();
+  const target = movedTo(c.req.url, c.env.PUBLIC_SITE_ORIGIN, c.env.PREVIOUS_SITE_ORIGINS);
+  return target ? c.redirect(target, 301) : next();
+});
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
 app.use(async (c, next) => {
   await next();
@@ -526,20 +532,20 @@ for (const product of PRODUCT_PAGES) {
   app.get(`/${product.slug}`, (c) => {
     const capped = trialsEnabled(c.env) && pdfTryOn(c.env, product.tool);
     const tryIt = trialsEnabled(c.env) && (httpFree(product.tool) || capped);
-    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY)));
+    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME)));
   });
 }
 // Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
-app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))));
+app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
   const country = vatCountry(c.req.param("country"));
-  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))) : c.notFound();
+  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 // Per-country company register pages (lib/register-pages.ts), part of the company-check product.
-app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url))));
+app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
   const country = registerCountry(c.req.param("country"));
-  return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool))) : c.notFound();
+  return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {
