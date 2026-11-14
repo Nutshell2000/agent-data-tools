@@ -1617,3 +1617,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Datacircle (datacircle.dev) benchmarks providers per job and country and publishes rankings. Its results for us
   come by mail to spellz111122@gmail.com. Reading them is fine; answering is outreach (the owner's).
 
+
+
+## /describe takes a page URL (1.155.0, 14 Nov 2026, no new tools)
+
+- `describeImage()` (src/routes/ai.ts): bytes that are a web page instead of an image are read through `pagePreviewImage()` (og:image, then twitter:image, via `parseMeta` from feeds.ts), one extra guarded fetch. The answer adds `imageUrl` and `note` only in that case. Why: a returning buyer's paid calls on 14 Nov sent page URLs and got 415. Read `/status` `topFailures` of a tool a real buyer uses before anything else: a refused paid call is a lost sale that costs nothing to see.
+- Same day's audit (business\tool-sales-audit-2026-11-14.md): new wallets that buy ~50 `/weather/forecast` calls in one burst come from vAPI Network; the finder buyer's first run after `/hyperliquid/indicators` went to $0.05 did not pick us (one run, rotation not excluded; review date stays 26 Nov).
+
