@@ -18,7 +18,7 @@ import { createPaymentWrapper } from "@x402/mcp";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { CAPACITY_LIMITED, ENDPOINTS, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, FOCUSED_SERVERS, focusedServerTools, MCP_BUNDLES, MCP_SERVER_VERSION, mcpBundleTools, SERVICE_ID, SERVICE_NAME, type Endpoint, type EndpointPath } from "./discovery";
 import { HttpError, isUpstreamFailure, type Env } from "./lib/env";
 import { resourceServer } from "./lib/payments";
 import { paymentOptions, priceOn } from "./lib/networks";
@@ -256,6 +256,14 @@ function registerCompactTools(
   );
 }
 
+/** "Prices per successful call: $0.002 to $0.03." for a focused server's instructions (its tools' own prices). */
+export function priceRange(endpoints: readonly Endpoint[]) {
+  const usd = endpoints.map((e) => Number(String(e.price).replace(/[^0-9.]/g, ""))).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  if (!usd.length) return undefined;
+  const show = (n: number) => `$${n}`;
+  return usd[0] === usd[usd.length - 1] ? `Each costs ${show(usd[0])} per successful call.` : `Prices per successful call: ${show(usd[0])} to ${show(usd[usd.length - 1])}.`;
+}
+
 /** Stateless MCP endpoint: every paid HTTP endpoint is also a paid tool. A bundle serves one catalog section. */
 export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlKey?: string, account?: { key: string | null; sub: string }, directory = false) {
   if (urlKey !== undefined && !isCreditKey(urlKey)) return c.json({ error: "the key in this URL is not a valid API key; copy the connector URL again from your /credits/claim page" }, 401);
@@ -269,8 +277,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // instead of hundreds. See registerCompactTools below.
   const capped = bundle === COMPACT_CAPPED_BUNDLE;
   const compact = bundle === COMPACT_BUNDLE || capped;
-  const catalog = compact ? ENDPOINTS : bundle ? mcpBundleTools(bundle) : ENDPOINTS;
-  if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${[COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, ...Object.keys(MCP_BUNDLES)].join(", ")}` }, 404);
+  // A focused server (FOCUSED_SERVERS: documents, company-check) is a hand-picked product, not a catalog section.
+  const focus = bundle && Object.hasOwn(FOCUSED_SERVERS, bundle) ? FOCUSED_SERVERS[bundle] : undefined;
+  const catalog = compact ? ENDPOINTS : bundle ? mcpBundleTools(bundle) ?? focusedServerTools(bundle) : ENDPOINTS;
+  if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${[COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, ...Object.keys(MCP_BUNDLES), ...Object.keys(FOCUSED_SERVERS)].join(", ")}` }, 404);
   // The signed-in server is what app directories list; their policy excludes AI generation of images,
   // video and audio, so those two tools stay on the open /mcp and HTTP only.
   // Sales order, as in /discovery/resources: payee and risk checks first, toys last (tools/list and registration).
@@ -315,7 +325,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(endpoints.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : ""}${mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account))}` });
+  const mcp = new McpServer({ name: SERVICE_ID, title: focus ? `${SERVICE_NAME}: ${focus.title}` : SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(endpoints.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : ""}${mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account), focus && { ...focus, prices: priceRange(endpoints) })}` });
 
   // Tools this server offers, so a result names only next tools the client can actually call here.
   const served = new Set(endpoints.map((x) => x.path));
