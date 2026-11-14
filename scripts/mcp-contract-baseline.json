@@ -1,5 +1,5 @@
 {
-  "version": "1.167.0",
+  "version": "1.168.0",
   "tools": [
     {
       "name": "extract",
@@ -17502,7 +17502,7 @@
     },
     {
       "name": "hyperliquid_indicators",
-      "description": "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice. Example: coin=BTC. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice. Example: coin=BTC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -17523,7 +17523,7 @@
           }
         }
       },
-      "price": "$0.05"
+      "price": "$0.01"
     },
     {
       "name": "hyperliquid_prices",

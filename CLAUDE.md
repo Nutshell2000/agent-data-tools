@@ -1727,3 +1727,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `src/lib/register-pages.ts`: `/company-register` and one page per register we read (`REGISTER_COUNTRIES`: Sweden, Norway, Finland, France). Every rule a page states (check digit, VAT formula) is tested against the page's example in tests/register-pages.test.cjs; add a country only with its lookup tool and a rule the test can check.
 - `Product.upload` (lib/product-pages.ts) puts an upload form and curl example on a product page; the form posts multipart field `file` to `<tool>?trial=1` (the POST forwarder of lib/file-input.ts keeps the query string, so the capped browser try applies). The privacy page's "Uploaded PDF files" item must stay true to lib/file-input.ts: memory only, no store, cache or log.
 
+
+
+## Indicators back to one cent (1.168.0, 14 Nov 2026)
+
+- `INDICATORS_PRICE` (src/routes/hyperliquid.ts) is `$0.01` again. Evidence: 73 outside sales at $0.01 on 10-12 Nov, none in the day at $0.05; the finder buyer (0x4c29, daily ~02:05 UTC) left us out of its 14 Nov run and Mercator pays only its stored $0.01. The owner delegated prices on 14 Nov 2026 ("you decide prices"); the 26 Nov review is void.
+- Lesson for any price step on a tool that real buyers use: Mercator refuses any quote above its stored price (see the 1.136.0 note), so a step up loses that buyer at once; read `/metrics/callers` challenged vs paid within an hour instead of waiting days.
+- After the release: `node scripts/update-402index-prices.mjs --dry`, then for real.
+
