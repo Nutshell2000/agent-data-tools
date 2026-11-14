@@ -1,5 +1,5 @@
 {
-  "version": "1.188.0",
+  "version": "1.189.0",
   "tools": [
     {
       "name": "extract",
@@ -21917,6 +21917,74 @@
         }
       },
       "price": "$0.01"
+    },
+    {
+      "name": "transcribe_long",
+      "description": "Transcribe a podcast, meeting, interview or lecture: up to 60 minutes of MP3 or WAV (25 MB) by URL or uploaded in a POST body, 90+ languages, Whisper large-v3-turbo. Parts are joined, so subtitles=srt or vtt and timestamps=true cover the whole recording; longer audio is refused before anything runs. Use for meeting notes, podcast show notes, video subtitles and interviews; for a short clip in any format, transcribe costs less. Example: url=https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of an MP3 or WAV file (max 25 MB, 60 minutes); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)"
+          },
+          "subtitles": {
+            "type": "string",
+            "description": "srt or vtt: also return subtitle text for the whole recording"
+          },
+          "timestamps": {
+            "description": "true: also return timed segments and words",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language code such as en, sv or de (default: detected per part)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.05"
+    },
+    {
+      "name": "text_to_speech_lite",
+      "description": "Low-cost text to speech for longer English text: up to 2,000 characters as one MP3 (base64) with Deepgram Aura-1, 12 voices. Half the price per character of text_to_speech, with a slightly less natural voice. Pick a voice by name or leave the default. Use for narration drafts, read-aloud of articles and summaries, notifications and accessibility at volume; for the most natural voices or Spanish use text_to_speech. Example: text=Your order has shipped and should reach you within three working days.. Price $0.04/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 2,000 characters"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name: angus, asteria, arcas, orion, orpheus, athena, luna, zeus, perseus, helios, hera, stella. OpenAI voice names map to the nearest one. Default: luna"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.04"
     },
     {
       "name": "einvoice_create",
