@@ -203,7 +203,7 @@ test('/credits page for people: packs with calls per pack, app setup, free previ
   assert.match(html, /about 500 calls at \$0\.01/);
   assert.match(html, /\/mcp\/account/);
   assert.match(html, /\/check\/counterparty\?sample=1/);
-  assert.match(html, /25 calls free/);
+  assert.match(html, /3 calls from a browser or plain HTTP, 25 through an AI app/);
   assert.doesNotMatch(html, /noindex/);
 });
 
