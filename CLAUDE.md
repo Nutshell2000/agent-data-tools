@@ -1795,3 +1795,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `messagesAsArray()` (src/lib/chat-messages.ts) is the one place that turns `messages` into an array: one object or plain text becomes one message, anything role-less or malformed is left for the 400. Use it in any new tool that reads a conversation. tests/chat-weather-aliases-1114.test.cjs pins every alias on the weather and chat tools and the POST-flattener rule that keeps them.
 - 1.170.0's CI flake ("the address is not stored" in tests/free-keys.test.cjs) was the test matching /ada/ against hex hashes; it now looks for the address itself. A test that searches stored data for a secret must search for the whole value, never a short substring.
 
+
+
+## Focused MCP servers and their registry entries (1.176.0, 14 Nov 2026)
+
+- `FOCUSED_SERVERS` (src/discovery.ts) are hand-picked product servers beside the category sections: `/mcp/documents` and `/mcp/company-check`. Why: Glama scores each MCP Registry entry by itself (tool count, how easily an agent tells tools apart, naming), so the 30-470-tool sections score low while small single-purpose servers lead its searches. Rules (tests/focused-servers.test.cjs): 3-10 tools, canonical paths only (no entry paths, no packs), a slug that is not a section, and a `pick` line that names only tools the server offers. `mcpInstructions` takes the server's `kinds`/`pick` and `priceRange()` in place of the catalog-wide wording; the server title is "Agent Data Tools: <title>".
+- `scripts/build-registry-manifests.mjs` writes `registry/<slug>.json` for the sections, the focused servers and `compact`; publish-mcp.yml publishes them on every v* tag. A new focused server gets its registry entry with the next tag, and Glama lists it as its own connector after that.
+- Glama server listing (glama.ai/mcp/servers/Nutshell2000/agent-data-tools, admin signed in as GitHub Nutshell2000): build spec = `npm install -g agent-data-tools@<published version>`, CMD `mcp-proxy -- agent-data-tools mcp` (the compact server over stdio), placeholder `{}`. Without a successful build and a Glama release the listing is left out of Glama search and gets no quality score. Raise the pinned npm version there after publishing a new client.
+
