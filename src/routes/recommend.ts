@@ -78,6 +78,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "github repo": "/github/repo", "github repository": "/github/repo",
   "contract call": "/base/call", "eth call": "/base/call", "read contract": "/base/call",
   "vat number": "/vat/validate", "vat validation": "/vat/validate", "lei": "/lei/lookup",
+  "invoice check": "/invoice/check", "check invoice": "/invoice/check", "invoice validation": "/invoice/check", "invoice fraud": "/invoice/check", "invoice parser": "/document/extract",
   "my ip": "/ip/geolocate", "ip geolocation": "/ip/geolocate", "ip location": "/ip/geolocate", "ip lookup": "/ip/lookup", "ip whois": "/ip/lookup",
   "national debt": "/econ/national-debt", "usdc yield": "/defi/usdc-yield", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
 });

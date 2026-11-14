@@ -44,6 +44,7 @@ export class AgentDataTools implements INodeType {
 						operation: [
 							'audit',
 							'call',
+							'checkInvoice',
 							'checkPayee',
 							'checkSanctions',
 							'convertToText',

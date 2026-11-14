@@ -5,7 +5,7 @@ import { optionsFor, query } from '../shared/fields';
 /** The largest file the document tools read (FILE_INPUT_PATHS in the service's src/lib/file-input.ts). */
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-const OPERATIONS = ['convertToText', 'extractFields', 'extractText'];
+const OPERATIONS = ['checkInvoice', 'convertToText', 'extractFields', 'extractText'];
 const showWith = (source: string, operations = OPERATIONS) => ({
 	show: { resource: ['document'], operation: operations, source: [source] },
 });
@@ -57,6 +57,17 @@ export const documentDescription: INodeProperties[] = [
 		noDataExpression: true,
 		displayOptions: { show: { resource: ['document'] } },
 		options: [
+			{
+				name: 'Check Invoice',
+				value: 'checkInvoice',
+				action: 'Check an invoice before paying',
+				description:
+					"Reads an invoice (PDF, Word, Excel, scan or photo) and checks it in one call: the seller's and buyer's VAT numbers in EU VIES with the registered name, the IBAN and its country, net + VAT = total, the line items and the dates. Returns a pass, review or fail verdict with each check and the invoice fields.",
+				routing: {
+					request: { method: 'GET', url: '/invoice/check' },
+					send: { preSend: [sendFile] },
+				},
+			},
 			{
 				name: 'Convert to Text',
 				value: 'convertToText',
@@ -176,6 +187,9 @@ export const documentDescription: INodeProperties[] = [
 		routing: query('fields'),
 	},
 	optionsFor('document', 'extractFields', []),
+
+	// Check Invoice
+	optionsFor('document', 'checkInvoice', []),
 
 	// Extract Text From PDF
 	optionsFor('document', 'extractText', [

@@ -18,7 +18,7 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
 export const SERVICE_SUMMARY =
-  "704 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Free calls to start (25 over MCP, 3 over HTTP); then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+  "705 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Free calls to start (25 over MCP, 3 over HTTP); then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -930,6 +930,11 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   // /solana/tx paused 27 Oct 2026: publicnode keeps under 3 days of transactions and the Foundation node rate-limits Cloudflare
   // (429), so any published example stops working within days and older signatures always answer 404.
   "/solana/tx": "Solana transaction lookups need an archive node this service does not have yet; it would only find transactions from the last 2-3 days.",
+  // Resold LinkedIn and X data (1.180.0, src/routes/resale.ts): paused until the resale hot wallet is funded and
+  // RESALE_WALLET_KEY is set; then remove these three lines in one release.
+  "/linkedin/profile": "LinkedIn profile lookups open once the provider account is funded.",
+  "/linkedin/company-posts": "LinkedIn company posts open once the provider account is funded.",
+  "/x/search": "X search opens once the provider account is funded.",
   // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
   "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
   "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",
