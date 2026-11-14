@@ -7,6 +7,9 @@
 
 /** Tools that accept an uploaded file, with the largest file each takes. */
 export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze({
+  // E-invoices (XML, or a ZUGFeRD / Factur-X PDF that embeds one).
+  "/einvoice/validate": 5 * 1024 * 1024,
+  "/einvoice/to-json": 5 * 1024 * 1024,
   "/pdf/text": 10 * 1024 * 1024,
   "/pdf/extract": 10 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
@@ -95,7 +98,7 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
     }
   // image/*: a scan or a photo sent as the body. Until 1.187.0 it was read as "no file" and the caller was asked for a
   // url, although the document tools read PNG, JPEG and WebP (found 14 Nov 2026 by sending invoice2data's PNG invoices).
-  } else if (type === "" || /^(application\/(pdf|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/|image\/)/.test(type)) {
+  } else if (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/|image\/|text\/xml)/.test(type)) {
     const buffer = await request.clone().arrayBuffer().catch(() => null);
     if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
   }
