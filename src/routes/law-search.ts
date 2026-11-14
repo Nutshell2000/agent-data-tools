@@ -23,7 +23,7 @@ import ACTS from "../data/eu-law-acts.json";
 export const EMBED_MODEL = "@cf/baai/bge-m3";
 const ATTRIBUTION = "© European Union, https://eur-lex.europa.eu (Commission Decision 2011/833/EU). Only the Official Journal text is authentic. Not legal advice.";
 
-export interface LawAct { celex: string; short: string; name: string }
+export interface LawAct { celex: string; short: string; name: string; prior?: number; keywords?: string[] }
 export const LAW_ACTS: readonly LawAct[] = ACTS as LawAct[];
 
 export interface LawRow { id: string; celex: string; version_celex: string; short: string; act: string; kind: string; label: string; num: string; heading: string | null; part: number; parts: number; text: string; url: string; version: string }
@@ -68,21 +68,67 @@ export interface LawDeps {
   rerank(q: string, docs: string[]): Promise<{ index: number; score: number }[] | null>;
 }
 
+/**
+ * The acts a question is about, from the act's short name, full name or its own defining terms (eu-law-acts.json
+ * `keywords`): "data protection" is GDPR, "invoice" the VAT Directive. At most two, the ones with the longest match.
+ */
+export function intendedActs(q: string): LawAct[] {
+  const text = ` ${fold(q)} `;
+  const hits = LAW_ACTS.map((a) => {
+    const terms = [a.short, a.name, ...(a.keywords ?? [])].map(fold).filter((t) => t.length >= 3);
+    const best = Math.max(0, ...terms.filter((t) => text.includes(` ${t} `)).map((t) => t.length));
+    return { a, best };
+  }).filter((h) => h.best > 0).sort((x, y) => y.best - x.best);
+  return hits.slice(0, 2).map((h) => h.a);
+}
+
 export async function lawSearch(q: string, opts: { act?: LawAct; kind?: "article" | "recital"; count: number }, deps: LawDeps) {
   const filter = { ...(opts.act ? { short: opts.act.short } : {}), ...(opts.kind ? { kind: opts.kind } : {}) };
   const match = ftsQuery(q);
-  const [byMeaning, byWords] = await Promise.all([
-    deps.embed(q).then((v) => deps.vectors(v, 30, filter)),
+  // Without an act named by the caller, the acts the question is about are also searched on their own, so their
+  // articles reach the reranker even when other acts use the same words more often.
+  const intents = opts.act ? [] : intendedActs(q);
+  const vector = await deps.embed(q);
+  const lists = await Promise.all([
+    deps.vectors(vector, 30, filter),
     match ? deps.keywords(match, 30, filter).catch(() => [] as string[]) : Promise.resolve([] as string[]),
+    ...intents.flatMap((a) => [
+      deps.vectors(vector, 15, { ...filter, short: a.short }).catch(() => [] as string[]),
+      match ? deps.keywords(match, 15, { ...filter, short: a.short }).catch(() => [] as string[]) : Promise.resolve([] as string[]),
+    ]),
   ]);
-  const candidates = fuse([byMeaning, byWords]).slice(0, 20);
+  const candidates = fuse(lists).slice(0, 30);
   if (!candidates.length) return { candidates: [] as LawRow[], scores: null as number[] | null };
   const rows = await deps.rows(candidates);
   const ordered = candidates.map((id) => rows.find((r) => r.id === id)).filter((r): r is LawRow => Boolean(r));
   const ranked = await deps.rerank(q, ordered.map((r) => `${r.short} ${r.label}${r.heading ? `: ${r.heading}` : ""}\n${r.text.slice(0, 1500)}`)).catch(() => null);
-  if (!ranked?.length) return { candidates: ordered, scores: null };
-  const byScore = [...ranked].sort((a, b) => b.score - a.score).filter((r) => r.index >= 0 && r.index < ordered.length);
-  return { candidates: byScore.map((r) => ordered[r.index]), scores: byScore.map((r) => Math.round(r.score * 1000) / 1000) };
+  if (!ranked?.length) return { candidates: onePerProvision(ordered), scores: null };
+  const words = new Set(ftsQuery(q)?.replace(/"/g, "").split(" OR ") ?? []);
+  const intended = new Set(intents.map((a) => a.short));
+  const scored = ranked.filter((r) => r.index >= 0 && r.index < ordered.length).map((r) => ({ row: ordered[r.index], score: r.score + prior(ordered[r.index], words) + (intended.has(ordered[r.index].short) ? 0.05 : 0) }));
+  scored.sort((a, b) => b.score - a.score);
+  const seen = new Set<string>();
+  const kept = scored.filter((s) => { const k = `${s.row.short}|${s.row.label}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  return { candidates: kept.map((s) => s.row), scores: kept.map((s) => Math.round(s.score * 1000) / 1000) };
+}
+
+/** The best-placed part of each article or recital only: one provision is one result. */
+function onePerProvision(rows: LawRow[]): LawRow[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => { const k = `${r.short}|${r.label}`; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+/**
+ * Small, stated adjustments on top of the reranker, whose scores crowd near 1.0 (measured 14 Nov 2026 on
+ * scripts/law-index/eval-questions.json): an operative article ranks before a recital explaining it; an article whose
+ * heading carries the question's words ranks first ("Designation of gatekeepers" for "who is a gatekeeper"); an act's own
+ * `prior` (eu-law-acts.json) moves narrow twins of a general act down (EUDPR repeats GDPR for EU institutions only).
+ */
+export function prior(row: Pick<LawRow, "kind" | "heading" | "short">, words: ReadonlySet<string>): number {
+  const heading = new Set(fold(row.heading ?? "").split(" ").flatMap((w) => [w, w.replace(/s$/, "")]));
+  const hits = [...words].filter((w) => heading.has(w) || heading.has(w.replace(/s$/, ""))).length;
+  const act = LAW_ACTS.find((a) => a.short === row.short);
+  return (row.kind === "article" ? 0.06 : 0) + (words.size ? 0.04 * Math.min(1, hits / Math.min(words.size, 3)) : 0) + (act?.prior ?? 0);
 }
 
 /** Bindings-backed dependencies: D1 for keywords and rows, Vectorize for meaning, Workers AI for embeddings and reranking. */
@@ -132,12 +178,24 @@ export const LAW_SEARCH: Entry[] = [
   entry("/law/search", "EU law search: GDPR, AI Act, DSA, VAT and 40+ EU acts",
     `Search ${LAW_ACTS.length} EU acts article by article: GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, Data Act, VAT Directive, CSRD, PSD2 and more, in their latest consolidated English text, plus recitals. Ask in plain words; get the matching articles with act, article number, heading, full text, EUR-Lex link and version. Our own index (keyword + meaning, reranked), hosted in the EU. Use for compliance questions and citing EU law. Not legal advice.`,
     ["eu-law", "legal-search", "gdpr", "ai-act", "compliance", "regulation", "eur-lex", "legal-research"], {
-      q: { type: "string", description: "Question or keywords, in English (at most 400 characters)", required: true, example: "when is processing of personal data lawful" },
+      q: { type: "string", description: "Question or keywords, in English (at most 400 characters)", required: true, example: "which AI practices are banned" },
       act: { type: "string", description: "Only this act: short name (GDPR, AI Act, DSA, VAT Directive…), full name or CELEX number", example: "GDPR" },
       kind: { type: "string", description: "article or recital (default both)", enum: ["article", "recital"], example: "article" },
       count: { type: "integer", description: "Results (1-10, default 5)", example: 5 },
     },
-    { query: "when is processing of personal data lawful", count: 0, results: [], actsIndexed: LAW_ACTS.length, attribution: ATTRIBUTION },
+    // A real answer from the live index, 14 Nov 2026 (2 of 5 results shown; the first article's text shortened here).
+    {
+      query: "which AI practices are banned", count: 5,
+      results: [
+        { act: "Artificial Intelligence Act", short: "AI Act", celex: "32024R1689", citation: "AI Act, Article 5 (part 1 of 11)", kind: "article", label: "Article 5", heading: "Prohibited AI practices",
+          text: "1. The following AI practices shall be prohibited:\n(a) the placing on the market, the putting into service or the use of an AI system that deploys subliminal techniques beyond a person’s consciousness or purposefully manipulative or deceptive techniques…",
+          url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R1689-20260727#art_5", version: "consolidated text of 2026-07-27", score: 1.084 },
+        { act: "Artificial Intelligence Act", short: "AI Act", celex: "32024R1689", citation: "AI Act, Recital 45", kind: "recital", label: "Recital 45",
+          text: "(45) Practices that are prohibited by Union law, including data protection law, non-discrimination law, consumer protection law, and competition law, should not be affected by this Regulation.",
+          url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R1689#rct_45", version: "recital as published in the Official Journal", score: 0.994 },
+      ],
+      actsIndexed: LAW_ACTS.length, attribution: ATTRIBUTION,
+    },
     async (env, q) => {
       const query = need(q, "q", 400);
       const act = actOf(opt(q, "act", 120));
