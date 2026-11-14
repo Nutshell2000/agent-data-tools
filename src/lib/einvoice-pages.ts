@@ -16,13 +16,22 @@ const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c"
 
 export const EINVOICE_BASE = "/e-invoice";
 export const EINVOICE_RULES = `${EINVOICE_BASE}/rules`;
-export const einvoicePagePaths = () => [EINVOICE_BASE, EINVOICE_RULES, ...RULES.map((r) => `${EINVOICE_RULES}/${ruleSlug(r.id)}`)];
+/** The German pages (lib/einvoice-pages-de.ts): the same three page kinds under /de/e-rechnung. */
+export const EINVOICE_BASE_DE = "/de/e-rechnung";
+export const EINVOICE_RULES_DE = `${EINVOICE_BASE_DE}/regeln`;
+const enPaths = () => [EINVOICE_BASE, EINVOICE_RULES, ...RULES.map((r) => `${EINVOICE_RULES}/${ruleSlug(r.id)}`)];
+/** The German path of an English e-invoice page path. */
+export const toGermanPath = (path: string) => (path.startsWith(EINVOICE_RULES) ? EINVOICE_RULES_DE + path.slice(EINVOICE_RULES.length) : EINVOICE_BASE_DE + path.slice(EINVOICE_BASE.length));
+export const einvoicePagePaths = () => [...enPaths(), ...enPaths().map(toGermanPath)];
+/** hreflang links of a page pair, the same on both language versions. */
+export const languageLinks = (origin: string, enPath: string) =>
+  `\n<link rel="alternate" hreflang="en" href="${esc(origin + enPath)}"><link rel="alternate" hreflang="de" href="${esc(origin + toGermanPath(enPath))}"><link rel="alternate" hreflang="x-default" href="${esc(origin + enPath)}">`;
 export const einvoiceRule = (slug: string) => ruleDoc(slug);
 /** A sitemap with these pages added. Done where the sitemap is served, so lib/discovery's page list stays one line that parallel releases edit. */
 export const withEinvoicePages = (sitemap: string, origin: string) => sitemap.replace("</urlset>", () => `${einvoicePagePaths().map((p) => `<url><loc>${esc(origin + p)}</loc></url>`).join("")}</urlset>`);
 
 /** Business terms the rules name: what each is called and where it sits in the two syntaxes. */
-const TERMS: Readonly<Record<string, readonly [name: string, cii: string, ubl: string]>> = Object.freeze({
+export const TERMS: Readonly<Record<string, readonly [name: string, cii: string, ubl: string]>> = Object.freeze({
   "BT-1": ["Invoice number", "rsm:ExchangedDocument/ram:ID", "cbc:ID"],
   "BT-2": ["Invoice issue date", "rsm:ExchangedDocument/ram:IssueDateTime/udt:DateTimeString[@format='102']", "cbc:IssueDate"],
   "BT-3": ["Invoice type code", "rsm:ExchangedDocument/ram:TypeCode", "cbc:InvoiceTypeCode"],
@@ -87,7 +96,7 @@ const head = (title: string, description: string, url: string, origin: string, e
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
-<link rel="icon" href="/favicon.ico">${extra}
+<link rel="icon" href="/favicon.ico">${languageLinks(origin, url.slice(origin.length))}${extra}
 <style>${PAGE_STYLE}${TRY_FORM_CSS}</style></head><body><main>`;
 const foot = () => `<footer><a href="${EINVOICE_BASE}">E-invoice API</a> · <a href="${EINVOICE_RULES}">All validation rules</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
@@ -116,7 +125,7 @@ export function einvoiceRulePage(r: RuleDoc, origin: string, tryIt: boolean, bra
     ...(r.standard === "XRechnung" ? [[`Does ${r.id} apply to ZUGFeRD and Factur-X too?`, `Only when the file declares the XRechnung specification identifier (the ZUGFeRD profile "XRECHNUNG" does). Files in the plain EN 16931 profile are checked against the European rules, not the German additions.`] as [string, string]] : []),
   ];
   return `${head(title, description, url, origin, `\n<script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>`)}
-<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE}">E-invoice API</a> › <a href="${EINVOICE_RULES}">Validation rules</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE}">E-invoice API</a> › <a href="${EINVOICE_RULES}">Validation rules</a> · <a href="${EINVOICE_RULES_DE}/${ruleSlug(r.id)}" hreflang="de" lang="de">Deutsch</a></nav>
 <h1>${esc(r.id)}: what it means and how to fix it</h1>
 <p class="tag">${esc(r.rule)}</p>
 <div class="wrap"><table>
@@ -156,7 +165,7 @@ export function einvoiceRulesIndexPage(origin: string, brand: string = SERVICE_N
   const title = `XRechnung and EN 16931 validation rules explained: ${RULES.length} error codes with fixes · ${brand}`;
   const description = `What each e-invoice validation error means and how to fix it: BR-DE rules of XRechnung, and the BR, BR-CO and VAT category rules of EN 16931 that ZUGFeRD, Factur-X and Peppol share.`;
   return `${head(title, description, url, origin)}
-<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE}">E-invoice API</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE}">E-invoice API</a> · <a href="${EINVOICE_RULES_DE}" hreflang="de" lang="de">Deutsch</a></nav>
 <h1>E-invoice validation rules, explained</h1>
 <p class="tag">The ${RULES.length} business rules our validator runs on XRechnung, ZUGFeRD, Factur-X and other EN 16931 invoices: what each means, where the field is in the XML, and the fix.</p>
 ${groups.map(([name, list]) => `<h2>${esc(name)}</h2>
@@ -181,7 +190,7 @@ export function einvoiceIndexPage(origin: string, tryIt: boolean, brand: string 
     ["Are my invoices stored?", "No. A file is read in memory for the one request and is not stored or logged."],
   ];
   return `${head(title, description, url, origin, `\n<script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>`)}
-<nav class="crumbs"><a href="/">${esc(brand)}</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> · <a href="${EINVOICE_BASE_DE}" hreflang="de" lang="de">Deutsch</a></nav>
 <h1>E-invoice API: create, validate, convert</h1>
 <p class="tag">XRechnung, ZUGFeRD and Factur-X from one HTTP call each, for shops, ERPs, automation workflows and AI agents that cannot run a Java or Node library.</p>
 <div class="wrap"><table>
