@@ -43,9 +43,11 @@ export { toolName } from "./mcp-contract";
  * would fill an assistant's context after the call was paid.
  */
 export function toContent(value: unknown) {
-  const { imageBase64, audioBase64, ...rest } = value as Record<string, unknown>;
+  const { imageBase64, audioBase64, pdfBase64, ...rest } = value as Record<string, unknown>;
+  // A PDF (the ZUGFeRD invoice of /einvoice/create) goes back as an embedded resource, for the same reason.
   const media = typeof imageBase64 === "string" ? { type: "image", data: imageBase64, mimeType: String(rest.contentType ?? "image/jpeg") }
-    : typeof audioBase64 === "string" ? { type: "audio", data: audioBase64, mimeType: String(rest.contentType ?? "audio/mpeg") } : null;
+    : typeof audioBase64 === "string" ? { type: "audio", data: audioBase64, mimeType: String(rest.contentType ?? "audio/mpeg") }
+    : typeof pdfBase64 === "string" ? { type: "resource", resource: { uri: `file:///${String(rest.filename ?? "document.pdf").replace(/[^A-Za-z0-9._-]+/g, "-")}`, mimeType: "application/pdf", blob: pdfBase64 } } : null;
   if (!media) return [{ type: "text", text: JSON.stringify(value) }];
   return [{ type: "text", text: JSON.stringify(rest) }, media];
 }
@@ -55,7 +57,7 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
   try {
     const path: EndpointPath = e.path;
     const result = pickFields(await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name]))), args.only === undefined ? undefined : String(args.only));
-    const { imageBase64: _image, audioBase64: _audio, ...structuredContent } = result as Record<string, unknown>;
+    const { imageBase64: _image, audioBase64: _audio, pdfBase64: _pdf, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
     if (!(err instanceof HttpError)) console.error(err);
