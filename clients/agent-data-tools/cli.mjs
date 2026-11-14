@@ -66,7 +66,11 @@ const HELP = `Usage:
   agent-data-tools <tool> key=value ...  call a tool by name or /path; prints its JSON
 
 25 free calls without any setup. A prepaid key is read from --key, then AGENT_DATA_TOOLS_KEY,
-then ~/.agent-data-tools/config.json, then ADT_API_KEY.`;
+then ~/.agent-data-tools/config.json, then ADT_API_KEY.
+
+Wallet mode for \`mcp\` (no account, no key): set AGENT_DATA_TOOLS_WALLET_KEY to the private key of a wallet holding
+USDC on Base. After the free calls each call is paid over x402 at its listed price, at most $0.10 a call and $1 a day
+unless AGENT_DATA_TOOLS_MAX_USD and AGENT_DATA_TOOLS_DAILY_USD say otherwise. Failed calls are not charged.`;
 
 function menu() {
   return `Add the tools to a client:
@@ -178,7 +182,14 @@ try {
     // Nothing but JSON-RPC may reach stdout here.
     const { key, full } = parseArgs(rest);
     const { runStdioProxy } = await import("./mcp-stdio.mjs");
-    await runStdioProxy({ origin: origin(), key: resolveKey(key).key, path: serverPath(full) });
+    const prepaid = resolveKey(key).key;
+    // Wallet mode: no prepaid key, and a private key in the environment. The key never appears in arguments or output.
+    let payer;
+    if (!prepaid && process.env.AGENT_DATA_TOOLS_WALLET_KEY) {
+      const { walletPayer, limitsFromEnv } = await import("./wallet-pay.mjs");
+      payer = await walletPayer({ key: process.env.AGENT_DATA_TOOLS_WALLET_KEY.trim(), ...limitsFromEnv() });
+    }
+    await runStdioProxy({ origin: origin(), key: prepaid, payer, path: serverPath(full) });
   } else if (command === "setup") {
     const args = parseArgs(rest);
     setup(args.rest[0], args);
