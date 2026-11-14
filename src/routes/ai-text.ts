@@ -234,11 +234,49 @@ export function fieldNames(raw: string): string[] {
   return fields;
 }
 /** Named fields out of a text as one JSON object, null where the text does not state a value. Shared by /ai/extract-json and /document/extract. */
-export async function extractFields(env: Env, source: string, fields: string[], model: string = MODELS.text, maxTokens = 700) {
-  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}. Use null when a value is not stated in the text; never guess.`, source, maxTokens, 0, model));
+export async function extractFields(env: Env, source: string, fields: string[], model: string = MODELS.text, maxTokens = 700, lists: Readonly<Record<string, readonly string[]>> = {}) {
+  // A list field ("line_items[description,quantity,amount]", parsed by listFields): every row has exactly those keys.
+  const listRule = Object.keys(lists).length
+    ? ` ${Object.entries(lists).map(([name, keys]) => `The value of "${name}" is an array with one object per row of the text, each object with exactly the keys ${JSON.stringify(keys)}, or an empty array when the text has no such rows.`).join(" ")} The value of every other key, and of every key inside a row, is a single string or number, never an array. Write amounts and quantities as JSON numbers.`
+    : "";
+  // A single value the model wrapped in a one-item array is that value.
+  const single = (v: unknown): unknown => (Array.isArray(v) && v.length === 1 && (v[0] === null || typeof v[0] !== "object") ? v[0] : v);
+  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}.${listRule} Use null when a value is not stated in the text; never guess.`, source, maxTokens, 0, model));
   if (!r || typeof r !== "object" || Array.isArray(r)) throw new HttpError(502, "the AI model did not return an object");
-  const data = Object.fromEntries(fields.map((f) => [f, (r as Record<string, unknown>)[f] ?? null]));
-  return { data, missing: fields.filter((f) => data[f] === null), model };
+  const data = Object.fromEntries(fields.map((f) => {
+    const value = (r as Record<string, unknown>)[f] ?? null;
+    const keys = Object.hasOwn(lists, f) ? lists[f] : null;
+    if (!keys) return [f, Object.keys(lists).length ? single(value) : value];
+    // Rows are held to the keys asked for, whatever the model called them or added.
+    const rows = Array.isArray(value) ? value.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object" && !Array.isArray(row)) : [];
+    return [f, rows.slice(0, 200).map((row) => Object.fromEntries(keys.map((k) => [k, single(row[k] ?? null)])))];
+  }));
+  return { data, missing: fields.filter((f) => data[f] === null || (Array.isArray(data[f]) && Object.hasOwn(lists, f) && (data[f] as unknown[]).length === 0)), model };
+}
+
+/**
+ * Field names where a name may carry the keys of its rows: "invoice_number, line_items[description,quantity,amount], total"
+ * gives the names and, for line_items, the row keys. Without brackets a list field still works, but the model picks the
+ * row keys itself and they vary from call to call (seen 14 Nov 2026: "amount" in one answer, "total" in the next).
+ */
+export function listFields(raw: string): { fields: string[]; lists: Record<string, string[]> } {
+  const fields: string[] = [];
+  const lists: Record<string, string[]> = {};
+  const NAME = /^[\p{L}\p{N}_ .\-]{1,60}$/u;
+  for (const part of raw.split(/,(?![^[]*\])/).map((s) => s.trim()).filter(Boolean)) {
+    const m = /^([^[\]]+)\[([^[\]]*)\]$/.exec(part);
+    const name = (m ? m[1] : part).trim();
+    if (!NAME.test(name) || /[[\]]/.test(m ? "" : part)) throw new HttpError(400, `"${part.slice(0, 60)}" is not a field name; write list fields as name[key,key], for example line_items[description,quantity,amount]`);
+    if (fields.includes(name)) continue;
+    fields.push(name);
+    if (m) {
+      const keys = [...new Set(m[2].split(",").map((s) => s.trim()).filter(Boolean))];
+      if (keys.length < 1 || keys.length > 12 || keys.some((k) => !NAME.test(k))) throw new HttpError(400, `${name}[…] takes 1 to 12 key names`);
+      lists[name] = keys;
+    }
+  }
+  if (fields.length < 1 || fields.length > 30) throw new HttpError(400, "fields must list 1 to 30 comma-separated names");
+  return { fields, lists };
 }
 
 const ai = (path: string, summary: string, description: string, tags: string[], params: Parameters<typeof entry>[4], example: Record<string, unknown>, run: Entry["run"], price = AI_PRICE) =>

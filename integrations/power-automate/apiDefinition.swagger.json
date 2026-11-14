@@ -1,16 +1,16 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Agent Data Tools Documents",
+    "title": "Glyphcall Documents",
     "description": "Turn Word, Excel, PowerPoint and PDF files into text or Markdown inside a flow. Give the file content from an earlier step (an e-mail attachment, a SharePoint or OneDrive file) or a public URL.",
     "version": "1.0",
     "contact": {
-      "name": "Agent Data Tools Support",
-      "url": "https://REPLACE-WITH-PUBLIC-DOMAIN/support",
-      "email": "REPLACE-WITH-SUPPORT-ADDRESS"
+      "name": "Glyphcall Support",
+      "url": "https://glyphcall.com/support",
+      "email": "support@glyphcall.com"
     }
   },
-  "host": "REPLACE-WITH-PUBLIC-DOMAIN",
+  "host": "glyphcall.com",
   "basePath": "/",
   "schemes": ["https"],
   "consumes": ["application/json"],
@@ -204,8 +204,8 @@
     }
   },
   "x-ms-connector-metadata": [
-    { "propertyName": "Website", "propertyValue": "https://REPLACE-WITH-PUBLIC-DOMAIN" },
-    { "propertyName": "Privacy policy", "propertyValue": "https://REPLACE-WITH-PUBLIC-DOMAIN/privacy" },
+    { "propertyName": "Website", "propertyValue": "https://glyphcall.com" },
+    { "propertyName": "Privacy policy", "propertyValue": "https://glyphcall.com/privacy" },
     { "propertyName": "Categories", "propertyValue": "Productivity;Data" }
   ]
 }
