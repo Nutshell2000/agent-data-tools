@@ -1,5 +1,6 @@
 /**
- * EU company search across official registers (14 Nov 2026): one call searches a company name in the French, Swedish,
+ * EU company search across official registers (14 Nov 2026; Czechia and Estonia added the same day, routes/cz-ee-company.ts):
+ * one call searches a company name in the French, Swedish,
  * Norwegian and Finnish company registers and in GLEIF's LEI records (which cover registered entities in every country),
  * and returns one ranked list with each entity's register ID, legal form, place, a link to the register's own public page
  * and the time it was read.
@@ -15,17 +16,28 @@
 import { entry, getJson, num, need, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { countryCode } from "../lib/country-code";
-import { NAME_REGISTERS, SEARCHERS, coreName, type NameRegister } from "./company-verify";
+import { NAME_REGISTERS, SEARCHERS, coreName } from "./company-verify";
 import { leiView } from "./registries";
+import { CZ_EE_SEARCHERS } from "./cz-ee-company";
+
+/** Registers a name search reaches: the four of /company/verify plus Czechia (ARES) and Estonia (e-Business Register). */
+export const SEARCH_REGISTERS = [...NAME_REGISTERS, "CZ", "EE"] as const;
+export type SearchRegister = (typeof SEARCH_REGISTERS)[number];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySearcher = { search: (name: string, limit: number) => Promise<{ matches: any[] }>; idType: string; id: (m: any) => string | undefined; source: string };
+export type Searchers = Partial<Record<SearchRegister, AnySearcher>>;
+const ALL_SEARCHERS: Searchers = { ...SEARCHERS, ...CZ_EE_SEARCHERS };
 
 /** The register's own public page for one entity; Sweden's register has no free page per company, so its link is our tool. */
-const PAGES: Record<NameRegister, (id: string) => string | null> = {
+const PAGES: Record<SearchRegister, (id: string) => string | null> = {
   FR: (id) => `https://annuaire-entreprises.data.gouv.fr/entreprise/${id}`,
   SE: () => null,
   NO: (id) => `https://data.brreg.no/enhetsregisteret/oppslag/enheter/${id}`,
   FI: (id) => `https://tietopalvelu.ytj.fi/yritys/${id}`,
+  CZ: (id) => `https://ares.gov.cz/ekonomicke-subjekty?ico=${id}`,
+  EE: (id) => `https://ariregister.rik.ee/est/company/${id}`,
 };
-const DETAIL: Record<NameRegister, string> = { FR: "/fr/company?siren=", SE: "/se/company?orgnr=", NO: "/no/company?orgnr=", FI: "/fi/company?businessId=" };
+const DETAIL: Record<SearchRegister, string> = { FR: "/fr/company?siren=", SE: "/se/company?orgnr=", NO: "/no/company?orgnr=", FI: "/fi/company?businessId=", CZ: "/cz/company?ico=", EE: "/ee/company?regCode=" };
 
 export interface CompanyHit {
   name: string;
@@ -80,23 +92,27 @@ const digits = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
 export const isForeignBranch = (h: Pick<CompanyHit, "country" | "legalForm">) =>
   (h.country === "SE" && /foreign legal person|utländsk juridisk person/i.test(h.legalForm ?? ""))
   || (h.country === "NO" && /utenlandsk foretak/i.test(h.legalForm ?? ""))
-  || (h.country === "FR" && h.legalForm === "3220");
+  || (h.country === "FR" && h.legalForm === "3220")
+  || (h.country === "CZ" && /^Zahraniční osoba/.test(h.legalForm ?? ""))
+  || (h.country === "EE" && /filiaal/i.test(h.legalForm ?? ""));
 
-export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: typeof SEARCHERS; lei?: LeiSearch; now?: () => Date } = {}) {
-  const searchers = deps.searchers ?? SEARCHERS;
+export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: Searchers; lei?: LeiSearch; now?: () => Date } = {}) {
+  const searchers = deps.searchers ?? ALL_SEARCHERS;
   const lei = deps.lei ?? leiSearch;
   const want = coreName(name);
   if (want.replace(/\s/g, "").length < 2) throw new HttpError(400, "q needs at least two letters or digits besides the legal form");
-  const registers = NAME_REGISTERS.filter((c) => !countries || countries.includes(c));
+  // Only registers with a searcher are asked (tests pass a subset); any other country is searched through GLEIF.
+  const available = SEARCH_REGISTERS.filter((c) => searchers[c]);
+  const registers = available.filter((c) => !countries || countries.includes(c));
   // GLEIF covers every country; with a country list it is asked once per country it is the only source for, plus once
   // overall when the list holds a register country (LEI records then add LEIs to the register's own entities).
-  const leiOnly = countries ? countries.filter((c) => !(NAME_REGISTERS as readonly string[]).includes(c)) : [];
+  const leiOnly = countries ? countries.filter((c) => !(available as readonly string[]).includes(c)) : [];
   const leiAsks: (string | null)[] = countries ? [...leiOnly, ...(registers.length ? [null] : [])] : [null];
   const failed: string[] = [];
   const searched: string[] = [];
 
   const fromRegisters = Promise.all(registers.map(async (c): Promise<CompanyHit[]> => {
-    const s = searchers[c];
+    const s = searchers[c]!;
     try {
       const r = await s.search(name, Math.min(10, limit));
       searched.push(c);
@@ -185,10 +201,10 @@ export async function companySearch(name: string, countries: string[] | null, li
 
 export const COMPANY_SEARCH: Entry[] = [
   entry("/company/search", "Company search, EU official registers",
-    "Search a company name across official registers in one call: France (Sirene), Sweden (Bolagsverket), Norway (Brønnøysund), Finland (PRH), plus GLEIF LEI records for every other country. One ranked list: register ID, legal form, city, LEI, a link to the register's own page, time read. A source that does not answer is named; the rest still answer. Use for KYB, supplier and customer checks, and facts about a European company.",
+    "Search a company name across official registers in one call: France, Sweden, Norway, Finland, Czechia and Estonia, plus GLEIF LEI records for every other country. One ranked list: register ID, legal form, city, LEI, a link to the register's own page, time read. A source that does not answer is named; the rest still answer. Use for KYB, supplier and customer checks, and facts about a European company.",
     ["company-search", "company-registry", "kyb", "eu-companies", "business-search", "lei", "registry-search"], {
       q: { type: "string", description: "Company name, with or without the legal form (AB, Oy, SA, GmbH…)", required: true, example: "Spotify" },
-      country: { type: "string", description: "Only these countries: ISO codes or names, comma-separated (FR, SE, NO, FI search their registers; any other country searches GLEIF). Default: all", example: "SE" },
+      country: { type: "string", description: "Only these countries: ISO codes or names, comma-separated (FR, SE, NO, FI, CZ, EE search their registers; any other country searches GLEIF). Default: all", example: "SE" },
       limit: { type: "integer", description: "Results (1-20, default 10)", example: 10 },
     },
     // A real answer, read live on 14 Nov 2026 (the first 3 of 10 results shown). The first result carries every field a
@@ -200,7 +216,7 @@ export const COMPANY_SEARCH: Entry[] = [
         { name: "SPOTIFY AB", country: "FR", idType: "SIREN", id: "511237240", legalForm: "3220", exact: true, url: "https://annuaire-entreprises.data.gouv.fr/entreprise/511237240", details: "/fr/company?siren=511237240", source: "INSEE Sirene and INPI RNE (France)", branchOfForeign: true },
         { name: "SPOTIFY FRANCE SAS", country: "FR", idType: "SIREN", id: "511930729", legalForm: "SAS, société par actions simplifiée", city: "PARIS", exact: false, url: "https://annuaire-entreprises.data.gouv.fr/entreprise/511930729", details: "/fr/company?siren=511930729", source: "INSEE Sirene and INPI RNE (France)" },
       ],
-      searched: ["LEI", "NO", "SE", "FR", "FI"], complete: true, retrievedAt: "2026-11-14T14:52:10.000Z",
+      searched: ["LEI", "NO", "SE", "EE", "FR", "CZ", "FI"], complete: true, retrievedAt: "2026-11-14T14:52:10.000Z",
       note: "Official register facts only: a registered entity with that name exists; this is not a credit view. Sole traders are not covered. Countries without a register here are searched through GLEIF, which lists only entities that hold an LEI.",
     },
     async (_env, q) => {
