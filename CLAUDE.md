@@ -1643,3 +1643,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `/stablecoin/charts` (src/routes/stablecoin-charts.ts): DefiLlama's stablecoins API (`/stablecoinchains` for the chain list, `/stablecoincharts/<Chain>` or `/all` for the series), all pegs added up in dollars (`sumUsd`), `chainKey()` aliases read with Object.hasOwn. Ordinary price; a lower one is the owner's call. Why: it was the largest job our one returning independent agent bought elsewhere. Judge it by that agent's purchases and by the Bazaar search for "stablecoin charts" after the first settlement.
 
+
+
+## npm client wallet mode (1.159.0, 14 Nov 2026)
+
+- `clients/agent-data-tools/wallet-pay.mjs`: `walletPayer()` (lazy @x402/core, @x402/evm, viem), `spendGuard()` (per-call and daily limits, Base USDC only, refund on a failed call), `paymentRequiredOf()`. `mcp-stdio.mjs` `forward()` pays a tools/call whose result is an x402 payment request and resends it with `_meta["x402/payment"]`. Wallet mode is on only without a prepaid key. Staging proof: set `AGENT_DATA_TOOLS_ORIGIN` to staging, `AGENT_DATA_TOOLS_TESTNET=1` and the test wallet's key, pipe initialize + tools/call into `node clients/agent-data-tools/cli.mjs mcp [--full]`, and read the `x402/payment-response` in the result's `_meta`. The publish folder is `C:\MoneyWallet\business\agentic\npm-client` (copy the client files there after a change; the owner publishes). Mention wallet mode on the homepage, llms.txt and the catalog skill only after `npm view agent-data-tools version` answers 1.3.0.
+
