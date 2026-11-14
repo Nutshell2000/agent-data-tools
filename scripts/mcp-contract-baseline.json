@@ -1,5 +1,5 @@
 {
-  "version": "1.157.0",
+  "version": "1.158.0",
   "tools": [
     {
       "name": "extract",
@@ -17795,6 +17795,33 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Number of chains (1-100, default 25)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stablecoin_charts",
+      "description": "Stablecoin charts from DefiLlama: the total stablecoin supply in US dollars on one blockchain (Base, Ethereum, Solana, Tron, Arbitrum…) or on all chains together, day by day for up to 365 days, with the latest figure and its 1, 7 and 30-day change. Without a chain, also the ten largest chains by supply. Use to track stablecoin inflows to a chain, chart liquidity growth, or compare ecosystems. Example: chain=Base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "Blockchain by name, e.g. Base, Ethereum, Solana, Tron; leave out for all chains together"
+          },
+          "days": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Days of daily history to return, 1-365 (default 30)"
           }
         }
       },
