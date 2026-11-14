@@ -1,0 +1,75 @@
+{
+  "name": "Invoice e-mail attachments to a Google Sheets row",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Invoice attachments to a spreadsheet\n\nEvery new e-mail with a PDF, Word or Excel attachment is read, the invoice fields are extracted as JSON, and one row is added to a sheet.\n\n**Requirements**\n- A Gmail account (trigger) and a Google Sheets document with the columns named in the last node\n- The community node `n8n-nodes-document-extract` and its API key\n\n**Setup**\n1. Connect Gmail and Google Sheets.\n2. Add your API key to the Extract invoice fields node.\n3. Change the field list to the columns you keep.\n\n**Limits**\n- Files up to 10 MB with a text layer. A scanned invoice has no text and is refused, not charged.\n- An AI model reads the file: check amounts before you pay on them.",
+        "height": 520,
+        "width": 420
+      },
+      "id": "note-1",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-520, -120]
+    },
+    {
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "simple": false,
+        "filters": { "q": "has:attachment (invoice OR faktura OR rechnung)" },
+        "options": { "downloadAttachments": true, "dataPropertyAttachmentsPrefixName": "attachment_" }
+      },
+      "id": "gmail-1",
+      "name": "New e-mail with an attachment",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "extractFields",
+        "source": "file",
+        "binaryPropertyName": "attachment_0",
+        "fields": "supplier, invoice_number, invoice_date, due_date, total, currency, vat_amount, payment_reference"
+      },
+      "id": "adt-1",
+      "name": "Extract invoice fields",
+      "type": "n8n-nodes-document-extract.documentExtract",
+      "typeVersion": 1,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "mode": "list", "value": "" },
+        "sheetName": { "__rl": true, "mode": "list", "value": "" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Supplier": "={{ $json.data.supplier }}",
+            "Invoice number": "={{ $json.data.invoice_number }}",
+            "Invoice date": "={{ $json.data.invoice_date }}",
+            "Due date": "={{ $json.data.due_date }}",
+            "Total": "={{ $json.data.total }}",
+            "Currency": "={{ $json.data.currency }}",
+            "VAT": "={{ $json.data.vat_amount }}",
+            "Payment reference": "={{ $json.data.payment_reference }}",
+            "Fields not found": "={{ $json.missing.join(', ') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets-1",
+      "name": "Add a row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "New e-mail with an attachment": { "main": [[{ "node": "Extract invoice fields", "type": "main", "index": 0 }]] },
+    "Extract invoice fields": { "main": [[{ "node": "Add a row", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

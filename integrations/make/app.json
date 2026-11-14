@@ -1,0 +1,122 @@
+{
+  "_readme": "Draft blocks for a Make custom app, to paste into Make's app editor section by section (Base, Connection, Modules). Not submitted and not yet tried in Make: check each block there first. REPLACE-WITH-PUBLIC-DOMAIN must be the service's own domain; Make's review refuses services without one.",
+  "base": {
+    "baseUrl": "https://REPLACE-WITH-PUBLIC-DOMAIN",
+    "headers": { "x-api-key": "{{connection.apiKey}}", "accept": "application/json" },
+    "response": {
+      "error": {
+        "message": "[{{statusCode}}] {{body.error}}",
+        "402": { "type": "DataError", "message": "{{body.error}} {{body.freeKey}}" },
+        "413": { "type": "DataError", "message": "{{body.error}}" },
+        "415": { "type": "DataError", "message": "{{body.error}}" },
+        "422": { "type": "DataError", "message": "{{body.error}}" },
+        "429": { "type": "RateLimitError", "message": "{{body.error}}" },
+        "503": { "type": "ConnectionError", "message": "{{body.error}}" }
+      }
+    },
+    "log": { "sanitize": ["request.headers.x-api-key"] }
+  },
+  "connection": {
+    "parameters": [
+      { "name": "apiKey", "type": "password", "label": "API Key", "required": true, "help": "Your Agent Data Tools key (starts with adt_). A free key makes 100 calls a month." }
+    ],
+    "communication": {
+      "url": "https://REPLACE-WITH-PUBLIC-DOMAIN/credits/balance",
+      "headers": { "x-api-key": "{{parameters.apiKey}}", "accept": "application/json" },
+      "response": { "error": { "message": "[{{statusCode}}] {{body.error}}" } },
+      "log": { "sanitize": ["request.headers.x-api-key"] }
+    }
+  },
+  "modules": [
+    {
+      "name": "convertDocumentToText",
+      "label": "Convert a Document to Text",
+      "description": "Converts a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file to Markdown or plain text.",
+      "type": "action",
+      "mappableParameters": [
+        { "name": "fileName", "type": "filename", "label": "File name", "required": true, "semantic": "file:name" },
+        { "name": "data", "type": "buffer", "label": "Data", "required": true, "semantic": "file:data" },
+        { "name": "format", "type": "select", "label": "Format", "default": "markdown", "options": [{ "label": "Markdown (headings, lists and tables kept)", "value": "markdown" }, { "label": "Plain text", "value": "text" }] },
+        { "name": "maxChars", "type": "uinteger", "label": "Maximum characters", "advanced": true, "help": "Maximum characters of text returned (1000-200000). Default: 50000." }
+      ],
+      "communication": {
+        "url": "/document/text",
+        "method": "POST",
+        "qs": { "format": "{{parameters.format}}", "maxChars": "{{parameters.maxChars}}" },
+        "type": "multipart/form-data",
+        "body": { "file": { "value": "{{parameters.data}}", "options": { "filename": "{{parameters.fileName}}" } } },
+        "response": { "output": "{{body}}" }
+      },
+      "interface": [
+        { "name": "type", "type": "text", "label": "File type" },
+        { "name": "format", "type": "text", "label": "Format" },
+        { "name": "chars", "type": "uinteger", "label": "Characters" },
+        { "name": "truncated", "type": "boolean", "label": "Truncated" },
+        { "name": "text", "type": "text", "label": "Text" },
+        { "name": "sheets", "type": "array", "label": "Sheets", "spec": { "type": "collection", "spec": [{ "name": "name", "type": "text", "label": "Name" }, { "name": "rows", "type": "uinteger", "label": "Rows" }, { "name": "columns", "type": "uinteger", "label": "Columns" }] } },
+        { "name": "slides", "type": "uinteger", "label": "Slides" },
+        { "name": "pages", "type": "uinteger", "label": "Pages" }
+      ]
+    },
+    {
+      "name": "extractPdfText",
+      "label": "Extract Text from a PDF",
+      "description": "Extracts the text of a PDF page by page, with its page count, title and author.",
+      "type": "action",
+      "mappableParameters": [
+        { "name": "fileName", "type": "filename", "label": "File name", "required": true, "semantic": "file:name" },
+        { "name": "data", "type": "buffer", "label": "Data", "required": true, "semantic": "file:data" },
+        { "name": "firstPage", "type": "uinteger", "label": "First page", "advanced": true },
+        { "name": "pages", "type": "uinteger", "label": "Pages", "advanced": true, "help": "How many pages to read (1-200). Default: 20." },
+        { "name": "maxChars", "type": "uinteger", "label": "Maximum characters", "advanced": true }
+      ],
+      "communication": {
+        "url": "/pdf/text",
+        "method": "POST",
+        "qs": { "firstPage": "{{parameters.firstPage}}", "pages": "{{parameters.pages}}", "maxChars": "{{parameters.maxChars}}" },
+        "type": "multipart/form-data",
+        "body": { "file": { "value": "{{parameters.data}}", "options": { "filename": "{{parameters.fileName}}" } } },
+        "response": { "output": "{{body}}" }
+      },
+      "interface": [
+        { "name": "title", "type": "text", "label": "Title" },
+        { "name": "author", "type": "text", "label": "Author" },
+        { "name": "totalPages", "type": "uinteger", "label": "Total pages" },
+        { "name": "pagesRead", "type": "uinteger", "label": "Pages read" },
+        { "name": "chars", "type": "uinteger", "label": "Characters" },
+        { "name": "truncated", "type": "boolean", "label": "Truncated" },
+        { "name": "pages", "type": "array", "label": "Pages", "spec": { "type": "collection", "spec": [{ "name": "page", "type": "uinteger", "label": "Page number" }, { "name": "chars", "type": "uinteger", "label": "Characters" }, { "name": "text", "type": "text", "label": "Text" }] } }
+      ]
+    },
+    {
+      "name": "convertDocumentUrlToText",
+      "label": "Convert a Document at a URL to Text",
+      "description": "Converts a Word, Excel, PowerPoint or PDF file at a public URL to Markdown or plain text.",
+      "type": "action",
+      "mappableParameters": [
+        { "name": "url", "type": "url", "label": "File URL", "required": true },
+        { "name": "format", "type": "select", "label": "Format", "default": "markdown", "options": [{ "label": "Markdown", "value": "markdown" }, { "label": "Plain text", "value": "text" }] }
+      ],
+      "communication": { "url": "/document/text", "method": "GET", "qs": { "url": "{{parameters.url}}", "format": "{{parameters.format}}" }, "response": { "output": "{{body}}" } },
+      "interface": [
+        { "name": "type", "type": "text", "label": "File type" },
+        { "name": "chars", "type": "uinteger", "label": "Characters" },
+        { "name": "truncated", "type": "boolean", "label": "Truncated" },
+        { "name": "text", "type": "text", "label": "Text" }
+      ]
+    },
+    {
+      "name": "makeApiCall",
+      "label": "Make an API Call",
+      "description": "Performs an arbitrary authorized API call.",
+      "type": "universal",
+      "expect": [
+        { "name": "url", "type": "text", "label": "URL", "required": true, "help": "A path relative to the service, for example /pdf/text" },
+        { "name": "method", "type": "select", "label": "Method", "required": true, "default": "GET", "options": [{ "label": "GET", "value": "GET" }, { "label": "POST", "value": "POST" }] },
+        { "name": "qs", "type": "array", "label": "Query String", "spec": [{ "name": "key", "type": "text", "label": "Key" }, { "name": "value", "type": "text", "label": "Value" }] },
+        { "name": "body", "type": "any", "label": "Body" }
+      ],
+      "communication": { "url": "{{parameters.url}}", "method": "{{parameters.method}}", "qs": { "{{...}}": "{{toCollection(parameters.qs, 'key', 'value')}}" }, "body": "{{parameters.body}}", "type": "json", "response": { "output": { "body": "{{body}}", "headers": "{{headers}}", "statusCode": "{{statusCode}}" } } }
+    }
+  ]
+}
