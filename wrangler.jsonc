@@ -19,6 +19,9 @@
   // Workers AI and Browser Rendering run on the account's free daily allowance.
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
+  // Cloudflare Email Service: sends the one message a free-key sign-up gets (lib/free-keys.ts). Sending is enabled on
+  // tools.funwords.eu (14 Nov 2026, `wrangler email sending enable`); the sender is FREE_KEY_FROM below.
+  "send_email": [{ "name": "EMAIL" }],
   // Store downloads. run_worker_first keeps them behind the paid-order check.
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
   // Trial counters are opt-in via TRIALS_ENABLED=on; this KV binding also holds store orders.
@@ -29,6 +32,10 @@
   "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
   "vars": {
+    // Free keys by e-mail, 100 calls a month (owner, 14 Nov 2026: "Yes, 100 a month"; "Yes, use funwords.eu now").
+    // Anything but "on" switches the offer and its links off. Move the sender when the product domain has mail.
+    "FREE_KEYS": "on",
+    "FREE_KEY_FROM": "keys@tools.funwords.eu",
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.

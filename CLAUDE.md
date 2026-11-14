@@ -1835,3 +1835,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Prove on staging after the release (the PC smoke run skips AI tools, `NEEDS_AI`): `node scripts/pay-test.mjs <staging>/invoice/check?url=<SAMPLE_INVOICE>`; the verdict should be pass with six checks.
 - n8n: Document > Check Invoice (`integrations/n8n`), README row, fixture entry, credential list.
 
+
+
+## Free keys by e-mail are ON (1.181.0, 14 Nov 2026)
+
+- `FREE_KEYS` "on" and `FREE_KEY_FROM` keys@tools.funwords.eu in wrangler.jsonc and wrangler.staging.jsonc, with the `send_email` binding `EMAIL` (owner, 14 Nov: "Yes, 100 a month" and "Yes, use funwords.eu now"). To switch the offer off, set `FREE_KEYS` to anything else: `/keys/free` answers 404 and the links disappear.
+- Cloudflare Email Service sending is enabled on the subdomain tools.funwords.eu only (`npx wrangler email sending settings tools.funwords.eu`; DKIM selector cf-bounce, SPF and MX on cf-bounce.tools.funwords.eu, DMARC p=reject on _dmarc.tools.funwords.eu). The apex funwords.eu keeps its own mail at Strato (MX smtp.rzone.de): never enable sending on the apex. The local wrangler login has `email_sending (write)`; `wrangler email sending send --from keys@tools.funwords.eu --to <own mailbox> …` is the delivery test (right after enabling it answers "sending_not_ready" for a few minutes).
+- When glyphcall.com is a zone on the account: enable sending there, change `FREE_KEY_FROM`, release.
+- `productPage(..., freeKey)` (src/lib/product-pages.ts): the free-key button leads only when `freeKeysOn(env)` and the product's tool is outside `CAPACITY_LIMITED`. `/credits` links to `/keys/free` the same way.
+- Check after a release that touches this: POST `/keys/free` with the shop mailbox, open the link, call `/document/extract` with the key, read `/credits/balance`. Funnel stage `free_key_issued` counts keys; a free key is not a customer.
+- Integrations that hand a key to builders: the Dify plugin (github.com/Nutshell2000/glyphcall-dify-plugin, marketplace PR langgenius/dify-plugins#3774, local copy C:\MoneyWallet\business\integrations\dify-glyphcall) and the n8n node. Their README says where to get a key; point them at `/keys/free` in their next version.
+

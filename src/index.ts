@@ -50,7 +50,7 @@ import { discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
-import { freeKeys } from "./lib/free-keys";
+import { freeKeys, freeKeysOn } from "./lib/free-keys";
 import { httpFree } from "./lib/capacity";
 import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
@@ -597,7 +597,7 @@ for (const product of PRODUCT_PAGES) {
   app.get(`/${product.slug}`, (c) => {
     const capped = trialsEnabled(c.env) && pdfTryOn(c.env, product.tool);
     const tryIt = trialsEnabled(c.env) && (httpFree(product.tool) || capped);
-    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME)));
+    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME), freeKeysOn(c.env) && !CAPACITY_LIMITED.has(product.tool)));
   });
 }
 // Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
