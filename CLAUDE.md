@@ -1958,3 +1958,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - OpenAlex key requested 14 Nov 2026 (owner's yes) for spellz111122@gmail.com: Worker secret OPENALEX_API_KEY on production and staging, copy in C:\MoneyWallet\private\openalex-key.txt (never in Git or chat). It works only after the owner clicks the mail "Activate your OpenAlex API key" (link valid to 21 Nov); until then OpenAlex refuses it and fromOpenAlex() asks again without it.
 - /v1/answer law routing: `isLawQuestion()` (src/lib/search-api.ts; `LEGAL_NAMES` always, other act names only with `LAW_WORDS`). `answerFromArticles()` (src/routes/law-search.ts) sees only the numbered provisions; no articles means no model call. Prove on staging after the release: `node scripts/pay-test.mjs <staging>/v1/answer --post-json '{"query":"When is processing lawful under the GDPR?"}'`.
 
+
+
+## A v2 payment in the X-PAYMENT header (1.194.0, 14 Nov 2026)
+
+- Some clients send an x402 version 2 payload under the version 1 header name. An early middleware in src/index.ts
+  (after the POST flattener, before tracing) forwards it as PAYMENT-SIGNATURE through `app.fetch`, so it is counted once
+  and paid on the v2 path; the receipt goes back under both header names. Read `/status` paymentRefusals for
+  "only x402 version 1" after the release: it should not appear again.
+
