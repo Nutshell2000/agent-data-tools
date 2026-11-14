@@ -62,7 +62,11 @@ test("an OpenAI messages array is a prompt and a system prompt for the tools wit
   assert.equal(T.messagePart(parts, "system"), "Rules");
   const talk = JSON.stringify([{ role: "user", content: "Hi" }, { role: "assistant", content: "Hello." }, { role: "user", content: "And now?" }]);
   assert.equal(T.messagePart(talk, "prompt"), "User: Hi\nAssistant: Hello.\nUser: And now?");
-  for (const bad of [undefined, "", "hello", "{}", "[", "[]", JSON.stringify([{ role: "system", content: "only" }])]) assert.equal(T.messagePart(bad, "prompt"), undefined);
+  for (const bad of [undefined, "", "{}", "[", "[]", JSON.stringify([{ role: "system", content: "only" }])]) assert.equal(T.messagePart(bad, "prompt"), undefined);
+  // 14 Nov 2026: plain text and one message object are a one-message list (src/lib/chat-messages.ts).
+  assert.equal(T.messagePart("hello", "prompt"), "hello");
+  assert.equal(T.messagePart("hello", "system"), undefined);
+  assert.equal(T.messagePart(JSON.stringify({ role: "user", content: "hello" }), "prompt"), "hello");
 
   const q = T.normalizedInput(sent({ messages: one, max_tokens: "50" }));
   assert.equal(q("prompt"), "What is x402?");
