@@ -16,6 +16,7 @@
   "observability": { "enabled": true, "head_sampling_rate": 0.01 },
   "ai": { "binding": "AI" },
   "browser": { "binding": "BROWSER" },
+  "send_email": [{ "name": "EMAIL" }],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none" },
   // Separate KV namespace (created 2026-10-19), so staging trials and orders never touch production data.
   "kv_namespaces": [{ "binding": "TRIALS", "id": "1b0c434f243c4be6bb0acb43feffc871" }],
@@ -23,6 +24,9 @@
   "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
   "vars": {
+    // Free keys by e-mail, as in production, so a sign-up can be proven here first.
+    "FREE_KEYS": "on",
+    "FREE_KEY_FROM": "keys@tools.funwords.eu",
     // Same recipient as production; on Sepolia it receives faucet USDC only.
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     // Base Sepolia only: no mainnet network is offered here, so nothing real can ever be paid to staging.
