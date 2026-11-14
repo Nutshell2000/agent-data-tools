@@ -15,6 +15,7 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   // Audio (14 Nov 2026, voice plan): the same 5 MB as a URL fetch, so the price per call covers the longest file.
   "/transcribe": 5 * 1024 * 1024,
   "/transcribe/long": 25 * 1024 * 1024,
+  "/transcribe/summary": 25 * 1024 * 1024, // 1.195.0: uploads (the Obsidian plugin and the voice pages send files)
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
   "/invoice/check": 10 * 1024 * 1024,
@@ -99,9 +100,11 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
       bytes = fromBase64(value);
       if (bytes) break;
     }
+  // audio/* and video/* (1.195.0): browsers, the voice pages and the Obsidian plugin send a recording with its own type;
+  // until then only application/octet-stream reached the transcription tools as a file.
   // image/*: a scan or a photo sent as the body. Until 1.187.0 it was read as "no file" and the caller was asked for a
   // url, although the document tools read PNG, JPEG and WebP (found 14 Nov 2026 by sending invoice2data's PNG invoices).
-  } else if (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/|image\/|text\/xml)/.test(type)) {
+  } else if (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.|ogg)|binary\/|image\/|audio\/|video\/|text\/xml)/.test(type)) {
     const buffer = await request.clone().arrayBuffer().catch(() => null);
     if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
   }

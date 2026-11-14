@@ -112,6 +112,10 @@ test('/transcribe/summary is a paid tool at $0.05 and outside the free calls; th
   assert.equal(q.accepts[0].amount, '50000');
   const trial = await mf.dispatchFetch(`${O}/transcribe/summary?url=https://example.com/a.mp3&trial=1`, { headers: { accept: 'application/json' } });
   assert.equal(trial.status, 402);
+  // 1.195.0: an uploaded file is held and quoted like the long tool's (the Obsidian plugin and fast mode send files).
+  const upload = await mf.dispatchFetch(`${O}/transcribe/summary`, { method: 'POST', headers: { 'content-type': 'audio/mpeg' }, body: Buffer.from(mp3(200)) });
+  assert.equal(upload.status, 402);
+  assert.match((JSON.parse(Buffer.from(upload.headers.get('PAYMENT-REQUIRED'), 'base64').toString())).resource.url, /\/transcribe\/summary\?file=/);
   for (const slug of ['elevenlabs-alternative', 'whisper-api-alternative']) {
     const page = await mf.dispatchFetch(`${O}/compare/${slug}`);
     assert.equal(page.status, 200, slug);
