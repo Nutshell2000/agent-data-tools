@@ -7,7 +7,7 @@ import { canBatch, queueBatched } from "./metrics-batch";
 // facilitator itself could not be reached, so the buyer was told to retry and was not charged.
 // free_exhausted marks a caller who asked for a free call after using them all: the moment they are asked to pay.
 // free_exhausted_by counts the same moment at /caller/<software family>: on 31 Oct about 1,800 a day were machine traffic.
-export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "credits_bought", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral", "discovery_read"] as const;
+export const STAGES = ["visit", "quote", "attempt", "verified", "verification_failed", "settled", "settlement_failed", "completed", "execution_failed", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "credits_bought", "free_key_call", "free_key_issued", "refused_amount", "refused_network", "refused_format", "facilitator_unavailable", "page_view", "referral", "discovery_read"] as const;
 export type FunnelStage = typeof STAGES[number];
 export interface FunnelEvent {
   requestId: string; path: string; transport: "http" | "mcp";
@@ -53,7 +53,7 @@ export function markStage(stage: FunnelStage, path?: string) {
 // High-volume stages are only counted per day (buffered in the Metrics object, see metrics.ts): one stored row
 // per request for crawler quotes used up the free Durable Objects write allowance (100,000 rows a day) on 20 Oct.
 // Payment stages keep their per-request evidence row.
-export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "page_view", "referral", "discovery_read"]);
+export const COUNTED_ONLY: ReadonlySet<FunnelStage> = new Set(["visit", "quote", "free_call", "free_exhausted", "free_exhausted_by", "credits_call", "free_key_call", "page_view", "referral", "discovery_read"]);
 export const funnelLabel = (event: FunnelEvent) => `${event.transport}:${event.path}:${event.stage}`;
 
 export function assertFunnelEvent(event: FunnelEvent) {
