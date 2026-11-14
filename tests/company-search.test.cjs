@@ -103,3 +103,24 @@ test("foreign branches by register: SE foreign legal person, NO NUF, FR form 322
   assert.equal(S.isForeignBranch({ country: "FR", legalForm: "3220" }), true);
   assert.equal(S.isForeignBranch({ country: "SE", legalForm: "Aktiebolag (limited company)" }), false);
 });
+
+test("the group behind the best match comes first when its own name holds the name asked for (GLEIF ultimate parent)", async () => {
+  const withParent = (rec, link) => ({ ...rec, relationships: { "ultimate-parent": { links: { "lei-record": link } } } });
+  const read = [];
+  const r = await S.companySearch("Kone", null, 5, {
+    now,
+    searchers: fake({}),
+    lei: async () => [withParent(leiRecord("213800F6SC8OY4DJ8L50", "KONE INC.", "US"), "https://api.gleif.org/api/v1/lei-records/213800F6SC8OY4DJ8L50/ultimate-parent")],
+    parent: async (link) => { read.push(link); return leiRecord("2138001CNF45JP5XZK38", "KONE OYJ", "FI"); },
+  });
+  assert.deepEqual(read, ["https://api.gleif.org/api/v1/lei-records/213800F6SC8OY4DJ8L50/ultimate-parent"]);
+  assert.deepEqual(r.results.map((h) => h.name), ["KONE OYJ", "KONE INC."]);
+  assert.equal(r.results[0].groupParent, true);
+  // A parent whose name does not hold the name asked for (a holding company) changes nothing; a failed read neither.
+  const other = await S.companySearch("Kone", null, 5, { now, searchers: fake({}), lei: async () => [withParent(leiRecord("213800F6SC8OY4DJ8L50", "KONE INC.", "US"), "https://api.gleif.org/x")], parent: async () => leiRecord("X1", "Holding Herlin Oy", "FI") });
+  assert.deepEqual(other.results.map((h) => h.name), ["KONE INC."]);
+  const failed = await S.companySearch("Kone", null, 5, { now, searchers: fake({}), lei: async () => [withParent(leiRecord("213800F6SC8OY4DJ8L50", "KONE INC.", "US"), "https://api.gleif.org/x")], parent: async () => { throw new Error("timeout"); } });
+  assert.deepEqual(failed.results.map((h) => h.name), ["KONE INC."]);
+  assert.equal(S.sameName("volvo cars", "volvo car"), true);
+  assert.equal(S.sameName("volvo", "volvo car"), false);
+});

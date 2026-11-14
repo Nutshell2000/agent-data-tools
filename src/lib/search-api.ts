@@ -10,6 +10,7 @@ import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
 import { ENDPOINTS } from "../endpoints";
 import { keyPrice } from "./key-prices";
+import { categoryOf } from "../routes/search";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -81,7 +82,54 @@ export function isLawSearch(b: Record<string, unknown>): boolean {
   return domains.length > 0 && domains.every((d) => d === "eur-lex.europa.eu");
 }
 
-export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number; tool?: string } | { error: string } {
+/**
+ * Exa's result categories answered from sources of record instead of a web index (14 Nov 2026, the beat-Exa plan,
+ * Phase 1): `company` from the official registers behind /company/search, `research paper` from the scholarly
+ * indexes behind /papers (OpenAlex, Crossref) or /arxiv/search, `github` from GitHub's own repository search. No
+ * Brave request is made for these, so they do not count against the search cap, and every result is a record with a
+ * source, not a crawled page. A company search must look like a name: Exa's company category also takes descriptions
+ * ("AI startups in Berlin"), which a register cannot answer, so those stay on the web search. Filters a source cannot
+ * honour (a phrase, other domains) also keep the web search; anything else that is left unused is named in `ignored`.
+ */
+const DESCRIBES_COMPANIES = /\b(companies|startups?|firms|businesses|vendors|providers|suppliers|competitors|alternatives?|like|similar|top|best|leading|largest|biggest|that|which|who|near|based|using|building|making|makers?)\b/i;
+export function looksLikeCompanyName(q: string): boolean {
+  const words = q.trim().split(/\s+/).filter(Boolean);
+  return words.length >= 1 && words.length <= 6 && !DESCRIBES_COMPANIES.test(q) && !/\?$/.test(q.trim());
+}
+const hostOnly = (d: string) => d.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
+export function categoryRoute(b: Record<string, unknown>, q: string, n: number): { tool: string; query: Record<string, string>; ignored: string[] } | undefined {
+  const category = typeof b.category === "string" ? categoryOf(b.category) : undefined;
+  if (!category || !["company", "research paper", "github"].includes(category)) return undefined;
+  if (firstText(b.includeText) || firstText(b.excludeText)) return undefined;
+  const domains = asList(b.includeDomains).map(hostOnly);
+  const only = (h: string) => domains.length > 0 && domains.every((d) => d === h || d.endsWith(`.${h}`));
+  const arxivOnly = only("arxiv.org");
+  if (domains.length && !(category === "research paper" && arxivOnly) && !(category === "github" && only("github.com"))) return undefined;
+  const ignored: string[] = [];
+  if (asList(b.excludeDomains).length) ignored.push("excludeDomains: results come from a source of record, not web pages");
+  const contents = (b.contents && typeof b.contents === "object" ? b.contents : {}) as Record<string, unknown>;
+  if (isOn(contents.summary ?? b.summary)) ignored.push("summary: records carry their own abstract or description");
+  const count = String(Math.min(20, n));
+  if (category === "company") {
+    if (!looksLikeCompanyName(q)) return undefined;
+    if (b.startPublishedDate || b.endPublishedDate) ignored.push("published dates: register records have no publication date");
+    return { tool: "/company/search", query: { q: q.slice(0, 200), limit: count }, ignored };
+  }
+  if (category === "github") {
+    if (b.startPublishedDate || b.endPublishedDate) ignored.push("published dates: repositories are ordered by relevance");
+    return { tool: "/github/search", query: { q: q.slice(0, 200), count }, ignored };
+  }
+  if (q.length < 3) return undefined;
+  if (arxivOnly) {
+    if (b.startPublishedDate || b.endPublishedDate) ignored.push("published dates: arXiv results are ordered by relevance");
+    return { tool: "/arxiv/search", query: { q: q.slice(0, 300), count }, ignored };
+  }
+  const year = typeof b.startPublishedDate === "string" ? Number(b.startPublishedDate.trim().slice(0, 4)) : NaN;
+  if (b.endPublishedDate) ignored.push("endPublishedDate: only a start year is applied to papers");
+  return { tool: "/papers", query: { query: q.slice(0, 300), limit: count, ...(year >= 1800 && year <= 2100 ? { fromYear: String(year) } : {}) }, ignored };
+}
+
+export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number; tool?: string; ignored?: string[] } | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object" };
   const b = body as Record<string, unknown>;
   if (path === "/v1/search" || path === "/v1/findSimilar") {
@@ -95,6 +143,14 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
         const n = b.numResults === undefined || b.numResults === "" ? 5 : Number(b.numResults);
         if (!Number.isInteger(n) || n < 1) return { error: "numResults must be a whole number from 1 (at most 10 are returned for EU law)" };
         return { query: { q, count: String(Math.min(10, n)) }, text: 0, tool: "/law/search" };
+      }
+      const n = b.numResults === undefined || b.numResults === "" ? 10 : Number(b.numResults);
+      if (Number.isInteger(n) && n >= 1) {
+        const routed = categoryRoute(b, q, n);
+        if (routed) {
+          const contents = (b.contents && typeof b.contents === "object" ? b.contents : {}) as Record<string, unknown>;
+          return { query: routed.query, text: textBudget(contents.text ?? b.text, 3000), tool: routed.tool, ...(routed.ignored.length ? { ignored: routed.ignored } : {}) };
+        }
       }
     } else {
       const url = typeof b.url === "string" ? b.url.trim() : "";
@@ -174,12 +230,101 @@ export function answerStream(answer: { answer: string; citations: unknown[]; cos
   return lines.join("");
 }
 
+type CompanyHit = { name: string; country: string; idType?: string; id?: string; legalForm?: string; city?: string; exact?: boolean; url?: string; details?: string; lei?: string; source?: string; branchOfForeign?: boolean };
+type PaperHit = { title: string; authors?: string[]; year?: number | null; venue?: string | null; type?: string | null; citations?: number; doi?: string | null; url?: string | null; abstract?: string | null };
+type ArxivHit = { id: string; title: string; summary?: string; authors?: string[]; published?: string; updated?: string; primaryCategory?: string; doi?: string | null; url: string; pdf?: string };
+type RepoHit = { repo: string; url: string; description?: string | null; stars?: number; forks?: number; language?: string | null; topics?: string[]; license?: string | null; pushedAt?: string | null; archived?: boolean };
+
+/** "SE" -> "Sweden", as Exa's company entities name the country; an unknown code stays as it is. */
+const countryName = (code: string) => { try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code; } catch { return code; } };
+/** Text of a record as the SDKs' `text` field, cut to the caller's budget; nothing when text was not asked for. */
+const textOf = (s: string, budget: number | undefined) => (budget ? { text: s.slice(0, budget) } : {});
+
+/**
+ * A source-of-record answer (company registers, scholarly indexes, arXiv, GitHub) in the neural-search response shape.
+ * Company results carry Exa-shaped `entities` built only from register facts: name, legal form, seat, register ID,
+ * LEI, the register itself and the time it was read. Nothing is guessed (no headcount, revenue or description).
+ */
+export function recordResults(inner: Record<string, unknown>, tool: string | undefined, opts: { text?: number; origin?: string; ignored?: string[] }) {
+  const base = { requestId: requestId(), ...(opts.ignored?.length ? { ignored: opts.ignored } : {}) };
+  if (tool === "/company/search") {
+    const r = inner as { results?: CompanyHit[]; note?: string; retrievedAt?: string; failed?: unknown[]; searched?: string[] };
+    return {
+      ...base, resolvedSearchType: "company-registers",
+      results: (r.results ?? []).map((h) => {
+        const url = h.url ?? (h.lei ? `https://search.gleif.org/#/record/${h.lei}` : h.details ? `${opts.origin ?? ""}${h.details}` : "");
+        const facts = [h.legalForm, h.city, h.country].filter(Boolean).join(", ");
+        const line = `${h.name}${facts ? ` (${facts})` : ""}.${h.id ? ` ${h.idType ?? "Register ID"} ${h.id}.` : ""}${h.lei ? ` LEI ${h.lei}.` : ""}${h.branchOfForeign ? " Registered branch of a foreign company." : ""}${h.source ? ` Source: ${h.source}.` : ""}`;
+        return {
+          id: url || `${h.country}:${h.id ?? h.lei ?? h.name}`, url, title: h.name, publishedDate: null, author: null, score: h.exact ? 1 : null,
+          ...textOf(line, opts.text), highlights: [line],
+          entities: [{
+            id: `${h.country}:${h.id ?? h.lei ?? h.name}`, type: "company", version: 1,
+            properties: {
+              name: h.name, legalForm: h.legalForm ?? null,
+              headquarters: { address: null, city: h.city ?? null, postalCode: null, country: countryName(h.country), countryCode: h.country },
+              registration: { country: h.country, idType: h.idType ?? null, id: h.id ?? null, lei: h.lei ?? null, register: h.source ?? null, url: h.url ?? null, branchOfForeign: !!h.branchOfForeign, retrievedAt: r.retrievedAt ?? null },
+            },
+          }],
+        };
+      }),
+      searched: r.searched, ...(r.failed?.length ? { failed: r.failed } : {}),
+      terms: r.note,
+    };
+  }
+  if (tool === "/papers") {
+    const r = inner as { results?: PaperHit[]; source?: string };
+    return {
+      ...base, resolvedSearchType: "scholarly-index",
+      results: (r.results ?? []).filter((h) => h.url || h.doi).map((h) => {
+        const url = h.url ?? `https://doi.org/${h.doi}`;
+        return {
+          id: url, url, title: h.title, publishedDate: null, year: h.year ?? null, author: h.authors?.length ? h.authors.join(", ") : null, score: null,
+          ...(h.abstract ? { ...textOf(h.abstract, opts.text), highlights: [h.abstract.slice(0, 300)] } : {}),
+          doi: h.doi ?? null, venue: h.venue ?? null, citations: h.citations ?? 0, type: h.type ?? null,
+        };
+      }),
+      terms: `Paper metadata from ${r.source ?? "OpenAlex or Crossref"} (OpenAlex data is CC0; Crossref metadata is open). Open the DOI link for the paper itself.`,
+    };
+  }
+  if (tool === "/arxiv/search") {
+    const r = inner as { papers?: ArxivHit[]; attribution?: string };
+    return {
+      ...base, resolvedSearchType: "arxiv",
+      results: (r.papers ?? []).map((h) => ({
+        id: h.url, url: h.url, title: h.title, publishedDate: h.published ? `${h.published}T00:00:00.000Z` : null, author: h.authors?.length ? h.authors.join(", ") : null, score: null,
+        ...(h.summary ? { ...textOf(h.summary, opts.text), highlights: [h.summary.slice(0, 300)] } : {}),
+        arxivId: h.id, pdf: h.pdf ?? null, doi: h.doi ?? null, category: h.primaryCategory ?? null,
+      })),
+      terms: r.attribution,
+    };
+  }
+  if (tool === "/github/search") {
+    const r = inner as { repos?: RepoHit[]; source?: string };
+    return {
+      ...base, resolvedSearchType: "github",
+      results: (r.repos ?? []).map((h) => {
+        const line = `${h.repo}: ${h.description ?? "no description"}.${h.language ? ` ${h.language}.` : ""} ${h.stars ?? 0} stars.${h.license ? ` License ${h.license}.` : ""}${h.archived ? " Archived." : ""}`;
+        return {
+          id: h.url, url: h.url, title: h.repo, publishedDate: h.pushedAt ?? null, author: null, score: null,
+          ...textOf(line, opts.text), highlights: [line],
+          stars: h.stars ?? 0, forks: h.forks ?? 0, language: h.language ?? null, topics: h.topics ?? [], license: h.license ?? null,
+        };
+      }),
+      terms: r.source,
+    };
+  }
+  return undefined;
+}
+
 type SearchOut = {
   results?: { title: string; url: string; snippet?: string; age?: string | null; publishedDate?: string | null; author?: string | null; image?: string | null; favicon?: string | null; text?: string; highlights?: string[]; highlightScores?: number[]; summary?: string | null }[];
   terms?: string; filters?: Record<string, unknown>; ignored?: string[]; query?: string;
 };
 /** The tool's answer in the neural-search response shape. The tool already read, highlighted and summarized what was asked. */
-export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>, tool?: string) {
+export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>, tool?: string, opts: { text?: number; origin?: string; ignored?: string[] } = {}) {
+  const routed = recordResults(inner, tool, opts);
+  if (routed) return routed;
   if (tool === "/law/search") {
     // EU law passages as search results: the title is the citation, the text the provision, highlights its opening.
     const r = inner as { results?: { citation: string; heading?: string; text: string; url: string; version: string; score?: number }[]; attribution?: string };
@@ -245,7 +390,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const priced = ENDPOINTS.find((e) => e.path === tool);
   const how = answer.headers.get("x-free-trial-remaining") !== null ? "free" : c.req.header("authorization") || c.req.header("x-api-key") ? "key" : "paid";
   const cost = costDollars(priced?.price, priced ? keyPrice(priced.path, priced.price) : undefined, how);
-  const shaped = { ...toSearchApi(path, result, tool), ...(cost ? { costDollars: cost } : {}) };
+  const shaped = { ...toSearchApi(path, result, tool, "error" in mapped ? {} : { text: mapped.text, origin: outer.origin, ignored: mapped.ignored }), ...(cost ? { costDollars: cost } : {}) };
   const out = stream
     ? new Response(answerStream(shaped as Parameters<typeof answerStream>[0]), { status: 200, headers: { "Content-Type": "text/event-stream; charset=utf-8" } })
     : c.json(shaped, 200);
