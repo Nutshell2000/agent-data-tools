@@ -15,7 +15,8 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
-import { EINVOICE_BASE, EINVOICE_RULES, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage, withEinvoicePages } from "./lib/einvoice-pages";
+import { EINVOICE_BASE, EINVOICE_BASE_DE, EINVOICE_RULES, EINVOICE_RULES_DE, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage, withEinvoicePages } from "./lib/einvoice-pages";
+import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } from "./lib/einvoice-pages-de";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
@@ -615,6 +616,13 @@ app.get(EINVOICE_RULES, (c) => c.html(einvoiceRulesIndexPage(origin(c.req.url), 
 app.get(`${EINVOICE_RULES}/:rule{[a-z0-9-]+}`, (c) => {
   const rule = einvoiceRule(c.req.param("rule"));
   return rule ? c.html(einvoiceRulePage(rule, origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
+});
+// The same three page kinds in German (lib/einvoice-pages-de.ts).
+app.get(EINVOICE_BASE_DE, (c) => c.html(einvoiceIndexPageDe(origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))));
+app.get(EINVOICE_RULES_DE, (c) => c.html(einvoiceRulesIndexPageDe(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
+app.get(`${EINVOICE_RULES_DE}/:rule{[a-z0-9-]+}`, (c) => {
+  const rule = einvoiceRule(c.req.param("rule"));
+  return rule ? c.html(einvoiceRulePageDe(rule, origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 // Per-country company register pages (lib/register-pages.ts), part of the company-check product.
 app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));

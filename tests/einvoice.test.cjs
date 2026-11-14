@@ -183,3 +183,34 @@ test('what an invoice reader returns becomes a valid e-invoice without naming a 
   assert.equal(M.fromInput({ ...read, vatRate: 9 }).lines[0].vatRate, 9);
   assert.equal(M.fromInput({ line_items: [{ description: 'x', amount: 10 }] }).lines[0].vatRate, 0);
 });
+
+test('every rule and every business term has German wording, and both page languages name each other', async () => {
+  const DE = await load('src/lib/einvoice/rules-de.ts'), EN = await load('src/lib/einvoice-pages.ts'), PD = await load('src/lib/einvoice-pages-de.ts');
+  assert.deepEqual(DE.RULES_WITHOUT_GERMAN(), []);
+  for (const r of V.RULES) {
+    const [rule, fix] = DE.ruleDe(r);
+    assert.ok(rule.length > 20 && /\.$/.test(rule) && fix.length > 10, r.id);
+    assert.notEqual(rule, r.rule, `${r.id} is not left in English`);
+  }
+  assert.deepEqual(Object.keys(EN.TERMS).filter((t) => !DE.TERMS_DE[t]), []);
+  const paths = EN.einvoicePagePaths();
+  assert.equal(paths.length, 2 * (2 + V.RULES.length));
+  assert.equal(new Set(paths).size, paths.length);
+  assert.ok(paths.includes('/de/e-rechnung/regeln/br-de-15') && paths.includes('/e-invoice/rules/br-de-15'));
+  const origin = 'https://example.test';
+  const rule = V.ruleDoc('BR-DE-15');
+  const de = PD.einvoiceRulePageDe(rule, origin, true), en = EN.einvoiceRulePage(rule, origin, true);
+  for (const page of [de, en]) {
+    assert.ok(page.includes('hreflang="en" href="https://example.test/e-invoice/rules/br-de-15"'));
+    assert.ok(page.includes('hreflang="de" href="https://example.test/de/e-rechnung/regeln/br-de-15"'));
+  }
+  assert.ok(de.includes('<html lang="de">') && de.includes('<link rel="canonical" href="https://example.test/de/e-rechnung/regeln/br-de-15">'));
+  assert.ok(de.includes('Leitweg-ID') && de.includes('Käuferreferenz') && de.includes('ram:BuyerReference'));
+  assert.ok(en.includes('<link rel="canonical" href="https://example.test/e-invoice/rules/br-de-15">'));
+  const index = PD.einvoiceRulesIndexPageDe(origin), home = PD.einvoiceIndexPageDe(origin, true);
+  assert.equal((index.match(/href="\/de\/e-rechnung\/regeln\/br-/g) || []).length, V.RULES.length);
+  assert.ok(home.includes('1. Januar 2027') && home.includes('action="/einvoice/validate?trial=1"') && !home.includes('undefined'));
+  assert.ok(!de.includes('undefined') && !index.includes('undefined'));
+  const map = EN.withEinvoicePages('<urlset><url><loc>https://example.test/</loc></url></urlset>', origin);
+  assert.equal((map.match(/<loc>/g) || []).length, 1 + paths.length);
+});
