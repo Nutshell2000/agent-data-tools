@@ -23,6 +23,10 @@ import { schemaFromExample } from "./output-schema";
 /** A pattern for inputs that only take a 0x address or a 32-byte hash, so agents can validate before paying. */
 function formatOf(p: Endpoint["params"][string]): { pattern?: string } {
   if (typeof p.example !== "string" || /\bens\b|name/i.test(p.description)) return {};
+  // A list or a non-EVM value whose example happens to be one address must not be held to one address (14 Nov 2026: every
+  // <network>/call listed `args` as a single address, so a schema-validating client could not send a number, two
+  // arguments or a JSON array; `tokens` lists and a Solana `toAddress` had the same fault).
+  if (/comma|JSON array|Solana/i.test(p.description)) return {};
   if (/^0x[0-9a-fA-F]{40}$/.test(p.example)) return { pattern: "^0x[0-9a-fA-F]{40}$" };
   if (/^0x[0-9a-fA-F]{64}$/.test(p.example)) return { pattern: "^0x[0-9a-fA-F]{64}$" };
   return {};
@@ -31,7 +35,10 @@ function formatOf(p: Endpoint["params"][string]): { pattern?: string } {
 /** One input schema for every listing (HTTP 402 and MCP payments): types, enums, patterns and an example each. */
 export function bazaarInputProperties(e: Endpoint) {
   return Object.fromEntries(
-    Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), examples: [p.example] }]),
+    // An optional input with an empty example has no value that is right for every call (an HTML section ID belongs to one
+    // page), so it gets no `examples`: routers and agents fill every input from them, and an example section on another
+    // page was a refused paid call (14 Nov 2026, /extract section "retry-policy", 9 in 7 days).
+    Object.entries(e.params).map(([k, p]) => [k, { type: p.type, description: p.description, ...(p.enum ? { enum: p.enum } : {}), ...formatOf(p), ...(p.example !== "" ? { examples: [p.example] } : {}) }]),
   );
 }
 /**

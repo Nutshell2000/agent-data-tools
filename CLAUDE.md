@@ -1816,3 +1816,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `.github/workflows/ofac-mirror.yml` uploads with `--clobber` (delete, then upload), so the mirror's files 404 for about half a minute every six hours. `sdnIndex()` serves the last good copy on a failed refresh (isolate memory up to `STALE_LIMIT_MS`, 7 days, then the edge-cache copy under `LAST_GOOD_KEY`) and asks the mirror twice. Any tool that reads a file from our GitHub release mirror needs the same fallback. tests/ofac-stale-copy.test.cjs simulates the outage.
 
+
+
+## Listing inputs as planners fill them (1.178.0, 14 Nov 2026)
+
+- Routers and agents fill EVERY listed input from its `examples`, not only the required ones. `node scripts/smoke-examples.mjs --all-params [filter]` runs each tool that way; run it with the ordinary smoke run after adding tools or changing examples. Rule: an optional input's example must work beside the required examples (same network, same page); when no value is right for every call (an HTML section ID), set `example: ""`, which leaves `examples` out of the Bazaar schema and OpenAPI (`bazaarInputProperties`, discovery.ts) and keeps it out of MCP examples.
+- `formatOf` (src/lib/bazaar-extension.ts) gives no 0x pattern to an input whose description says comma, JSON array or Solana: lists and non-EVM values must not be held to one address. tests/listing-planner-inputs.test.cjs.
+- Router copies lag: `smoke-examples.mjs --cases <file.json> --case-field example|all` replays inputs a router stored ([{ path, example, all }]; build it from `GET mercator.sh/v1/services/x402-agent-data-tools-revmesh2074-workers-dev-b952bdcb` `.service.endpoints[].inputExample` / `inputSchema`). When an example changes, keep accepting the old one where it would now fail: `FORMER_SECTION_EXAMPLES` (src/routes/extract.ts), `ABI_EXAMPLE_ADDRESS` + chain=base (src/routes/chain-more.ts).
+- `usdcRequirements` (src/lib/discovery-index.ts) includes Solana when SOLANA_PAY_TO is set, with `CDP_SOLANA_FEE_PAYER` (src/lib/networks.ts; the live 402 reads the real one from the facilitator). If CDP ever rotates its fee payer, update the constant.
+- `/pdf/text` `loadPdf` reads the Internet Archive copy on any TARGET_UNAVAILABLE error too (5xx, 429, timeouts, redirect limit, broken connection), like /extract; 15 s archive budget after a timeout. `/extract` points PDF links to `/pdf/text?url=…` (code `EXTRACTION_PDF`).
+

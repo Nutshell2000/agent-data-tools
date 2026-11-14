@@ -14,7 +14,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.177.0";
+export const MCP_SERVER_VERSION = "1.178.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -515,7 +515,8 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
               required: p.required ?? false,
               description: p.description,
               schema: { type: p.type, ...(p.enum ? { enum: p.enum } : {}) },
-              example: p.example,
+              // An empty example means "no example to offer" (see bazaarInputProperties): planners fill parameters from it.
+              ...(p.example !== "" ? { example: p.example } : {}),
             })),
             responses: {
               "200": {
