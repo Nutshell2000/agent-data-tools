@@ -46,6 +46,8 @@ import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { httpFree } from "./lib/capacity";
+import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
+import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
@@ -306,7 +308,10 @@ app.use(async (c, next) => {
   // Free calls (lib/free-calls.ts): opt-in with trial=1 over HTTP so plain unpaid requests still get the 402.
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;
-  if (endpoint && trialable && httpFree(c.req.path) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
+  // The capped PDF try (lib/pdf-try.ts): off unless PDF_TRY=on; a browser only, inside the day's total.
+  const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent")) && await takePdfTry(c.env);
+  if (pdfTry) pdfTryRequests.add(c.req.raw);
+  if (endpoint && trialable && (httpFree(c.req.path) || pdfTry) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
     const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
     if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
     if (freePaused && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
@@ -376,7 +381,7 @@ app.use(async (c, next) => {
     }
   }
   if (!(result instanceof Response)) return result;
-  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && httpFree(c.req.path) && !activeTrace()?.stages.has("free_exhausted"), endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
+  let answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && (httpFree(c.req.path) || pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"))) && !activeTrace()?.stages.has("free_exhausted"), endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY));
   // The same call offered over MPP next to the x402 terms: evm/charge (on by default) and tempo/charge (while
   // TEMPO_PAY_TO is set), as separate challenges in one WWW-Authenticate header.
   if (freePaused) { answer = new Response(answer.body, answer); answer.headers.set("X-Free-Trial-Unavailable", freeCallsPausedNote()); }
@@ -399,7 +404,7 @@ app.use(async (c, next) => {
 for (const e of ENDPOINTS) {
   // The IP tools answer a call without `ip` for the address the request came from; no other input is read from a header.
   // NO_INPUT tells a tool that the request carried nothing but control parameters (EMPTY_CALL_DEFAULTS in src/tools.ts).
-  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
 }
 
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
@@ -520,7 +525,8 @@ app.get("/tools/:slug", async (c) => {
   // Tools whose example has a current answer show it (at most 15 minutes old); the rest keep their static example.
   const live = await liveAnswer(tool, c.env, (p) => c.executionCtx.waitUntil(p));
   // Capacity-limited tools (AI media, rendering, transcription, search) are outside the free calls, so no free button.
-  return c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && httpFree(tool.path), live));
+  const capped = trialsEnabled(c.env) && pdfTryOn(c.env, tool.path);
+  return c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && (httpFree(tool.path) || capped), live, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined));
 });
 // IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
