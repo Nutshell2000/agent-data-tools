@@ -21,6 +21,7 @@ import { profileName, readInvoice, XmlError } from "../lib/einvoice/parse";
 import { embeddedInvoiceXml } from "../lib/einvoice/pdf-xml";
 import { COVERAGE, validateInvoice } from "../lib/einvoice/validate";
 import { FORMATS, formatInfo, writeInvoice, type Format } from "../lib/einvoice/write";
+import { toBase64, writeZugferdPdf, ZUGFERD_XML_NAME } from "../lib/einvoice/pdf";
 
 export const EINVOICE_MAX_BYTES = 5 * 1024 * 1024;
 /** An official XRechnung test-suite invoice (KoSIT, Apache 2.0) on GitHub raw, never a file on our own origin (the 1.44.1 lesson). */
@@ -29,6 +30,10 @@ export const SAMPLE_XRECHNUNG = "https://raw.githubusercontent.com/itplr-kosit/x
 const FORMAT_ALIASES: Readonly<Record<string, Format>> = Object.freeze({
   "xrechnung-cii": "xrechnung", cii: "xrechnung", "factur-x": "zugferd", facturx: "zugferd", "zugferd-xml": "zugferd", en16931: "ubl", "ubl-invoice": "ubl", peppol: "ubl", "xrechnung_ubl": "xrechnung-ubl",
 });
+
+/** What /einvoice/create writes: the four XML formats, and the ZUGFeRD / Factur-X PDF with the XML inside. */
+export const CREATE_FORMATS = [...FORMATS, "zugferd-pdf"] as const;
+const PDF_FORMAT_NAMES: ReadonlySet<string> = new Set(["zugferd-pdf", "zugferd_pdf", "facturx-pdf", "factur-x-pdf", "pdf"]);
 
 const isPdf = (b: Uint8Array) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
 
@@ -104,11 +109,12 @@ export const EXAMPLE_INVOICE_JSON = JSON.stringify(EXAMPLE_INVOICE);
 const NOT_OFFICIAL = "Checked against a subset of the EN 16931 and XRechnung 3.0 business rules; this is not the official KoSIT validator and not tax advice.";
 
 export const EINVOICE: Entry[] = [
-  entry("/einvoice/create", "Create XRechnung, ZUGFeRD or Factur-X e-invoice XML from JSON",
-    "Create an EU e-invoice from plain JSON: seller, buyer, lines with quantity, price and VAT rate, bank account. Returns XRechnung 3.0 XML (CII or UBL), the ZUGFeRD / Factur-X XML or EN 16931 UBL, with totals and VAT breakdown computed and checked against the business rules first. Data that breaks a rule is refused uncharged with the rule numbers. Use to issue German B2B e-invoices from a shop, ERP or workflow. XML only, not the PDF.",
+  entry("/einvoice/create", "Create XRechnung, ZUGFeRD or Factur-X e-invoice from JSON",
+    "Create an EU e-invoice from plain JSON: seller, buyer, lines with quantity, price and VAT rate, bank account. Returns XRechnung 3.0 XML (CII or UBL), a ZUGFeRD / Factur-X PDF with the XML inside, its XML alone, or EN 16931 UBL. Totals and VAT breakdown are computed and checked against the business rules first; data that breaks a rule is refused uncharged with the rule numbers. Use to issue German B2B e-invoices from a shop, ERP or workflow.",
     ["xrechnung", "zugferd", "factur-x", "e-invoice", "e-rechnung", "en16931", "ubl", "invoice-generator"], {
       invoice: { type: "string", description: "The invoice as JSON: number, issueDate, dueDate, buyerReference (Leitweg-ID or order reference), seller and buyer {name, vatId, street, postCode, city, country, contactName, phone, email}, lines [{name, quantity, unit, unitPrice, vatRate}], payment {iban, bic, terms}. In a POST body send it as a JSON object. The flat fields /document/extract returns (invoice_number, seller_name, line_items…) are read too", required: true, example: EXAMPLE_INVOICE_JSON },
-      format: { type: "string", description: "xrechnung (default: XRechnung 3.0, CII syntax), xrechnung-ubl, zugferd (the factur-x.xml of a ZUGFeRD / Factur-X invoice, EN 16931 profile) or ubl (EN 16931 UBL)", enum: [...FORMATS] as [string, ...string[]], example: "xrechnung" },
+      format: { type: "string", description: "xrechnung (default: XRechnung 3.0, CII syntax), xrechnung-ubl, zugferd-pdf (a readable A4 invoice as PDF/A-3 with the factur-x.xml embedded, returned as pdfBase64), zugferd (that factur-x.xml alone, EN 16931 profile) or ubl (EN 16931 UBL)", enum: [...CREATE_FORMATS] as [string, ...string[]], example: "xrechnung" },
+      language: { type: "string", description: "Language of the labels on a zugferd-pdf page: de or en (default: de when the seller is in Germany or Austria, otherwise en)", enum: ["de", "en"], example: "de" },
     },
     {
       format: "xrechnung", syntax: "CII", specification: "urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0", filename: "RE-2026-0042.xml",
@@ -124,13 +130,27 @@ export const EINVOICE: Entry[] = [
       try { input = JSON.parse(raw); } catch { throw new HttpError(400, "invoice must be JSON: an object with number, issueDate, seller, buyer and lines"); }
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "invoice must be a JSON object with number, issueDate, seller, buyer and lines");
       const wanted = q("format")?.trim().toLowerCase();
+      if (wanted && PDF_FORMAT_NAMES.has(wanted)) {
+        const language = q("language")?.trim().toLowerCase();
+        if (language && language !== "de" && language !== "en") throw new HttpError(400, "language must be one of: de, en");
+        const hybrid = createEinvoice(input, "zugferd");
+        const pdf = writeZugferdPdf(hybrid.invoice, hybrid.xml, language ? { lang: language as "de" | "en" } : {});
+        const name = (hybrid.invoice.number ?? "invoice").replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 60) || "invoice";
+        return {
+          format: "zugferd-pdf", syntax: "CII", specification: hybrid.info.specification, filename: `${name}.pdf`, contentType: "application/pdf", bytes: pdf.length, embeddedFile: ZUGFERD_XML_NAME,
+          totals: hybrid.invoice.totals, valid: true, warnings: hybrid.validation.warnings,
+          pdfBase64: toBase64(pdf),
+          xml: hybrid.xml,
+          note: `${NOT_OFFICIAL} The PDF is built to PDF/A-3b with the XML embedded as ${ZUGFERD_XML_NAME}; it has not been certified by a PDF/A validator. Allowances, charges and attachments are not written.`,
+        };
+      }
       const format = wanted && Object.hasOwn(FORMAT_ALIASES, wanted) ? FORMAT_ALIASES[wanted] : pick(q, "format", FORMATS, "xrechnung");
       const made = createEinvoice(input, format);
       return {
         format, syntax: made.info.syntax, specification: made.info.specification, filename: made.filename,
         totals: made.invoice.totals, valid: true, warnings: made.validation.warnings,
         xml: made.xml,
-        note: format === "zugferd" ? `${NOT_OFFICIAL} This is the XML part (factur-x.xml) of a ZUGFeRD / Factur-X invoice; the PDF/A-3 that carries it is not produced here.` : NOT_OFFICIAL,
+        note: format === "zugferd" ? `${NOT_OFFICIAL} This is the XML part (factur-x.xml) of a ZUGFeRD / Factur-X invoice; ask for format zugferd-pdf to get the PDF that carries it.` : NOT_OFFICIAL,
       };
     }),
   entry("/einvoice/validate", "Validate an XRechnung, ZUGFeRD, Factur-X or UBL e-invoice",

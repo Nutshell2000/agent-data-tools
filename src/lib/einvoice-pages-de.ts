@@ -109,7 +109,7 @@ export function einvoiceIndexPageDe(origin: string, tryIt: boolean, brand: strin
   const description = "XRechnung- und ZUGFeRD-/Factur-X-XML aus JSON erstellen, E-Rechnungen gegen die Geschäftsregeln von EN 16931 und XRechnung prüfen und E-Rechnungs-XML in JSON umwandeln. Je ein HTTP-Aufruf, ohne eigene Bibliothek.";
   const faq: [string, string][] = [
     ["Welche Formate werden unterstützt?", "XRechnung 3.0 in beiden Syntaxen (UN/CEFACT CII und UBL), die XML von ZUGFeRD 2.x und Factur-X im Profil EN 16931 sowie andere Rechnungen nach EN 16931 in UBL oder CII, etwa Peppol BIS Billing 3.0. Ein ZUGFeRD- oder Factur-X-PDF können Sie unverändert senden: Die eingebettete XML wird gelesen."],
-    ["Wird auch das ZUGFeRD-PDF erzeugt?", "Nein. Erstellt wird der XML-Teil (factur-x.xml). Das PDF/A-3, das die XML trägt, wird hier noch nicht erzeugt."],
+    ["Wird auch das ZUGFeRD-PDF erzeugt?", "Ja, mit dem Format zugferd-pdf: eine lesbare A4-Rechnung mit eingebetteter factur-x.xml, aufgebaut nach PDF/A-3b mit eingebetteten Schriften. Das Layout ist schlicht und fest vorgegeben (kein Logo, kein eigenes Design), und die Datei wurde nicht von einem PDF/A-Validator zertifiziert. Eine XML in ein von Ihnen erzeugtes PDF einzubetten ist nicht möglich."],
     ["Ist das der offizielle Validator?", "Nein. Geprüft wird eine Teilmenge der Geschäftsregeln von EN 16931 und XRechnung 3.0, aufgelistet auf der Regelseite, und jeder Verstoß wird erklärt. Eine Datei, die hier besteht, kann beim offiziellen KoSIT-Validator trotzdem durchfallen, denn dieser prüft zusätzlich das XML-Schema und alle Codelisten."],
     ["Ab wann müssen Unternehmen in Deutschland E-Rechnungen ausstellen?", "Nach dem Rechtsstand vom 14. November 2026: Unternehmen mit mehr als 800.000 Euro Vorjahresumsatz ab dem 1. Januar 2027, alle Unternehmen ab dem 1. Januar 2028, jeweils für Rechnungen zwischen inländischen Unternehmen. Der Empfang von E-Rechnungen ist seit dem 1. Januar 2025 Pflicht. Eine Verschiebung wurde vorgeschlagen; klären Sie den aktuellen Stand mit Ihrer Steuerberatung."],
     ["Werden meine Rechnungen gespeichert?", "Nein. Eine Datei wird nur für die eine Anfrage im Arbeitsspeicher gelesen und weder gespeichert noch protokolliert."],
@@ -120,7 +120,7 @@ export function einvoiceIndexPageDe(origin: string, tryIt: boolean, brand: strin
 <h1>E-Rechnungs-API: erstellen, prüfen, umwandeln</h1>
 <p class="tag">XRechnung, ZUGFeRD und Factur-X mit je einem HTTP-Aufruf, für Shops, ERP-Systeme, Automatisierungen und KI-Agenten, die keine Java- oder Node-Bibliothek betreiben können.</p>
 <div class="wrap"><table>
-<tr><th><a href="/tools/${esc(toolSlug(create.path))}">Erstellen</a></th><td>JSON hinein (Verkäufer, Käufer, Positionen, Steuersatz, IBAN), XRechnung- oder ZUGFeRD-/Factur-X-XML heraus. Positionssummen, Umsatzsteueraufschlüsselung und Gesamtbeträge werden berechnet und vorab geprüft.</td></tr>
+<tr><th><a href="/tools/${esc(toolSlug(create.path))}">Erstellen</a></th><td>JSON hinein (Verkäufer, Käufer, Positionen, Steuersatz, IBAN), XRechnung-XML oder ein ZUGFeRD-/Factur-X-PDF heraus. Positionssummen, Umsatzsteueraufschlüsselung und Gesamtbeträge werden berechnet und vorab geprüft.</td></tr>
 <tr><th><a href="/tools/${esc(toolSlug(validate.path))}">Prüfen</a></th><td>Jede verletzte Geschäftsregel mit ihrer Nummer (BR-DE-15, BR-CO-15), den Zahlen aus Ihrer Datei und der Lösung. <a href="${EINVOICE_RULES_DE}">${RULES.length} Regeln</a>.</td></tr>
 <tr><th><a href="/tools/${esc(toolSlug(toJson.path))}">In JSON umwandeln</a></th><td>Eine eingehende E-Rechnung (XML oder das PDF mit eingebetteter XML) als JSON: Parteien, Positionen, Umsatzsteuer, Summen, Bankverbindung. Exakte Werte, ohne KI.</td></tr>
 </table></div>
@@ -129,7 +129,7 @@ ${tryIt ? validatorForm("E-Rechnung jetzt prüfen") : ""}
 <pre><code>curl -X POST "${esc(origin)}/einvoice/create" \\
   -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/json" \\
   -d '${esc(JSON.stringify({ format: "xrechnung", invoice: JSON.parse(EXAMPLE_INVOICE_JSON) }, null, 1))}'</code></pre>
-<p><code>format</code>: <code>xrechnung</code> (CII), <code>xrechnung-ubl</code>, <code>zugferd</code> (die factur-x.xml) oder <code>ubl</code>. Daten, die gegen eine Regel verstoßen, werden mit den Regelnummern abgelehnt und nicht berechnet. <code>buyerReference</code> ist die Käuferreferenz, bei öffentlichen Auftraggebern die Leitweg-ID.</p>
+<p><code>format</code>: <code>xrechnung</code> (CII), <code>xrechnung-ubl</code>, <code>zugferd-pdf</code> (eine lesbare PDF/A-3-Rechnung mit eingebetteter XML, zurückgegeben als <code>pdfBase64</code>), <code>zugferd</code> (nur die factur-x.xml) oder <code>ubl</code>. Daten, die gegen eine Regel verstoßen, werden mit den Regelnummern abgelehnt und nicht berechnet. <code>buyerReference</code> ist die Käuferreferenz, bei öffentlichen Auftraggebern die Leitweg-ID.</p>
 <h2>Eine Datei prüfen oder umwandeln</h2>
 <pre><code>curl -H "Authorization: Bearer $API_KEY" -H "Content-Type: application/xml" \\
   --data-binary @rechnung.xml "${esc(origin)}/einvoice/validate"
@@ -141,7 +141,7 @@ curl -H "Authorization: Bearer $API_KEY" \\
 <h2>Preise</h2>
 <p>Jeder Aufruf zählt als ein gewöhnlicher Aufruf Ihres Schlüssels. Schlüssel und Monatspläne: <a href="/credits">Preise</a> (englisch). Ein fehlgeschlagener oder abgelehnter Aufruf wird nie berechnet.</p>
 <h2>Was die API nicht tut</h2>
-<ul><li>Kein ZUGFeRD-/Factur-X-PDF: nur der XML-Teil.</li><li>Kein Versand: keine Übermittlung an Peppol, an eine französische Plattform oder an ein Rechnungseingangsportal der Verwaltung.</li><li>Nicht der offizielle KoSIT-Validator und keine Steuerberatung.</li><li>Nachlässe und Zuschläge, Anhänge, Karten- und Lastschriftzahlungen werden nicht geschrieben, und ihre Regeln werden nicht geprüft.</li></ul>
+<ul><li>Das ZUGFeRD-/Factur-X-PDF hat ein schlichtes, festes Layout: kein Logo, kein eigenes Design, und keine Einbettung der XML in Ihr eigenes PDF.</li><li>Kein Versand: keine Übermittlung an Peppol, an eine französische Plattform oder an ein Rechnungseingangsportal der Verwaltung.</li><li>Nicht der offizielle KoSIT-Validator und keine Steuerberatung.</li><li>Nachlässe und Zuschläge, Anhänge, Karten- und Lastschriftzahlungen werden nicht geschrieben, und ihre Regeln werden nicht geprüft.</li></ul>
 <h2>Fragen</h2>
 ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 ${foot()}`;
