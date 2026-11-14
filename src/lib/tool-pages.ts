@@ -18,7 +18,7 @@ export const toolBySlug = (slug: string) => BY_SLUG.get(slug);
 /** Inline JSON for a <script type="application/ld+json"> block: "<" escaped so the data cannot close the tag. */
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 
-export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }): string {
+export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }, cappedTry?: string): string {
   const slug = toolSlug(e.path);
   const url = `${origin}/tools/${slug}`;
   const keyOffer = keyOfferNumbers(e.path, e.price);
@@ -32,7 +32,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
   const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
-  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
+  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${cappedTry ? `A browser can try it free on this page (at most 2 pages a read, ${FREE_HTTP_CALLS_PER_CALLER} tries); through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
   const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
   const related = ENDPOINTS.filter((o) => o.path !== e.path && categoryOf(o.path) === category).slice(0, 12);
@@ -81,7 +81,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${GUIDE_FOR_TOOL.has(e.path) ? `<p>Guide: <a href="/guides/${esc(GUIDE_FOR_TOOL.get(e.path)!.slug)}">${esc(GUIDE_FOR_TOOL.get(e.path)!.phrase)}</a></p>` : ""}
 <div class="actions">
-${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)</a>` : ""}
+${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">${cappedTry ? esc(cappedTry) : `Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)`}</a>` : ""}
 <a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
 <a class="btn" href="${esc(`${e.path}?${query}&sample=1`)}">Example result (JSON)</a>
 </div>
@@ -91,7 +91,7 @@ ${params.length ? `<h2>Inputs</h2><div class="wrap"><table><tr><th>Name</th><th>
 <h2>Request</h2>
 <p>Over HTTP, with a card key from <a href="/credits">/credits</a>:</p>
 <pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"</code></pre>
-${freeCalls ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
+${freeCalls && !cappedTry ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} free calls, no key:</p>\n<pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : ""}
 <p>Without a key, the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so an agent with a wallet pays per call in USDC (Base, Polygon, Arbitrum or Solana over x402; Base or Tempo over MPP) and retries.</p>
 <h2>${live ? "Live result" : "Example result"}</h2>
 ${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}

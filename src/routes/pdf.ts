@@ -111,6 +111,14 @@ export function pdfUrl(raw: string | undefined) {
   return m ? `https://arxiv.org/pdf/${m[1]}` : raw;
 }
 
+/**
+ * Reserved input the HTTP route sets for a free browser try (never read from the query): the try reads at most
+ * PDF_TRY_PAGES pages and PDF_TRY_CHARS characters, and says so. Off unless the owner sets PDF_TRY=on (lib/pdf-try.ts).
+ */
+export const PDF_TRY_INPUT = "@pdf-try";
+export const PDF_TRY_PAGES = 2;
+export const PDF_TRY_CHARS = 6000;
+
 export const PDF: Entry[] = [
   entry("/pdf/text", "PDF to text, PDF text extraction",
     "Extract the text of a public PDF (up to 10 MB) from its URL, page by page, with title, author and page count. Choose the first page, how many pages (up to 200) and maxChars. arXiv abstract links work. If a site blocks our fetch, the Internet Archive's dated copy is read and the answer says so. Scanned, encrypted and non-PDF files fail uncharged. Use to read papers, invoices, reports and manuals into an agent.",
@@ -128,14 +136,18 @@ export const PDF: Entry[] = [
     },
     async (_env, q) => {
       const firstPage = num(q, "firstPage", { min: 1, max: 100_000, fallback: 1, integer: true });
-      const want = num(q, "pages", { min: 1, max: MAX_PAGES, fallback: 20, integer: true });
-      const maxChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
+      const freeTry = q(PDF_TRY_INPUT) === "1";
+      const asked = num(q, "pages", { min: 1, max: MAX_PAGES, fallback: 20, integer: true });
+      const askedChars = num(q, "maxChars", { min: 1000, max: 200_000, fallback: 50_000, integer: true });
+      const want = freeTry ? Math.min(asked, PDF_TRY_PAGES) : asked;
+      const maxChars = freeTry ? Math.min(askedChars, PDF_TRY_CHARS) : askedChars;
       // Any content type: servers label PDFs binary/octet-stream, application/download or nothing at all, and readPdf
       // checks the %PDF signature itself, so the type check only refused real PDFs.
       const file = await loadPdf(q("url"));
       return {
         url: file.url,
         ...(await readPdf(file.bytes, firstPage, want, maxChars)),
+        ...(freeTry ? { freeTry: `this free try reads at most ${PDF_TRY_PAGES} pages and ${PDF_TRY_CHARS} characters; a paid call reads up to ${MAX_PAGES} pages` } : {}),
         ...(file.source === "origin" ? {} : { source: file.source, snapshot: file.snapshot, note: `the site refused our fetch, so this is the Internet Archive's copy${file.snapshot ? ` from ${file.snapshot}` : ""}; it may differ from the live file` }),
       };
       // $0.005 for a wallet paying per call; a prepaid key pays less (KEY_PRICES in lib/credits.ts, the owner, 10 Nov 2026).
