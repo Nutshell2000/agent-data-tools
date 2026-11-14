@@ -71,6 +71,7 @@ import { SE_COMPANY } from "./routes/se-company";
 import { NORDIC_COMPANY } from "./routes/nordic-company";
 import { FR_COMPANY } from "./routes/fr-company";
 import { COMPANY_SEARCH } from "./routes/company-search";
+import { LAW_SEARCH } from "./routes/law-search";
 import { GITHUB } from "./routes/github";
 import { CVE } from "./routes/cve";
 import { ARXIV } from "./routes/arxiv";
@@ -94,6 +95,8 @@ export const LOCAL_TEST_PRICE = PRICE;
 // EU company search over the official registers (1.185.0, routes/company-search.ts). Added here, not in the CATALOG line,
 // so releases prepared at the same time that add to that one line do not collide with it.
 CATALOG.push(...COMPANY_SEARCH);
+// EU law search over our own index (1.185.0, routes/law-search.ts).
+CATALOG.push(...LAW_SEARCH);
 const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENERATORS, TOOLBOXES, TOOLBOXES2, FUN];
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
