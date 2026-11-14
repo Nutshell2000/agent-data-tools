@@ -1657,3 +1657,15 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `llms-install.md` is what the Cline marketplace hands its agent; keep it in step with the MCP paths and the client's environment variables. `docs/assets/logo-400.png` is the icon it asks for.
 - When the npm client changes: publish first (owner), then `packages[0].version` in server.json, then copy on the homepage.
 
+
+
+## Three more PDF guides (1.161.0, 14 Nov 2026)
+
+- TASK_GUIDES gained three PDF pages marked secondary: true; GUIDE_FOR_TOOL skips secondary guides so each tool page keeps its guide link (without the flag the last guide that names a tool wins).
+
+
+## The capped PDF try (1.161.0, 14 Nov 2026): ON since the owner's "Yes, switch it on"
+
+- `PDF_TRY` unset = PDF reading is paid only, as the owner decided on 10 Nov 2026. `PDF_TRY=on` (set in wrangler.jsonc production vars on her word of 14 Nov 2026) lets a browser run /pdf/text and /pdf/extract free inside its 3 HTTP free calls, 2 pages and 6,000 characters a read, 150 reads a day in total (`PDF_TRY_DAILY_CAP`). Code: src/lib/pdf-try.ts (`pdfTryFor`, `takePdfTry`, `pdfTryRequests`), the reserved input `PDF_TRY_INPUT` in src/routes/pdf.ts, two lines in the paywall wrapper of src/index.ts. Do not widen it to non-browser callers or raise the page limit without her word: the 10 Nov free rider used 400-1,300 full reads a day.
+
+
