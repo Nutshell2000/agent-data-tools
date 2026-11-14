@@ -1624,3 +1624,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `describeImage()` (src/routes/ai.ts): bytes that are a web page instead of an image are read through `pagePreviewImage()` (og:image, then twitter:image, via `parseMeta` from feeds.ts), one extra guarded fetch. The answer adds `imageUrl` and `note` only in that case. Why: a returning buyer's paid calls on 14 Nov sent page URLs and got 415. Read `/status` `topFailures` of a tool a real buyer uses before anything else: a refused paid call is a lost sale that costs nothing to see.
 - Same day's audit (business\tool-sales-audit-2026-11-14.md): new wallets that buy ~50 `/weather/forecast` calls in one burst come from vAPI Network; the finder buyer's first run after `/hyperliquid/indicators` went to $0.05 did not pick us (one run, rotation not excluded; review date stays 26 Nov).
 
+
+
+## Model pricing by provider (1.156.0, 14 Nov 2026)
+
+- Round 9 doors in `src/routes/entry-paths.ts`: `/gpt/pricing` and `/claude/pricing` run `/llm/prices` with `providerInput("openai" | "anthropic")`. Evidence: Mercator's gateway paid modelprices.xyz 84 times in seven days ($0.01 a call) for per-provider pricing paths; `business/agentic/base-bots/mercator-jobs.mjs "gpt pricing" "claude api pricing"` showed us absent. To find the next such job: `buyer-today.mjs <Mercator wallet> 2` lists the sellers it paid, then look each one up in the Bazaar snapshot by `pay_to` and ask `mercator-jobs.mjs` for the job its busiest path names. `/llm/prices` now has its two doors.
+

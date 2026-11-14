@@ -1,5 +1,5 @@
 {
-  "version": "1.155.0",
+  "version": "1.156.0",
   "tools": [
     {
       "name": "extract",
@@ -20286,6 +20286,136 @@
         }
       },
       "price": "$0.002"
+    },
+    {
+      "name": "gpt_pricing",
+      "description": "GPT pricing for every OpenAI model: USD per million input and output tokens, context length, max output and modalities for GPT, o-series and open-weight models, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=gpt-5), price cap, context or image input. Source: OpenRouter's public model list. Use to pick an OpenAI model for a job or to estimate what a prompt will cost before sending it. Example: q=gpt. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Words in the model id or name, e.g. gpt, claude, llama 70b"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider to list (default openai); any other provider name works too, e.g. google, meta-llama, mistralai"
+          },
+          "maxInputPrice": {
+            "type": "number",
+            "description": "Only models at or under this USD per million input tokens"
+          },
+          "minContext": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Only models with at least this context length in tokens"
+          },
+          "vision": {
+            "description": "true: only models that take image input",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Input tokens of your call, to estimate its cost"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Output tokens of your call, to estimate its cost"
+          },
+          "sort": {
+            "type": "string",
+            "description": "input (default), output, blended (3:1 input:output) or context"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of models (1-50, default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "claude_pricing",
+      "description": "Claude pricing for every Anthropic model: USD per million input and output tokens, context length, max output and modalities for Claude Haiku, Sonnet, Opus and the newer families, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=sonnet), price cap, context or image input. Source: OpenRouter's public model list. Use to pick a Claude model for a job or to estimate what a prompt will cost before sending it. Example: q=sonnet. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Words in the model id or name, e.g. gpt, claude, llama 70b"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider to list (default anthropic); any other provider name works too, e.g. google, meta-llama, mistralai"
+          },
+          "maxInputPrice": {
+            "type": "number",
+            "description": "Only models at or under this USD per million input tokens"
+          },
+          "minContext": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Only models with at least this context length in tokens"
+          },
+          "vision": {
+            "description": "true: only models that take image input",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Input tokens of your call, to estimate its cost"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Output tokens of your call, to estimate its cost"
+          },
+          "sort": {
+            "type": "string",
+            "description": "input (default), output, blended (3:1 input:output) or context"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of models (1-50, default 20)"
+          }
+        }
+      },
+      "price": "$0.01"
     },
     {
       "name": "coin",
