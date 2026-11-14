@@ -21,7 +21,7 @@ export class AgentDataTools implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			'PDF text, web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools, paid per call with one prepaid key',
+			'Documents to text (Word, Excel, PowerPoint, PDF), web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools, paid per call with one prepaid key',
 		defaults: {
 			name: 'Agent Data Tools',
 		},
@@ -46,6 +46,8 @@ export class AgentDataTools implements INodeType {
 							'call',
 							'checkPayee',
 							'checkSanctions',
+							'convertToText',
+							'extractFields',
 							'extractText',
 							'generate',
 							'get',
@@ -87,7 +89,7 @@ export class AgentDataTools implements INodeType {
 					{
 						name: 'Document',
 						value: 'document',
-						description: 'Text from PDF files',
+						description: 'Word, Excel, PowerPoint and PDF files as text, Markdown or named fields',
 					},
 					{
 						name: 'GitHub Repository',

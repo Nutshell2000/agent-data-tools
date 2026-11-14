@@ -9,6 +9,8 @@
 export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze({
   "/pdf/text": 10 * 1024 * 1024,
   "/pdf/extract": 10 * 1024 * 1024,
+  "/document/text": 10 * 1024 * 1024,
+  "/document/extract": 10 * 1024 * 1024,
 });
 /** The query name the reference travels under. */
 export const FILE_INPUT = "file";
@@ -59,7 +61,7 @@ export type SentFile =
   | { kind: "file"; bytes: Uint8Array; fields: Record<string, string> };
 
 /**
- * The file in a POST, however the caller sent it: the raw bytes as the body (application/pdf, application/octet-stream
+ * The file in a POST, however the caller sent it: the raw bytes as the body (application/pdf, an office type, application/octet-stream
  * or no type), a multipart form with a `file` part (the other parts are returned as fields), or JSON with `file`,
  * `data` or `content` holding base64 or a data: URL. `kind: "none"` means the body holds no file and the request is
  * handled as before. Reads a clone, so the caller can still read the request as JSON.
@@ -84,13 +86,13 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
   } else if (type.includes("json")) {
     const body = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object" || Array.isArray(body)) return { kind: "none", fields };
-    for (const name of [FILE_INPUT, "data", "content", "base64", "pdf"]) {
+    for (const name of [FILE_INPUT, "data", "content", "base64", "pdf", "document"]) {
       const value = body[name];
       if (typeof value !== "string" || value.length < 16) continue;
       bytes = fromBase64(value);
       if (bytes) break;
     }
-  } else if (type === "" || type.startsWith("application/pdf") || type.startsWith("application/octet-stream") || type.startsWith("binary/")) {
+  } else if (type === "" || /^(application\/(pdf|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/)/.test(type)) {
     const buffer = await request.clone().arrayBuffer().catch(() => null);
     if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
   }
