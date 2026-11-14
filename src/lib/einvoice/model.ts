@@ -210,7 +210,11 @@ const EXEMPTION_TEXT: Readonly<Record<string, string>> = Object.freeze({
  */
 export function fromInput(input: unknown): Invoice {
   const r = obj(input);
-  const defaultRate = numberOf(first(r, "vatRate", "vat_rate", "taxRate"));
+  // The VAT rate for lines that state none: the caller's own, or the one the invoice's net and VAT amounts imply
+  // (an invoice reader returns amounts, not a rate: 124.61 on 593.36 is 21%). Rounded to a half percent.
+  const statedNet = numberOf(first(r, "net_amount", "netAmount")), statedVat = numberOf(first(r, "vat_amount", "vatAmount"));
+  const impliedRate = statedNet && statedVat !== undefined && statedNet > 0 && statedVat >= 0 ? Math.round((statedVat / statedNet) * 200) / 2 : undefined;
+  const defaultRate = numberOf(first(r, "vatRate", "vat_rate", "taxRate")) ?? impliedRate;
   const defaultCategory = first(r, "vatCategory", "vat_category");
   const rawLines = first(r, "lines", "items", "line_items", "lineItems");
   const lines: Line[] = (Array.isArray(rawLines) ? rawLines : []).slice(0, 500).map((item, i) => {
