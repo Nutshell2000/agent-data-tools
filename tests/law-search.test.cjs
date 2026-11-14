@@ -64,13 +64,24 @@ test("hybrid search: filters reach both indexes, candidates fuse, the reranker o
   const out = L.lawAnswer("when is processing lawful", act, undefined, 2, found);
   assert.equal(out.results[0].citation, "GDPR, Article 6");
   assert.equal(out.results[0].heading, "Lawfulness of processing");
-  assert.equal(out.results[0].score, 0.9);
+  // Reranker 0.9, plus 0.06 for an operative article, plus half the heading bonus ("processing" of "processing lawful").
+  assert.equal(out.results[0].score, 0.98);
+  assert.ok(out.results.every((r, i, all) => i === 0 || all[i - 1].score >= r.score));
   assert.equal(out.results.length, 2);
   assert.match(out.attribution, /eur-lex\.europa\.eu.*Not legal advice/);
   // Without the reranker the fused order stands, and a failing keyword index does not fail the search.
   const plain = await L.lawSearch("lawful", { count: 3 }, { ...deps, keywords: async () => { throw new Error("fts down"); }, rerank: async () => null });
   assert.deepEqual(plain.candidates.map((r) => r.id), ["gdpr:r40:1", "gdpr:a6:1"]);
   assert.equal(plain.scores, null);
+});
+
+test("the acts a question is about come from names and defining terms, longest match first", () => {
+  assert.deepEqual(L.intendedActs("maximum fines for infringing data protection rules").map((a) => a.short), ["GDPR"]);
+  assert.equal(L.intendedActs("what an invoice must contain for VAT")[0].short, "VAT Directive");
+  assert.equal(L.intendedActs("who is a gatekeeper")[0].short, "DMA");
+  assert.deepEqual(L.intendedActs("the weather in Paris"), []);
+  // "ai" alone is too short to count; "ai system" counts.
+  assert.equal(L.intendedActs("is this ai system high-risk")[0].short, "AI Act");
 });
 
 test("without the index bindings the tool answers 503, uncharged", () => {
