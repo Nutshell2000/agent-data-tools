@@ -14,6 +14,8 @@ export interface Env {
   PDF_TRY_DAILY_CAP?: string;
   /** "v1" puts the x402 v1 terms back in every tool's 402 body (the behaviour before 1.117.0); unset means the body mirrors the v2 header. */
   QUOTE_BODY?: string;
+  /** "off" sends every unpaid quote through the gateway again (lib/quote-cache.ts); unset means repeat quotes come from the edge cache. */
+  QUOTE_CACHE?: string;
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
