@@ -137,3 +137,12 @@ test('Create sends the invoice as a JSON object in the body and attaches the XML
 	const none = await einvoice.attachXml.call({ ...ctx, getNodeParameter: () => '' }, [{ json: { xml: '<a/>' } }], {});
 	assert.equal(none[0].binary, undefined, 'an empty field name means text only');
 });
+test('a created PDF goes to the binary field and its base64 leaves the JSON', async () => {
+	const prepared = [];
+	const ctx = context({ outputBinaryPropertyName: 'data' }, {});
+	ctx.helpers.prepareBinaryData = async (buffer, fileName, mimeType) => { prepared.push({ head: buffer.subarray(0, 5).toString('latin1'), fileName, mimeType }); return { data: 'x', fileName, mimeType }; };
+	const items = await einvoice.attachXml.call(ctx, [{ json: { pdfBase64: Buffer.from('%PDF-1.7 test').toString('base64'), filename: 'RE-1.pdf', xml: '<a/>' } }]);
+	assert.deepEqual(prepared, [{ head: '%PDF-', fileName: 'RE-1.pdf', mimeType: 'application/pdf' }]);
+	assert.equal(items[0].json.pdfBase64, undefined);
+	assert.equal(items[0].json.xml, '<a/>');
+});

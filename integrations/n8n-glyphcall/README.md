@@ -10,7 +10,7 @@ An [n8n](https://n8n.io) community node that turns files into data your workflow
 
 And it works with EU e-invoices (XRechnung, ZUGFeRD, Factur-X and other EN 16931 invoices):
 
-- **E-Invoice > Create**: invoice data as JSON in, XRechnung 3.0 (CII or UBL) or the ZUGFeRD / Factur-X XML out, also as a file in a binary field. Line totals, the VAT breakdown and the totals are computed and checked first; data that breaks a rule is refused with the rule numbers and not charged.
+- **E-Invoice > Create**: invoice data as JSON in, XRechnung 3.0 XML (CII or UBL) or a ZUGFeRD / Factur-X PDF with the XML inside out, as a file in a binary field. Line totals, the VAT breakdown and the totals are computed and checked first; data that breaks a rule is refused with the rule numbers and not charged.
 - **E-Invoice > Validate**: every broken business rule with its number (`BR-DE-15`, `BR-CO-15`), the field, the figures from your file and the fix.
 - **E-Invoice > Convert to JSON**: an incoming e-invoice as JSON, from the XML or from the PDF with the XML inside. Exact values, no AI.
 
@@ -68,7 +68,7 @@ A ready workflow is in [templates/invoice-attachment-to-sheet.json](templates/in
 - Excel cells hold the values the file stores: a formula's last result, and dates as Excel's day numbers.
 - **Extract Fields** is read by an AI model from the first 24,000 characters of the file. Check values that matter, such as amounts, before you act on them.
 - The node can be attached to an n8n AI Agent as a tool.
-- E-invoices: files up to 5 MB. **Create** writes the XML only, not the ZUGFeRD PDF, and does not send the invoice anywhere. Allowances and charges, attachments, card and direct-debit payments are not written. **Validate** runs a subset of the EN 16931 and XRechnung 3.0 business rules; it is not the official KoSIT validator and not tax advice.
+- E-invoices: files up to 5 MB. **Create** does not send the invoice anywhere; its ZUGFeRD PDF has one plain layout (no logo) and is built to PDF/A-3b but not certified by a PDF/A validator. Allowances and charges, attachments, card and direct-debit payments are not written. **Validate** runs a subset of the EN 16931 and XRechnung 3.0 business rules; it is not the official KoSIT validator and not tax advice.
 
 ## Compatibility
 

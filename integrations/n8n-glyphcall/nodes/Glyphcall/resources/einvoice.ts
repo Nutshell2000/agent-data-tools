@@ -110,11 +110,29 @@ export async function attachXml(
 	if (!field) return items;
 	for (const item of items) {
 		const xml = item.json?.xml;
+		const pdf = item.json?.pdfBase64;
+		const name = typeof item.json?.filename === 'string' ? item.json.filename : undefined;
+		if (typeof pdf === 'string' && pdf.length > 0) {
+			// The ZUGFeRD / Factur-X PDF: the file goes to the binary field and its base64 leaves the JSON.
+			item.binary = {
+				...item.binary,
+				[field]: await this.helpers.prepareBinaryData(
+					Buffer.from(pdf, 'base64'),
+					name ?? 'invoice.pdf',
+					'application/pdf',
+				),
+			};
+			delete item.json.pdfBase64;
+			continue;
+		}
 		if (typeof xml !== 'string' || !xml.startsWith('<')) continue;
-		const name = typeof item.json.filename === 'string' ? item.json.filename : 'invoice.xml';
 		item.binary = {
 			...item.binary,
-			[field]: await this.helpers.prepareBinaryData(Buffer.from(xml, 'utf8'), name, 'application/xml'),
+			[field]: await this.helpers.prepareBinaryData(
+				Buffer.from(xml, 'utf8'),
+				name ?? 'invoice.xml',
+				'application/xml',
+			),
 		};
 	}
 	return items;
@@ -144,7 +162,7 @@ export const einvoiceDescription: INodeProperties[] = [
 				value: 'create',
 				action: 'Create an electronic invoice',
 				description:
-					'XRechnung or ZUGFeRD / Factur-X XML from invoice data as JSON. Line totals, the VAT breakdown and the totals are computed and checked against the business rules first; data that breaks a rule is refused with the rule numbers.',
+					'XRechnung XML or a ZUGFeRD / Factur-X PDF from invoice data as JSON. Line totals, the VAT breakdown and the totals are computed and checked against the business rules first; data that breaks a rule is refused with the rule numbers.',
 				routing: {
 					request: { method: 'GET', url: '/einvoice/create' },
 					send: { preSend: [sendInvoiceData] },
@@ -280,21 +298,26 @@ export const einvoiceDescription: INodeProperties[] = [
 				description: 'XRechnung 3.0 in UBL syntax',
 			},
 			{
+				name: 'ZUGFeRD / Factur-X PDF',
+				value: 'zugferd-pdf',
+				description: 'A readable A4 invoice as PDF/A-3 with the XML embedded, in one plain layout',
+			},
+			{
 				name: 'ZUGFeRD / Factur-X XML',
 				value: 'zugferd',
-				description: 'The factur-x.xml of a ZUGFeRD or Factur-X invoice (EN 16931 profile); the PDF is not produced',
+				description: 'The factur-x.xml of a ZUGFeRD or Factur-X invoice alone (EN 16931 profile)',
 			},
 		],
 		routing: query('format'),
 	},
 	{
-		displayName: 'Put XML in Binary Field',
+		displayName: 'Put File in Binary Field',
 		name: 'outputBinaryPropertyName',
 		type: 'string',
 		default: 'data',
 		placeholder: 'e.g. data',
 		description:
-			'Name of the binary field that also receives the XML as a file, ready to attach to an e-mail or to save. Leave empty to return the XML as text only.',
+			'Name of the binary field that receives the created file (the XML, or the PDF for the PDF format), ready to attach to an e-mail or to save. Leave empty to return text only.',
 		displayOptions: { show: { resource: ['einvoice'], operation: ['create'] } },
 	},
 	optionsFor('einvoice', 'create', []),
