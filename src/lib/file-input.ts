@@ -11,6 +11,9 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/pdf/extract": 10 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
+  // E-invoices (XML, or a ZUGFeRD / Factur-X PDF that embeds one).
+  "/einvoice/validate": 5 * 1024 * 1024,
+  "/einvoice/to-json": 5 * 1024 * 1024,
 });
 /** The query name the reference travels under. */
 export const FILE_INPUT = "file";
@@ -92,7 +95,7 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
       bytes = fromBase64(value);
       if (bytes) break;
     }
-  } else if (type === "" || /^(application\/(pdf|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/)/.test(type)) {
+  } else if (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.)|binary\/|text\/xml)/.test(type)) {
     const buffer = await request.clone().arrayBuffer().catch(() => null);
     if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
   }

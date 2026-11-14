@@ -9,6 +9,10 @@
 export const LONG_INPUT_FIELDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   "/audit/contract": ["source"],
   "/contract/audit": ["source"],
+  // An invoice as JSON, or a whole e-invoice XML (14 Nov 2026).
+  "/einvoice/create": ["invoice"],
+  "/einvoice/validate": ["xml"],
+  "/einvoice/to-json": ["xml"],
 });
 /** Shorter values stay in the URL as before. */
 export const LONG_INPUT_MIN = 1_500;
