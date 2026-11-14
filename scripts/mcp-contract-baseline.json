@@ -1,5 +1,5 @@
 {
-  "version": "1.195.0",
+  "version": "1.196.0",
   "tools": [
     {
       "name": "extract",
@@ -12163,7 +12163,7 @@
     },
     {
       "name": "sanctions_check",
-      "description": "Check a crypto wallet address against the OFAC SDN sanctions list before you pay it or accept funds: EVM (Ethereum, Base, Arbitrum, Polygon), BTC, USDT, TRX and more, or a person or company name with aliases. Returns a verdict (block on a listed address, review on a name match, pass), each match with SDN ID, programs and strength, and the list date. A screening aid, not legal advice. Use before paying; with wallet risk: check_counterparty. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96. Price $0.009/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a crypto wallet against the OFAC SDN list before you pay it (EVM, BTC, TRX), or screen a person or company name, with aliases, against OFAC, the EU consolidated list, the UN Security Council list and the UK Sanctions List in one call. Returns a verdict (block, review, pass), each match with list, list ID, programme and strength, and every list's date. Screening aid, not legal advice. Use before paying; with wallet risk: check_counterparty. Example: address=0x098B716B8Aaf21512996dC57EB0615e2383E2f96. Price $0.009/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12176,11 +12176,15 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "Crypto address to check (give address, name or both)"
+            "description": "Crypto address to check against OFAC (give address, name or both)"
           },
           "name": {
             "type": "string",
             "description": "Person or company name; matches when every word appears in a listed name or alias"
+          },
+          "lists": {
+            "type": "string",
+            "description": "Lists for a name: all (default), or any of ofac, eu, un, uk, comma-separated. Addresses are checked against OFAC, the only list that publishes crypto addresses"
           }
         }
       },
@@ -18440,11 +18444,15 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "Crypto address to check (give address, name or both)"
+            "description": "Crypto address to check against OFAC (give address, name or both)"
           },
           "name": {
             "type": "string",
             "description": "Person or company name; matches when every word appears in a listed name or alias"
+          },
+          "lists": {
+            "type": "string",
+            "description": "Lists for a name: all (default), or any of ofac, eu, un, uk, comma-separated. Addresses are checked against OFAC, the only list that publishes crypto addresses"
           }
         }
       },
@@ -19467,11 +19475,15 @@
         "properties": {
           "address": {
             "type": "string",
-            "description": "Crypto address to check (give address, name or both)"
+            "description": "Crypto address to check against OFAC (give address, name or both)"
           },
           "name": {
             "type": "string",
             "description": "Person or company name; matches when every word appears in a listed name or alias"
+          },
+          "lists": {
+            "type": "string",
+            "description": "Lists for a name: all (default), or any of ofac, eu, un, uk, comma-separated. Addresses are checked against OFAC, the only list that publishes crypto addresses"
           }
         }
       },
