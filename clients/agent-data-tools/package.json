@@ -6,7 +6,8 @@
   "type": "module",
   "main": "./index.mjs",
   "exports": {
-    ".": "./index.mjs"
+    ".": "./index.mjs",
+    "./ai-sdk": "./ai-sdk.mjs"
   },
   "bin": {
     "agent-data-tools": "cli.mjs"
@@ -16,11 +17,18 @@
     "cli.mjs",
     "mcp-stdio.mjs",
     "wallet-pay.mjs",
+    "ai-sdk.mjs",
     "examples",
     "README.md"
   ],
   "engines": {
     "node": ">=20"
+  },
+  "peerDependencies": {
+    "ai": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "ai": { "optional": true }
   },
   "optionalDependencies": {
     "@x402/core": "^2.28.0",
@@ -54,6 +62,8 @@
     "ofac",
     "sanctions-screening",
     "ip-geolocation",
-    "llm-tools"
+    "llm-tools",
+    "ai-sdk",
+    "vercel-ai"
   ]
 }

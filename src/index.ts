@@ -1,6 +1,7 @@
 import { sitemapGuideHtml, sitemapGuideMarkdown } from "./guides/sitemap";
 import { sendBatchNow } from "./lib/metrics-batch";
 import { localMcpHtml, localMcpMarkdown } from "./guides/local-mcp";
+import { aiSdkHtml, aiSdkMarkdown } from "./guides/ai-sdk";
 import { readerSkillMarkdown, readerSkillIndex, READER_SKILL_NAME, READER_SKILL_DESCRIPTION } from "./guides/reader-skill";
 import { agentSkillsIndex, catalogSkillMarkdown, CATALOG_SKILL_NAME } from "./guides/catalog-skill";
 import { loadReaderDemo } from "./guides/reader-buying";
@@ -492,6 +493,8 @@ app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.r
 app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
 app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), READER_VERSION)));
 app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), READER_VERSION)));
+app.get("/guides/ai-sdk", c => c.html(aiSdkHtml(origin(c.req.url))));
+app.get("/guides/ai-sdk.md", c => c.text(aiSdkMarkdown(origin(c.req.url))));
 app.get("/guides/sitemap", c => c.html(sitemapGuideHtml(origin(c.req.url))));
 app.get("/guides/sitemap.md", c => c.text(sitemapGuideMarkdown(origin(c.req.url))));
 app.get("/guides/dependency-audit", (c) => c.html(auditGuideHtml(origin(c.req.url), c.env.PAY_TO)));
