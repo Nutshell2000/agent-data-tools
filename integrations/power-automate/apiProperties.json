@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "connectionParameters": {
+      "api_key": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "API key",
+          "description": "Your Agent Data Tools key (starts with adt_). A free key makes 100 calls a month.",
+          "tooltip": "Provide your API key",
+          "constraints": { "tabIndex": 2, "clearText": false, "required": "true" }
+        }
+      }
+    },
+    "iconBrandColor": "#1B1B1B",
+    "capabilities": [],
+    "publisher": "SpellzCode",
+    "stackOwner": "SpellzCode"
+  }
+}

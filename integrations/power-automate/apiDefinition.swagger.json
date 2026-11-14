@@ -1,0 +1,211 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Agent Data Tools Documents",
+    "description": "Turn Word, Excel, PowerPoint and PDF files into text or Markdown inside a flow. Give the file content from an earlier step (an e-mail attachment, a SharePoint or OneDrive file) or a public URL.",
+    "version": "1.0",
+    "contact": {
+      "name": "Agent Data Tools Support",
+      "url": "https://REPLACE-WITH-PUBLIC-DOMAIN/support",
+      "email": "REPLACE-WITH-SUPPORT-ADDRESS"
+    }
+  },
+  "host": "REPLACE-WITH-PUBLIC-DOMAIN",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+  },
+  "security": [{ "api_key": [] }],
+  "paths": {
+    "/document/text": {
+      "post": {
+        "operationId": "ConvertDocumentToText",
+        "summary": "Convert document to text",
+        "description": "Convert a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file to Markdown or plain text.",
+        "x-ms-visibility": "important",
+        "consumes": ["application/octet-stream"],
+        "parameters": [
+          {
+            "name": "file",
+            "in": "body",
+            "required": true,
+            "x-ms-summary": "File content",
+            "description": "The file content from an earlier step, up to 10 MB.",
+            "schema": { "type": "string", "format": "binary" }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": ["markdown", "text"],
+            "default": "markdown",
+            "x-ms-summary": "Format",
+            "description": "Markdown keeps headings, lists and tables; text is plain."
+          },
+          {
+            "name": "maxChars",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 50000,
+            "x-ms-summary": "Maximum characters",
+            "description": "Maximum characters of text returned (1000-200000).",
+            "x-ms-visibility": "advanced"
+          }
+        ],
+        "responses": {
+          "200": { "description": "The document as text", "schema": { "$ref": "#/definitions/DocumentText" } },
+          "default": { "description": "The call was refused and not charged", "schema": { "$ref": "#/definitions/Refusal" } }
+        }
+      },
+      "get": {
+        "operationId": "ConvertDocumentUrlToText",
+        "summary": "Convert document at URL to text",
+        "description": "Convert a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file at a public URL to Markdown or plain text.",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "x-ms-summary": "File URL",
+            "description": "Absolute http(s) URL of a file anyone can download, up to 10 MB."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": ["markdown", "text"],
+            "default": "markdown",
+            "x-ms-summary": "Format",
+            "description": "Markdown keeps headings, lists and tables; text is plain."
+          },
+          {
+            "name": "maxChars",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 50000,
+            "x-ms-summary": "Maximum characters",
+            "description": "Maximum characters of text returned (1000-200000).",
+            "x-ms-visibility": "advanced"
+          }
+        ],
+        "responses": {
+          "200": { "description": "The document as text", "schema": { "$ref": "#/definitions/DocumentText" } },
+          "default": { "description": "The call was refused and not charged", "schema": { "$ref": "#/definitions/Refusal" } }
+        }
+      }
+    },
+    "/pdf/text": {
+      "post": {
+        "operationId": "ExtractPdfText",
+        "summary": "Extract text from PDF",
+        "description": "Extract the text of a PDF page by page, with its page count, title and author. Scanned PDFs without a text layer are refused and not charged.",
+        "x-ms-visibility": "important",
+        "consumes": ["application/octet-stream"],
+        "parameters": [
+          {
+            "name": "file",
+            "in": "body",
+            "required": true,
+            "x-ms-summary": "File content",
+            "description": "The PDF content from an earlier step, up to 10 MB.",
+            "schema": { "type": "string", "format": "binary" }
+          },
+          {
+            "name": "firstPage",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 1,
+            "x-ms-summary": "First page",
+            "description": "The first page to read.",
+            "x-ms-visibility": "advanced"
+          },
+          {
+            "name": "pages",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 20,
+            "x-ms-summary": "Pages",
+            "description": "How many pages to read (1-200).",
+            "x-ms-visibility": "advanced"
+          },
+          {
+            "name": "maxChars",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 50000,
+            "x-ms-summary": "Maximum characters",
+            "description": "Maximum characters of text returned across all pages (1000-200000).",
+            "x-ms-visibility": "advanced"
+          }
+        ],
+        "responses": {
+          "200": { "description": "The PDF's text", "schema": { "$ref": "#/definitions/PdfText" } },
+          "default": { "description": "The call was refused and not charged", "schema": { "$ref": "#/definitions/Refusal" } }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DocumentText": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "x-ms-summary": "File type", "description": "docx, xlsx, pptx or pdf, read from the file itself." },
+        "format": { "type": "string", "x-ms-summary": "Format", "description": "markdown or text." },
+        "chars": { "type": "integer", "format": "int32", "x-ms-summary": "Characters", "description": "Length of the text returned." },
+        "truncated": { "type": "boolean", "x-ms-summary": "Truncated", "description": "True when the file holds more than was returned." },
+        "text": { "type": "string", "x-ms-summary": "Text", "description": "The document as text or Markdown." }
+      }
+    },
+    "PdfText": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "x-ms-summary": "Title", "description": "The PDF's title, when it has one." },
+        "author": { "type": "string", "x-ms-summary": "Author", "description": "The PDF's author, when it has one." },
+        "totalPages": { "type": "integer", "format": "int32", "x-ms-summary": "Total pages", "description": "Pages in the PDF." },
+        "pagesRead": { "type": "integer", "format": "int32", "x-ms-summary": "Pages read", "description": "Pages returned by this call." },
+        "chars": { "type": "integer", "format": "int32", "x-ms-summary": "Characters", "description": "Length of the text returned." },
+        "truncated": { "type": "boolean", "x-ms-summary": "Truncated", "description": "True when the PDF holds more than was returned." },
+        "pages": {
+          "type": "array",
+          "x-ms-summary": "Pages",
+          "description": "One entry per page read.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer", "format": "int32", "x-ms-summary": "Page number", "description": "The page's number." },
+              "chars": { "type": "integer", "format": "int32", "x-ms-summary": "Page characters", "description": "Length of the page's text." },
+              "text": { "type": "string", "x-ms-summary": "Page text", "description": "The text of the page." }
+            }
+          }
+        }
+      }
+    },
+    "Refusal": {
+      "type": "object",
+      "properties": {
+        "error": { "type": "string", "x-ms-summary": "Error", "description": "Why the call was refused." }
+      }
+    }
+  },
+  "x-ms-connector-metadata": [
+    { "propertyName": "Website", "propertyValue": "https://REPLACE-WITH-PUBLIC-DOMAIN" },
+    { "propertyName": "Privacy policy", "propertyValue": "https://REPLACE-WITH-PUBLIC-DOMAIN/privacy" },
+    { "propertyName": "Categories", "propertyValue": "Productivity;Data" }
+  ]
+}

@@ -1,6 +1,7 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { companyDescription } from './resources/company';
 import { cryptoDescription } from './resources/crypto';
+import { documentDescription } from './resources/document';
 import { githubRepositoryDescription, vulnerabilityDescription } from './resources/developer';
 import { newsDescription } from './resources/news';
 import { screeningDescription } from './resources/screening';
@@ -20,7 +21,7 @@ export class AgentDataTools implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description:
-			'Web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools, paid per call with one prepaid key',
+			'Documents to text (Word, Excel, PowerPoint, PDF), web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools, paid per call with one prepaid key',
 		defaults: {
 			name: 'Agent Data Tools',
 		},
@@ -45,6 +46,9 @@ export class AgentDataTools implements INodeType {
 							'call',
 							'checkPayee',
 							'checkSanctions',
+							'convertToText',
+							'extractFields',
+							'extractText',
 							'generate',
 							'get',
 							'getFilings',
@@ -81,6 +85,11 @@ export class AgentDataTools implements INodeType {
 						name: 'Crypto',
 						value: 'crypto',
 						description: 'Token prices and technical indicators',
+					},
+					{
+						name: 'Document',
+						value: 'document',
+						description: 'Word, Excel, PowerPoint and PDF files as text, Markdown or named fields',
 					},
 					{
 						name: 'GitHub Repository',
@@ -122,6 +131,7 @@ export class AgentDataTools implements INodeType {
 			},
 			...companyDescription,
 			...cryptoDescription,
+			...documentDescription,
 			...githubRepositoryDescription,
 			...newsDescription,
 			...screeningDescription,

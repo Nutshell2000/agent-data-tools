@@ -71,6 +71,13 @@ export interface Env {
   ASSETS: Fetcher;
   // This same Worker, for requests to its own public URL (a Worker cannot fetch its workers.dev host).
   SELF?: Fetcher;
+  /**
+   * Free keys by e-mail (lib/free-keys.ts): "on" offers them, and only when EMAIL (a Cloudflare Email Service
+   * send_email binding) and FREE_KEY_FROM (a sender on a domain onboarded there) are both set.
+   */
+  FREE_KEYS?: string;
+  FREE_KEY_FROM?: string;
+  EMAIL?: { send(message: { to: string; from: string; subject: string; text: string; html?: string }): Promise<{ messageId: string }> };
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }
