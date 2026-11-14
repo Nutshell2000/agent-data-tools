@@ -72,6 +72,7 @@ import { NORDIC_COMPANY } from "./routes/nordic-company";
 import { FR_COMPANY } from "./routes/fr-company";
 import { COMPANY_SEARCH } from "./routes/company-search";
 import { LAW_SEARCH } from "./routes/law-search";
+import { CZ_EE_COMPANY } from "./routes/cz-ee-company";
 import { GITHUB } from "./routes/github";
 import { CVE } from "./routes/cve";
 import { ARXIV } from "./routes/arxiv";
@@ -97,6 +98,8 @@ export const LOCAL_TEST_PRICE = PRICE;
 CATALOG.push(...COMPANY_SEARCH);
 // EU law search over our own index (1.185.0, routes/law-search.ts).
 CATALOG.push(...LAW_SEARCH);
+// Czech (ARES) and Estonian (e-Business Register) company lookups, also searched by /company/search (routes/cz-ee-company.ts).
+CATALOG.push(...CZ_EE_COMPANY);
 const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENERATORS, TOOLBOXES, TOOLBOXES2, FUN];
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
