@@ -30,7 +30,8 @@ const publishedInput = (endpoint) => { const p = Object.fromEntries(exampleParam
 // /news, its two doors and the two research packs were $0.03 for a few hours on 11 Nov 2026 (1.130.0) and are $0.01 again
 // since 1.136.0: Mercator's gateway, their daily buyer, does not pay a quote above the price its own catalogue holds.
 // /hyperliquid/indicators was $0.05 on 13-14 Nov 2026 (no sale) and is $0.01 again since 1.168.0.
-const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08" };
+// Glyphcall Voice (1.189.0, routes/voice.ts): an hour of Whisper costs about $0.031 and 2,000 characters of Aura-1 $0.03.
+const PRICE_TEST = { "/dns/propagation": "$0.03", "/text/keyword-density": "$0.04", "/text-to-speech": "$0.08", "/transcribe/long": "$0.05", "/text-to-speech/lite": "$0.04" };
 test("family catalog: unique paths, floor price, bounded metadata and examples for every parameter", () => {
   const paths = families.map((f) => f.endpoint.path);
   assert.equal(new Set(paths).size, paths.length);
