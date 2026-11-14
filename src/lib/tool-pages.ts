@@ -10,6 +10,7 @@ import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { GUIDE_FOR_TOOL } from "../guides/task-guides";
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCT_FOR_TOOL } from "./product-pages";
+import { ENTRY_OF } from "../routes/entry-paths";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -22,6 +23,8 @@ const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c"
 export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }, cappedTry?: string): string {
   const slug = toolSlug(e.path);
   const url = `${origin}/tools/${slug}`;
+  // An entry path is a second name for a tool: its page tells search engines the tool's own page is the original.
+  const canonical = Object.hasOwn(ENTRY_OF, e.path) ? `${origin}/tools/${toolSlug(ENTRY_OF[e.path])}` : url;
   const keyOffer = keyOfferNumbers(e.path, e.price);
   const query = exampleQuery(e);
   const request = `${origin}${e.path}?${query}`;
@@ -53,7 +56,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(e.description.slice(0, 300))}">
-<link rel="canonical" href="${esc(url)}">
+<link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(e.description.slice(0, 300))}">
 <meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
@@ -109,6 +112,8 @@ ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) 
 
 /** /tools: every tool page, grouped like the homepage catalog. */
 export function toolIndexPage(origin: string, groups: { name: string; tools: readonly Endpoint[] }[]): string {
+  // Entry paths are second names for tools: the index and the sitemap list each tool once, under its own name.
+  groups = groups.map((g) => ({ name: g.name, tools: g.tools.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)) })).filter((g) => g.tools.length > 0);
   const title = `All ${ENDPOINTS.length} tools · ${SERVICE_NAME}`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

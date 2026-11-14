@@ -14,6 +14,7 @@ import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
+import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
@@ -527,6 +528,12 @@ for (const product of PRODUCT_PAGES) {
     return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY)));
   });
 }
+// Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
+app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))));
+app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
+  const country = vatCountry(c.req.param("country"));
+  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))) : c.notFound();
+});
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {
   const tool = toolBySlug(c.req.param("slug"));
