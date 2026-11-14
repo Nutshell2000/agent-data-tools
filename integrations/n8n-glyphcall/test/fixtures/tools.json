@@ -71,7 +71,8 @@
             "xrechnung",
             "xrechnung-ubl",
             "zugferd",
-            "ubl"
+            "ubl",
+            "zugferd-pdf"
           ]
         }
       }
