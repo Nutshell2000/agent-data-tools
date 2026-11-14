@@ -247,6 +247,9 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
+  // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
+  "/invoice/check": "Company, compliance and checks",
+  "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/cve": "Company, compliance and checks",
   "/se/company": "Company, compliance and checks",
   "/no/company": "Company, compliance and checks",
@@ -257,8 +260,6 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/perp/funding": "Prices and DeFi",
   "/stablecoin/charts": "Prices and DeFi",
   "/document/text": "Web, documents and search", "/document/extract": "Web, documents and search",
-  "/invoice/check": "Company, compliance and checks",
-  "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/gpt/pricing": "Utilities", "/claude/pricing": "Utilities",
   "/solana/price": "Utilities", "/ethereum/price": "Utilities", // with /crypto/price, the tool they run
   "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
