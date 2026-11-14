@@ -15,6 +15,9 @@ import { ENDPOINTS, SERVICE_NAME, type Endpoint } from "../endpoints";
 import { keyPrice } from "./key-prices";
 import { productBySlug, productOffers } from "./product-pages";
 import { COMPANY_FOOTER } from "./legal";
+import { freeKeysOn } from "./free-keys";
+import { publicBrand } from "./public-brand";
+import type { Env } from "./env";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -258,6 +261,19 @@ ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 <p>Other comparisons: ${RIVALS.filter((o) => o !== r).map((o) => `<a href="${COMPARE_BASE}/${o.slug}">${esc(o.name)}</a>`).join(" · ")}</p>`;
   const faqLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
   return shell({ title, description, url, brand, body, ld: [faqLd] });
+}
+
+/**
+ * The HTML for a /compare path (slug undefined = the hub), or undefined for an unknown rival. The route in src/index.ts
+ * stays two lines so releases prepared at the same time do not touch the same lines there.
+ */
+export function compareHtml(env: Env, origin: string, slug?: string): string | undefined {
+  const freeKey = freeKeysOn(env);
+  const cardReady = Boolean(env.STRIPE_READ_KEY);
+  const brand = publicBrand(env, SERVICE_NAME);
+  if (slug === undefined) return compareIndexPage(origin, freeKey, cardReady, brand);
+  const rival = rivalBySlug(slug);
+  return rival ? comparePage(rival, origin, freeKey, cardReady, brand) : undefined;
 }
 
 /** The hub: every rival in one table, cheapest per page first, with our row on top. */
