@@ -15,6 +15,7 @@ import { asFrontQuote, requestBody } from "./openai-chat";
 import { SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
 import { FILE_INPUT, holdFile, releaseFile, sentFile } from "./file-input";
 import { TRANSCRIBE_MAX_BYTES } from "../routes/ai";
+import { LONG_TRANSCRIBE_MAX_BYTES, LONG_TRANSCRIBE_PATH } from "../routes/voice";
 import { SPEECH_VOICES, OPENAI_VOICES } from "../routes/ai-text";
 
 type Forward = (request: Request) => Response | Promise<Response>;
@@ -31,8 +32,8 @@ const PROBE_TEXT = "Your payment was received. Thank you!";
 
 export const VOICE_FRONT_DESCRIPTIONS = {
   tts: "ElevenLabs-compatible text to speech, pay per request: text in, one MP3 file out (Deepgram Aura-2 voices; ElevenLabs premade voice IDs map to a similar voice). Up to 2,000 characters, English or Spanish. No account; failed calls are not charged.",
-  stt: "ElevenLabs-compatible speech to text, pay per request: an audio file (multipart file, or cloud_storage_url) in, transcript with language and word timings out (Whisper large-v3-turbo, 90+ languages). Up to 5 MB. No account; failed calls are not charged.",
-  openaiStt: "OpenAI-compatible audio transcription, pay per request: an audio file in, the transcript out as json, text, srt, vtt or verbose_json (Whisper large-v3-turbo, 90+ languages). Up to 5 MB. No account; failed calls are not charged.",
+  stt: "ElevenLabs-compatible speech to text, pay per request: an audio file (multipart file, or cloud_storage_url) in, transcript with language and word timings out (Whisper large-v3-turbo, 90+ languages). Up to 5 MB in any common format, or up to 25 MB and 60 minutes of MP3 or WAV. No account; failed calls are not charged.",
+  openaiStt: "OpenAI-compatible audio transcription, pay per request: an audio file in, the transcript out as json, text, srt, vtt or verbose_json (Whisper large-v3-turbo, 90+ languages). Up to 5 MB in any common format, or up to 25 MB and 60 minutes of MP3 or WAV. No account; failed calls are not charged.",
 } as const;
 
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key", "xi-api-key"];
@@ -155,13 +156,15 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   const refuse = (message: string, status: 400 | 413 = 400) => (shape === "openai"
     ? c.json({ error: { message, type: "invalid_request_error" } }, status)
     : c.json({ detail: { status: "invalid_request", message } }, status));
-  const sent = c.req.method === "POST" ? await sentFile(c.req.raw, TRANSCRIBE_MAX_BYTES) : { kind: "none" as const, fields: {} as Record<string, string> };
-  if (sent.kind === "too-large") return refuse(`the audio file is larger than ${Math.round(TRANSCRIBE_MAX_BYTES / 1024 / 1024)} MB (nothing was charged)`, 413);
+  // Up to OpenAI's own 25 MB: a file over 5 MB goes to /transcribe/long (MP3 or WAV, up to 60 minutes) at its price.
+  const sent = c.req.method === "POST" ? await sentFile(c.req.raw, LONG_TRANSCRIBE_MAX_BYTES) : { kind: "none" as const, fields: {} as Record<string, string> };
+  if (sent.kind === "too-large") return refuse(`the audio file is larger than ${Math.round(LONG_TRANSCRIBE_MAX_BYTES / 1024 / 1024)} MB (nothing was charged)`, 413);
+  const tool = sent.kind === "file" && sent.bytes.byteLength > TRANSCRIBE_MAX_BYTES ? LONG_TRANSCRIBE_PATH : TRANSCRIBE_TOOL_PATH;
   const fields = { ...c.req.query(), ...(await jsonFields(c)), ...sent.fields };  const options = transcriptionOptions(fields, shape);
   if ("error" in options && paying) return refuse(options.error);
   const opts: TranscriptionOptions = "error" in options ? { format: shape === "openai" ? "json" : "eleven" } : options;
   if (sent.kind !== "file" && !opts.url && paying) return refuse(shape === "openai" ? "file is required: send the audio as a multipart `file` part" : "file or cloud_storage_url is required");
-  const inner = new URL(TRANSCRIBE_TOOL_PATH, outer.origin);
+  const inner = new URL(tool, outer.origin);
   let ref: string | null = null;
   if (sent.kind === "file") {
     ref = await holdFile(sent.bytes);
@@ -177,7 +180,7 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   try {
     const answer = await forward(new Request(inner.href, { method: "GET", headers }));
     const description = shape === "openai" ? VOICE_FRONT_DESCRIPTIONS.openaiStt : VOICE_FRONT_DESCRIPTIONS.stt;
-    if (answer.status === 402) return asFrontQuote(answer, outer, description, TRANSCRIBE_TOOL_PATH);
+    if (answer.status === 402) return asFrontQuote(answer, outer, description, tool);
     if (answer.status !== 200) return answer;
     const result = (await answer.json().catch(() => null)) as Transcript | null;
     if (!result || typeof result.text !== "string") return answer;
@@ -187,7 +190,7 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
       : new Response(shaped.text, { status: 200, headers: { "content-type": shaped.type } });
     for (const name of PASSTHROUGH) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
     out.headers.set("cache-control", "no-store");
-    out.headers.set("x-tool", TRANSCRIBE_TOOL_PATH);
+    out.headers.set("x-tool", tool);
     return out;
   } finally {
     if (ref) releaseFile(ref);
