@@ -26,7 +26,9 @@ export function extractOptions(
   const format = allowedValue(formatParam, ["text", "markdown", "both"] as const);
   if (!format) throw new HttpError(400, "format must be text, markdown or both");
   formatParam = format;
-  if (sectionParam !== undefined && (!sectionParam || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
+  // An empty section (a form or planner that sends every listed input, filled or not) means no section, not a bad one.
+  if (sectionParam !== undefined && !sectionParam.trim()) sectionParam = undefined;
+  if (sectionParam !== undefined && (sectionParam.length > 500 || sectionParam.length > 500 || /[\u0000-\u001f\u007f]/.test(sectionParam)))
     throw new HttpError(400, "section must be an exact HTML ID from 1 to 500 characters without control characters");
   return { target, maxChars, formatParam, sectionParam };
 }
@@ -50,6 +52,7 @@ export async function extract(
   const options = extractOptions(rawUrl, maxCharsParam, formatParam, sectionParam);
   const { target, maxChars } = options;
   formatParam = options.formatParam;
+  sectionParam = options.sectionParam;
   // 15 s, not the default 8 s (5 Nov 2026): github.com repository pages took longer than 8 s from Cloudflare and paid
   // reads of heavy pages timed out as 504s that the buyer could have had.
   let res: Response;
@@ -85,15 +88,20 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
   const markdownSource = markdownMime || markdownPath;
   if (!html && !plain && !markdownMime) {
     await res.body?.cancel();
+    // A PDF link is the most common wrong file here (/status, 14 Nov 2026: 2 of 3 content-type refusals): name the tool
+    // that reads it, with the same URL, so the caller's next paid call succeeds instead of the job ending here.
+    if (/^application\/(x-)?pdf(?:;|$)/i.test(contentType) || /\.pdf$/i.test(new URL(finalUrl).pathname))
+      throw new HttpError(415, `this URL is a PDF file, not a web page; read it with /pdf/text?url=${encodeURIComponent(target.href)} (nothing was charged)`, "EXTRACTION_PDF");
     throw new HttpError(
       415,
       `unsupported content type: ${contentType || "unknown"}`,
     );
   }
-  if (!html && sectionParam !== undefined) {
+  if (!html && sectionParam !== undefined && !isFormerExample(sectionParam)) {
     await res.body?.cancel();
     throw new HttpError(415, "section selection requires static HTML", "EXTRACTION_SECTION_UNSUPPORTED");
   }
+  if (!html) sectionParam = undefined;
   let inputTruncated = false;
   const bytes = await new Response(
     capBytes(res.body!, 2 * 1024 * 1024, () => {
@@ -119,12 +127,32 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
   }
 }
 
+/**
+ * Section IDs this service once published as the input's example. Routers keep their own copy of a listing and refresh it
+ * rarely (Mercator's copy of 14 Nov 2026 still held section=retry-policy, and /status showed 9 refused calls in 7 days),
+ * so a call carrying one comes from a stale planner, not a reader who wants that section: when the page has no such ID,
+ * the whole page is read and `section_example_ignored` says so. Any other missing ID is still refused uncharged.
+ */
+const FORMER_SECTION_EXAMPLES = new Set(["retry-policy"]);
+const isFormerExample = (section: string) => FORMER_SECTION_EXAMPLES.has(section);
+
 /** Turns fetched or browser-rendered source into the /extract result. */
 export async function buildExtraction(input: {
   target: URL; finalUrl: string; status: number; contentType: string; source: string;
   html: boolean; markdownSource: boolean; markdownPath: boolean; inputTruncated: boolean;
   maxChars: number; formatParam: string; sectionParam?: string;
 }) {
+  try {
+    return await buildExtractionOnce(input);
+  } catch (e) {
+    if (!(input.sectionParam && isFormerExample(input.sectionParam) && e instanceof HttpError && e.code === "EXTRACTION_SECTION_NOT_FOUND")) throw e;
+    const whole = await buildExtractionOnce({ ...input, sectionParam: undefined });
+    whole.warnings.push("section_example_ignored");
+    return whole;
+  }
+}
+
+async function buildExtractionOnce(input: Parameters<typeof buildExtraction>[0]) {
   const { target, finalUrl, status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam } = input;
   const content = html
     ? pageContent(source, finalUrl, maxChars, sectionParam)
