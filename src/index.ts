@@ -311,10 +311,15 @@ app.use(async (c, next) => {
   // Set when a free call was asked for but could not be counted; the caller is told why it got the paywall.
   let freePaused = false;
   // The capped PDF try (lib/pdf-try.ts): off unless PDF_TRY=on; a browser only, inside the day's total.
-  const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent")) && await takePdfTry(c.env);
-  if (pdfTry) pdfTryRequests.add(c.req.raw);
+  const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"));
   if (endpoint && trialable && (httpFree(c.req.path) || pdfTry) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    const free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
+    // visitor who is out of tries cannot use up the total for everyone else.
+    if (free && pdfTry) {
+      if (await takePdfTry(c.env)) pdfTryRequests.add(c.req.raw);
+      else { await free.refund(); free = null; }
+    }
     if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
     if (freePaused && isBrowser(c.req.header("accept"), c.req.header("user-agent"))) {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });

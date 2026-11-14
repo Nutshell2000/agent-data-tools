@@ -82,6 +82,17 @@ test('switch on: the fourth try of one visitor and the try after the day total b
   assert.equal((await capped.dispatchFetch(url, { headers: { ...browser, 'cf-connecting-ip': '198.51.100.25' } })).status, 402);
 });
 
+test('a visitor who is out of tries does not use up the day total for others', async () => {
+  const worker = capped; // day total 1, already used by the test above
+  assert.ok(worker);
+  const fresh = await on.dispatchFetch(url, { headers: { ...browser, 'cf-connecting-ip': '198.51.100.30' } });
+  assert.equal(fresh.status, 200);
+  const spent = { ...browser, 'cf-connecting-ip': '198.51.100.23' }; // this visitor used all three tries above
+  for (let i = 0; i < 5; i++) assert.equal((await on.dispatchFetch(url, { headers: spent })).status, 402);
+  const kv = await on.getKVNamespace('TRIALS');
+  const day = new Date().toISOString().slice(0, 10);
+  assert.equal(Number(await kv.get('cap:pdftry:' + day)), 5, 'five real tries so far in this Worker; the five refused ones were not counted');
+});
 test('a paid-path call can never be capped by sending the reserved input itself', async () => {
   const res = await off.dispatchFetch('https://api.test/pdf/text?url=https%3A%2F%2Fdocs.example%2Fa.pdf&%40pdf-try=1', { headers: { accept: 'application/json' } });
   assert.equal(res.status, 402, 'unpaid stays unpaid; the reserved name is not read from the query');
