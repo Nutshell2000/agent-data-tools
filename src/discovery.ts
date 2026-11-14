@@ -252,6 +252,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/no/company": "Company, compliance and checks",
   "/fi/company": "Company, compliance and checks",
   "/fr/company": "Company, compliance and checks",
+  "/company/search": "Company, compliance and checks",
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
@@ -302,7 +303,7 @@ export const FOCUSED_SERVERS: Readonly<Record<string, { title: string; registry:
     registry: "EU VAT (VIES), Nordic and French company registers, LEI and OFAC sanctions checks",
     kinds: "company checks: EU VAT number validation through VIES, the Swedish, Norwegian, Finnish and French company registers, LEI lookup, OFAC sanctions screening and a company profile by name or domain",
     pick: "Pick by task: is an EU VAT number valid, and whose is it → vat_validate; a company in Sweden → se_company, Norway → no_company, Finland → fi_company, France → fr_company (by registration number or name); a Legal Entity Identifier → lei_lookup; is a person, company or wallet on the OFAC list → sanctions_check; a company's profile by name or website → company.",
-    paths: ["/vat/validate", "/se/company", "/no/company", "/fi/company", "/fr/company", "/lei/lookup", "/sanctions/check", "/company"],
+    paths: ["/vat/validate", "/company/search", "/se/company", "/no/company", "/fi/company", "/fr/company", "/lei/lookup", "/sanctions/check", "/company"],
   },
 });
 export const focusedServerTools = (slug: string) =>
