@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Invoice attachments to a spreadsheet\n\nEvery new e-mail with a PDF, Word or Excel attachment is read, the invoice fields are extracted as JSON, and one row is added to a sheet.\n\n**Requirements**\n- A Gmail account (trigger) and a Google Sheets document with the columns named in the last node\n- The community node `n8n-nodes-document-extract` and its API key\n\n**Setup**\n1. Connect Gmail and Google Sheets.\n2. Add your API key to the Extract invoice fields node.\n3. Change the field list to the columns you keep.\n\n**Limits**\n- Files up to 10 MB with a text layer. A scanned invoice has no text and is refused, not charged.\n- An AI model reads the file: check amounts before you pay on them.",
+        "content": "## Invoice attachments to a spreadsheet\n\nEvery new e-mail with a PDF, Word or Excel attachment is read, the invoice fields are extracted as JSON, and one row is added to a sheet.\n\n**Requirements**\n- A Gmail account (trigger) and a Google Sheets document with the columns named in the last node\n- The community node `n8n-nodes-glyphcall` and its API key\n\n**Setup**\n1. Connect Gmail and Google Sheets.\n2. Add your API key to the Extract invoice fields node.\n3. Change the field list to the columns you keep.\n\n**Limits**\n- Files up to 10 MB with a text layer. A scanned invoice has no text and is refused, not charged.\n- An AI model reads the file: check amounts before you pay on them.",
         "height": 520,
         "width": 420
       },
@@ -35,7 +35,7 @@
       },
       "id": "adt-1",
       "name": "Extract invoice fields",
-      "type": "n8n-nodes-document-extract.documentExtract",
+      "type": "n8n-nodes-glyphcall.glyphcall",
       "typeVersion": 1,
       "position": [260, 0]
     },

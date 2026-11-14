@@ -1,17 +1,17 @@
-name: Publish n8n document node
+name: Publish n8n Glyphcall node
 
-# Publishes integrations/n8n-documents (the npm package n8n-nodes-document-extract) with an npm provenance
+# Publishes integrations/n8n-glyphcall (the npm package n8n-nodes-glyphcall) with an npm provenance
 # statement. n8n only verifies community nodes that were published from GitHub Actions with
 # provenance (required since 1 May 2026), never ones published from a local machine.
 #
-# It runs only when a tag of the form n8n-document-node-<version> is pushed, for example n8n-document-node-0.1.0,
-# and the version must equal the one in integrations/n8n-documents/package.json. The repository's own
+# It runs only when a tag of the form n8n-glyphcall-node-<version> is pushed, for example n8n-glyphcall-node-0.1.0,
+# and the version must equal the one in integrations/n8n-glyphcall/package.json. The repository's own
 # release tags (v1.2.3) do not match and never start it.
 #
 # One-time setup on npmjs.com, by the package owner (see integrations/CLIENT-PACK-STEPS.md):
 #   package settings -> Trusted Publishers -> GitHub Actions:
 #     organization or user: Nutshell2000    repository: agent-data-tools
-#     workflow filename:    publish-n8n-document-node.yml    environment: (empty)
+#     workflow filename:    publish-n8n-glyphcall-node.yml    environment: (empty)
 #   With that in place no secret is stored here: npm accepts GitHub's OIDC token.
 #   Fallback: a granular npm access token in the repository secret NPM_TOKEN.
 #
@@ -21,7 +21,7 @@ name: Publish n8n document node
 on:
   push:
     tags:
-      - 'n8n-document-node-*.*.*'
+      - 'n8n-glyphcall-node-*.*.*'
 
 jobs:
   publish:
@@ -35,7 +35,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: integrations/n8n-documents
+        working-directory: integrations/n8n-glyphcall
 
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +45,13 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: npm
-          cache-dependency-path: integrations/n8n-documents/package-lock.json
+          cache-dependency-path: integrations/n8n-glyphcall/package-lock.json
 
       - name: The tag must name the version in package.json
         run: |
           version="$(node -p "require('./package.json').version")"
-          if [ "$GITHUB_REF_NAME" != "n8n-document-node-$version" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match package version $version (expected n8n-document-node-$version)"
+          if [ "$GITHUB_REF_NAME" != "n8n-glyphcall-node-$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package version $version (expected n8n-glyphcall-node-$version)"
             exit 1
           fi
 
