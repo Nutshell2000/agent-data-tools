@@ -3,6 +3,7 @@ import { MODELS, runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 import { fetchFile } from "../lib/fetch";
 import { extract } from "./extract";
+import { parseMeta } from "./feeds";
 
 const MB = 1024 * 1024;
 
@@ -84,10 +85,30 @@ export function sniffImage(b: Uint8Array): string | null {
   return null;
 }
 
+const IMAGE_TYPES = /^image\/|octet-stream|^$/i;
+
+/** The preview image a web page names for itself (og:image, then twitter:image), or null. Exported for the tests. */
+export function pagePreviewImage(bytes: Uint8Array, pageUrl: string): string | null {
+  const html = new TextDecoder().decode(bytes.subarray(0, 512 * 1024));
+  if (!/<(?:!doctype|html|head|meta)\b/i.test(html)) return null;
+  const image = parseMeta(html, pageUrl).image;
+  return image && /^https?:\/\//i.test(image) ? image : null;
+}
+
 export async function describeImage(env: Env, rawUrl: string | undefined, questionParam?: string) {
-  const file = await fetchFile(rawUrl, /^image\/|octet-stream|^$/i, 3 * MB, "a PNG, JPEG, WebP or GIF image");
-  const type = sniffImage(file.bytes);
-  if (!type) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image (nothing was charged)");
+  // 14 Nov 2026: paying callers send the page an image sits on (a product, article or post URL), and got a 415. A page is
+  // now read through the preview image it names for itself; the answer says which image was described.
+  let file = await fetchFile(rawUrl, /^image\/|octet-stream|^$|^text\/html|^application\/xhtml/i, 3 * MB, "a PNG, JPEG, WebP or GIF image");
+  let type = sniffImage(file.bytes);
+  let fromPage: string | null = null;
+  if (!type) {
+    const preview = pagePreviewImage(file.bytes, file.finalUrl);
+    if (!preview) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image, or to a web page that names a preview image (og:image); send the image's own URL (nothing was charged)");
+    fromPage = file.url;
+    file = await fetchFile(preview, IMAGE_TYPES, 3 * MB, "a PNG, JPEG, WebP or GIF image");
+    type = sniffImage(file.bytes);
+    if (!type) throw new HttpError(415, "the page's preview image is not a PNG, JPEG, WebP or GIF; send the image's own URL (nothing was charged)");
+  }
   const question = questionParam?.trim().slice(0, 300) || "Describe this image in detail, including any text visible in it.";
   const dataUri = `data:${type};base64,${Buffer.from(file.bytes).toString("base64")}`;
   const out = await runAi<{ response?: string }>(env, MODELS.vision, {
@@ -104,5 +125,6 @@ export async function describeImage(env: Env, rawUrl: string | undefined, questi
   });
   const description = (out?.response ?? "").trim();
   if (!description) throw new HttpError(502, "the AI model returned no description");
+  if (fromPage) return { url: fromPage, question, description, model: MODELS.vision, imageUrl: file.url, note: "url is a web page; this describes the preview image the page names (imageUrl)" };
   return { url: file.url, question, description, model: MODELS.vision };
 }
