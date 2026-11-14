@@ -1,5 +1,5 @@
 {
-  "version": "1.184.0",
+  "version": "1.185.0",
   "tools": [
     {
       "name": "extract",
@@ -21897,6 +21897,108 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "Matches for a name search (1-10, default 5)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "einvoice_create",
+      "description": "Create an EU e-invoice from plain JSON: seller, buyer, lines with quantity, price and VAT rate, bank account. Returns XRechnung 3.0 XML (CII or UBL), a ZUGFeRD / Factur-X PDF with the XML inside, its XML alone, or EN 16931 UBL. Totals and VAT breakdown are computed and checked against the business rules first; data that breaks a rule is refused uncharged with the rule numbers. Use to issue German B2B e-invoices from a shop, ERP or workflow. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "invoice": {
+            "type": "string",
+            "description": "The invoice as JSON: number, issueDate, dueDate, buyerReference (Leitweg-ID or order reference), seller and buyer {name, vatId, street, postCode, city, country, contactName, phone, email}, lines [{name, quantity, unit, unitPrice, vatRate}], payment {iban, bic, terms}. In a POST body send it as a JSON object. The flat fields /document/extract returns (invoice_number, seller_name, line_items…) are read too"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "xrechnung",
+              "xrechnung-ubl",
+              "zugferd",
+              "ubl",
+              "zugferd-pdf"
+            ],
+            "description": "xrechnung (default: XRechnung 3.0, CII syntax), xrechnung-ubl, zugferd-pdf (a readable A4 invoice as PDF/A-3 with the factur-x.xml embedded, returned as pdfBase64), zugferd (that factur-x.xml alone, EN 16931 profile) or ubl (EN 16931 UBL)"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "de",
+              "en"
+            ],
+            "description": "Language of the labels on a zugferd-pdf page: de or en (default: de when the seller is in Germany or Austria, otherwise en)"
+          }
+        },
+        "required": [
+          "invoice"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "einvoice_validate",
+      "description": "Validate an EU e-invoice: send XRechnung, ZUGFeRD / Factur-X (XML or the PDF that embeds it), Peppol or other EN 16931 XML as text, as a file in a POST body or by URL. Returns valid or not and every broken business rule with its number (BR-CO-15, BR-DE-15…), the field, a plain message and the fix. Checks a subset of the EN 16931 and XRechnung 3.0 rules: sums, VAT, mandatory fields. Use before sending an e-invoice or when one is rejected. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the e-invoice: an XML file or a ZUGFeRD / Factur-X PDF (or send `xml`, or the file in a POST body)"
+          },
+          "xml": {
+            "type": "string",
+            "description": "The e-invoice XML as text (CII or UBL), up to 5 MB in a POST body"
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "xrechnung",
+              "en16931"
+            ],
+            "description": "auto (default: the German XRechnung rules run when the file names XRechnung), xrechnung or en16931"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "einvoice_to_json",
+      "description": "Convert an EU e-invoice to plain JSON: send XRechnung, ZUGFeRD / Factur-X (XML or the PDF that embeds it), Peppol or other EN 16931 XML as text, as a file in a POST body or by URL. Returns number, dates, seller and buyer with VAT numbers and addresses, every line with quantity, price, VAT rate and net amount, the VAT breakdown, totals and bank account. Exact values from the file, no AI. Use to book incoming e-invoices into a sheet or ERP. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the e-invoice: an XML file or a ZUGFeRD / Factur-X PDF (or send `xml`, or the file in a POST body)"
+          },
+          "xml": {
+            "type": "string",
+            "description": "The e-invoice XML as text (CII or UBL), up to 5 MB in a POST body"
           }
         }
       },
