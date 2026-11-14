@@ -18,6 +18,8 @@ export const EINVOICE_BASE = "/e-invoice";
 export const EINVOICE_RULES = `${EINVOICE_BASE}/rules`;
 export const einvoicePagePaths = () => [EINVOICE_BASE, EINVOICE_RULES, ...RULES.map((r) => `${EINVOICE_RULES}/${ruleSlug(r.id)}`)];
 export const einvoiceRule = (slug: string) => ruleDoc(slug);
+/** A sitemap with these pages added. Done where the sitemap is served, so lib/discovery's page list stays one line that parallel releases edit. */
+export const withEinvoicePages = (sitemap: string, origin: string) => sitemap.replace("</urlset>", () => `${einvoicePagePaths().map((p) => `<url><loc>${esc(origin + p)}</loc></url>`).join("")}</urlset>`);
 
 /** Business terms the rules name: what each is called and where it sits in the two syntaxes. */
 const TERMS: Readonly<Record<string, readonly [name: string, cii: string, ubl: string]>> = Object.freeze({

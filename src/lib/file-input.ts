@@ -7,13 +7,13 @@
 
 /** Tools that accept an uploaded file, with the largest file each takes. */
 export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze({
+  // E-invoices (XML, or a ZUGFeRD / Factur-X PDF that embeds one).
+  "/einvoice/validate": 5 * 1024 * 1024,
+  "/einvoice/to-json": 5 * 1024 * 1024,
   "/pdf/text": 10 * 1024 * 1024,
   "/pdf/extract": 10 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
-  // E-invoices (XML, or a ZUGFeRD / Factur-X PDF that embeds one).
-  "/einvoice/validate": 5 * 1024 * 1024,
-  "/einvoice/to-json": 5 * 1024 * 1024,
 });
 /** The query name the reference travels under. */
 export const FILE_INPUT = "file";

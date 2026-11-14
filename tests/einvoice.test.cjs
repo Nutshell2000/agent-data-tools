@@ -158,7 +158,7 @@ test('the tools are listed with their inputs and the long fields travel as refer
 
 test('the XML inside an official ZUGFeRD / Factur-X PDF is found, read and valid', async () => {
   const X = await load('src/lib/einvoice/pdf-xml.ts');
-  const pdf = new Uint8Array(fs.readFileSync(path.join(__dirname, 'fixtures', 'einvoice', 'zugferd-en16931-einfach.pdf')));
+  const pdf = new Uint8Array(fs.readFileSync(path.join(__dirname, 'fixtures', 'einvoice', 'zugferd-en16931-einfach.pdf.bin')));
   const xml = await X.embeddedInvoiceXml(pdf);
   assert.ok(xml && xml.includes('CrossIndustryInvoice'));
   const { syntax, invoice } = P.readInvoice(xml);
