@@ -9,7 +9,7 @@
   },
   "homepage": "https://agent-data-tools.revmesh2074.workers.dev/tools",
   "repository": "https://github.com/Nutshell2000/agent-data-tools",
-  "license": "ISC",
+  "license": "MIT",
   "keywords": [
     "mcp",
     "web-search",
