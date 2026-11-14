@@ -1630,3 +1630,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - Round 9 doors in `src/routes/entry-paths.ts`: `/gpt/pricing` and `/claude/pricing` run `/llm/prices` with `providerInput("openai" | "anthropic")`. Evidence: Mercator's gateway paid modelprices.xyz 84 times in seven days ($0.01 a call) for per-provider pricing paths; `business/agentic/base-bots/mercator-jobs.mjs "gpt pricing" "claude api pricing"` showed us absent. To find the next such job: `buyer-today.mjs <Mercator wallet> 2` lists the sellers it paid, then look each one up in the Bazaar snapshot by `pay_to` and ask `mercator-jobs.mjs` for the job its busiest path names. `/llm/prices` now has its two doors.
 
+
+
+## One coin, named (1.157.0, 14 Nov 2026)
+
+- Round 10 doors: `/solana/price` and `/ethereum/price` run `/crypto/price` with `coinInput("solana" | "ethereum")`. Evidence: the agent 0xe629 buys the first Bazaar search result for its job (`buyer-sellers.mjs <wallet> 3` beside `bazaar-search-compact.mjs "<job>"`): ours where we are first, another seller's where we are absent. To find the next door, run those two scripts for every wallet that paid us on two or more days. `/crypto/price` now has its two doors.
+- `/credits` gives both free-call numbers (`FREE_HTTP_CALLS_PER_CALLER` and `FREE_CALLS_PER_CALLER`); keep any sentence a browser visitor reads on the HTTP number.
+
