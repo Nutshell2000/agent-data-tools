@@ -11,8 +11,13 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 const args = process.argv.slice(2);
 const jsonAt = args.indexOf("--json");
 const jsonOut = jsonAt >= 0 ? args[jsonAt + 1] : undefined;
-const filter = args.find((a, i) => !a.startsWith("--") && (jsonAt < 0 || i !== jsonAt + 1));
+const valueAt = new Set(["--json", "--cases", "--case-field"].map((f) => args.indexOf(f)).filter((i) => i >= 0).map((i) => i + 1));
+const filter = args.find((a, i) => !a.startsWith("--") && !valueAt.has(i));
 const allParams = args.includes("--all-params");
+const casesAt = args.indexOf("--cases");
+const fieldAt = args.indexOf("--case-field");
+const caseField = fieldAt >= 0 ? args[fieldAt + 1] : "example";
+const cases = casesAt >= 0 ? new Map(JSON.parse((await import("node:fs")).readFileSync(args[casesAt + 1], "utf8").replace(/^﻿/, "")).map((c) => [c.path, c])) : undefined;
 
 const urlShim = { name: "url", setup(b) { b.onResolve({ filter: /^url$/ }, () => ({ path: "node:url", external: true })); } };
 const catalog = await build({
@@ -64,7 +69,11 @@ async function runExample(e) {
   // --all-params fills EVERY input with its listed example, as routers that plan from the listing schema do (Mercator's
   // suggestedPlanNode, agents filling a form from `examples`): an optional example that conflicts with the required ones
   // is a paid call refused (14 Nov 2026: /extract's section example "retry-policy" on other pages, 9 refusals in 7 days).
-  const params = allParams ? Object.entries(e.params).filter(([k, p]) => k !== "only" && p.example !== undefined) : exampleParams(e);
+  // --cases <file.json> [--case-field example|all] replays inputs a router stored for each path ([{ path, example, all }],
+  // e.g. Mercator's copy of our listings): what its router really sends, which can lag our current schema.
+  const stored = cases?.get(e.path);
+  const params = stored ? Object.entries(stored[caseField] ?? {}).map(([k, v]) => [k, { example: v }])
+    : allParams ? Object.entries(e.params).filter(([k, p]) => k !== "only" && p.example !== undefined) : exampleParams(e);
   const query = new URLSearchParams(params.map(([k, p]) => [k, String(p.example)]));
   const url = `https://agent-data-tools.revmesh2074.workers.dev${e.path}${query.size ? `?${query}` : ""}`;
   const t0 = Date.now();
