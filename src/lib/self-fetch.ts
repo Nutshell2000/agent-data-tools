@@ -6,7 +6,7 @@
  */
 import type { Env } from "./env";
 
-export const SELF_HOSTS: ReadonlySet<string> = new Set(["agent-data-tools.revmesh2074.workers.dev", "tools.funwords.eu"]);
+export const SELF_HOSTS: ReadonlySet<string> = new Set(["agent-data-tools.revmesh2074.workers.dev", "tools.funwords.eu", "glyphcall.com", "www.glyphcall.com"]);
 
 export function isSelfHost(env: Pick<Env, "PUBLIC_SITE_ORIGIN">, host: string): boolean {
   const h = host.toLowerCase();

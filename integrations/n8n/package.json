@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-agent-data-tools",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "n8n node for Agent Data Tools: Word, Excel, PowerPoint and PDF files to text or Markdown, invoice and document fields as JSON, web search, page text, website audits, news, GitHub, CVE, company and sanctions checks, crypto prices and about 680 more tools behind one prepaid API key.",
 	"license": "MIT",
 	"homepage": "https://agent-data-tools.revmesh2074.workers.dev",

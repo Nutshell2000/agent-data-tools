@@ -12,10 +12,8 @@ The key travels in the `X-API-Key` header.
 
 ## Before it can be used or submitted
 
-1. **Public domain.** `apiDefinition.swagger.json` holds `REPLACE-WITH-PUBLIC-DOMAIN` (host, contact, website, privacy
-   policy) and `REPLACE-WITH-SUPPORT-ADDRESS`. Replace them once the service has its own domain; do not submit a
-   `*.workers.dev` host.
-2. **The tools must be live.** `/document/text` and file upload on `/pdf/text` ship in the release after 1.166.0.
+1. **Public domain.** The definition names `glyphcall.com` (bought 14 Nov 2026) and `support@glyphcall.com`. Neither works until the domain serves the service and that mailbox exists: check both before importing.
+2. **The tools must be live.** `/document/text` and file upload on `/pdf/text` are live since release 1.166.0 on the workers.dev address.
    Check both on the public domain first.
 3. **Try it as a custom connector.** In Power Automate: Data > Custom connectors > New > Import an OpenAPI file, then
    make a flow that feeds "File content" from "Get file content" (OneDrive or SharePoint) into each action. Run the

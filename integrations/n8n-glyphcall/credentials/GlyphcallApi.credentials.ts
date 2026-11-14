@@ -6,18 +6,18 @@ import type {
 	INodeProperties,
 } from 'n8n-workflow';
 
-export class DocumentExtractApi implements ICredentialType {
-	name = 'documentExtractApi';
+export class GlyphcallApi implements ICredentialType {
+	name = 'glyphcallApi';
 
-	displayName = 'Document Extract API';
+	displayName = 'Glyphcall API';
 
 	icon: Icon = {
-		light: 'file:../icons/documentExtract.svg',
-		dark: 'file:../icons/documentExtract.dark.svg',
+		light: 'file:../icons/glyphcall.svg',
+		dark: 'file:../icons/glyphcall.dark.svg',
 	};
 
 	documentationUrl =
-		'https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-documents#credentials';
+		'https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-glyphcall#credentials';
 
 	properties: INodeProperties[] = [
 		{
@@ -29,7 +29,7 @@ export class DocumentExtractApi implements ICredentialType {
 			default: '',
 			placeholder: 'adt_...',
 			description:
-				'Key that starts with adt_. Get one at https://agent-data-tools.revmesh2074.workers.dev/credits and the page shows the key.',
+				'Key that starts with adt_. Get one at https://glyphcall.com/credits and the page shows the key.',
 		},
 	];
 
@@ -46,7 +46,7 @@ export class DocumentExtractApi implements ICredentialType {
 	// Reads the key's balance: free, spends nothing, answers 401 for an unknown key.
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: 'https://agent-data-tools.revmesh2074.workers.dev',
+			baseURL: 'https://glyphcall.com',
 			url: '/credits/balance',
 			method: 'GET',
 		},
