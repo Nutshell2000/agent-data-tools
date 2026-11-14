@@ -57,7 +57,7 @@ export function hermesPluginFiles(): Record<string, unknown> {
       author: { name: "SpellzCode", url: HERMES_ORIGIN },
       homepage: `${HERMES_ORIGIN}/tools`,
       repository: "https://github.com/Nutshell2000/agent-data-tools",
-      license: "ISC",
+      license: "MIT",
       keywords: ["mcp", "web-search", "web-scraping", "pdf", "market-data", "blockchain", "compliance", "pay-per-call", "agent-tools"],
       extensions: {
         "com.nousresearch.hermes": {

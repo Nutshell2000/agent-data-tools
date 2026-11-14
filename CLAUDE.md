@@ -1743,3 +1743,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - State of the document product on 14 Nov, 09:45: tools live in 1.166.0 (staging proof of /document/text paid; /document/extract and OCR proven only on a local run against Workers AI, never by a paid production call); n8n-nodes-agent-data-tools 0.3.0 published through the tag workflow; n8n-nodes-document-extract not published; free keys off; Make and Power Automate drafts wait for the domain.
 - The repository is MIT-licensed since this release (the owner, 14 Nov 2026: "Yes, MIT"; LICENSE at the root, copyright SpellzCode). Glama rejected the MCP listing for the missing file that day: resubmit there once the file is on main.
 
+
+
+## Licence: MIT everywhere (1.170.0, 14 Nov 2026)
+
+- The owner's final answer on 14 Nov 2026 was "MIT, everything" (an earlier "MIT, client only" the same morning is superseded). Root LICENSE is MIT (since 1.169.0); `license` is "MIT" in package.json, package-lock.json, claude-plugin/.claude-plugin/plugin.json, integrations/openclaw and `src/lib/hermes-plugin.ts` (regenerate integrations/hermes with `node scripts/build-hermes-plugin.mjs`). tests/catalog-skill.test.cjs requires plugin.json to equal package.json.
+
