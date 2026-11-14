@@ -84,6 +84,16 @@ test("without a way to try or a card key the page offers neither", () => {
   assert.match(html, /href="\/credits"/);
 });
 
+test("the free key is offered first only when it is switched on", () => {
+  const off = productPage(PRODUCTS[0], "https://x.test", true, title);
+  assert.doesNotMatch(off, /\/keys\/free/);
+  assert.match(off, /No account to create\./);
+  const on = productPage(PRODUCTS[0], "https://x.test", true, title, undefined, true, "Brand", true);
+  assert.match(on, /<a class="btn primary" href="\/keys\/free">Get a free API key<\/a>/);
+  assert.match(on, /A free key makes 100 calls a month/);
+  assert.match(on, /<a class="btn" href="#try">/);
+});
+
 test("the sitemap lists the product pages", () => {
   const xml = sitemapXml("https://x.test");
   for (const path of productPaths()) assert.ok(xml.includes(`<loc>https://x.test${path}</loc>`), path);
