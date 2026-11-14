@@ -197,8 +197,9 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   assert.equal(mail[0].from, 'keys@example.test');
   const link = /https:\/\/api\.test(\/keys\/free\/confirm\?token=[A-Za-z0-9_-]+)/.exec(mail[0].text)[1];
   // Only a hash of the address is kept anywhere.
-  const kept = JSON.stringify([...TRIALS.data]) + JSON.stringify([...store.records]);
-  assert.ok(!/ada/i.test(kept), 'the address is not stored');
+  // Look for the address itself: stored hashes are hex, so a bare /ada/ matched by chance (CI flake, 14 Nov 2026).
+  const kept = (JSON.stringify([...TRIALS.data]) + JSON.stringify([...store.records])).toLowerCase();
+  assert.ok(!kept.includes('ada+n8n') && !kept.includes('example.com'), 'the address is not stored');
 
   assert.equal((await get(on, '/keys/free/confirm?token=short')).status, 400);
   assert.equal((await get(on, `/keys/free/confirm?token=${'x'.repeat(43)}`)).status, 400);
