@@ -38,7 +38,12 @@ const LEI = /^[A-Z0-9]{18}[0-9]{2}$/;
 // ---------- VAT ----------
 /** "SE556703748501", "SE 5567-0374-8501 01", "GB…" -> country prefix and number. Greece's prefix in VIES is EL. */
 export function vatParts(raw: string): { country: string; number: string } | null {
-  const s = raw.toUpperCase().replace(/[\s.\-/]/g, "");
+  // Numbers copied off an invoice arrive with their label: "VAT no: NL810433941B01", "BTW NL810433941B01",
+  // "NL810433941B01BTW". A label in front counts only when a separator follows it, so no country prefix is eaten;
+  // no member state's number ends in one of these words.
+  const unlabelled = raw.toUpperCase()
+    .replace(/^\s*(?:VAT(?:\s*(?:NO|NR|NUMBER|ID|REG))?|BTW(?:-?\s*(?:NR|NUMMER))?|TVA|N°\s*TVA|IVA|P\.?\s*IVA|UST-?\s*ID(?:NR)?|UID|MWST|MOMS(?:REG)?\.?\s*NR)\.?\s*[:#.\s]\s*/, "");
+  const s = unlabelled.replace(/[\s.\-/]/g, "").replace(/^([A-Z]{2}[0-9A-Z+*]{6,12}?)(?:BTW|VAT|TVA|MWST|UST|IVA)$/, "$1");
   const m = /^([A-Z]{2})([0-9A-Z+*]{2,14})$/.exec(s);
   if (!m) return null;
   return { country: m[1] === "GR" ? "EL" : m[1], number: m[2] };
