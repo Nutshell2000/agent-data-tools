@@ -234,9 +234,9 @@ app.use(buyAssetPreflight());
 app.use(requestMetricsMiddleware(PAID_PATHS, marketplaceOf));
 
 
-function buildPaywall(env: Env): MiddlewareHandler {
+function buildPaywall(env: Env, only?: (typeof ENDPOINTS)[number]): MiddlewareHandler {
   const routes = Object.fromEntries(
-    ENDPOINTS.map((e): [string, RouteConfig] => [
+    (only ? [only] : ENDPOINTS).map((e): [string, RouteConfig] => [
       `GET ${e.path}`,
       {
         accepts: paymentOptions(env).map(({ network, payTo }) => ({ scheme: "exact" as const, price: priceOn(network, e.price), network, payTo })),
@@ -278,7 +278,7 @@ function buildPaywall(env: Env): MiddlewareHandler {
       },
     ]),
   );
-  return paymentMiddleware({ ...routes, ...purchases }, resourceServer(env));
+  return paymentMiddleware(only ? routes : { ...routes, ...purchases }, resourceServer(env));
 }
 
 /** The x402 library's own failure answer (internalErrorResponse in @x402/hono): a 500 before any tool ran. */
@@ -289,6 +289,16 @@ function gatewayFailed(result: unknown): boolean {
 // Cache only a gateway whose initialization finished in its own request.
 // Sharing the SDK's pending startup promise lets one interrupted request stall others.
 let paywall: MiddlewareHandler | undefined;
+// A fresh isolate answers its first tool requests on a gateway that knows only the tool asked for (14 Nov 2026).
+// Why: building all 701 route configurations costs 60-225 ms of CPU, and many isolates (a colo that sees one probe
+// an hour) serve one or two requests and are gone; those cold starts were 4% of quotes and 59% of all CPU. The
+// route configuration is the same code either way, so the quote and the payment handling are identical. From the
+// ninth such request on the isolate builds the full gateway once, as before. Measured locally: first quote 26 ms
+// against 100 ms; a one-route quote costs about 3 ms more than one on the built gateway (9 against 6), and the full
+// build is 63 ms, so eight is well inside break-even. Quotes from the edge cache never get here and are not counted.
+// COLD_SINGLE_ROUTES=0 switches this off.
+let gatewayRequests = 0;
+const coldSingleRoutes = (env: Env) => { const n = Number(env.COLD_SINGLE_ROUTES ?? 8); return Number.isFinite(n) && n >= 0 ? Math.min(n, 50) : 8; };
 
 app.use(async (c, next) => {
   if (!PAID_PATHS.has(c.req.path) || c.env.PAYWALL === "off") return next();
@@ -394,7 +404,8 @@ app.use(async (c, next) => {
   if (!answer) {
   let ran = false;
   const tool = () => { ran = true; return next(); };
-  let candidate = paywall ?? buildPaywall(c.env);
+  const single = !paywall && endpoint && !endpoint.path.startsWith("/buy/") && gatewayRequests++ < coldSingleRoutes(c.env);
+  let candidate = paywall ?? buildPaywall(c.env, single ? endpoint : undefined);
   let result = await candidate(c, tool);
   if (!ran && gatewayFailed(result)) {
     console.error(`paywall start-up failed on ${c.req.path}; retrying on a fresh gateway`);
@@ -405,7 +416,7 @@ app.use(async (c, next) => {
       return c.json({ error: "payment terms could not be prepared just now; nothing was charged, retry in a few seconds", code: "PAYWALL_UNAVAILABLE" }, 503, { "Retry-After": "5", "Cache-Control": "no-store" });
     }
   }
-  if (c.res.status < 500 && !gatewayFailed(result)) paywall ??= candidate;
+  if (!single && c.res.status < 500 && !gatewayFailed(result)) paywall ??= candidate;
   const response = result instanceof Response ? result : c.res;
   // A signed v2 request answered 402 is a refused payment. The hooks in lib/payments.ts cover facilitator
   // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.

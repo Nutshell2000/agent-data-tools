@@ -1749,3 +1749,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - The owner's final answer on 14 Nov 2026 was "MIT, everything" (an earlier "MIT, client only" the same morning is superseded). Root LICENSE is MIT (since 1.169.0); `license` is "MIT" in package.json, package-lock.json, claude-plugin/.claude-plugin/plugin.json, integrations/openclaw and `src/lib/hermes-plugin.ts` (regenerate integrations/hermes with `node scripts/build-hermes-plugin.mjs`). tests/catalog-skill.test.cjs requires plugin.json to equal package.json.
 
+
+
+## One-route gateway for a fresh isolate (1.171.0, 14 Nov 2026)
+
+- `buildPaywall(env, only?)` (src/index.ts): while an isolate has no full gateway, its first `COLD_SINGLE_ROUTES` (default 8, "0" off, at most 50) tool requests each run on a gateway built for that one tool and thrown away; after that the full gateway is built once and kept, as before. Why: the full build (701 route configurations) is 60-225 ms of CPU and was 59% of all CPU in a quiet-period tail sample (4% of quotes, mostly single probes from rarely used colos). Local numbers: first quote 26 ms against 100; a one-route quote 9 ms against 6 on the built gateway; the full build 63 ms.
+- Quotes answered from the edge cache never reach the gateway and are not counted. `/buy/*` always uses the full gateway.
+- tests/quote-cache.test.cjs compares forty tools' quotes (terms, body, headers) between a one-route-only Worker and a full-gateway Worker and sends a payment through a one-route gateway. tests/gateway-startup.test.cjs sets `COLD_SINGLE_ROUTES: '0'` because it tests the shared full gateway.
+- Measure with a 150 s `wrangler tail --format json` at least 45 minutes after the last deploy (a deploy restarts every isolate and empties the quote cache): share of quotes at 50 ms CPU or more was 3.9% before this release, average CPU per request 13.1 ms.
+- Usage read 1-14 Nov through the GraphQL analytics API (wrangler OAuth token): KV 132k reads and 53k writes, 270 MB stored; Durable Objects 1.6M requests, 25 hours active, 271k rows written; Workers AI 41k neurons; every other Worker on the account under 1 s of CPU a day. Nothing there is near a paid threshold except Worker CPU (about $2 a month over) and Durable Object requests (about $0.40).
+- 14 Nov had eight or more production deploys from several sessions. Each restarts every isolate and empties the quote cache; collect finished work into one release where it can wait.
+
