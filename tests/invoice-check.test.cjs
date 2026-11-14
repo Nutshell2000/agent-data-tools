@@ -98,3 +98,19 @@ test('missing VAT number, IBAN and invoice number are listed, not guessed', asyn
   assert.equal(r.verdict, 'review');
   for (const c of ['seller_vat', 'iban', 'dates', 'invoice_number']) assert.equal(r.checks.find((x) => x.check === c).status, 'missing', c);
 });
+
+test('VAT numbers are read with the label words invoices glue to them (1.190.0, staging proof of 1.180.0)', async () => {
+  const { cleanVat } = mod;
+  assert.equal(cleanVat('NL810433941B01BTW'), 'NL810433941B01');
+  assert.equal(cleanVat('NL810433941BTW'), 'NL810433941');
+  assert.equal(cleanVat('BTW NL810433941B01'), 'NL810433941B01');
+  assert.equal(cleanVat('USt-IdNr.: DE 232 446 240'), 'DE232446240');
+  assert.equal(cleanVat('VAT No: SE556703748501'), 'SE556703748501');
+  assert.equal(cleanVat('IE6388047V'), 'IE6388047V');
+  assert.equal(cleanVat('IE1234567FA'), 'IE1234567FA');
+  assert.equal(cleanVat('ESX1234567L'), 'ESX1234567L');
+  assert.equal(cleanVat('TVA FR40303265045'), 'FR40303265045');
+  const r = await mod.invoiceChecks({ ...COOLBLUE, seller_vat_number: 'NL810433941B01BTW' }, viesOk, '2026-11-14');
+  assert.equal(r.checks.find((c) => c.check === 'seller_vat').status, 'pass');
+  assert.equal(r.verdict, 'pass');
+});
