@@ -44,6 +44,10 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (e.path.startsWith("/ai/model/") || e.path.startsWith("/memory/") || ["/ai/moderation", "/ai/rerank", "/recommend"].includes(e.path)) assert.ok(Number(e.price.slice(1)) >= 0.002 && Number(e.price.slice(1)) <= 0.01, e.path);
     // The smart contract audit and its door (owner, 11 Nov 2026: "a tool we can sell for 1$ a call and above"): the one comparable seller on the Bazaar charges $1.00.
     else if (["/audit/contract", "/contract/audit"].includes(e.path)) assert.equal(e.price, "$1.00", e.path);
+    // The one-call invoice check (1.180.0): a model call plus up to two VIES checks; per-document invoice products cost $0.05-0.16.
+    else if (e.path === "/invoice/check") assert.equal(e.price, "$0.05", e.path);
+    // Resold LinkedIn and X data (1.180.0): the upstream's $0.007 plus margin and the facilitator fee.
+    else if (["/linkedin/profile", "/linkedin/company-posts", "/x/search"].includes(e.path)) assert.equal(e.price, "$0.012", e.path);
     // Round 8 doors (10 Nov 2026): a door carries its tool's price, and /page/markdown runs /extract ($0.002).
     else if (e.path === "/page/markdown") assert.equal(e.price, "$0.002", e.path);
     // Company financial statements and their two doors (owner, 11 Nov 2026: "Yes, at $0.02"): the Bazaar's statement sellers charge $0.02-0.10.
@@ -57,7 +61,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 675);
+  assert.equal(families.length, 679);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -85,7 +89,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,704);
+  assert.equal(ENDPOINTS.length,705);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

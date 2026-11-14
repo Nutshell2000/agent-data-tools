@@ -41,6 +41,10 @@ export interface Env {
   /** The name shown on the pages written for people (lib/public-brand.ts); unset = the service name. */
   PUBLIC_BRAND?: string;
   SEARCH_API_KEY?: string;
+  /** Private key of the resale hot wallet (src/lib/resale.ts); a small float, never the owner's or the income wallet's key. */
+  RESALE_WALLET_KEY?: string;
+  /** Upstream purchases a UTC day for resold tools (default 150). */
+  RESALE_DAILY_CAP?: string;
   /** Read-only GitHub token (fine-grained, no permissions) for /github/* (5,000 requests an hour; keyless reads are refused on shared egress). */
   GITHUB_TOKEN?: string;
   /** Optional free LI.FI API key for /swap/quote and /bridge/quote (keyless quotes are rate-limited on shared egress). */
