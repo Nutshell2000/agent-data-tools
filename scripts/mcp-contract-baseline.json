@@ -1,5 +1,5 @@
 {
-  "version": "1.190.0",
+  "version": "1.191.0",
   "tools": [
     {
       "name": "extract",
@@ -12005,7 +12005,7 @@
           },
           "fields": {
             "type": "string",
-            "description": "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]"
+            "description": "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items"
           }
         },
         "required": [
