@@ -219,6 +219,40 @@
 				}
 			}
 		},
+		"/document/extract": {
+			"price": "$0.01",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				},
+				"fields": {
+					"required": true,
+					"type": "string"
+				}
+			}
+		},
+		"/document/text": {
+			"price": "$0.01",
+			"params": {
+				"url": {
+					"required": true,
+					"type": "string"
+				},
+				"format": {
+					"required": false,
+					"type": "string",
+					"enum": [
+						"markdown",
+						"text"
+					]
+				},
+				"maxChars": {
+					"required": false,
+					"type": "integer"
+				}
+			}
+		},
 		"/pdf/text": {
 			"price": "$0.005",
 			"params": {

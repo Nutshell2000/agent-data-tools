@@ -89,7 +89,7 @@ test('"Find a tool" is free and needs no credential', () => {
 
 test('every flagship operation calls a real tool with real inputs', () => {
 	const flagship = operations().filter((o) => o.resource !== 'tool');
-	assert.equal(flagship.length, 15);
+	assert.equal(flagship.length, 17);
 	const called = new Set();
 	for (const op of flagship) {
 		const label = `${op.resource}.${op.operation}`;
@@ -196,18 +196,18 @@ test('voices offered are the voices the speech tool documents', () => {
 	assert.deepEqual([...voices].sort(), [...fixture.voices.en, ...fixture.voices.es].sort());
 });
 
-test('a PDF from an earlier node is sent as the request body; a URL stays a plain GET', async () => {
+test('a file from an earlier node is sent as the request body; a URL stays a plain GET', async () => {
 	const pdf = Buffer.from('%PDF-1.4 fake');
 	const context = (parameters, binary) => ({ ...fakeContext(parameters), helpers: { getBinaryDataBuffer: async (field) => { if (!binary[field]) throw new Error('no binary'); return binary[field]; } } });
 	const base = { baseURL: HOST, headers: { Accept: 'application/json' }, method: 'GET', url: '/pdf/text', qs: { url: 'https://example.com/a.pdf', pages: 2 } };
-	assert.deepEqual(await document.sendPdfFile.call(context({ source: 'url' }, {}), base), base);
-	const sent = await document.sendPdfFile.call(context({ source: 'file', binaryPropertyName: 'attachment_0' }, { attachment_0: pdf }), base);
+	assert.deepEqual(await document.sendFile.call(context({ source: 'url' }, {}), base), base);
+	const sent = await document.sendFile.call(context({ source: 'file', binaryPropertyName: 'attachment_0' }, { attachment_0: pdf }), base);
 	assert.equal(sent.method, 'POST');
 	assert.equal(sent.url, '/pdf/text');
 	assert.deepEqual(sent.qs, { pages: 2 });
 	assert.equal(sent.body, pdf);
-	assert.equal(sent.headers['Content-Type'], 'application/pdf');
+	assert.equal(sent.headers['Content-Type'], 'application/octet-stream');
 	assert.equal(sent.baseURL, HOST);
-	await assert.rejects(document.sendPdfFile.call(context({ source: 'file', binaryPropertyName: 'data' }, {}), base), /No file found in the binary field "data"/);
-	await assert.rejects(document.sendPdfFile.call(context({ source: 'file' }, { data: Buffer.alloc(document.MAX_PDF_BYTES + 1) }), base), /largest PDF this operation reads is 10 MB/);
+	await assert.rejects(document.sendFile.call(context({ source: 'file', binaryPropertyName: 'data' }, {}), base), /No file found in the binary field "data"/);
+	await assert.rejects(document.sendFile.call(context({ source: 'file' }, { data: Buffer.alloc(document.MAX_FILE_BYTES + 1) }), base), /largest file this operation reads is 10 MB/);
 });

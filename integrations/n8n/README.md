@@ -47,6 +47,8 @@ Free in this node:
 | Web | Read Page | A public page as clean Markdown or text | `/extract` | $0.002 |
 | Web | Read Page with **Render JavaScript** | The same for pages built with JavaScript, loaded in a real browser | `/extract/rendered` | $0.01 |
 | Web | Audit Website | Accessibility (WCAG 2.1 A/AA), page speed, on-page SEO and security headers, with a score | `/audit/website` | $0.01 |
+| Document | Convert to Text | A Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file as Markdown or plain text, from a file in your workflow (up to 10 MB) or a public URL | `/document/text` | $0.01 |
+| Document | Extract Fields | Named fields of a PDF, Word, Excel or PowerPoint file as JSON (invoice number, total, due date…), read by an AI model | `/document/extract` | $0.01 |
 | Document | Extract Text From PDF | The text of a PDF, page by page, from a file in your workflow (up to 10 MB) or a public URL; a prepaid key pays less than the listed price | `/pdf/text` | $0.005 |
 | News | Search | Current news articles on a topic | `/news` | $0.01 |
 | News | Get Sentiment | Headlines on a topic, each scored positive or negative, and the balance | `/pack/news-sentiment` | $0.01 |
@@ -84,7 +86,7 @@ Every paid operation has an **Options** list with the tool's optional inputs, pl
 
 ### Documents
 
-**Document > Extract Text From PDF** reads a PDF that an earlier node put in a binary field (an e-mail attachment, a downloaded file, a form upload): keep **PDF Source** on *File From an Earlier Node* and name the field in **Input Binary Field** (`data` by default). The file is sent to the service and read there; nothing is stored. Choose *Public URL* for a PDF anyone can download. The answer holds `totalPages`, `title`, `author` and one entry per page with its text. A scanned PDF without a text layer is refused and not charged.
+**Document > Convert to Text** turns a Word, Excel, PowerPoint or PDF file into Markdown or plain text: the headings, lists and tables of a Word file, each sheet of a workbook as a table, a deck slide by slide. **Document > Extract Text From PDF** gives a PDF page by page, with its page count, title and author. **Document > Extract Fields** returns the fields you name (for example `invoice_number, total, due_date`) as JSON, read from the file by an AI model; check values that matter before you act on them. All three read a file that an earlier node put in a binary field (an e-mail attachment, a downloaded file, a form upload): keep **File Source** on *File From an Earlier Node* and name the field in **Input Binary Field** (`data` by default). The file is sent to the service and read there; nothing is stored. Choose *Public URL* for a PDF anyone can download. The answer holds `totalPages`, `title`, `author` and one entry per page with its text. A scanned PDF without a text layer is refused and not charged.
 
 ### Speech
 

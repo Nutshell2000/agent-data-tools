@@ -233,7 +233,7 @@ credits.get("/credits/balance", async (c) => {
   return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, ...(account.free ? { freeCalls: freeCallsView(account.free) } : {}), topUp: topUpLinks(keyHash), ...monthly });
 });
 
-export const FREE_KEY_NOTE = "A free key makes this many successful calls each calendar month (UTC); failed calls do not count. It does not cover web search, news, AI models, speech, images, browser rendering or screenshots: those need credits on the key.";
+export const FREE_KEY_NOTE = "A free key makes this many successful calls each calendar month (UTC); failed calls do not count. It does not cover web search, news, the larger AI models, speech, images, browser rendering or screenshots: those need credits on the key.";
 /** What a free key's allowance looks like to its holder: the month is UTC and a new one starts the count again. */
 const freeCallsView = (free: { perMonth: number; month: string; used: number }) => {
   const used = free.month === utcMonth() ? free.used : 0;
