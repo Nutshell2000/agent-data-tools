@@ -5,7 +5,7 @@
   "author": { "name": "SpellzCode" },
   "homepage": "https://agent-data-tools.revmesh2074.workers.dev",
   "repository": "https://github.com/Nutshell2000/agent-data-tools",
-  "license": "ISC",
+  "license": "MIT",
   "privacyPolicyUrl": "https://agent-data-tools.revmesh2074.workers.dev/privacy",
   "termsOfServiceUrl": "https://agent-data-tools.revmesh2074.workers.dev/terms",
   "supportUrl": "https://agent-data-tools.revmesh2074.workers.dev/support",
