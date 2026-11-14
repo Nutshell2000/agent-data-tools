@@ -25,6 +25,14 @@ const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", 
 
 export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string }
 
+/** ElevenLabs SDKs send the API key as `xi-api-key`: an adt_ prepaid key sent that way is read as X-API-Key. */
+export function withXiKey(headers: Headers): Headers {
+  const xi = headers.get("xi-api-key")?.trim();
+  if (xi && !headers.get("x-api-key") && !headers.get("authorization")) headers.set("x-api-key", xi);
+  headers.delete("xi-api-key");
+  return headers;
+}
+
 /** The speech request an OpenAI audio body stands for, or why it cannot be served. */
 export function toSpeechRequest(body: unknown): SpeechRequest | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object with input" };
@@ -66,6 +74,11 @@ export async function openAiSpeech(c: C, forward: Forward): Promise<Response> {
   if ("error" in mapped && paying) return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
   // An unpaid probe gets a real quote even with an empty body: the short tool's, the price most requests pay.
   const request: SpeechRequest = "error" in mapped ? { text: PROBE_TEXT, tool: SPEECH_TOOL_PATH } : mapped;
+  return speakThrough(c, forward, request, FRONT_DESCRIPTIONS[new URL(c.req.url).pathname] ?? "");
+}
+
+/** Runs one speech request through the speech tool it maps to and answers with the MP3 bytes (or the tool's quote under the caller's path). */
+export async function speakThrough(c: C, forward: Forward, request: SpeechRequest, description: string): Promise<Response> {
   const outer = new URL(c.req.url);
   const inner = new URL(request.tool, outer.origin);
   inner.searchParams.set("text", request.text);
@@ -75,8 +88,9 @@ export async function openAiSpeech(c: C, forward: Forward): Promise<Response> {
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");
+  withXiKey(headers);
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
-  if (answer.status === 402) return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", request.tool);
+  if (answer.status === 402) return asFrontQuote(answer, outer, description, request.tool);
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as { audioBase64?: string; contentType?: string; voice?: string; characters?: number };
   if (!result.audioBase64) return answer;
