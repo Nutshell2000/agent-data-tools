@@ -1,0 +1,266 @@
+// E-invoice tools (/einvoice/create, /einvoice/validate, /einvoice/to-json): the reader, the writers and the rule
+// check, on the official XRechnung test-suite invoices in tests/fixtures/einvoice. No network.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { before, test } = require('node:test');
+const { build } = require('esbuild');
+
+async function load(entry) {
+  const b = await build({ entryPoints: [entry], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['@cloudflare/puppeteer', 'cloudflare:workers'] });
+  const m = { exports: {} };
+  const req = (id) => (id === '@cloudflare/puppeteer' ? { default: {} } : id === 'cloudflare:workers' ? { DurableObject: class {} } : require(id));
+  new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, req);
+  return m.exports;
+}
+const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', 'einvoice', name), 'utf8');
+
+let P, V, W, M, route;
+before(async () => {
+  P = await load('src/lib/einvoice/parse.ts');
+  V = await load('src/lib/einvoice/validate.ts');
+  W = await load('src/lib/einvoice/write.ts');
+  M = await load('src/lib/einvoice/model.ts');
+  route = await load('src/routes/einvoice.ts');
+});
+
+const SAMPLES = ['xrechnung-01.01a-cii.xml', 'xrechnung-01.01a-ubl.xml', 'xrechnung-01.05a-cii.xml'];
+const PLAIN = {
+  number: 'RE-1', date: '14.11.2026', dueDate: '2026-12-14', buyerReference: '04011000-12345-06',
+  seller: { name: 'Muster GmbH', vatId: 'de 123 456 789', street: 'Hauptstr. 1', city: 'Berlin', postCode: '10115', contactName: 'E. Muster', phone: '+49 30 1234567', email: 'rechnung@muster.example' },
+  buyer: { name: 'Kunde AG', street: 'Marktplatz 5', city: 'Hamburg', postCode: '20095', country: 'de' },
+  lines: [{ name: 'Beratung', quantity: 8, unit: 'hours', unitPrice: 120, vatRate: 19 }, { name: 'Lizenz', unitPrice: '49,90', vatRate: 19 }, { name: 'Buch', quantity: 2, unitPrice: 10, vatRate: 7 }],
+  payment: { iban: 'DE02 1203 0000 0000 2020 51' },
+};
+const rules = (v) => [...v.errors, ...v.warnings].map((f) => f.rule);
+
+test('the official XRechnung sample invoices read and pass every rule that runs', () => {
+  for (const name of SAMPLES) {
+    const { syntax, invoice } = P.readInvoice(fixture(name));
+    assert.equal(syntax, name.includes('ubl') ? 'UBL' : 'CII', name);
+    assert.equal(P.profileName(invoice.specification), 'XRechnung 3.0', name);
+    const v = V.validateInvoice(invoice);
+    assert.equal(v.profile, 'xrechnung');
+    assert.deepEqual(rules(v), [], name);
+    assert.ok(invoice.lines.length >= 2 && invoice.totals.grand > 0 && invoice.seller.name && invoice.payment.iban, name);
+  }
+});
+
+test('the same business case reads the same from CII and from UBL', () => {
+  const a = P.readInvoice(fixture('xrechnung-01.01a-cii.xml')).invoice, b = P.readInvoice(fixture('xrechnung-01.01a-ubl.xml')).invoice;
+  for (const k of ['number', 'issueDate', 'currency', 'buyerReference', 'totals', 'vat']) assert.deepEqual(a[k], b[k], k);
+  assert.deepEqual(a.lines.map((l) => [l.quantity, l.unitPrice, l.netAmount, l.vatRate]), b.lines.map((l) => [l.quantity, l.unitPrice, l.netAmount, l.vatRate]));
+});
+
+test('a sample written back out reads back identical, in the schema order of the original', () => {
+  const order = (node, map = new Map()) => {
+    const seq = [];
+    for (const k of node.kids) { if (seq[seq.length - 1] !== k.name) seq.push(k.name); order(k, map); }
+    if (seq.length) map.set(node.name, [...(map.get(node.name) ?? []), seq]);
+    return map;
+  };
+  for (const name of SAMPLES) {
+    const xml = fixture(name);
+    const { syntax, invoice } = P.readInvoice(xml);
+    const out = W.writeInvoice(invoice, syntax === 'CII' ? 'xrechnung' : 'xrechnung-ubl');
+    assert.deepEqual(P.readInvoice(out).invoice, invoice, name);
+    const ref = order(P.parseXml(xml));
+    for (const [parent, seqs] of order(P.parseXml(out))) for (const seq of seqs) for (const r of ref.get(parent) ?? []) {
+      const shared = seq.filter((n) => r.includes(n));
+      assert.equal(shared.join(), r.filter((n) => shared.includes(n)).join(), `${name}: children of ${parent}`);
+    }
+  }
+});
+
+test('plain JSON becomes a valid file in all four formats, with the sums computed', () => {
+  for (const format of W.FORMATS) {
+    const made = route.createEinvoice(PLAIN, format);
+    assert.deepEqual(made.invoice.totals, { lineNet: 1029.9, taxBasis: 1029.9, tax: 193.28, grand: 1223.18, payable: 1223.18 }, format);
+    assert.equal(made.invoice.vat.length, 2);
+    assert.equal(made.invoice.seller.vatId, 'DE123456789');
+    assert.equal(made.invoice.seller.country, 'DE', 'country from the VAT number');
+    assert.equal(made.invoice.lines[0].unit, 'HUR');
+    assert.equal(made.invoice.payment.meansCode, '58');
+    const back = P.readInvoice(made.xml);
+    assert.equal(back.syntax, format.includes('ubl') ? 'UBL' : 'CII');
+    assert.deepEqual(rules(V.validateInvoice(back.invoice)), [], format);
+    assert.equal(P.profileName(back.invoice.specification), format.startsWith('xrechnung') ? 'XRechnung 3.0' : 'EN 16931');
+    assert.equal(back.invoice.issueDate, '2026-11-14');
+  }
+  assert.equal(route.createEinvoice(PLAIN, 'zugferd').filename, 'factur-x.xml');
+});
+
+test('the flat fields an invoice reader returns are accepted', () => {
+  const inv = M.fromInput({ invoice_number: '993548900', invoice_date: '2014-04-19', seller_name: 'Coolblue B.V.', seller_vat_number: 'NL810433941B01', seller_address: 'Weena 664, Rotterdam', buyer_name: 'A', iban: 'NL50INGB0683251309',
+    net_amount: 593.36, vat_amount: 124.61, total_amount: 717.97, vatRate: 21, line_items: [{ description: 'Laptop', quantity: 1, amount: 593.36 }] });
+  assert.equal(inv.number, '993548900');
+  assert.equal(inv.seller.country, 'NL');
+  assert.equal(inv.lines[0].unitPrice, 593.36);
+  assert.deepEqual(inv.totals, { lineNet: 593.36, taxBasis: 593.36, tax: 124.61, grand: 717.97, payable: 717.97 });
+});
+
+test('data that breaks a rule is refused with the rule numbers and no file', () => {
+  assert.throws(() => route.createEinvoice({ number: 'X', seller: { name: 'A' }, lines: [] }, 'xrechnung'), (e) => e.status === 422 && e.code === 'EINVOICE_INVALID' && /BR-16/.test(e.message) && /BR-DE-2/.test(e.message) && /18 rule/.test(e.message));
+  // The same data without the German additions needs no buyer reference.
+  const { buyerReference, ...noRef } = PLAIN;
+  assert.throws(() => route.createEinvoice(noRef, 'xrechnung'), /BR-DE-15/);
+  assert.ok(route.createEinvoice(noRef, 'zugferd').xml.includes('CrossIndustryInvoice'));
+  assert.throws(() => route.createEinvoice({ ...PLAIN, typeCode: '381' }, 'ubl'), /credit note/);
+});
+
+test('wrong sums, a missing reason and a bad IBAN are each found under their own rule', () => {
+  const base = () => P.readInvoice(fixture('xrechnung-01.01a-cii.xml')).invoice;
+  let inv = base(); inv.totals.grand += 1;
+  assert.deepEqual(rules(V.validateInvoice(inv)).sort(), ['BR-CO-15', 'BR-CO-16'].filter((r) => r !== 'BR-CO-16' || Math.abs(inv.totals.grand - inv.totals.payable) >= 1).sort());
+  inv = base(); inv.vat[0].tax += 0.5;
+  assert.ok(rules(V.validateInvoice(inv)).includes('BR-CO-17') && rules(V.validateInvoice(inv)).includes('BR-CO-14'));
+  inv = base(); inv.lines[0].netAmount += 10;
+  assert.ok(rules(V.validateInvoice(inv)).includes('BR-CO-10') && rules(V.validateInvoice(inv)).includes('BR-S-08'));
+  inv = base(); inv.lines[0].vatCategory = 'AE'; inv.lines[0].vatRate = 0;
+  const ae = rules(V.validateInvoice(inv));
+  assert.ok(ae.includes('BR-AE-01') && ae.includes('BR-AE-02'), ae.join());
+  inv = base(); inv.payment.iban = 'DE00000000000000000000';
+  assert.deepEqual(rules(V.validateInvoice(inv)), ['BR-DE-19']);
+  inv = base(); delete inv.buyerReference; delete inv.seller.phone;
+  assert.deepEqual(rules(V.validateInvoice(inv)).sort(), ['BR-DE-15', 'BR-DE-6']);
+  assert.deepEqual(rules(V.validateInvoice(inv, { xrechnung: false })), []);
+  assert.ok(V.ibanValid('DE02120300000000202051') && !V.ibanValid('DE02120300000000202052'));
+});
+
+test('every rule has an id, a field, a sentence and a fix, and ids are unique', () => {
+  const ids = new Set();
+  for (const r of V.RULES) {
+    assert.match(r.id, /^BR-[A-Z0-9-]+(-[ab])?$/i, r.id);
+    assert.ok(!ids.has(r.id), `duplicate ${r.id}`); ids.add(r.id);
+    assert.ok(r.field && r.rule.length > 20 && r.fix.length > 10 && /\.$/.test(r.rule), r.id);
+    assert.equal(V.ruleDoc(r.id.toLowerCase()), r);
+  }
+  assert.ok(ids.size >= 100);
+});
+
+test('what is not an e-invoice is refused plainly', () => {
+  assert.throws(() => P.readInvoice('<!DOCTYPE x [<!ENTITY a SYSTEM "file:///etc/passwd">]><x>&a;</x>'), /DOCTYPE/);
+  assert.throws(() => P.readInvoice('<html><body>hi</body></html>'), /root element is <html>/);
+  assert.throws(() => P.readInvoice('<a><b></a>'), /not well-formed/);
+});
+
+test('the tools are listed with their inputs and the long fields travel as references', async () => {
+  const E = await load('src/endpoints.ts'), L = await load('src/lib/long-input.ts'), F = await load('src/lib/file-input.ts');
+  for (const p of ['/einvoice/create', '/einvoice/validate', '/einvoice/to-json']) {
+    const e = E.ENDPOINTS.find((x) => x.path === p);
+    assert.ok(e && e.description.length <= 600 && e.tags.length >= 5, p);
+    assert.ok(L.LONG_INPUT_FIELDS[p], p);
+  }
+  assert.ok(F.FILE_INPUT_PATHS['/einvoice/validate'] && F.FILE_INPUT_PATHS['/einvoice/to-json']);
+  JSON.parse(route.EXAMPLE_INVOICE_JSON);
+  assert.ok(route.createEinvoice(JSON.parse(route.EXAMPLE_INVOICE_JSON), 'xrechnung').validation.valid);
+});
+
+test('the XML inside an official ZUGFeRD / Factur-X PDF is found, read and valid', async () => {
+  const X = await load('src/lib/einvoice/pdf-xml.ts');
+  const pdf = new Uint8Array(fs.readFileSync(path.join(__dirname, 'fixtures', 'einvoice', 'zugferd-en16931-einfach.pdf.bin')));
+  const xml = await X.embeddedInvoiceXml(pdf);
+  assert.ok(xml && xml.includes('CrossIndustryInvoice'));
+  const { syntax, invoice } = P.readInvoice(xml);
+  assert.equal(syntax, 'CII');
+  assert.equal(P.profileName(invoice.specification), 'EN 16931');
+  assert.equal(invoice.totals.grand, 529.87);
+  assert.deepEqual(rules(V.validateInvoice(invoice)), []);
+  // A PDF without an embedded invoice gives null, not an error.
+  assert.equal(await X.embeddedInvoiceXml(new TextEncoder().encode('%PDF-1.4\n1 0 obj\n<< /Length 5 >>\nstream\nhello\nendstream\nendobj\n%%EOF')), null);
+});
+
+test('what an invoice reader returns becomes a valid e-invoice without naming a VAT rate', () => {
+  // The fields of /document/extract and /invoice/check for the Coolblue sample: amounts, no rate.
+  const read = { invoice_number: '993548900', invoice_date: '2014-04-19', due_date: '2014-05-19', currency: 'EUR', seller_name: 'Coolblue B.V.', seller_vat_number: 'NL810433941B01',
+    seller_address: 'Weena 664, 3012 CN Rotterdam', buyer_name: 'Klant B.V.', buyer_country: 'NL', iban: 'NL50INGB0683251309', net_amount: 593.36, vat_amount: 124.61, total_amount: 717.97,
+    line_items: [{ description: 'Laptop', quantity: 1, unit_price: 593.36, amount: 593.36 }] };
+  const made = route.createEinvoice(read, 'zugferd');
+  assert.equal(made.invoice.lines[0].vatRate, 21);
+  assert.deepEqual(made.invoice.vat, [{ category: 'S', rate: 21, basis: 593.36, tax: 124.61 }]);
+  assert.deepEqual(rules(V.validateInvoice(P.readInvoice(made.xml).invoice)), []);
+  // A stated rate wins over the implied one; no amounts means no implied rate.
+  assert.equal(M.fromInput({ ...read, vatRate: 9 }).lines[0].vatRate, 9);
+  assert.equal(M.fromInput({ line_items: [{ description: 'x', amount: 10 }] }).lines[0].vatRate, 0);
+});
+
+test('every rule and every business term has German wording, and both page languages name each other', async () => {
+  const DE = await load('src/lib/einvoice/rules-de.ts'), EN = await load('src/lib/einvoice-pages.ts'), PD = await load('src/lib/einvoice-pages-de.ts');
+  assert.deepEqual(DE.RULES_WITHOUT_GERMAN(), []);
+  for (const r of V.RULES) {
+    const [rule, fix] = DE.ruleDe(r);
+    assert.ok(rule.length > 20 && /\.$/.test(rule) && fix.length > 10, r.id);
+    assert.notEqual(rule, r.rule, `${r.id} is not left in English`);
+  }
+  assert.deepEqual(Object.keys(EN.TERMS).filter((t) => !DE.TERMS_DE[t]), []);
+  const paths = EN.einvoicePagePaths();
+  assert.equal(paths.length, 2 * (2 + V.RULES.length));
+  assert.equal(new Set(paths).size, paths.length);
+  assert.ok(paths.includes('/de/e-rechnung/regeln/br-de-15') && paths.includes('/e-invoice/rules/br-de-15'));
+  const origin = 'https://example.test';
+  const rule = V.ruleDoc('BR-DE-15');
+  const de = PD.einvoiceRulePageDe(rule, origin, true), en = EN.einvoiceRulePage(rule, origin, true);
+  for (const page of [de, en]) {
+    assert.ok(page.includes('hreflang="en" href="https://example.test/e-invoice/rules/br-de-15"'));
+    assert.ok(page.includes('hreflang="de" href="https://example.test/de/e-rechnung/regeln/br-de-15"'));
+  }
+  assert.ok(de.includes('<html lang="de">') && de.includes('<link rel="canonical" href="https://example.test/de/e-rechnung/regeln/br-de-15">'));
+  assert.ok(de.includes('Leitweg-ID') && de.includes('Käuferreferenz') && de.includes('ram:BuyerReference'));
+  assert.ok(en.includes('<link rel="canonical" href="https://example.test/e-invoice/rules/br-de-15">'));
+  const index = PD.einvoiceRulesIndexPageDe(origin), home = PD.einvoiceIndexPageDe(origin, true);
+  assert.equal((index.match(/href="\/de\/e-rechnung\/regeln\/br-/g) || []).length, V.RULES.length);
+  assert.ok(home.includes('1. Januar 2027') && home.includes('action="/einvoice/validate?trial=1"') && !home.includes('undefined'));
+  assert.ok(!de.includes('undefined') && !index.includes('undefined'));
+  const map = EN.withEinvoicePages('<urlset><url><loc>https://example.test/</loc></url></urlset>', origin);
+  assert.equal((map.match(/<loc>/g) || []).length, 1 + paths.length);
+});
+
+test('the ZUGFeRD PDF is a well-formed PDF/A-3 shaped file that carries the same XML', async () => {
+  const PDF = await load('src/lib/einvoice/pdf.ts'), X = await load('src/lib/einvoice/pdf-xml.ts');
+  const made = route.createEinvoice({ ...PLAIN, note: 'Größere Mengen auf Anfrage – Preise in € zzgl. USt. Łódź' }, 'zugferd');
+  const options = { now: new Date('2026-11-14T12:00:00Z'), id: 'ab'.repeat(16) };
+  const pdf = PDF.writeZugferdPdf(made.invoice, made.xml, options);
+  assert.deepEqual(PDF.writeZugferdPdf(made.invoice, made.xml, options), pdf, 'same input, same bytes');
+  const text = Buffer.from(pdf).toString('latin1');
+  assert.ok(text.startsWith('%PDF-1.7\n%') && text.trimEnd().endsWith('%%EOF'));
+  // Every cross-reference entry points at its object.
+  const xrefAt = Number(/startxref\n(\d+)\n%%EOF/.exec(text)[1]);
+  assert.ok(text.startsWith('xref\n0 ', xrefAt));
+  const entries = text.slice(xrefAt).split('\n').filter((l) => /^\d{10} 00000 n $/.test(l));
+  assert.ok(entries.length >= 17);
+  entries.forEach((line, i) => assert.ok(text.startsWith(`${i + 1} 0 obj\n`, Number(line.slice(0, 10))), `object ${i + 1}`));
+  assert.equal(Number(/\/Size (\d+)/.exec(text.slice(xrefAt))[1]), entries.length + 1);
+  // Stream lengths are exact.
+  for (const m of text.matchAll(/\/Length (\d+) >>\nstream\n/g)) assert.ok(text.startsWith('\nendstream', m.index + m[0].length + Number(m[1])), 'stream length');
+  // What PDF/A-3 and Factur-X ask for.
+  for (const part of ['/Type /Catalog', '/Metadata 3 0 R', '/AF [4 0 R]', '/AFRelationship /Alternative', '/Type /EmbeddedFile /Subtype /text#2Fxml', '/EmbeddedFiles << /Names [(factur-x.xml) 4 0 R]',
+    '<pdfaid:part>3</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance>', '<fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>', '<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>',
+    '/Subtype /CIDFontType2', '/FontFile2', '/ToUnicode', '/CalGray']) assert.ok(text.includes(part), part);
+  for (const banned of ['/DeviceRGB', '/DeviceGray', '/DeviceCMYK', '/Encrypt', '/JavaScript', '/SMask', ' rg', ' RG', ' g\n', ' G\n']) assert.ok(!text.includes(banned), `no ${banned}`);
+  assert.equal(await X.embeddedInvoiceXml(pdf), made.xml);
+  assert.ok(pdf.length < 120000);
+  // German labels for a German seller, English otherwise or on request.
+  const glyphHex = (font, s) => [...s].map((ch) => font.cmap.get(ch.codePointAt(0)).toString(16).padStart(4, '0').toUpperCase()).join('');
+  const F = await load('src/data/invoice-font.generated.ts');
+  assert.ok(text.includes(glyphHex(F.FONT_BOLD, 'Rechnung')));
+  assert.ok(Buffer.from(PDF.writeZugferdPdf(made.invoice, made.xml, { ...options, lang: 'en' })).toString('latin1').includes(glyphHex(F.FONT_BOLD, 'Invoice')));
+  for (const ch of 'äöüßÄÖÜ€–„“éèçñøåŁłńśźżČčŘřŠšŽžğı') assert.ok(F.FONT_REGULAR.cmap.has(ch.codePointAt(0)) && F.FONT_BOLD.cmap.has(ch.codePointAt(0)), `font has ${ch}`);
+});
+
+test('create returns the PDF as pdfBase64, and MCP hands it over as a file, not as text', async () => {
+  const create = route.EINVOICE[0];
+  const out = await create.run({}, (n) => ({ invoice: route.EXAMPLE_INVOICE_JSON, format: 'zugferd-pdf', language: 'en' })[n]);
+  assert.equal(out.format, 'zugferd-pdf');
+  assert.equal(out.filename, 'RE-2026-0042.pdf');
+  assert.equal(out.contentType, 'application/pdf');
+  const bytes = Buffer.from(out.pdfBase64, 'base64');
+  assert.equal(bytes.length, out.bytes);
+  assert.ok(bytes.subarray(0, 8).toString('latin1') === '%PDF-1.7' && out.xml.includes('CrossIndustryInvoice') && /PDF\/A-3b/.test(out.note));
+  assert.throws(() => create.run({}, (n) => ({ invoice: route.EXAMPLE_INVOICE_JSON, format: 'pdf', language: 'fr' })[n]), /language must be one of/);
+  assert.ok(create.endpoint.params.format.enum.includes('zugferd-pdf') && create.endpoint.description.length <= 450);
+  const mcp = await load('src/mcp.ts');
+  const content = mcp.toContent(out);
+  assert.equal(content.length, 2);
+  assert.ok(!content[0].text.includes(out.pdfBase64.slice(0, 200)), 'the PDF is not repeated in the text block');
+  assert.deepEqual(content[1], { type: 'resource', resource: { uri: 'file:///RE-2026-0042.pdf', mimeType: 'application/pdf', blob: out.pdfBase64 } });
+});

@@ -1,5 +1,6 @@
 // All table-generated endpoint families, in catalog order.
 import { PRICE, type Entry } from "./family";
+import { EINVOICE } from "./routes/einvoice";
 import { AI_TEXT, BASICS } from "./routes/ai-text";
 import { CHAIN_READS } from "./routes/chain-reads";
 import { CHECKS } from "./routes/checks";
@@ -112,5 +113,7 @@ export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   "/sun", "/moon", "/holidays", "/econ/gdp", "/econ/inflation", "/econ/population", "/econ/unemployment",
   "/text/prompt-injection", "/text/pii", "/dockerfile/lint",
 ]);
+// E-invoice tools (14 Nov 2026), added here and not in the list above so parallel releases do not edit the same line.
+CATALOG.push(...EINVOICE);
 export const FAMILIES: Entry[] = CATALOG.map((e) =>
   LOCAL_PATHS.has(e.endpoint.path) && e.endpoint.price === PRICE ? { ...e, endpoint: { ...e.endpoint, price: LOCAL_TEST_PRICE } } : e);
