@@ -15,7 +15,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
-import { EINVOICE_BASE, EINVOICE_RULES, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage } from "./lib/einvoice-pages";
+import { EINVOICE_BASE, EINVOICE_RULES, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage, withEinvoicePages } from "./lib/einvoice-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
@@ -635,7 +635,7 @@ app.get("/tools/:slug", async (c) => {
 // IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
 app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
-app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
+app.get("/sitemap.xml", (c) => c.body(withEinvoicePages(sitemapXml(origin(c.req.url)), origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
