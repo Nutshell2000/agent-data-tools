@@ -56,7 +56,12 @@ export function v1Requirements(env: Env, endpoint: Endpoint, resourceUrl: string
 /** The leading snake_case reason code of a facilitator message ("invalid_exact_evm_insufficient_balance: …"). */
 export const reasonCode = (message: string) => /^[a-z][a-z0-9_]+/.exec(message.trim())?.[0] ?? "invalid_payment";
 
-export const v1Body = (accepts: RequirementsV1[], error: string, hint?: string) => ({ x402Version: 1 as const, error, accepts, ...(hint ? { hint } : {}) });
+/** True when an X-PAYMENT header holds an x402 version 2 payload (some clients send v2 under the v1 header name). */
+export function isV2PaymentHeader(header: string): boolean {
+  try { return Number((decodePaymentSignatureHeader(header) as { x402Version?: unknown })?.x402Version) === 2; } catch { return false; }
+}
+
+export const v1Body =(accepts: RequirementsV1[], error: string, hint?: string) => ({ x402Version: 1 as const, error, accepts, ...(hint ? { hint } : {}) });
 
 let facilitator: ReturnType<typeof buildFacilitator> | undefined;
 
