@@ -48,6 +48,11 @@ test('missing, duplicate, hidden, unsupported and empty sections fail clearly',a
  assert.equal((await call('plain','one')).status,415);
  for(const id of ['x'.repeat(501), 'line\nbreak'])assert.equal((await call('long',id)).status,400);
 });
+test('our former published section example reads the whole page where the page lacks it (stale router copies)',async()=>{
+ const v=await result('container','retry-policy');assert.match(v.text,/CONTAINER_BODY/);assert.equal(v.section,null);assert.ok(v.warnings.includes('section_example_ignored'));assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+ const plain=await call('plain','retry-policy');assert.equal(plain.status,200);
+ const other=await call('container','not-here');assert.equal(other.status,422);
+});
 test('an empty section reads the whole page (planners send every listed input, filled or not)',async()=>{
  for(const id of ['', '  ']){const r=await call('long',id);assert.equal(r.status,200);const v=await r.json();assert.equal(v.section,null);}
 });

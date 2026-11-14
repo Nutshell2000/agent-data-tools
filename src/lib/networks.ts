@@ -26,6 +26,12 @@ type Network = `${string}:${string}`;
 /** Solana mainnet (CAIP-2) and its native USDC mint; settled by the same CDP facilitator. */
 export const SOLANA_NETWORK = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 export const SOLANA_USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+/**
+ * The CDP facilitator's Solana fee payer, as its /supported answer and our live 402s carried it on 14 Nov 2026. The paywall
+ * reads the real value from the facilitator for every quote; this copy only lets the discovery files (which are not quotes)
+ * show the Solana terms a Solana-first client needs to see that a tool is payable there.
+ */
+export const CDP_SOLANA_FEE_PAYER = "BENrLoUbndxoNMUS5JXApGMtNykLjFXXixMtpDwDR9SP";
 const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 /**

@@ -51,3 +51,16 @@ test("list inputs and non-EVM addresses are not held to a single 0x address", ()
 test("an optional example names the same network as the required example address", () => {
   assert.equal(tool("/contract/abi").params.chain.example, "ethereum");
 });
+
+test("the discovery files list Solana terms when a Solana payee is set, like the live 402 does", async () => {
+  const idx = await loadTypeScript(require.resolve("../src/lib/discovery-index.ts"));
+  const env = { NETWORK: "eip155:8453", EXTRA_NETWORKS: "eip155:137,eip155:42161", PAY_TO: "0x6293ded2684f1a76e26becef87c137d691fbf800", SOLANA_PAY_TO: "82wfSCZhCmZA7zwqqt6Q3FG8nqYBwUvbThP6M97fa9Q6" };
+  const terms = idx.usdcRequirements(env, "$0.01");
+  assert.deepEqual(terms.map((t) => t.network), ["eip155:8453", "eip155:137", "eip155:42161", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"]);
+  const sol = terms.at(-1);
+  assert.equal(sol.asset, "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  assert.equal(sol.payTo, env.SOLANA_PAY_TO);
+  assert.equal(sol.amount, "10000");
+  assert.ok(sol.extra.feePayer);
+  assert.equal(idx.usdcRequirements({ ...env, SOLANA_PAY_TO: "" }, "$0.01").length, 3);
+});

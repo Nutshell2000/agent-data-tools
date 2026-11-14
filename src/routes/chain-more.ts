@@ -11,6 +11,8 @@ import { CHAINS, LOG_WINDOW_MAX, SPARSE_FIRST_WINDOW, client, codeKind, logsClie
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
+/** /contract/abi's published example address: USDC on Ethereum. */
+const ABI_EXAMPLE_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const def = (slug: string) => CHAINS.find((c) => c.slug === slug)!;
 const supplyOf = (cl: PublicClient, token: `0x${string}`) => Promise.all([
   cl.readContract({ address: token, abi: erc20Abi, functionName: "totalSupply" }) as Promise<bigint>,
@@ -148,7 +150,7 @@ export const CHAIN_MORE: Entry[] = [
   entry("/contract/abi", "Contract ABI, verified contract: ABI and source",
     "The verified ABI of a smart contract on Ethereum, Base, Arbitrum, Optimism or Polygon from Sourcify's open verification repository: contract name, compiler, match quality, every function and event signature, the full ABI, and for proxies the implementation contract with its ABI. Optional source=true adds the main source file (up to 20,000 characters). Unverified contracts are an uncharged 422. Use before calling or decoding a contract.",
     ["contract-abi", "abi", "verified-contract", "contract-source", "evm"], {
-      address: { type: "string", description: "Contract 0x address", required: true, example: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
+      address: { type: "string", description: "Contract 0x address", required: true, example: ABI_EXAMPLE_ADDRESS },
       // The example network must be the example address's own (Ethereum USDC): a planner that fills every listed input sent
       // chain=base with it and got "not verified on Sourcify for Base" (14 Nov 2026, --all-params sweep).
       chain: { type: "string", description: "ethereum (default), base, arbitrum, optimism or polygon", example: "ethereum" },
@@ -156,14 +158,22 @@ export const CHAIN_MORE: Entry[] = [
     },
     { chain: "Ethereum", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", name: "FiatTokenProxy", match: "exact_match", compiler: "0.6.12+commit.27d51765", proxy: { type: "ZeppelinOSProxy", implementation: "0x2Ce6311ddAE708829bc0784C967b7d77D19FD779", implementationName: "FiatTokenV2_2" }, functions: [{ signature: "transfer(address,uint256)", stateMutability: "nonpayable" }], events: ["Transfer(address,address,uint256)"], errors: [], abi: [], source: "Sourcify (sourcify.dev)" },
     async (_env, q) => {
-      const slug = chainSlug(opt(q, "chain", 30));
+      let slug = chainSlug(opt(q, "chain", 30));
       const raw = need(q, "address", 60);
       if (!/^0x[0-9a-fA-F]{40}$/.test(raw)) throw new HttpError(400, "address must be a 0x contract address");
       const address = getAddress(raw);
       const withSource = /^(true|1|yes)$/i.test(opt(q, "source", 5) ?? "");
-      const chainId = CHAIN_IDS[slug];
-      const c = await sourcify(chainId, address, `abi,compilation,proxyResolution,verifiedAt${withSource ? ",sources" : ""}`);
+      const fields = `abi,compilation,proxyResolution,verifiedAt${withSource ? ",sources" : ""}`;
+      let c = await sourcify(CHAIN_IDS[slug], address, fields);
+      // Until 1.178.0 the listing paired this example address (Ethereum USDC) with chain=base, and routers keep old copies
+      // of listings (Mercator's of 14 Nov 2026 still did): that exact pair reads the address's own network and says so.
+      let note: string | undefined;
+      if (!c && slug === "base" && address === getAddress(ABI_EXAMPLE_ADDRESS)) {
+        c = await sourcify(CHAIN_IDS.eth, address, fields);
+        if (c) { slug = "eth"; note = "this address is Ethereum's USDC and has no contract on Base, so its Ethereum record is shown"; }
+      }
       if (!c) throw new HttpError(404, `${address} is not verified on Sourcify for ${def(slug).name}; nothing was charged`);
+      const chainId = CHAIN_IDS[slug];
       const impl = c.proxyResolution?.isProxy ? c.proxyResolution.implementations?.[0] : undefined;
       const implData = impl ? await sourcify(chainId, getAddress(impl.address), "abi,compilation").catch(() => null) : null;
       const abi = (implData?.abi ?? c.abi ?? []) as Parameters<typeof abiSummary>[0];
@@ -176,7 +186,7 @@ export const CHAIN_MORE: Entry[] = [
       return {
         chain: def(slug).name, address, name: c.compilation?.name ?? null, match: c.match ?? null, compiler: c.compilation?.compilerVersion ?? null, language: c.compilation?.language ?? null, verifiedAt: c.verifiedAt ?? null,
         proxy: c.proxyResolution?.isProxy ? { type: c.proxyResolution.proxyType ?? null, implementation: impl?.address ?? null, implementationName: impl?.name ?? implData?.compilation?.name ?? null, abiFrom: implData?.abi ? "implementation" : "proxy" } : null,
-        ...abiSummary(abi), abi, ...(main !== undefined ? { sourceFile: main } : {}), source: "Sourcify (sourcify.dev)",
+        ...abiSummary(abi), abi, ...(main !== undefined ? { sourceFile: main } : {}), source: "Sourcify (sourcify.dev)", ...(note ? { note } : {}),
       };
     }),
 
