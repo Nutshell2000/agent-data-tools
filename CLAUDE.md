@@ -1781,3 +1781,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Readers checked on 18 real files from open-source test suites on 14 Nov (scratch only, not in the repo). Excel: `dateStyles()` reads xl/styles.xml (numFmts + cellXfs) and `excelDate()` turns a day number into an ISO date, date-time or time for cells whose style shows one; the 1904 flag is read from workbookPr. Word: `mc:Fallback` is skipped (it repeats mc:Choice) and footnotes.xml / endnotes.xml are appended under their own heading. Still not read: headers and footers, comments, images, merged-cell spans, charts.
 - /sitemap.xml on a retired host moves too (it is XML, so the page rule alone missed it). In the domain release also set `PUBLIC_BRAND` to Glyphcall (1.172.0, src/lib/public-brand.ts: browsers then get the product front page at / and the old homepage is at /agents).
 
+
+
+## /describe on a page without a preview image (1.174.0, 14 Nov 2026)
+
+- `pageMainImage()` in src/routes/ai.ts is the fallback after `pagePreviewImage()`: link image_src, then the first content `<img>` (no data:, SVG, logo/icon/pixel names, nothing declared 64 px or smaller). Paid /describe refusals of 14 Nov (415 on a page URL) came from the steadiest buyer, agent 0xe629; read /status `topFailures` for /describe after release. Bot-blocked and 404 pages stay uncharged 422s.
+- Weather margin test: `WEATHER_TEST_PATHS` (src/endpoints.ts) prices /weather/forecast at $0.003 until the 17 Nov review; tests/entry-paths.test.cjs exempts it from the door-equals-canonical rule. After the release run `node scripts/update-402index-prices.mjs --dry` then for real. Revert by deleting the set and rerunning scripts/freeze-prices.mjs.
+

@@ -1,5 +1,5 @@
 {
-  "version": "1.173.0",
+  "version": "1.174.0",
   "tools": [
     {
       "name": "extract",
@@ -18352,7 +18352,7 @@
     },
     {
       "name": "weather_forecast",
-      "description": "Weather forecast by city name or coordinates: current temperature, conditions, precipitation, wind, humidity, cloud cover and pressure, plus an hourly forecast up to 48 hours ahead, for any city on Earth (MET Norway data). Give a city such as London or Tokyo, or lat and lon. Use when an agent needs today's weather or tomorrow's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Weather forecast by city name or coordinates: current temperature, conditions, precipitation, wind, humidity, cloud cover and pressure, plus an hourly forecast up to 48 hours ahead, for any city on Earth (MET Norway data). Give a city such as London or Tokyo, or lat and lon. Use when an agent needs today's weather or tomorrow's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.003/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18383,7 +18383,7 @@
           }
         }
       },
-      "price": "$0.002"
+      "price": "$0.003"
     },
     {
       "name": "sanctions_screen",
