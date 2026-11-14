@@ -1,7 +1,7 @@
 {
 	"name": "n8n-nodes-agent-data-tools",
-	"version": "0.2.0",
-	"description": "n8n node for Agent Data Tools: PDF to text from a file or URL, web search, page text, GitHub data, text to speech, website audits, news, crypto prices and indicators, CVE, company and SEC lookups, sanctions screening and about 680 more pay-per-call tools behind one prepaid API key.",
+	"version": "0.3.0",
+	"description": "n8n node for Agent Data Tools: Word, Excel, PowerPoint and PDF files to text or Markdown, invoice and document fields as JSON, web search, page text, website audits, news, GitHub, CVE, company and sanctions checks, crypto prices and about 680 more tools behind one prepaid API key.",
 	"license": "MIT",
 	"homepage": "https://agent-data-tools.revmesh2074.workers.dev",
 	"keywords": [
@@ -9,6 +9,10 @@
 		"n8n",
 		"pdf",
 		"pdf-to-text",
+		"docx",
+		"excel",
+		"invoice",
+		"document-extraction",
 		"document",
 		"web-search",
 		"web-scraping",
