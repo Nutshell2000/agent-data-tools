@@ -1938,3 +1938,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `EXTRACT_EXAMPLE_URL` is /document/extract's example file. Its example answer must stay a real answer of the live tool for that file: re-read it (twice) after changing the model, the rules or the preset.
 - Latency seen live on gpt-oss-120b: 4-25 s, once 36 s, for a text PDF.
 
+
+
+## Glyphcall Voice round 3: summaries, comparison pages, voice notes (1.192.0, 14 Nov 2026)
+
+- Why: the owner, 14 Nov ("improve our entire voice call / blowing elevenlabs out of the water operation"). Plan: business\voice-plan-2026-11-14\plan.md.
+- `transcribeAudio(env, bytes, language)` in src/routes/voice.ts is the one transcription path for `/transcribe/long` and `/transcribe/summary`. MP3/WAV go through `planAudio`; a 415 from it falls back to ONE Whisper call when the file is at most `SINGLE_PART_MAX_BYTES` (5 MB), with the length taken from the last segment's end (`format: "other"`).
+- `/transcribe/summary` ($0.05, `SUMMARY_PRICE`): `chat()` with `CHAT_MODEL` (Llama 4 Scout), `SUMMARY_SYSTEM` asks for one JSON object and tells the model the transcript is untrusted; `readSummary()` reads it leniently (fences, string action items, "null" strings dropped) and falls back to the raw reply as the summary. The model reads at most `SUMMARY_SOURCE_MAX` 60,000 characters (about an hour) and the answer carries a `note` when it was cut.
+- `src/lib/voice-compare.ts`: `STT_RIVALS`/`TTS_RIVALS` with `VOICE_CHECKED` "14 November 2026", every row from the rival's own pricing page (read by a fetch agent that day; Groq's page showed no figure and is left out). `ourVoice()` reads our prices from ENDPOINTS. Never write "cheapest" (tests/voice-round3 checks the ElevenLabs page); OpenAI tts-1 ($0.015/1k) undercuts our lite voice ($0.02/1k) and the page says so. Hooked into compare-pages.ts through `voiceComparePaths()` (sitemap) and the `voiceCompareHtml` fallback in `compareHtml`.
+- Not checked yet (staging after release): a real summary call on a multi-minute MP3, and an OGG/M4A voice note through the single-call fallback.
+

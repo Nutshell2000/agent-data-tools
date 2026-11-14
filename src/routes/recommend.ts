@@ -41,6 +41,10 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "text to speech": "/ai/speech", "tts": "/ai/speech", "read aloud": "/ai/speech", "voice over": "/ai/speech", "speak text": "/ai/speech",
   "long text to speech": "/text-to-speech", "narrate": "/text-to-speech", "narration": "/text-to-speech",
   "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
+  // 1.192.0 (Glyphcall Voice): the long, cheap and summary voice tools by the jobs buyers name.
+  "podcast transcription": "/transcribe/long", "transcribe podcast": "/transcribe/long", "transcribe meeting": "/transcribe/long", "long audio": "/transcribe/long", "transcribe interview": "/transcribe/long", "subtitles": "/transcribe/long", "srt": "/transcribe/long", "generate subtitles": "/transcribe/long", "elevenlabs speech to text": "/transcribe/long", "scribe": "/transcribe/long",
+  "meeting notes": "/transcribe/summary", "meeting summary": "/transcribe/summary", "summarize audio": "/transcribe/summary", "summarize recording": "/transcribe/summary", "voice note": "/transcribe/summary", "voicemail": "/transcribe/summary", "call summary": "/transcribe/summary", "action items": "/transcribe/summary",
+  "cheap text to speech": "/text-to-speech/lite", "cheap tts": "/text-to-speech/lite",
   "smart contract audit": "/audit/contract", "contract audit": "/audit/contract", "audit contract": "/audit/contract", "audit smart contract": "/audit/contract", "solidity audit": "/audit/contract", "audit solidity": "/audit/contract", "contract security review": "/audit/contract", "security audit": "/audit/contract", "code audit": "/audit/contract",
   "website audit": "/audit/website", "site audit": "/audit/website", "audit bundle": "/audit/website", "accessibility audit": "/audit/website", "page speed": "/audit/website", "lighthouse": "/audit/website",
   "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
