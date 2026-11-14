@@ -181,6 +181,61 @@ export const PRODUCTS: readonly Product[] = [
     ],
     guides: [],
   },
+  // Our own search indexes (14 Nov 2026, the beat-Exa plan). The figures come from
+  // business/research-2026-11-14-biggest-earners/benchmark-eu-law-vs-exa-2026-11-14.md; rerun the benchmark before changing them.
+  {
+    slug: "eu-law-search-api",
+    name: "EU law search API",
+    tagline: "Ask a compliance question in plain words; get the exact EU articles that answer it, with act, article number, full text and the EUR-Lex link. GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT and more.",
+    tool: "/law/search",
+    also: ["/company/search", "/vat/validate"],
+    points: [
+      "47 EU acts article by article and recital by recital, in their latest consolidated English text",
+      "Every result cites the act and article, with its heading, full text, EUR-Lex link and the version it comes from",
+      "Our own index (keyword and meaning search, reranked), hosted in the EU: no outside search engine in between",
+      "On 20 compliance questions the right article was in our top 5 for 19, against 13 for Exa's web search (14 Nov 2026)",
+    ],
+    limits: [
+      "Not legal advice: only the Official Journal text is authentic.",
+      "EU acts only, in English; national laws and case law are not indexed yet.",
+    ],
+    unit: "searches",
+    faq: [
+      ["Which acts are covered?", "47 acts businesses ask about most: GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, the Data Act, the Cyber Resilience Act, eIDAS, PSD2, the anti-money-laundering package, the VAT Directive and its implementing regulation, ViDA, consumer law, product safety and liability, CSRD, the Accounting Directive, CSDDD, SFDR and more."],
+      ["How current is the text?", "Each act is the latest consolidated version in force when the index was built (monthly), and every result names that version. Recitals come from the text as published in the Official Journal."],
+      ["How does it compare with a web search API?", "A web search returns pages about the law. This returns the provision itself. On our 20-question test the right article came first for 10 questions and was in the top 5 for 19; Exa's search had 5 and 13, scored leniently. The questions and method are published."],
+      ["Can I limit the search to one act?", "Yes: act=GDPR (or the full name, or the CELEX number). kind=article or kind=recital narrows further."],
+      ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
+    ],
+    guides: [],
+    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"]],
+  },
+  {
+    slug: "exa-alternative-api",
+    name: "Exa alternative API for EU law and company data",
+    tagline: "Search APIs for agents that need Europe: EU law article by article, and companies in official registers. Exa-compatible endpoints, our own EU-hosted indexes, pay per call or by plan.",
+    tool: "/company/search",
+    also: ["/law/search", "/vat/validate", "/lei/lookup"],
+    points: [
+      "EU law: the exact article, not a page about it. Right article in the top 5 for 19 of 20 questions, Exa's web search 13 (14 Nov 2026, method published)",
+      "Companies from official registers (France, Sweden, Norway, Finland, Czechia, Estonia) plus GLEIF LEIs for every country, with register links",
+      "Exa's own SDKs work: point exa-js or exa-py at our /v1 base URL",
+      "The EU law database is hosted in Cloudflare's EU jurisdiction; uploaded files are never stored",
+    ],
+    limits: [
+      "Not a general web index: for open-web search and news, a general search engine stays the better tool.",
+      "Register facts and law text only: no credit scores, no people data, not legal advice.",
+    ],
+    unit: "searches",
+    faq: [
+      ["Why use this instead of Exa?", "When the question is about Europe. Exa crawls the web and processes requests in the US; its company data comes from web pages and its legal sources are US. Here, law comes from the EU's own consolidated texts and companies from the official registers, searched from the EU."],
+      ["Do I need to rewrite my Exa code?", "No. Exa's SDKs accept a base URL: new Exa(apiKey, \"https://tools.funwords.eu/v1\"). Search, contents, findSimilar and answer work; searches restricted to eur-lex.europa.eu, or with category \"law\", are answered from the EU law index."],
+      ["How do I pay?", "With an API key from a monthly plan or a one-off pack; AI agents with a wallet can also pay per call with no account (see For AI agents below)."],
+      ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
+    ],
+    guides: [],
+    more: [["/eu-law-search-api", "EU law search API"]],
+  },
 ];
 
 const BY_SLUG = new Map(PRODUCTS.map((p) => [p.slug, p]));
