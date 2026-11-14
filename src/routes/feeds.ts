@@ -39,7 +39,9 @@ const isoDate = (s: string) => {
 
 async function fetchText(raw: string | undefined, accept: string, maxBytes: number, cacheSeconds = 0) {
   const target = parseTarget(raw);
-  const res = await fetchPublic(target, accept, [], { cacheSeconds });
+  // 12 s, not the default 8 s (14 Nov 2026): the published example feed (hnrss.org) answers in 0.5-1.8 s but stalled past
+  // 8 s once in a replay, and fetchPublic's one retry needs room inside the budget.
+  const res = await fetchPublic(target, accept, [], { cacheSeconds, budgetMs: 12_000 });
   const text = await new Response(capBytes(res.body!, maxBytes, () => {})).text();
   return { finalUrl: res.url || target.href, contentType: (res.headers.get("content-type") ?? "").split(";")[0].trim(), text };
 }

@@ -153,7 +153,8 @@ const CORE_EXTRACT = core("/extract", "$0.002", {
   url: { type: "string", description: "Absolute http(s) URL of the page to scrape", required: true, example: "https://example.com" },
   maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
   format: { type: "string", description: "Returned representation: text (default), markdown, or both", enum: ["text", "markdown", "both"], example: "text" },
-  section: { type: "string", description: "Optional exact visible HTML ID within the main content, 1-500 characters", example: "retry-policy" },
+  // No example: an HTML ID belongs to one page, and planners fill every listed input (see bazaarInputProperties).
+  section: { type: "string", description: "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page", example: "" },
 }, EXTRACT_OUTPUT_EXAMPLE as Record<string, unknown>, (_env, q) => extract(q("url"), q("maxChars"), q("format"), q("section")));
 
 const CORE_EMAIL = core("/email", "$0.01", {

@@ -57,7 +57,7 @@ export const CORE_ENDPOINTS = [
       url: { type: "string", description: "Absolute http(s) URL of the page to fetch", required: true, example: "https://example.com" },
       maxChars: { type: "integer", description: "Maximum characters of body text to return (500-100000, default 20000)", example: 20000 },
       format: { type: "string", description: "Returned representation: text (default), markdown, or both. HTML structured details are included in every format; Markdown/plain sources have empty details.", enum: ["text", "markdown", "both"], example: "text" },
-      section: { type: "string", description: "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section.", example: "retry-policy" },
+      section: { type: "string", description: "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section. Leave it out to read the whole page.", example: "" },
     },
     outputExample: EXTRACT_OUTPUT_EXAMPLE,
   },

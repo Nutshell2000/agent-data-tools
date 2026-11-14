@@ -3,7 +3,7 @@
 // no upstream service and no per-call cost beyond CPU.
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { fetchFile, parseTarget } from "../lib/fetch";
+import { TARGET_UNAVAILABLE, fetchFile, parseTarget } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -73,8 +73,12 @@ const isPdf = (b: Uint8Array) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44
 const WAYBACK = "https://web.archive.org/web/2id_/";
 
 /** The target refused or lacks the file (401/403/451/429/404/410), or answered a bot-check page instead of a PDF. */
+// Also a site that is down, slow, loops redirects or breaks the connection (TARGET_UNAVAILABLE: 5xx, 429, timeouts):
+// /status of 14 Nov 2026 showed 124 of 571 refused /pdf/text calls in that class ("target responded with HTTP 5xx" 83,
+// timeouts 33, redirect limit 5, broken connection 3) and paid calls ending in execution_failed, while /extract already
+// read the archive for the same class.
 const fallbackWorthy = (e: unknown) =>
-  e instanceof HttpError && ((e.status === 422 && /refused automated access|was not found/.test(e.message)) || (e.status === 502 && /HTTP 429/.test(e.message)) || (e.status === 415 && /web page/.test(e.message)));
+  e instanceof HttpError && (e.code === TARGET_UNAVAILABLE || (e.status === 422 && /refused automated access|was not found/.test(e.message)) || (e.status === 415 && /web page/.test(e.message)));
 
 /**
  * The PDF's bytes. Many PDF hosts refuse Cloudflare's shared egress addresses (bot walls answering 403, or a 200 with a
@@ -95,7 +99,9 @@ export async function loadPdf(rawUrl: string | undefined) {
   }
   const target = parseTarget(url).href;
   try {
-    const copy = await fetchFile(WAYBACK + target, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 25_000 });
+    // After a timeout the caller has already waited 20 s: give the archive less, so the whole call stays near 35 s.
+    const late = first instanceof HttpError && first.status === 504;
+    const copy = await fetchFile(WAYBACK + target, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: late ? 15_000 : 25_000 });
     if (isPdf(copy.bytes)) {
       const stamp = /\/web\/(\d{14})/.exec(copy.finalUrl)?.[1] ?? null;
       const snapshot = stamp ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}` : null;

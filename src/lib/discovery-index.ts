@@ -5,7 +5,7 @@ import { listingDescription, listingName, searchTagged } from "./bazaar-extensio
 // quote: the paywall still issues the real terms on each 402.
 import { ENDPOINTS, SERVICE_NAME } from "../endpoints";
 import type { Env } from "./env";
-import { paymentOptions, USDC_BY_NETWORK, USDC_DOMAIN } from "./networks";
+import { CDP_SOLANA_FEE_PAYER, paymentOptions, SOLANA_NETWORK, SOLANA_USDC, USDC_BY_NETWORK, USDC_DOMAIN } from "./networks";
 import { usdMicros } from "./revenue";
 
 /** When this isolate started; the catalog changes only with a deploy. */
@@ -18,15 +18,17 @@ export function usdcRequirements(env: Pick<Env, "NETWORK" | "EXTRA_NETWORKS" | "
   const atomic = usdMicros(price);
   if (atomic === null) return [];
   return paymentOptions(env)
-    .filter(({ network }) => USDC_BY_NETWORK[network] && USDC_DOMAIN[network])
+    .filter(({ network }) => network === SOLANA_NETWORK || (USDC_BY_NETWORK[network] && USDC_DOMAIN[network]))
     .map(({ network, payTo }) => ({
       scheme: "exact" as const,
       network,
-      amount: String(atomic), // USDC has 6 decimals, so micro-dollars are atomic units
-      asset: USDC_BY_NETWORK[network],
+      amount: String(atomic), // USDC has 6 decimals on every network here, so micro-dollars are atomic units
+      // Solana (since 1.178.0): the live 402 always quoted it, but these files listed it on no tool, so Solana-first
+      // routers that read them (Dexter's verifier: "no chain this route accepts") saw nothing they could pay on.
+      asset: network === SOLANA_NETWORK ? SOLANA_USDC : USDC_BY_NETWORK[network],
       payTo,
       maxTimeoutSeconds: 300,
-      extra: { ...USDC_DOMAIN[network] },
+      extra: network === SOLANA_NETWORK ? { feePayer: CDP_SOLANA_FEE_PAYER } : { ...USDC_DOMAIN[network] },
     }));
 }
 
