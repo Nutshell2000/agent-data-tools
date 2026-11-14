@@ -249,6 +249,7 @@ export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utiliti
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
+  "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
   "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/cve": "Company, compliance and checks",
