@@ -91,7 +91,7 @@ test("the free key is offered first only when it is switched on", () => {
   const on = productPage(PRODUCTS[0], "https://x.test", true, title, undefined, true, "Brand", true);
   assert.match(on, /<a class="btn primary" href="\/keys\/free">Get a free API key<\/a>/);
   assert.match(on, /A free key makes 100 calls a month/);
-  assert.equal((on.match(/class="btn primary"/g) ?? []).length, 1);
+  assert.match(on, /<a class="btn" href="#try">/);
 });
 
 test("the sitemap lists the product pages", () => {
