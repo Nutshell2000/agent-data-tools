@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-document-extract.documentExtract",
+	"node": "n8n-nodes-glyphcall.glyphcall",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Data & Storage", "Productivity", "Finance & Accounting"],
@@ -23,12 +23,12 @@
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-documents#credentials"
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-glyphcall#credentials"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-documents#readme"
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-glyphcall#readme"
 			}
 		]
 	}
