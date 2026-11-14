@@ -17,8 +17,8 @@ import { HttpError } from "../lib/env";
 import type { Env } from "../lib/env";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
-import { CHAT_MODEL, extractFields } from "./ai-text";
-import { DOCUMENT_MAX_BYTES, EXTRACT_CHARS, readDocument, visionOcr } from "./document";
+import { extractFields } from "./ai-text";
+import { DOCUMENT_MAX_BYTES, EXTRACT_CHARS, EXTRACT_MODEL, readDocument, visionOcr } from "./document";
 import { vatParts, viesCheck, VIES_COUNTRIES } from "./registries";
 import { ibanCheck } from "./utils";
 import { coreName } from "./company-verify";
@@ -196,7 +196,9 @@ export const INVOICE_CHECK: Entry[] = [
         url = file.url;
       }
       const doc = await readDocument(bytes, "text", EXTRACT_CHARS, visionOcr(env as Env));
-      const found = await extractFields(env as Env, doc.text, [...INVOICE_FIELDS], CHAT_MODEL, 2000, INVOICE_LISTS);
+      // The same model and document rules as /document/extract (lib/extract-hints.ts): on this tool's own sample
+      // invoice the chat model returned the customer number as the invoice number.
+      const found = await extractFields(env as Env, doc.text, [...INVOICE_FIELDS], EXTRACT_MODEL, 2600, INVOICE_LISTS, true);
       const result = await invoiceChecks(found.data, (parts) => viesCheck(parts));
       return { url, ...(url ? {} : { source: "upload" }), ...result, invoice: found.data, missingFields: found.missing, ...("ocr" in doc ? { ocr: true } : {}), model: found.model, truncated: doc.truncated, note: "Checks state facts from VIES, the IBAN rules and the invoice itself; they are not legal or tax advice. Confirm a changed bank account with the supplier by a channel you already trust." };
       // $0.05 a document: one model call and up to two VIES checks; below every per-document invoice product found on 14 Nov 2026.

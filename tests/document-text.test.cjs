@@ -285,6 +285,16 @@ test('a document extraction tells the model how files mislead: date and amount f
   assert.match(sent, /In rows: \\"description\\".*\\"quantity\\": the number of units on that row; a position or item number/);
   assert.equal(H.fieldHints(['colour', 'weight'], {}), '');
   for (const name of ['constructor', '__proto__', 'toString']) assert.equal(H.fieldHints([name], { rows: [name] }), '');
+  // A reply without JSON is asked for once more, with more room; a second empty reply is the 502. Plain text gets one try.
+  const replies = ['Sure, here is what I found.', '{"total": 12.5}'];
+  const asked = [];
+  const flaky = { AI: { run: async (_m, input) => { asked.push(input.max_output_tokens ?? input.max_tokens); return { response: replies.shift() ?? 'still no json' }; } } };
+  assert.deepEqual((await A.extractFields(flaky, 'text', ['total'], 'model-x', 1200, {}, true)).data, { total: 12.5 });
+  assert.deepEqual(asked, [1200, 1800]);
+  await assert.rejects(() => A.extractFields(flaky, 'text', ['total'], 'model-x', 1200, {}, true), (e) => e.status === 502);
+  assert.equal(asked.length, 4);
+  await assert.rejects(() => A.extractFields(flaky, 'text', ['total'], 'model-x'), (e) => e.status === 502);
+  assert.equal(asked.length, 5, 'plain text extraction is not retried');
   // The one-word presets are valid field lists, and every invoice field is one the hints explain.
   for (const [word, spec] of Object.entries(D.FIELD_PRESETS)) {
     const parsed = A.listFields(spec);

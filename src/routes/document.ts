@@ -35,6 +35,8 @@ export const EXTRACT_MODEL = "@cf/openai/gpt-oss-120b";
  * One word instead of a field list: `fields=invoice` asks for the fields an accounts-payable row needs. The names are
  * the ones lib/extract-hints.ts explains to the model, and the ones the Dify plugin and the n8n template send.
  */
+/** The published example of /document/extract: a real invoice (invoice2data's test set, MIT) on a host that answers Cloudflare. */
+export const EXTRACT_EXAMPLE_URL = "https://raw.githubusercontent.com/invoice-x/invoice2data/master/tests/compare/coolblue1.pdf";
 export const FIELD_PRESETS: Readonly<Record<string, string>> = Object.freeze({
   invoice: "supplier_name,supplier_vat_number,supplier_address,customer_name,customer_vat_number,invoice_number,invoice_date,due_date,currency,subtotal,tax_amount,total,iban,payment_reference,line_items[description,quantity,unit_price,amount]",
   receipt: "merchant_name,merchant_address,date,currency,subtotal,tax_amount,total,payment_method,line_items[description,quantity,amount]",
@@ -444,14 +446,27 @@ export const DOCUMENT: Entry[] = [
   entry("/document/extract", "Extract data from a document: invoice, receipt, contract fields as JSON",
     "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
-      fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
+      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: EXTRACT_EXAMPLE_URL },
+      fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items", required: true, example: "invoice" },
     },
     {
-      url: "https://calibre-ebook.com/downloads/demos/demo.docx",
-      // A real answer, read on 14 Nov 2026 from a local run against Workers AI (twice, the same both times).
-      type: "docx", data: { title: "Demonstration of DOCX support in calibre", ebook_formats: ["EPUB", "AZW3"], pens_needed: 3, scissors_needed: 1 },
-      missing: [], model: EXTRACT_MODEL, charsRead: 8934, truncated: false,
+      url: EXTRACT_EXAMPLE_URL,
+      // A real answer: the live tool on 14 Nov 2026 (1.182.0), read twice with the same result. The file is an invoice
+      // from invoice2data's test set (MIT), the one the product page /invoice-data-extraction-api shows.
+      type: "pdf",
+      data: {
+        supplier_name: "Coolblue B.V.", supplier_vat_number: "NL810433941B01", supplier_address: "Weena 664\n3012 CN Rotterdam\nNederland",
+        customer_name: "Pino Bluebird", customer_vat_number: null, invoice_number: "993548900", invoice_date: "2014-04-19", due_date: null,
+        currency: "EUR", subtotal: 593.36, tax_amount: 124.61, total: 717.97, iban: "NL50INGB0683251309", payment_reference: null,
+        line_items: [
+          { description: "Apple iPad Air Wifi 16 GB Zilver", quantity: 1, unit_price: 399, amount: 399 },
+          { description: "Decoded Leather Slim Cover Apple iPad Air 2 Zwart", quantity: 1, unit_price: 69.99, amount: 69.99 },
+          { description: "Nintendo 3DS XL Wit + Blauw", quantity: 1, unit_price: 189, amount: 189 },
+          { description: "Nintendo AC-adapter", quantity: 1, unit_price: 14.99, amount: 14.99 },
+          { description: "Mario Kart 7 3DS", quantity: 1, unit_price: 44.99, amount: 44.99 },
+        ],
+      },
+      missing: ["customer_vat_number", "due_date", "payment_reference"], model: EXTRACT_MODEL, charsRead: 1069, truncated: false,
     },
     async (env, q) => {
       const asked = need(q, "fields", 1000);

@@ -243,8 +243,19 @@ export async function extractFields(env: Env, source: string, fields: string[], 
     : "";
   // A single value the model wrapped in a one-item array is that value.
   const single = (v: unknown): unknown => (Array.isArray(v) && v.length === 1 && (v[0] === null || typeof v[0] !== "object") ? v[0] : v);
-  const r = jsonFrom(await chat(env, `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}.${listRule}${fromDocument ? DOCUMENT_RULES : ""} Use null when a value is not stated in the text; never guess.${fromDocument ? fieldHints(fields, lists) : ""}`, source, maxTokens, 0, model));
-  if (!r || typeof r !== "object" || Array.isArray(r)) throw new HttpError(502, "the AI model did not return an object");
+  const system = `You extract data. ${DATA_RULE}\nReply with one JSON object with exactly these keys: ${JSON.stringify(fields)}.${listRule}${fromDocument ? DOCUMENT_RULES : ""} Use null when a value is not stated in the text; never guess.${fromDocument ? fieldHints(fields, lists) : ""}`;
+  // A document read is asked a second time when the model's reply holds no usable JSON object: about one live call in
+  // twenty on gpt-oss-120b ended "the AI model did not return JSON" (14 Nov 2026, the benchmark's free_fiber.pdf, which
+  // read correctly four times straight afterwards). The second try gets more output room, since a reasoning model
+  // that ran out of tokens mid-answer is one way to get there. Plain-text extraction keeps its single try.
+  const once = async (tokens: number): Promise<unknown> => {
+    const parsed = jsonFrom(await chat(env, system, source, tokens, 0, model));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new HttpError(502, "the AI model did not return an object");
+    return parsed;
+  };
+  const r = fromDocument
+    ? await once(maxTokens).catch((e: unknown) => { if (e instanceof HttpError && e.status === 502) return once(Math.round(maxTokens * 1.5)); throw e; })
+    : await once(maxTokens);
   const data = Object.fromEntries(fields.map((f) => {
     const value = (r as Record<string, unknown>)[f] ?? null;
     const keys = Object.hasOwn(lists, f) ? lists[f] : null;
