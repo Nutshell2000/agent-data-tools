@@ -15,6 +15,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
+import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
@@ -574,6 +575,12 @@ app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.
 app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
   const country = vatCountry(c.req.param("country"));
   return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))) : c.notFound();
+});
+// Per-country company register pages (lib/register-pages.ts), part of the company-check product.
+app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url))));
+app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
+  const country = registerCountry(c.req.param("country"));
+  return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool))) : c.notFound();
 });
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {

@@ -11,6 +11,7 @@ import { GUIDE_FOR_TOOL } from "../guides/task-guides";
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCT_FOR_TOOL } from "./product-pages";
 import { ENTRY_OF } from "../routes/entry-paths";
+import { REGISTER_BASE, REGISTER_FOR_TOOL } from "./register-pages";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -83,6 +84,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p class="meta"><span class="price">${keyOffer ? `${esc(keyOffer.price)} per call with a key` : `${esc(e.price)} per call`}</span>${keyOffer ? ` (${esc(e.price)} paid per call from a wallet)` : ""} · failed calls are never charged · no account needed: a card key or USDC</p>${PRODUCT_FOR_TOOL.has(e.path) ? `\n<p><strong><a href="/${esc(PRODUCT_FOR_TOOL.get(e.path)!.slug)}">${esc(PRODUCT_FOR_TOOL.get(e.path)!.name)}</a>:</strong> code samples in curl, Python and Node, and monthly plans.</p>` : ""}
 <p>${esc(e.description)}</p>
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
+${REGISTER_FOR_TOOL.has(e.path) ? `<p><strong><a href="${REGISTER_BASE}/${esc(REGISTER_FOR_TOOL.get(e.path)!.slug)}">${esc(REGISTER_FOR_TOOL.get(e.path)!.adjective)} company register</a>:</strong> the company number's format and check digit, its VAT number, and a lookup. Part of the <a href="/company-check-api">Company check API</a>.</p>` : ""}
 ${GUIDE_FOR_TOOL.has(e.path) ? `<p>Guide: <a href="/guides/${esc(GUIDE_FOR_TOOL.get(e.path)!.slug)}">${esc(GUIDE_FOR_TOOL.get(e.path)!.phrase)}</a></p>` : ""}
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(`${e.path}?${query}&trial=1`)}">${cappedTry ? esc(cappedTry) : `Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)`}</a>` : ""}
