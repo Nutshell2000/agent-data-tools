@@ -6,7 +6,7 @@ import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER, callerHash, utcDay }
 
 
 import {
-  CREDIT_PACKS, PLAN_PORTAL_URL, PLAN_SYNC_MS, WEB_PACKS, WEB_PLANS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, paidPlanInvoices, planLinks, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, verifyCheckout,
+  CREDIT_PACKS, PLAN_PORTAL_URL, PLAN_SYNC_MS, WEB_PACKS, WEB_PLANS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, paidPlanInvoices, planLinks, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, utcMonth, verifyCheckout,
   type PlanRead, type SpendResult,
 } from "./credits";
 import { applyUnsavedCredits, buyCreditsWithUsdc } from "./usdc-credits";
@@ -49,14 +49,14 @@ async function syncPlans(env: Env, store: Ledger, keyHash: string, plans: PlanRe
 }
 
 /** Takes the price from a key. A key on the plan that is short gets its paid renewals applied first, then one more try. */
-async function spendWithPlans(env: Env, store: Ledger, keyHash: string, micros: number): Promise<SpendResult> {
-  let spent: SpendResult = await store.spendCredits(keyHash, micros);
+async function spendWithPlans(env: Env, store: Ledger, keyHash: string, micros: number, freeMonth?: string): Promise<SpendResult> {
+  let spent: SpendResult = await store.spendCredits(keyHash, micros, freeMonth);
   if (!spent.plans) return spent;
   if (spent.ok) {
     const balance = await syncPlans(env, store, keyHash, spent.plans, true);
     return balance === undefined ? spent : { ...spent, balanceMicros: balance };
   }
-  if (spent.reason === "insufficient" && await syncPlans(env, store, keyHash, spent.plans, false) !== undefined) spent = await store.spendCredits(keyHash, micros);
+  if (spent.reason === "insufficient" && await syncPlans(env, store, keyHash, spent.plans, false) !== undefined) spent = await store.spendCredits(keyHash, micros, freeMonth);
   return spent;
 }
 
@@ -230,8 +230,15 @@ credits.get("/credits/balance", async (c) => {
   const monthly = account.plans?.length
     ? { monthlyPlan: { creditsEachMonth: account.plans.reduce((n, p) => n + p.credits, 0), since: account.plans[0].since, what: PLAN_TERMS, manageOrCancel: PLAN_PORTAL_URL } }
     : WEB_PLANS.length ? { monthlyPlans: planLinks(keyHash) } : {};
-  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, topUp: topUpLinks(keyHash), ...monthly });
+  return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, ...(account.free ? { freeCalls: freeCallsView(account.free) } : {}), topUp: topUpLinks(keyHash), ...monthly });
 });
+
+export const FREE_KEY_NOTE = "A free key makes this many successful calls each calendar month (UTC); failed calls do not count. It does not cover web search, news, AI models, speech, images, browser rendering or screenshots: those need credits on the key.";
+/** What a free key's allowance looks like to its holder: the month is UTC and a new one starts the count again. */
+const freeCallsView = (free: { perMonth: number; month: string; used: number }) => {
+  const used = free.month === utcMonth() ? free.used : 0;
+  return { eachMonth: free.perMonth, usedThisMonth: used, leftThisMonth: Math.max(0, free.perMonth - used), note: FREE_KEY_NOTE };
+};
 
 /** Below this many credits (about 20 calls at $0.01) a key is "low"; the call that crosses it says so once. */
 export const LOW_BALANCE_MICROS = 200_000;
@@ -239,7 +246,7 @@ export const LOW_BALANCE_MICROS = 200_000;
 export const crossedLow = (before: number, after: number) => before >= LOW_BALANCE_MICROS && after < LOW_BALANCE_MICROS;
 
 /** Paywall branch for a request that carries an API key: spend, run, refund on failure. */
-export async function chargeCredits(c: C, price: string, key: string, next: Next) {
+export async function chargeCredits(c: C, price: string, key: string, next: Next, freeEligible = false) {
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now; pay with x402 instead. Not charged." }, 503);
   const keyHash = await hashCreditKey(key);
@@ -254,13 +261,23 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   }
   const micros = priceMicros(price);
   // The credit store can be out of its daily Durable Object quota: nothing is spent then, so say so and when to retry.
-  const spent = await spendWithPlans(c.env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+  const spent = await spendWithPlans(c.env, store, keyHash, micros, freeEligible ? utcMonth() : undefined).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
   if (!spent) return c.json({ error: "credits cannot be checked right now. Not charged; try again in a few minutes, or pay this call with x402." }, 503, { "Retry-After": "300" });
+  if (spent.ok && spent.free) {
+    // One of a free key's monthly calls: nothing is spent, and a failed call gives it back.
+    const giveBack = () => store.refundCredits(keyHash, 0, true).catch((e: unknown) => console.error("free key: giving a call back failed", keyHash.slice(0, 12), e));
+    try { await next(); } catch (err) { await giveBack(); throw err; }
+    const failed = c.res.status >= 400;
+    if (failed) await giveBack(); else markStage("free_key_call");
+    c.res.headers.set("X-Credits-Charged", "0");
+    c.res.headers.set("X-Free-Calls-Left", String(failed ? spent.free.left + 1 : spent.free.left));
+    return;
+  }
   if (!spent.ok) {
     const origin = new URL(c.req.url).origin;
     return spent.reason === "unknown_key"
       ? c.json({ error: "unknown API key. Not charged.", buy: `${origin}/credits` }, 401)
-      : c.json({ error: `not enough credits: this call costs ${creditsFromMicros(micros)}, the key has ${creditsFromMicros(spent.balanceMicros)}. Not charged. Top up this key by card (no new key needed):`, topUp: topUpLinks(keyHash) }, 402);
+      : c.json({ error: `not enough credits: this call costs ${creditsFromMicros(micros)}, the key has ${creditsFromMicros(spent.balanceMicros)}. Not charged. Top up this key by card (no new key needed):`, ...(spent.freeKey ? { freeKey: freeEligible ? "this free key has used its calls for this month (UTC); they start again next month, or add credits to keep going" : "a free key's monthly calls do not cover this tool; add credits to use it" } : {}), topUp: topUpLinks(keyHash) }, 402);
   }
   let remaining = spent.balanceMicros;
   try {
@@ -357,7 +374,7 @@ export function paymentHint(origin: string, price: string, signedIn = false, car
 }
 
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
-export function creditCharger(env: Env, key: string, price: string, origin: string, directory = false) {
+export function creditCharger(env: Env, key: string, price: string, origin: string, directory = false, freeEligible = false) {
   return async <R extends { isError?: boolean; content?: unknown[] }>(run: () => Promise<R>): Promise<R | { isError: true; content: { type: "text"; text: string }[] }> => {
     const store = ledger(env);
     const fail = (text: string) => ({ isError: true as const, content: [{ type: "text" as const, text }] });
@@ -372,8 +389,16 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
       return reviewed;
     }
     const micros = priceMicros(price);
-    const spent = await spendWithPlans(env, store, keyHash, micros).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
+    const spent = await spendWithPlans(env, store, keyHash, micros, freeEligible ? utcMonth() : undefined).catch((e: unknown) => { console.error("credits: spend failed", e); return null; });
     if (!spent) return fail("credits cannot be checked right now; not charged. Try again in a few minutes.");
+    if (spent.ok && spent.free) {
+      // One of a free key's monthly calls: nothing is spent, and a failed call gives it back.
+      const giveBack = () => store.refundCredits(keyHash, 0, true).catch((e: unknown) => console.error("free key: giving a call back failed", keyHash.slice(0, 12), e));
+      let free: R;
+      try { free = await run(); } catch (err) { await giveBack(); throw err; }
+      if (free.isError) await giveBack();
+      return free;
+    }
     // The ChatGPT plugin server may not link to checkout: say the tool is not available on the current balance.
     if (!spent.ok && directory) return fail(spent.reason === "unknown_key"
       ? "this account's credits could not be found; sign in again. Nothing was charged."
