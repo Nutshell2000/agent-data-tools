@@ -1,0 +1,67 @@
+{
+	"name": "n8n-nodes-document-extract",
+	"version": "0.1.0",
+	"description": "n8n node that turns Word, Excel, PowerPoint and PDF files into text or Markdown and extracts named fields (invoice number, total, due date...) as JSON, from a file in your workflow or a URL.",
+	"license": "MIT",
+	"homepage": "https://agent-data-tools.revmesh2074.workers.dev",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"pdf",
+		"pdf-to-text",
+		"docx",
+		"word",
+		"excel",
+		"xlsx",
+		"powerpoint",
+		"markdown",
+		"invoice",
+		"document-extraction",
+		"ocr-alternative",
+		"attachments"
+	],
+	"author": {
+		"name": "SpellzCode",
+		"email": "spellz111122@gmail.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Nutshell2000/agent-data-tools.git",
+		"directory": "integrations/n8n-documents"
+	},
+	"bugs": {
+		"url": "https://github.com/Nutshell2000/agent-data-tools/issues"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "n8n-node build && node --test test/description.test.cjs",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/DocumentExtractApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/DocumentExtract/DocumentExtract.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.56.2",
+		"eslint": "9.39.4",
+		"prettier": "3.8.3",
+		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

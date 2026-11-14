@@ -47,11 +47,13 @@ import { discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
+import { freeKeys } from "./lib/free-keys";
 import { httpFree } from "./lib/capacity";
 import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
+import { FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
@@ -136,6 +138,27 @@ app.use(async (c, next) => {
   const endpoint = ENDPOINTS.find((e) => e.path === c.req.path);
   if (!endpoint) return next();
   const target = new URL(c.req.url);
+  // An uploaded file (raw body, multipart `file` part, or base64 in JSON) waits in lib/file-input.ts and travels as a
+  // reference: automation tools and upload forms hold a file, not a public URL.
+  const fileLimit = FILE_INPUT_PATHS[c.req.path];
+  if (fileLimit) {
+    const sent = await sentFile(c.req.raw, fileLimit);
+    if (sent.kind === "too-large") return c.json({ error: `the file is larger than ${Math.round(sent.limit / 1024 / 1024)} MB (nothing was charged)`, code: "FILE_TOO_LARGE" }, 413);
+    if (sent.kind === "file") {
+      const ref = await holdFile(sent.bytes);
+      for (const [name, value] of Object.entries(sent.fields)) if (name in endpoint.params && name !== "url") target.searchParams.set(name, value);
+      target.searchParams.delete("url");
+      target.searchParams.set(FILE_INPUT, ref);
+      const fileHeaders = new Headers(c.req.raw.headers);
+      fileHeaders.delete("content-type");
+      fileHeaders.delete("content-length");
+      try {
+        return await app.fetch(new Request(target.href, { method: "GET", headers: fileHeaders }), c.env, c.executionCtx);
+      } finally {
+        releaseFile(ref);
+      }
+    }
+  }
   const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
   // A whole source file does not fit in a URL that the payment quote repeats (lib/long-input.ts): it travels as a reference.
   const longFields = LONG_INPUT_FIELDS[c.req.path];
@@ -288,7 +311,7 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key (header, or api_key= in the URL for fetch-only clients) replaces the
   // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
-  if (endpoint && creditKey) return chargeCredits(c, keyPrice(endpoint.path, endpoint.price), creditKey, next);
+  if (endpoint && creditKey) return chargeCredits(c, keyPrice(endpoint.path, endpoint.price), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
@@ -423,7 +446,7 @@ app.use(async (c, next) => {
 for (const e of ENDPOINTS) {
   // The IP tools answer a call without `ip` for the address the request came from; no other input is read from a header.
   // NO_INPUT tells a tool that the request carried nothing but control parameters (EMPTY_CALL_DEFAULTS in src/tools.ts).
-  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === FILE_REF_INPUT ? (e.path in FILE_INPUT_PATHS ? c.req.query(FILE_INPUT) : undefined) : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
 }
 
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
@@ -476,6 +499,7 @@ app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req)
 for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GET", "HEAD", "POST"], path, (c) => searchApi(c, path, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
+app.route("/", freeKeys);
 // Privacy policy, terms and support.
 app.route("/", legal);
 // OAuth sign-in for MCP apps.

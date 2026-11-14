@@ -1,0 +1,35 @@
+{
+	"node": "n8n-nodes-document-extract.documentExtract",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Productivity", "Finance & Accounting"],
+	"alias": [
+		"pdf",
+		"pdf to text",
+		"docx",
+		"word",
+		"excel",
+		"xlsx",
+		"powerpoint",
+		"pptx",
+		"markdown",
+		"invoice",
+		"receipt",
+		"extract",
+		"parse",
+		"document",
+		"attachment"
+	],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-documents#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-documents#readme"
+			}
+		]
+	}
+}
