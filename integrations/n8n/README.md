@@ -88,6 +88,8 @@ Every paid operation has an **Options** list with the tool's optional inputs, pl
 
 **Document > Convert to Text** turns a Word, Excel, PowerPoint or PDF file into Markdown or plain text: the headings, lists and tables of a Word file, each sheet of a workbook as a table, a deck slide by slide. **Document > Extract Text From PDF** gives a PDF page by page, with its page count, title and author. **Document > Extract Fields** returns the fields you name (for example `invoice_number, total, due_date`) as JSON, read from the file by an AI model; check values that matter before you act on them. All three read a file that an earlier node put in a binary field (an e-mail attachment, a downloaded file, a form upload): keep **File Source** on *File From an Earlier Node* and name the field in **Input Binary Field** (`data` by default). The file is sent to the service and read there; nothing is stored. Choose *Public URL* for a PDF anyone can download. The answer holds `totalPages`, `title`, `author` and one entry per page with its text. A scanned PDF without a text layer is refused and not charged.
 
+A ready workflow, [templates/invoice-attachment-to-sheet.json](templates/invoice-attachment-to-sheet.json) (import it with *Import from File*): every new Gmail message with an invoice attached becomes one Google Sheets row with supplier, invoice number, dates, total, currency, VAT and payment reference. It has not been run end to end yet; check the three nodes' settings after importing.
+
 ### Speech
 
 **Speech > Generate** puts the MP3 into the binary field named in **Put Audio in Binary Field** (`data` by default), ready for a Write Binary File, e-mail or chat node. Empty that field to keep the audio as base64 text in the JSON instead.
