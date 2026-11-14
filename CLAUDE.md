@@ -1967,3 +1967,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   and paid on the v2 path; the receipt goes back under both header names. Read `/status` paymentRefusals for
   "only x402 version 1" after the release: it should not appear again.
 
+
+
+## Uploads for the summary tool; audio and video bodies (1.195.0, 14 Nov 2026)
+
+- `/transcribe/summary` is in `FILE_INPUT_PATHS` (25 MB). Any new tool that reads `FILE_REF_INPUT` must be added there too, or a POSTed file never reaches it (the test that caught this sends `audio/mpeg`, not octet-stream).
+- `sentFile` reads `audio/*`, `video/*` and `application/ogg` raw bodies as files. Callers that send a recording with its own type: browsers (`fetch(url, {body: file})`), the voice pages' fast mode (glyphcall-voice.pages.dev, `transcribe.js`), and the Obsidian plugin (`requestUrl` with `contentType`).
+
