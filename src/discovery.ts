@@ -15,7 +15,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.184.0";
+export const MCP_SERVER_VERSION = "1.185.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -271,6 +271,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/cve/lookup": "Company, compliance and checks", "/github/user": "Company, compliance and checks", "/wiki/summary": "Web, documents and search",
   "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi",
   "/sec/financials": "Company, compliance and checks", "/stock/fundamentals": "Company, compliance and checks", "/income-statement": "Company, compliance and checks",
+  "/einvoice/create": "Company, compliance and checks", "/einvoice/validate": "Company, compliance and checks", "/einvoice/to-json": "Company, compliance and checks",
 });
 export const categoryOf = (path: string) => (Object.hasOwn(CATEGORY_OF_PATH, path) ? CATEGORY_OF_PATH[path] : CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities");
 /**
