@@ -115,11 +115,42 @@ async function resolveToken(q: Input) {
   return { tokenId: pick.tokenId, market, outcome: pick.name };
 }
 
+type Book = { bids?: { price: string; size: string }[]; asks?: { price: string; size: string }[]; timestamp?: string; market?: string };
+/** How old a kept order book may be when the CLOB fails: the answer's `bookTime` and `fromEarlierRead` say it is not live. */
+export const BOOK_KEEP_SECONDS = 120;
+
+/**
+ * The CLOB book with patience. 14 Nov 2026: 4 of 10 paid calls in a week ended "the data source answered HTTP 5xx"
+ * while the same token answered from elsewhere a moment later. A failed read is tried once more after 400 ms; if that
+ * fails too and this location read the same book in the last two minutes, that book is answered with
+ * `fromEarlierRead: true`. A 404 (closed market) is never retried or replaced. `get`, `sleep` and `store` are for tests.
+ */
+export async function clobBook(tokenId: string, get: (url: string) => Promise<Book> = (url) => getJson<Book>(url, { notFound: "no order book for that token (the market may be closed)" }), sleep: (ms: number) => Promise<unknown> = (ms) => new Promise((r) => setTimeout(r, ms)), store: Cache | undefined = (globalThis as { caches?: { default?: Cache } }).caches?.default): Promise<Book & { fromEarlierRead?: boolean }> {
+  const url = `${CLOB}/book?token_id=${tokenId}`;
+  const key = `https://clob-book.cache.invalid/${tokenId}`;
+  let last: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await sleep(400);
+    try {
+      const book = await get(url);
+      await store?.put(key, new Response(JSON.stringify(book), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${BOOK_KEEP_SECONDS}` } })).catch(() => {});
+      return book;
+    } catch (e) {
+      const status = (e as { status?: unknown })?.status;
+      if (typeof status === "number" && status !== 502) throw e;
+      last = e;
+    }
+  }
+  const kept = await store?.match(key).catch(() => undefined);
+  const book = kept ? ((await kept.json().catch(() => null)) as Book | null) : null;
+  if (book && (Array.isArray(book.bids) || Array.isArray(book.asks))) return { ...book, fromEarlierRead: true };
+  throw last;
+}
+
 export async function polymarketOrderbook(q: Input) {
   const depth = num(q, "depth", { min: 1, max: 50, fallback: 10, integer: true });
   const { tokenId, market, outcome } = await resolveToken(q);
-  const book = await getJson<{ bids?: { price: string; size: string }[]; asks?: { price: string; size: string }[]; timestamp?: string; market?: string }>(
-    `${CLOB}/book?token_id=${tokenId}`, { notFound: "no order book for that token (the market may be closed)" });
+  const book = await clobBook(tokenId);
   const lv = (x: { price: string; size: string }) => ({ price: Number(x.price), size: Number(x.size) });
   const bids = (book.bids ?? []).map(lv).sort((a, b) => b.price - a.price);
   const asks = (book.asks ?? []).map(lv).sort((a, b) => a.price - b.price);
@@ -133,7 +164,9 @@ export async function polymarketOrderbook(q: Input) {
     spread: bestBid !== null && bestAsk !== null ? round(bestAsk - bestBid, 4) : null,
     bidDepthUsd: usd(bids), askDepthUsd: usd(asks),
     bids: bids.slice(0, depth), asks: asks.slice(0, depth),
-    bookTime: book.timestamp ? new Date(Number(book.timestamp)).toISOString() : null, note: NOTE,
+    bookTime: book.timestamp ? new Date(Number(book.timestamp)).toISOString() : null,
+    ...(book.fromEarlierRead ? { fromEarlierRead: true } : {}),
+    note: book.fromEarlierRead ? `${NOTE} The order book service did not answer just now, so this is the book read at bookTime (at most two minutes earlier).` : NOTE,
   };
 }
 
