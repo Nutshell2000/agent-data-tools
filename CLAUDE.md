@@ -1928,3 +1928,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Example: https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3 (19 KB, 1.03 s; read by the parser on 14 Nov). Prove it from Cloudflare on staging before relying on it as the first-payment example.
 - Not checked yet: a real Whisper run over several parts (staging), Aura-1's output being MP3 frames that `joinMp3` accepts (staging: a 1,500-character call, then walk the frames), and whether Whisper on Workers AI takes a 4 MB WAV part (16 kHz mono = about 2 minutes) as it takes 4 MB of MP3.
 
+
+
+## Document reads are retried once; the invoice check uses the extraction model (1.191.0, 14 Nov 2026)
+
+- Live benchmark after 1.182.0 (`node bench.mjs api <dir> pdf`): 47/57 because one of eleven calls answered "the AI model did not return JSON"; without that call 52/57 as measured offline. `extractFields(..., fromDocument)` now asks once more with 1.5x the output tokens when the reply has no JSON object. Read `/status` `topFailures` for /document/extract and /invoice/check after a week: if "did not return JSON" is still there, the retry is not enough.
+- /invoice/check calls `extractFields(env, text, INVOICE_FIELDS, EXTRACT_MODEL, 2600, INVOICE_LISTS, true)`. Its field names (seller_*, buyer_*, net_amount, vat_amount, total_amount) are aliases in lib/extract-hints.ts: a renamed field there needs its alias.
+- `FIELD_PRESETS` (src/routes/document.ts): `fields=invoice`, `fields=receipt`. The invoice preset's names are the ones the Dify plugin and the n8n template send; keep the three in step.
+- `EXTRACT_EXAMPLE_URL` is /document/extract's example file. Its example answer must stay a real answer of the live tool for that file: re-read it (twice) after changing the model, the rules or the preset.
+- Latency seen live on gpt-oss-120b: 4-25 s, once 36 s, for a text PDF.
+
