@@ -59,9 +59,10 @@ const answer = await adt.call(call.function.name, JSON.parse(call.function.argum
 |---|---|
 | Free calls | None. 25 successful calls per caller; AI media, rendering and search tools are paid only. |
 | Card credits | Buy a key at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits), then `npx agent-data-tools key adt_...`, `new AgentDataTools({ apiKey })` or the `ADT_API_KEY` environment variable. |
-| USDC per call (x402) | Pass a fetch that pays HTTP 402, such as `@x402/fetch` around your own wallet: `new AgentDataTools({ fetch: paying })`. Set your spending limits in that wrapper. |
+| USDC per call from your wallet, in your AI client | Start the MCP server with `AGENT_DATA_TOOLS_WALLET_KEY` set to the private key of a wallet that holds USDC on Base: `npx agent-data-tools mcp`. No account and no key to buy. After the free calls each call is paid at its listed price; failed calls are not charged. Limits: $0.10 a call and $1 a day, changed with `AGENT_DATA_TOOLS_MAX_USD` and `AGENT_DATA_TOOLS_DAILY_USD`. Use a wallet that holds only what you are willing to spend. |
+| USDC per call (x402), from code | Pass a fetch that pays HTTP 402, such as `@x402/fetch` around your own wallet: `new AgentDataTools({ fetch: paying })`. Set your spending limits in that wrapper. |
 
-When payment is needed and none is set up, `call()` throws `PaymentRequired` with `priceUsd` and `buyUrl`. Other failures throw `ToolError` with `status` and `body`. The package never reads a wallet key and sends your API key only to the service origin.
+When payment is needed and none is set up, `call()` throws `PaymentRequired` with `priceUsd` and `buyUrl`. Other failures throw `ToolError` with `status` and `body`. The package reads a wallet key only from `AGENT_DATA_TOOLS_WALLET_KEY`, only in `mcp`, and only to sign USDC payments on Base for the exact amount the service quoted; it never writes, prints or sends the key. Your API key goes only to the service origin.
 
 ## Also
 
