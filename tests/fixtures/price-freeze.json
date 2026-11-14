@@ -583,7 +583,7 @@
     "/hyperliquid/orderbook": "$0.002",
     "/hyperliquid/candles": "$0.002",
     "/hyperliquid/funding-history": "$0.01",
-    "/hyperliquid/indicators": "$0.05",
+    "/hyperliquid/indicators": "$0.01",
     "/hyperliquid/prices": "$0.002",
     "/hyperliquid/account": "$0.01",
     "/options/price": "$0.01",
