@@ -14,6 +14,8 @@ import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
+import { COMPARE_BASE, compareIndexPage, comparePage, rivalBySlug } from "./lib/compare-pages";
+import { freeKeysOn } from "./lib/free-keys";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
@@ -600,6 +602,12 @@ for (const product of PRODUCT_PAGES) {
     return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME)));
   });
 }
+// Comparison pages against the document-extraction leaders (lib/compare-pages.ts).
+app.get(COMPARE_BASE, (c) => c.html(compareIndexPage(origin(c.req.url), freeKeysOn(c.env), Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME))));
+app.get(`${COMPARE_BASE}/:slug{[a-z0-9-]+}`, (c) => {
+  const rival = rivalBySlug(c.req.param("slug"));
+  return rival ? c.html(comparePage(rival, origin(c.req.url), freeKeysOn(c.env), Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
+});
 // Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
 app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {

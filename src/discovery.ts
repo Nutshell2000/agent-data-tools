@@ -5,6 +5,7 @@ import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/rea
 import { TASK_GUIDES } from "./guides/task-guides";
 import { PRODUCTS, productPaths } from "./lib/product-pages";
 import { vatPagePaths } from "./lib/vat-pages";
+import { comparePaths } from "./lib/compare-pages";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, PAUSED_FAMILY_TOOLS, SERVICE_ICON_URL, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
@@ -724,6 +725,6 @@ export const robotsTxt = (origin: string) =>
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/docs", ...productPaths(), ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/docs", ...productPaths(), ...comparePaths(), ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
 }
