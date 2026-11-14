@@ -65,7 +65,7 @@ export const PRODUCTS: readonly Product[] = [
     faq: [
       ["Does it OCR scanned PDFs?", "No. It extracts the text layer. A scanned file without one fails and is not charged."],
       ["How large can the PDF be?", "Up to 10 MB, and up to 200 pages in one call. Ask for a first page and a page count to read a long report in parts."],
-      ["Can I send a file instead of a URL?", "Yes. POST the file as application/pdf, or as a multipart form field named file, up to 10 MB. firstPage, pages and maxChars go in the query string or as form fields."],
+      ["Can I send a file instead of a URL?", "Yes. POST the file as application/pdf, as a multipart form field named file, or as base64 in JSON, up to 10 MB. firstPage, pages and maxChars go in the query string or as form fields."],
       ["What happens to a file I upload?", "It is read in memory to answer that one request and then dropped. It is not written to any store or cache and is never fetched again."],
       ["What happens when the site blocks the download?", "The Internet Archive's dated copy is read when there is one, and the answer says so. If nothing can be read, the call is not charged."],
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
@@ -232,10 +232,9 @@ ${p.upload ? `<h3>Send a file instead of a URL</h3>
 <p class="small">Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB. The file is read in memory for this one request and not stored.</p>` : ""}
 <h2>The answer</h2>
 <pre><code>${esc(shown)}</code></pre>
-${tryIt ? `<div id="try">${p.upload ? `<form class="try" method="post" action="${esc(e.path)}" enctype="multipart/form-data">
+${tryIt ? `<div id="try">${p.upload ? `<form class="try" method="post" action="${esc(e.path)}?trial=1" enctype="multipart/form-data">
 <h2>${esc(tryLabel ?? "Try it on your own PDF")}</h2>
 <div class="field"><label for="try-file">A PDF from your computer</label><input id="try-file" name="file" type="file" accept="application/pdf,.pdf" required><small>Up to 10 MB. Read in memory for this one request and not stored.</small></div>
-<input type="hidden" name="trial" value="1">
 <button type="submit" class="btn primary">Read my PDF</button>
 </form>
 <p class="small">Or try it on a PDF that is on the web:</p>` : ""}${tryForm(e, undefined, p.upload ? "A PDF at a URL" : tryLabel ?? "Try it on your own input")}</div>` : ""}
