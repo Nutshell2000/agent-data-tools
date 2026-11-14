@@ -1637,3 +1637,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Round 10 doors: `/solana/price` and `/ethereum/price` run `/crypto/price` with `coinInput("solana" | "ethereum")`. Evidence: the agent 0xe629 buys the first Bazaar search result for its job (`buyer-sellers.mjs <wallet> 3` beside `bazaar-search-compact.mjs "<job>"`): ours where we are first, another seller's where we are absent. To find the next door, run those two scripts for every wallet that paid us on two or more days. `/crypto/price` now has its two doors.
 - `/credits` gives both free-call numbers (`FREE_HTTP_CALLS_PER_CALLER` and `FREE_CALLS_PER_CALLER`); keep any sentence a browser visitor reads on the HTTP number.
 
+
+
+## Stablecoin charts (1.158.0, 14 Nov 2026)
+
+- `/stablecoin/charts` (src/routes/stablecoin-charts.ts): DefiLlama's stablecoins API (`/stablecoinchains` for the chain list, `/stablecoincharts/<Chain>` or `/all` for the series), all pegs added up in dollars (`sumUsd`), `chainKey()` aliases read with Object.hasOwn. Ordinary price; a lower one is the owner's call. Why: it was the largest job our one returning independent agent bought elsewhere. Judge it by that agent's purchases and by the Bazaar search for "stablecoin charts" after the first settlement.
+
