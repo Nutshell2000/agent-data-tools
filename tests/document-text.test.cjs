@@ -285,6 +285,16 @@ test('a document extraction tells the model how files mislead: date and amount f
   assert.match(sent, /In rows: \\"description\\".*\\"quantity\\": the number of units on that row; a position or item number/);
   assert.equal(H.fieldHints(['colour', 'weight'], {}), '');
   for (const name of ['constructor', '__proto__', 'toString']) assert.equal(H.fieldHints([name], { rows: [name] }), '');
+  // The one-word presets are valid field lists, and every invoice field is one the hints explain.
+  for (const [word, spec] of Object.entries(D.FIELD_PRESETS)) {
+    const parsed = A.listFields(spec);
+    assert.ok(parsed.fields.length >= 8 && parsed.fields.length <= 30, word);
+    assert.deepEqual(Object.keys(parsed.lists), ['line_items'], word);
+  }
+  const invoice = A.listFields(D.FIELD_PRESETS.invoice);
+  const explained = H.fieldHints(invoice.fields, invoice.lists);
+  for (const f of invoice.fields.filter((x) => x !== 'line_items' && x !== 'supplier_address')) assert.ok(explained.includes(`"${f}":`), `${f} is explained`);
+  assert.ok(!Object.hasOwn(D.FIELD_PRESETS, 'constructor'));
 });
 
 test('Word: a text box is read once and footnotes follow the body; Excel: day numbers in date-styled cells become dates', async () => {
