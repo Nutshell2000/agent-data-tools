@@ -1826,3 +1826,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `usdcRequirements` (src/lib/discovery-index.ts) includes Solana when SOLANA_PAY_TO is set, with `CDP_SOLANA_FEE_PAYER` (src/lib/networks.ts; the live 402 reads the real one from the facilitator). If CDP ever rotates its fee payer, update the constant.
 - `/pdf/text` `loadPdf` reads the Internet Archive copy on any TARGET_UNAVAILABLE error too (5xx, 429, timeouts, redirect limit, broken connection), like /extract; 15 s archive budget after a timeout. `/extract` points PDF links to `/pdf/text?url=…` (code `EXTRACTION_PDF`).
 
+
+
+## One-call EU invoice check (1.180.0, 14 Nov 2026)
+
+- `/invoice/check` (src/routes/invoice-check.ts, $0.05, `CAPACITY_LIMITED` via `CAPACITY_LIMITED.add` in src/lib/capacity.ts so the Set's own line stays untouched): `readDocument` + `extractFields` with `INVOICE_FIELDS`/`INVOICE_LISTS`, then `invoiceChecks(data, vies)` (exported, VIES injected): seller/buyer VAT in VIES with a `coreName` name match, `ibanCheck` plus IBAN country against the seller's VAT country, net + VAT = total within 0.1% or 2 cents, line items against net or total, dates. Verdict pass/review/fail; a VIES failure is `unavailable` (review), never an error. `amount()` reads EU and US number spellings; `isoDate()` is day-first for dotted and slashed dates.
+- The example is `SAMPLE_INVOICE` (Coolblue 2014, invoice2data test set on GitHub raw), never our own origin. tests/invoice-check.test.cjs runs `invoiceChecks` on that invoice's fields and requires the published checks.
+- Prove on staging after the release (the PC smoke run skips AI tools, `NEEDS_AI`): `node scripts/pay-test.mjs <staging>/invoice/check?url=<SAMPLE_INVOICE>`; the verdict should be pass with six checks.
+- n8n: Document > Check Invoice (`integrations/n8n`), README row, fixture entry, credential list.
+

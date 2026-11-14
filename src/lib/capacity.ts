@@ -13,5 +13,9 @@ import { HTTP_FREE_EXCLUDED } from "./free-calls";
 // /audit/contract (1.131.0) runs three large-model reviews a call and costs $1: paid only.
 // The entry paths of capacity-limited tools (src/routes/entry-paths.ts, 7 Nov 2026) follow their canonical tool.
 export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/page/host", "/screenshot", "/screenshot/website", "/extract/rendered", "/image", "/image/generate", "/transcribe", "/text-to-speech", "/describe", "/search", "/search/web", "/web/search", "/search/similar", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/pack/news-sentiment", "/ai/answer", "/ai/fact-check", "/ai/chat-large", "/llm/inference", "/ai/speech", "/ai/tts", "/audit/website", "/audit/contract", "/contract/audit", ...MODEL_PATHS]);
+// /invoice/check (1.180.0): a model call plus up to two VIES checks, $0.05: paid only.
+CAPACITY_LIMITED.add("/invoice/check");
+// Resold LinkedIn and X data (src/routes/resale.ts): every call buys from another seller, so never a free call.
+for (const p of ["/linkedin/profile", "/linkedin/company-posts", "/x/search"]) CAPACITY_LIMITED.add(p);
 /** True when a plain HTTP request with trial=1 may run this tool free (lib/free-calls.ts): not capacity-limited, and not taken out of the HTTP trial. */
 export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_FREE_EXCLUDED.has(path);
