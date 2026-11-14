@@ -36,6 +36,8 @@ export interface Product {
   faq: readonly (readonly [string, string])[];
   /** Guides to link, by slug. */
   guides: readonly string[];
+  /** The main tool also takes the file itself in a POST body (lib/pdf-upload.ts). */
+  upload?: boolean;
   /** Further pages of the product: path and link text. */
   more?: readonly (readonly [string, string])[];
 }
@@ -44,24 +46,27 @@ export const PRODUCTS: readonly Product[] = [
   {
     slug: "pdf-to-text-api",
     name: "PDF to text API",
-    tagline: "Send the URL of a PDF, get its text back as JSON, page by page. One GET request, no SDK.",
+    tagline: "Send a PDF as a URL or as a file, get its text back as JSON, page by page. One request, no SDK.",
+    upload: true,
     tool: "/pdf/text",
     also: ["/extract", "/arxiv/search"],
     points: [
       "Text per page, with the title, author and page count",
       "Read only the pages you need: a first page and a page count, up to 200 pages a call",
-      "Files up to 10 MB; arXiv abstract links work as they are",
+      "A public URL or the file itself, up to 10 MB; arXiv abstract links work as they are",
+      "Uploaded files are read in memory for the one request and not stored",
       "A file that cannot be read (scanned, encrypted, not a PDF) is never charged",
     ],
     limits: [
       "No OCR: it reads the text layer, so a scanned PDF without one returns little or nothing (and is not charged).",
-      "Public URLs only: no uploads, logins or password-protected files.",
+      "No password-protected or encrypted files, and no pages behind a login.",
     ],
     unit: "PDFs",
     faq: [
       ["Does it OCR scanned PDFs?", "No. It extracts the text layer. A scanned file without one fails and is not charged."],
       ["How large can the PDF be?", "Up to 10 MB, and up to 200 pages in one call. Ask for a first page and a page count to read a long report in parts."],
-      ["Can I send a file instead of a URL?", "No. The PDF has to be at a public http or https URL."],
+      ["Can I send a file instead of a URL?", "Yes. POST the file as application/pdf, as a multipart form field named file, or as base64 in JSON, up to 10 MB. firstPage, pages and maxChars go in the query string or as form fields."],
+      ["What happens to a file I upload?", "It is read in memory to answer that one request and then dropped. It is not written to any store or cache and is never fetched again."],
       ["What happens when the site blocks the download?", "The Internet Archive's dated copy is read when there is one, and the answer says so. If nothing can be read, the call is not charged."],
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
@@ -116,7 +121,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: ["eu-vat-number-validation-api", "eu-vat-number-validation-api-python", "eu-vat-number-validation-api-nodejs", "eu-vat-number-validation-api-php", "company-lookup-api", "ofac-wallet-screening-api"],
-    more: [["/vat-number-check", "VAT number formats and a live check for every EU country"]],
+    more: [["/vat-number-check", "VAT number formats and a live check for every EU country"], ["/company-register", "Company registers of Sweden, Norway, Finland and France: number formats and a live lookup"]],
   },
 ];
 
@@ -222,9 +227,17 @@ ${tryIt ? `<a class="btn primary" href="#try">${esc(tryLabel ?? "Try it free")}<
 <pre><code>${esc(s.python)}</code></pre>
 <h3>Node.js</h3>
 <pre><code>${esc(s.node)}</code></pre>
+${p.upload ? `<h3>Send a file instead of a URL</h3>
+<pre><code>${esc(`curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@report.pdf" -F "pages=5" \\\n  "${origin}${e.path}"`)}</code></pre>
+<p class="small">Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB. The file is read in memory for this one request and not stored.</p>` : ""}
 <h2>The answer</h2>
 <pre><code>${esc(shown)}</code></pre>
-${tryIt ? `<div id="try">${tryForm(e, undefined, tryLabel ?? "Try it on your own input")}</div>` : ""}
+${tryIt ? `<div id="try">${p.upload ? `<form class="try" method="post" action="${esc(e.path)}?trial=1" enctype="multipart/form-data">
+<h2>${esc(tryLabel ?? "Try it on your own PDF")}</h2>
+<div class="field"><label for="try-file">A PDF from your computer</label><input id="try-file" name="file" type="file" accept="application/pdf,.pdf" required><small>Up to 10 MB. Read in memory for this one request and not stored.</small></div>
+<button type="submit" class="btn primary">Read my PDF</button>
+</form>
+<p class="small">Or try it on a PDF that is on the web:</p>` : ""}${tryForm(e, undefined, p.upload ? "A PDF at a URL" : tryLabel ?? "Try it on your own input")}</div>` : ""}
 
 <h2 id="pricing">Pricing</h2>
 <p>One API key, paid by card through Stripe. ${esc(keyPrice)} per successful call with a key; failed calls cost nothing.</p>

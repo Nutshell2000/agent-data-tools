@@ -52,7 +52,7 @@ test("a country page states the format, offers the check and links the product",
   assert.match(html, /"@type":"FAQPage"/);
   assert.doesNotMatch(html, /x402|MPP|USDC/);
   const se = vatCountryPage(VAT_COUNTRIES.find((c) => c.code === "SE"), "https://x.test", false);
-  assert.match(se, /href="\/tools\/se-company"/);
+  assert.match(se, /href="\/company-register\/sweden"/);
   assert.doesNotMatch(se, /form class="try"/);
   const index = vatIndexPage("https://x.test", true);
   for (const c of VAT_COUNTRIES) assert.ok(index.includes(`${VAT_BASE}/${c.slug}`), c.slug);

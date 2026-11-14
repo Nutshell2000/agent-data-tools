@@ -74,7 +74,7 @@ export const vatPagePaths = () => [VAT_BASE, ...VAT_COUNTRIES.map((c) => `${VAT_
 const TOOL = "/vat/validate";
 const tool = () => ENDPOINTS.find((e) => e.path === TOOL) as Endpoint;
 
-const STYLE = `:root{--bg:#fff;--fg:#16181d;--muted:#5b616b;--card:#f5f6f8;--line:#e2e5ea;--accent:#0b57d0;--accent-fg:#fff}
+export const PAGE_STYLE = `:root{--bg:#fff;--fg:#16181d;--muted:#5b616b;--card:#f5f6f8;--line:#e2e5ea;--accent:#0b57d0;--accent-fg:#fff}
 @media (prefers-color-scheme:dark){:root{--bg:#111316;--fg:#e9ebee;--muted:#a2a8b0;--card:#1a1d22;--line:#2b3037;--accent:#8ab4f8;--accent-fg:#0b1a33}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
 main{max-width:780px;margin:0 auto;padding:28px 16px 56px}nav.crumbs{color:var(--muted);font-size:.9rem;margin-bottom:16px}
@@ -108,7 +108,7 @@ export function vatCountryPage(c: VatCountry, origin: string, tryIt: boolean): s
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>
-<style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
+<style>${PAGE_STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a> › <a href="${VAT_BASE}">VAT number check</a></nav>
 <h1>Check a ${esc(c.adjective)} VAT number</h1>
 <p class="tag">Validate a VAT number from ${esc(c.country)} against the EU's VIES service, here or from your own code.</p>
@@ -127,7 +127,7 @@ ${tryIt ? tryForm(e, values, `Check a ${c.adjective} VAT number now`) : `<p><a c
 <pre><code>curl -H "Authorization: Bearer $API_KEY" \\
   "${esc(origin)}${TOOL}?vat=${esc(c.shape)}"</code></pre>
 <p>One GET request, JSON back: <code>valid</code>, and the registered name and address when they are shared. A failed check is never charged. Keys, monthly plans and code in Python and Node.js: <a href="/company-check-api">Company check API</a>. Reference: <a href="/tools/${esc(toolSlug(TOOL))}">tool page</a>.</p>
-${register ? `<h2>The ${esc(c.adjective)} company register</h2><p>For more than the VAT status, look the company up in the register: <a href="/tools/${esc(toolSlug(register.path))}">${esc(register.summary)}</a>. Legal form, status, bankruptcy or liquidation, registration date, industry codes and address.</p>` : ""}
+${register ? `<h2>The ${esc(c.adjective)} company register</h2><p>For more than the VAT status, look the company up in the register: <a href="/company-register/${esc(c.slug)}">${esc(register.summary)}</a>. Legal form, status, bankruptcy or liquidation, registration date, industry codes and address.</p>` : ""}
 <h2>Questions</h2>
 ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 <h2>Other countries</h2>
@@ -149,7 +149,7 @@ export function vatIndexPage(origin: string, tryIt: boolean): string {
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
-<style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
+<style>${PAGE_STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/company-check-api">Company check API</a></nav>
 <h1>EU VAT number check</h1>
 <p class="tag">Validate a VAT number from any EU member state or Northern Ireland against VIES, and see how each country writes its numbers.</p>
