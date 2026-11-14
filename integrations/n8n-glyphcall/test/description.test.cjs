@@ -7,15 +7,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const dist = path.join(__dirname, '..', 'dist');
-const { DocumentExtract } = require(path.join(dist, 'nodes/DocumentExtract/DocumentExtract.node.js'));
-const { DocumentExtractApi } = require(path.join(dist, 'credentials/DocumentExtractApi.credentials.js'));
-const document = require(path.join(dist, 'nodes/DocumentExtract/resources/document.js'));
+const { Glyphcall } = require(path.join(dist, 'nodes/Glyphcall/Glyphcall.node.js'));
+const { GlyphcallApi } = require(path.join(dist, 'credentials/GlyphcallApi.credentials.js'));
+const document = require(path.join(dist, 'nodes/Glyphcall/resources/document.js'));
 const fixture = require('./fixtures/tools.json');
 const pkg = require('../package.json');
 
-const HOST = 'https://agent-data-tools.revmesh2074.workers.dev';
+const HOST = 'https://glyphcall.com';
 const CONTROL = new Set(['only', 'sample']);
-const description = new DocumentExtract().description;
+const description = new Glyphcall().description;
 const properties = description.properties;
 
 function operations() {
@@ -32,19 +32,19 @@ function operations() {
 }
 
 test('package manifest follows the n8n community node rules', () => {
-	assert.equal(pkg.name, 'n8n-nodes-document-extract');
+	assert.equal(pkg.name, 'n8n-nodes-glyphcall');
 	assert.ok(pkg.keywords.includes('n8n-community-node-package'));
 	assert.equal(pkg.license, 'MIT');
 	assert.equal(pkg.dependencies, undefined, 'no run-time dependencies');
 	assert.deepEqual(Object.keys(pkg.peerDependencies), ['n8n-workflow']);
 	assert.deepEqual(pkg.files, ['dist']);
 	assert.equal(pkg.repository.url, 'https://github.com/Nutshell2000/agent-data-tools.git');
-	assert.equal(pkg.repository.directory, 'integrations/n8n-documents');
+	assert.equal(pkg.repository.directory, 'integrations/n8n-glyphcall');
 	for (const file of [...pkg.n8n.nodes, ...pkg.n8n.credentials]) require(path.join(__dirname, '..', file));
 });
 
 test('one service, one key, sent in the Authorization header only', () => {
-	const credential = new DocumentExtractApi();
+	const credential = new GlyphcallApi();
 	assert.equal(credential.name, description.credentials[0].name);
 	assert.equal(description.credentials[0].required, true);
 	assert.deepEqual(credential.authenticate, { type: 'generic', properties: { headers: { Authorization: '=Bearer {{$credentials.apiKey}}' } } });
@@ -78,7 +78,7 @@ test('the README price list matches the service', () => {
 
 const context = (parameters, binary) => ({
 	getNodeParameter: (name, fallback) => (name in parameters ? parameters[name] : fallback),
-	getNode: () => ({ name: 'Document Extract', type: 'n8n-nodes-document-extract.documentExtract', typeVersion: 1, parameters }),
+	getNode: () => ({ name: 'Glyphcall Documents', type: 'n8n-nodes-glyphcall.glyphcall', typeVersion: 1, parameters }),
 	helpers: { getBinaryDataBuffer: async (field) => { if (!binary[field]) throw new Error('no binary'); return binary[field]; } },
 });
 

@@ -1,9 +1,9 @@
 {
-	"name": "n8n-nodes-document-extract",
+	"name": "n8n-nodes-glyphcall",
 	"version": "0.1.0",
 	"description": "n8n node that turns Word, Excel, PowerPoint and PDF files into text or Markdown and extracts named fields (invoice number, total, due date...) as JSON, from a file in your workflow or a URL.",
 	"license": "MIT",
-	"homepage": "https://agent-data-tools.revmesh2074.workers.dev",
+	"homepage": "https://glyphcall.com",
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
@@ -27,7 +27,7 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Nutshell2000/agent-data-tools.git",
-		"directory": "integrations/n8n-documents"
+		"directory": "integrations/n8n-glyphcall"
 	},
 	"bugs": {
 		"url": "https://github.com/Nutshell2000/agent-data-tools/issues"
@@ -49,10 +49,10 @@
 		"n8nNodesApiVersion": 1,
 		"strict": true,
 		"credentials": [
-			"dist/credentials/DocumentExtractApi.credentials.js"
+			"dist/credentials/GlyphcallApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/DocumentExtract/DocumentExtract.node.js"
+			"dist/nodes/Glyphcall/Glyphcall.node.js"
 		]
 	},
 	"devDependencies": {
