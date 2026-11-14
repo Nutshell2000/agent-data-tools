@@ -48,7 +48,10 @@ test("every entry path names a task, runs a canonical tool at that tool's live p
   for (const { endpoint: e } of doors.ENTRY_PATHS) (byCanonical[doors.ENTRY_OF[e.path]] ??= []).push(e.summary.split(":")[0].toLowerCase());
   for (const [canonical, names] of Object.entries(byCanonical)) {
     // /extract has three since 10 Nov 2026: scrape, fetch and Markdown are three searches, and routers match the path words.
-    assert.ok(names.length <= (canonical === "/extract" ? 3 : 2), `${canonical} has ${names.length} doors`);
+    // /llm/prices has four since 14 Nov 2026: one per provider (GPT, Claude, Grok, MiniMax), because Mercator buys pricing
+    // by provider path (modelprices.xyz /grok-pricing, /minimax-pricing) and each is a different search.
+    const limit = canonical === "/extract" ? 3 : canonical === "/llm/prices" ? 4 : 2;
+    assert.ok(names.length <= limit, `${canonical} has ${names.length} doors`);
     assert.equal(new Set(names).size, names.length, `${canonical} doors share a name`);
   }
   assert.equal(new Set(doors.ENTRY_PATHS.map((d) => d.endpoint.path)).size, doors.ENTRY_PATHS.length);
@@ -199,7 +202,7 @@ test("round 8 doors (10 Nov 2026): the Markdown door returns Markdown unless tol
 });
 test("round 9 doors (14 Nov 2026): GPT and Claude pricing preset their provider and keep a caller's own", async () => {
   const byPath = Object.fromEntries(doors.ENTRY_PATHS.map((d) => [d.endpoint.path, d]));
-  for (const [path, provider, word] of [["/gpt/pricing", "openai", "gpt"], ["/claude/pricing", "anthropic", "claude"]]) {
+  for (const [path, provider, word] of [["/gpt/pricing", "openai", "gpt"], ["/claude/pricing", "anthropic", "claude"], ["/grok/pricing", "x-ai", "grok"], ["/minimax/pricing", "minimax", "minimax"]]) {
     const d = byPath[path];
     assert.ok(d, path);
     assert.equal(doors.ENTRY_OF[path], "/llm/prices");
