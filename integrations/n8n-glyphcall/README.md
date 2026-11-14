@@ -53,7 +53,8 @@ A ready workflow is in [templates/invoice-attachment-to-sheet.json](templates/in
 ## Good to know
 
 - Files up to 10 MB. The kind of file is read from the file itself, not from its name.
-- No OCR: a scanned PDF without a text layer has no text to read. It is refused and not charged.
+- Scans and photos are read by OCR: PNG, JPEG and WebP images up to 3 MB, and scanned PDFs (up to three pages a call).
+- Invoice lines and other rows: write the field as `line_items[description,quantity,unit_price,amount]` and every row comes back with exactly those keys.
 - Old binary Office files (.doc, .xls, .ppt) and password-protected files are refused and not charged; save them as .docx, .xlsx or .pptx first.
 - Excel cells hold the values the file stores: a formula's last result, and dates as Excel's day numbers.
 - **Extract Fields** is read by an AI model from the first 24,000 characters of the file. Check values that matter, such as amounts, before you act on them.

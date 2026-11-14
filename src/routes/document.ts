@@ -10,7 +10,7 @@ import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { isZip, zipEntries, zipText, type ZipEntry } from "../lib/zip";
 import { readPdf } from "./pdf";
-import { CHAT_MODEL, extractFields, fieldNames } from "./ai-text";
+import { CHAT_MODEL, extractFields, listFields } from "./ai-text";
 import { Buffer } from "node:buffer";
 import { MODELS, runAi } from "../lib/ai";
 import type { Env } from "../lib/env";
@@ -375,7 +375,7 @@ export const DOCUMENT: Entry[] = [
     "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
-      fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
+      fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
     },
     {
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
@@ -384,7 +384,7 @@ export const DOCUMENT: Entry[] = [
       missing: [], model: CHAT_MODEL, charsRead: 8934, truncated: false,
     },
     async (env, q) => {
-      const fields = fieldNames(need(q, "fields", 1000));
+      const { fields, lists } = listFields(need(q, "fields", 1000));
       const sent = q(FILE_REF_INPUT);
       let bytes: Uint8Array;
       let url: string | null = null;
@@ -399,7 +399,7 @@ export const DOCUMENT: Entry[] = [
       }
       // Plain text for the model: Markdown table rules add characters and no information.
       const doc = await readDocument(bytes, "text", EXTRACT_CHARS, visionOcr(env));
-      const found = await extractFields(env, doc.text, fields, CHAT_MODEL, 900);
+      const found = await extractFields(env, doc.text, fields, CHAT_MODEL, Object.keys(lists).length ? 2000 : 900, lists);
       return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...("ocr" in doc ? { ocr: true } : {}), ...found, charsRead: doc.chars, truncated: doc.truncated };
       // $0.03 a document: one model call, and a tenth to a half of what document-extraction sellers charge (14 Nov 2026).
     }, "$0.03"),
