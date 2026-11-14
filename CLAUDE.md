@@ -1676,3 +1676,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `"observability": { "enabled": true, "head_sampling_rate": 0.01 }` in both wrangler files. At 100% the service stored about 19 log events a request (701 library warnings per cold start), about 238 million a month against 20 million included. Never set it back to 1 without removing those warnings first. Measure with `npx wrangler tail agent-data-tools --format json` for a minute and count `logs` per event. The live setting can be read and changed without a deploy: `GET/PATCH /accounts/<id>/workers/scripts/<name>/settings` (multipart field `settings`), but a deploy applies whatever wrangler.jsonc says.
 - CPU, same sample: median 5 ms a request, cold starts 60-225 ms (2.7% of requests, 34% of CPU); the first quote in a new isolate builds all 701 route configurations. A per-path lazy build or a cached quote would cut that; not done (it is the payment path).
 
+
+
+## Unpaid quotes from the edge cache (1.163.0, 14 Nov 2026)
+
+- `src/lib/quote-cache.ts` (`quoteCacheKey`, `readQuote`, `writeQuote`), used in the paywall wrapper of src/index.ts just before the gateway. Key = release version + payment settings (`quoteFingerprint`) + exact URL; TTL 30 minutes; MPP challenges are always made after the cache. When a new setting changes what a quote says, add it to `quoteFingerprint`. When a new way to pay or to identify a caller arrives by header or query, add it to the lists in `quoteCacheKey` so such requests never get a key.
+- Cost facts behind it (14 Nov 2026 live sample): median request 5 ms CPU, cold first quote 60-225 ms, a warm quote is mostly the MPP challenges (mppx), which the cache cannot hold. A gateway per paid path is worse (10-30 ms each on first use): do not retry it.
+
