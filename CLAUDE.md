@@ -1696,3 +1696,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Entry-path tool pages (`ENTRY_OF`) are canonical to their tool's page and out of the sitemap. `/credits` shows the monthly plan before the packs.
 - Not built, the owner's decisions: file upload for PDF (personal documents would be processed: privacy text first), OCR, a bank-statement product, a free key by e-mail, a domain of our own, a higher sanctions price, removing the $1 pack.
 
+
+
+## Discovery index once per isolate; challenges are single-use (1.165.0, 14 Nov 2026)
+
+- `/discovery/resources` (src/index.ts `discoveryPages`): one JSON string per origin, limit, offset and `quoteFingerprint` per isolate, at most 24 keys. Anything that changes the index without a deploy must be part of `quoteFingerprint` (src/lib/quote-cache.ts).
+- **Never cache an MPP challenge.** mppx uses the hash of the evm challenge as the EIP-3009 nonce and binds a Tempo payment to the challenge id, so a challenge pays once; a cached one would have every second buyer refused as a replay. Tried and reverted on 14 Nov (tests/mpp-evm.test.cjs caught it). The quote cache therefore stores the x402 quote only and makes both challenges fresh on a hit.
+
