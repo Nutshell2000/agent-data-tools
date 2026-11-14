@@ -57,6 +57,8 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/number/roman", "/book/search", "/text/keyword-density", "/gov/clinical-trials", "/airport/lookup", "/lei/lookup",
   // Without ip these answer for the caller's own address over HTTP; a listing names the example's ip so a router plans a real lookup.
   "/ip/lookup", "/ip/geolocate",
+  // An e-invoice arrives as a url, as xml text or as an uploaded file; the listing names the example's url.
+  "/einvoice/validate", "/einvoice/to-json",
 ]);
 export const requiredInputs = (e: Endpoint) => {
   const required = Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);

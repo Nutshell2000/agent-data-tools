@@ -15,6 +15,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
+import { EINVOICE_BASE, EINVOICE_RULES, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage } from "./lib/einvoice-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
@@ -176,8 +177,10 @@ app.use(async (c, next) => {
   const heldRefs: string[] = [];
   if (body && typeof body === "object" && !Array.isArray(body)) {
     for (const [name, value] of Object.entries(body)) {
-      if (longFields && typeof value === "string" && value.length >= LONG_INPUT_MIN && (longFields.includes(name) || ALIAS_OF[name]?.some((input) => longFields.includes(input)))) {
-        const ref = await holdLongInput(value);
+      // A long field sent as a JSON object (/einvoice/create takes the invoice that way) is held as its JSON text.
+      const longText = typeof value === "string" ? value : longFields && value && typeof value === "object" && longFields.includes(name) ? JSON.stringify(value) : null;
+      if (longFields && longText !== null && longText.length >= LONG_INPUT_MIN && (longFields.includes(name) || ALIAS_OF[name]?.some((input) => longFields.includes(input)))) {
+        const ref = await holdLongInput(longText);
         heldRefs.push(ref);
         target.searchParams.set(name, ref);
         continue;
@@ -605,6 +608,13 @@ app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.
 app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
   const country = vatCountry(c.req.param("country"));
   return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
+});
+// E-invoice product page and one page per validation rule (lib/einvoice-pages.ts).
+app.get(EINVOICE_BASE, (c) => c.html(einvoiceIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))));
+app.get(EINVOICE_RULES, (c) => c.html(einvoiceRulesIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
+app.get(`${EINVOICE_RULES}/:rule{[a-z0-9-]+}`, (c) => {
+  const rule = einvoiceRule(c.req.param("rule"));
+  return rule ? c.html(einvoiceRulePage(rule, origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 // Per-country company register pages (lib/register-pages.ts), part of the company-check product.
 app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
