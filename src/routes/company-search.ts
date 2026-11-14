@@ -165,6 +165,10 @@ export async function companySearch(name: string, countries: string[] | null, li
     const { registeredAs, ...hit } = h;
     const twin = registerHits.find((r) => r.country === hit.country && digits(registeredAs) !== "" && digits(r.id) === digits(registeredAs));
     if (twin) { twin.lei = hit.id; continue; }
+    // GLEIF's full-text search also matches other names and addresses ("Nokia" found "PO & MS Oy"): an LEI-only entity
+    // is kept only when its own name holds every word asked for.
+    const own = ` ${coreName(hit.name)} `;
+    if (!want.split(" ").every((w) => own.includes(` ${w} `))) continue;
     if (!leiRest.some((x) => x.id === hit.id)) leiRest.push(hit);
   }
   // Order: exact names, then a country's own companies before the local registrations of foreign ones (Spotify AB in
@@ -177,6 +181,9 @@ export async function companySearch(name: string, countries: string[] | null, li
     .map((h, i) => ({ h, i }))
     .sort((a, b) => Number(b.h.exact) - Number(a.h.exact)
       || Number(Boolean(a.h.branchOfForeign)) - Number(Boolean(b.h.branchOfForeign))
+      // Between equally named companies in different countries, one that holds an LEI (registered for trading or
+      // reporting) is usually the one meant: Bolt Technology OÜ before a small French "BOLT", ČEZ, a. s. before "CEZ".
+      || (a.h.exact && b.h.exact ? Number(Boolean(b.h.lei)) - Number(Boolean(a.h.lei)) : 0)
       || Number(a.h.idType === "LEI") - Number(b.h.idType === "LEI")
       || Number(starts(b.h)) - Number(starts(a.h))
       || coreName(a.h.name).length - coreName(b.h.name).length
