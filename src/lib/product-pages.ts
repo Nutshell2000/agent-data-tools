@@ -7,7 +7,7 @@
 // restate what the tools' own descriptions and limits say. Prices and call counts are computed from the catalog and
 // the plans, never typed, so a price change cannot leave a wrong number on a page.
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
-import { WEB_PACKS, WEB_PLANS, PLAN_PORTAL_URL, callsAt } from "./credits";
+import { FREE_KEY_CALLS, WEB_PACKS, WEB_PLANS, PLAN_PORTAL_URL, callsAt } from "./credits";
 import { keyPrice } from "./key-prices";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
@@ -237,7 +237,7 @@ footer{margin-top:40px;color:var(--muted);font-size:.9rem}`;
  * `tryLabel` names a capped try. `guideTitle` resolves a guide slug to its phrase (the guides module imports
  * nothing from here, so the route passes it in).
  */
-export function productPage(p: Product, origin: string, tryIt: boolean, guideTitle: (slug: string) => string | undefined, tryLabel?: string, cardReady = true, brand: string = SERVICE_NAME): string {
+export function productPage(p: Product, origin: string, tryIt: boolean, guideTitle: (slug: string) => string | undefined, tryLabel?: string, cardReady = true, brand: string = SERVICE_NAME, freeKey = false): string {
   const e = BY_PATH.get(p.tool)!;
   const url = `${origin}/${p.slug}`;
   const s = samples(e, origin);
@@ -273,11 +273,12 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
 <p class="tag">${esc(p.tagline)}</p>
 <ul class="points">${p.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
 <div class="actions">
-${tryIt ? `<a class="btn primary" href="#try">${esc(tryLabel ?? "Try it free")}</a>` : ""}
-<a class="btn${tryIt ? "" : " primary"}" href="#pricing">${lead ? `Plans from ${esc(lead.label.replace(" once", ""))}` : "Pricing"}</a>
+${freeKey ? `<a class="btn primary" href="/keys/free">Get a free API key</a>` : ""}
+${tryIt ? `<a class="btn${freeKey ? "" : " primary"}" href="#try">${esc(tryLabel ?? "Try it free")}</a>` : ""}
+<a class="btn${tryIt || freeKey ? "" : " primary"}" href="#pricing">${lead ? `Plans from ${esc(lead.label.replace(" once", ""))}` : "Pricing"}</a>
 <a class="btn" href="${esc(`${e.path}?${exampleParams(e).map(([k, v]) => `${k}=${encodeURIComponent(String(v.example ?? ""))}`).join("&")}&sample=1`)}">Sample answer (JSON)</a>
 </div>
-<p class="small">No account to create. Failed calls are never charged.</p>
+<p class="small">${freeKey ? `A free key makes ${FREE_KEY_CALLS} calls a month: leave an e-mail address, open the link, paste the key. ` : "No account to create. "}Failed calls are never charged.</p>
 
 <h2>One request</h2>
 <pre><code>${esc(s.curl)}</code></pre>
