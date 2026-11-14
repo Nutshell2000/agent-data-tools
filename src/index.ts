@@ -16,7 +16,7 @@ import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { liveAnswer } from "./lib/live-pages";
-import { withPublicCanonical } from "./lib/public-site";
+import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -117,6 +117,10 @@ app.use(async (c, next) => {
   if (!site || c.req.method !== "GET" || c.res.status !== 200 || !(c.res.headers.get("content-type") ?? "").includes("text/html")) return;
   const here = origin(c.req.url);
   if (here === site) return;
+  // A host that used to be the public home sends people and search engines on to the new one, page for page. Only
+  // pages move: tool calls, catalogs and payments on that host answer as before.
+  const moved = movedPageUrl(c.req.url, site, c.env.RETIRED_PUBLIC_HOSTS);
+  if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600" } }); return; }
   const html = await c.res.text();
   const headers = new Headers(c.res.headers);
   headers.delete("content-length");
