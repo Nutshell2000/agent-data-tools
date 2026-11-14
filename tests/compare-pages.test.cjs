@@ -76,6 +76,15 @@ test("a rival cheaper per page than us is not called more expensive", () => {
   }
 });
 
+test("compareHtml serves the hub and known rivals only, with no free-key button while free keys are off", () => {
+  const env = { FREE_KEYS: "off", PUBLIC_BRAND: "Brand" };
+  const hub = C.compareHtml(env, "https://example.test");
+  assert.match(hub, /Invoice extraction API pricing compared/);
+  assert.ok(!hub.includes('href="/keys/free"'));
+  assert.match(C.compareHtml(env, "https://example.test", C.RIVALS[0].slug), /Brand/);
+  assert.equal(C.compareHtml(env, "https://example.test", "nobody-alternative"), undefined);
+});
+
 test("the pages are in the sitemap and counted as human pages", () => {
   const xml = sitemapXml("https://example.test");
   for (const p of C.comparePaths()) {
