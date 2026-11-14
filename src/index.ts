@@ -46,7 +46,7 @@ import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { httpFree } from "./lib/capacity";
-import { quoteCacheKey, readQuote, writeQuote } from "./lib/quote-cache";
+import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
@@ -682,9 +682,20 @@ for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
   app.get(path, (c) => c.json({ version: 1, resources: salesOrdered(ENDPOINTS).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
 }
 // Bazaar-shaped discovery index of every tool (lib/discovery-index.ts): paged like the facilitator's own.
-app.get("/discovery/resources", (c) =>
-  c.json(discoveryResources(c.env, origin(c.req.url), Number(c.req.query("limit")), Number(c.req.query("offset"))), 200, { "Cache-Control": "public, max-age=300" }),
-);
+// Crawlers ask for the same pages all day and the index only changes with a deploy or a payment setting, so each
+// isolate builds a page once (14 Nov 2026: it was rebuilt, 701 tools with their terms, on every request).
+const discoveryPages = new Map<string, string>();
+app.get("/discovery/resources", (c) => {
+  const limit = Number(c.req.query("limit"));
+  const offset = Number(c.req.query("offset"));
+  const key = `${origin(c.req.url)}|${limit}|${offset}|${quoteFingerprint(c.env, MCP_SERVER_VERSION)}`;
+  let body = discoveryPages.get(key);
+  if (!body) {
+    body = JSON.stringify(discoveryResources(c.env, origin(c.req.url), limit, offset));
+    if (discoveryPages.size < 24) discoveryPages.set(key, body);
+  }
+  return c.body(body, 200, { "content-type": "application/json; charset=UTF-8", "Cache-Control": "public, max-age=300" });
+});
 // Proves to the 402 Index directory that we run this domain. A hash, not a secret.
 app.get("/.well-known/402index-verify.txt", (c) => c.text("97ea469f48e8639eaabd19626b4e62fbecf181f91cbb7554b25413a977f2a427"));
 // Glama connector ownership claim (public token bound to our Glama account; keep it published).
