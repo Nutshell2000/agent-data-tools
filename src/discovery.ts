@@ -247,7 +247,6 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
-  "/einvoice/create": "Company, compliance and checks", "/einvoice/validate": "Company, compliance and checks", "/einvoice/to-json": "Company, compliance and checks",
   "/cve": "Company, compliance and checks",
   "/se/company": "Company, compliance and checks",
   "/no/company": "Company, compliance and checks",
@@ -265,6 +264,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/cve/lookup": "Company, compliance and checks", "/github/user": "Company, compliance and checks", "/wiki/summary": "Web, documents and search",
   "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi",
   "/sec/financials": "Company, compliance and checks", "/stock/fundamentals": "Company, compliance and checks", "/income-statement": "Company, compliance and checks",
+  "/einvoice/create": "Company, compliance and checks", "/einvoice/validate": "Company, compliance and checks", "/einvoice/to-json": "Company, compliance and checks",
 });
 export const categoryOf = (path: string) => (Object.hasOwn(CATEGORY_OF_PATH, path) ? CATEGORY_OF_PATH[path] : CATEGORY_RULES.find(([, match]) => match(path))?.[0] ?? "Utilities");
 /**
