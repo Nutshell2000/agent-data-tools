@@ -195,3 +195,29 @@ test("round 8 doors (10 Nov 2026): the Markdown door returns Markdown unless tol
   assert.deepEqual(endpoints.exampleParams(door("/market/trending").endpoint), []);
   for (const p of ["/market/trending", "/market/ohlcv", "/wiki/summary"]) assert.ok(endpoints.ACQUISITION_PATHS.has(p), `${p} shares its tool's acquisition price`);
 });
+test("round 9 doors (14 Nov 2026): GPT and Claude pricing preset their provider and keep a caller's own", async () => {
+  const byPath = Object.fromEntries(doors.ENTRY_PATHS.map((d) => [d.endpoint.path, d]));
+  for (const [path, provider, word] of [["/gpt/pricing", "openai", "gpt"], ["/claude/pricing", "anthropic", "claude"]]) {
+    const d = byPath[path];
+    assert.ok(d, path);
+    assert.equal(doors.ENTRY_OF[path], "/llm/prices");
+    assert.ok(d.endpoint.summary.toLowerCase().startsWith(`${word} pricing`), d.endpoint.summary);
+    assert.equal(d.endpoint.params.provider.example, provider);
+    assert.equal(d.endpoint.outputExample.models[0].provider, provider);
+  }
+  const preset = doors.providerInput("openai");
+  assert.equal(preset(() => undefined)("provider"), "openai");
+  assert.equal(preset((n) => ({ provider: " google " })[n])("provider"), "google");
+  assert.equal(preset((n) => ({ q: "mini" })[n])("q"), "mini");
+  // The door runs the real tool: with the model list faked, only the preset provider's models come back.
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  delete globalThis.caches;
+  globalThis.fetch = async () => new Response(JSON.stringify({ data: [
+    { id: "openai/gpt-x", name: "OpenAI: GPT X", context_length: 1000, pricing: { prompt: "0.000001", completion: "0.000002" }, architecture: { input_modalities: ["text"], output_modalities: ["text"] } },
+    { id: "anthropic/claude-x", name: "Anthropic: Claude X", context_length: 1000, pricing: { prompt: "0.000003", completion: "0.000004" }, architecture: { input_modalities: ["text"], output_modalities: ["text"] } },
+  ] }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const out = await byPath["/claude/pricing"].run({}, () => undefined);
+    assert.deepEqual(out.models.map((m) => m.id), ["anthropic/claude-x"]);
+  } finally { globalThis.fetch = realFetch; if (realCaches) globalThis.caches = realCaches; }
+});

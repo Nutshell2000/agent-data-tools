@@ -40,6 +40,7 @@ import { CONTRACT_AUDIT } from "./contract-audit";
 import { GOV_DATA } from "./gov-data";
 import { HYPERLIQUID } from "./hyperliquid";
 import { CVE } from "./cve";
+import { LLM_PRICES } from "./llm-prices";
 import { SEC_FINANCIALS } from "./sec-financials";
 import { CRYPTO_TRENDING } from "./crypto-trending";
 import { timeInZone } from "./time";
@@ -70,6 +71,12 @@ function door(path: string, summary: string, description: string, tags: string[]
 
 /** /page/markdown: the page reader with Markdown as the format when the caller names none. */
 export const markdownInput = (q: Input): Input => (name) => (name === "format" ? (q("format")?.trim() || "markdown") : q(name));
+/** /gpt/pricing, /claude/pricing: the model price list with one provider preset when the caller names none. */
+export const providerInput = (provider: string) => (q: Input): Input => (name) => (name === "provider" ? (q("provider")?.trim() || provider) : q(name));
+const providerParams = (provider: string, word: string): Entry["endpoint"]["params"] => {
+  const p = from(LLM_PRICES, "/llm/prices").endpoint.params;
+  return { ...p, q: { ...p.q, example: word }, provider: { ...p.provider, description: `Provider to list (default ${provider}); any other provider name works too, e.g. google, meta-llama, mistralai`, example: provider } };
+};
 /** /defi/usdc-yield: the yields tool with stablecoin pools forced on and USDC as the default token. */
 export const usdcYieldInput = (q: Input): Input => (name) => (name === "stablecoin" ? "true" : name === "symbol" ? (q("symbol")?.trim() || "USDC") : q(name));
 
@@ -490,4 +497,20 @@ export const ENTRY_PATHS: Entry[] = [
   door("/market/sentiment", "Market sentiment: crypto fear and funding",
     "Market sentiment for crypto in one call: the Fear & Greed index with its 7-day change (alternative.me, attributed), the 10 most traded Hyperliquid perpetuals with price, 24-hour change, funding and open interest, and technical readings (RSI, MACD, moving averages) for up to three coins. No input needed. Use for a daily market brief, a trading agent's context or a risk-on, risk-off check.",
     ["market-sentiment", "crypto-sentiment", "fear-and-greed", "funding-rates", "market-brief", "crypto"], from(PACKS, "/pack/crypto-market")),
+
+  // Round 9 (14 Nov 2026): model pricing by provider. Mercator's gateway paid one seller (modelprices.xyz, $0.01 a call)
+  // 84 times in the week to 14 Nov for paths named /gpt-pricing, /claude-pricing and /llm/prices/<provider>; its search
+  // answered "gpt pricing" and "claude api pricing" with those paths and did not show /llm/prices at all, although the
+  // tool has had a provider filter from the start. Each door is that tool with the provider preset when the caller names none.
+  door("/gpt/pricing", "GPT pricing: OpenAI API prices",
+    "GPT pricing for every OpenAI model: USD per million input and output tokens, context length, max output and modalities for GPT, o-series and open-weight models, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=gpt-5), price cap, context or image input. Source: OpenRouter's public model list. Use to pick an OpenAI model for a job or to estimate what a prompt will cost before sending it.",
+    ["gpt-pricing", "openai-pricing", "openai-api-prices", "gpt-token-cost", "llm-pricing", "model-prices"], from(LLM_PRICES, "/llm/prices"),
+    async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("openai")(q)), providerParams("openai", "gpt"),
+    { count: 1, matched: 98, sort: "input", models: [{ id: "openai/gpt-oss-20b:batch", name: "OpenAI: gpt-oss-20b (batch)", provider: "openai", contextLength: 131072, maxOutputTokens: 117964, inputPerMillionUsd: 0.024, outputPerMillionUsd: 0.112, free: false, inputs: ["text"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T03:00:00.000Z" }),
+
+  door("/claude/pricing", "Claude pricing: Anthropic API prices",
+    "Claude pricing for every Anthropic model: USD per million input and output tokens, context length, max output and modalities for Claude Haiku, Sonnet, Opus and the newer families, cheapest first, plus the cost of your call when you give token counts. Filter by name (q=sonnet), price cap, context or image input. Source: OpenRouter's public model list. Use to pick a Claude model for a job or to estimate what a prompt will cost before sending it.",
+    ["claude-pricing", "anthropic-pricing", "anthropic-api-prices", "claude-token-cost", "llm-pricing", "model-prices"], from(LLM_PRICES, "/llm/prices"),
+    async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("anthropic")(q)), providerParams("anthropic", "sonnet"),
+    { count: 1, matched: 32, sort: "input", models: [{ id: "anthropic/claude-haiku-5.5:batch", name: "Anthropic: Claude Haiku 5.5 (batch)", provider: "anthropic", contextLength: 1000000, maxOutputTokens: 128000, inputPerMillionUsd: 0.05, outputPerMillionUsd: 0.25, free: false, inputs: ["text", "image", "file"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T03:00:00.000Z" }),
 ];
