@@ -12,6 +12,7 @@ const args = process.argv.slice(2);
 const jsonAt = args.indexOf("--json");
 const jsonOut = jsonAt >= 0 ? args[jsonAt + 1] : undefined;
 const filter = args.find((a, i) => !a.startsWith("--") && (jsonAt < 0 || i !== jsonAt + 1));
+const allParams = args.includes("--all-params");
 
 const urlShim = { name: "url", setup(b) { b.onResolve({ filter: /^url$/ }, () => ({ path: "node:url", external: true })); } };
 const catalog = await build({
@@ -60,7 +61,11 @@ const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate", "/defi/yields", "/defi/usdc-
 const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !isAi(e.path) && (!filter || e.path.includes(filter)));
 let results = [];
 async function runExample(e) {
-  const query = new URLSearchParams(exampleParams(e).map(([k, p]) => [k, String(p.example)]));
+  // --all-params fills EVERY input with its listed example, as routers that plan from the listing schema do (Mercator's
+  // suggestedPlanNode, agents filling a form from `examples`): an optional example that conflicts with the required ones
+  // is a paid call refused (14 Nov 2026: /extract's section example "retry-policy" on other pages, 9 refusals in 7 days).
+  const params = allParams ? Object.entries(e.params).filter(([k, p]) => k !== "only" && p.example !== undefined) : exampleParams(e);
+  const query = new URLSearchParams(params.map(([k, p]) => [k, String(p.example)]));
   const url = `https://agent-data-tools.revmesh2074.workers.dev${e.path}${query.size ? `?${query}` : ""}`;
   const t0 = Date.now();
   let status = 0, error = "";

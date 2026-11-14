@@ -50,11 +50,21 @@ test('no archived copy: the site\'s own refusal is the error', async () => {
   await assert.rejects(loadPdf('https://site.example/a.pdf'), (e) => e.status === 422 && /refused automated access/.test(e.message));
 });
 
-test('a target that is down (5xx) does not go to the archive', async () => {
+// Changed 14 Nov 2026: a down or bot-walled (503 challenge) site now reads the archive too, like /extract; 124 of 571
+// refused /pdf/text calls in 7 days were this class, and paid calls ended in execution_failed.
+test('a target that is down (5xx) reads the archive copy', async () => {
+  const { loadPdf } = await load();
+  route((u) => u.includes('web.archive.org/web/2id_') ? archive302() : u.includes('20261106144110id_') ? PDF() : new Response('boom', { status: 503 }));
+  const f = await loadPdf('https://site.example/a.pdf');
+  assert.equal(f.source, 'internet-archive');
+  assert.equal(f.snapshot, '2026-11-06');
+});
+
+test('down with no archived copy: the site\'s own 502 is the error', async () => {
   const { loadPdf } = await load();
   route(() => new Response('boom', { status: 500 }));
-  await assert.rejects(loadPdf('https://site.example/a.pdf'), (e) => e.status === 502);
-  assert.ok(calls.every((u) => !u.includes('archive.org')));
+  await assert.rejects(loadPdf('https://site.example/a.pdf'), (e) => e.status === 502 && /HTTP 500/.test(e.message));
+  assert.ok(calls.some((u) => u.includes('archive.org')));
 });
 
 test('a malformed URL is refused before any fetch', async () => {
