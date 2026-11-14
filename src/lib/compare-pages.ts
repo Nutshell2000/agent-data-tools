@@ -18,6 +18,7 @@ import { COMPANY_FOOTER } from "./legal";
 import { freeKeysOn } from "./free-keys";
 import { publicBrand } from "./public-brand";
 import type { Env } from "./env";
+import { VOICE_COMPARE, voiceCompareHtml, voiceComparePaths } from "./voice-compare";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -148,7 +149,7 @@ export const RIVALS: readonly Rival[] = [
 
 const BY_SLUG = new Map(RIVALS.map((r) => [r.slug, r]));
 export const rivalBySlug = (slug: string) => BY_SLUG.get(slug);
-export const comparePaths = () => [COMPARE_BASE, ...RIVALS.map((r) => `${COMPARE_BASE}/${r.slug}`)];
+export const comparePaths = () => [COMPARE_BASE, ...RIVALS.map((r) => `${COMPARE_BASE}/${r.slug}`), ...voiceComparePaths()];
 
 const BY_PATH = new Map(ENDPOINTS.map((e) => [e.path, e as Endpoint]));
 const EXTRACT = "/document/extract";
@@ -273,7 +274,7 @@ export function compareHtml(env: Env, origin: string, slug?: string): string | u
   const brand = publicBrand(env, SERVICE_NAME);
   if (slug === undefined) return compareIndexPage(origin, freeKey, cardReady, brand);
   const rival = rivalBySlug(slug);
-  return rival ? comparePage(rival, origin, freeKey, cardReady, brand) : undefined;
+  return rival ? comparePage(rival, origin, freeKey, cardReady, brand) : voiceCompareHtml(env, origin, slug);
 }
 
 /** The hub: every rival in one table, cheapest per page first, with our row on top. */
@@ -299,7 +300,9 @@ ${sorted.map((r) => `<tr><td><a href="${COMPARE_BASE}/${r.slug}">${esc(r.name)}<
 <li>Per-page billing multiplies with every page of a long invoice; per-step billing multiplies with every step of a workflow.</li>
 </ul>
 <h2>What you get with ${esc(brand)}</h2>
-<ul>${ourFacts(us, freeKey).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`;
+<ul>${ourFacts(us, freeKey).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+<h2>Voice API comparisons</h2>
+<p>${VOICE_COMPARE.map((p) => `<a href="${COMPARE_BASE}/${p.slug}">${esc(p.name)} alternative</a>`).join(" · ")}: speech to text and text to speech prices from each pricing page.</p>`;
   const ld = { "@context": "https://schema.org", "@type": "Article", headline: "Invoice extraction API pricing compared", dateModified: "2026-11-14", url, publisher: { "@type": "Organization", name: brand, url: origin } };
   return shell({ title, description, url, brand, body, ld: [ld] });
 }
