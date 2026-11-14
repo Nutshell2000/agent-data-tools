@@ -27,7 +27,7 @@ async function fixture({ failFirst = false, failures = failFirst ? 1 : 0 } = {})
   const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: bundle.outputFiles[0].text,
     compatibilityDate: '2026-09-01', compatibilityFlags: ['nodejs_compat'],
     durableObjects: { METRICS: { className: 'Metrics', useSQLite: true } },
-    bindings: { PAY_TO: '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5', NETWORK: 'eip155:8453', PAYWALL: 'on', TRIALS_ENABLED: 'off', FACILITATOR_URL: 'https://facilitator.fixture' },
+    bindings: { PAY_TO: '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5', NETWORK: 'eip155:8453', PAYWALL: 'on', TRIALS_ENABLED: 'off', FACILITATOR_URL: 'https://facilitator.fixture', COLD_SINGLE_ROUTES: '0' }, // these tests are about the shared full gateway
     outboundService: async request => {
       assert.equal(request.url, 'https://facilitator.fixture/supported');
       if (++calls === 1) { started(); await firstReleased; }

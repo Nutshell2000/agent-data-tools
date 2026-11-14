@@ -7,7 +7,7 @@ const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 // challenges, and nothing that carries a payment, a key, a free-call request or a browser may ever be served from it.
 const asset = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 let verifies = 0;
-let on, off;
+let on, off, single, full;
 before(async () => {
   const b = await build({ entryPoints: ['src/index.ts'], bundle: true, format: 'esm', platform: 'browser', write: false, external: ['cloudflare:workers', 'node:*'], logLevel: 'silent', plugins: [{ name: 'fixture-facilitator', setup(b) {
     b.onResolve({ filter: /^url$/ }, () => ({ path: 'node:url', external: true }));
@@ -23,8 +23,10 @@ before(async () => {
     outboundService: async (req) => { if (new URL(req.url).host === 'verify-counter.invalid') { verifies++; return new Response('ok'); } return new Response('not used', { status: 500 }); } }));
   on = worker({});
   off = worker({ QUOTE_CACHE: 'off' });
+  single = worker({ QUOTE_CACHE: 'off', COLD_SINGLE_ROUTES: '50' });
+  full = worker({ QUOTE_CACHE: 'off', COLD_SINGLE_ROUTES: '0' });
 });
-after(async () => { await Promise.all([on, off].map((m) => m?.dispose())); });
+after(async () => { await Promise.all([on, off, single, full].map((m) => m?.dispose())); });
 
 const bot = { accept: 'application/json', 'user-agent': 'x402station/1.0' };
 const get = async (mf, url, headers = bot, method = 'GET') => {
@@ -120,4 +122,35 @@ test('HEAD probes still answer 402 with the terms, and the off switch disables t
   await get(off, 'https://api.test/ping');
   await settle();
   assert.equal((await get(off, 'https://api.test/ping')).cache, null);
+});
+
+// A fresh isolate answers its first tool requests on a gateway that knows only the tool asked for (src/index.ts).
+test('forty tools: the one-route gateway of a fresh isolate quotes exactly what the full gateway quotes', async () => {
+  const api = await (await full.dispatchFetch('https://api.test/openapi.json')).json();
+  const paths = Object.entries(api.paths).filter(([p, v]) => v.get?.['x-payment-info'] && !p.startsWith('/v1/') && !p.startsWith('/credits/')).map(([p]) => p);
+  const sample = paths.filter((_, i) => i % Math.ceil(paths.length / 40) === 0);
+  assert.ok(sample.length >= 35);
+  for (const p of sample) {
+    const a = await get(single, `https://api.test${p}`);
+    const b = await get(full, `https://api.test${p}`);
+    assert.equal(a.status, 402, p);
+    assert.equal(a.terms, b.terms, p);
+    assert.equal(a.body, b.body, p);
+    assert.equal(stable(a.headers), stable(b.headers), p);
+  }
+});
+
+test('a payment on a one-route gateway reaches the facilitator, and the ninth request moves to the full gateway unchanged', async () => {
+  const fresh = on; // default settings: eight one-route requests, then the full gateway
+  const url = 'https://api.test/slug?text=Hello%20World';
+  const quote = await get(single, url);
+  const terms = JSON.parse(Buffer.from(quote.terms, 'base64').toString('utf8'));
+  const payload = Buffer.from(JSON.stringify({ x402Version: 2, resource: terms.resource, accepted: terms.accepts[0], payload: { signature: '0x' + '11'.repeat(65), authorization: { from: '0x' + '22'.repeat(20), to: terms.accepts[0].payTo, value: terms.accepts[0].amount, validAfter: '0', validBefore: '9999999999', nonce: '0x' + '44'.repeat(32) } } })).toString('base64');
+  const before = verifies;
+  const paid = await get(single, url, { ...bot, 'payment-signature': payload });
+  assert.equal(paid.status, 402, 'the fixture facilitator refuses it');
+  assert.equal(verifies, before + 1, 'the payment was sent to verification by the one-route gateway');
+  const seen = [];
+  for (let i = 0; i < 12; i++) seen.push(await get(fresh, `https://api.test/slug?text=n${i}`, { ...bot, 'x-api-key': 'not-a-key-so-no-cache' }));
+  for (const s of seen) assert.equal(s.status, seen[0].status);
 });
