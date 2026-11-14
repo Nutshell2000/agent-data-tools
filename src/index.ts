@@ -18,6 +18,7 @@ import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pa
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedTo, publicBrand, withPublicCanonical } from "./lib/public-site";
+import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -518,10 +519,19 @@ app.route("/", store);
 const origin = (url: string) => new URL(url).origin;
 app.get("/", async (c) =>
   // Browsers and directory scrapers get a readable page, programs get the JSON service card.
+  // With a public brand set (lib/public-site.ts) people get the product site's front page; the agent catalogue page
+  // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
-    ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
+    ? c.html(c.env.PUBLIC_BRAND?.trim()
+      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY))
+      : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))),
 );
+// The agent catalogue page, whatever "/" shows.
+app.get("/agents", async (c) => c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url)))));
+// Quick-start docs for people who call the APIs with a key (lib/site-pages.ts); /pricing is the card page.
+app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url))));
+app.get("/pricing", (c) => c.redirect("/credits", 302));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
   return {
