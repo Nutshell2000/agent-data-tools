@@ -1683,3 +1683,16 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `src/lib/quote-cache.ts` (`quoteCacheKey`, `readQuote`, `writeQuote`), used in the paywall wrapper of src/index.ts just before the gateway. Key = release version + payment settings (`quoteFingerprint`) + exact URL; TTL 30 minutes; MPP challenges are always made after the cache. When a new setting changes what a quote says, add it to `quoteFingerprint`. When a new way to pay or to identify a caller arrives by header or query, add it to the lists in `quoteCacheKey` so such requests never get a key.
 - Cost facts behind it (14 Nov 2026 live sample): median request 5 ms CPU, cold first quote 60-225 ms, a warm quote is mostly the MPP challenges (mppx), which the cache cannot hold. A gateway per paid path is worse (10-30 ms each on first use): do not retry it.
 
+
+
+## Focused product pages and VAT check pages (1.164.0, 14 Nov 2026)
+
+- Owner, 14 Nov 2026: sell focused products by monthly plan, found through search; several products. Audit and research: `C:\MoneyWallet\business\tool-sales-fresh-audit-2026-11-14.md`.
+- Search Console on 14 Nov 2026: 0 search clicks in 28 days on workers.dev, 1 on tools.funwords.eu. The funnel's `referral /from/google` counts a referrer header that fetchers send; it is NOT search traffic. Read Search Console before quoting visitors.
+- `src/lib/product-pages.ts`: `PRODUCTS` (`/pdf-to-text-api`, `/web-page-to-markdown-api`, `/company-check-api`), `productPage()`, `productOffers()` (plans first, then packs, counted at `keyPrice`), `PRODUCT_FOR_TOOL`. A new product is one entry; its copy may only restate the tools' descriptions; its slug must end in `-api`. The page names no payment protocol above its "For AI agents" section (tested): these visitors pay by card.
+- `src/lib/vat-pages.ts`: `/vat-number-check` and one page per VIES country (`VAT_COUNTRIES`, which tests keep equal to `VIES_COUNTRIES`). Each page keeps facts that differ per country and the working check; do not add templated pages without their own data.
+- By the research, company and VAT checks are the lead product (business buyers); the PDF page's views were fetchers, not demand.
+- `TaskGuide.code` holds a complete script for a language page; `{origin}` is replaced.
+- Entry-path tool pages (`ENTRY_OF`) are canonical to their tool's page and out of the sitemap. `/credits` shows the monthly plan before the packs.
+- Not built, the owner's decisions: file upload for PDF (personal documents would be processed: privacy text first), OCR, a bank-statement product, a free key by e-mail, a domain of our own, a higher sanctions price, removing the $1 pack.
+

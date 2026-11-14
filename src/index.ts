@@ -13,6 +13,8 @@ import { readable402, wantsV1Body } from "./lib/readable-402";
 import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
+import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
+import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { withPublicCanonical } from "./lib/public-site";
 import { demoPage } from "./lib/demo-page";
@@ -23,7 +25,7 @@ import { toolErrorAnswer } from "./lib/tool-errors";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
 import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
-import { guidesIndexHtml, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
+import { guidesIndexHtml, taskGuide, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
@@ -534,6 +536,20 @@ app.get("/guides/:name{[a-z0-9.-]+}", (c) => {
   const page = md ? taskGuideMarkdown(slug, origin(c.req.url), trialsEnabled(c.env)) : taskGuideHtml(slug, origin(c.req.url), trialsEnabled(c.env));
   if (page === undefined) return c.notFound();
   return md ? c.text(page) : c.html(page);
+});
+// Focused product pages (lib/product-pages.ts): the front door for people who arrive from a search engine.
+for (const product of PRODUCT_PAGES) {
+  app.get(`/${product.slug}`, (c) => {
+    const capped = trialsEnabled(c.env) && pdfTryOn(c.env, product.tool);
+    const tryIt = trialsEnabled(c.env) && (httpFree(product.tool) || capped);
+    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY)));
+  });
+}
+// Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
+app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))));
+app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
+  const country = vatCountry(c.req.param("country"));
+  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))) : c.notFound();
 });
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {

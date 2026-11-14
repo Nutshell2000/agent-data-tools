@@ -3,6 +3,7 @@
 // queries measured on 31 Oct our tool pages were absent from Exa's top 10 while Keenable's and Exa's agents were already
 // calling our readers. Each guide only restates what the tool's own description says, gives the request in every way
 // an agent can make it (free trial, card key in a header or in the URL, x402/MPP, MCP) and links the tool pages.
+import { PRODUCT_FOR_TOOL } from "../lib/product-pages";
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
@@ -29,6 +30,8 @@ export interface TaskGuide {
   faq?: [string, string][];
   /** A further page for a tool that already has its guide: the tool's own page keeps linking the main one. */
   secondary?: boolean;
+  /** A complete script for the main tool in one language, shown right under the lead. `{origin}` is replaced. */
+  code?: { language: string; text: string };
 }
 const leadOf = (g: TaskGuide, main: Endpoint) => g.lead ?? main.description;
 const usesOf = (g: TaskGuide, main: Endpoint) => g.uses ?? TOOL_SEO[main.path]?.uses ?? [];
@@ -52,6 +55,37 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
     lead: "Give an arXiv link, abstract page or PDF, and get the paper's text page by page; find the paper first by topic or ID with the arXiv search tool.",
     uses: ["Read a preprint into an LLM from its arXiv link", "Search arXiv by topic, then read the papers that matter", "Pull only the first pages (abstract and introduction) of many papers"],
     faq: [["Do abstract links work?", "Yes. An arxiv.org/abs/ link is read as the paper's PDF."], ["Does it work for scanned old papers?", "Only when the PDF has a text layer; scanned images without one return little or nothing."]] },
+  // 14 Nov 2026: the searches a developer types. Each page is the same tool with a complete script in that language.
+  { slug: "pdf-to-text-api-python", secondary: true, phrase: "PDF to text API in Python", tools: ["/pdf/text"],
+    lead: "Extract the text of a PDF at a URL from Python with one GET request: no PDF library to install, the answer is JSON with one entry per page.",
+    uses: ["Read a PDF in a script or notebook without pdfminer or PyPDF", "Loop over a long report 20 pages at a time", "Hand page text to an LLM or an embedding step"],
+    code: { language: "Python", text: "import os, requests\n\nAPI = \"{origin}/pdf/text\"\nHEADERS = {\"Authorization\": f\"Bearer {os.environ['API_KEY']}\"}\n\ndef pdf_text(url, first_page=1, pages=20):\n    r = requests.get(API, params={\"url\": url, \"firstPage\": first_page, \"pages\": pages}, headers=HEADERS, timeout=60)\n    r.raise_for_status()\n    return r.json()\n\ndoc = pdf_text(\"https://bitcoin.org/bitcoin.pdf\")\nprint(doc[\"totalPages\"], \"pages\")\nfor page in doc[\"pages\"]:\n    print(page[\"page\"], page[\"text\"][:200])" },
+    faq: [["Do I need a PDF library?", "No. The file is fetched and parsed on the server; your script only needs an HTTP client such as requests."], ["How do I read a whole long PDF?", "Call it in steps: firstPage 1, 21, 41 and so on with pages 20, until firstPage passes totalPages. Up to 200 pages fit in one call."]] },
+  { slug: "pdf-to-text-api-nodejs", secondary: true, phrase: "PDF to text API in Node.js", tools: ["/pdf/text"],
+    lead: "Extract the text of a PDF at a URL from Node.js or TypeScript with one fetch call: no pdf.js to bundle, the answer is JSON with one entry per page.",
+    uses: ["Read a PDF in a serverless function where a PDF library is too heavy", "Loop over a long report 20 pages at a time", "Hand page text to an LLM or an embedding step"],
+    code: { language: "Node.js", text: "const API = \"{origin}/pdf/text\";\n\nasync function pdfText(url, firstPage = 1, pages = 20) {\n  const params = new URLSearchParams({ url, firstPage, pages });\n  const r = await fetch(`${API}?${params}`, {\n    headers: { Authorization: `Bearer ${process.env.API_KEY}` },\n  });\n  if (!r.ok) throw new Error(await r.text());\n  return r.json();\n}\n\nconst doc = await pdfText(\"https://bitcoin.org/bitcoin.pdf\");\nconsole.log(doc.totalPages, \"pages\");\nfor (const page of doc.pages) console.log(page.page, page.text.slice(0, 200));" },
+    faq: [["Does it run in a serverless or edge function?", "Yes. It is one HTTPS request with fetch; nothing is installed and no file is held in memory on your side."], ["How do I read a whole long PDF?", "Call it in steps: firstPage 1, 21, 41 and so on with pages 20, until firstPage passes totalPages. Up to 200 pages fit in one call."]] },
+  // 14 Nov 2026: the company-check product's guides. VAT validation had no guide; businesses search it by language.
+  { slug: "eu-vat-number-validation-api", phrase: "EU VAT number validation API", tools: ["/vat/validate", "/se/company"],
+    lead: "Check an EU VAT number against the European Commission's VIES service with one GET request: valid or not, with the registered name and address where the member state shares them.",
+    uses: ["Validate a B2B customer's VAT number at checkout before invoicing without VAT", "Re-check supplier VAT numbers in an accounting or ERP job", "Fill in a company's registered name and address from its VAT number"],
+    faq: [["Which countries does it cover?", "Every EU member state and Northern Ireland (prefix XI) through VIES. Greece is EL; a number sent with GR is checked as EL."], ["What if VIES or a member state is busy?", "The check is retried for busy signals. If no clear answer comes, the call fails and is not charged; it never answers not valid by default."], ["Does every country return the name and address?", "No. Each member state decides; Germany and Spain return valid or not valid only."]] },
+  { slug: "eu-vat-number-validation-api-python", secondary: true, phrase: "Validate an EU VAT number in Python", tools: ["/vat/validate"],
+    lead: "Validate an EU VAT number from Python with one GET request to an API that asks VIES for you: no SOAP client, no zeep, JSON back.",
+    uses: ["Check a customer's VAT number in a Django or Flask checkout", "Validate a spreadsheet of supplier VAT numbers in a script", "Skip the VIES SOAP service and its WSDL"],
+    code: { language: "Python", text: "import os, requests\n\nAPI = \"{origin}/vat/validate\"\nHEADERS = {\"Authorization\": f\"Bearer {os.environ['API_KEY']}\"}\n\ndef check_vat(vat):\n    r = requests.get(API, params={\"vat\": vat}, headers=HEADERS, timeout=30)\n    if r.status_code >= 500:\n        return None  # VIES or the member state gave no answer: try again later\n    r.raise_for_status()\n    return r.json()\n\nresult = check_vat(\"SE556703748501\")\nif result is None:\n    print(\"no answer right now\")\nelif result[\"valid\"]:\n    print(\"valid:\", result.get(\"name\"), result.get(\"address\"))\nelse:\n    print(\"not valid\")" },
+    faq: [["Do I need a SOAP library?", "No. The API speaks to VIES; your code sends one HTTPS GET and reads JSON."], ["How should I treat an error?", "As no answer, not as not valid. A 5xx means VIES or the member state could not be reached; the call is not charged and can be repeated."]] },
+  { slug: "eu-vat-number-validation-api-nodejs", secondary: true, phrase: "Validate an EU VAT number in Node.js", tools: ["/vat/validate"],
+    lead: "Validate an EU VAT number from Node.js or TypeScript with one fetch call to an API that asks VIES for you: no SOAP package, JSON back.",
+    uses: ["Check a customer's VAT number in a checkout or sign-up form handler", "Validate VAT numbers in a serverless function", "Skip the VIES SOAP service and its WSDL"],
+    code: { language: "Node.js", text: "const API = \"{origin}/vat/validate\";\n\nasync function checkVat(vat) {\n  const r = await fetch(`${API}?${new URLSearchParams({ vat })}`, {\n    headers: { Authorization: `Bearer ${process.env.API_KEY}` },\n  });\n  if (r.status >= 500) return null; // VIES or the member state gave no answer: try again later\n  if (!r.ok) throw new Error(await r.text());\n  return r.json();\n}\n\nconst result = await checkVat(\"SE556703748501\");\nif (result === null) console.log(\"no answer right now\");\nelse if (result.valid) console.log(\"valid:\", result.name, result.address);\nelse console.log(\"not valid\");" },
+    faq: [["Do I need a SOAP package?", "No. The API speaks to VIES; your code sends one HTTPS GET and reads JSON."], ["How should I treat an error?", "As no answer, not as not valid. A 5xx means VIES or the member state could not be reached; the call is not charged and can be repeated."]] },
+  { slug: "eu-vat-number-validation-api-php", secondary: true, phrase: "Validate an EU VAT number in PHP", tools: ["/vat/validate"],
+    lead: "Validate an EU VAT number from PHP with one HTTPS request to an API that asks VIES for you: no SoapClient extension, JSON back.",
+    uses: ["Check a customer's VAT number in a WooCommerce, Laravel or plain PHP checkout", "Validate VAT numbers on hosting without the SOAP extension", "Skip the VIES SOAP service and its WSDL"],
+    code: { language: "PHP", text: "<?php\nfunction check_vat(string $vat): ?array {\n    $ch = curl_init('{origin}/vat/validate?' . http_build_query(['vat' => $vat]));\n    curl_setopt_array($ch, [\n        CURLOPT_RETURNTRANSFER => true,\n        CURLOPT_TIMEOUT => 30,\n        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . getenv('API_KEY')],\n    ]);\n    $body = curl_exec($ch);\n    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);\n    curl_close($ch);\n    if ($body === false || $status >= 500) return null; // no answer: try again later\n    if ($status !== 200) throw new RuntimeException($body);\n    return json_decode($body, true);\n}\n\n$result = check_vat('SE556703748501');\nif ($result === null) echo \"no answer right now\\n\";\nelseif ($result['valid']) echo 'valid: ' . ($result['name'] ?? '') . \"\\n\";\nelse echo \"not valid\\n\";" },
+    faq: [["Do I need the SOAP extension?", "No. The API speaks to VIES; your code sends one HTTPS GET with cURL and reads JSON."], ["How should I treat an error?", "As no answer, not as not valid. A 5xx means VIES or the member state could not be reached; the call is not charged and can be repeated."]] },
   { slug: "url-to-markdown-api", phrase: "URL to Markdown API", tools: ["/extract", "/extract/rendered"],
     lead: "Give a public web page's URL and get it back as clean Markdown or text for an LLM, with the page's links, tables and code blocks kept and boilerplate removed.",
     uses: ["Read documentation, articles and product pages into a RAG pipeline", "Pull one section of a long page by heading", "Read JavaScript-rendered pages with the rendered variant"],
@@ -174,6 +208,7 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
   const title = `${g.phrase}: from ${main.price} per call, no signup · ${SERVICE_NAME}`;
   const url = `${origin}/guides/${g.slug}`;
   const lead = leadOf(g, main), uses = usesOf(g, main);
+  const product = PRODUCT_FOR_TOOL.get(main.path);
   const seoFaq = TOOL_SEO[main.path]?.faq ?? [];
   const faq: [string, string][] = [...(g.faq ?? []), ...seoFaq.filter(([q]) => !(g.faq ?? []).some(([gq]) => gq === q)),
     ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && httpFree(main.path) ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
@@ -192,6 +227,8 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
 <h1>${esc(g.phrase)}</h1>
 <p class="meta">From ${esc(main.price)} per successful call · failed calls are never charged · no account needed · Markdown version: <a href="${esc(`/guides/${g.slug}.md`)}">${esc(`/guides/${g.slug}.md`)}</a></p>
 <p>${esc(lead)}</p>
+${product ? `<p><strong><a href="/${esc(product.slug)}">${esc(product.name)}</a>:</strong> monthly plans and one-off packs, one API key.</p>` : ""}
+${g.code ? `<h2>${esc(g.code.language)} example</h2><pre><code>${esc(g.code.text.replaceAll("{origin}", origin))}</code></pre><p>Set <code>API_KEY</code> to a key from <a href="/credits">/credits</a>.</p>` : ""}
 ${uses.length ? `<h2>When an agent wants this</h2><ul>${uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${tools.map((e) => toolBlock(e, origin, freeCalls, false)).join("\n")}
 <h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
@@ -204,7 +241,7 @@ export function taskGuideMarkdown(slug: string, origin: string, freeCalls: boole
   if (!g) return undefined;
   const tools = g.tools.map((p) => byPath.get(p)).filter((e): e is Endpoint => Boolean(e));
   const uses = usesOf(g, tools[0]);
-  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
+  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(g.code ? [`## ${g.code.language} example`, g.code.text.replaceAll("{origin}", origin).split("\n").map((l) => `    ${l}`).join("\n")] : []), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
     ...tools.map((e) => `## ${e.summary}\n\n${toolBlock(e, origin, freeCalls, true)}`),
     `## Questions`, ...(g.faq ?? []).map(([q, a]) => `**${q}** ${a}`),
     `Docs for agents: ${origin}/llms.txt · OpenAPI: ${origin}/openapi.json · All guides: ${origin}/guides`].join("\n\n") + "\n";
