@@ -75,6 +75,7 @@ import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiMode
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
 import { OPENAI_SPEECH_PATH, openAiSpeech } from "./lib/openai-speech";
+import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -515,6 +516,10 @@ app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c,
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_SPEECH_PATH, (c) => openAiSpeech(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+// Drop-in voice APIs (lib/voice-fronts.ts): ElevenLabs text to speech and speech to text, OpenAI transcription.
+for (const path of [ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH]) app.on(["GET", "HEAD", "POST"], path, (c) => elevenLabsSpeech(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.on(["GET", "HEAD", "POST"], ELEVEN_STT_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "eleven"));
+app.on(["GET", "HEAD", "POST"], OPENAI_TRANSCRIPTIONS_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "openai"));
 app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));

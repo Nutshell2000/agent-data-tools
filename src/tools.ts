@@ -2,6 +2,7 @@ import { assertToolOutput } from "./lib/output-contract";
 import { messagesAsArray } from "./lib/chat-messages";
 import { sitemap } from "./routes/sitemap";
 import { HttpError, type Env } from "./lib/env";
+import { FILE_REF_INPUT } from "./lib/file-input";
 import { ENDPOINTS, PAUSED_FAMILY_TOOLS } from "./endpoints";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
@@ -49,7 +50,7 @@ const handlers: Record<EndpointPath, (env: Env, input: Input) => Promise<unknown
   "/summarize": (env, q) => summarize(env, q("url")),
   "/screenshot": (env, q) => screenshot(env, q("url"), q("fullPage")),
   "/image": (env, q) => generateImage(env, q("prompt"), q("steps")),
-  "/transcribe": (env, q) => transcribe(env, q("url")),
+  "/transcribe": (env, q) => transcribe(env, q("url"), q(FILE_REF_INPUT), q("subtitles"), q("timestamps"), q("language")),
   "/describe": (env, q) => describeImage(env, q("url"), q("question")),
   "/btc-fees": () => bitcoinFees(),
   "/btc-address": (_env, q) => bitcoinAddress(q("address") ?? ""),
