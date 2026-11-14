@@ -74,9 +74,28 @@ const valid = (y: number, mo: number, d: number) => {
 const near = (a: number, b: number) => Math.abs(a - b) <= Math.max(0.02, Math.abs(b) * 0.001);
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : typeof v === "number" ? String(v) : null);
 
+/** The words invoices print next to a VAT number, in the member states' languages. */
+const VAT_LABELS = /^(?:VAT|VATNO|VATNR|VATID|BTW|BTWNR|TVA|IVA|NIF|CIF|MWST|UST|USTID|USTIDNR|MOMS|MOMSNR|ALV|DPH|DIC|DDV|PVM|PVN|KMKR|AFM|ANYK|NIP|NO|NR|ID|NUMBER)+|(?:VAT|BTW|TVA|IVA|MWST|UST|MOMS|ALV|DPH|PVM|PVN|KMKR)+$/;
+/**
+ * A VAT number as printed on an invoice, made checkable: spacing and punctuation removed, then label words before or after
+ * it ("BTW", "USt-IdNr.", "VAT No") dropped. Why: PDF text often glues the label to the number; the staging proof of
+ * 1.180.0 read "NL810433941B01BTW" from a real Dutch invoice and the VIES check was skipped. Exported for the tests.
+ */
+export function cleanVat(raw: string): string {
+  // Labels go first, always: vatParts checks only the shape, so "NL810433941BTW" would pass it and VIES would call a real
+  // number invalid. No EU VAT number ends in three or more letters (IE ends in up to two, ES and CY in one), and no label
+  // word starts with an EU country code, so stripping them cannot cut a real number.
+  let s = raw.toUpperCase().replace(/[\s.:\-\/]/g, "");
+  for (let i = 0; i < 3; i++) s = s.replace(VAT_LABELS, "");
+  if (vatParts(s)) return s;
+  // A number with a 2-letter prefix somewhere inside the text, e.g. "OURVATNOISNL810433941B01".
+  const m = /(AT|BE|BG|CY|CZ|DE|DK|EE|EL|GR|ES|FI|FR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK|XI)U?\d[0-9A-Z]{1,13}/.exec(s);
+  return m && vatParts(m[0]) ? m[0] : s;
+}
+
 async function vatCheck(label: string, raw: string | null, name: string | null, vies: Vies): Promise<{ check: Check; record: Record<string, unknown> | null }> {
   if (!raw) return { check: { check: `${label}_vat`, status: "missing", detail: `no ${label} VAT number on the invoice` }, record: null };
-  const parts = vatParts(raw);
+  const parts = vatParts(cleanVat(raw));
   if (!parts) return { check: { check: `${label}_vat`, status: "warn", detail: `"${raw.slice(0, 30)}" does not start with an EU country code, so it was not checked in VIES` }, record: null };
   if (!VIES_COUNTRIES.has(parts.country)) return { check: { check: `${label}_vat`, status: "skipped", detail: `${parts.country} numbers are not in EU VIES` }, record: null };
   try {
@@ -117,7 +136,7 @@ export async function invoiceChecks(data: Record<string, unknown>, vies: Vies, t
     iban = ibanCheck(ibanRaw);
     if (!iban.valid) checks.push({ check: "iban", status: "fail", detail: `IBAN ${iban.formatted} is not valid: ${iban.reasons.join("; ")}` });
     else {
-      const sellerCountry = seller.record && typeof seller.record.country === "string" ? (seller.record.country === "EL" ? "GR" : seller.record.country) : vatParts(str(data.seller_vat_number) ?? "")?.country?.replace("EL", "GR") ?? null;
+      const sellerCountry = seller.record && typeof seller.record.country === "string" ? (seller.record.country === "EL" ? "GR" : seller.record.country) : vatParts(cleanVat(str(data.seller_vat_number) ?? ""))?.country?.replace("EL", "GR") ?? null;
       checks.push(sellerCountry && sellerCountry !== "XI" && iban.country !== sellerCountry
         ? { check: "iban", status: "warn", detail: `IBAN is valid but held in ${iban.country}, while the seller's VAT number is from ${sellerCountry}: confirm the account with the supplier by a known channel before paying` }
         : { check: "iban", status: "pass", detail: `IBAN ${iban.formatted} is valid (${iban.country})` });
