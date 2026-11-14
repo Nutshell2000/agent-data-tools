@@ -281,6 +281,32 @@ export const MCP_BUNDLES: Readonly<Record<string, string>> = Object.freeze({
 });
 export const mcpBundleTools = (slug: string) =>
   Object.hasOwn(MCP_BUNDLES, slug) ? ENDPOINTS.filter((e) => categoryOf(e.path) === MCP_BUNDLES[slug]) : undefined;
+
+/**
+ * Hand-picked MCP servers, one per product (14 Nov 2026), at /mcp/<slug> beside the section servers. Glama scores every
+ * registry entry on its own: the section servers lost points for size and overlap (compliance: 62 tools, "an agent cannot
+ * reliably tell which of these to choose"), while small single-purpose servers rank first in its searches. So each of
+ * these holds a few canonical tools with distinct jobs: no entry paths (second names), no packs that repeat its tools.
+ * `kinds` and `pick` replace the catalog-wide wording in the server's instructions, so it describes only what it offers.
+ */
+export const FOCUSED_SERVERS: Readonly<Record<string, { title: string; registry: string; kinds: string; pick: string; paths: readonly string[] }>> = Object.freeze({
+  documents: {
+    title: "Documents to text",
+    registry: "PDF, Word, Excel, PowerPoint and web pages to Markdown; invoice fields as JSON",
+    kinds: "documents and web pages to text: PDF text page by page, Word, Excel and PowerPoint to Markdown, named fields from a document as JSON, and web pages as clean Markdown",
+    pick: "Pick by task: a PDF's text, page by page → pdf_text; a .docx, .xlsx, .pptx or PDF as Markdown → document_text; named fields (invoice number, totals, line items) as JSON → document_extract; a web page as Markdown → extract (pages built with JavaScript: extract_rendered).",
+    paths: ["/pdf/text", "/document/text", "/document/extract", "/extract", "/extract/rendered"],
+  },
+  "company-check": {
+    title: "Company and VAT check",
+    registry: "EU VAT (VIES), Nordic and French company registers, LEI and OFAC sanctions checks",
+    kinds: "company checks: EU VAT number validation through VIES, the Swedish, Norwegian, Finnish and French company registers, LEI lookup, OFAC sanctions screening and a company profile by name or domain",
+    pick: "Pick by task: is an EU VAT number valid, and whose is it → vat_validate; a company in Sweden → se_company, Norway → no_company, Finland → fi_company, France → fr_company (by registration number or name); a Legal Entity Identifier → lei_lookup; is a person, company or wallet on the OFAC list → sanctions_check; a company's profile by name or website → company.",
+    paths: ["/vat/validate", "/se/company", "/no/company", "/fi/company", "/fr/company", "/lei/lookup", "/sanctions/check", "/company"],
+  },
+});
+export const focusedServerTools = (slug: string) =>
+  Object.hasOwn(FOCUSED_SERVERS, slug) ? FOCUSED_SERVERS[slug].paths.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is Endpoint => Boolean(e)) : undefined;
 /** Tools shown first on the homepage. */
 const START_HERE = ["/extract", "/price/token", "/wallet/portfolio", "/check/counterparty", "/company", "/pdf/text"];
 export const byCategory = () => CATEGORY_ORDER.map((name) => ({ name, tools: ENDPOINTS.filter((e) => categoryOf(e.path) === name) })).filter((g) => g.tools.length);
