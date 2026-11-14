@@ -69,6 +69,15 @@ test("a country list: register countries search their register, others search GL
   assert.deepEqual(r.countries, ["DE", "SE"]);
 });
 
+test("equal exact names in two countries: the one with an LEI first; LEI-only entities must carry the name", async () => {
+  const r = await S.companySearch("CEZ", null, 5, {
+    now,
+    searchers: fake({ FR: [{ name: "CEZ", siren: "947752606", legalForm: "SAS", city: "LYON" }], SE: [] }),
+    lei: async () => [leiRecord("529900S5R9YHJHYKKG94", "ČEZ, a. s.", "CZ"), leiRecord("743700BR6W62YJLS1M29", "PO & MS Oy", "FI"), leiRecord("743700VRO45IRGGT2842", "Cezanne Holding", "FR")],
+  });
+  assert.deepEqual(r.results.map((h) => h.id), ["529900S5R9YHJHYKKG94", "947752606"]);
+});
+
 test("a source that fails is named and the rest answer; nothing answering is an uncharged 502; no match is an answer", async () => {
   const partial = await S.companySearch("Volvo", ["SE", "NO"], 5, { now, searchers: fake({ SE: "down", NO: [{ name: "VOLVO NORGE AS", orgnr: "912345678", legalForm: "Aksjeselskap", city: "OSLO" }] }), lei: async () => [] });
   assert.equal(partial.complete, false);
