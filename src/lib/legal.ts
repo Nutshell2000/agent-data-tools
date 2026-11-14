@@ -24,7 +24,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <ul>
 <li><strong>Request counts.</strong> Per tool and per day: how many calls were quoted, paid, free, failed or paid with credits. No inputs or outputs are stored in these counts.</li>
 <li><strong>Request processing logs.</strong> Our host, Cloudflare, records request logs (including IP address, user agent, URL and timing) for operations and debugging, kept for Cloudflare's standard retention period. Tool inputs passed in the URL appear in those logs.</li>
-<li><strong>Uploaded PDF files.</strong> A PDF you send in a request body is read in memory to answer that one request and then dropped. It is not written to any store, cache or log, and it is not fetched again. Only a one-way hash of the file appears in the request URL that our host logs.</li>
+<li><strong>Uploaded PDF files.</strong> A PDF you send in a request body is read in memory to answer that one request and then dropped. It is not written to any store, cache or log, and it is not fetched again. A payment quote for an upload names the file by a one-way hash, never by its content.</li>
 <li><strong>Free calls.</strong> A one-way hash of your IP address and a count of free calls used. The IP address itself is not stored for this.</li>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
 <li><strong>Agent memory.</strong> What you save with the memory tools (/memory/set), under a one-way hash of the namespace you choose, until it expires (at most 30 days) or you delete it with /memory/delete. Anyone who knows a namespace can read it.</li>
