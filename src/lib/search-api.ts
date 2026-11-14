@@ -11,6 +11,17 @@ import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
 import { ENDPOINTS } from "../endpoints";
 import { keyPrice } from "./key-prices";
 import { categoryOf } from "../routes/search";
+import { LAW_ACTS } from "../routes/law-search";
+
+/** Act names that mean the law wherever they appear; other names (CRA, MDR, Instant Payments) count only next to a law word. */
+const LEGAL_NAMES = new Set(["gdpr", "ai act", "dsa", "dma", "nis2", "dora", "mica", "csrd", "csddd", "psd2", "eidas", "eprivacy", "amlr", "amla", "cbam", "sfdr", "eudr", "vida", "gpsr", "ehds", "espr", "ucpd", "eudpr"]);
+const LAW_WORDS = /\b(article|art\.|recital|regulation|directive|eu law|union law|comply|compliance|complian|obligations?|required?|requirements?|fines?|penalt|lawful|legal|prohibit|transpos)/i;
+const foldName = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+/** A question about an indexed EU act, named by its short or full name (never by topic words alone). */
+export function isLawQuestion(q: string): boolean {
+  const text = ` ${foldName(q)} `;
+  return LAW_ACTS.some((a) => [a.short, a.name].map(foldName).some((n) => n.length >= 3 && text.includes(` ${n} `) && (LEGAL_NAMES.has(n) || LAW_WORDS.test(q))));
+}
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -182,6 +193,9 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
   const q = typeof b.query === "string" ? b.query.trim() : "";
   if (!q) return { error: "query must be a non-empty string" };
   if (q.length > 400) return { error: "query must be at most 400 characters" };
+  // An EU-law question (a law category, or the question names an indexed act: GDPR, AI Act, DSA…) is answered from
+  // our EU law index, not from web search results.
+  if (isLawSearch(b) || isLawQuestion(q)) return { query: { q, count: "5", answer: "true" }, text: 0, tool: "/law/search" };
   return { query: { q }, text: 0 };
 }
 
@@ -325,6 +339,14 @@ type SearchOut = {
 export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>, tool?: string, opts: { text?: number; origin?: string; ignored?: string[] } = {}) {
   const routed = recordResults(inner, tool, opts);
   if (routed) return routed;
+  if (tool === "/law/search" && path === "/v1/answer") {
+    const r = inner as { answer?: string; model?: string | null; results?: { citation: string; heading?: string; url: string }[]; attribution?: string };
+    return {
+      requestId: requestId(), answer: r.answer ?? "", model: r.model ?? undefined, resolvedSearchType: "eu-law-index",
+      citations: (r.results ?? []).map((h) => ({ id: h.url, url: h.url, title: h.heading ? `${h.citation}: ${h.heading}` : h.citation })),
+      terms: r.attribution,
+    };
+  }
   if (tool === "/law/search") {
     // EU law passages as search results: the title is the citation, the text the provision, highlights its opening.
     const r = inner as { results?: { citation: string; heading?: string; text: string; url: string; version: string; score?: number }[]; attribution?: string };

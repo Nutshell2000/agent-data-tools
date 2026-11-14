@@ -175,3 +175,17 @@ test('register, paper, arXiv and GitHub answers take the neural-search shape; co
   assert.equal(gh.results[0].title, 'coinbase/x402');
   assert.equal(gh.results[0].author, null);
 });
+test('an EU-law question on /v1/answer is answered from the law index; other questions stay on the web answer', async () => {
+  const lib = await load();
+  assert.deepEqual(lib.toToolQuery('/v1/answer', { query: 'When is processing lawful under the GDPR?' }), { query: { q: 'When is processing lawful under the GDPR?', count: '5', answer: 'true' }, text: 0, tool: '/law/search' });
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What does DORA require for ICT incident reporting?' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'anything', category: 'law' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'How do I write an invoice in Python?' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'How do instant payments work?' }).tool, undefined);
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What does the Instant Payments Regulation require of banks?' }).tool, '/law/search');
+  assert.equal(lib.toToolQuery('/v1/answer', { query: 'What is the CRA tax deadline?' }).tool, undefined);
+  const out = lib.toSearchApi('/v1/answer', { answer: 'Processing is lawful only if one of six conditions applies [1].', model: 'm', results: [{ citation: 'GDPR, Article 6', heading: 'Lawfulness of processing', url: 'https://eur-lex.europa.eu/x#art_6' }], attribution: 'A' }, '/law/search');
+  assert.equal(out.answer, 'Processing is lawful only if one of six conditions applies [1].');
+  assert.deepEqual(out.citations, [{ id: 'https://eur-lex.europa.eu/x#art_6', url: 'https://eur-lex.europa.eu/x#art_6', title: 'GDPR, Article 6: Lawfulness of processing' }]);
+  assert.equal(out.resolvedSearchType, 'eu-law-index');
+});
