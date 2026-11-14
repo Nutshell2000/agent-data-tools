@@ -1867,3 +1867,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `sentFile()` accepts an `image/*` body. Before, a raw PNG or JPEG body was "no file" and the caller got "missing required query parameter: url"; every integration that posts binary data (n8n HTTP Request, the Dify plugin, curl --data-binary) hit it. The example sweeps did not: they send the published URL example. After a change to uploads, run `node bench.mjs api <dir> png` and `... pdf` in C:\MoneyWallet\business\integrations\bench-invoices: it posts real files the way integrations do.
 
 
+
+
+## Comparison pages (1.183.0, 14 Nov 2026)
+
+- `src/lib/compare-pages.ts`: `RIVALS` (eight document-extraction services), `comparePage`, `compareIndexPage`, `comparePaths`; routes `/compare` and `/compare/:slug` in src/index.ts; sitemap via `comparePaths()` in src/discovery.ts; `isHumanPage` matches `/compare` paths.
+- Every rival figure is copied from the rival's OWN pricing page on the date in `CHECKED`, with that page linked. No third-party estimates: Google Document AI, Rossum and Azure were left out because their own pages gave no readable figure on 14 Nov. When a rival's page changes, update the row and `CHECKED`, or drop the rival. Re-read them about monthly.
+- Each rival lists where it is the better choice (`better`); a rival cheaper per page than our key price must not be called more expensive (tests/compare-pages.test.cjs).
+- Our side is computed: /document/extract key price, the cheapest monthly plan's price per document (`planPerDoc`), and /invoice/check's price only when that tool exists. Do not type our prices into this file.
+- Research and plan: `C:\MoneyWallet\business\research-2026-11-14-biggest-earners\`.
+
