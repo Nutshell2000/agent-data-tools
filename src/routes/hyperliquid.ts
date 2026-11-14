@@ -67,7 +67,9 @@ export function intervalKey(raw: string | undefined, fallback: string): string {
 }
 const SOURCE = "Hyperliquid public info API";
 /** /hyperliquid/indicators only (owner's decision, 12 Nov 2026); every other Hyperliquid tool keeps the catalog price. */
-export const INDICATORS_PRICE = "$0.05";
+// Back to $0.01 in 1.168.0 (14 Nov 2026, prices delegated by the owner that day): 73 outside sales at $0.01 on
+// 10-12 Nov, none at $0.05; the finder's 14 Nov run and Mercator (pays only the $0.01 its catalogue stores) skipped it.
+export const INDICATORS_PRICE = "$0.01";
 
 // ---- technical indicators (1.54.0), pure arithmetic on closed candles --------------------------------------------------
 const round = (v: number | null, d = 6) => (v === null || !Number.isFinite(v) ? null : Math.round(v * 10 ** d) / 10 ** d);
@@ -271,8 +273,7 @@ export const HYPERLIQUID: Entry[] = [
         atr14: round(atr(rows), dp), realizedVolPct: round(realizedVol(closes, step), 2), readings, source: SOURCE,
       };
     },
-    // The owner, 12 Nov 2026: "Yes, $0.05". The finder buyer pays its pick ten times at the live quote and we lead its
-    // "technical indicators" question by 0.10, which price (15% of its score) cannot flip; $0.05 is the finder's example cap.
+    // $0.05 on 13-14 Nov 2026 (owner's test, no sale); $0.01 again since 1.168.0, see INDICATORS_PRICE.
     INDICATORS_PRICE),
 
   entry("/hyperliquid/prices","All crypto prices, Hyperliquid: mid prices of every perpetual",
