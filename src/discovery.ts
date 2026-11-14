@@ -515,7 +515,8 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
               required: p.required ?? false,
               description: p.description,
               schema: { type: p.type, ...(p.enum ? { enum: p.enum } : {}) },
-              example: p.example,
+              // An empty example means "no example to offer" (see bazaarInputProperties): planners fill parameters from it.
+              ...(p.example !== "" ? { example: p.example } : {}),
             })),
             responses: {
               "200": {
