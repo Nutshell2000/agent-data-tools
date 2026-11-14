@@ -1,5 +1,5 @@
 {
-  "version": "1.156.0",
+  "version": "1.157.0",
   "tools": [
     {
       "name": "extract",
@@ -20416,6 +20416,56 @@
         }
       },
       "price": "$0.01"
+    },
+    {
+      "name": "solana_price",
+      "description": "Solana price now: the current SOL spot price in USD with its 24-hour change, from Coinbase; add vs=eur,gbp for up to 5 currencies, or ids for other coins in the same call. No input needed. Use to value a Solana payment or wallet, convert between SOL and fiat, or check the SOL price before a trade. Example: ids=solana. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string",
+            "description": "Coin to price (default solana); CoinGecko ids or tickers, comma-separated for several"
+          },
+          "vs": {
+            "type": "string",
+            "description": "Comma-separated currencies (default usd)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "ethereum_price",
+      "description": "Ethereum price now: the current ETH spot price in USD with its 24-hour change, from Coinbase; add vs=eur,gbp for up to 5 currencies, or ids for other coins in the same call. No input needed. Use to value an ETH payment or wallet, convert between ETH and fiat, estimate gas cost in dollars, or check the ETH price before a trade. Example: ids=ethereum. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "string",
+            "description": "Coin to price (default ethereum); CoinGecko ids or tickers, comma-separated for several"
+          },
+          "vs": {
+            "type": "string",
+            "description": "Comma-separated currencies (default usd)"
+          }
+        }
+      },
+      "price": "$0.002"
     },
     {
       "name": "coin",

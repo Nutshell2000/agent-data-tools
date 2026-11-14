@@ -1,7 +1,7 @@
 // Card credits over HTTP: the /credits pages, the API-key charge used by the paywall, and the MCP charge.
 import { Hono, type Context, type Next } from "hono";
 import { trialsEnabled, type Env } from "./env";
-import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
 
 
 
@@ -117,7 +117,7 @@ credits.get("/credits", (c) => {
   const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job)}</li>`).join("");
   const planLinksHtml = info.cardReady ? planLinks().map((p) => `<a class="buy" href="${esc(p.buy)}">${esc(p.price)}: ${p.creditsEachMonth.toLocaleString("en-US")} credits each month<br><small>about ${calls(p.creditsEachMonth)} calls at $0.01</small></a>`).join("") : "";
   const plansHtml = planLinksHtml ? `<h2>Or a monthly plan</h2><p>${esc(PLAN_TERMS)}</p><p>${planLinksHtml}</p><p><a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel a plan</a> at any time; Stripe asks for the e-mail you paid with.</p>` : "";
-  return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try ${FREE_CALLS_PER_CALLER} calls free first on most tools; no card needed for those. ${esc(info.what)}</p><p>${packs}</p>${plansHtml}
+  return c.html(page("API credits by card: $1, no subscription", `<h1>$1, once. No subscription, no account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try most tools free first, with no card: ${FREE_HTTP_CALLS_PER_CALLER} calls from a browser or plain HTTP, ${FREE_CALLS_PER_CALLER} through an AI app (MCP). ${esc(info.what)}</p><p>${packs}</p>${plansHtml}
 <h2>Use it in your AI app</h2><ul>
 <li><b>Claude or ChatGPT:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and sign in with your key.</li>
 <li><b>Cursor, Claude Code and other MCP clients:</b> connect to <code>${esc(origin)}/mcp</code> with the header <code>Authorization: Bearer adt_…</code>, or use <code>${esc(origin)}/mcp/k/&lt;key&gt;</code> where only a URL fits.</li>

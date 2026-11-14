@@ -77,6 +77,12 @@ const providerParams = (provider: string, word: string): Entry["endpoint"]["para
   const p = from(LLM_PRICES, "/llm/prices").endpoint.params;
   return { ...p, q: { ...p.q, example: word }, provider: { ...p.provider, description: `Provider to list (default ${provider}); any other provider name works too, e.g. google, meta-llama, mistralai`, example: provider } };
 };
+/** /solana/price, /ethereum/price: the coin price tool with one coin preset when the caller names none. */
+export const coinInput = (coin: string) => (q: Input): Input => (name) => (name === "ids" ? (q("ids")?.trim() || coin) : q(name));
+const coinParams = (coin: string): Entry["endpoint"]["params"] => {
+  const p = from(PUBLIC_DATA, "/crypto/price").endpoint.params;
+  return { ids: { type: "string", description: `Coin to price (default ${coin}); CoinGecko ids or tickers, comma-separated for several`, example: coin }, vs: p.vs };
+};
 /** /defi/usdc-yield: the yields tool with stablecoin pools forced on and USDC as the default token. */
 export const usdcYieldInput = (q: Input): Input => (name) => (name === "stablecoin" ? "true" : name === "symbol" ? (q("symbol")?.trim() || "USDC") : q(name));
 
@@ -513,4 +519,21 @@ export const ENTRY_PATHS: Entry[] = [
     ["claude-pricing", "anthropic-pricing", "anthropic-api-prices", "claude-token-cost", "llm-pricing", "model-prices"], from(LLM_PRICES, "/llm/prices"),
     async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("anthropic")(q)), providerParams("anthropic", "sonnet"),
     { count: 1, matched: 32, sort: "input", models: [{ id: "anthropic/claude-haiku-5.5:batch", name: "Anthropic: Claude Haiku 5.5 (batch)", provider: "anthropic", contextLength: 1000000, maxOutputTokens: 128000, inputPerMillionUsd: 0.05, outputPerMillionUsd: 0.25, free: false, inputs: ["text", "image", "file"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T03:00:00.000Z" }),
+
+  // Round 10 (14 Nov 2026): one coin, named. The returning agent 0xe629 buys the listing that is first in the Bazaar
+  // search for its job: ours for "describe image" and "bitcoin price", another seller's "Solana Token Price" 24 times in
+  // three days. The search had no listing of ours for "solana price" or "sol price" and showed our gas tools for
+  // "ethereum price", although /crypto/price has priced both from the start. Each door is that tool with the coin preset
+  // when the caller names none, so it answers a call with no input, like /bitcoin/price.
+  door("/solana/price", "Solana price: SOL in USD",
+    "Solana price now: the current SOL spot price in USD with its 24-hour change, from Coinbase; add vs=eur,gbp for up to 5 currencies, or ids for other coins in the same call. No input needed. Use to value a Solana payment or wallet, convert between SOL and fiat, or check the SOL price before a trade.",
+    ["solana-price", "sol-price", "sol-usd", "crypto-price", "solana", "market-data"], from(PUBLIC_DATA, "/crypto/price"),
+    async (env, q) => from(PUBLIC_DATA, "/crypto/price").run(env, coinInput("solana")(q)), coinParams("solana"),
+    { prices: { solana: { usd: 75.12, usd_24h_change: -4.13, usd_market_cap: null } }, missing: [], source: "Coinbase" }),
+
+  door("/ethereum/price", "Ethereum price: ETH in USD",
+    "Ethereum price now: the current ETH spot price in USD with its 24-hour change, from Coinbase; add vs=eur,gbp for up to 5 currencies, or ids for other coins in the same call. No input needed. Use to value an ETH payment or wallet, convert between ETH and fiat, estimate gas cost in dollars, or check the ETH price before a trade.",
+    ["ethereum-price", "eth-price", "eth-usd", "crypto-price", "ethereum", "market-data"], from(PUBLIC_DATA, "/crypto/price"),
+    async (env, q) => from(PUBLIC_DATA, "/crypto/price").run(env, coinInput("ethereum")(q)), coinParams("ethereum"),
+    { prices: { ethereum: { usd: 1886.7, usd_24h_change: -2.37, usd_market_cap: null } }, missing: [], source: "Coinbase" }),
 ];
