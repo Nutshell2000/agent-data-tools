@@ -1,6 +1,6 @@
 {
   "source": "https://glyphcall.com/openapi.json",
-  "note": "The three document tools, copied from the service catalog (src/routes/document.ts, src/routes/pdf.ts) on 14 Nov 2026.",
+  "note": "The three document tools and the three e-invoice tools, copied from the service catalog (src/routes/document.ts, src/routes/pdf.ts, src/routes/einvoice.ts) on 14 Nov 2026.",
   "tools": {
     "/document/extract": {
       "price": "$0.03",
@@ -54,6 +54,60 @@
         "maxChars": {
           "required": false,
           "type": "integer"
+        }
+      }
+    },
+    "/einvoice/create": {
+      "price": "$0.01",
+      "params": {
+        "invoice": {
+          "required": true,
+          "type": "string"
+        },
+        "format": {
+          "required": false,
+          "type": "string",
+          "enum": [
+            "xrechnung",
+            "xrechnung-ubl",
+            "zugferd",
+            "ubl"
+          ]
+        }
+      }
+    },
+    "/einvoice/validate": {
+      "price": "$0.01",
+      "params": {
+        "url": {
+          "required": false,
+          "type": "string"
+        },
+        "xml": {
+          "required": false,
+          "type": "string"
+        },
+        "profile": {
+          "required": false,
+          "type": "string",
+          "enum": [
+            "auto",
+            "xrechnung",
+            "en16931"
+          ]
+        }
+      }
+    },
+    "/einvoice/to-json": {
+      "price": "$0.01",
+      "params": {
+        "url": {
+          "required": false,
+          "type": "string"
+        },
+        "xml": {
+          "required": false,
+          "type": "string"
         }
       }
     }

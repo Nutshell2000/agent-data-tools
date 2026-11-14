@@ -1,5 +1,6 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { documentDescription } from './resources/document';
+import { einvoiceDescription } from './resources/einvoice';
 
 export class Glyphcall implements INodeType {
 	description: INodeTypeDescription = {
@@ -13,7 +14,7 @@ export class Glyphcall implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
 		description:
-			'Turn Word, Excel, PowerPoint and PDF files into text or Markdown, or pull named fields such as an invoice number and total out of them as JSON',
+			'Turn Word, Excel, PowerPoint and PDF files into text or fields as JSON, and create, validate or read XRechnung, ZUGFeRD and Factur-X e-invoices',
 		defaults: {
 			name: 'Glyphcall Documents',
 		},
@@ -40,10 +41,16 @@ export class Glyphcall implements INodeType {
 						value: 'document',
 						description: 'A Word, Excel, PowerPoint or PDF file',
 					},
+					{
+						name: 'E-Invoice',
+						value: 'einvoice',
+						description: 'An XRechnung, ZUGFeRD, Factur-X or other EN 16931 e-invoice',
+					},
 				],
 				default: 'document',
 			},
 			...documentDescription,
+			...einvoiceDescription,
 		],
 	};
 }
