@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { MODELS, runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 import { fetchFile } from "../lib/fetch";
+import { heldFile, isFileRef } from "../lib/file-input";
 import { extract } from "./extract";
 import { parseMeta } from "./feeds";
 
@@ -54,25 +55,77 @@ export async function summarize(env: Env, rawUrl: string | undefined) {
   };
 }
 
+interface WhisperWord { word?: string; start?: number; end?: number }
+interface WhisperSegment { start?: number; end?: number; text?: string; words?: WhisperWord[] }
 interface WhisperResult {
   text?: string;
   word_count?: number;
-  transcription_info?: { language?: string; duration?: number };
+  transcription_info?: { language?: string; language_probability?: number; duration?: number };
+  segments?: WhisperSegment[];
+  vtt?: string;
 }
 
-export async function transcribe(env: Env, rawUrl: string | undefined) {
-  // 11 Nov 2026 truth audit: S3 serves uploads without a type as "binary/octet-stream"; those are accepted too (Whisper
-  // refuses bytes that are not audio, and that refusal is uncharged).
-  const file = await fetchFile(rawUrl, /^(audio|video)\/|^(application|binary)\/(octet-stream|ogg)/i, 5 * MB, "an audio file");
-  const out = await runAi<WhisperResult>(env, MODELS.speech, { audio: Buffer.from(file.bytes).toString("base64") });
+/** Largest audio file /transcribe reads, by URL or uploaded in a POST body (lib/file-input.ts FILE_INPUT_PATHS). */
+export const TRANSCRIBE_MAX_BYTES = 5 * MB;
+
+/** Seconds as an SRT ("00:01:02,345") or WebVTT ("00:01:02.345") timestamp. */
+export function subtitleTime(seconds: number, sep: "," | "."): string {
+  const ms = Math.max(0, Math.round((Number.isFinite(seconds) ? seconds : 0) * 1000));
+  const p = (n: number, w = 2) => String(n).padStart(w, "0");
+  return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)}${sep}${p(ms % 1000, 3)}`;
+}
+
+export interface TimedSegment { start: number; end: number; text: string }
+
+/** SRT or WebVTT text from timed segments (empty segments are skipped). */
+export function toSubtitles(segments: readonly TimedSegment[], format: "srt" | "vtt"): string {
+  const cues = segments.filter((s) => s.text.trim());
+  if (format === "vtt") return `WEBVTT\n\n${cues.map((s) => `${subtitleTime(s.start, ".")} --> ${subtitleTime(s.end, ".")}\n${s.text.trim()}\n`).join("\n")}`;
+  return cues.map((s, i) => `${i + 1}\n${subtitleTime(s.start, ",")} --> ${subtitleTime(s.end, ",")}\n${s.text.trim()}\n`).join("\n");
+}
+
+const LANGUAGE_CODE = /^[a-z]{2,3}$/;
+
+/**
+ * Speech to text with Whisper large-v3-turbo. The audio comes from a public URL or from a file sent in a POST body
+ * (`fileRef`, lib/file-input.ts). `subtitles` (srt or vtt) adds subtitle text, `timestamps` adds timed segments and
+ * words (the OpenAI and ElevenLabs speech-to-text fronts in lib/voice-fronts.ts read them), `language` skips detection.
+ * Whisper's cost is about $0.0005 per audio minute on Workers AI (14 Nov 2026).
+ */
+export async function transcribe(env: Env, rawUrl: string | undefined, fileRef?: string, subtitlesParam?: string, timestampsParam?: string, languageParam?: string) {
+  const subtitles = (subtitlesParam ?? "").trim().toLowerCase();
+  if (subtitles && subtitles !== "srt" && subtitles !== "vtt") throw new HttpError(400, "subtitles must be srt or vtt");
+  const timestamps = /^(1|true|yes|on)$/i.test((timestampsParam ?? "").trim());
+  const language = (languageParam ?? "").trim().toLowerCase().slice(0, 3).replace(/[^a-z]/g, "");
+  if (languageParam && languageParam.trim() && !LANGUAGE_CODE.test(language)) throw new HttpError(400, "language must be a 2-3 letter code such as en, sv or de");
+  let bytes: Uint8Array;
+  let url: string | null = null;
+  if (isFileRef(fileRef)) {
+    const held = heldFile(fileRef);
+    if (!held) throw new HttpError(400, "send the audio file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON); a file reference cannot be used in a GET");
+    bytes = held;
+  } else {
+    // 11 Nov 2026 truth audit: S3 serves uploads without a type as "binary/octet-stream"; those are accepted too (Whisper
+    // refuses bytes that are not audio, and that refusal is uncharged).
+    const file = await fetchFile(rawUrl, /^(audio|video)\/|^(application|binary)\/(octet-stream|ogg)/i, TRANSCRIBE_MAX_BYTES, "an audio file");
+    bytes = file.bytes;
+    url = file.url;
+  }
+  const out = await runAi<WhisperResult>(env, MODELS.speech, { audio: Buffer.from(bytes).toString("base64"), ...(language ? { language } : {}) });
   if (typeof out?.text !== "string") throw new HttpError(502, "the AI model returned no transcript");
+  const segments: TimedSegment[] = (out.segments ?? []).map((s) => ({ start: Number(s.start) || 0, end: Number(s.end) || 0, text: String(s.text ?? "").trim() })).filter((s) => s.text);
+  const words = (out.segments ?? []).flatMap((s) => s.words ?? []).map((w) => ({ word: String(w.word ?? "").trim(), start: Number(w.start) || 0, end: Number(w.end) || 0 })).filter((w) => w.word);
+  if (subtitles && !segments.length && out.text.trim()) segments.push({ start: 0, end: out.transcription_info?.duration ?? 0, text: out.text.trim() });
   return {
-    url: file.url,
+    url,
+    ...(url ? {} : { source: "upload", bytes: bytes.byteLength }),
     text: out.text.trim(),
     language: out.transcription_info?.language ?? null,
     durationSeconds: out.transcription_info?.duration ?? null,
     wordCount: out.word_count ?? out.text.trim().split(/\s+/).filter(Boolean).length,
     model: MODELS.speech,
+    ...(timestamps ? { languageProbability: out.transcription_info?.language_probability ?? null, segments, words } : {}),
+    ...(subtitles ? { subtitleFormat: subtitles, subtitles: toSubtitles(segments, subtitles as "srt" | "vtt") } : {}),
   };
 }
 
