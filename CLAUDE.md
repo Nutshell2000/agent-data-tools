@@ -1788,3 +1788,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `pageMainImage()` in src/routes/ai.ts is the fallback after `pagePreviewImage()`: link image_src, then the first content `<img>` (no data:, SVG, logo/icon/pixel names, nothing declared 64 px or smaller). Paid /describe refusals of 14 Nov (415 on a page URL) came from the steadiest buyer, agent 0xe629; read /status `topFailures` for /describe after release. Bot-blocked and 404 pages stay uncharged 422s.
 - Weather margin test: `WEATHER_TEST_PATHS` (src/endpoints.ts) prices /weather/forecast at $0.003 until the 17 Nov review; tests/entry-paths.test.cjs exempts it from the door-equals-canonical rule. After the release run `node scripts/update-402index-prices.mjs --dry` then for real. Revert by deleting the set and rerunning scripts/freeze-prices.mjs.
 
+
+
+## Chat messages in the shapes callers send (1.175.0, 14 Nov 2026)
+
+- `messagesAsArray()` (src/lib/chat-messages.ts) is the one place that turns `messages` into an array: one object or plain text becomes one message, anything role-less or malformed is left for the 400. Use it in any new tool that reads a conversation. tests/chat-weather-aliases-1114.test.cjs pins every alias on the weather and chat tools and the POST-flattener rule that keeps them.
+- 1.170.0's CI flake ("the address is not stored" in tests/free-keys.test.cjs) was the test matching /ada/ against hex hashes; it now looks for the address itself. A test that searches stored data for a secret must search for the whole value, never a short substring.
+
