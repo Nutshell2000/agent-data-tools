@@ -310,6 +310,27 @@ test('x402 v1: v1 terms in the 402 body on request (x402=1) beside the v2 header
  const after=await revenue();assert.equal(after.settlements,before+2);
  const day=Object.values(after.funnel.days).at(-1);assert.ok(day['http:/extract:refused_amount']>=1);assert.ok(day['http:/extract:refused_network']>=2);assert.ok(day['http:/extract:verification_failed']>=1);
 });
+test('a v2 payment sent in X-PAYMENT is paid through the v2 path, once, with the receipt under both header names',async()=>{
+ const before=await revenue();
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const q=await mf.dispatchFetch(url);assert.equal(q.status,402);await q.arrayBuffer();
+ const requirements=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
+ const v2=Buffer.from(JSON.stringify(payload(requirements,'8'.repeat(60)+'bb01'))).toString('base64');
+ const paid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v2}});
+ assert.equal(paid.status,200,await paid.clone().text());
+ assert.ok(paid.headers.get('PAYMENT-RESPONSE'));
+ assert.equal(paid.headers.get('X-PAYMENT-RESPONSE'),paid.headers.get('PAYMENT-RESPONSE'));
+ assert.match((await paid.json()).text,/Useful result/);
+ // A failed tool run is never settled, whichever header carried the payment.
+ const failed=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'X-PAYMENT':Buffer.from(JSON.stringify(payload(requirements,'8'.repeat(60)+'bb02'))).toString('base64')}});
+ assert.ok(failed.status>=400&&failed.status!==402);assert.equal(failed.headers.has('X-PAYMENT-RESPONSE'),false);await failed.arrayBuffer();
+ await new Promise(r=>setTimeout(r,200));
+ const after=await revenue();assert.equal(after.settlements,before.settlements+1);
+ const sum=(s,k)=>Object.values(s.funnel.days).reduce((a,d)=>a+(d[k]||0),0);
+ assert.equal(sum(after,'http:/extract:refused_format'),sum(before,'http:/extract:refused_format'),'no format refusal');
+ assert.equal(sum(after,'http:/extract:settled'),sum(before,'http:/extract:settled')+1,'counted once');
+ assert.equal(sum(after,'http:/extract:completed'),sum(before,'http:/extract:completed')+1,'counted once');
+});
 
 test("Orthogonal's credential serves any tool unpaid, from its header, X-API-Key or Bearer; a wrong one still gets the 402",async()=>{
 const s='orthogonal-fixture-secret-0123456789';
