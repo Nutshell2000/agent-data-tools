@@ -95,15 +95,47 @@ export function pagePreviewImage(bytes: Uint8Array, pageUrl: string): string | n
   return image && /^https?:\/\//i.test(image) ? image : null;
 }
 
+const SMALL_IMAGE = /logo|icon|sprite|pixel|spacer|avatar|badge|emoji|blank|loader|spinner/i;
+
+/**
+ * The first content image a page shows when it names no preview image (14 Nov 2026: a paying agent's /describe calls on
+ * pages without og:image were refused 415). Skips data: and SVG sources, logos, icons and tracking pixels, and any image
+ * declared 64 px or smaller. Exported for the tests.
+ */
+export function pageMainImage(bytes: Uint8Array, pageUrl: string): string | null {
+  const html = new TextDecoder().decode(bytes.subarray(0, 512 * 1024));
+  if (!/<(?:!doctype|html|head|meta|body)\b/i.test(html)) return null;
+  const linkSrc = html.match(/<link\b[^>]*\brel=["']?image_src["']?[^>]*>/i)?.[0].match(/\bhref=["']([^"']+)["']/i)?.[1];
+  const candidates: string[] = linkSrc ? [linkSrc] : [];
+  for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
+    const src = tag.match(/\s(?:data-src|src)=["']([^"']+)["']/i)?.[1];
+    if (!src) continue;
+    const size = (name: string) => Number(tag.match(new RegExp(`\\s${name}=["']?(\\d+)`, "i"))?.[1] ?? NaN);
+    if (size("width") <= 64 || size("height") <= 64) continue;
+    candidates.push(src);
+    if (candidates.length >= 25) break;
+  }
+  for (const raw of candidates) {
+    if (/^data:/i.test(raw) || SMALL_IMAGE.test(raw)) continue;
+    let url: URL;
+    try { url = new URL(raw.trim(), pageUrl); } catch { continue; }
+    if (!/^https?:$/.test(url.protocol) || /\.svg$/i.test(url.pathname)) continue;
+    return url.href;
+  }
+  return null;
+}
+
 export async function describeImage(env: Env, rawUrl: string | undefined, questionParam?: string) {
   // 14 Nov 2026: paying callers send the page an image sits on (a product, article or post URL), and got a 415. A page is
   // now read through the preview image it names for itself; the answer says which image was described.
   let file = await fetchFile(rawUrl, /^image\/|octet-stream|^$|^text\/html|^application\/xhtml/i, 3 * MB, "a PNG, JPEG, WebP or GIF image");
   let type = sniffImage(file.bytes);
   let fromPage: string | null = null;
+  let mainImage = false;
   if (!type) {
-    const preview = pagePreviewImage(file.bytes, file.finalUrl);
-    if (!preview) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image, or to a web page that names a preview image (og:image); send the image's own URL (nothing was charged)");
+    let preview = pagePreviewImage(file.bytes, file.finalUrl);
+    if (!preview) { preview = pageMainImage(file.bytes, file.finalUrl); mainImage = Boolean(preview); }
+    if (!preview) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image, or to a web page that names a preview image (og:image) or shows one; send the image's own URL (nothing was charged)");
     fromPage = file.url;
     file = await fetchFile(preview, IMAGE_TYPES, 3 * MB, "a PNG, JPEG, WebP or GIF image");
     type = sniffImage(file.bytes);
@@ -125,6 +157,6 @@ export async function describeImage(env: Env, rawUrl: string | undefined, questi
   });
   const description = (out?.response ?? "").trim();
   if (!description) throw new HttpError(502, "the AI model returned no description");
-  if (fromPage) return { url: fromPage, question, description, model: MODELS.vision, imageUrl: file.url, note: "url is a web page; this describes the preview image the page names (imageUrl)" };
+  if (fromPage) return { url: fromPage, question, description, model: MODELS.vision, imageUrl: file.url, note: mainImage ? "url is a web page that names no preview image; this describes the first content image it shows (imageUrl)" : "url is a web page; this describes the preview image the page names (imageUrl)" };
   return { url: file.url, question, description, model: MODELS.vision };
 }
