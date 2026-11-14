@@ -17,7 +17,8 @@ import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
-import { movedTo, publicBrand, withPublicCanonical } from "./lib/public-site";
+import { withPublicCanonical } from "./lib/public-site";
+import { publicBrand } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
@@ -112,12 +113,6 @@ app.use(async (c, next) => {
   }
 });
 
-// Pages for people on a host that used to be the public home move to the public home with a 301 (lib/public-site.ts).
-app.use(async (c, next) => {
-  if (c.req.method !== "GET" || !c.env.PREVIOUS_SITE_ORIGINS || !(c.req.path === "/sitemap.xml" || ((isHumanPage(c.req.path) || c.req.path === "/guides") && prefersHtml(c.req.header("accept"), c.req.header("user-agent"))))) return next();
-  const target = movedTo(c.req.url, c.env.PUBLIC_SITE_ORIGIN, c.env.PREVIOUS_SITE_ORIGINS);
-  return target ? c.redirect(target, 301) : next();
-});
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
 app.use(async (c, next) => {
   await next();
@@ -519,7 +514,7 @@ app.route("/", store);
 const origin = (url: string) => new URL(url).origin;
 app.get("/", async (c) =>
   // Browsers and directory scrapers get a readable page, programs get the JSON service card.
-  // With a public brand set (lib/public-site.ts) people get the product site's front page; the agent catalogue page
+  // With a public brand set (lib/public-brand.ts) people get the product site's front page; the agent catalogue page
   // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(c.env.PUBLIC_BRAND?.trim()

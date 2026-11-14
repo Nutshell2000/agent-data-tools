@@ -34,10 +34,8 @@ export interface Env {
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   /** Origin of the public site for people (canonical URLs), e.g. https://tools.funwords.eu; unset = each host names itself. */
   PUBLIC_SITE_ORIGIN?: string;
-  /** The name shown on the pages written for people (lib/public-site.ts); unset = the service name. */
+  /** The name shown on the pages written for people (lib/public-brand.ts); unset = the service name. */
   PUBLIC_BRAND?: string;
-  /** Comma-separated origins that used to be the public home: their pages for people answer 301 to PUBLIC_SITE_ORIGIN. */
-  PREVIOUS_SITE_ORIGINS?: string;
   SEARCH_API_KEY?: string;
   /** Read-only GitHub token (fine-grained, no permissions) for /github/* (5,000 requests an hour; keyless reads are refused on shared egress). */
   GITHUB_TOKEN?: string;

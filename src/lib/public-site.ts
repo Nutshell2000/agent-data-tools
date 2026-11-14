@@ -14,28 +14,3 @@ export function withPublicCanonical(html: string, here: string, site: string | u
     .replaceAll(`<link rel="canonical" href="${here}`, `<link rel="canonical" href="${target}`)
     .replaceAll(`<meta property="og:url" content="${here}`, `<meta property="og:url" content="${target}`);
 }
-
-/**
- * The name people see on the pages written for them (product, VAT and register pages): `PUBLIC_BRAND` when the owner
- * has set one, otherwise the service name. Agent-facing surfaces (MCP, OpenAPI, registries, payment terms) keep the
- * service name: their records are keyed on it (rebrand plan of 11 Nov 2026: brand layer only).
- */
-export const publicBrand = (env: { PUBLIC_BRAND?: string }, fallback: string): string => {
-  const brand = env.PUBLIC_BRAND?.trim();
-  return brand && /^[\p{L}\p{N} .&'-]{2,40}$/u.test(brand) ? brand : fallback;
-};
-
-/**
- * Where a page for people has moved to: when the request came in on a host listed in `PREVIOUS_SITE_ORIGINS`
- * (comma-separated origins that used to be the public home) and a public home is set, the same path and query on the
- * public home. Only for the pages people read (the caller checks the path): tool URLs, keys and payment requests keep
- * working on every host, because clients and listings hold them.
- */
-export function movedTo(requestUrl: string, site: string | undefined, previous: string | undefined): string | undefined {
-  const target = site?.trim().replace(/\/+$/, "");
-  if (!target || !/^https:\/\/[a-z0-9.-]+$/i.test(target) || !previous) return undefined;
-  const url = new URL(requestUrl);
-  const old = previous.split(",").map((o) => o.trim().replace(/\/+$/, "").toLowerCase()).filter(Boolean);
-  if (!old.includes(url.origin.toLowerCase()) || url.origin.toLowerCase() === target.toLowerCase()) return undefined;
-  return `${target}${url.pathname}${url.search}`;
-}

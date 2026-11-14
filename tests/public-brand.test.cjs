@@ -1,5 +1,4 @@
-// The public brand and the move of the human pages to a new home (src/lib/public-site.ts). Both are off until the
-// owner sets PUBLIC_BRAND / PREVIOUS_SITE_ORIGINS: with them unset nothing changes.
+// The public brand (src/lib/public-brand.ts): off until the owner sets PUBLIC_BRAND; unset, nothing changes.
 const assert = require("node:assert/strict");
 const { before, test } = require("node:test");
 const esbuild = require("esbuild");
@@ -14,9 +13,9 @@ async function loadTypeScript(entry) {
   return mod.exports;
 }
 
-let movedTo, publicBrand, PRODUCTS, productPage, vatIndexPage, registerIndexPage;
+let publicBrand, PRODUCTS, productPage, vatIndexPage, registerIndexPage;
 before(async () => {
-  ({ movedTo, publicBrand } = await loadTypeScript(require.resolve("../src/lib/public-site.ts")));
+  ({ publicBrand } = await loadTypeScript(require.resolve("../src/lib/public-brand.ts")));
   ({ PRODUCTS, productPage } = await loadTypeScript(require.resolve("../src/lib/product-pages.ts")));
   ({ vatIndexPage } = await loadTypeScript(require.resolve("../src/lib/vat-pages.ts")));
   ({ registerIndexPage } = await loadTypeScript(require.resolve("../src/lib/register-pages.ts")));
@@ -38,15 +37,4 @@ test("pages for people carry the brand in the title, the crumbs and the structur
   assert.match(vatIndexPage("https://x.test", false, "Glyphcall"), / · Glyphcall<\/title>/);
   assert.match(registerIndexPage("https://x.test", "Glyphcall"), / · Glyphcall<\/title>/);
   assert.match(productPage(PRODUCTS[0], "https://x.test", false, () => undefined), / · Agent Data Tools<\/title>/, "default stays the service name");
-});
-
-test("a page on a former public host moves to the public home with its path and query; other hosts stay", () => {
-  const site = "https://glyphcall.example", old = "https://tools.old.example, https://older.example/";
-  assert.equal(movedTo("https://tools.old.example/vat-number-check/germany?x=1", site, old), "https://glyphcall.example/vat-number-check/germany?x=1");
-  assert.equal(movedTo("https://older.example/", site, old), "https://glyphcall.example/");
-  assert.equal(movedTo("https://glyphcall.example/credits", site, old), undefined);
-  assert.equal(movedTo("https://service.workers.example/credits", site, old), undefined, "a host that never was the public home keeps answering");
-  assert.equal(movedTo("https://tools.old.example/credits", undefined, old), undefined);
-  assert.equal(movedTo("https://tools.old.example/credits", site, undefined), undefined);
-  assert.equal(movedTo("https://tools.old.example/credits", "http://not-https.example", old), undefined);
 });
