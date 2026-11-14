@@ -1,5 +1,5 @@
 {
-  "source": "https://agent-data-tools.revmesh2074.workers.dev/openapi.json",
+  "source": "https://glyphcall.com/openapi.json",
   "note": "The three document tools, copied from the service catalog (src/routes/document.ts, src/routes/pdf.ts) on 14 Nov 2026.",
   "tools": {
     "/document/extract": {

@@ -1,7 +1,7 @@
 {
-  "_readme": "Draft blocks for a Make custom app, to paste into Make's app editor section by section (Base, Connection, Modules). Not submitted and not yet tried in Make: check each block there first. REPLACE-WITH-PUBLIC-DOMAIN must be the service's own domain; Make's review refuses services without one.",
+  "_readme": "Draft blocks for a Make custom app, to paste into Make's app editor section by section (Base, Connection, Modules). Not submitted and not yet tried in Make: check each block there first. glyphcall.com must be the service's own domain; Make's review refuses services without one.",
   "base": {
-    "baseUrl": "https://REPLACE-WITH-PUBLIC-DOMAIN",
+    "baseUrl": "https://glyphcall.com",
     "headers": { "x-api-key": "{{connection.apiKey}}", "accept": "application/json" },
     "response": {
       "error": {
@@ -18,10 +18,10 @@
   },
   "connection": {
     "parameters": [
-      { "name": "apiKey", "type": "password", "label": "API Key", "required": true, "help": "Your Agent Data Tools key (starts with adt_). A free key makes 100 calls a month." }
+      { "name": "apiKey", "type": "password", "label": "API Key", "required": true, "help": "Your Glyphcall key (starts with adt_). A free key makes 100 calls a month." }
     ],
     "communication": {
-      "url": "https://REPLACE-WITH-PUBLIC-DOMAIN/credits/balance",
+      "url": "https://glyphcall.com/credits/balance",
       "headers": { "x-api-key": "{{parameters.apiKey}}", "accept": "application/json" },
       "response": { "error": { "message": "[{{statusCode}}] {{body.error}}" } },
       "log": { "sanitize": ["request.headers.x-api-key"] }
