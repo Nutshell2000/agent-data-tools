@@ -10,7 +10,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.159.0";
+export const MCP_SERVER_VERSION = "1.160.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -311,7 +311,7 @@ export function mcpInstallLinks(origin: string) {
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
     claudeCode: `claude mcp add --transport http agent-data-tools ${url}`,
     claudeAi: `${origin}/mcp/account`,
-    // The npm client (clients/agent-data-tools, 1.1.0): writes the client's MCP configuration, or runs a local stdio bridge.
+    // The npm client (clients/agent-data-tools, 1.3.0): writes the client's MCP configuration, or runs a local stdio bridge.
     npx: "npx -y agent-data-tools setup",
   };
 }
@@ -385,7 +385,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
 <li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
-Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). These connect the compact server, <code>${esc(install.url)}</code>: three tools that find, describe and run any tool in the catalog at the same prices, so your assistant's context stays small. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. For every tool as its own definition, connect <code>${esc(install.full)}</code>, or one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
+Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). To pay per call from your own wallet with no account, start <code>npx -y agent-data-tools mcp</code> with <code>AGENT_DATA_TOOLS_WALLET_KEY</code> set (USDC on Base, $0.10 a call and $1 a day at most by default); for the Vercel AI SDK, <code>agent-data-tools/ai-sdk</code>: <a href="/guides/ai-sdk">AI SDK and wallet guide</a>. These connect the compact server, <code>${esc(install.url)}</code>: three tools that find, describe and run any tool in the catalog at the same prices, so your assistant's context stays small. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. For every tool as its own definition, connect <code>${esc(install.full)}</code>, or one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
@@ -608,6 +608,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     "",
     trialNote(trialsEnabled),
     "",
+    `npm package agent-data-tools: Vercel AI SDK tools (agent-data-tools/ai-sdk) and a local MCP server that can pay each call from your own wallet (AGENT_DATA_TOOLS_WALLET_KEY, USDC on Base): ${origin}/guides/ai-sdk.md`,
     `Guides by job (what to call, the request in every way an agent can make it): ${TASK_GUIDES.map((g) => `${g.phrase}: ${origin}/guides/${g.slug}.md`).join("; ")}. Index: ${origin}/guides.`,
     "",
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($1 = 1,000 credits, $5 = 5,000, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
@@ -690,6 +691,6 @@ export const robotsTxt = (origin: string) =>
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/tools", ...ENDPOINTS.map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/tools", ...ENDPOINTS.map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc></url>`).join("")}</urlset>`;
 }
