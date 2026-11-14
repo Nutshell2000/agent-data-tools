@@ -61,7 +61,7 @@ export async function readPdf(bytes: Uint8Array, firstPage: number, want: number
     pages.push({ page: p, chars: t.length, text: t });
     if (truncated) break;
   }
-  if (used === 0) throw new HttpError(422, "no text layer on these pages (scanned or image-only PDF)");
+  if (used === 0) throw new HttpError(422, "no text layer on these pages (scanned or image-only PDF); /document/text reads scanned PDFs by OCR");
   const info = (meta.info ?? {}) as Record<string, unknown>;
   return {
     title: str(info.Title), author: str(info.Author), totalPages, firstPage,

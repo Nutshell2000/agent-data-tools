@@ -165,6 +165,50 @@ test('the listing: findable by the job, one more tool in the documents section, 
   assert.equal(tool.outputExample.url, tool.params.url.example);
 });
 
+/** A one-page PDF with no text layer whose page is one JPEG, as a scanner writes it. */
+function scannedPdf(jpeg) {
+  const head = Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 5 0 R /Resources << /XObject << /Im1 4 0 R >> >> >>\nendobj\n4 0 obj\n<< /Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\r\n`, 'latin1');
+  const tail = Buffer.from(`\nendstream\nendobj\n5 0 obj\n<< /Length 30 >>\nstream\nq 595 0 0 842 0 0 cm /Im1 Do Q\nendstream\nendobj\ntrailer\n<< /Size 6 /Root 1 0 R >>\n%%EOF\n`, 'latin1');
+  return new Uint8Array(Buffer.concat([head, jpeg, tail]));
+}
+const fakeJpeg = (size, fill = 7) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(size - 6, fill), Buffer.from([0xff, 0xd9])]);
+
+test('OCR: an image and a scanned PDF are read through the reader it is given; without one they are refused', async () => {
+  const page = fakeJpeg(40_000);
+  const scan = scannedPdf(page);
+  assert.deepEqual(D.pdfPageImages(scan).map((i) => i.length), [40_000]);
+  assert.equal(Buffer.from(D.pdfPageImages(scan)[0]).equals(page), true, 'the JPEG is lifted out byte for byte');
+  assert.deepEqual(D.pdfPageImages(scannedPdf(fakeJpeg(2_000))), [], 'a small embedded image is a logo, not a page');
+  assert.deepEqual(D.pdfPageImages(tinyPdf()), []);
+  assert.equal(D.imageType(page), 'image/jpeg');
+  assert.equal(D.imageType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0, 0, 0, 0, 0])), 'image/png');
+  assert.equal(D.imageType(new Uint8Array([0x47, 0x49, 0x46, 0x38, 0, 0, 0, 0, 0, 0, 0, 0])), null, 'GIF is not read');
+
+  const seen = [];
+  const ocr = async (image, type) => { seen.push({ bytes: image.length, type }); return 'Fakturanummer: 58231\nAtt betala: 21 662,50 SEK'; };
+  const fromScan = await D.readDocument(scan, 'markdown', 50_000, ocr);
+  assert.equal(fromScan.type, 'pdf');
+  assert.equal(fromScan.ocr, true);
+  assert.equal(fromScan.pagesRead, 1);
+  assert.match(fromScan.text, /Fakturanummer: 58231/);
+  assert.match(fromScan.note, /read from its page images by an AI model/);
+  assert.deepEqual(seen, [{ bytes: 40_000, type: 'image/jpeg' }]);
+  const fromImage = await D.readDocument(new Uint8Array(page), 'markdown', 50_000, ocr);
+  assert.equal(fromImage.type, 'image');
+  assert.equal(fromImage.format, 'text');
+  assert.equal(fromImage.ocr, true);
+  // A PDF with a text layer never reaches the model.
+  seen.length = 0;
+  assert.equal((await D.readDocument(tinyPdf(), 'text', 50_000, ocr)).ocr, undefined);
+  assert.equal(seen.length, 0);
+  // Nothing readable is a refusal, not an empty answer; so is a scan whose pages are not JPEGs, and an oversized image.
+  await assert.rejects(D.readDocument(new Uint8Array(page), 'text', 50_000, async () => ''), (e) => e.status === 422 && /holds no text/.test(e.message));
+  const noJpeg = scannedPdf(fakeJpeg(40_000)); noJpeg.set(Buffer.from('/FlateDecod'), Buffer.from(noJpeg).indexOf('/DCTDecode') );
+  await assert.rejects(D.readDocument(noJpeg, 'text', 50_000, ocr), (e) => e.status === 422 && /not stored as JPEG images/.test(e.message));
+  await assert.rejects(D.readDocument(new Uint8Array(fakeJpeg(3 * 1024 * 1024 + 10)), 'text', 50_000, ocr), (e) => e.status === 422 && /larger than 3 MB/.test(e.message));
+  await assert.rejects(D.readDocument(scan, 'text', 50_000), (e) => e.status === 422 && /no text layer/.test(e.message), 'without a reader a scan fails as before');
+});
+
 test('fields out of a document: the file\'s text goes to the model once, and the answer has exactly the fields asked for', async () => {
   // One bundle, so the tool and this test share the module that holds an uploaded file.
   const b = await build({ stdin: { contents: `export * as D from './src/routes/document.ts'; export * as F from './src/lib/file-input.ts';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['@cloudflare/puppeteer', 'cloudflare:workers'] });
