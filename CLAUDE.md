@@ -1720,3 +1720,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - **Second n8n package** `integrations/n8n-documents` (`n8n-nodes-document-extract` 0.1.0, node "Document Extract", credential `documentExtractApi`): documents only, because n8n verifies packages that integrate one service and refuses multi-API proxies (verification guidelines read 14 Nov). Publishing workflow `publish-n8n-document-node.yml` on tags `n8n-document-node-<version>`. A new npm package cannot use trusted publishing before it exists: the owner publishes a first placeholder version and sets the trusted publisher once, as was done for the first package (its 0.0.0-stage). Verification is submitted at creators.n8n.io (creator account: the owner's).
 - **train-delta.ps1** now accepts a previous release whose merge title ends "(x.y.z)" as well as one that starts "x.y.z:" (1.165.0 merged with the first form and the next train waited for a title that never came). Start notes titles with "x.y.z: ".
 
+
+
+## Company register pages; upload on the PDF page (1.167.0, 14 Nov 2026)
+
+- `src/lib/register-pages.ts`: `/company-register` and one page per register we read (`REGISTER_COUNTRIES`: Sweden, Norway, Finland, France). Every rule a page states (check digit, VAT formula) is tested against the page's example in tests/register-pages.test.cjs; add a country only with its lookup tool and a rule the test can check.
+- `Product.upload` (lib/product-pages.ts) puts an upload form and curl example on a product page; the form posts multipart field `file` to `<tool>?trial=1` (the POST forwarder of lib/file-input.ts keeps the query string, so the capped browser try applies). The privacy page's "Uploaded PDF files" item must stay true to lib/file-input.ts: memory only, no store, cache or log.
+
