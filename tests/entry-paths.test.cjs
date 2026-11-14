@@ -221,3 +221,32 @@ test("round 9 doors (14 Nov 2026): GPT and Claude pricing preset their provider 
     assert.deepEqual(out.models.map((m) => m.id), ["anthropic/claude-x"]);
   } finally { globalThis.fetch = realFetch; if (realCaches) globalThis.caches = realCaches; }
 });
+
+test("round 10 doors (14 Nov 2026): Solana and Ethereum price preset their coin and answer a call with no input", async () => {
+  const byPath = Object.fromEntries(doors.ENTRY_PATHS.map((d) => [d.endpoint.path, d]));
+  const live = Object.fromEntries(endpoints.ENDPOINTS.map((e) => [e.path, e]));
+  for (const [path, coin, name] of [["/solana/price", "solana", "solana price"], ["/ethereum/price", "ethereum", "ethereum price"]]) {
+    const d = byPath[path];
+    assert.ok(d, path);
+    assert.equal(doors.ENTRY_OF[path], "/crypto/price");
+    assert.ok(d.endpoint.summary.toLowerCase().startsWith(name), d.endpoint.summary);
+    assert.ok(!d.endpoint.params.ids.required, `${path} must not require ids`);
+    assert.ok(endpoints.ACQUISITION_PATHS.has(path), `${path} shares the acquisition price`);
+    assert.equal(live[path].price, live["/crypto/price"].price);
+    assert.deepEqual(Object.keys(d.endpoint.outputExample.prices), [coin]);
+  }
+  const preset = doors.coinInput("solana");
+  assert.equal(preset(() => undefined)("ids"), "solana");
+  assert.equal(preset((n) => ({ ids: "bitcoin" })[n])("ids"), "bitcoin");
+  assert.equal(preset((n) => ({ vs: "eur" })[n])("vs"), "eur");
+  // The door runs the real tool: Coinbase faked, an empty call is priced for the preset coin.
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  delete globalThis.caches;
+  const asked = [];
+  globalThis.fetch = async (url) => { asked.push(String(url)); return new Response(JSON.stringify({ data: { amount: "75.12", base: "SOL", currency: "USD" }, price: "75.12", open: "78.0", last: "75.12" }), { status: 200, headers: { "content-type": "application/json" } }); };
+  try {
+    const out = await byPath["/solana/price"].run({}, () => undefined);
+    assert.deepEqual(Object.keys(out.prices), ["solana"]);
+    assert.ok(asked.some((u) => /SOL/i.test(u)), asked.join(" "));
+  } finally { globalThis.fetch = realFetch; if (realCaches) globalThis.caches = realCaches; }
+});
