@@ -6,6 +6,14 @@
 
 187 pay-per-call tools for AI agents over MCP and plain HTTP: web search and news, payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, World Bank GDP, inflation, population and unemployment, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.01** per successful call.
 
+## APIs for developers, by monthly plan
+
+One API key, from $9 a month or pay as you go, paid by card. Each page has the request in curl, Python and Node.js and a free try:
+
+- **[Company check API](https://tools.funwords.eu/company-check-api)**: EU VAT number validation (VIES), the Swedish, Norwegian, Finnish and French company registers, OFAC sanctions screening and LEI lookup. [VAT number formats and a live check for every EU country](https://tools.funwords.eu/vat-number-check).
+- **[PDF to text API](https://tools.funwords.eu/pdf-to-text-api)**: text page by page as JSON, from a URL.
+- **[Web page to Markdown API](https://tools.funwords.eu/web-page-to-markdown-api)**: clean Markdown or text for an LLM, with a rendered reader for JavaScript pages.
+
 ## Quick start
 
 1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (Streamable HTTP, no sign-up): three tools that find, describe and run any tool in the catalog, so your assistant's context stays small. The buttons above connect it too. Claude Code: `claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp/compact`. Every tool as its own definition: `https://agent-data-tools.revmesh2074.workers.dev/mcp`. From a terminal, for Claude Code, Claude Desktop, Cursor or VS Code: `npx -y agent-data-tools setup`. Claude.ai and ChatGPT: add a custom connector with `https://agent-data-tools.revmesh2074.workers.dev/mcp/account`. Or connect one section: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.

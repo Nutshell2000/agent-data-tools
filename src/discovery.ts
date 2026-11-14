@@ -614,6 +614,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     trialNote(trialsEnabled),
     "",
     `npm package agent-data-tools: Vercel AI SDK tools (agent-data-tools/ai-sdk) and a local MCP server that can pay each call from your own wallet (AGENT_DATA_TOOLS_WALLET_KEY, USDC on Base): ${origin}/guides/ai-sdk.md`,
+    `Products for people who pay by card (a monthly plan or one-off packs, one API key; code in curl, Python and Node.js): ${PRODUCTS.map((p) => `${p.name}: ${origin}/${p.slug}`).join("; ")}. EU VAT number formats and a check per country: ${origin}/vat-number-check.`,
     `Guides by job (what to call, the request in every way an agent can make it): ${TASK_GUIDES.map((g) => `${g.phrase}: ${origin}/guides/${g.slug}.md`).join("; ")}. Index: ${origin}/guides.`,
     "",
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($1 = 1,000 credits, $5 = 5,000, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
