@@ -65,7 +65,8 @@ test('switch on: a browser reads two pages of its own PDF, told that it is a cap
   assert.doesNotMatch(html, /Page three text/, 'pages=50 was asked; the try reads two');
   assert.match(html, /at most 2 pages/);
   const page = await (await on.dispatchFetch('https://api.test/tools/pdf-text', { headers: browser })).text();
-  assert.match(page, /Run it free/);
+  assert.match(page, /Try it free on your PDF \(first 2 pages\)/);
+  assert.doesNotMatch(page, /Or one of your 3 free calls/, 'the try is for browsers, so no curl line');
 });
 
 test('switch on: code without a browser still gets the payment request', async () => {
