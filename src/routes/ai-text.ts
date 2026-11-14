@@ -6,6 +6,7 @@
 import { keccak256, toBytes } from "viem";
 import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
+import { messagesAsArray } from "../lib/chat-messages";
 import { HttpError, type Env } from "../lib/env";
 
 export const AI_PRICE = "$0.01";
@@ -152,7 +153,7 @@ function parseJson(raw: string, name: string): unknown {
   try { return JSON.parse(raw); } catch { throw new HttpError(400, `${name} must be valid JSON`); }
 }
 export function nativeChatInput(q: Input): NativeInput | null {
-  const rawMessages = q("messages")?.trim();
+  const rawMessages = messagesAsArray(q("messages"));
   if (!rawMessages) return null;
   const rawTools = q("tools")?.trim(), rawChoice = q("tool_choice")?.trim(), rawFormat = q("response_format")?.trim();
   if (rawMessages.length + (rawTools?.length ?? 0) > NATIVE_MAX) throw new HttpError(400, `messages and tools together must be at most ${NATIVE_MAX.toLocaleString("en-US")} characters`);
