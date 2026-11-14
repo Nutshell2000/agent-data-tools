@@ -16,6 +16,8 @@ export interface Env {
   QUOTE_BODY?: string;
   /** "off" sends every unpaid quote through the gateway again (lib/quote-cache.ts); unset means repeat quotes come from the edge cache. */
   QUOTE_CACHE?: string;
+  /** How many first tool requests a fresh isolate answers on a one-route gateway before building the full one (default 8; "0" off). */
+  COLD_SINGLE_ROUTES?: string;
   BASE_RPC_URL: string;
   CDP_API_KEY_ID?: string;
   CDP_API_KEY_SECRET?: string;
