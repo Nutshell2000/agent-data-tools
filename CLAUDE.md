@@ -1760,3 +1760,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Usage read 1-14 Nov through the GraphQL analytics API (wrangler OAuth token): KV 132k reads and 53k writes, 270 MB stored; Durable Objects 1.6M requests, 25 hours active, 271k rows written; Workers AI 41k neurons; every other Worker on the account under 1 s of CPU a day. Nothing there is near a paid threshold except Worker CPU (about $2 a month over) and Durable Object requests (about $0.40).
 - 14 Nov had eight or more production deploys from several sessions. Each restarts every isolate and empties the quote cache; collect finished work into one release where it can wait.
 
+
+
+## Upload tries have their own total; brand and move-of-home switches (1.172.0, 14 Nov 2026)
+
+- `takePdfTry(env, upload)`: free tries on an uploaded file count against `cap:pdftry-upload:<day>` (`PDF_TRY_UPLOAD_DAILY_CAP`, default 150), URL tries against `cap:pdftry`. Fetchers drained the URL total by mid-morning on 14 Nov; they do not post files. Read both KV counters before judging the try.
+- `PUBLIC_BRAND` (lib/public-brand.ts `publicBrand`): the name on the pages for people; unset = SERVICE_NAME. Set it (value: Glyphcall) in the release that attaches glyphcall.com; with it set, `/` shows the product front page for browsers and the catalogue page lives at `/agents`.
+- A Miniflare test that posts a form must build the multipart body by hand: `dispatchFetch` with a FormData body did not reach `sentFile` as a file part.
+- `src/lib/site-pages.ts`: `docsPage` (/docs) and `landingPage` (served at / only while PUBLIC_BRAND is set; the agent catalogue page is always at /agents). The front page reads PRODUCTS and productOffers, so a new product appears there by itself. The docs page may state only what the service does (no rate limit is promised: none is enforced).
+
