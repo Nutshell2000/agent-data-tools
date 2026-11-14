@@ -54,7 +54,7 @@ import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/qu
 import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
-import { FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
+import { isFileRef, FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
@@ -349,7 +349,7 @@ app.use(async (c, next) => {
     // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
     // visitor who is out of tries cannot use up the total for everyone else.
     if (free && pdfTry) {
-      if (await takePdfTry(c.env)) pdfTryRequests.add(c.req.raw);
+      if (await takePdfTry(c.env, isFileRef(c.req.query(FILE_INPUT)))) pdfTryRequests.add(c.req.raw);
       else { await free.refund(); free = null; }
     }
     if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
