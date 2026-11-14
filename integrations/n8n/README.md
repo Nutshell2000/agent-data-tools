@@ -47,8 +47,8 @@ Free in this node:
 | Web | Read Page | A public page as clean Markdown or text | `/extract` | $0.002 |
 | Web | Read Page with **Render JavaScript** | The same for pages built with JavaScript, loaded in a real browser | `/extract/rendered` | $0.01 |
 | Web | Audit Website | Accessibility (WCAG 2.1 A/AA), page speed, on-page SEO and security headers, with a score | `/audit/website` | $0.01 |
-| Document | Convert to Text | A Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file as Markdown or plain text, from a file in your workflow (up to 10 MB) or a public URL | `/document/text` | $0.01 |
-| Document | Extract Fields | Named fields of a PDF, Word, Excel or PowerPoint file as JSON (invoice number, total, due date…), read by an AI model | `/document/extract` | $0.01 |
+| Document | Convert to Text | A Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file as Markdown or plain text, from a file in your workflow (up to 10 MB) or a public URL | `/document/text` | $0.005 |
+| Document | Extract Fields | Named fields of a PDF, Word, Excel or PowerPoint file as JSON (invoice number, total, due date…), read by an AI model | `/document/extract` | $0.03 |
 | Document | Extract Text From PDF | The text of a PDF, page by page, from a file in your workflow (up to 10 MB) or a public URL; a prepaid key pays less than the listed price | `/pdf/text` | $0.005 |
 | News | Search | Current news articles on a topic | `/news` | $0.01 |
 | News | Get Sentiment | Headlines on a topic, each scored positive or negative, and the balance | `/pack/news-sentiment` | $0.01 |
