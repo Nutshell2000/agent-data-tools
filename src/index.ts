@@ -16,6 +16,8 @@ import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { COMPARE_BASE, compareHtml } from "./lib/compare-pages";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
+import { EINVOICE_BASE, EINVOICE_BASE_DE, EINVOICE_RULES, EINVOICE_RULES_DE, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage, withEinvoicePages } from "./lib/einvoice-pages";
+import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } from "./lib/einvoice-pages-de";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
@@ -177,8 +179,10 @@ app.use(async (c, next) => {
   const heldRefs: string[] = [];
   if (body && typeof body === "object" && !Array.isArray(body)) {
     for (const [name, value] of Object.entries(body)) {
-      if (longFields && typeof value === "string" && value.length >= LONG_INPUT_MIN && (longFields.includes(name) || ALIAS_OF[name]?.some((input) => longFields.includes(input)))) {
-        const ref = await holdLongInput(value);
+      // A long field sent as a JSON object (/einvoice/create takes the invoice that way) is held as its JSON text.
+      const longText = typeof value === "string" ? value : longFields && value && typeof value === "object" && longFields.includes(name) ? JSON.stringify(value) : null;
+      if (longFields && longText !== null && longText.length >= LONG_INPUT_MIN && (longFields.includes(name) || ALIAS_OF[name]?.some((input) => longFields.includes(input)))) {
+        const ref = await holdLongInput(longText);
         heldRefs.push(ref);
         target.searchParams.set(name, ref);
         continue;
@@ -607,6 +611,20 @@ app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
   const country = vatCountry(c.req.param("country"));
   return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
+// E-invoice product page and one page per validation rule (lib/einvoice-pages.ts).
+app.get(EINVOICE_BASE, (c) => c.html(einvoiceIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))));
+app.get(EINVOICE_RULES, (c) => c.html(einvoiceRulesIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
+app.get(`${EINVOICE_RULES}/:rule{[a-z0-9-]+}`, (c) => {
+  const rule = einvoiceRule(c.req.param("rule"));
+  return rule ? c.html(einvoiceRulePage(rule, origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
+});
+// The same three page kinds in German (lib/einvoice-pages-de.ts).
+app.get(EINVOICE_BASE_DE, (c) => c.html(einvoiceIndexPageDe(origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))));
+app.get(EINVOICE_RULES_DE, (c) => c.html(einvoiceRulesIndexPageDe(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
+app.get(`${EINVOICE_RULES_DE}/:rule{[a-z0-9-]+}`, (c) => {
+  const rule = einvoiceRule(c.req.param("rule"));
+  return rule ? c.html(einvoiceRulePageDe(rule, origin(c.req.url), trialsEnabled(c.env) && httpFree("/einvoice/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
+});
 // Per-country company register pages (lib/register-pages.ts), part of the company-check product.
 app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
@@ -629,7 +647,7 @@ app.get("/tools/:slug", async (c) => {
 // IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
 app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
-app.get("/sitemap.xml", (c) => c.body(sitemapXml(origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
+app.get("/sitemap.xml", (c) => c.body(withEinvoicePages(sitemapXml(origin(c.req.url)), origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
