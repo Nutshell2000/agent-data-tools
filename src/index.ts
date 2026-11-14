@@ -18,6 +18,8 @@ import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pa
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { withPublicCanonical } from "./lib/public-site";
+import { publicBrand } from "./lib/public-brand";
+import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
@@ -54,7 +56,7 @@ import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/qu
 import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
-import { FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
+import { isFileRef, FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
 import { legal } from "./lib/legal";
 import { mppCreditOpenApiPaths, mppEnabled } from "./lib/mpp-credits";
@@ -353,7 +355,7 @@ app.use(async (c, next) => {
     // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
     // visitor who is out of tries cannot use up the total for everyone else.
     if (free && pdfTry) {
-      if (await takePdfTry(c.env)) pdfTryRequests.add(c.req.raw);
+      if (await takePdfTry(c.env, isFileRef(c.req.query(FILE_INPUT)))) pdfTryRequests.add(c.req.raw);
       else { await free.refund(); free = null; }
     }
     if (activeTrace()?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
@@ -523,10 +525,19 @@ app.route("/", store);
 const origin = (url: string) => new URL(url).origin;
 app.get("/", async (c) =>
   // Browsers and directory scrapers get a readable page, programs get the JSON service card.
+  // With a public brand set (lib/public-brand.ts) people get the product site's front page; the agent catalogue page
+  // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
-    ? c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
+    ? c.html(c.env.PUBLIC_BRAND?.trim()
+      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY))
+      : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))),
 );
+// The agent catalogue page, whatever "/" shows.
+app.get("/agents", async (c) => c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url)))));
+// Quick-start docs for people who call the APIs with a key (lib/site-pages.ts); /pricing is the card page.
+app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url))));
+app.get("/pricing", (c) => c.redirect("/credits", 302));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
   return {
@@ -578,20 +589,20 @@ for (const product of PRODUCT_PAGES) {
   app.get(`/${product.slug}`, (c) => {
     const capped = trialsEnabled(c.env) && pdfTryOn(c.env, product.tool);
     const tryIt = trialsEnabled(c.env) && (httpFree(product.tool) || capped);
-    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY)));
+    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME)));
   });
 }
 // Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
-app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))));
+app.get(VAT_BASE, (c) => c.html(vatIndexPage(origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${VAT_BASE}/:country{[a-z-]+}`, (c) => {
   const country = vatCountry(c.req.param("country"));
-  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"))) : c.notFound();
+  return country ? c.html(vatCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree("/vat/validate"), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 // Per-country company register pages (lib/register-pages.ts), part of the company-check product.
-app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url))));
+app.get(REGISTER_BASE, (c) => c.html(registerIndexPage(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
 app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
   const country = registerCountry(c.req.param("country"));
-  return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool))) : c.notFound();
+  return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {

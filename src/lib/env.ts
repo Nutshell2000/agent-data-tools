@@ -12,6 +12,8 @@ export interface Env {
   PDF_TRY?: string;
   /** Free PDF tries per UTC day in total (default 150). */
   PDF_TRY_DAILY_CAP?: string;
+  /** Total free tries a day on uploaded files (lib/pdf-try.ts); default 150. */
+  PDF_TRY_UPLOAD_DAILY_CAP?: string;
   /** "v1" puts the x402 v1 terms back in every tool's 402 body (the behaviour before 1.117.0); unset means the body mirrors the v2 header. */
   QUOTE_BODY?: string;
   /** "off" sends every unpaid quote through the gateway again (lib/quote-cache.ts); unset means repeat quotes come from the edge cache. */
@@ -34,6 +36,8 @@ export interface Env {
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   /** Origin of the public site for people (canonical URLs), e.g. https://tools.funwords.eu; unset = each host names itself. */
   PUBLIC_SITE_ORIGIN?: string;
+  /** The name shown on the pages written for people (lib/public-brand.ts); unset = the service name. */
+  PUBLIC_BRAND?: string;
   SEARCH_API_KEY?: string;
   /** Read-only GitHub token (fine-grained, no permissions) for /github/* (5,000 requests an hour; keyless reads are refused on shared egress). */
   GITHUB_TOKEN?: string;

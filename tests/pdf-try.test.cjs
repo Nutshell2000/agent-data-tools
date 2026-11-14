@@ -58,8 +58,8 @@ test('switch unset: PDF reading stays paid for a browser, and its page offers no
 
 test('switch on: a browser reads two pages of its own PDF, told that it is a capped try', async () => {
   const res = await on.dispatchFetch(url, { headers: { ...browser, 'cf-connecting-ip': '198.51.100.21' } });
-  assert.equal(res.status, 200);
   const html = await res.text();
+  assert.equal(res.status, 200, html.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 600));
   assert.match(html, /Page one text/);
   assert.match(html, /Page two text/);
   assert.doesNotMatch(html, /Page three text/, 'pages=50 was asked; the try reads two');
@@ -96,4 +96,29 @@ test('a visitor who is out of tries does not use up the day total for others', a
 test('a paid-path call can never be capped by sending the reserved input itself', async () => {
   const res = await off.dispatchFetch('https://api.test/pdf/text?url=https%3A%2F%2Fdocs.example%2Fa.pdf&%40pdf-try=1', { headers: { accept: 'application/json' } });
   assert.equal(res.status, 402, 'unpaid stays unpaid; the reserved name is not read from the query');
+});
+
+test('a browser tries its own uploaded file from a separate daily total, still two pages; code pays', async () => {
+  // A multipart body as a browser form sends it, built by hand so the test does not depend on the harness's FormData.
+  const boundary = '----adtTestBoundary7MA4YWxk';
+  const enc = new TextEncoder();
+  const head = enc.encode(`--${boundary}\r\nContent-Disposition: form-data; name="pages"\r\n\r\n50\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="a.pdf"\r\nContent-Type: application/pdf\r\n\r\n`);
+  const tail = enc.encode(`\r\n--${boundary}--\r\n`);
+  const multipart = new Uint8Array(head.length + PDF.length + tail.length);
+  multipart.set(head, 0); multipart.set(PDF, head.length); multipart.set(tail, head.length + PDF.length);
+  const type = { 'content-type': `multipart/form-data; boundary=${boundary}` };
+  const upload = () => multipart;
+  // The URL total of this Worker is 1 and is used up by the test above.
+  assert.equal((await capped.dispatchFetch(url, { headers: { ...browser, 'cf-connecting-ip': '198.51.100.30' } })).status, 402, 'URL tries are used up');
+  const res = await capped.dispatchFetch('https://api.test/pdf/text?trial=1', { method: 'POST', headers: { ...browser, ...type, 'cf-connecting-ip': '198.51.100.31' }, body: upload() });
+  const html = await res.text();
+  assert.equal(res.status, 200, html.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 600));
+  assert.match(html, /Page one text/);
+  assert.match(html, /Page two text/);
+  assert.doesNotMatch(html, /Page three text/, 'the try reads two pages of an uploaded file too');
+  const code = await capped.dispatchFetch('https://api.test/pdf/text?trial=1', { method: 'POST', headers: { accept: 'application/json', 'user-agent': 'curl/8', ...type, 'cf-connecting-ip': '198.51.100.32' }, body: upload() });
+  assert.equal(code.status, 402, 'the free try is for browsers');
+  const day = new Date().toISOString().slice(0, 10);
+  const kv = await capped.getKVNamespace('TRIALS');
+  assert.equal(Number(await kv.get('cap:pdftry-upload:' + day)), 1);
 });
