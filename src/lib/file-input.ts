@@ -11,6 +11,7 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/pdf/extract": 10 * 1024 * 1024,
   // Audio (14 Nov 2026, voice plan): the same 5 MB as a URL fetch, so the price per call covers the longest file.
   "/transcribe": 5 * 1024 * 1024,
+  "/transcribe/long": 25 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
 });

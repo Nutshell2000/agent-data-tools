@@ -90,6 +90,10 @@ const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICE
  * Ended 27 Oct 2026 with the chain-read test (READ_TEST_PRICE in routes/chain-reads.ts): back at PRICE.
  */
 export const LOCAL_TEST_PRICE = PRICE;
+// Glyphcall Voice tools (1.189.0, routes/voice.ts): /transcribe/long and /text-to-speech/lite. Added here, away from the
+// CATALOG line and the pushes right below it, so releases prepared at the same time do not collide.
+import { VOICE } from "./routes/voice";
+CATALOG.push(...VOICE);
 const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENERATORS, TOOLBOXES, TOOLBOXES2, FUN];
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
