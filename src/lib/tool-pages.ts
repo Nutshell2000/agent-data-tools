@@ -9,6 +9,7 @@ import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { GUIDE_FOR_TOOL } from "../guides/task-guides";
 import { COMPANY_FOOTER } from "./legal";
+import { PRODUCT_FOR_TOOL } from "./product-pages";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -76,7 +77,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 </style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/tools">${esc(category)}</a></nav>
 <h1>${esc(heading)}</h1>
-<p class="meta"><span class="price">${esc(e.price)} per call</span> · failed calls are never charged · no account or subscription: pay per call with a card key or USDC</p>
+<p class="meta"><span class="price">${keyOffer ? `${esc(keyOffer.price)} per call with a key` : `${esc(e.price)} per call`}</span>${keyOffer ? ` (${esc(e.price)} paid per call from a wallet)` : ""} · failed calls are never charged · no account needed: a card key or USDC</p>${PRODUCT_FOR_TOOL.has(e.path) ? `\n<p><strong><a href="/${esc(PRODUCT_FOR_TOOL.get(e.path)!.slug)}">${esc(PRODUCT_FOR_TOOL.get(e.path)!.name)}</a>:</strong> code samples in curl, Python and Node, and monthly plans.</p>` : ""}
 <p>${esc(e.description)}</p>
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${GUIDE_FOR_TOOL.has(e.path) ? `<p>Guide: <a href="/guides/${esc(GUIDE_FOR_TOOL.get(e.path)!.slug)}">${esc(GUIDE_FOR_TOOL.get(e.path)!.phrase)}</a></p>` : ""}

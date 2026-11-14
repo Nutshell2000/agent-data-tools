@@ -3,6 +3,7 @@
 // queries measured on 31 Oct our tool pages were absent from Exa's top 10 while Keenable's and Exa's agents were already
 // calling our readers. Each guide only restates what the tool's own description says, gives the request in every way
 // an agent can make it (free trial, card key in a header or in the URL, x402/MPP, MCP) and links the tool pages.
+import { PRODUCT_FOR_TOOL } from "../lib/product-pages";
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
@@ -29,6 +30,8 @@ export interface TaskGuide {
   faq?: [string, string][];
   /** A further page for a tool that already has its guide: the tool's own page keeps linking the main one. */
   secondary?: boolean;
+  /** A complete script for the main tool in one language, shown right under the lead. `{origin}` is replaced. */
+  code?: { language: string; text: string };
 }
 const leadOf = (g: TaskGuide, main: Endpoint) => g.lead ?? main.description;
 const usesOf = (g: TaskGuide, main: Endpoint) => g.uses ?? TOOL_SEO[main.path]?.uses ?? [];
@@ -52,8 +55,18 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
     lead: "Give an arXiv link, abstract page or PDF, and get the paper's text page by page; find the paper first by topic or ID with the arXiv search tool.",
     uses: ["Read a preprint into an LLM from its arXiv link", "Search arXiv by topic, then read the papers that matter", "Pull only the first pages (abstract and introduction) of many papers"],
     faq: [["Do abstract links work?", "Yes. An arxiv.org/abs/ link is read as the paper's PDF."], ["Does it work for scanned old papers?", "Only when the PDF has a text layer; scanned images without one return little or nothing."]] },
-  { slug: "url-to-markdown-api", phrase: "URL to Markdown API", tools: ["/extract", "/extract/rendered"],
-    lead: "Give a public web page's URL and get it back as clean Markdown or text for an LLM, with the page's links, tables and code blocks kept and boilerplate removed.",
+  // 14 Nov 2026: the searches a developer types. Each page is the same tool with a complete script in that language.
+  { slug: "pdf-to-text-api-python", secondary: true, phrase: "PDF to text API in Python", tools: ["/pdf/text"],
+    lead: "Extract the text of a PDF at a URL from Python with one GET request: no PDF library to install, the answer is JSON with one entry per page.",
+    uses: ["Read a PDF in a script or notebook without pdfminer or PyPDF", "Loop over a long report 20 pages at a time", "Hand page text to an LLM or an embedding step"],
+    code: { language: "Python", text: "import os, requests\n\nAPI = \"{origin}/pdf/text\"\nHEADERS = {\"Authorization\": f\"Bearer {os.environ['API_KEY']}\"}\n\ndef pdf_text(url, first_page=1, pages=20):\n    r = requests.get(API, params={\"url\": url, \"firstPage\": first_page, \"pages\": pages}, headers=HEADERS, timeout=60)\n    r.raise_for_status()\n    return r.json()\n\ndoc = pdf_text(\"https://bitcoin.org/bitcoin.pdf\")\nprint(doc[\"totalPages\"], \"pages\")\nfor page in doc[\"pages\"]:\n    print(page[\"page\"], page[\"text\"][:200])" },
+    faq: [["Do I need a PDF library?", "No. The file is fetched and parsed on the server; your script only needs an HTTP client such as requests."], ["How do I read a whole long PDF?", "Call it in steps: firstPage 1, 21, 41 and so on with pages 20, until firstPage passes totalPages. Up to 200 pages fit in one call."]] },
+  { slug: "pdf-to-text-api-nodejs", secondary: true, phrase: "PDF to text API in Node.js", tools: ["/pdf/text"],
+    lead: "Extract the text of a PDF at a URL from Node.js or TypeScript with one fetch call: no pdf.js to bundle, the answer is JSON with one entry per page.",
+    uses: ["Read a PDF in a serverless function where a PDF library is too heavy", "Loop over a long report 20 pages at a time", "Hand page text to an LLM or an embedding step"],
+    code: { language: "Node.js", text: "const API = \"{origin}/pdf/text\";\n\nasync function pdfText(url, firstPage = 1, pages = 20) {\n  const params = new URLSearchParams({ url, firstPage, pages });\n  const r = await fetch(`${API}?${params}`, {\n    headers: { Authorization: `Bearer ${process.env.API_KEY}` },\n  });\n  if (!r.ok) throw new Error(await r.text());\n  return r.json();\n}\n\nconst doc = await pdfText(\"https://bitcoin.org/bitcoin.pdf\");\nconsole.log(doc.totalPages, \"pages\");\nfor (const page of doc.pages) console.log(page.page, page.text.slice(0, 200));" },
+    faq: [["Does it run in a serverless or edge function?", "Yes. It is one HTTPS request with fetch; nothing is installed and no file is held in memory on your side."], ["How do I read a whole long PDF?", "Call it in steps: firstPage 1, 21, 41 and so on with pages 20, until firstPage passes totalPages. Up to 200 pages fit in one call."]] },
+  { slug: "url-to-markdown-api", phrase: "URL to Markdown API", tools: ["/extract", "/extract/rendered"],    lead: "Give a public web page's URL and get it back as clean Markdown or text for an LLM, with the page's links, tables and code blocks kept and boilerplate removed.",
     uses: ["Read documentation, articles and product pages into a RAG pipeline", "Pull one section of a long page by heading", "Read JavaScript-rendered pages with the rendered variant"],
     faq: [["Does it run JavaScript?", "/extract reads the page as served; /extract/rendered opens it in a browser first for pages that need one."], ["How long can the output be?", "Set maxChars to cap it; long pages can be read section by section."]] },
   { slug: "ofac-wallet-screening-api", phrase: "OFAC wallet screening API", tools: ["/sanctions/check", "/check/counterparty"],
@@ -174,6 +187,7 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
   const title = `${g.phrase}: from ${main.price} per call, no signup · ${SERVICE_NAME}`;
   const url = `${origin}/guides/${g.slug}`;
   const lead = leadOf(g, main), uses = usesOf(g, main);
+  const product = PRODUCT_FOR_TOOL.get(main.path);
   const seoFaq = TOOL_SEO[main.path]?.faq ?? [];
   const faq: [string, string][] = [...(g.faq ?? []), ...seoFaq.filter(([q]) => !(g.faq ?? []).some(([gq]) => gq === q)),
     ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && httpFree(main.path) ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
@@ -192,6 +206,8 @@ export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean):
 <h1>${esc(g.phrase)}</h1>
 <p class="meta">From ${esc(main.price)} per successful call · failed calls are never charged · no account needed · Markdown version: <a href="${esc(`/guides/${g.slug}.md`)}">${esc(`/guides/${g.slug}.md`)}</a></p>
 <p>${esc(lead)}</p>
+${product ? `<p><strong><a href="/${esc(product.slug)}">${esc(product.name)}</a>:</strong> monthly plans and one-off packs, one API key.</p>` : ""}
+${g.code ? `<h2>${esc(g.code.language)} example</h2><pre><code>${esc(g.code.text.replaceAll("{origin}", origin))}</code></pre><p>Set <code>API_KEY</code> to a key from <a href="/credits">/credits</a>.</p>` : ""}
 ${uses.length ? `<h2>When an agent wants this</h2><ul>${uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${tools.map((e) => toolBlock(e, origin, freeCalls, false)).join("\n")}
 <h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
@@ -204,7 +220,7 @@ export function taskGuideMarkdown(slug: string, origin: string, freeCalls: boole
   if (!g) return undefined;
   const tools = g.tools.map((p) => byPath.get(p)).filter((e): e is Endpoint => Boolean(e));
   const uses = usesOf(g, tools[0]);
-  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
+  return [`# ${g.phrase}`, leadOf(g, tools[0]), ...(g.code ? [`## ${g.code.language} example`, g.code.text.replaceAll("{origin}", origin).split("\n").map((l) => `    ${l}`).join("\n")] : []), ...(uses.length ? [`## When an agent wants this`, uses.map((u) => `- ${u}`).join("\n")] : []),
     ...tools.map((e) => `## ${e.summary}\n\n${toolBlock(e, origin, freeCalls, true)}`),
     `## Questions`, ...(g.faq ?? []).map(([q, a]) => `**${q}** ${a}`),
     `Docs for agents: ${origin}/llms.txt · OpenAPI: ${origin}/openapi.json · All guides: ${origin}/guides`].join("\n\n") + "\n";
