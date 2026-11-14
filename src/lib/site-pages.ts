@@ -1,5 +1,5 @@
 // The front page and the quick-start docs of the product site, for people. The front page is served at "/" only when
-// the owner has set a public brand (PUBLIC_BRAND, lib/public-site.ts); until then "/" stays the agent catalogue, which
+// the owner has set a public brand (PUBLIC_BRAND, lib/public-brand.ts); until then "/" stays the agent catalogue, which
 // is always at /agents. Why: a developer who arrives at the product's own domain should see what is sold, what it
 // costs and how to call it, and find the agent catalogue one link away rather than first.
 // Numbers come from the catalog and the plans; copy restates the products' own entries (lib/product-pages.ts).
