@@ -31,6 +31,14 @@ export const EXTRACT_CHARS = 24_000;
  * this one 52. It reasons before it answers, so it gets more output tokens than the answer needs.
  */
 export const EXTRACT_MODEL = "@cf/openai/gpt-oss-120b";
+/**
+ * One word instead of a field list: `fields=invoice` asks for the fields an accounts-payable row needs. The names are
+ * the ones lib/extract-hints.ts explains to the model, and the ones the Dify plugin and the n8n template send.
+ */
+export const FIELD_PRESETS: Readonly<Record<string, string>> = Object.freeze({
+  invoice: "supplier_name,supplier_vat_number,supplier_address,customer_name,customer_vat_number,invoice_number,invoice_date,due_date,currency,subtotal,tax_amount,total,iban,payment_reference,line_items[description,quantity,unit_price,amount]",
+  receipt: "merchant_name,merchant_address,date,currency,subtotal,tax_amount,total,payment_method,line_items[description,quantity,amount]",
+});
 
 type Format = "text" | "markdown";
 export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf" | "image";
@@ -437,7 +445,7 @@ export const DOCUMENT: Entry[] = [
     "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
-      fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
+      fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items", required: true, example: "title,ebook_formats,pens_needed,scissors_needed" },
     },
     {
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
@@ -446,7 +454,8 @@ export const DOCUMENT: Entry[] = [
       missing: [], model: EXTRACT_MODEL, charsRead: 8934, truncated: false,
     },
     async (env, q) => {
-      const { fields, lists } = listFields(need(q, "fields", 1000));
+      const asked = need(q, "fields", 1000);
+      const { fields, lists } = listFields(Object.hasOwn(FIELD_PRESETS, asked.trim().toLowerCase()) ? FIELD_PRESETS[asked.trim().toLowerCase()] : asked);
       const sent = q(FILE_REF_INPUT);
       let bytes: Uint8Array;
       let url: string | null = null;
