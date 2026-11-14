@@ -54,6 +54,14 @@ export const VIES_TRIES = 8;
 const VIES_WAIT_MS = 300;
 const VIES_BUDGET_MS = 20_000;
 const VIES_CACHE_SECONDS = 3600;
+/**
+ * 14 Nov 2026: 20 of 34 paid calls in a week still ended in a busy refusal after all eight tries (MS_MAX_CONCURRENT_REQ),
+ * mostly repeats of the same few numbers (routers and testers call the published example). A clear VIES answer is now
+ * also kept for a week under a second key, and when VIES stays busy the tool answers with that earlier check: same
+ * fields, its own `checkedAt`, `fromEarlierCheck: true` and a note. A registration seldom changes within a week; the
+ * check date lets the buyer judge. Only busy or unreachable VIES uses it, never a VIES answer for the number.
+ */
+export const VIES_KEEP_SECONDS = 7 * 86400;
 
 /** Valid or not, and the refusal code if VIES refused, from either answer shape. */
 export function viesRead(b: ViesBody | null): { valid: boolean | undefined; refused: string | null } {
@@ -75,10 +83,12 @@ export function viesRead(b: ViesBody | null): { valid: boolean | undefined; refu
 export async function viesCheck(parts: { country: string; number: string }, fetcher: typeof fetch = fetch, sleep: (ms: number) => Promise<unknown> = (ms) => new Promise((r) => setTimeout(r, ms)), store: Cache | undefined = (globalThis as { caches?: { default?: Cache } }).caches?.default) {
   const vat = `${parts.country}${parts.number}`;
   const cacheKey = `https://vies.cache.invalid/${encodeURIComponent(vat)}`;
+  const keepKey = `https://vies.cache.invalid/kept/${encodeURIComponent(vat)}`;
   const kept = await store?.match(cacheKey).catch(() => undefined);
   if (kept) { const hit = (await kept.json().catch(() => null)) as Record<string, unknown> | null; if (hit && typeof hit.valid === "boolean") return hit; }
   const started = Date.now();
   let problem = "VIES did not answer in time";
+  let busy = true;
   for (let attempt = 0; attempt < VIES_TRIES; attempt++) {
     const left = VIES_BUDGET_MS - (Date.now() - started);
     if (attempt) { if (left < 1_500) break; await sleep(VIES_WAIT_MS); }
@@ -95,12 +105,21 @@ export async function viesCheck(parts: { country: string; number: string }, fetc
     if (res.ok && b && typeof valid === "boolean" && !refused) {
       const clean = (s?: string) => (s && s !== "---" ? s.replace(/\s*\n\s*/g, ", ").trim() : null);
       const answer = { vat, country: parts.country, number: parts.number, valid, name: clean(b.name), address: clean(b.address), checkedAt: b.requestDate ?? new Date().toISOString(), source: "EU VIES (European Commission)" };
-      await store?.put(cacheKey, new Response(JSON.stringify(answer), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${VIES_CACHE_SECONDS}` } })).catch(() => {});
+      const body = JSON.stringify(answer);
+      await store?.put(cacheKey, new Response(body, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${VIES_CACHE_SECONDS}` } })).catch(() => {});
+      await store?.put(keepKey, new Response(body, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${VIES_KEEP_SECONDS}` } })).catch(() => {});
       return answer;
     }
     problem = `VIES answered ${refused ?? `HTTP ${res.status}`}`;
     // Anything but a busy signal or a server error will not change on a second try.
-    if (!(refused ? VIES_BUSY.test(refused) : res.status === 429 || res.status >= 500)) break;
+    if (!(refused ? VIES_BUSY.test(refused) : res.status === 429 || res.status >= 500)) { busy = false; break; }
+  }
+  if (busy) {
+    const earlier = await store?.match(keepKey).catch(() => undefined);
+    const hit = earlier ? ((await earlier.json().catch(() => null)) as Record<string, unknown> | null) : null;
+    if (hit && typeof hit.valid === "boolean") {
+      return { ...hit, fromEarlierCheck: true, note: `${problem} just now, so this is VIES's own answer from its check at checkedAt (within the last 7 days); ask again later for a fresh check` };
+    }
   }
   throw new HttpError(502, `${problem}; the member state's service is busy or down, nothing was charged, try again in a minute`);
 }
