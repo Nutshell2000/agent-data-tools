@@ -1,6 +1,9 @@
 // `agent-data-tools mcp`: a stdio MCP server that forwards every JSON-RPC message to the remote server at <origin>/mcp
 // (streamable HTTP) and writes the answers back, one JSON message per line. No dependencies.
 // Only JSON-RPC lines go to stdout; everything else goes to stderr.
+// Wallet mode (ctx.payer, see wallet-pay.mjs): a tools/call that comes back as an x402 payment request is paid from the
+// user's wallet and sent once more with the payment in params._meta["x402/payment"]; the client sees only the answer.
+import { paymentRequiredOf } from "./wallet-pay.mjs";
 
 const log = (...a) => { try { process.stderr.write(`agent-data-tools mcp: ${a.join(" ")}\n`); } catch { /* stderr closed */ } };
 const isRequest = (m) => m && typeof m === "object" && typeof m.method === "string" && m.id !== undefined && m.id !== null;
@@ -27,6 +30,28 @@ async function readSse(body, onData) {
  * @param {{ url: string, key?: string, session: { id?: string, protocol?: string }, write: (m: unknown) => void, fetch?: typeof fetch }} ctx
  */
 export async function forward(ctx, message) {
+  const unpaid = [];
+  await forwardOnce(ctx, message, ctx.payer ? unpaid : null);
+  for (const { request, response, paymentRequired } of unpaid) {
+    let reserved;
+    try {
+      reserved = ctx.payer.guard.take(paymentRequired);
+      const payment = await ctx.payer.sign(paymentRequired, reserved.offer);
+      const paid = { ...request, params: { ...request.params, _meta: { ...(request.params?._meta ?? {}), "x402/payment": payment } } };
+      let failed = false;
+      const write = (m) => { if (m?.id === request.id && (m.error || m.result?.isError)) failed = true; ctx.write(m); };
+      await forwardOnce({ ...ctx, write }, paid, null);
+      if (failed) ctx.payer.guard.refund(reserved.usd); // a failed call is never settled by the server
+      else log(`paid $${reserved.usd} for ${request.params?.name ?? "a tool"}; $${ctx.payer.guard.spentToday.toFixed(4)} today`);
+    } catch (e) {
+      if (reserved) ctx.payer.guard.refund(reserved.usd);
+      log(`not paid: ${e?.message ?? e}`);
+      ctx.write(response); // the assistant sees the server's own payment request
+    }
+  }
+}
+
+async function forwardOnce(ctx, message, unpaid) {
   const requests = (Array.isArray(message) ? message : [message]).filter(isRequest);
   const answered = new Set();
   const out = (m) => {
@@ -35,6 +60,11 @@ export async function forward(ctx, message) {
       if (one.id !== undefined && one.id !== null && !one.method) answered.add(one.id);
       const protocol = one.result?.protocolVersion;
       if (typeof protocol === "string" && requests.some((r) => r.method === "initialize" && r.id === one.id)) ctx.session.protocol = protocol;
+      if (unpaid) {
+        const request = requests.find((r) => r.id === one.id && r.method === "tools/call");
+        const paymentRequired = request ? paymentRequiredOf(one.result) : null;
+        if (paymentRequired) { unpaid.push({ request, response: one, paymentRequired }); continue; }
+      }
       ctx.write(one);
     }
   };
@@ -69,9 +99,9 @@ export async function forward(ctx, message) {
 }
 
 /** Run the proxy on stdin/stdout until stdin closes. */
-export async function runStdioProxy({ origin, key, path = "/mcp/compact", input = process.stdin, output = process.stdout }) {
-  const ctx = { url: `${origin.replace(/\/$/, "")}${path}`, key, session: {}, write: (m) => output.write(`${JSON.stringify(m)}\n`) };
-  log(`forwarding to ${ctx.url}${key ? " with a key" : " without a key (free calls)"}`);
+export async function runStdioProxy({ origin, key, payer, path = "/mcp/compact", input = process.stdin, output = process.stdout }) {
+  const ctx = { url: `${origin.replace(/\/$/, "")}${path}`, key, payer, session: {}, write: (m) => output.write(`${JSON.stringify(m)}\n`) };
+  log(`forwarding to ${ctx.url}${key ? " with a key" : payer ? ` paying per call from wallet ${payer.address} (USDC on Base)` : " without a key (free calls)"}`);
   const pending = new Set();
   let gate = Promise.resolve(); // initialize finishes before anything after it is sent, so the session id is known
   const handle = (line) => {
