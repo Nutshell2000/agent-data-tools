@@ -1669,3 +1669,10 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `PDF_TRY` unset = PDF reading is paid only, as the owner decided on 10 Nov 2026. `PDF_TRY=on` (set in wrangler.jsonc production vars on her word of 14 Nov 2026) lets a browser run /pdf/text and /pdf/extract free inside its 3 HTTP free calls, 2 pages and 6,000 characters a read, 150 reads a day in total (`PDF_TRY_DAILY_CAP`). Code: src/lib/pdf-try.ts (`pdfTryFor`, `takePdfTry`, `pdfTryRequests`), the reserved input `PDF_TRY_INPUT` in src/routes/pdf.ts, two lines in the paywall wrapper of src/index.ts. Do not widen it to non-browser callers or raise the page limit without her word: the 10 Nov free rider used 400-1,300 full reads a day.
 
 
+
+
+## Stored logs are sampled at 1% (1.162.0, 14 Nov 2026)
+
+- `"observability": { "enabled": true, "head_sampling_rate": 0.01 }` in both wrangler files. At 100% the service stored about 19 log events a request (701 library warnings per cold start), about 238 million a month against 20 million included. Never set it back to 1 without removing those warnings first. Measure with `npx wrangler tail agent-data-tools --format json` for a minute and count `logs` per event. The live setting can be read and changed without a deploy: `GET/PATCH /accounts/<id>/workers/scripts/<name>/settings` (multipart field `settings`), but a deploy applies whatever wrangler.jsonc says.
+- CPU, same sample: median 5 ms a request, cold starts 60-225 ms (2.7% of requests, 34% of CPU); the first quote in a new isolate builds all 701 route configurations. A per-path lazy build or a cached quote would cut that; not done (it is the payment path).
+
