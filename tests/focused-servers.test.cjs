@@ -49,7 +49,7 @@ test('every focused server lists exactly its canonical tools, at most ten, no en
   }
 });
 
-for (const slug of ['documents', 'company-check']) {
+for (const slug of ['documents', 'company-check', 'voice']) {
   test(`/mcp/${slug} serves its own tools, title and instructions`, async () => {
     const f = discovery.FOCUSED_SERVERS[slug];
     const client = await connect(slug);
