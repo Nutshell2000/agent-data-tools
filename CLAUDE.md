@@ -2027,3 +2027,17 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `FRONTS` (scripts/seed-bazaar.mjs) lists the three voice fronts. The ElevenLabs text-to-speech front is listed under the voice ID `21m00Tcm4TlvDq8ikWAM`, because a front's listing is written from its quote's resource, and that resource is the URL path including the voice ID. tests/voice-fronts-seed.test.cjs checks that each example is quoted under its own path. Why: Mercator (measured 15 Nov) ranks only Bazaar-imported listings in our band, and we were absent for "elevenlabs".
 
+
+
+## Glyphcall Transcribe Pro page (1.203.0, 15 Nov 2026)
+
+- Transcribe Pro is the $9 credits plan sold under the transcription name. The owner said yes on 15 Nov.
+  - The direct sales session made its Stripe objects: product prod_VdEGz7ftudKRRG and the $9 link (`VOICE_PRO_URL` in src/lib/credits.ts), plus the $1 for 1,000 credits link (`VOICE_HOURS_PACK_URL`).
+  - Both return to the Glyphcall Voice transcribe page, which claims the key itself.
+  - `verifyCheckout` grants them because they match by amount and adt_credits.
+  - A duplicate "Voice Pro" product and link (prod_VdEewFfy0sXxrJ, plink_1UbyB8…) were made the same morning and deactivated before any checkout. Keep one product under one name.
+- src/lib/voice-pro.ts holds the `/transcribe-pro` landing page and the claim page's voice section, which is used when a checkout returns with `for=voice`.
+  - Hours are always `voiceProHours(price of /transcribe/long)`, never written by hand.
+  - src/index.ts passes the live prices in with `setVoicePrices`, because credit-routes.ts must not import the catalog.
+- Never write "unlimited", "cheapest" or "Voice Pro" on the page (tests/voice-pro.test.cjs checks this).
+
