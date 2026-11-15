@@ -605,7 +605,7 @@
     "/fi/company": "$0.01",
     "/fr/company": "$0.01",
     "/crypto/fear-greed": "$0.002",
-    "/weather/forecast": "$0.003",
+    "/weather/forecast": "$0.002",
     "/sanctions/screen": "$0.009",
     "/wallet/balance": "$0.002",
     "/token/price": "$0.002",
