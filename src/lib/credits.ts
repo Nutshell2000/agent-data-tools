@@ -102,6 +102,16 @@ export const CREDIT_PLANS = [
   { usdCents: 1_900, credits: 40_000, url: "https://buy.stripe.com/fZu7sLdSG0r5dO22ABbII08" },
 ] as const;
 export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28r15U4Hl9xMfnnbII00";
+/**
+ * Glyphcall Voice Pro (the owner, 15 Nov 2026: "Yes, build it"): the $9 plan above sold under a voice name. Its own product
+ * (prod_VdEewFfy0sXxrJ, price price_1UbyB0DhGrPcm8ScrM2pLlrK, payment link plink_1UbyB8DhGrPcm8ScITAGyj91) carries the same
+ * amount and metadata adt_credits 15000, so `verifyCheckout` grants it as the $9 plan; its success URL adds `for=voice`
+ * so /credits/claim shows how to use the key for transcription. Same portal, same renewals.
+ */
+export const VOICE_PRO_URL: string = "https://buy.stripe.com/7sY3cv7uic9N6lA7UVbII0b";
+export const VOICE_PRO_CREDITS = 15_000;
+/** The free browser voice tools, whose fast mode takes an adt_ key (glyphcall-voice-tools, public/transcribe.js). */
+export const VOICE_TOOLS_URL = "https://glyphcall-voice.pages.dev/";
 export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
 export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
 /** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
