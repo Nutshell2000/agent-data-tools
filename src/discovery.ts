@@ -250,7 +250,7 @@ export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utiliti
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
-  "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", // 1.192.0: they fell to Utilities
+  "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
   "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/cve": "Company, compliance and checks",
@@ -321,8 +321,8 @@ export const FOCUSED_SERVERS: Readonly<Record<string, { title: string; registry:
     title: "Speech to text and text to speech",
     registry: "Transcribe audio and video (SRT/VTT subtitles, an hour for $0.05) and text to speech as MP3",
     kinds: "voice: speech to text for audio and video files with SRT or VTT subtitles and word timings (Whisper large-v3-turbo, 90+ languages, up to an hour in one call), a summary of a recording, and text to speech as an MP3 file (Deepgram Aura voices, English and Spanish)",
-    pick: "Pick by task: a short audio or video clip to text, subtitles or word timings → transcribe; a recording up to 60 minutes (MP3 or WAV, up to 25 MB) → transcribe_long; the gist and action points of a recording → transcribe_summary; who said what, with speaker labels → transcribe_speakers; subtitles in another language → subtitles_translate; a clip spoken again in English or Spanish → dub; a voice bot that hears a question and answers aloud → voice_agent; a sentence or two spoken aloud → ai_speech; up to 2,000 characters as one MP3 → text_to_speech (lower cost, English only: text_to_speech_lite).",
-    paths: ["/transcribe", "/transcribe/long", "/transcribe/summary", "/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent", "/ai/speech", "/text-to-speech", "/text-to-speech/lite"],
+    pick: "Pick by task: a short audio or video clip to text, subtitles or word timings → transcribe; a recording up to 60 minutes (MP3 or WAV, up to 25 MB) → transcribe_long; the gist and action points of a recording → transcribe_summary; who said what, with speaker labels → transcribe_speakers; subtitles in another language → subtitles_translate; a clip spoken again in English or Spanish → dub; a voice bot that hears a question and answers aloud → voice_agent; up to 2,000 characters as one MP3 → text_to_speech; the same with subtitles timed to the voice → text_to_speech_captions; a script with several speakers as one MP3 → dialogue.",
+    paths: ["/transcribe", "/transcribe/long", "/transcribe/summary", "/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent", "/text-to-speech", "/text-to-speech/captions", "/dialogue"],
   },
 });
 export const focusedServerTools = (slug: string) =>
