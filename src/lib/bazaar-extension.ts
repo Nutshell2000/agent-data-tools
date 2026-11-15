@@ -51,6 +51,7 @@ export function bazaarInputProperties(e: Endpoint) {
  * exactly the tools without a required input that refuse an empty call: tests/buyer-inputs.test.cjs runs them all.
  */
 export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
+  "/pack/kyb-eu", // 1.197.0: q, vat or lei
   "/price/token", "/token/price", "/price/crypto", "/price/tokens",
   "/audit/contract", "/contract/audit",
   "/se/company",

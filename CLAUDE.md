@@ -1987,3 +1987,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - /weather/forecast is $0.002 again (WEATHER_TEST_PATHS removed). Quest wallets from vAPI bought it at $0.002 and stopped at $0.003. After the release run `node scripts/update-402index-prices.mjs --dry` then for real.
 
+## KYB check (1.197.0, 15 Nov 2026)
+
+- `src/routes/kyb.ts`: `kybCheck(input, deps)` with injectable `search`, `vies`, `lei`, `sanctions` (tests/kyb.test.cjs uses fakes); `defaultDeps` runs `companySearch`, `viesCheck`, the /lei/lookup and /sanctions/check handlers in-process. Registered with `CATALOG.push(...KYB)` in src/families.ts. $0.02 (pinned in PRICE_TEST in tests/families.test.cjs; prices delegated 14 Nov).
+- `vatFromRegister()`: SE orgnr+01, FI Y-tunnus without dash, FR key (12 + 3 x (SIREN mod 97)) mod 97, CZ IČO. A derived number that VIES calls invalid is a flag only (the company may not be VAT-registered); a GIVEN invalid number makes the verdict review.
+- `coreName()` drops legal forms before sanctions screening (the every-word match would otherwise miss "Spotify AB"). At most three names are screened: the one asked for, the register name and the group parent.
+- Verdict review = any sanctions match, no register entry, an invalid given VAT number, or screening failed. A lone starting point that 404s (unknown LEI) passes its own HttpError on (uncharged); errors are recognised by `status`, not instanceof.
+- In ONE_OF_INPUT_PATHS (q, vat or lei) and CATEGORY_OF_PATH (Company, compliance and checks).
+
