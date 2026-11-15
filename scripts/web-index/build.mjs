@@ -3,12 +3,13 @@
 // publishers'), never from a search API. We keep an index entry per page: URL, title, description, headings and the
 // first part of the text for ranking and a snippet. We never republish whole pages: results link to the source.
 //
-//   node scripts/web-index/build.mjs <sites.json> <outDir> [--crawl CC-MAIN-2026-43] [--per-site 400]
+//   node scripts/web-index/build.mjs <sites.json> <outDir> [--crawl CC-MAIN-2026-43] [--per-site 1500] [--text 4000]
 //
 // sites.json: [{ "site": "react.dev", "prefix": "react.dev/reference/", "name": "React" }, …]
-// Writes <outDir>/pages.jsonl and pages.sql (D1: table pages + FTS5 table pages_fts). Load with load.ps1.
+// Writes <outDir>/schema.sql (tables pages + FTS5 pages_fts) and one site-NNN-<site>.sql per site, plus done.txt so a stopped
+// run resumes with the sites not done yet. Load with load.ps1.
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
@@ -16,7 +17,7 @@ const [sitesFile, out] = process.argv.slice(2);
 if (!sitesFile || !out) throw new Error("usage: build.mjs <sites.json> <outDir> [--crawl id] [--per-site n]");
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : fallback; };
 const CRAWL = arg("--crawl", "CC-MAIN-2026-43");
-const PER_SITE = Number(arg("--per-site", "400"));
+const PER_SITE = Number(arg("--per-site", "1500"));
 const UA = "AgentDataTools-index/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
 const sites = JSON.parse(readFileSync(sitesFile, "utf8"));
 mkdirSync(out, { recursive: true });
@@ -38,8 +39,9 @@ async function get(url, init = {}, tries = 4) {
 /** Every captured HTML page under the prefix, newest capture per URL (collapse on the URL key). */
 async function listPages(prefix) {
   const rows = [];
+  // `limit` lets the index server stop early: without it a large prefix (MDN's /docs/) timed out with a 504.
   for (let page = 0; rows.length < PER_SITE * 2 && page < 20; page++) {
-    const q = new URLSearchParams({ url: `${prefix}*`, output: "json", page: String(page), collapse: "urlkey" });
+    const q = new URLSearchParams({ url: `${prefix}*`, output: "json", page: String(page), collapse: "urlkey", limit: String(PER_SITE * 3) });
     q.append("filter", "status:200"); q.append("filter", "mime:text/html");
     const r = await get(`https://index.commoncrawl.org/${CRAWL}-index?${q}`);
     if (!r) break;
@@ -88,14 +90,27 @@ async function fetchRecord(r) {
 }
 
 const sqlStr = (v) => (v === null || v === undefined ? "NULL" : `'${String(v).replace(/'/g, "''")}'`);
-const pagesFile = join(out, "pages.jsonl");
-writeFileSync(pagesFile, "");
-let total = 0;
+const TEXT_CHARS = Number(arg("--text", "4000"));
+// schema.sql (re)creates the tables; load it once before the site files (load.ps1 does).
+writeFileSync(join(out, "schema.sql"), [
+  "DROP TABLE IF EXISTS pages_fts;", "DROP TABLE IF EXISTS pages;",
+  "CREATE TABLE pages (id TEXT PRIMARY KEY, url TEXT, site TEXT, source TEXT, title TEXT, description TEXT, headings TEXT, text TEXT, crawled TEXT);",
+  "CREATE VIRTUAL TABLE pages_fts USING fts5(id UNINDEXED, title, headings, description, text, tokenize='porter unicode61');",
+].join("\n"));
+const doneFile = join(out, "done.txt");
+const done = new Set(existsSync(doneFile) ? readFileSync(doneFile, "utf8").split("\n").map((l) => l.split("\t")[0]).filter(Boolean) : []);
+const seenIds = new Set();
+let total = 0, n = 0;
 for (const s of sites) {
-  const list = await listPages(s.prefix);
+  n++;
+  if (done.has(s.site)) continue;
+  let list;
+  try { list = await listPages(s.prefix); }
+  catch (e) { console.log(`${new Date().toISOString().slice(11, 19)} ${s.site}: SKIPPED (${String(e.message ?? e).slice(-60)}); rerun to retry`); continue; }
   let kept = 0;
-  for (let i = 0; i < list.length; i += 6) {
-    const batch = await Promise.all(list.slice(i, i + 6).map(async (r) => {
+  const lines = [];
+  for (let i = 0; i < list.length; i += 8) {
+    const batch = await Promise.all(list.slice(i, i + 8).map(async (r) => {
       try {
         const html = await fetchRecord(r);
         if (!html) return null;
@@ -104,26 +119,24 @@ for (const s of sites) {
         return {
           id: createHash("sha256").update(r.url).digest("hex").slice(0, 24), url: r.url, site: s.site, source: s.name,
           title: p.title.slice(0, 300), description: p.description.slice(0, 500), headings: p.headings.join(" | ").slice(0, 1500),
-          text: p.text.slice(0, 6000), crawled: `${r.timestamp.slice(0, 4)}-${r.timestamp.slice(4, 6)}-${r.timestamp.slice(6, 8)}`,
+          text: p.text.slice(0, TEXT_CHARS), crawled: `${r.timestamp.slice(0, 4)}-${r.timestamp.slice(4, 6)}-${r.timestamp.slice(6, 8)}`,
         };
       } catch { return null; }
     }));
-    for (const p of batch.filter(Boolean)) { appendFileSync(pagesFile, `${JSON.stringify(p)}\n`); kept++; }
+    for (const p of batch.filter(Boolean)) {
+      if (seenIds.has(p.id)) continue;
+      seenIds.add(p.id);
+      lines.push(
+        `INSERT INTO pages VALUES (${[p.id, p.url, p.site, p.source, p.title, p.description, p.headings, p.text, p.crawled].map(sqlStr).join(",")});`,
+        `INSERT INTO pages_fts VALUES (${[p.id, p.title, p.headings, p.description, p.text].map(sqlStr).join(",")});`,
+      );
+      kept++;
+    }
   }
+  // One SQL file per site, written when the site is done; done.txt lets a stopped run resume where it was.
+  writeFileSync(join(out, `site-${String(n).padStart(3, "0")}-${s.site.replace(/[^a-z0-9.-]/gi, "_")}.sql`), lines.join("\n"));
+  appendFileSync(doneFile, `${s.site}\t${kept}\n`);
   total += kept;
-  console.log(`${s.site}: ${list.length} captures, ${kept} pages kept`);
+  console.log(`${new Date().toISOString().slice(11, 19)} ${s.site}: ${list.length} captures, ${kept} pages kept (total ${total})`);
 }
-
-const byId = new Map(readFileSync(pagesFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).map((p) => [p.id, p]));
-const pages = [...byId.values()];
-const ddl = [
-  "DROP TABLE IF EXISTS pages_fts;", "DROP TABLE IF EXISTS pages;",
-  "CREATE TABLE pages (id TEXT PRIMARY KEY, url TEXT, site TEXT, source TEXT, title TEXT, description TEXT, headings TEXT, text TEXT, crawled TEXT);",
-  "CREATE VIRTUAL TABLE pages_fts USING fts5(id UNINDEXED, title, headings, description, text, tokenize='porter unicode61');",
-];
-const rows = pages.flatMap((p) => [
-  `INSERT INTO pages VALUES (${[p.id, p.url, p.site, p.source, p.title, p.description, p.headings, p.text, p.crawled].map(sqlStr).join(",")});`,
-  `INSERT INTO pages_fts VALUES (${[p.id, p.title, p.headings, p.description, p.text].map(sqlStr).join(",")});`,
-]);
-writeFileSync(join(out, "pages.sql"), [...ddl, ...rows].join("\n"));
-console.log(`total ${total} pages from ${sites.length} sites (${CRAWL}) -> ${out}`);
+console.log(`total ${total} new pages from ${sites.length} sites (${CRAWL}) -> ${out}`);

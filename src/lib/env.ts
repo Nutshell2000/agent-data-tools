@@ -100,6 +100,8 @@ export interface Env {
   // EU law search index (routes/law-search.ts): passages and their full-text index in D1 (EU jurisdiction), their
   // bge-m3 vectors in Vectorize. Built by scripts/law-index/build.mjs. Optional: without them /law/search answers 503.
   LAW_DB?: D1Database;
+  /** Our own web index, first vertical developer docs (D1 web-docs, EU; scripts/web-index; 15 Nov 2026). */
+  WEB_DB?: D1Database;
   LAW_VECTORS?: VectorizeIndex;
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;

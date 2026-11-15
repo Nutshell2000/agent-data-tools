@@ -12,6 +12,7 @@ import { ENDPOINTS } from "../endpoints";
 import { keyPrice } from "./key-prices";
 import { categoryOf } from "../routes/search";
 import { LAW_ACTS } from "../routes/law-search";
+import DOC_SITES from "../data/web-docs-sites.json";
 
 /** Act names that mean the law wherever they appear; other names (CRA, MDR, Instant Payments) count only next to a law word. */
 const LEGAL_NAMES = new Set(["gdpr", "ai act", "dsa", "dma", "nis2", "dora", "mica", "csrd", "csddd", "psd2", "eidas", "eprivacy", "amlr", "amla", "cbam", "sfdr", "eudr", "vida", "gpsr", "ehds", "espr", "ucpd", "eudpr"]);
@@ -205,6 +206,25 @@ export function categoryRoute(b: Record<string, unknown>, q: string, n: number):
   return { tool: "/papers", query: { query: q.slice(0, 300), limit: count, ...(year >= 1800 && year <= 2100 ? { fromYear: String(year) } : {}) }, ignored };
 }
 
+/** Hosts of the developer-docs sites in our own index (src/data/web-docs-sites.json, 15 Nov 2026). */
+export const DOC_HOSTS: ReadonlySet<string> = new Set((DOC_SITES as { prefix: string }[]).map((s) => hostOnly(s.prefix)));
+const DOC_CATEGORIES = new Set(["docs", "documentation", "developer docs", "developer documentation", "api docs"]);
+/**
+ * A search for developer documentation goes to our own index: category docs, or includeDomains naming only indexed
+ * docs sites. A phrase filter (includeText/excludeText) keeps the web search, which can honour it.
+ */
+export function docsRoute(b: Record<string, unknown>, q: string, n: number): { tool: string; query: Record<string, string>; ignored: string[] } | undefined {
+  if (firstText(b.includeText) || firstText(b.excludeText) || q.length < 2) return undefined;
+  const domains = asList(b.includeDomains).map(hostOnly);
+  const byCategory = typeof b.category === "string" && DOC_CATEGORIES.has(b.category.trim().toLowerCase());
+  const byDomains = domains.length > 0 && domains.every((d) => DOC_HOSTS.has(d));
+  if (!byCategory && !byDomains) return undefined;
+  const ignored: string[] = [];
+  if (b.startPublishedDate || b.endPublishedDate) ignored.push("published dates: documentation pages are ordered by relevance");
+  if (asList(b.excludeDomains).length) ignored.push("excludeDomains: not applied to the documentation index");
+  return { tool: "/docs/search", query: { q: q.slice(0, 400), count: String(Math.min(10, n)), ...(domains.length === 1 ? { site: domains[0] } : {}) }, ignored };
+}
+
 export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record<string, string>; text: number; tool?: string; ignored?: string[] } | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object" };
   const b = body as Record<string, unknown>;
@@ -222,7 +242,7 @@ export function toToolQuery(path: SearchApiPath, body: unknown): { query: Record
       }
       const n = b.numResults === undefined || b.numResults === "" ? 10 : Number(b.numResults);
       if (Number.isInteger(n) && n >= 1) {
-        const routed = categoryRoute(b, q, n);
+        const routed = docsRoute(b, q, n) ?? categoryRoute(b, q, n);
         if (routed) {
           const contents = (b.contents && typeof b.contents === "object" ? b.contents : {}) as Record<string, unknown>;
           return { query: routed.query, text: textBudget(contents.text ?? b.text, 3000), tool: routed.tool, ...(routed.ignored.length ? { ignored: routed.ignored } : {}) };
@@ -377,6 +397,18 @@ export function recordResults(inner: Record<string, unknown>, tool: string | und
         id: h.url, url: h.url, title: h.title, publishedDate: h.published ? `${h.published}T00:00:00.000Z` : null, author: h.authors?.length ? h.authors.join(", ") : null, score: null,
         ...(h.summary ? { ...textOf(h.summary, opts.text), highlights: [h.summary.slice(0, 300)] } : {}),
         arxivId: h.id, pdf: h.pdf ?? null, doi: h.doi ?? null, category: h.primaryCategory ?? null,
+      })),
+      terms: r.attribution,
+    };
+  }
+  if (tool === "/docs/search") {
+    // Our own documentation index: a snippet per page (we do not serve the page text; read it with /v1/contents).
+    const r = inner as { results?: { title: string; url: string; source?: string; snippet?: string; crawled?: string; score?: number }[]; attribution?: string };
+    return {
+      ...base, resolvedSearchType: "docs-index",
+      results: (r.results ?? []).map((h) => ({
+        id: h.url, url: h.url, title: h.title, publishedDate: null, author: null, score: h.score ?? null,
+        ...(h.snippet ? { highlights: [h.snippet] } : {}), source: h.source ?? null, crawled: h.crawled ?? null,
       })),
       terms: r.attribution,
     };
