@@ -659,7 +659,7 @@ app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
 app.get(COMPARE_BASE, (c) => c.html(compareHtml(c.env, origin(c.req.url))!));
 app.get(`${COMPARE_BASE}/:slug{[a-z0-9-]+}`, (c) => { const html = compareHtml(c.env, origin(c.req.url), c.req.param("slug")); return html ? c.html(html) : c.notFound(); });
 app.get(BENCHMARKS_PATH, (c) => c.html(benchmarksHtml(c.env, origin(c.req.url))));
-// Glyphcall Voice Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
+// Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
 const voicePriceOf = (path: string) => ENDPOINTS.find((e) => e.path === path)?.price ?? "$0.05";
 setVoicePrices({ long: voicePriceOf("/transcribe/long"), short: voicePriceOf("/transcribe"), summary: voicePriceOf("/transcribe/summary") });
 app.get(VOICE_PRO_PATH, (c) => c.html(voiceProPage(origin(c.req.url), voicePrices())));

@@ -3,7 +3,7 @@ const { before, after, test } = require('node:test');
 const { build } = require('esbuild');
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 
-// Glyphcall Voice Pro (1.203.0, the owner's yes of 15 Nov 2026): the $9 plan under a voice name. Its checkout must be
+// Glyphcall Transcribe Pro (1.203.0, the owner's yes of 15 Nov 2026): the $9 plan under a voice name. Its checkout must be
 // granted exactly like the $9 plan, its claim page must show voice instructions, and every hour figure must come from
 // the live /transcribe/long price.
 let mf;
@@ -36,7 +36,7 @@ before(async () => {
 });
 after(async () => { await mf?.dispose(); });
 
-test('the Voice Pro checkout matches the $9 plan, so verifyCheckout grants it', () => {
+test('the Transcribe Pro checkout matches the $9 plan, so verifyCheckout grants it', () => {
   const plan = lib.CREDIT_PLANS.find((p) => p.usdCents === 900);
   assert.equal(plan.credits, lib.VOICE_PRO_CREDITS);
   assert.match(lib.VOICE_PRO_URL, /^https:\/\/buy\.stripe\.com\//);
@@ -48,18 +48,21 @@ test('hours are computed from the catalog price of /transcribe/long', () => {
   assert.equal(lib.voiceProHours(long), Math.floor(lib.VOICE_PRO_CREDITS / credits));
 });
 
-test('/voice-pro shows the plan, the live hours and the checkout link', async () => {
-  const r = await mf.dispatchFetch(`${O}/voice-pro`);
+test('/transcribe-pro shows the plan, the live hours and the checkout link', async () => {
+  const r = await mf.dispatchFetch(`${O}/transcribe-pro`);
   assert.equal(r.status, 200);
   const html = await r.text();
   const long = lib.ENDPOINTS.find((e) => e.path === '/transcribe/long').price;
   assert.ok(html.includes(`about ${lib.voiceProHours(long)} hours`), 'hours from the live price');
   assert.ok(html.includes(lib.VOICE_PRO_URL));
+  assert.ok(html.includes(lib.VOICE_HOURS_PACK_URL), 'the $1 pack for one-off files');
+  assert.match(html, /Transcribe Pro/);
+  assert.doesNotMatch(html, /Voice Pro/, 'one product, one name');
   assert.ok(html.includes('rel="canonical"'));
   assert.doesNotMatch(html, /cheapest|unlimited/i, 'no claims we cannot back');
 });
 
-test('a Voice Pro claim returns a key with voice instructions; a plain claim does not', async () => {
+test('a Transcribe Pro claim returns a key with voice instructions; a plain claim does not', async () => {
   const voice = await mf.dispatchFetch(`${O}/credits/claim?session_id=${SESSION}&for=voice`, { headers: { accept: 'application/json' } });
   assert.equal(voice.status, 200);
   const body = await voice.json();
@@ -68,7 +71,7 @@ test('a Voice Pro claim returns a key with voice instructions; a plain claim doe
   assert.ok(body.monthlyPlan, 'granted as a monthly plan');
   assert.ok(body.voicePro && body.voicePro.hoursEachMonth > 0);
   const html = await (await mf.dispatchFetch(`${O}/credits/claim?session_id=${SESSION}&for=voice`, { headers: { accept: 'text/html', 'user-agent': 'Mozilla/5.0 Chrome/130' } })).text();
-  assert.match(html, /Welcome to Voice Pro/);
+  assert.match(html, /Welcome to Transcribe Pro/);
   assert.match(html, /Fast mode/);
   const plain = await (await mf.dispatchFetch(`${O}/credits/claim?session_id=${SESSION}`, { headers: { accept: 'application/json' } })).json();
   assert.equal(plain.apiKey, body.apiKey, 'a repeat claim shows the same key');
