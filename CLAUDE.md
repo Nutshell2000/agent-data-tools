@@ -2041,3 +2041,13 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
   - src/index.ts passes the live prices in with `setVoicePrices`, because credit-routes.ts must not import the catalog.
 - Never write "unlimited", "cheapest" or "Voice Pro" on the page (tests/voice-pro.test.cjs checks this).
 
+
+
+## glyphcall.com switched on (1.203.1, 15 Nov 2026)
+
+- Zone glyphcall.com (Free plan) is on the account since 15 Nov 2026; the domain stays registered at Strato (nameservers aaden/sreeni.ns.cloudflare.com). Mail stays at Strato: MX smtp.rzone.de, DKIM `strato-dkim-0002._domainkey`, DMARC p=reject, SPF `include:_spf.strato.com`, autoconfig CNAME (DNS only). Mailboxes alicia@ and support@glyphcall.com exist at Strato (the owner set the passwords). Strato blocks mailbox changes while the nameservers point elsewhere: switch them back to Strato's for a moment if a mailbox must be added.
+- wrangler.jsonc: routes glyphcall.com, www.glyphcall.com and tools.funwords.eu (custom domains), `PUBLIC_SITE_ORIGIN` https://glyphcall.com, `RETIRED_PUBLIC_HOSTS` tools.funwords.eu,www.glyphcall.com (www pages 301 to the apex), `PUBLIC_BRAND` Glyphcall. tests/pages.test.cjs and tests/public-site.test.cjs pin them.
+- `voice.glyphcall.com` is a custom domain of the Pages project glyphcall-voice (CNAME, proxied), not of this Worker.
+- `FREE_KEY_FROM` stays keys@tools.funwords.eu until Cloudflare Email Sending is enabled on glyphcall.com.
+- After the release: Search Console property for glyphcall.com (DNS TXT verification in Cloudflare) and its sitemap; IndexNow for the new host; update links in articles, profiles and repositories.
+

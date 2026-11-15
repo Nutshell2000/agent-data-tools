@@ -16,6 +16,8 @@ test('the indexing test host keeps workers.dev on and does not serve hosted page
   const config = fs.readFileSync(require.resolve('../wrangler.jsonc'), 'utf8');
   assert.match(config, /"workers_dev": true/, 'adding routes without this switches workers.dev off');
   assert.match(config, /"pattern": "tools\.funwords\.eu", "custom_domain": true/);
+  assert.match(config, /"pattern": "glyphcall\.com", "custom_domain": true/);
+  assert.match(config, /"pattern": "www\.glyphcall\.com", "custom_domain": true/);
   assert.match(fs.readFileSync(require.resolve('../src/index.ts'), 'utf8'), /=== INDEXING_TEST_HOST\) return c\.notFound\(\)/);
 });
 

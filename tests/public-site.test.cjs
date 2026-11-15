@@ -30,7 +30,10 @@ test("the public host itself, an unset or a malformed setting leave the page as 
 });
 
 test("production names the public host; staging does not", () => {
-  assert.match(readFileSync("wrangler.jsonc", "utf8"), /"PUBLIC_SITE_ORIGIN": "https:\/\/tools\.funwords\.eu"/);
+  const prod = readFileSync("wrangler.jsonc", "utf8");
+  assert.match(prod, /"PUBLIC_SITE_ORIGIN": "https:\/\/glyphcall\.com"/);
+  assert.match(prod, /"RETIRED_PUBLIC_HOSTS": "tools\.funwords\.eu,www\.glyphcall\.com"/);
+  assert.ok(!/"RETIRED_PUBLIC_HOSTS": "[^"]*workers\.dev/.test(prod), "the paid origin is never retired");
   assert.ok(!/PUBLIC_SITE_ORIGIN/.test(readFileSync("wrangler.staging.jsonc", "utf8")));
 });
 
@@ -38,6 +41,7 @@ test("pages on a retired public host move to the public site; the paid origin an
   const NEW = "https://glyphcall.com";
   assert.equal(S.movedPageUrl("https://tools.funwords.eu/tools/eth-gas?x=1", NEW, "tools.funwords.eu"), "https://glyphcall.com/tools/eth-gas?x=1");
   assert.equal(S.movedPageUrl("https://TOOLS.funwords.eu/", `${NEW}/`, " tools.funwords.eu , old.example "), "https://glyphcall.com/");
+  assert.equal(S.movedPageUrl("https://www.glyphcall.com/transcribe?a=1", NEW, "tools.funwords.eu,www.glyphcall.com"), "https://glyphcall.com/transcribe?a=1", "www goes to the apex");
   assert.equal(S.movedPageUrl(`${WORKER}/tools/eth-gas`, NEW, "tools.funwords.eu"), null, "the paid origin is not retired");
   assert.equal(S.movedPageUrl("https://glyphcall.com/credits", NEW, "glyphcall.com"), null, "the public site never redirects to itself");
   for (const [site, retired] of [[undefined, "tools.funwords.eu"], [NEW, undefined], [NEW, ""], ["glyphcall.com", "tools.funwords.eu"], ["https://glyphcall.com/path", "tools.funwords.eu"]]) {
