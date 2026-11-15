@@ -112,7 +112,12 @@ export interface WebSearchOptions {
   category?: string;
   includeText?: string;
   excludeText?: string;
+  /** Brave's country code: results localized for it (BRAVE_COUNTRIES). */
+  country?: string;
 }
+
+/** The countries Brave's `country` parameter takes (its API reference, Nov 2026). Others are reported in `ignored`. */
+export const BRAVE_COUNTRIES: ReadonlySet<string> = new Set(["AR", "AU", "AT", "BE", "BR", "CA", "CL", "DK", "FI", "FR", "DE", "HK", "IN", "ID", "IT", "JP", "KR", "MY", "MX", "NL", "NZ", "NO", "CN", "PL", "PT", "PH", "RU", "SA", "ZA", "ES", "SE", "CH", "TW", "TR", "GB", "US"]);
 
 /** Brave's page_age has no zone ("2026-10-01T00:00:00"): it is UTC, whatever the runtime's zone. */
 export const utcTime = (s: string) => Date.parse(/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(s) ? `${s}Z` : s);
@@ -150,7 +155,7 @@ export async function webSearch(env: Env, o: WebSearchOptions, fetcher: typeof f
   const endpoint = category?.news ? "news" : "web";
   let res: Response;
   try {
-    res = await fetcher(`https://api.search.brave.com/res/v1/${endpoint}/search?${new URLSearchParams({ q: upstreamQuery, count: String(filtered ? 20 : o.count), ...(freshness ? { freshness } : {}) })}`, {
+    res = await fetcher(`https://api.search.brave.com/res/v1/${endpoint}/search?${new URLSearchParams({ q: upstreamQuery, count: String(filtered ? 20 : o.count), ...(freshness ? { freshness } : {}), ...(o.country && BRAVE_COUNTRIES.has(o.country) ? { country: o.country } : {}) })}`, {
       headers: { accept: "application/json", "x-subscription-token": env.SEARCH_API_KEY },
       signal: AbortSignal.timeout(8000),
     });
@@ -208,6 +213,7 @@ const SEARCH_PARAMS: Record<string, Param> = {
   category: { type: "string", description: "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report", example: "news" },
   includeText: { type: "string", description: "A phrase the results must contain (up to 5 words)", example: "payment" },
   excludeText: { type: "string", description: "A phrase the results must not contain", example: "casino" },
+  country: { type: "string", description: "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)", example: "SE" },
   textChars: { type: "integer", description: "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)", example: 2000 },
   highlights: { type: "string", description: "true: the passages of each page that best match the query, with scores", example: "true" },
   numSentences: { type: "integer", description: "Sentences per highlight (1-10, default 3)", example: 3 },
@@ -225,10 +231,14 @@ function searchOptions(q: Input): Omit<WebSearchOptions, "query" | "count"> & { 
   const endPublishedDate = dayOf(q("endPublishedDate") ?? q("endDate") ?? q("before"));
   if (q("startPublishedDate") && !startPublishedDate) ignored.push("startPublishedDate is not a date");
   if (q("endPublishedDate") && !endPublishedDate) ignored.push("endPublishedDate is not a date");
+  const countryRaw = opt(q, "country", 20)?.toUpperCase();
+  const country = countryRaw === "UK" ? "GB" : countryRaw;
+  if (country && !BRAVE_COUNTRIES.has(country)) ignored.push(`country: ${country.slice(0, 20)} is not one of the countries results can be localized for (${[...BRAVE_COUNTRIES].join(", ")})`);
   return {
     includeDomains: domainList(q("includeDomains") ?? q("site") ?? q("domains")), excludeDomains: domainList(q("excludeDomains")),
     startPublishedDate, endPublishedDate, category: category ?? undefined,
     includeText: opt(q, "includeText", 80), excludeText: opt(q, "excludeText", 80), ignored,
+    ...(country && BRAVE_COUNTRIES.has(country) ? { country } : {}),
   };
 }
 
@@ -238,7 +248,7 @@ async function searchAnswer(env: Env, query: string, count: number, q: Input, ex
   const contents = contentsOptions(q, count);
   const found = await webSearch(env, { query, count, ...opts, excludeDomains: [...(opts.excludeDomains ?? []), ...exclude] });
   const results = await enrich(found.hits, query, contents, readPage, summarizePage(env));
-  const filters = Object.fromEntries(Object.entries({ includeDomains: opts.includeDomains?.length ? opts.includeDomains : undefined, excludeDomains: opts.excludeDomains?.length ? opts.excludeDomains : undefined, startPublishedDate: opts.startPublishedDate ?? undefined, endPublishedDate: opts.endPublishedDate ?? undefined, category: opts.category, includeText: opts.includeText, excludeText: opts.excludeText }).filter(([, v]) => v !== undefined));
+  const filters = Object.fromEntries(Object.entries({ includeDomains: opts.includeDomains?.length ? opts.includeDomains : undefined, excludeDomains: opts.excludeDomains?.length ? opts.excludeDomains : undefined, startPublishedDate: opts.startPublishedDate ?? undefined, endPublishedDate: opts.endPublishedDate ?? undefined, category: opts.category, includeText: opts.includeText, excludeText: opts.excludeText, country: opts.country }).filter(([, v]) => v !== undefined));
   return {
     query, ...extra, provider: found.provider, count: results.length, results,
     ...(Object.keys(filters).length ? { filters } : {}), ...(opts.ignored.length ? { ignored: opts.ignored } : {}),
