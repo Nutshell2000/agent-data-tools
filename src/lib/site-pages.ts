@@ -3,16 +3,14 @@
 // is always at /agents. Why: a developer who arrives at the product's own domain should see what is sold, what it
 // costs and how to call it, and find the agent catalogue one link away rather than first.
 // Numbers come from the catalog and the plans; copy restates the products' own entries (lib/product-pages.ts).
-import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
+import { ENDPOINTS, type Endpoint } from "../endpoints";
 import { PLAN_PORTAL_URL } from "./credits";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { COMPANY_FOOTER } from "./legal";
-import { PRODUCTS, productOffers } from "./product-pages";
+import { PRODUCTS } from "./product-pages";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 const BY_PATH = new Map(ENDPOINTS.map((e) => [e.path, e as Endpoint]));
-const queryOf = (e: Endpoint) => exampleParams(e).map(([k, p]) => `${k}=${encodeURIComponent(String(p.example ?? ""))}`).join("&");
 
 const STYLE = `:root{--bg:#fff;--fg:#16181d;--muted:#5b616b;--card:#f5f6f8;--line:#e2e5ea;--accent:#0b57d0;--accent-fg:#fff;--ok:#0b6e4f}
 @media (prefers-color-scheme:dark){:root{--bg:#111316;--fg:#e9ebee;--muted:#a2a8b0;--card:#1a1d22;--line:#2b3037;--accent:#8ab4f8;--accent-fg:#0b1a33;--ok:#5fd0a5}}
@@ -32,55 +30,8 @@ ul{padding-left:20px}.small{color:var(--muted);font-size:.92rem}footer{max-width
 const top = (brand: string) => `<header class="top"><a class="brand" href="/">${esc(brand)}</a><nav>${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name.replace(/ API$/, ""))}</a>`).join("")}<a href="/credits">Pricing</a><a href="/docs">Docs</a></nav></header>`;
 const foot = () => `<footer>${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name)}</a>`).join(" · ")} · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/agents">For AI agents</a> · <a href="/status">Status</a> · ${COMPANY_FOOTER}</footer>`;
 
-/** The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts). */
-export function landingPage(brand: string, origin: string, cardReady: boolean): string {
-  const first = PRODUCTS[0];
-  const tool = BY_PATH.get(first.tool)!;
-  const title = `${brand}: focused APIs for documents and company checks`;
-  const description = `${PRODUCTS.map((p) => p.name).join(", ")}. One API key, a monthly plan or pay as you go, a free try on every product page. Failed calls are never charged.`.slice(0, 300);
-  const cards = PRODUCTS.map((p) => {
-    const lead = productOffers(p, cardReady).find((o) => o.monthly);
-    return `<div class="card"><h3><a href="/${esc(p.slug)}">${esc(p.name)}</a></h3><p>${esc(p.tagline)}</p>${lead ? `<p class="from">${esc(lead.label)}: ${esc(lead.calls)} ${esc(p.unit)}</p>` : ""}<a href="/${esc(p.slug)}">Code, free try and plans</a></div>`;
-  }).join("");
-  const plans = productOffers(first, cardReady);
-  const ld = { "@context": "https://schema.org", "@type": "Organization", name: brand, url: origin, description };
-  const sample = `curl -H "Authorization: Bearer $API_KEY" \\\n  "${origin}${tool.path}?${queryOf(tool)}"`;
-  return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)}</title>
-<meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${esc(origin)}/">
-<meta property="og:type" content="website"><meta property="og:site_name" content="${esc(brand)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og.png">
-<link rel="icon" href="/favicon.ico">
-<script type="application/ld+json">${jsonLd(ld)}</script>
-<style>${STYLE}</style></head><body>${top(brand)}<main>
-<h1>Small, focused APIs that do one job each</h1>
-<p class="tag">Text out of documents, clean Markdown out of web pages, and checks on the companies you invoice. One API key, one request per job, and you pay only for calls that succeed.</p>
-<p><a class="btn primary" href="/${esc(first.slug)}">Try ${esc(first.name)} free</a><a class="btn" href="/credits">See pricing</a><a class="btn" href="/docs">Read the docs</a></p>
-
-<h2>The APIs</h2>
-<div class="grid">${cards}</div>
-
-<h2>How it works</h2>
-<ol class="steps">
-<li><strong>Try it.</strong> Every product page has a form that runs the real thing on your own input, free.</li>
-<li><strong>Get a key.</strong> Pick a monthly plan or a one-off pack and pay by card. No account to create: the key is shown right after payment.</li>
-<li><strong>Call it.</strong> Send the key in a header. A call that fails costs nothing.</li>
-</ol>
-<pre><code>${esc(sample)}</code></pre>
-
-${plans.length ? `<h2>Pricing</h2>
-<p>One key works on every API here. Plans add credits each month and unused credits stay; packs never expire.</p>
-<div class="wrap"><table><tr><th>Plan</th>${PRODUCTS.map((p) => `<th>${esc(p.unit.charAt(0).toUpperCase() + p.unit.slice(1))}</th>`).join("")}</tr>
-${plans.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>${PRODUCTS.map((p) => `<td>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</td>`).join("")}</tr>`).join("\n")}
-</table></div>
-<p class="small">Each column is what that amount buys if you spend it all on that one API. <a href="${esc(PLAN_PORTAL_URL)}">Cancel a plan at any time</a>. Details: <a href="/credits">pricing</a>.</p>` : `<h2>Pricing</h2><p><a href="/credits">Plans and packs</a></p>`}
-
-<h2>For AI agents</h2>
-<p>The same APIs, and the rest of a catalogue of ${ENDPOINTS.length} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free) and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
-</main>${foot()}</body></html>`;
-}
+/** The front page lives in lib/home-page.ts (15 Nov 2026 redesign); re-exported so callers keep one import. */
+export { landingPage } from "./home-page";
 
 /** /docs: how to call any of the APIs with a key. Only what the service does today. */
 export function docsPage(brand: string, origin: string): string {
