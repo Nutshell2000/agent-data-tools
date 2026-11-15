@@ -293,7 +293,11 @@ export const PRODUCTS: readonly Product[] = [
     unit: "transcriptions",
     // The free in-browser tool (Glyphcall Voice, Cloudflare Pages). Linked, never embedded: Hugging Face refuses model
     // downloads to pages served from *.workers.dev (found 14 Nov 2026).
-    more: [["https://glyphcall-voice.pages.dev/transcribe", "Try it free in your browser: transcribe audio without an account (the file stays on your device)"]],
+    more: [
+      ["https://glyphcall-voice.pages.dev/transcribe", "Try it free in your browser: transcribe audio without an account (the file stays on your device)"],
+      ["https://apify.com/spellzcode/audio-video-transcriber", "No code: transcribe audio and video files with SRT/VTT subtitles on Apify"],
+      ["https://apify.com/spellzcode/podcast-transcriber", "No code: transcribe podcast episodes from an RSS feed or Apple Podcasts link on Apify"],
+    ],
     faq: [
       ["How long can a recording be?", "Up to 60 minutes and 25 MB of MP3 or WAV in one call to /transcribe/long ($0.05). The file is cut into parts and the timings are joined, so subtitles cover the whole recording. Clips up to 5 MB in any common format go to /transcribe ($0.01)."],
       ["Can I keep my OpenAI or ElevenLabs code?", "Yes. Point the client's base URL here: POST /v1/audio/transcriptions takes OpenAI's request (file, language, response_format json, text, srt, vtt or verbose_json), and POST /v1/speech-to-text takes ElevenLabs' (file or cloud_storage_url, language_code). A prepaid key goes in Authorization: Bearer, X-API-Key or xi-api-key."],
