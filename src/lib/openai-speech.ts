@@ -7,7 +7,7 @@
 // Both tools already map OpenAI voice names to Aura-2 voices (OPENAI_VOICES in routes/ai-text.ts).
 import type { Context } from "hono";
 import type { Env } from "./env";
-import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody } from "./openai-chat";
+import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody, type FrontMeta } from "./openai-chat";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const OPENAI_SPEECH_PATH = "/v1/audio/speech";
@@ -78,7 +78,7 @@ export async function openAiSpeech(c: C, forward: Forward): Promise<Response> {
 }
 
 /** Runs one speech request through the speech tool it maps to and answers with the MP3 bytes (or the tool's quote under the caller's path). */
-export async function speakThrough(c: C, forward: Forward, request: SpeechRequest, description: string): Promise<Response> {
+export async function speakThrough(c: C, forward: Forward, request: SpeechRequest, description: string, meta?: FrontMeta): Promise<Response> {
   const outer = new URL(c.req.url);
   const inner = new URL(request.tool, outer.origin);
   inner.searchParams.set("text", request.text);
@@ -90,7 +90,7 @@ export async function speakThrough(c: C, forward: Forward, request: SpeechReques
   headers.set("accept", "application/json");
   withXiKey(headers);
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
-  if (answer.status === 402) return asFrontQuote(answer, outer, description, request.tool);
+  if (answer.status === 402) return asFrontQuote(answer, outer, description, request.tool, meta);
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as { audioBase64?: string; contentType?: string; voice?: string; characters?: number };
   if (!result.audioBase64) return answer;
