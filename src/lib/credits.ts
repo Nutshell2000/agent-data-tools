@@ -102,6 +102,21 @@ export const CREDIT_PLANS = [
   { usdCents: 1_900, credits: 40_000, url: "https://buy.stripe.com/fZu7sLdSG0r5dO22ABbII08" },
 ] as const;
 export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28r15U4Hl9xMfnnbII00";
+/**
+ * Glyphcall Transcribe Pro (the owner, 15 Nov 2026: "Yes, Transcribe first" and "Yes, build it"): the $9 plan sold under the
+ * transcription name. Its Stripe product and links were made by the direct sales session (prod_VdEGz7ftudKRRG, link
+ * plink_1UbxneDhGrPcm8Sca0Da500q; the $1 pack plink_1UbxngDhGrPcm8SccxeROgvQ). They return to the Glyphcall Voice
+ * transcribe page, which claims the key itself. Same amount and adt_credits as the $9 plan and the $1 pack, so
+ * `verifyCheckout` grants them unchanged. A duplicate "Voice Pro" link made the same morning (plink_1UbyB8…) was
+ * deactivated before any checkout: keep one product under one name.
+ */
+export const VOICE_PRO_URL: string = "https://buy.stripe.com/3cI7sLdSGddRcJYb77bII09";
+export const VOICE_PRO_CREDITS = 15_000;
+/** The $1 pack sold for transcription (1,000 credits). */
+export const VOICE_HOURS_PACK_URL: string = "https://buy.stripe.com/9B6aEX5ma5LpcJYgrrbII0a";
+export const VOICE_HOURS_PACK_CREDITS = 1_000;
+/** The free browser voice tools, whose Pro card takes the key (glyphcall-voice-tools, public/transcribe.js). */
+export const VOICE_TOOLS_URL = "https://glyphcall-voice.pages.dev/";
 export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
 export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
 /** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
