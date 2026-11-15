@@ -1,0 +1,8 @@
+[
+  { "site": "react.dev", "prefix": "react.dev/reference/", "name": "React" },
+  { "site": "developer.mozilla.org", "prefix": "developer.mozilla.org/en-US/docs/Web/API/", "name": "MDN Web Docs" },
+  { "site": "docs.python.org", "prefix": "docs.python.org/3/library/", "name": "Python documentation" },
+  { "site": "nodejs.org", "prefix": "nodejs.org/api/", "name": "Node.js documentation" },
+  { "site": "developers.cloudflare.com", "prefix": "developers.cloudflare.com/workers/", "name": "Cloudflare Workers docs" },
+  { "site": "kubernetes.io", "prefix": "kubernetes.io/docs/concepts/", "name": "Kubernetes documentation" }
+]
