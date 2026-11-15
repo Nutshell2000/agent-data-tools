@@ -46,6 +46,69 @@ const firstText = (v: unknown): string | undefined => {
 };
 const isOn = (v: unknown) => v === true || v === "true" || (!!v && typeof v === "object");
 
+/** Exa's `userLocation`: "SE", or { country, latitude?, longitude? }. Returns the country code, if one was given. */
+export function userCountry(v: unknown): string | undefined {
+  const raw = typeof v === "string" ? v : v && typeof v === "object" ? (v as { country?: unknown }).country : undefined;
+  return typeof raw === "string" && /^[A-Za-z]{2}$/.test(raw.trim()) ? raw.trim().toUpperCase() : undefined;
+}
+
+/** An Exa API warning: a field we accepted that has no effect (`code` IGNORED_FIELD, `path` a JSON Pointer). The SDKs print them. */
+export type ApiWarning = { code: string; path: string; message: string };
+const DEEP_TYPES = new Set(["deep", "deep-lite", "deep-reasoning"]);
+const KNOWN_TYPES = new Set(["auto", "lite", "fast", "instant", "keyword", "neural", "hybrid", ...DEEP_TYPES]);
+
+/**
+ * The warnings Exa itself would give for fields that change nothing here (exa-js 2.28 request types, read 15 Nov 2026).
+ * Fields we apply, or that are already true of every answer (pages are always read live, so `maxAgeHours` >= 0 and
+ * livecrawl always/preferred/fallback/auto hold), get none. `ignored` notes from the inner tool are added by the caller.
+ */
+export function exaWarnings(path: SearchApiPath, body: unknown): ApiWarning[] {
+  if (!body || typeof body !== "object") return [];
+  const b = body as Record<string, unknown>;
+  const c = (b.contents && typeof b.contents === "object" ? b.contents : {}) as Record<string, unknown>;
+  const out: ApiWarning[] = [];
+  const warn = (p: string, message: string) => out.push({ code: "IGNORED_FIELD", path: p, message });
+  const has = (k: string) => b[k] !== undefined && b[k] !== null && b[k] !== "";
+  const isSearch = path === "/v1/search" || path === "/v1/findSimilar";
+  if (isSearch && typeof b.type === "string") {
+    const t = b.type.trim().toLowerCase();
+    if (DEEP_TYPES.has(t)) warn("/type", `type "${t}" runs as a single keyword search here: there is no multi-query deep search. Drop type, or use /v1/answer for a synthesized answer.`);
+    else if (!KNOWN_TYPES.has(t)) warn("/type", `type "${t.slice(0, 30)}" is not a search type; the search ran as auto.`);
+  }
+  if (isSearch) {
+    for (const k of ["outputSchema", "systemPrompt", "objective", "additionalQueries"]) if (has(k)) warn(`/${k}`, `${k} is not applied to /v1/search; for a synthesized answer send the query to /v1/answer (it takes outputSchema).`);
+    if (has("moderation")) warn("/moderation", "moderation is not applied: results are not filtered for safety.");
+    if (has("flags")) warn("/flags", "experimental flags are not applied.");
+    for (const k of ["startCrawlDate", "endCrawlDate"]) if (has(k)) warn(`/${k}`, `${k} is deprecated and not applied; use startPublishedDate / endPublishedDate.`);
+    if (has("useAutoprompt")) warn("/useAutoprompt", "useAutoprompt is no longer supported; remove it.");
+    const loc = b.userLocation;
+    if (loc && typeof loc === "object" && !userCountry(loc) && ((loc as Record<string, unknown>).latitude !== undefined)) warn("/userLocation", "only userLocation.country is applied; coordinates alone do not localize results. Send country.");
+    else if (loc !== undefined && loc !== null && loc !== "" && !userCountry(loc)) warn("/userLocation", "userLocation must be a two-letter country code or { country }; it was not applied.");
+  }
+  const contentsBase = path === "/v1/contents" ? b : c;
+  const cp = path === "/v1/contents" ? "" : "/contents";
+  if (Number(contentsBase.maxAgeHours) === -1) warn(`${cp}/maxAgeHours`, "maxAgeHours -1 (cached content only) is not available: every page is read live.");
+  if (contentsBase.livecrawl === "never") warn(`${cp}/livecrawl`, 'livecrawl "never" is not available: every page is read live.');
+  if (contentsBase.snapshotAsOf) warn(`${cp}/snapshotAsOf`, "snapshotAsOf is not available: pages are read as they are now.");
+  for (const k of ["subpages", "subpageTarget", "extras", "context"]) if (contentsBase[k] !== undefined && contentsBase[k] !== false) warn(`${cp}/${k}`, `${k} is not applied.`);
+  if (path === "/v1/contents") for (const k of ["highlights", "summary"]) if (isOn(b[k])) warn(`/${k}`, `${k} is not returned by /v1/contents here; /v1/search with contents.${k} returns it.`);
+  if (path === "/v1/answer") {
+    if (has("systemPrompt")) warn("/systemPrompt", "systemPrompt is not applied to the answer.");
+    if (b.text === true || b.text === "true") warn("/text", "citations carry no page text; read them with /v1/contents.");
+    if (has("userLocation")) warn("/userLocation", "userLocation is not applied to answers.");
+    if (has("model") && b.model !== "exa") warn("/model", "model is not selectable; the answer model is named in `model`.");
+  }
+  return out;
+}
+
+/** Our inner tools' `ignored` notes ("excludeDomains: …") as Exa warnings; the field name before the colon becomes the path. */
+export function warningsFromIgnored(ignored: string[] | undefined): ApiWarning[] {
+  return (ignored ?? []).map((s) => {
+    const field = /^([A-Za-z]+)[\s:]/.exec(s)?.[1];
+    return { code: "IGNORED_FIELD", path: field ? `/${field}` : "", message: s };
+  });
+}
+
 /**
  * The neural-search request fields we serve (6 Nov 2026), as /search inputs: includeDomains, excludeDomains,
  * start/endPublishedDate, category, includeText, excludeText, and contents.{text, highlights, summary} (also accepted at the
@@ -65,6 +128,8 @@ export function searchFields(b: Record<string, unknown>): { query: Record<string
   const inc = firstText(b.includeText), exc = firstText(b.excludeText);
   if (inc) q.includeText = inc;
   if (exc) q.excludeText = exc;
+  const country = userCountry(b.userLocation);
+  if (country) q.country = country;
   const text = textBudget(contents.text ?? b.text, 3000);
   if (text) q.textChars = String(text);
   const hl = contents.highlights ?? b.highlights;
@@ -236,8 +301,11 @@ export function costDollars(price: string | undefined, keyPrice: string | undefi
  * `choices[0].delta.content` chunks (cut at sentence ends, since our model answers in one piece), then one chunk with
  * the citations and the cost, then `[DONE]`. Before this the SDK got plain JSON and yielded no text at all.
  */
-export function answerStream(answer: { answer: string; citations: unknown[]; costDollars?: unknown; requestId: string }): string {
-  const parts = answer.answer.match(/[^.!?\n]+[.!?]*\s*|\n+/g) ?? (answer.answer ? [answer.answer] : []);
+export function answerStream(answer: { answer: string | Record<string, unknown>; citations: unknown[]; costDollars?: unknown; requestId: string }): string {
+  // A structured answer (outputSchema) streams as its JSON text in one chunk.
+  if (typeof answer.answer !== "string") answer = { ...answer, answer: JSON.stringify(answer.answer) };
+  const text = answer.answer as string;
+  const parts = typeof answer.answer === "string" && text.startsWith("{") ? [text] : text.match(/[^.!?\n]+[.!?]*\s*|\n+/g) ?? (text ? [text] : []);
   const lines = parts.map((p) => `data: ${JSON.stringify({ requestId: answer.requestId, choices: [{ index: 0, delta: { content: p } }] })}\n\n`);
   lines.push(`data: ${JSON.stringify({ requestId: answer.requestId, citations: answer.citations, ...(answer.costDollars ? { costDollars: answer.costDollars } : {}) })}\n\n`);
   lines.push("data: [DONE]\n\n");
@@ -380,11 +448,46 @@ export function toSearchApi(path: SearchApiPath, inner: Record<string, unknown>,
     };
   }
   if (path === "/v1/contents") {
-    const r = inner as { results?: Record<string, unknown>[]; statuses?: unknown[] };
-    return { requestId: requestId(), results: r.results ?? [], statuses: r.statuses ?? [] };
+    const r = inner as { results?: Record<string, unknown>[]; statuses?: Record<string, unknown>[] };
+    // Every page is read live: Exa's statuses say so with source "crawled" (its other value is "cached").
+    return { requestId: requestId(), results: r.results ?? [], statuses: (r.statuses ?? []).map((s) => (s && typeof s === "object" && s.status === "success" && !s.source ? { ...s, source: "crawled" } : s)) };
   }
   const r = inner as { answer?: string; sources?: { n: number; title: string; url: string }[]; terms?: string; model?: string };
   return { requestId: requestId(), answer: r.answer ?? "", citations: (r.sources ?? []).map((s) => ({ id: s.url, url: s.url, title: s.title })), model: r.model, terms: r.terms };
+}
+
+/**
+ * Exa's /answer `outputSchema`: with an object schema the answer becomes an object with the schema's top-level properties
+ * (at most 10, as Exa allows), read by the model out of the answer and its sources; array properties whose items are
+ * objects keep exactly their item keys. A text schema leaves the answer as text. If the model fails, the answer stays text
+ * and a warning says so: the call was paid for the answer, which is there either way.
+ */
+export function schemaFields(schema: unknown): { fields: string[]; lists: Record<string, string[]> } | null {
+  if (!schema || typeof schema !== "object") return null;
+  const s = schema as { type?: unknown; properties?: unknown };
+  if (s.type === "text" || !s.properties || typeof s.properties !== "object") return null;
+  const props = Object.entries(s.properties as Record<string, unknown>).filter(([k]) => /^[A-Za-z_][\w-]{0,63}$/.test(k)).slice(0, 10);
+  if (!props.length) return null;
+  const lists: Record<string, string[]> = {};
+  for (const [k, v] of props) {
+    const items = (v as { type?: unknown; items?: { properties?: unknown } } | null)?.items;
+    if ((v as { type?: unknown } | null)?.type === "array" && items?.properties && typeof items.properties === "object") lists[k] = Object.keys(items.properties).slice(0, 10);
+  }
+  return { fields: props.map(([k]) => k), lists };
+}
+
+async function applyOutputSchema(env: Env, body: Record<string, unknown>, shaped: Record<string, unknown>) {
+  const spec = schemaFields(body?.outputSchema);
+  if (!spec || typeof shaped.answer !== "string" || !shaped.answer) return;
+  const citations = (shaped.citations as { title?: string; url?: string }[] | undefined) ?? [];
+  const source = `Question: ${String(body.query ?? "").slice(0, 400)}\n\nAnswer:\n${shaped.answer}\n\nSources:\n${citations.map((c, i) => `[${i + 1}] ${c.title ?? ""} ${c.url ?? ""}`).join("\n")}`.slice(0, 12_000);
+  try {
+    const { extractFields } = await import("../routes/ai-text");
+    const r = await extractFields(env, source, spec.fields, undefined, 700, spec.lists);
+    shaped.answer = r.data;
+  } catch {
+    shaped.warnings = [{ code: "IGNORED_FIELD", path: "/outputSchema", message: "the structured answer could not be built this time; the answer is text" }];
+  }
 }
 
 /** Handles /v1/search, /v1/findSimilar, /v1/contents and /v1/answer by forwarding the equivalent tool GET through the middleware. */
@@ -405,6 +508,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");
+  const started = Date.now();
   const answer = await forward(new Request(inner.href, { method: "GET", headers }));
   if (answer.status === 402) return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", tool);
   if (answer.status !== 200) return answer;
@@ -412,7 +516,14 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const priced = ENDPOINTS.find((e) => e.path === tool);
   const how = answer.headers.get("x-free-trial-remaining") !== null ? "free" : c.req.header("authorization") || c.req.header("x-api-key") ? "key" : "paid";
   const cost = costDollars(priced?.price, priced ? keyPrice(priced.path, priced.price) : undefined, how);
-  const shaped = { ...toSearchApi(path, result, tool, "error" in mapped ? {} : { text: mapped.text, origin: outer.origin, ignored: mapped.ignored }), ...(cost ? { costDollars: cost } : {}) };
+  const shaped: Record<string, unknown> = { ...toSearchApi(path, result, tool, "error" in mapped ? {} : { text: mapped.text, origin: outer.origin, ignored: mapped.ignored }), ...(cost ? { costDollars: cost } : {}) };
+  if (path === "/v1/answer" && !("error" in mapped)) await applyOutputSchema(c.env, body as Record<string, unknown>, shaped);
+  // Exa's own shape for what had no effect: warnings with a JSON path, beside our older `ignored` notes.
+  const warnings = [...exaWarnings(path, body), ...warningsFromIgnored([...((shaped.ignored as string[] | undefined) ?? []), ...((result.ignored as string[] | undefined) ?? [])]), ...((shaped.warnings as ApiWarning[] | undefined) ?? [])];
+  const seen = new Set<string>();
+  const unique = warnings.filter((w) => { const k = `${w.path}|${w.message}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  if (unique.length) shaped.warnings = unique; else delete shaped.warnings;
+  if (path === "/v1/search" || path === "/v1/findSimilar") shaped.searchTime = Date.now() - started;
   const out = stream
     ? new Response(answerStream(shaped as Parameters<typeof answerStream>[0]), { status: 200, headers: { "Content-Type": "text/event-stream; charset=utf-8" } })
     : c.json(shaped, 200);
