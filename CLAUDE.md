@@ -2021,3 +2021,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - src/routes/gb-dk-registers.ts: `keyedSearchers(env)` adds GB (Companies House search, Basic auth key) and DK (CVR Elasticsearch at distribution.virk.dk, Basic auth user/password) only when their secrets exist; `companySearch(..., { env })`. Field paths were written from the public API docs and are tested on recorded shapes only: run one live search after setting each secret (`/company/search?q=Tesco&country=GB`, `q=Novo Nordisk&country=DK`).
 
+
+
+## Voice fronts in the Bazaar seeding script (1.202.0, 15 Nov 2026)
+
+- `FRONTS` (scripts/seed-bazaar.mjs) lists the three voice fronts. The ElevenLabs text-to-speech front is listed under the voice ID `21m00Tcm4TlvDq8ikWAM`, because a front's listing is written from its quote's resource, and that resource is the URL path including the voice ID. tests/voice-fronts-seed.test.cjs checks that each example is quoted under its own path. Why: Mercator (measured 15 Nov) ranks only Bazaar-imported listings in our band, and we were absent for "elevenlabs".
+
