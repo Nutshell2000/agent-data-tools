@@ -259,6 +259,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/fr/company": "Company, compliance and checks",
   "/company/search": "Company, compliance and checks",
   "/pack/kyb-eu": "Company, compliance and checks", // 1.197.0
+  "/payee/check": "Company, compliance and checks", // payee records
   "/law/search": "Company, compliance and checks",
   "/cz/company": "Company, compliance and checks", "/ee/company": "Company, compliance and checks",
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",

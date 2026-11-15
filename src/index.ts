@@ -67,6 +67,9 @@ import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
 import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
 import { paycheckDeclaration } from "./lib/payout-wallets";
+import { CLAIM_COOLDOWN_MIN, DECLARATION_PATH, KEYS_PATH, attest, ISSUER, ownDeclaration, payeeDeps, payeeDomain, publicKeys, readRecord, registry, storeRecord, verifyPayee } from "./routes/payee";
+import { payeeLandingPage, payeeRecordPage } from "./lib/payee-pages";
+import { takeDailyBudget } from "./lib/daily-cap";
 /** Query parameters that steer the call and are not tool input. */
 const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key", "x402"]);
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
@@ -851,6 +854,48 @@ app.get("/p/:id", async (c) => {
 });
 app.get("/.well-known/ai-plugin.json", (c) => c.json(aiPluginManifest(origin(c.req.url))));
 app.get("/llms-full.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+
+// Verified payee records (2027 flagship, Phase 0; routes/payee.ts). The free side: a seller claims a record, people and
+// agents read it. Agents' pre-payment check is the paid tool /payee/check (registered with the tools above).
+app.get(DECLARATION_PATH, (c) => c.json(ownDeclaration(c.env, origin(c.req.url)), 200, { "Cache-Control": "public, max-age=3600" }));
+app.get(KEYS_PATH, async (c) => c.json(await publicKeys(c.env), 200, { "Cache-Control": "public, max-age=3600" }));
+app.get("/payee", (c) => c.html(payeeLandingPage(origin(c.req.url)), 200, { "Cache-Control": "public, max-age=3600" }));
+app.get("/payee/registry", async (c) => c.json({ records: await registry(c.env), record: `${origin(c.req.url)}/payee/<domain>`, claim: `${origin(c.req.url)}/payee/claim?domain=<domain>` }, 200, { "Cache-Control": "public, max-age=300" }));
+app.get("/payee/lookup", (c) => {
+  try { return c.redirect(`/payee/${payeeDomain(c.req.query("domain"))}`, 303); } catch { return c.redirect("/payee", 303); }
+});
+app.get("/payee/claim", async (c) => {
+  const o = origin(c.req.url);
+  const domain = payeeDomain(c.req.query("domain"));
+  const stored = await readRecord(c.env, domain);
+  const recent = !!stored && Date.now() - Date.parse(stored.verifiedAt) < CLAIM_COOLDOWN_MIN * 60_000;
+  let record = stored;
+  if (!recent) {
+    await takeDailyBudget(c.env, "payee-claim", c.env.PAYEE_CLAIM_DAILY_CAP, 300, "payee verification");
+    record = await verifyPayee(domain, payeeDeps(c.env));
+    if (record.status !== "none") await storeRecord(c.env, record);
+  }
+  const attestation = record && record.status !== "none" ? await attest(record, c.env, ISSUER) : null;
+  if (isBrowser(c.req.header("accept"), c.req.header("user-agent"))) return c.html(payeeRecordPage(o, record!, attestation), 200, { "Cache-Control": "no-store" });
+  return c.json({ record, attestation, cached: recent, page: `${o}/payee/${domain}`, free: true, note: recent ? `Checked less than ${CLAIM_COOLDOWN_MIN} minutes ago; this is the stored record.` : "Checked now. Records are kept only when the domain serves a declaration." }, 200, { "Cache-Control": "no-store" });
+});
+app.get("/payee/:domain", async (c) => {
+  const raw = c.req.param("domain");
+  if (!raw.includes(".")) return c.notFound();
+  const o = origin(c.req.url);
+  let domain: string;
+  try { domain = payeeDomain(raw); } catch { return c.notFound(); }
+  const record = await readRecord(c.env, domain);
+  const html = isBrowser(c.req.header("accept"), c.req.header("user-agent"));
+  if (!record) {
+    const claim = `${o}/payee/claim?domain=${encodeURIComponent(domain)}`;
+    return html
+      ? c.html(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex><title>No payee record for ${domain}</title><body style="font:16px/1.5 system-ui;max-width:640px;margin:40px auto;padding:0 16px"><h1>No record for ${domain} yet</h1><p>The business can publish ${DECLARATION_PATH} and <a href="${claim}">claim its record</a>. <a href="${o}/payee">How it works</a>.</p>`, 404)
+      : c.json({ error: `no payee record for ${domain}`, claim, howTo: `${o}/payee` }, 404);
+  }
+  const attestation = await attest(record, c.env, ISSUER);
+  return html ? c.html(payeeRecordPage(o, record, attestation), 200, { "Cache-Control": "public, max-age=300" }) : c.json({ record, attestation }, 200, { "Cache-Control": "public, max-age=300" });
+});
 
 // The free tool finder (1.110.0): which of our tools does a job, in plain words. Word matching only (no model), so it
 // costs nothing to answer; /recommend is the paid version with a reranker. Before this an agent that had just bought one

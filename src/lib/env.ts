@@ -91,6 +91,10 @@ export interface Env {
    */
   FREE_KEYS?: string;
   FREE_KEY_FROM?: string;
+  /** Payee records (routes/payee.ts): Ed25519 private JWK that signs attestations (secret; unset = unsigned). */
+  PAYEE_SIGNING_KEY?: string;
+  /** Free payee claims per UTC day (default 300); each reads four outside sources. */
+  PAYEE_CLAIM_DAILY_CAP?: string;
   EMAIL?: { send(message: { to: string; from: string; subject: string; text: string; html?: string }): Promise<{ messageId: string }> };
   // EU law search index (routes/law-search.ts): passages and their full-text index in D1 (EU jurisdiction), their
   // bge-m3 vectors in Vectorize. Built by scripts/law-index/build.mjs. Optional: without them /law/search answers 503.
