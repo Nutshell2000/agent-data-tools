@@ -6,6 +6,8 @@
  * Source: DefiLlama's public stablecoins API (stablecoins.llama.fi, keyless). Its terms restrict resale; using such sources
  * is the owner's decision of 5 Nov 2026, with the risk hers (an IP block or a takedown request). Kept 10 minutes as plain
  * module data, never a shared promise.
+ * 15 Nov 2026: named for the job as 0xe629 searches it ("stablecoin charts by chain": an 8-payer listing at $0.005 led and
+ * we were #2 with the same data) and priced like it, $0.005 (tool prices are delegated to me by the owner, 14 Nov).
  */
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
@@ -69,9 +71,9 @@ export function chartView(points: Point[], days: number) {
 }
 
 export const STABLECOIN_CHARTS: Entry[] = [
-  entry("/stablecoin/charts", "Stablecoin charts: supply by chain",
-    "Stablecoin charts from DefiLlama: the total stablecoin supply in US dollars on one blockchain (Base, Ethereum, Solana, Tron, Arbitrum…) or on all chains together, day by day for up to 365 days, with the latest figure and its 1, 7 and 30-day change. Without a chain, also the ten largest chains by supply. Use to track stablecoin inflows to a chain, chart liquidity growth, or compare ecosystems.",
-    ["stablecoin-charts", "stablecoin-supply", "defillama", "stablecoins", "chain-liquidity", "defi"], {
+  entry("/stablecoin/charts", "Stablecoin charts by chain: supply and market cap history",
+    "Stablecoin charts by chain from DefiLlama: the stablecoin market cap (circulating supply) in US dollars on one blockchain (Base, Ethereum, Solana, Tron, Arbitrum…) or on all chains together, day by day for up to 365 days, with the latest figure and its 1, 7 and 30-day change. Without a chain, also the ten largest chains by supply. Use to track stablecoin inflows to a chain, chart liquidity growth, or compare ecosystems.",
+    ["stablecoin-charts", "stablecoin-mcap", "defillama", "stablecoin-supply", "chain-liquidity", "stablecoins", "defi"], {
       chain: { type: "string", description: "Blockchain by name, e.g. Base, Ethereum, Solana, Tron; leave out for all chains together", example: "Base" },
       days: { type: "integer", description: "Days of daily history to return, 1-365 (default 30)", example: 2 },
     },
@@ -95,5 +97,5 @@ export const STABLECOIN_CHARTS: Entry[] = [
       }
       const points = await llama<Point[]>("https://stablecoins.llama.fi/stablecoincharts/all");
       return { chain: "all", ...chartView(points, days), topChains: chains.slice(0, 10), source: SOURCE };
-    }),
+    }, "$0.005"),
 ];
