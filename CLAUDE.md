@@ -2000,3 +2000,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - /stablecoin/charts is named "Stablecoin charts by chain" and priced $0.005 (tests/families.test.cjs pins it): agent 0xe629 buys the #1 Bazaar result for that phrase, an 8-payer x402atlas listing at $0.005. The Bazaar takes the new name and price with the tool's next settlement.
 
+
+
+## Voice-only MCP server; voice fronts in /openapi.json (1.199.0, 15 Nov 2026)
+
+- Owner, 15 Nov 2026: "We gotta start selling more voice calls!" There were about 20 voice calls in 7 days, all through the big catalog. `FOCUSED_SERVERS.voice` (src/discovery.ts) puts the six voice tools on `/mcp/voice`, with registry entry `agent-data-tools-voice`. CHECK the tag, then `/v0/servers?search=agent-data-tools-voice` and the Glama connector page, before saying it is listed.
+- `src/lib/voice-fronts-openapi.ts` holds the fronts' descriptions (`VOICE_FRONT_DESCRIPTIONS`, re-exported by voice-fronts.ts), the name and tags their quotes carry (`VOICE_FRONT_META`), and `voiceFrontsOpenApiPaths()`. The three paths had been missing from /openapi.json since 1.188.0.
+- `asFrontQuote(answer, outer, description, toolPath, meta?)`: an optional `FrontMeta` sets `serviceName` and `tags` in the quote's resource. The Bazaar extension is never rewritten (`extension_echo_mismatch`).
+- Naming rule, agreed with the voice operations session on 15 Nov: "ElevenLabs-compatible API" comes after the task words. Never a name starting "ElevenLabs text to speech", never a bare `elevenlabs` tag, and no path named after ElevenLabs. The voices are Deepgram Aura; real ElevenLabs resale is the owner's decision D1. tests/voice-discovery.test.cjs pins this.
+
