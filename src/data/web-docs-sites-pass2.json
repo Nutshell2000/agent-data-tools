@@ -1,0 +1,12 @@
+[
+  { "site": "developer.mozilla.org-api", "prefix": "developer.mozilla.org/en-US/docs/Web/API/", "name": "MDN Web Docs" },
+  { "site": "developer.mozilla.org-js", "prefix": "developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/", "name": "MDN Web Docs" },
+  { "site": "developer.mozilla.org-css", "prefix": "developer.mozilla.org/en-US/docs/Web/CSS/", "name": "MDN Web Docs" },
+  { "site": "developer.mozilla.org-html", "prefix": "developer.mozilla.org/en-US/docs/Web/HTML/", "name": "MDN Web Docs" },
+  { "site": "developer.mozilla.org-http", "prefix": "developer.mozilla.org/en-US/docs/Web/HTTP/", "name": "MDN Web Docs" },
+  { "site": "docs.python.org-library", "prefix": "docs.python.org/3/library/", "name": "Python" },
+  { "site": "docs.python.org-tutorial", "prefix": "docs.python.org/3/tutorial/", "name": "Python" },
+  { "site": "docs.python.org-reference", "prefix": "docs.python.org/3/reference/", "name": "Python" },
+  { "site": "docs.python.org-howto", "prefix": "docs.python.org/3/howto/", "name": "Python" },
+  { "site": "nodejs.org-api", "prefix": "nodejs.org/api/", "name": "Node.js" }
+]
