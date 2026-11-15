@@ -13,7 +13,8 @@
 import { entry, need, type Entry, type Input } from "../family";
 import type { Env } from "../lib/env";
 import { EXTRACT_OUTPUT_EXAMPLE } from "../lib/extract-example";
-import { generateImage } from "./ai";
+import { generateImage, transcribe } from "./ai";
+import { FILE_REF_INPUT } from "../lib/file-input";
 import { AI_TEXT } from "./ai-text";
 import { CHAIN_READS } from "./chain-reads";
 import { extract } from "./extract";
@@ -175,6 +176,15 @@ const CORE_TIME = core("/time", "$0.01", {
 }, (_env, q) => timeInZone(q("zone"), q("at"), q("to")));const NEWS = from(SEARCH, "/news");
 /** /crypto/news: the news tool with a default topic and the past day as the default window. */
 export const cryptoNewsInput = (q: Input): Input => (name) => (name === "q" ? (q("q")?.trim() || "cryptocurrency") : name === "freshness" ? (q("freshness")?.trim() || "day") : q(name));
+
+// /transcribe is a core tool; its inputs and example are repeated here (see `core`).
+const CORE_TRANSCRIBE = core("/transcribe", "$0.01", {
+  url: { type: "string", description: "Absolute http(s) URL of an audio file (max 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg" },
+  subtitles: { type: "string", description: "srt or vtt: also return subtitle text", example: "srt" },
+  timestamps: { type: "string", description: "true: also return timed segments and words", example: "true" },
+  language: { type: "string", description: "Spoken language code such as en, sv or de (default: detected)", example: "en" },
+}, { url: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg", text: "Hello!", language: "en", durationSeconds: 0.487625, wordCount: 1, model: "@cf/openai/whisper-large-v3-turbo" },
+(env, q) => transcribe(env, q("url"), q(FILE_REF_INPUT), q("subtitles"), q("timestamps"), q("language")));
 
 export const ENTRY_PATHS: Entry[] = [
   door("/weather/forecast", "Weather forecast by city: current weather and hourly forecast for any city or coordinates",
@@ -535,6 +545,13 @@ export const ENTRY_PATHS: Entry[] = [
     ["minimax-pricing", "minimax-api-prices", "minimax-token-cost", "llm-pricing", "model-prices", "ai-model-cost"], from(LLM_PRICES, "/llm/prices"),
     async (env, q) => from(LLM_PRICES, "/llm/prices").run(env, providerInput("minimax")(q)), providerParams("minimax", "minimax"),
     { count: 1, matched: 5, sort: "input", models: [{ id: "minimax/minimax-m3.1-flash", name: "MiniMax: MiniMax M3.1 Flash", provider: "minimax", contextLength: 1048576, maxOutputTokens: 524288, inputPerMillionUsd: 0.15, outputPerMillionUsd: 0.6, free: false, inputs: ["text", "image", "video"], outputs: ["text"] }], source: "OpenRouter public model list (openrouter.ai/api/v1/models)", asOf: "2026-11-14T13:00:00.000Z" }),
+
+  // Round 12 (15 Nov 2026, voice sales pass): Zero's "Transcribe audio" intent (top query "transcribe audio", 20 agents
+  // and 42 searches in 90 days, 38 members) holds none of ours, and Zero writes a record once per URL, so /transcribe keeps
+  // its first-crawl record. A door named with the bare query gets a fresh one. Uploads work as on /transcribe.
+  door("/audio/transcribe", "Transcribe audio: speech to text with Whisper",
+    "Transcribe audio to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments and words. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meeting and podcast clips, call recordings and subtitles.",
+    ["transcribe-audio", "speech-to-text", "audio-transcription", "whisper", "transcription", "audio"], CORE_TRANSCRIBE),
 
   // Round 10 (14 Nov 2026): one coin, named. The returning agent 0xe629 buys the listing that is first in the Bazaar
   // search for its job: ours for "describe image" and "bitcoin price", another seller's "Solana Token Price" 24 times in

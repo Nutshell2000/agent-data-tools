@@ -23,3 +23,4 @@ export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_F
 for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summary"]) CAPACITY_LIMITED.add(p);
 // Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): Nova-3 diarization and M2M100 subtitle translation: paid only.
 for (const p of ["/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent"]) CAPACITY_LIMITED.add(p);
+CAPACITY_LIMITED.add("/audio/transcribe"); // 15 Nov 2026: the door to /transcribe
