@@ -54,7 +54,13 @@ for (const [slug, title] of Object.entries(MCP_BUNDLES)) {
 // Hand-picked product servers (FOCUSED_SERVERS) and the compact server: small, single-purpose entries, which is what
 // Glama's connector scores and searches reward (14 Nov 2026).
 const extra = [
-  ...Object.entries(FOCUSED_SERVERS).map(([slug, f]) => ({ slug, title: f.title, description: `${focusedServerTools(slug).length} tools: ${f.registry}.` })),
+  // 15 Nov 2026: the voice server's "6 tools: …" ran to 101 characters and failed every publish (1.199.0, 1.201.0), so the
+  // registry missed whole releases. A product line that does not fit drops its tool count instead of stopping the run;
+  // tests/registry-manifests.test.cjs runs this script in CI so it cannot fail silently again.
+  ...Object.entries(FOCUSED_SERVERS).map(([slug, f]) => {
+    const counted = `${focusedServerTools(slug).length} tools: ${f.registry}.`;
+    return { slug, title: f.title, description: counted.length <= 100 ? counted : `${f.registry}.` };
+  }),
   { slug: "compact", title: "Compact (find, describe, run)", description: `3 tools that find, describe and run ${ENDPOINTS.length} data tools: prices, chain, web, PDF. 25 free calls.` },
 ];
 for (const { slug, title, description } of extra) {
