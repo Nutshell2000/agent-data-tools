@@ -38,6 +38,8 @@ export interface Product {
   guides: readonly string[];
   /** The main tool also takes the file itself in a POST body (lib/pdf-upload.ts). */
   upload?: boolean;
+  /** The upload block's example for a product whose files are not PDFs (15 Nov 2026: the speech page showed the PDF one). */
+  uploadExample?: { file: string; fields: string; contentType: string; limits: string };
   /** Further pages of the product: path and link text. */
   more?: readonly (readonly [string, string])[];
 }
@@ -273,8 +275,9 @@ export const PRODUCTS: readonly Product[] = [
     name: "Speech to text API",
     tagline: "Send an audio file, get the transcript, subtitles (SRT or VTT) and word timings back. Up to an hour of audio for $0.05; OpenAI- and ElevenLabs-compatible.",
     upload: true,
+    uploadExample: { file: "meeting.mp3", fields: ' -F "subtitles=srt"', contentType: "audio/mpeg", limits: "Up to 5 MB in any common audio or video format here; up to 60 minutes of MP3 or WAV (25 MB) with /transcribe/long ($0.05), and a summary with action items with /transcribe/summary ($0.05)." },
     tool: "/transcribe",
-    also: ["/transcribe/long", "/ai/summarize-text", "/ai/translate"],
+    also: ["/transcribe/long", "/transcribe/summary", "/ai/summarize-text", "/ai/translate"],
     points: [
       "Whisper large-v3-turbo in 90+ languages, language detected or named",
       "Subtitles as SRT or WebVTT, and timed segments and words, in the same call",
@@ -433,8 +436,7 @@ ${tryIt ? `<a class="btn${freeKey ? "" : " primary"}" href="#try">${esc(tryLabel
 <h3>Node.js</h3>
 <pre><code>${esc(s.node)}</code></pre>
 ${p.upload ? `<h3>Send a file instead of a URL</h3>
-<pre><code>${esc(`curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@report.pdf" -F "pages=5" \\\n  "${origin}${e.path}"`)}</code></pre>
-<p class="small">Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB. The file is read in memory for this one request and not stored.</p>` : ""}
+${uploadBlock(p, origin, e.path)}` : ""}
 <h2>The answer</h2>
 <pre><code>${esc(shown)}</code></pre>
 ${tryIt ? `<div id="try">${p.upload ? `<form class="try" method="post" action="${esc(e.path)}?trial=1" enctype="multipart/form-data">
@@ -466,4 +468,11 @@ ${guides.length || p.more?.length ? `<h2>Guides</h2><ul>${(p.more ?? []).map(([h
 <p>The same tool is on the MCP server <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free), and an agent with a wallet can pay per call in USDC: the tool URL answers <code>402 Payment Required</code> with x402 and MPP terms. Reference: <a href="/tools/${esc(toolSlug(e.path))}">tool page</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/llms.txt">docs for agents</a>.</p>
 <footer>${PRODUCTS.filter((o) => o !== p).map((o) => `<a href="/${esc(o.slug)}">${esc(o.name)}</a>`).join(" · ")} · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
+}
+
+/** The "send a file instead of a URL" block: the product's own example, or the PDF one the upload tools started with. */
+export function uploadBlock(p: Product, origin: string, path: string): string {
+  const x = p.uploadExample ?? { file: "report.pdf", fields: ' -F "pages=5"', contentType: "application/pdf", limits: "Up to 10 MB." };
+  return `<pre><code>${esc(`curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@${x.file}"${x.fields} \\\n  "${origin}${path}"`)}</code></pre>
+<p class="small">Or the raw file as the body: <code>--data-binary @${esc(x.file)} -H "Content-Type: ${esc(x.contentType)}"</code>. ${esc(x.limits)} The file is read in memory for this one request and not stored.</p>`;
 }
