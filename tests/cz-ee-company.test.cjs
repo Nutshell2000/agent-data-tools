@@ -117,6 +117,6 @@ test("Czech and Estonian legal forms are set aside when names are compared", asy
   assert.equal(V.coreName("J. Smith Holding"), "j smith holding", "a single initial before a word is not a legal form");
 });
 
-test("the default searcher set holds all six registers", () => {
-  assert.deepEqual([...S.SEARCH_REGISTERS], ["FR", "SE", "NO", "FI", "CZ", "EE"]);
+test("the searchable registers: six keyless, plus GB and DK where their secrets are set (15 Nov 2026)", () => {
+  assert.deepEqual([...S.SEARCH_REGISTERS], ["FR", "SE", "NO", "FI", "CZ", "EE", "GB", "DK"]);
 });

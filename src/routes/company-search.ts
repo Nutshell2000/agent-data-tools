@@ -19,9 +19,12 @@ import { countryCode } from "../lib/country-code";
 import { NAME_REGISTERS, SEARCHERS, coreName } from "./company-verify";
 import { leiView } from "./registries";
 import { CZ_EE_SEARCHERS } from "./cz-ee-company";
+import { keyedSearchers } from "./gb-dk-registers";
+import type { Env } from "../lib/env";
 
 /** Registers a name search reaches: the four of /company/verify plus Czechia (ARES) and Estonia (e-Business Register). */
-export const SEARCH_REGISTERS = [...NAME_REGISTERS, "CZ", "EE"] as const;
+// GB and DK (15 Nov 2026) are searched only where their credentials are set (gb-dk-registers.ts); elsewhere through GLEIF.
+export const SEARCH_REGISTERS = [...NAME_REGISTERS, "CZ", "EE", "GB", "DK"] as const;
 export type SearchRegister = (typeof SEARCH_REGISTERS)[number];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySearcher = { search: (name: string, limit: number) => Promise<{ matches: any[] }>; idType: string; id: (m: any) => string | undefined; source: string };
@@ -36,8 +39,10 @@ const PAGES: Record<SearchRegister, (id: string) => string | null> = {
   FI: (id) => `https://tietopalvelu.ytj.fi/yritys/${id}`,
   CZ: (id) => `https://ares.gov.cz/ekonomicke-subjekty?ico=${id}`,
   EE: (id) => `https://ariregister.rik.ee/est/company/${id}`,
+  GB: (id) => `https://find-and-update.company-information.service.gov.uk/company/${id}`,
+  DK: (id) => `https://datacvr.virk.dk/enhed/virksomhed/${id}`,
 };
-const DETAIL: Record<SearchRegister, string> = { FR: "/fr/company?siren=", SE: "/se/company?orgnr=", NO: "/no/company?orgnr=", FI: "/fi/company?businessId=", CZ: "/cz/company?ico=", EE: "/ee/company?regCode=" };
+const DETAIL: Partial<Record<SearchRegister, string>> = { FR: "/fr/company?siren=", SE: "/se/company?orgnr=", NO: "/no/company?orgnr=", FI: "/fi/company?businessId=", CZ: "/cz/company?ico=", EE: "/ee/company?regCode=" };
 
 export interface CompanyHit {
   name: string;
@@ -102,10 +107,12 @@ export const isForeignBranch = (h: Pick<CompanyHit, "country" | "legalForm">) =>
   || (h.country === "NO" && /utenlandsk foretak/i.test(h.legalForm ?? ""))
   || (h.country === "FR" && h.legalForm === "3220")
   || (h.country === "CZ" && /^Zahraniční osoba/.test(h.legalForm ?? ""))
-  || (h.country === "EE" && /filiaal/i.test(h.legalForm ?? ""));
+  || (h.country === "EE" && /filiaal/i.test(h.legalForm ?? ""))
+  || (h.country === "GB" && /^Overseas company/.test(h.legalForm ?? ""))
+  || (h.country === "DK" && /filial/i.test(h.legalForm ?? ""));
 
-export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: Searchers; lei?: LeiSearch; parent?: ParentRead; now?: () => Date } = {}) {
-  const searchers = deps.searchers ?? ALL_SEARCHERS;
+export async function companySearch(name: string, countries: string[] | null, limit: number, deps: { searchers?: Searchers; lei?: LeiSearch; parent?: ParentRead; now?: () => Date; env?: Env } = {}) {
+  const searchers: Searchers = deps.searchers ?? { ...ALL_SEARCHERS, ...(keyedSearchers(deps.env) as Searchers) };
   const lei = deps.lei ?? leiSearch;
   const want = coreName(name);
   if (want.replace(/\s/g, "").length < 2) throw new HttpError(400, "q needs at least two letters or digits besides the legal form");
@@ -130,8 +137,8 @@ export async function companySearch(name: string, countries: string[] | null, li
         const extra = m as { bankrupt?: boolean };
         return {
           name: m.name, country: c, idType: s.idType, id, legalForm: m.legalForm ?? null, city: m.city ?? null,
-          exact: sameName(coreName(m.name), want), url: PAGES[c](id), details: `${DETAIL[c]}${encodeURIComponent(id)}`, lei: null, source: s.source,
-          ...(extra.bankrupt ? { status: "bankrupt" } : {}),
+          exact: sameName(coreName(m.name), want), url: PAGES[c](id), details: DETAIL[c] ? `${DETAIL[c]}${encodeURIComponent(id)}` : null, lei: null, source: s.source,
+          ...(extra.bankrupt ? { status: "bankrupt" } : (m as { status?: string | null }).status ? { status: String((m as { status?: string }).status).toLowerCase() } : {}),
         } satisfies CompanyHit;
       }).filter((h): h is NonNullable<typeof h> => h !== null);
     } catch (e) {
@@ -257,10 +264,10 @@ export const COMPANY_SEARCH: Entry[] = [
       searched: ["LEI", "NO", "SE", "EE", "FR", "CZ", "FI"], complete: true, retrievedAt: "2026-11-14T14:52:10.000Z",
       note: "Official register facts only: a registered entity with that name exists; this is not a credit view. Sole traders are not covered. Countries without a register here are searched through GLEIF, which lists only entities that hold an LEI.",
     },
-    async (_env, q) => {
+    async (env, q) => {
       const name = need(q, "q", 200);
       const countries = countriesOf(opt(q, "country", 200));
       const limit = num(q, "limit", { min: 1, max: 20, fallback: 10, integer: true });
-      return companySearch(name, countries, limit);
+      return companySearch(name, countries, limit, { env });
     }),
 ];
