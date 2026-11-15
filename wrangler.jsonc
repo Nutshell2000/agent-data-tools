@@ -69,7 +69,8 @@
     // retired host answer 301 to the same path here (src/lib/public-site.ts movedPageUrl). Never list the workers.dev
     // origin as retired: it is the paid origin every listing and wallet history points at.
     "PUBLIC_SITE_ORIGIN": "https://glyphcall.com",
-    "RETIRED_PUBLIC_HOSTS": "tools.funwords.eu",
+    // www.glyphcall.com is listed too (15 Nov 2026): its pages answer 301 to the apex, the one canonical home.
+    "RETIRED_PUBLIC_HOSTS": "tools.funwords.eu,www.glyphcall.com",
     // The name on the pages for people (src/lib/public-brand.ts); agent surfaces keep the service name.
     "PUBLIC_BRAND": "Glyphcall",
     // Keyless facilitator. For the Coinbase Bazaar set this to
