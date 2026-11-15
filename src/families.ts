@@ -110,6 +110,9 @@ const LOCAL_FAMILIES: Entry[][] = [UTILS, CALC, EVM_TOOLS, BIC, MATH_DATE, GENER
 // other releases add pushes around (after LOCAL_TEST_PRICE, before FAMILIES), so parallel releases do not collide.
 import { VOICE } from "./routes/voice";
 CATALOG.push(...VOICE);
+// Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): speaker labels and subtitle translation.
+import { VOICE_PLUS } from "./routes/voice-plus";
+CATALOG.push(...VOICE_PLUS);
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
   "/yaml/to-json", "/json/to-yaml", "/phone/validate", "/geo/distance", "/useragent/parse", "/text/language", "/keccak",

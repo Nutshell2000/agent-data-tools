@@ -1,5 +1,5 @@
 {
-  "version": "1.203.3",
+  "version": "1.204.0",
   "tools": [
     {
       "name": "extract",
@@ -22090,6 +22090,165 @@
         ]
       },
       "price": "$0.04"
+    },
+    {
+      "name": "voice_agent",
+      "description": "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken as MP3 (Aura-2, English or Spanish) and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers. Example: text=What time do you open on Saturday?. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The user's turn as text (or send audio with url or a POSTed file)"
+          },
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the user's spoken turn (MP3/WAV up to 2 minutes, other formats up to 1 MB); or POST the file; or send text instead"
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Who the assistant is and what it knows (up to 2,000 characters)"
+          },
+          "history": {
+            "type": "string",
+            "description": "Earlier turns as a JSON array of {role, content}, as returned in history by the last call"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Reply language and voice: en or es (default en)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Aura-2 voice for the reply (default luna for en, aquila for es)"
+          }
+        }
+      },
+      "price": "$0.05"
+    },
+    {
+      "name": "dub",
+      "description": "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again as one MP3 in English or Spanish (Aura-2, pick a voice), with translated SRT on the original timings. MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload; up to 2,500 characters of new speech. The voice keeps the original order, not exact timing. Use for course clips, product videos and social posts in a second language. Example: url=https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3, to=es. Price $0.10/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the recording (MP3/WAV up to 10 minutes; M4A, OGG or WebM up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)"
+          },
+          "to": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language of the new voice: en or es"
+          },
+          "from": {
+            "type": "string",
+            "description": "Spoken language of the recording (default: detected)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Aura-2 voice for the new track (default luna for en, aquila for es)"
+          }
+        },
+        "required": [
+          "url",
+          "to"
+        ]
+      },
+      "price": "$0.10"
+    },
+    {
+      "name": "transcribe_speakers",
+      "description": "Transcribe a meeting, interview, call or podcast with speaker labels: each turn says which speaker talked, with start and end times (Deepgram Nova-3). MP3/WAV up to 15 minutes, other formats up to 2 MB, by URL or upload. Optional redaction of personal data (pii), card numbers (pci) or numbers, and subtitles with the speaker in each line. Use for meeting minutes, interview transcripts, call reviews and podcast show notes. Example: url=https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3. Price $0.10/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the recording (MP3/WAV up to 15 minutes; M4A, OGG, WebM or FLAC up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)"
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language code such as en, es, de or fr (default: detected)"
+          },
+          "redact": {
+            "type": "string",
+            "description": "pii (names, addresses, phone numbers and other personal data), pci (card numbers) or numbers: replaced in the transcript"
+          },
+          "subtitles": {
+            "type": "string",
+            "description": "srt or vtt: also return subtitles, each line starting with its speaker"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.10"
+    },
+    {
+      "name": "subtitles_translate",
+      "description": "Translate an SRT or WebVTT subtitle file into another language cue by cue, keeping every timing and the file format, so the result drops straight into a video player or editor. Up to 400 cues (40,000 characters) as text or by URL; the source language is detected unless given. Meta M2M100 translation, 100 languages. Use to subtitle videos, courses and podcasts in more languages; pair with transcribe_long, which writes the first SRT. Price $0.02/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "subtitles": {
+            "type": "string",
+            "description": "The SRT or VTT text (or give url)"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target language code such as sv, de, es, fr or ja"
+          },
+          "from": {
+            "type": "string",
+            "description": "Source language code (default: detected from the text)"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL of an .srt or .vtt file, instead of subtitles"
+          }
+        },
+        "required": [
+          "subtitles",
+          "to"
+        ]
+      },
+      "price": "$0.02"
     },
     {
       "name": "einvoice_create",
