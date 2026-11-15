@@ -203,8 +203,8 @@ export const VOICE_PLUS: Entry[] = [
   entry(VOICE_AGENT_PATH, "Voice agent: spoken question in, spoken answer out, with memory",
     "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken as MP3 (Aura-2, English or Spanish) and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
     ["voice-agent", "voice-assistant", "conversational-ai", "speech-to-text", "text-to-speech", "voice-bot", "audio"], {
+      text: { type: "string", description: "The user's turn as text (or send audio with url or a POSTed file)", example: "What time do you open on Saturday?" },
       url: { type: "string", description: "Absolute http(s) URL of the user's spoken turn (MP3/WAV up to 2 minutes, other formats up to 1 MB); or POST the file; or send text instead", example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
-      text: { type: "string", description: "The user's turn as text, instead of audio", example: "What time do you open on Saturday?" },
       instructions: { type: "string", description: "Who the assistant is and what it knows (up to 2,000 characters)", example: "You answer for a bakery. Open Monday to Saturday 7 to 17, closed Sunday." },
       history: { type: "string", description: "Earlier turns as a JSON array of {role, content}, as returned in history by the last call", example: "[]" },
       lang: { type: "string", description: "Reply language and voice: en or es (default en)", example: "en", enum: ["en", "es"] },
