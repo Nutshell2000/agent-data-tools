@@ -78,7 +78,7 @@ export const CHATGPT_WORDING: Readonly<Record<string, ReadonlyArray<readonly [st
   "/price/token": [[" Use to value a token or check a quote before a swap or payment.", " Use to value a token."]],
   "/price/tokens": [[" in one paid call", " in one call"]],
   "/wallet/portfolio": [[" before trading, lending or paying", ""]],
-  "/sanctions/check": [[" before you pay it or accept funds", ""], [" Use before paying; with wallet risk: check_counterparty.", ""]],
+  "/sanctions/check": [[" before you pay it", ""], [" Use before paying; with wallet risk: check_counterparty.", ""]],
   "/agent-readiness": [[", A2A agent card and x402 payment discovery", " and A2A agent card"]],
   "/qr": [["a link, Wi-Fi string or payment request", "a link or a Wi-Fi string"]],
   "/github/search": [["e.g. x402 payments", "e.g. vector database"], ["q=x402 payments", "q=vector database"]],
