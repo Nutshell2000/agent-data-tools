@@ -16,6 +16,10 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/transcribe": 5 * 1024 * 1024,
   "/transcribe/long": 25 * 1024 * 1024,
   "/transcribe/summary": 25 * 1024 * 1024, // 1.195.0: uploads (the Obsidian plugin and the voice pages send files)
+  // 1.204.0: speaker labels, dubbing and the voice agent take uploads like the other transcription tools.
+  "/transcribe/speakers": 25 * 1024 * 1024,
+  "/dub": 25 * 1024 * 1024,
+  "/voice/agent": 25 * 1024 * 1024,
   "/document/text": 10 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
   "/invoice/check": 10 * 1024 * 1024,

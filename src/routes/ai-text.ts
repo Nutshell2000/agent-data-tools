@@ -506,7 +506,7 @@ export const AI_TEXT: Entry[] = [
 ];
 
 /** The language, voice and model a speech request asks for; an unknown voice is a 400 before anything runs. */
-function speechVoice(q: Input) {
+export function speechVoice(q: Input) {
   const lang = pick(q, "lang", ["en", "es"] as const, "en");
   const voices: readonly string[] = SPEECH_VOICES[lang];
   const sent = q("voice")?.trim().toLowerCase().replace(/^aura-2-|-(en|es)$/g, "");
@@ -515,7 +515,7 @@ function speechVoice(q: Input) {
   if (asked && !voices.includes(asked)) throw new HttpError(400, `voice must be one of the ${lang} voices: ${voices.join(", ")}`);
   return { lang, voice: asked || (lang === "es" ? "aquila" : "luna"), model: lang === "es" ? AI_MODELS.speechEs : AI_MODELS.speech };
 }
-async function speakOnce(env: Env, model: string, voice: string, t: string): Promise<string> {
+export async function speakOnce(env: Env, model: string, voice: string, t: string): Promise<string> {
   const audioBase64 = await audioToBase64(await runAi<unknown>(env, model, { text: t, speaker: voice, encoding: "mp3" }));
   if (!audioBase64) throw new HttpError(502, "the AI model returned no audio");
   return audioBase64;

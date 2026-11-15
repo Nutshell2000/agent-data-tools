@@ -85,7 +85,7 @@ export function imageInfo(bytes: Uint8Array) {
 
 // ---------- languages ----------
 const LANGS = typeof Intl !== "undefined" && "DisplayNames" in Intl ? new Intl.DisplayNames(["en"], { type: "language" }) : null;
-const ISO1: Record<string, string> = { eng: "en", spa: "es", fra: "fr", deu: "de", ita: "it", por: "pt", nld: "nl", swe: "sv", nob: "nb", dan: "da", fin: "fi", pol: "pl", rus: "ru", ukr: "uk", tur: "tr", arb: "ar", cmn: "zh", jpn: "ja", kor: "ko", hin: "hi", ben: "bn", ind: "id", vie: "vi", tha: "th", ell: "el", ces: "cs", ron: "ro", hun: "hu", heb: "he", pes: "fa", urd: "ur", zsm: "ms", tgl: "tl", swh: "sw" };
+export const ISO1: Record<string, string> = { eng: "en", spa: "es", fra: "fr", deu: "de", ita: "it", por: "pt", nld: "nl", swe: "sv", nob: "nb", dan: "da", fin: "fi", pol: "pl", rus: "ru", ukr: "uk", tur: "tr", arb: "ar", cmn: "zh", jpn: "ja", kor: "ko", hin: "hi", ben: "bn", ind: "id", vie: "vi", tha: "th", ell: "el", ces: "cs", ron: "ro", hun: "hu", heb: "he", pes: "fa", urd: "ur", zsm: "ms", tgl: "tl", swh: "sw" };
 const langName = (code: string) => { const two = ISO1[code]; try { return LANGS?.of(two ?? code) ?? null; } catch { return null; } };
 
 // ---------- user agents ----------
