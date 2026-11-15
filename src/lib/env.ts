@@ -49,6 +49,11 @@ export interface Env {
   GITHUB_TOKEN?: string;
   /** OpenAlex API key (free, $1 a day; 14 Nov 2026). Without it OpenAlex shares $0.10 a day per IP, and Cloudflare's egress shares it. */
   OPENALEX_API_KEY?: string;
+  /** Companies House API key (UK register in /company/search; 15 Nov 2026). */
+  COMPANIES_HOUSE_API_KEY?: string;
+  /** Danish CVR system-to-system access (Erhvervsstyrelsen Elasticsearch; 15 Nov 2026). */
+  CVR_USER?: string;
+  CVR_PASSWORD?: string;
   /** Optional free LI.FI API key for /swap/quote and /bridge/quote (keyless quotes are rate-limited on shared egress). */
   LIFI_API_KEY?: string;
   SEARCH_DAILY_CAP?: string;

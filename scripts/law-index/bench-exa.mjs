@@ -26,7 +26,7 @@ export function matches(result, expected) {
 
 const rows = [];
 let h1 = 0, h5 = 0, ms = 0;
-for (const { q, expect } of set) {
+for (const { q, expect, heldOut } of set) {
   const t = Date.now();
   const r = await fetch("https://api.exa.ai/search", { method: "POST", headers: { "x-api-key": key, "content-type": "application/json" }, body: JSON.stringify({ query: q, type: "auto", numResults: 5, contents: { text: { maxCharacters: 1500 } } }) });
   const j = await r.json();
@@ -35,8 +35,10 @@ for (const { q, expect } of set) {
   const rank = results.findIndex((x) => expect.some((e) => matches(x, e)));
   if (rank === 0) h1++;
   if (rank >= 0) h5++;
-  rows.push({ q, expect, rank: rank >= 0 ? rank + 1 : null, ms: took, cost: j.costDollars?.total ?? null, top: results.slice(0, 3).map((x) => x.url) });
+  rows.push({ q, expect, heldOut: !!heldOut, rank: rank >= 0 ? rank + 1 : null, ms: took, cost: j.costDollars?.total ?? null, top: results.slice(0, 3).map((x) => x.url) });
   console.log(`${rank === 0 ? "1 " : rank > 0 ? `${rank + 1} ` : "- "} ${q}  -> ${results.slice(0, 3).map((x) => x.url).join(" | ")}`);
 }
 console.log(`\nExa: hit@1 ${h1}/${set.length}  hit@5 ${h5}/${set.length}  avg ${Math.round(ms / set.length)} ms  cost $${rows.reduce((s, r) => s + (r.cost ?? 0), 0).toFixed(3)}`);
+const held = rows.filter((r) => r.heldOut);
+if (held.length) console.log(`Exa held-out: hit@1 ${held.filter((r) => r.rank === 1).length}/${held.length}  hit@5 ${held.filter((r) => r.rank !== null).length}/${held.length}`);
 if (process.argv[3]) writeFileSync(process.argv[3], JSON.stringify({ engine: "exa auto", date: new Date().toISOString(), h1, h5, n: set.length, rows }, null, 1));
