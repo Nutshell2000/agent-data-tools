@@ -2051,3 +2051,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `FREE_KEY_FROM` stays keys@tools.funwords.eu until Cloudflare Email Sending is enabled on glyphcall.com.
 - After the release: Search Console property for glyphcall.com (DNS TXT verification in Cloudflare) and its sitemap; IndexNow for the new host; update links in articles, profiles and repositories.
 
+
+
+## The glyphcall.com front page (1.203.3, 15 Nov 2026)
+
+- `landingPage` lives in src/lib/home-page.ts (site-pages.ts re-exports it). Owner, 15 Nov: a homepage that out-sells ElevenLabs' and Exa's, marketing Glyphcall only, no personal information.
+- Rules: every number is computed (catalog prices, `productOffers`, `STT_RIVALS`/`TTS_RIVALS` with `VOICE_CHECKED`, `BENCHMARKS`); never type one. Keep the "Where others are better" panel true when the rival tables change. No payment-protocol or wallet words before "For AI agents" (tests/site-pages.test.cjs). No script: tabs are radio inputs.
+- `SHELVES` decides where a product appears; a new product not listed there lands on the last shelf. The free tools link `VOICE_SITE` and `STUDIO_SITE`.
+
