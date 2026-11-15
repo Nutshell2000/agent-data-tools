@@ -21,3 +21,5 @@ for (const p of ["/linkedin/profile", "/linkedin/company-posts", "/x/search"]) C
 export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_FREE_EXCLUDED.has(path);
 // Glyphcall Voice (1.189.0, routes/voice.ts): Whisper over up to an hour of audio and Aura-1 speech: paid only.
 for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summary"]) CAPACITY_LIMITED.add(p);
+// Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): Nova-3 diarization and M2M100 subtitle translation: paid only.
+for (const p of ["/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent"]) CAPACITY_LIMITED.add(p);

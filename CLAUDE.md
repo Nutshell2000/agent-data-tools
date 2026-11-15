@@ -2059,3 +2059,24 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Rules: every number is computed (catalog prices, `productOffers`, `STT_RIVALS`/`TTS_RIVALS` with `VOICE_CHECKED`, `BENCHMARKS`); never type one. Keep the "Where others are better" panel true when the rival tables change. No payment-protocol or wallet words before "For AI agents" (tests/site-pages.test.cjs). No script: tabs are radio inputs.
 - `SHELVES` decides where a product appears; a new product not listed there lands on the last shelf. The free tools link `VOICE_SITE` and `STUDIO_SITE`.
 
+
+
+## Speaker labels, subtitle translation and dubbing (1.204.0, 15 Nov 2026)
+
+- Owner, 15 Nov: "deliver everything elevenlabs can and more". src/routes/voice-plus.ts adds three tools, all in `CAPACITY_LIMITED`, `CATEGORY_OF_PATH` "AI", `FOCUSED_SERVERS.voice`, `FILE_INPUT_PATHS` (except subtitles) and recommend `JOBS`. Parity map: business/voice-plan-2026-11-15-parity.md.
+- `/transcribe/speakers` ($0.10) runs `@cf/deepgram/nova-3` with `diarize`, `utterances` and `smart_format`, and passes the audio as `{ body: ReadableStream, contentType }`.
+  - Cost is $0.0052 per minute, so the 15-minute cap (MP3/WAV, measured with `planAudio`) keeps a call under its price. Other formats have no frame count and are capped at 2 MB.
+  - Checked live on 15 Nov: Nova-3 fails (code 8008) when `redact` and `detect_language` are sent together. Redaction without a language is therefore sent as `language: "en"`, and the answer carries a `note`.
+  - The detected language is `alternatives[0].languages[0]`, not a channel field.
+  - `speakerTurns` numbers speakers from 1 and joins same-speaker turns that are less than 1.5 s apart.
+- `/subtitles/translate` ($0.02) runs `@cf/meta/m2m100-1.2b` cue by cue, 10 at a time. It takes ISO 639-1 codes; source_lang "en" with target_lang "sv" was checked live.
+  - `parseSubtitles` keeps the timing line as written, including VTT cue settings. `writeSubtitles` renumbers SRT.
+  - The source language comes from franc (`ISO1`, now exported from media-text.ts) unless `from` is given.
+- `/dub` ($0.10, at the compact MCP price ceiling) chains `transcribeAudio` (Whisper), M2M100 per segment, then `speakOnce` (Aura-2 en/es; `speakOnce` and `speechVoice` are now exported from ai-text.ts) over `speechParts`, joined with `joinMp3`.
+  - It also returns translated SRT on the original timings. The voice track follows the original order, not its timing, and the description says so.
+  - Caps: 10 minutes, and 2,500 characters of translated speech (Aura-2 $0.075, so the worst case is about $0.08); tests/voice-plus.test.cjs checks the worst case of each tool against its price.
+  - `/dub` is in mcp.ts `GENERATIVE_MEDIA`, so it stays off the directory server, like the other speech generators.
+- Prove on staging after the release (the PC smoke run skips AI tools): one paid call of each on the published example.
+
+- `/voice/agent` ($0.05): Whisper (up to 2 minutes, or 1 MB of unmeasured formats), then one Llama 4 Scout reply (`VOICE_AGENT_SYSTEM`: spoken style; the operator's instructions and the conversation travel in tags, and the conversation is untrusted), then Aura-2. `readHistory` keeps at most 10 turns and 6,000 characters, `spokenReply` cuts at a sentence end within 600 characters, and the answer returns `history` for the next call. It is in `GENERATIVE_MEDIA`. Not realtime: a live agent needs Deepgram Flux over a websocket (later).
+
