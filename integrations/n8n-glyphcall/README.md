@@ -1,8 +1,16 @@
 # n8n-nodes-glyphcall
 
-Glyphcall turns documents into data: files in, text and fields out. Made by SpellzCode.
+Glyphcall turns recordings and documents into data, and text into speech. Made by SpellzCode.
 
-An [n8n](https://n8n.io) community node that turns files into data your workflow can use:
+Two [n8n](https://n8n.io) community nodes.
+
+**Glyphcall Voice**: recordings in, text and speech out:
+
+- **Transcribe**: speech to text (Whisper) for up to 60 minutes of MP3 or WAV in one call, with SRT or WebVTT subtitles and timed segments if you want them. 19+ languages, detected by itself.
+- **Summarize**: a meeting, call or voice note as a title, short summary, key points and action items (with owner and due date when someone said them), plus the transcript.
+- **Text to Speech** and **Text to Speech (Lite)**: up to 2,000 characters as one MP3 in a natural voice (Deepgram Aura-2), written to a binary field you can send on to Telegram, Slack, Drive or e-mail.
+
+**Glyphcall Documents**: files in, text and fields out:
 
 - **Convert to Text**: a Word (.docx), Excel (.xlsx), PowerPoint (.pptx) or PDF file as Markdown or plain text. Headings, lists and tables of a Word file are kept, each sheet of a workbook becomes a table, a deck comes slide by slide.
 - **Extract Fields**: the fields you name, as JSON. Give it an invoice and ask for `supplier, invoice_number, due_date, total, currency`; a field the file does not state comes back empty instead of guessed.
@@ -27,8 +35,12 @@ A call costs a fixed price in credits (1 credit = $0.001). Failed calls are not 
 | Convert to Text | `/document/text` | $0.005 |
 | Extract Fields | `/document/extract` | $0.03 |
 | Extract Text From PDF | `/pdf/text` | $0.005 |
+| Transcribe | `/transcribe/long` | $0.05 (a whole recording, up to 60 minutes) |
+| Summarize | `/transcribe/summary` | $0.05 |
+| Text to Speech | `/text-to-speech` | $0.08 (up to 2,000 characters) |
+| Text to Speech (Lite) | `/text-to-speech/lite` | $0.04 (up to 2,000 characters, English) |
 
-Credits come in packs from $1 (1,000 credits) or by monthly plan; both give one key. These are the prices on 14 November 2026; the current ones are at <https://glyphcall.com/tools>.
+Credits come in packs from $1 (1,000 credits) or by monthly plan; both give one key. The $9 monthly plan (15,000 credits) covers about 300 hours of transcription. These are the prices on 16 November 2026; the current ones are at <https://glyphcall.com/tools>.
 
 ## Using it
 
@@ -52,7 +64,8 @@ A ready workflow is in [templates/invoice-attachment-to-sheet.json](templates/in
 
 ## Good to know
 
-- Files up to 10 MB. The kind of file is read from the file itself, not from its name.
+- Recordings for Glyphcall Voice: up to 25 MB by file or URL (MP3/WAV up to 60 minutes; M4A, OGG and WebM up to 5 MB for Summarize). Convert long video to MP3 first.
+- Document files up to 10 MB. The kind of file is read from the file itself, not from its name.
 - Scans and photos are read by OCR: PNG, JPEG and WebP images up to 3 MB, and scanned PDFs (up to three pages a call).
 - Invoice lines and other rows: write the field as `line_items[description,quantity,unit_price,amount]` and every row comes back with exactly those keys.
 - Old binary Office files (.doc, .xls, .ppt) and password-protected files are refused and not charged; save them as .docx, .xlsx or .pptx first.

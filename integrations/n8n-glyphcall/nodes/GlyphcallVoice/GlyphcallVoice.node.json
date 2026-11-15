@@ -1,0 +1,35 @@
+{
+	"node": "n8n-nodes-glyphcall.glyphcallVoice",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Productivity", "Communication", "Marketing & Content"],
+	"alias": [
+		"transcribe",
+		"transcription",
+		"speech to text",
+		"audio to text",
+		"voice note",
+		"whisper",
+		"subtitles",
+		"srt",
+		"meeting summary",
+		"action items",
+		"text to speech",
+		"tts",
+		"voice",
+		"mp3",
+		"elevenlabs"
+	],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-glyphcall#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/Nutshell2000/agent-data-tools/tree/main/integrations/n8n-glyphcall#readme"
+			}
+		]
+	}
+}

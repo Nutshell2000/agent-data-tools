@@ -1,7 +1,7 @@
 {
 	"name": "n8n-nodes-glyphcall",
-	"version": "0.1.0",
-	"description": "n8n node that turns Word, Excel, PowerPoint and PDF files into text or Markdown and extracts named fields (invoice number, total, due date...) as JSON, from a file in your workflow or a URL.",
+	"version": "0.2.0",
+	"description": "n8n nodes for Glyphcall: transcribe recordings to text and subtitles, summarize meetings, text to speech; and turn Word, Excel, PowerPoint and PDF files into text or Markdown and extracts named fields (invoice number, total, due date...) as JSON, from a file in your workflow or a URL.",
 	"license": "MIT",
 	"homepage": "https://glyphcall.com",
 	"keywords": [
@@ -18,7 +18,14 @@
 		"invoice",
 		"document-extraction",
 		"ocr-alternative",
-		"attachments"
+		"attachments",
+		"transcription",
+		"speech-to-text",
+		"text-to-speech",
+		"whisper",
+		"meeting-summary",
+		"subtitles",
+		"elevenlabs-alternative"
 	],
 	"author": {
 		"name": "SpellzCode",
@@ -38,7 +45,7 @@
 		"dev": "n8n-node dev",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
-		"test": "n8n-node build && node --test test/description.test.cjs",
+		"test": "n8n-node build && node --test test/description.test.cjs test/voice.test.cjs",
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease"
 	},
@@ -52,7 +59,8 @@
 			"dist/credentials/GlyphcallApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/Glyphcall/Glyphcall.node.js"
+			"dist/nodes/Glyphcall/Glyphcall.node.js",
+			"dist/nodes/GlyphcallVoice/GlyphcallVoice.node.js"
 		]
 	},
 	"devDependencies": {

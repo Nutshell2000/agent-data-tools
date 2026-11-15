@@ -1,0 +1,42 @@
+{
+  "/transcribe/long": {
+    "inputs": [
+      "url",
+      "subtitles",
+      "timestamps",
+      "language"
+    ],
+    "required": [
+      "url"
+    ]
+  },
+  "/transcribe/summary": {
+    "inputs": [
+      "url",
+      "language",
+      "transcript"
+    ],
+    "required": [
+      "url"
+    ]
+  },
+  "/text-to-speech": {
+    "inputs": [
+      "text",
+      "lang",
+      "voice"
+    ],
+    "required": [
+      "text"
+    ]
+  },
+  "/text-to-speech/lite": {
+    "inputs": [
+      "text",
+      "voice"
+    ],
+    "required": [
+      "text"
+    ]
+  }
+}
