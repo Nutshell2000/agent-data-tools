@@ -1,5 +1,5 @@
 {
-  "version": "1.199.0",
+  "version": "1.201.0",
   "tools": [
     {
       "name": "extract",
@@ -11679,6 +11679,10 @@
             "type": "string",
             "description": "A phrase the results must not contain"
           },
+          "country": {
+            "type": "string",
+            "description": "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)"
+          },
           "textChars": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -11782,6 +11786,10 @@
           "excludeText": {
             "type": "string",
             "description": "A phrase the results must not contain"
+          },
+          "country": {
+            "type": "string",
+            "description": "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)"
           },
           "textChars": {
             "type": "integer",
@@ -18645,6 +18653,10 @@
             "type": "string",
             "description": "A phrase the results must not contain"
           },
+          "country": {
+            "type": "string",
+            "description": "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)"
+          },
           "textChars": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -19355,6 +19367,10 @@
           "excludeText": {
             "type": "string",
             "description": "A phrase the results must not contain"
+          },
+          "country": {
+            "type": "string",
+            "description": "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)"
           },
           "textChars": {
             "type": "integer",

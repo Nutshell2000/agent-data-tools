@@ -45,7 +45,7 @@ export interface KybDeps {
 }
 
 const defaultDeps = (env: Env): KybDeps => ({
-  search: (name, countries) => companySearch(name, countries, 5) as ReturnType<KybDeps["search"]>,
+  search: (name, countries) => companySearch(name, countries, 5, { env }) as ReturnType<KybDeps["search"]>,
   vies: async (vat) => {
     const parts = vatParts(vat);
     if (!parts || !VIES_COUNTRIES.has(parts.country)) throw new HttpError(400, `${vat.slice(0, 20)} is not an EU VAT number`);
