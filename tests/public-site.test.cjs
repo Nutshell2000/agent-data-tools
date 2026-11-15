@@ -30,7 +30,10 @@ test("the public host itself, an unset or a malformed setting leave the page as 
 });
 
 test("production names the public host; staging does not", () => {
-  assert.match(readFileSync("wrangler.jsonc", "utf8"), /"PUBLIC_SITE_ORIGIN": "https:\/\/tools\.funwords\.eu"/);
+  const prod = readFileSync("wrangler.jsonc", "utf8");
+  assert.match(prod, /"PUBLIC_SITE_ORIGIN": "https:\/\/glyphcall\.com"/);
+  assert.match(prod, /"RETIRED_PUBLIC_HOSTS": "tools\.funwords\.eu"/);
+  assert.ok(!/"RETIRED_PUBLIC_HOSTS": "[^"]*workers\.dev/.test(prod), "the paid origin is never retired");
   assert.ok(!/PUBLIC_SITE_ORIGIN/.test(readFileSync("wrangler.staging.jsonc", "utf8")));
 });
 

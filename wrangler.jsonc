@@ -7,8 +7,14 @@
   "compatibility_flags": ["nodejs_compat"],
   // workers_dev must stay on: without it a deploy that has routes switches the workers.dev address off.
   "workers_dev": true,
-  // Free indexing test on a domain with some standing (owner, 31 Oct 2026; review 15 Dec).
-  "routes": [{ "pattern": "tools.funwords.eu", "custom_domain": true }],
+  // glyphcall.com is the product's own domain (owner bought it 14 Nov 2026; zone on this account since 15 Nov).
+  // tools.funwords.eu (the free indexing test of 31 Oct) stays attached so its human pages can answer 301 to
+  // glyphcall.com (RETIRED_PUBLIC_HOSTS below); its API answers keep working.
+  "routes": [
+    { "pattern": "glyphcall.com", "custom_domain": true },
+    { "pattern": "www.glyphcall.com", "custom_domain": true },
+    { "pattern": "tools.funwords.eu", "custom_domain": true }
+  ],
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
   // fails at once instead of spending ~300 ms of CPU per cold start (see src/lib/ajv-unavailable.ts).
   "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
@@ -59,8 +65,13 @@
     // Per-call MPP with USDC on Base to PAY_TO (src/lib/mpp-evm.ts) is ON unless this is "off": it reuses the x402
     // facilitator and the CDP secret, so it needs nothing new. MPPScan lists the tools from it (docs/mpp-per-call.md).
     "MPP_EVM": "on",
-    // The public home of the human pages (owner, 10 Nov 2026: tools.funwords.eu for now, a dedicated domain later).
-    "PUBLIC_SITE_ORIGIN": "https://tools.funwords.eu",
+    // The public home of the human pages: glyphcall.com since 15 Nov 2026 (owner: "fix it all"). Pages for people on a
+    // retired host answer 301 to the same path here (src/lib/public-site.ts movedPageUrl). Never list the workers.dev
+    // origin as retired: it is the paid origin every listing and wallet history points at.
+    "PUBLIC_SITE_ORIGIN": "https://glyphcall.com",
+    "RETIRED_PUBLIC_HOSTS": "tools.funwords.eu",
+    // The name on the pages for people (src/lib/public-brand.ts); agent surfaces keep the service name.
+    "PUBLIC_BRAND": "Glyphcall",
     // Keyless facilitator. For the Coinbase Bazaar set this to
     // https://api.cdp.coinbase.com/platform/v2/x402 and add the secrets
     // CDP_API_KEY_ID / CDP_API_KEY_SECRET with `wrangler secret put`.
