@@ -126,7 +126,7 @@ credits.get("/credits", (c) => {
 <li><b>HTTP:</b> <code>curl -H "Authorization: Bearer adt_…" "${esc(origin)}/eth/balance?address=0x…"</code></li>
 <li><b>Fetch-only clients</b> (an agent's URL reader that cannot set headers): <code>${esc(origin)}/eth/balance?address=0x…&amp;api_key=adt_…</code>. A key in a URL can end up in logs; rotate it at <code>POST /credits/rotate</code> if it was shared.</li></ul>
 <h2>See what you get (free previews)</h2><ul>${previews}</ul><p>All tools and prices: <a href="/#tools">catalog</a>.</p>
-<h2>Agents with a USDC wallet: prepay once</h2><p>${esc(usdcPrepayLine(origin))} Packs: ${usdcPackList(origin).map((p) => `<code>${esc(p.buy.replace(origin, ""))}</code> ${p.price} = ${p.credits.toLocaleString("en-US")} credits`).join(", ")}. To top up a key, send it as <code>X-API-Key</code> on the same request.</p>
+<h2>Agents with a USDC wallet: prepay once</h2><p style="overflow-wrap:anywhere">${esc(usdcPrepayLine(origin))} Packs: ${usdcPackList(origin).map((p) => `<code>${esc(p.buy.replace(origin, ""))}</code> ${p.price} = ${p.credits.toLocaleString("en-US")} credits`).join(", ")}. To top up a key, send it as <code>X-API-Key</code> on the same request.</p>
 ${info.agentPurchase ? `<h2>Agents: buy without a checkout page</h2><p>${esc(info.agentPurchase)}</p>` : ""}<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Charging and refunds</h2><p>${esc(info.charging)}</p><p>${esc(info.refunds)}</p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>. <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/support">Support</a></p>`, true));
 });
 
