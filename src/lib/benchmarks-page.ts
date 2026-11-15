@@ -37,19 +37,20 @@ export const BENCHMARKS: readonly Benchmark[] = [
   {
     id: "eu-law",
     title: "EU law: does the search return the article itself?",
-    date: "14 November 2026",
-    method: "20 compliance questions (GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT, PSD2, consumer rights and more), each with the article a correct answer must cite. Ours counts only when the result's citation is exactly that article of that act. Exa (search type auto, 5 results with text) was scored leniently: a hit when the title, URL or first 1,500 characters name the article number and the act.",
+    date: "15 November 2026",
+    method: "102 held-out compliance questions across 41 EU acts (GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT, PSD2, AML, consumer, product and sustainability law), each with the article a correct answer must cite. They were written, and every expected article checked against its own text, before either search was run; none was used to tune our ranking. Ours counts only when the result's citation is exactly that article of that act. Exa (search type auto, 5 results with text) was scored leniently: a hit when the title, URL or first 1,500 characters name the article number and the act.",
     columns: ["Right article first", "Right article in top 5", "Average time"],
     rows: [
-      { system: "Our EU law search (own index of 47 acts)", ours: true, cells: ["10 / 20", "19 / 20", "about 1.2 s"] },
-      { system: "Exa search, type auto", ours: false, cells: ["5 / 20", "13 / 20", "about 1.5 s"] },
+      { system: "Our EU law search (own index of 47 acts)", ours: true, cells: ["76 / 102", "96 / 102", "about 1.3 s"] },
+      { system: "Exa search, type auto", ours: false, cells: ["34 / 102", "75 / 102", "about 1.5 s"] },
     ],
     reading: [
-      "Exa mostly returned pages about the law: national regulators, consultancies, glossaries. For the VAT, consumer rights, PSD2 and whistleblower questions none of its top 5 was the article.",
+      "Exa mostly ranked pages about the law first: national regulators, law firms, explainers. The article itself often came second or third, and for some questions not at all.",
+      "The 20 questions we tuned our ranking on (14 November) give the same picture: ours 10 first and 19 in the top 5, Exa 4 and 13 in this run.",
       "An agent that has to cite a provision needs the provision. Exa's pages are often still useful background.",
     ],
-    limits: ["We wrote the 20 questions ourselves, so they may suit our index; a larger held-out set is next.", "English questions only."],
-    files: [["The 20 questions and expected articles", "scripts/law-index/eval-questions.json"], ["Benchmark script", "scripts/law-index/bench-exa.mjs"]],
+    limits: ["We wrote the questions ourselves; they are checked against the law, not against either search.", "The questions do not say \"EU\": Exa searches the whole web and some of its answers were UK or US pages, which a question naming the EU might avoid. Ours searches EU law only.", "English questions only."],
+    files: [["The 122 questions and expected articles", "scripts/law-index/eval-questions.json"], ["Our run", "scripts/law-index/eval-ours.mjs"], ["Exa run", "scripts/law-index/bench-exa.mjs"]],
     product: ["EU law search API", "/eu-law-search-api"],
   },
   {

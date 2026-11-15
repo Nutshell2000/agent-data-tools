@@ -194,7 +194,7 @@ export const PRODUCTS: readonly Product[] = [
       "47 EU acts article by article and recital by recital, in their latest consolidated English text",
       "Every result cites the act and article, with its heading, full text, EUR-Lex link and the version it comes from",
       "Our own index (keyword and meaning search, reranked), hosted in the EU: no outside search engine in between",
-      "On 20 compliance questions the right article was in our top 5 for 19, against 13 for Exa's web search (14 Nov 2026)",
+      "On 102 held-out compliance questions the right article came first for 76 and was in our top 5 for 96, against 34 and 75 for Exa's web search (15 Nov 2026)",
     ],
     limits: [
       "Not legal advice: only the Official Journal text is authentic.",
@@ -204,7 +204,7 @@ export const PRODUCTS: readonly Product[] = [
     faq: [
       ["Which acts are covered?", "47 acts businesses ask about most: GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, the Data Act, the Cyber Resilience Act, eIDAS, PSD2, the anti-money-laundering package, the VAT Directive and its implementing regulation, ViDA, consumer law, product safety and liability, CSRD, the Accounting Directive, CSDDD, SFDR and more."],
       ["How current is the text?", "Each act is the latest consolidated version in force when the index was built (monthly), and every result names that version. Recitals come from the text as published in the Official Journal."],
-      ["How does it compare with a web search API?", "A web search returns pages about the law. This returns the provision itself. On our 20-question test the right article came first for 10 questions and was in the top 5 for 19; Exa's search had 5 and 13, scored leniently. The questions and method are published."],
+      ["How does it compare with a web search API?", "A web search returns pages about the law. This returns the provision itself. On 102 held-out questions the right article came first for 76 and was in the top 5 for 96; Exa's search had 34 and 75, scored leniently. The questions, scripts and results are on the benchmarks page."],
       ["Can I limit the search to one act?", "Yes: act=GDPR (or the full name, or the CELEX number). kind=article or kind=recital narrows further."],
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
@@ -246,7 +246,7 @@ export const PRODUCTS: readonly Product[] = [
     tool: "/company/search",
     also: ["/pack/kyb-eu", "/law/search", "/vat/validate", "/lei/lookup"],
     points: [
-      "EU law: the exact article, not a page about it. Right article in the top 5 for 19 of 20 questions, Exa's web search 13 (14 Nov 2026, method published)",
+      "EU law: the exact article, not a page about it. Right article first for 76 of 102 held-out questions, Exa's web search 34 (15 Nov 2026, method published)",
       "Companies from official registers (France, Sweden, Norway, Finland, Czechia, Estonia) plus GLEIF LEIs for every country, with register links",
       "Exa's own SDKs work: point exa-js or exa-py at our /v1 base URL",
       "Exa categories answered from sources of record: category \"company\" from the registers (with register IDs and LEIs as entities), \"research paper\" from OpenAlex and Crossref, \"github\" from GitHub's own search",
