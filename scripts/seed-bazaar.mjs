@@ -102,6 +102,12 @@ const FRONTS = [
   { path: "/v1/moderations", tool: "/ai/moderation", example: `${ORIGIN}/v1/moderations?input=${encodeURIComponent("How do I bake sourdough bread at home?")}` },
   { path: "/v1/images/generations", tool: "/image", example: `${ORIGIN}/v1/images/generations?prompt=${encodeURIComponent("a lighthouse on a cliff at sunset, watercolor")}` },
   { path: "/v1/audio/speech", tool: "/ai/speech", example: `${ORIGIN}/v1/audio/speech?input=${encodeURIComponent("Your payment was received. Thank you!")}&voice=nova` },
+  // 15 Nov 2026: the drop-in voice fronts (lib/voice-fronts.ts). Mercator imports only Bazaar listings and had nothing of
+  // ours for "elevenlabs", while an ElevenLabs-named speech route there took 3,749 routed calls in 30 days. The TTS front
+  // lists under ElevenLabs' best-known premade voice ID (Rachel), the one their docs and SDK examples use.
+  { path: "/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM", tool: "/ai/speech", example: `${ORIGIN}/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?text=${encodeURIComponent("Your payment was received. Thank you!")}` },
+  { path: "/v1/speech-to-text", tool: "/transcribe", example: `${ORIGIN}/v1/speech-to-text?cloud_storage_url=${encodeURIComponent("https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg")}` },
+  { path: "/v1/audio/transcriptions", tool: "/transcribe", example: `${ORIGIN}/v1/audio/transcriptions?url=${encodeURIComponent("https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg")}` },
 ].map((f) => ({ ...f, price: toolPrice(f.tool) })).filter((f) => f.price);
 const frontOf = new Map(FRONTS.map((f) => [f.path, { url: f.example, example: f.example, price: f.price, init: f.init }]));
 if (flag("--fronts")) for (const f of FRONTS) selected.set(f.path, frontOf.get(f.path));
