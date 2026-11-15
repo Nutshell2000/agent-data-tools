@@ -52,6 +52,7 @@ export function bazaarInputProperties(e: Endpoint) {
  */
 export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/pack/kyb-eu", // 1.197.0: q, vat or lei
+  "/voice/agent", // 1.204.0: text, or audio by url or upload
   "/price/token", "/token/price", "/price/crypto", "/price/tokens",
   "/audit/contract", "/contract/audit",
   "/se/company",
