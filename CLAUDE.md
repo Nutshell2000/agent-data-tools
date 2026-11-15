@@ -1995,3 +1995,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Verdict review = any sanctions match, no register entry, an invalid given VAT number, or screening failed. A lone starting point that 404s (unknown LEI) passes its own HttpError on (uncharged); errors are recognised by `status`, not instanceof.
 - In ONE_OF_INPUT_PATHS (q, vat or lei) and CATEGORY_OF_PATH (Company, compliance and checks).
 
+
+## Stablecoin charts by chain (1.197.1, 15 Nov 2026)
+
+- /stablecoin/charts is named "Stablecoin charts by chain" and priced $0.005 (tests/families.test.cjs pins it): agent 0xe629 buys the #1 Bazaar result for that phrase, an 8-payer x402atlas listing at $0.005. The Bazaar takes the new name and price with the tool's next settlement.
+

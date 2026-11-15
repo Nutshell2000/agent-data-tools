@@ -592,7 +592,7 @@
     "/defi/yield-history": "$0.01",
     "/defi/tvl": "$0.01",
     "/defi/chains": "$0.01",
-    "/stablecoin/charts": "$0.01",
+    "/stablecoin/charts": "$0.005",
     "/airport/lookup": "$0.01",
     "/swap/quote": "$0.01",
     "/bridge/quote": "$0.01",
