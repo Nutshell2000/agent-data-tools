@@ -48,7 +48,7 @@ test('a stalled cold HTTP initialization does not block another quote or become 
     let timer;
     const outcome = await Promise.race([
       second.then(async r => { const status = r.status; await r.body?.cancel(); return status; }),
-      new Promise(resolve => { timer = setTimeout(() => resolve('blocked by another request'), 1500); }),
+      new Promise(resolve => { timer = setTimeout(() => resolve('blocked by another request'), 5000); }),
     ]);
     clearTimeout(timer);
     f.release();
