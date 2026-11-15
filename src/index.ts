@@ -15,6 +15,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { COMPARE_BASE, compareHtml } from "./lib/compare-pages";
+import { BENCHMARKS_PATH, benchmarksHtml } from "./lib/benchmarks-page";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
 import { EINVOICE_BASE, EINVOICE_BASE_DE, EINVOICE_RULES, EINVOICE_RULES_DE, einvoiceIndexPage, einvoiceRule, einvoiceRulePage, einvoiceRulesIndexPage, withEinvoicePages } from "./lib/einvoice-pages";
 import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } from "./lib/einvoice-pages-de";
@@ -656,6 +657,7 @@ app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
 // Comparison pages against the document-extraction leaders (lib/compare-pages.ts).
 app.get(COMPARE_BASE, (c) => c.html(compareHtml(c.env, origin(c.req.url))!));
 app.get(`${COMPARE_BASE}/:slug{[a-z0-9-]+}`, (c) => { const html = compareHtml(c.env, origin(c.req.url), c.req.param("slug")); return html ? c.html(html) : c.notFound(); });
+app.get(BENCHMARKS_PATH, (c) => c.html(benchmarksHtml(c.env, origin(c.req.url))));
 app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
 app.get("/tools/:slug", async (c) => {
   const tool = toolBySlug(c.req.param("slug"));

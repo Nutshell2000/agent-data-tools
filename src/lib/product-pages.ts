@@ -209,7 +209,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: [],
-    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"]],
+    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"], ["/benchmarks", "Benchmarks against Exa"]],
   },
   {
     slug: "eu-sanctions-screening-api",
@@ -237,7 +237,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: [],
-    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"], ["/eu-law-search-api", "EU law search API"]],
+    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"], ["/eu-law-search-api", "EU law search API"], ["/benchmarks", "Benchmarks against Exa"]],
   },
   {
     slug: "exa-alternative-api",
@@ -264,7 +264,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: [],
-    more: [["/eu-law-search-api", "EU law search API"]],
+    more: [["/eu-law-search-api", "EU law search API"], ["/benchmarks", "Benchmarks against Exa"]],
   },
   // Glyphcall Voice (14 Nov 2026, business/voice-plan-2026-11-14/plan.md). Rival figures stay off these pages: every
   // claim here is about our own tools. ElevenLabs' own page (14 Nov): Scribe $0.20/hour, Flash $0.04 per 1,000 characters.
