@@ -348,7 +348,7 @@ export const ISSUER = `https://${EX_DOMAIN}`;
 
 export const PAYEE: Entry[] = [
   entry("/payee/check", "Payee check: is this payee a verified business before you pay?",
-    "Check a payee before paying it: give its domain, a paid endpoint URL or a payout wallet. Reads the payee's verified record (its own /.well-known/agent-payee.json checked against official company registers, EU VIES, LEI and the OFAC, EU, UN and UK sanctions lists, with wallets proven by signature), compares the wallet a live quote names with the wallets the business proved, and returns pass, partial, review, unknown or block with reasons and a signed attestation. Never pays or signs. Use before the first payment to a seller.",
+    "Check a payee before paying it, by domain, paid endpoint URL or payout wallet: its verified record (company in official registers, EU VIES and LEI, OFAC, EU, UN and UK sanctions, wallets proven by signature), the wallet in a live quote compared with the proven ones, and pass, partial, review, unknown or block with reasons and a signed attestation. Never pays or signs. Use before the first payment to a seller.",
     ["payee-check", "payee-verification", "kyb", "seller-trust", "sanctions", "x402"], {
       domain: { type: "string", description: "The payee's domain, e.g. shop.example.com (give domain, url or address)", example: EX_DOMAIN },
       url: { type: "string", description: "Or: a paid endpoint; its domain's record is read and its quote's wallet compared", example: `https://${EX_DOMAIN}/weather` },
