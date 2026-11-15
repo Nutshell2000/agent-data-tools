@@ -1786,7 +1786,7 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 ## /describe on a page without a preview image (1.174.0, 14 Nov 2026)
 
 - `pageMainImage()` in src/routes/ai.ts is the fallback after `pagePreviewImage()`: link image_src, then the first content `<img>` (no data:, SVG, logo/icon/pixel names, nothing declared 64 px or smaller). Paid /describe refusals of 14 Nov (415 on a page URL) came from the steadiest buyer, agent 0xe629; read /status `topFailures` for /describe after release. Bot-blocked and 404 pages stay uncharged 422s.
-- Weather margin test: `WEATHER_TEST_PATHS` (src/endpoints.ts) prices /weather/forecast at $0.003 until the 17 Nov review; tests/entry-paths.test.cjs exempts it from the door-equals-canonical rule. After the release run `node scripts/update-402index-prices.mjs --dry` then for real. Revert by deleting the set and rerunning scripts/freeze-prices.mjs.
+- Weather margin test ENDED 15 Nov 2026: /weather/forecast is back at the $0.002 acquisition price with /weather and /weather/current. At $0.002 it sold 112 outside calls on 14 Nov; after the $0.003 step at 15 UTC, 2, and none overnight. Do not price a vAPI quest-wallet door above the cheapest healthy rival in its vAPI search.
 
 
 
@@ -1981,4 +1981,9 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/sanctions/check` (src/routes/sanctions.ts): `listsInput()` (Object.hasOwn alias table), `intlIndex()` (mirror, then isolate copy up to 7 days, then edge-cache last good; returns null instead of throwing), `screenIntl()` (same every-word rule as OFAC). A name-only call with only EU/UN/UK lists chosen and no index is an uncharged 502; with OFAC chosen it answers and marks the others `checked: false`.
 - The EU file is regenerated only when the list changes (23 Oct 2026 was the newest on 14 Nov on every EU endpoint), so an old EU date is not a stale mirror.
 - After the release: check `curl -sI https://github.com/Nutshell2000/agent-data-tools/releases/download/ofac-latest/intl-sanctions-index.json` answers 302, then a production trial of `/sanctions/check?name=Vladimir%20Putin&lists=eu,uk` (expect EU.7510.16 and RUS0251).
+
+
+## Weather margin test ended (1.196.1, 15 Nov 2026)
+
+- /weather/forecast is $0.002 again (WEATHER_TEST_PATHS removed). Quest wallets from vAPI bought it at $0.002 and stopped at $0.003. After the release run `node scripts/update-402index-prices.mjs --dry` then for real.
 

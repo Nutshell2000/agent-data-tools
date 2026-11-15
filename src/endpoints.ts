@@ -993,17 +993,10 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
  */
 export const FINDER_TEST_PRICE = "$0.001";
 export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/commodity/price"]);
-/**
- * Weather margin test (14 Nov 2026, the owner: "Yes, test $0.003"). vAPI quest wallets buy about 50 calls each through
- * /weather/forecast (the first endpoint of our main vAPI listing): 109 of 130 outside calls on 14 Nov. At $0.002 CDP's
- * $0.001 settlement fee takes half; at $0.003 the net per call doubles. Only this door moves; /weather and
- * /weather/current stay at the acquisition price. Review on 17 Nov: new vAPI weather wallets per day and calls per
- * wallet against 13-14 Nov (0xfc1b 49, 0x714e 51, 0x746a 36, 0xc5d0 13). Revert = delete this set.
- */
-export const WEATHER_TEST_PRICE = "$0.003";
-export const WEATHER_TEST_PATHS: ReadonlySet<string> = new Set(["/weather/forecast"]);
+// Weather margin test ($0.003 on /weather/forecast, 14 Nov 2026) ended 15 Nov 2026: at $0.002 the door sold 112 outside
+// calls on 14 Nov; after the step at 15 UTC it sold 2 and none overnight, while the rival listing in vAPI search sat at
+// $0.002. The owner asked to "fix weather and pricing so we get outside payers"; prices are delegated (14 Nov).
 const acquisitionPriced = (e: Endpoint): Endpoint =>
-  WEATHER_TEST_PATHS.has(e.path) ? { ...e, price: WEATHER_TEST_PRICE } :
   FINDER_TEST_PATHS.has(e.path) ? { ...e, price: FINDER_TEST_PRICE } : ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e;
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
