@@ -12,6 +12,7 @@
 import type { Context } from "hono";
 import type { Env } from "./env";
 import { asFrontQuote, requestBody } from "./openai-chat";
+import { VOICE_FRONT_DESCRIPTIONS, VOICE_FRONT_META } from "./voice-fronts-openapi";
 import { SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
 import { FILE_INPUT, holdFile, releaseFile, sentFile } from "./file-input";
 import { TRANSCRIBE_MAX_BYTES } from "../routes/ai";
@@ -30,11 +31,7 @@ export const TRANSCRIBE_TOOL_PATH = "/transcribe";
 const PROBE_AUDIO = "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg";
 const PROBE_TEXT = "Your payment was received. Thank you!";
 
-export const VOICE_FRONT_DESCRIPTIONS = {
-  tts: "ElevenLabs-compatible text to speech, pay per request: text in, one MP3 file out (Deepgram Aura-2 voices; ElevenLabs premade voice IDs map to a similar voice). Up to 2,000 characters, English or Spanish. No account; failed calls are not charged.",
-  stt: "ElevenLabs-compatible speech to text, pay per request: an audio file (multipart file, or cloud_storage_url) in, transcript with language and word timings out (Whisper large-v3-turbo, 90+ languages). Up to 5 MB in any common format, or up to 25 MB and 60 minutes of MP3 or WAV. No account; failed calls are not charged.",
-  openaiStt: "OpenAI-compatible audio transcription, pay per request: an audio file in, the transcript out as json, text, srt, vtt or verbose_json (Whisper large-v3-turbo, 90+ languages). Up to 5 MB in any common format, or up to 25 MB and 60 minutes of MP3 or WAV. No account; failed calls are not charged.",
-} as const;
+export { VOICE_FRONT_DESCRIPTIONS, VOICE_FRONT_META };
 
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key", "xi-api-key"];
 const PASSTHROUGH = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
@@ -103,7 +100,7 @@ export async function elevenLabsSpeech(c: C, forward: Forward): Promise<Response
   const mapped = elevenSpeechRequest(body, c.req.param("voice_id"), c.req.query("output_format"));
   if ("error" in mapped && paying) return c.json({ detail: { status: "invalid_request", message: mapped.error } }, 400);
   const request: SpeechRequest = "error" in mapped ? { text: PROBE_TEXT, tool: SPEECH_TOOL_PATH } : mapped;
-  return speakThrough(c, forward, request, VOICE_FRONT_DESCRIPTIONS.tts);
+  return speakThrough(c, forward, request, VOICE_FRONT_DESCRIPTIONS.tts, VOICE_FRONT_META.tts);
 }
 
 export type TranscriptShape = "openai" | "eleven";
@@ -180,7 +177,7 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   try {
     const answer = await forward(new Request(inner.href, { method: "GET", headers }));
     const description = shape === "openai" ? VOICE_FRONT_DESCRIPTIONS.openaiStt : VOICE_FRONT_DESCRIPTIONS.stt;
-    if (answer.status === 402) return asFrontQuote(answer, outer, description, tool);
+    if (answer.status === 402) return asFrontQuote(answer, outer, description, tool, shape === "openai" ? VOICE_FRONT_META.openaiStt : VOICE_FRONT_META.stt);
     if (answer.status !== 200) return answer;
     const result = (await answer.json().catch(() => null)) as Transcript | null;
     if (!result || typeof result.text !== "string") return answer;

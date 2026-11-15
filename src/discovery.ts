@@ -15,7 +15,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.197.1";
+export const MCP_SERVER_VERSION = "1.199.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -314,6 +314,15 @@ export const FOCUSED_SERVERS: Readonly<Record<string, { title: string; registry:
     pick: "Pick by task: is an EU VAT number valid, and whose is it → vat_validate; a company in Sweden → se_company, Norway → no_company, Finland → fi_company, France → fr_company (by registration number or name); a Legal Entity Identifier → lei_lookup; is a person, company or wallet on the OFAC list → sanctions_check; a company's profile by name or website → company.",
     paths: ["/vat/validate", "/company/search", "/law/search", "/se/company", "/no/company", "/fi/company", "/fr/company", "/lei/lookup", "/sanctions/check", "/company"],
   },
+  // 15 Nov 2026, owner: "start selling more voice calls". About 20 voice calls a week, all found through the big catalog;
+  // no small voice server existed for Glama or MCP clients to rank.
+  voice: {
+    title: "Speech to text and text to speech",
+    registry: "Transcribe audio and video (SRT/VTT subtitles, an hour for $0.05) and text to speech as MP3",
+    kinds: "voice: speech to text for audio and video files with SRT or VTT subtitles and word timings (Whisper large-v3-turbo, 90+ languages, up to an hour in one call), a summary of a recording, and text to speech as an MP3 file (Deepgram Aura voices, English and Spanish)",
+    pick: "Pick by task: a short audio or video clip to text, subtitles or word timings → transcribe; a recording up to 60 minutes (MP3 or WAV, up to 25 MB) → transcribe_long; the gist and action points of a recording → transcribe_summary; a sentence or two spoken aloud → ai_speech; up to 2,000 characters as one MP3 → text_to_speech (lower cost, English only: text_to_speech_lite).",
+    paths: ["/transcribe", "/transcribe/long", "/transcribe/summary", "/ai/speech", "/text-to-speech", "/text-to-speech/lite"],
+  },
 });
 export const focusedServerTools = (slug: string) =>
   Object.hasOwn(FOCUSED_SERVERS, slug) ? FOCUSED_SERVERS[slug].paths.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is Endpoint => Boolean(e)) : undefined;
@@ -504,7 +513,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...openAiSpeechOpenApiPath(origin, { short: catalogEndpoint(SPEECH_TOOL_PATH).price, long: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price }, mpp), ...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
+    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...openAiSpeechOpenApiPath(origin, { short: catalogEndpoint(SPEECH_TOOL_PATH).price, long: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price }, mpp), ...voiceFrontsOpenApiPaths(origin, { speechShort: catalogEndpoint(SPEECH_TOOL_PATH).price, speechLong: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price, transcribe: catalogEndpoint("/transcribe").price, transcribeLong: catalogEndpoint("/transcribe/long").price }, mpp),...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       salesOrdered(ENDPOINTS).map((e) => [
         e.path,
         {
@@ -608,6 +617,7 @@ import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/
 import { EMBED_TOOL_PATH, openAiEmbeddingsOpenApiPath } from "./lib/openai-embeddings";
 import { IMAGE_TOOL_PATH, openAiImagesOpenApiPath } from "./lib/openai-images";
 import { SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, openAiSpeechOpenApiPath } from "./lib/openai-speech";
+import { voiceFrontsOpenApiPaths } from "./lib/voice-fronts-openapi";
 import { anthropicMessagesOpenApiPath } from "./lib/anthropic-messages";
 import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
 import { MODELS } from "./lib/ai";

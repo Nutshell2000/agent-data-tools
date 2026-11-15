@@ -269,15 +269,18 @@ export const FRONT_DESCRIPTIONS: Record<string, string> = {
  * the quoted resource with the URL they called accept it. The payment terms and the Bazaar extension stay the
  * tool's: the paid retry is checked against those (matching ignores the resource; echoed extensions must match).
  */
-export async function asFrontQuote(answer: Response, outer: URL, description: string, toolPath?: string): Promise<Response> {
+export interface FrontMeta { serviceName?: string; tags?: readonly string[] }
+export async function asFrontQuote(answer: Response, outer: URL, description: string, toolPath?: string, meta?: FrontMeta): Promise<Response> {
   const url = outer.origin + outer.pathname;
+  // A front may name itself and carry its own tags in the resource (directories read both); the extension stays the tool's.
+  const named = { ...(description ? { description } : {}), ...(meta?.serviceName ? { serviceName: meta.serviceName } : {}), ...(meta?.tags?.length ? { tags: [...meta.tags] } : {}) };
   const headers = new Headers(answer.headers);
   if (toolPath) headers.set("X-Tool", toolPath); // which tool (and so which price) this request maps to
   const encoded = headers.get("payment-required");
   if (encoded) {
     try {
       const terms = JSON.parse(atob(encoded)) as { resource?: Record<string, unknown> };
-      terms.resource = { ...terms.resource, url, ...(description ? { description } : {}) };
+      terms.resource = { ...terms.resource, url, ...named };
       headers.set("payment-required", btoa(JSON.stringify(terms)));
     } catch { /* not ours to fix: pass it on unchanged */ }
   }
@@ -286,7 +289,7 @@ export async function asFrontQuote(answer: Response, outer: URL, description: st
     const parsed = JSON.parse(body) as { x402Version?: number; resource?: Record<string, unknown>; accepts?: Array<Record<string, unknown>> };
     if (Array.isArray(parsed.accepts)) {
       // The body mirrors the v2 header since 1.117.0 (v1 terms only on request): name the front in the same place.
-      if (parsed.x402Version === 2) parsed.resource = { ...parsed.resource, url, ...(description ? { description } : {}) };
+      if (parsed.x402Version === 2) parsed.resource = { ...parsed.resource, url, ...named };
       else for (const a of parsed.accepts) { a.resource = url; if (description) a.description = description; }
       body = JSON.stringify(parsed);
       headers.delete("content-length");
