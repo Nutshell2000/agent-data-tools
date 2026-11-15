@@ -216,7 +216,7 @@ export const PRODUCTS: readonly Product[] = [
     name: "EU sanctions screening API",
     tagline: "Screen a person or company name against the EU consolidated financial sanctions list, the UN Security Council list, the UK Sanctions List and OFAC in one call; screen a crypto address against OFAC. Every match names its list, list ID and programme.",
     tool: "/sanctions/check",
-    also: ["/company/search", "/lei/lookup", "/vat/validate"],
+    also: ["/pack/kyb-eu", "/company/search", "/lei/lookup", "/vat/validate"],
     points: [
       "Four official lists in one call: EU (about 6,300 entries), UN (about 1,000), UK (about 6,400) and OFAC SDN (about 18,000), with aliases",
       "Every match carries its list, the list's own reference (EU.7510.16, RUS0251, QDe.004…), the programme or regime and a match strength",
@@ -244,7 +244,7 @@ export const PRODUCTS: readonly Product[] = [
     name: "Exa alternative API for EU law and company data",
     tagline: "Search APIs for agents that need Europe: EU law article by article, and companies in official registers. Exa-compatible endpoints, our own EU-hosted indexes, pay per call or by plan.",
     tool: "/company/search",
-    also: ["/law/search", "/vat/validate", "/lei/lookup"],
+    also: ["/pack/kyb-eu", "/law/search", "/vat/validate", "/lei/lookup"],
     points: [
       "EU law: the exact article, not a page about it. Right article in the top 5 for 19 of 20 questions, Exa's web search 13 (14 Nov 2026, method published)",
       "Companies from official registers (France, Sweden, Norway, Finland, Czechia, Estonia) plus GLEIF LEIs for every country, with register links",
