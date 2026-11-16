@@ -12,6 +12,7 @@ import { keyPrice } from "./key-prices";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { COMPANY_FOOTER } from "./legal";
+import { webApplicationScript } from "./app-jsonld";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -413,6 +414,7 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd(faqLd)}</script>
+${webApplicationScript({ name: p.name, url, description, brand, offers: offers.length ? offers.map((o) => ({ label: o.label, note: `${o.calls} ${p.unit}` })) : [{ label: `${keyPrice} per successful call` }] })}
 <style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(brand)}</a></nav>
 <h1>${esc(p.name)}</h1>

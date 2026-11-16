@@ -102,7 +102,7 @@ $state.branch = $branch; Save
 # and re-bump below. Taking whole pin files from main is not safe: on 22 Oct 2026 that dropped this branch's edits to
 # src/discovery.ts (category rules for new tools) because the file also carries MCP_SERVER_VERSION. Only the generated
 # contract baseline may be taken from main, because update:mcp-contract rebuilds it. Any other conflict stops the run.
-$Regenerated = @('scripts/mcp-contract-baseline.json')
+$Regenerated = @('scripts/mcp-contract-baseline.json', 'src/data/page-lastmod.generated.ts')
 Step 'sync-main' {
   git fetch -q origin
   $mainVersion = ([regex]'"version":\s*"(\d+\.\d+\.\d+)"').Match("$(git show origin/main:server.json)").Groups[1].Value
@@ -123,6 +123,8 @@ Step 'sync-main' {
   $global:LASTEXITCODE = 0
 }
 Step 'bump' { node scripts/bump-version.mjs $Version }
+# Sitemap <lastmod> from git history (needs a full clone; on failure the old dates stay and the step only warns).
+Step 'page-lastmod' { node scripts/build-page-lastmod.mjs } 'page-lastmod' -Optional
 # Idempotent: a restarted run finds the baseline already at this version, and the update script refuses a same-version
 # update, so check first and update only when the baseline differs.
 # A rerun after a source change (a fixed example, 1.54.0) finds the baseline already at this version but stale; the updater
@@ -253,7 +255,7 @@ Step 'check:live' { $first = (npm run check:live 2>&1 | ForEach-Object { "$_" })
 RevertGenerated
 if (Test-Path $DiscoveryDist) { Step 'agentcash-discovery-check' { node scripts/check-agent-discovery.mjs $DiscoveryDist } '"readable402":true' -Optional } else { Write-Host "[skip] discovery check: $DiscoveryDist not found" }
 if (-not (git ls-remote --tags origin "refs/tags/v$Version")) { Step 'tag' { git tag "v$Version" origin/main; git push -q origin "v$Version"; 'tagged' } 'tagged' } else { Write-Host "tag v$Version exists" }
-Step 'indexnow' { node scripts/indexnow.mjs } 'HTTP 200' -Optional
+Step 'indexnow' { node scripts/indexnow.mjs --changed-since 'origin/main~1' } 'IndexNow' -Optional
 $state.reliability = Step 'reliability' { node scripts/reliability-line.mjs $Origin } -Optional; Save
 
 # ---- 6. directory registrations, once per UTC day -------------------------------------------------------------------
