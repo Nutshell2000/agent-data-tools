@@ -146,7 +146,7 @@ ${rows.map(([k, a, b]) => `<tr><td><b>${esc(k)}</b></td><td>${esc(a)}</td><td>${
 </table></div>
 <p class="small">ElevenLabs figures from <a href="${esc(scribe.source)}" rel="nofollow noopener">its API pricing page</a>, read on ${VOICE_CHECKED}.</p>
 <h2>When ElevenLabs is the better choice</h2>
-<ul><li>The most natural voices, a large voice library and voice cloning</li><li>Speech in 70+ languages (ours: English, and Spanish on Aura-2)</li><li>Dubbing, music and realtime voice agents</li><li>Speaker labels (diarization) in transcripts</li></ul>
+<ul><li>The most natural voices, a large voice library and voice cloning</li><li>Speech in 70+ languages (ours: six; English and Spanish on Aura-2, French, Chinese, Japanese and Korean on MeloTTS with one voice each)</li><li>Dubbing in the speaker&#39;s own voice, music and realtime voice agents (our /dub and /voice/agent use stock voices, one turn per call)</li></ul>
 <h2>Switch with one line</h2>
 <pre><code>${esc(`curl -X POST "${origin}/v1/speech-to-text" \\\n  -H "xi-api-key: $API_KEY" \\\n  -F "file=@meeting.mp3" -F "model_id=scribe_v1"`)}</code></pre>
 <p>Text to speech: <code>POST ${esc(origin)}/v1/text-to-speech/{voice_id}</code> with <code>{"text": "…"}</code> returns MP3 bytes, as ElevenLabs does.</p>
@@ -168,7 +168,7 @@ export function whisperPage(origin: string, brand: string): string {
     ["Is it the same Whisper model?", "It runs Whisper large-v3-turbo, the open model OpenAI released, on Cloudflare's network. OpenAI's own API lists Whisper and its newer gpt-4o transcribe models."],
     ["Can I keep my OpenAI code?", "Yes. POST /v1/audio/transcriptions takes OpenAI's request (file, language, response_format json, text, srt, vtt or verbose_json). Set the client's base URL here and use your key as the API key."],
     ["How is a long file priced?", `One call reads up to 60 minutes of MP3 or WAV (25 MB) for ${us.long}. A short clip in any format up to 5 MB is ${us.short}. Per-minute services cost less than us only for clips of a few minutes.`],
-    ["Where are the others better?", "Speaker labels (diarization), live streaming transcription, and models tuned for accents and noise. Deepgram, AssemblyAI and ElevenLabs offer those; we do not yet."],
+    ["Where are the others better?", "Live streaming transcription and models tuned for accents and noise: Deepgram, AssemblyAI and ElevenLabs offer those; we do not yet. Speaker labels are a separate call here (transcribe_speakers)."],
   ];
   const body = `<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/compare">Comparisons</a></nav>
 <h1>Whisper API alternative: speech to text prices compared</h1>

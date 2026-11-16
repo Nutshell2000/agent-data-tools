@@ -829,8 +829,10 @@ export async function recentLogs(cl: PublicClient, filter: { address?: `0x${stri
   let logs: RawLog[] = [];
   let to = latest;
   let size = window.first ?? 10n;
-  const maxSize = window.max;
+  // Lowered when a wide first window fails, so later windows stay at a range the nodes served.
+  let maxSize = window.max;
   let lagRetries = 0;
+  let shrinks = 0;
   while (to >= floor) {
     const from = to - size + 1n > floor ? to - size + 1n : floor;
     let chunk: RawLog[];
@@ -844,6 +846,15 @@ export async function recentLogs(cl: PublicClient, filter: { address?: `0x${stri
       // An older range a node cannot serve after some logs are in (production 5 Nov 2026: /token/buyers answered 404 on
       // every third call): return what was read, marked partial, rather than nothing.
       if (e instanceof HttpError && logs.length > 0) return { logs, fromBlock: to + 1n, complete: false };
+      // Nothing read yet and the window is wide: public nodes cap or time out on wide ranges (/status, 16 Nov 2026: 4 of 5
+      // /arb/token-transfers and 3 of 7 /wallet/related calls ended "could not scan that range"). Try a quarter of the
+      // window, down to 10 blocks, at most 3 times inside the budget, and keep later windows at the size that worked.
+      if (e instanceof HttpError && logs.length === 0 && shrinks < 3 && size > 10n && now() - started <= budget) {
+        shrinks++;
+        size = size / 4n > 10n ? size / 4n : 10n;
+        maxSize = size;
+        continue;
+      }
       throw e;
     }
     logs = chunk.concat(logs);

@@ -85,3 +85,16 @@ test('the copy never offers a credit score, rating or opinion', () => {
   assert.match(note, /not a credit report/);
   assert.doesNotMatch(`${e.summary} ${e.description} ${JSON.stringify(example)} ${JSON.stringify(e.params)}`, /credit ?score|rating|creditworth|solvabilit|risk (score|grade)|safe to/i);
 });
+
+// 16 Nov 2026: 2 of 5 calls in three days ended "did not answer in time"; a timeout is asked once more, other errors are not.
+test('register API: one more try after a timeout, none after a refusal', async () => {
+  const { HttpError } = await (async () => { const b = await build({ entryPoints: ['src/lib/env.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' }); const m = { exports: {} }; new Function('module', 'exports', 'require', b.outputFiles[0].text)(m, m.exports, require); return m.exports; })();
+  let n = 0;
+  const slowOnce = async () => { if (++n === 1) throw new HttpError(502, 'the data source did not answer in time; try again'); return { results: [] }; };
+  assert.deepEqual(await F.ask({ q: 'x' }, slowOnce), { results: [] });
+  assert.equal(n, 2);
+  n = 0;
+  const busy = async () => { n++; throw new HttpError(503, 'the French company register is busy; try again in a few seconds, nothing was charged'); };
+  await assert.rejects(F.ask({ q: 'x' }, busy), /busy/);
+  assert.equal(n, 1);
+});
