@@ -14,6 +14,7 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/pdf/extract": 10 * 1024 * 1024,
   // Audio (14 Nov 2026, voice plan): the same 5 MB as a URL fetch, so the price per call covers the longest file.
   "/transcribe": 5 * 1024 * 1024,
+  "/audio/transcribe": 5 * 1024 * 1024, // 15 Nov 2026: the door to /transcribe
   "/transcribe/long": 25 * 1024 * 1024,
   "/transcribe/summary": 25 * 1024 * 1024, // 1.195.0: uploads (the Obsidian plugin and the voice pages send files)
   // 1.204.0: speaker labels, dubbing and the voice agent take uploads like the other transcription tools.
