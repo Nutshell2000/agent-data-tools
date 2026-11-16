@@ -311,7 +311,7 @@ export const ENTRY_PATHS: Entry[] = [
   // phrase agents type, and the first sentence repeats it. At most two doors per tool, each with its own phrase.
   door("/price/crypto", "Crypto price: live USD price of a coin or token",
     "Crypto price and token price in USD, live: give a symbol (ETH, BTC, LINK, AERO, ARB, OP), a coin name or an ERC-20 address and get its price from the deepest Uniswap v3 pool on Base, Ethereum, Arbitrum or Optimism, with the pool and a thin-liquidity flag. Use to price a token for a quote, a portfolio or a trade.",
-    ["crypto-price", "token-price", "coin-price", "price", "defi", "market-data"], from(PRICES, "/price/token")),
+    ["crypto-token-price-data", "crypto-price", "token-price", "price", "defi", "market-data"], from(PRICES, "/price/token")),
 
   door("/web/search", "Web search: top results for any query",
     "Web search: send a query and get the top web results as JSON (title, URL, snippet, published date), optionally with page text and highlights, filtered by domain, date or category. Results are for immediate use only (Brave API terms); failures are uncharged. Use when an agent needs current facts, sources or links.",
