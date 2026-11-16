@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
 import { PLAN_PORTAL_URL, WEB_PLANS } from "./credits";
+import { FREE_KEY_LINK_HOURS } from "./free-keys";
 import { CHANGELOG } from "../data/changelog.generated";
 
 const UPDATED = "26 October 2026";
@@ -30,7 +31,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
 <li><strong>Agent memory.</strong> What you save with the memory tools (/memory/set), under a one-way hash of the namespace you choose, until it expires (at most 30 days) or you delete it with /memory/delete. Anyone who knows a namespace can read it.</li>
 <li><strong>Card credits.</strong> A one-way hash of your API key with its balance and purchase history, and the Stripe Checkout or payment reference that created it. The key itself is kept with that reference only so that reopening your claim link shows the same key. Card details are handled by Stripe and never reach us.</li>
-<li><strong>Free keys by e-mail.</strong> When you ask for a free key we send one message with a link to the address you give. We keep a one-way hash of that address, so one address gets one key, with the key's hash, its count of free calls this month, and the key itself so that reopening your link shows the same key. The address itself is not stored and is not used for anything else. A hash of your IP address and a count are kept for two days to limit sign-ups.</li>
+<li><strong>Free keys by e-mail.</strong> When you ask for a free key we send one message with a link to the address you give. We keep a one-way hash of that address, so one address gets one key, with the key's hash, its count of free calls this month, and the key itself so that reopening your link shows the same key. The address itself is not stored and is not used for anything else, with one exception that you choose: the form has a box, unticked unless you tick it, to be e-mailed about new tools and price changes (at most monthly). If you tick it and then open the link in the message, we store that address with the time you agreed, and use it only for those messages. If you do not tick it nothing is stored, and an address whose link is never opened is not kept: until the link is opened it exists only in a form that the link itself is needed to read, and that is deleted when the link expires after ${FREE_KEY_LINK_HOURS} hours. To be removed, write to ${mail} from that address and we delete it. A hash of your IP address and a count are kept for two days to limit sign-ups.</li>
 <li><strong>Sign-in from apps (OAuth, for example ChatGPT).</strong> The app's registration (its name and redirect addresses) and one-way hashes of the access and refresh tokens issued to it, linked to your account. Tokens stop working when they expire.</li>
 </ul>
 <h2>Why we keep it</h2>
