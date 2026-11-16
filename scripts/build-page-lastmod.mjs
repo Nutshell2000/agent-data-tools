@@ -89,6 +89,7 @@ export function sourcesFor(page, site) {
   if (site.voiceComparePaths.has(page)) return ["src/lib/voice-compare.ts"];
   if (page === "/compare" || page.startsWith("/compare/")) return ["src/lib/compare-pages.ts"];
   if (page === "/benchmarks") return ["src/lib/benchmarks-page.ts"];
+  if (page === "/lexglyph") return ["src/lib/lexglyph-page.ts", "src/lib/lexglyph-i18n.ts"];
   if (page === "/vat-number-check" || page.startsWith("/vat-number-check/")) return ["src/lib/vat-pages.ts"];
   if (page === "/company-register" || page.startsWith("/company-register/")) return ["src/lib/register-pages.ts"];
   if (page === "/tools") return ["src/lib/tool-pages.ts", "src/endpoints.ts", "src/families.ts"];
