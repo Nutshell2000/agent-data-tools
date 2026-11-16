@@ -181,7 +181,7 @@ export async function invoiceChecks(data: Record<string, unknown>, vies: Vies, t
 
 export const INVOICE_CHECK: Entry[] = [
   entry("/invoice/check", "Invoice check: validate an EU invoice before paying",
-    "Check an invoice in one call: send a PDF, Word or Excel file, scan or photo (URL or POST body). It reads the fields, checks the seller's and buyer's VAT numbers in EU VIES with the registered name, validates the IBAN and its country, recomputes net + VAT = total and the line items, and checks the dates. Returns pass, review or fail with each check. Use before paying a supplier invoice or in an accounts-payable workflow.",
+    "Check an invoice in one call: send a PDF, Word or Excel file, scan or photo (URL or POST body). It reads the fields, checks the seller's and buyer's VAT numbers in EU VIES with the registered name, validates the IBAN and its country, recomputes net + VAT = total and the line items, and checks the dates. Returns pass, review or fail with each check. Use before paying a supplier invoice; for e-invoice XML (XRechnung, ZUGFeRD): pack_einvoice_check.",
     ["invoice-check", "invoice-validation", "invoice-parser", "vat-validation", "accounts-payable", "iban-validation", "invoice-fraud", "document"], {
       url: { type: "string", description: "Absolute public http(s) URL of the invoice file (or send the file in a POST body instead)", required: true, example: SAMPLE_INVOICE },
     },

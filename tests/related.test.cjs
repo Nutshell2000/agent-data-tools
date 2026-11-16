@@ -16,7 +16,8 @@ test('related tools: three others, same category first, best sellers first, neve
   assert.ok(weather.every((e) => e.path !== '/weather'));
   assert.ok(weather.every((e) => ['/geocode', '/geocode/reverse', '/pack/location-brief', '/airport/status', '/econ/gdp', '/econ/inflation', '/econ/population', '/econ/unemployment', '/time', '/holidays', '/earthquakes', '/sun', '/moon', '/country', '/npm/downloads', '/pypi'].includes(e.path)), weather.map((e) => e.path).join(','));
   const payee = relatedTools('/check/payee');
-  assert.deepEqual(payee.map((e) => e.path), ['/check/counterparty', '/check/x402-seller', '/sanctions/check']);
+  // The full counterparty pack runs /check/payee, so it comes first (1.215.0).
+  assert.deepEqual(payee.map((e) => e.path), ['/pack/counterparty-full', '/check/counterparty', '/check/x402-seller']);
   // A tool that a pack runs offers that pack first: the same price buys four to six tools (25 Oct 2026).
   assert.equal(relatedTools('/eth/balance')[0].path, '/pack/wallet-profile');
   assert.equal(relatedTools('/hash')[0].path, '/pack/hash-toolbox');

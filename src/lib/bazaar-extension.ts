@@ -70,6 +70,8 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/ip/lookup", "/ip/geolocate",
   // An e-invoice arrives as a url, as xml text or as an uploaded file; the listing names the example's url.
   "/einvoice/validate", "/einvoice/to-json",
+  // Business packs (16 Nov 2026): url, address or domain; an e-invoice by url, xml text or upload.
+  "/pack/counterparty-full", "/pack/einvoice-check",
 ]);
 /**
  * One-of tools whose listing states the alternatives themselves (16 Nov 2026): `anyOf` with one branch per input and no
@@ -230,7 +232,7 @@ const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "fro
  */
 export function listingName(summary: string): string {
   const head = summary.split(":")[0].replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim();
-  if (head.length <= 32) return head || "Agent Data Tools";
+  if (head.length <= 32) return head || "Glyphcall";
   let words = head.slice(0, 33).split(" ");
   if (words.length > 1) words.pop(); // the last word may be cut
   // A connecting word near the end starts a phrase that no longer fits ("…filings for a US"): cut before it.

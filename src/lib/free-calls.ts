@@ -82,3 +82,49 @@ export const utcDay = () => new Date().toISOString().slice(0, 10);
 export function freeCallNote(left: number, origin: string) {
   return `Free call (${left} of ${FREE_CALLS_PER_CALLER} free calls left for this caller). After that, pay per call with x402, or buy a prepaid key by card at ${origin}/credits and send it as "Authorization: Bearer <key>".`;
 }
+
+// Free MCP calls per connection (16 Nov 2026). Cloud assistants reach /mcp from a few shared addresses, so their users
+// shared, and used up, one allowance per address. The server now hands each MCP connection a signed token at
+// initialize (lib/free-sessions.ts; it travels as Mcp-Session-Id) and counts that connection's free calls on the token.
+// What keeps it from becoming a tap for free calls:
+//   - only a token this service signed is honoured (a made-up one is counted on the address, as before);
+//   - a token gets its own allowance at its first free call, and only FREE_SESSIONS_PER_ADDRESS_PER_DAY tokens per
+//     address hash and UTC day do; a later connection from that address is counted on the address, as before;
+//   - a token that used its calls is used up (it does not fall back to the address's);
+//   - FREE_CALLS_PER_DAY, the total for everybody, is unchanged.
+// Nothing is written when a token is issued: the first write is the first free call, which wrote already.
+export const FREE_SESSIONS_PER_ADDRESS_PER_DAY = 3;
+const sessionCaller = (id: string) => `session:${id}`;
+const admittedKey = (addressHash: string) => `free:sessions:${addressHash}`;
+const SESSION_SECRET_KEY = "free:session-secret";
+
+/** The key session tokens are signed with: made once and kept in this object's storage, so no secret has to be set. */
+export async function freeSessionSecret(storage: FreeCallStorage): Promise<string> {
+  return storage.transaction(async (txn) => {
+    const kept = await txn.get<string>(SESSION_SECRET_KEY);
+    if (kept) return kept;
+    const made = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    await txn.put(SESSION_SECRET_KEY, made);
+    return made;
+  });
+}
+
+/**
+ * Takes one free call for a connection whose token was verified. `caller` is the counter that was used (the token's, or
+ * the address's when this address has admitted its tokens for the day): a refund must name the same one.
+ */
+export async function takeSessionFreeCall(storage: FreeCallStorage, sessionId: string, addressHash: string, day: string, limit = FREE_CALLS_PER_CALLER, perAddress = FREE_SESSIONS_PER_ADDRESS_PER_DAY): Promise<{ left: number | null; caller: string }> {
+  return storage.transaction(async (txn) => {
+    const own = sessionCaller(sessionId);
+    const known = (await txn.get<number>(callerKey(own))) !== undefined;
+    const admitted = usedOn(await txn.get<DayCount>(admittedKey(addressHash)), day);
+    const caller = known || admitted < perAddress ? own : addressHash;
+    const used = (await txn.get<number>(callerKey(caller))) ?? 0;
+    const today = (await txn.get<number>(dayKey(day))) ?? 0;
+    if (used >= limit || today >= FREE_CALLS_PER_DAY) return { left: null, caller };
+    if (caller === own && !known) await txn.put(admittedKey(addressHash), { day, used: admitted + 1 } satisfies DayCount);
+    await txn.put(callerKey(caller), used + 1);
+    await txn.put(dayKey(day), today + 1);
+    return { left: limit - used - 1, caller };
+  });
+}

@@ -175,7 +175,7 @@ export async function kybCheck(input: { q?: string; vat?: string; lei?: string; 
 
 export const KYB: Entry[] = [
   entry("/pack/kyb-eu", "KYB check, EU company verification",
-    "Know-your-business check in one call: finds the company in official registers (FR, SE, NO, FI, CZ, EE) or GLEIF, reads its LEI record and group parent, checks its EU VAT number in VIES (given, or worked out from the register ID) and screens the company and its parent against the OFAC, EU, UN and UK sanctions lists. Returns pass or review with plain flags and every source. Use before onboarding a customer, supplier or counterparty.",
+    "Know-your-business check in one call: finds the company in official registers (FR, SE, NO, FI, CZ, EE) or GLEIF, reads its LEI record and group parent, checks its EU VAT number in VIES (given, or worked out from the register ID) and screens the company and its parent against the OFAC, EU, UN and UK sanctions lists. Returns pass or review with plain flags and every source. Use when you onboard an EU customer, supplier or counterparty.",
     ["kyb", "kyb-check", "company-verification", "business-verification", "eu-companies", "sanctions", "vat-validation"], {
       q: { type: "string", description: "Company name (give q, vat or lei)", example: "Spotify" },
       vat: { type: "string", description: "EU VAT number with its country prefix; VIES gives the name where the member state shares it", example: "SE556703748501" },

@@ -132,7 +132,7 @@ Without a key it gives 25 free successful calls. With a key, send `Authorization
 
 A tool priced above $0.10 is found and described normally and is marked `needsMaxPrice`. It runs only when `call_tool` is given a `max_price` that covers its price; otherwise the answer is an uncharged refusal that states the price. Pass `max_price` only when the user has set a budget for that call, never by default.
 
-The full server, with one MCP tool per catalog tool, is `https://agent-data-tools.revmesh2074.workers.dev/mcp`. The catalog's four tools that write need the full server.
+The full server, with one MCP tool per catalog tool, is `https://agent-data-tools.revmesh2074.workers.dev/mcp/all`. The catalog's four tools that write need the full server.
 
 ## 4. Read the answer
 
