@@ -320,15 +320,19 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
 }
 
 /** One free call for this caller, or null. The returned refund gives it back when the tool fails. */
-export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER) {
+export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER, session?: string) {
   const store = ledger(env);
   if (!store || !trialsEnabled(env)) return null;
-  const caller = await callerHash(ip ?? "unknown");
+  const address = await callerHash(ip ?? "unknown");
   const day = utcDay();
   // If the allowance cannot be counted (storage over its daily write limit), the caller gets the payment
   // request like any unpaid call instead of a 500, and onUnavailable lets the caller say why.
-  const left = await store.takeFreeCall(caller, day, limit).catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
-  if (left === undefined) { onUnavailable?.(); return null; }
+  // session: the id of an MCP connection's verified token (lib/free-sessions.ts). Its calls are counted on the token
+  // while this address may still admit one today, otherwise on the address; `caller` is the counter that was used.
+  const taken = await (session ? store.takeSessionFreeCall(session, address, day, limit) : store.takeFreeCall(address, day, limit).then((left) => ({ left, caller: address })))
+    .catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
+  if (taken === undefined) { onUnavailable?.(); return null; }
+  const { left, caller } = taken;
   if (left === null) markStage("free_exhausted");
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
 }
@@ -367,7 +371,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
       : `You are signed in without credits: ${FREE_CALLS_PER_CALLER} free successful calls are included (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. After that, tools need credits, which the user can get at ${origin}/credits before reconnecting and signing in with the key.`)
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
-    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. Here they are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
+    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. They are counted per connection when your client keeps the session id this server sends at initialize, otherwise per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
       + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo) it can pay it, or prepay once: GET ${origin}/credits/usdc/5 with x402 returns a key worth 5,000 credits for later calls. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
   // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
   if (focus) return `Agent Data Tools, ${toolCount} pay-per-call tools for ${focus.kinds}. ${focus.prices ?? "Most cost $0.01 per successful call."} ${pay} Every tool's result shape is in its output schema. ${focus.pick}`;

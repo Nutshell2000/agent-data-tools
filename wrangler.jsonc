@@ -13,6 +13,9 @@
   "routes": [
     { "pattern": "glyphcall.com", "custom_domain": true },
     { "pattern": "www.glyphcall.com", "custom_domain": true },
+    // 16 Nov 2026 (sales plan item 12): brand hosts for API and MCP clients; workers.dev stays the paid origin in listings.
+    { "pattern": "api.glyphcall.com", "custom_domain": true },
+    { "pattern": "mcp.glyphcall.com", "custom_domain": true },
     { "pattern": "tools.funwords.eu", "custom_domain": true }
   ],
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
@@ -55,10 +58,10 @@
     // stops its keys at once. Worst case per UTC day if every limit is reached, from the model prices in that file:
     // test keys about $3.50 (never above $6: 2,000 counted calls of at most $0.003), trial keys about $0.15.
     // OFF in production until both are proven on staging (wrangler.staging.jsonc has them on): set to "on" to offer them.
-    "VOICE_TEST_KEYS": "off",
+    "VOICE_TEST_KEYS": "on",
     "VOICE_TEST_KEYS_PER_DAY": "100",
-    "CREDITS_TRIAL": "off",
-    "CREDITS_TRIAL_MINUTES": "200",
+    "CREDITS_TRIAL": "on",
+    "CREDITS_TRIAL_MINUTES": "60",
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.
@@ -84,6 +87,9 @@
     "PUBLIC_SITE_ORIGIN": "https://glyphcall.com",
     // www.glyphcall.com is listed too (15 Nov 2026): its pages answer 301 to the apex, the one canonical home.
     "RETIRED_PUBLIC_HOSTS": "tools.funwords.eu,www.glyphcall.com",
+    // The paid origin keeps every API, MCP, payment, /credits and tool path; only a browser's GET (Accept: text/html)
+    // of a human page there answers 301 to the same path on glyphcall.com (16 Nov 2026, movedBrowserPageUrl).
+    "BROWSER_PAGES_MOVED_HOSTS": "agent-data-tools.revmesh2074.workers.dev",
     // The name on the pages for people (src/lib/public-brand.ts); agent surfaces keep the service name.
     "PUBLIC_BRAND": "Glyphcall",
     // Keyless facilitator. For the Coinbase Bazaar set this to

@@ -7,6 +7,7 @@
 // type that still ranks. Formats are the European Commission's published VIES formats; keep the table in step with
 // VIES_COUNTRIES in routes/registries.ts (tests/vat-pages.test.cjs fails when they differ).
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { COMPANY_FOOTER } from "./legal";
 
@@ -132,7 +133,7 @@ ${register ? `<h2>The ${esc(c.adjective)} company register</h2><p>For more than 
 ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 <h2>Other countries</h2>
 <p>${VAT_COUNTRIES.filter((o) => o !== c).map((o) => `<a href="${VAT_BASE}/${esc(o.slug)}">${esc(o.country.replace(/^the /, ""))}</a>`).join(" · ")}</p>
-<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
@@ -164,6 +165,6 @@ ${VAT_COUNTRIES.map((c) => `<tr><td><a href="${VAT_BASE}/${esc(c.slug)}">${esc(c
 <pre><code>curl -H "Authorization: Bearer $API_KEY" \\
   "${esc(origin)}${TOOL}?vat=SE556703748501"</code></pre>
 <p>Keys, monthly plans and code in Python and Node.js: <a href="/company-check-api">Company check API</a>.</p>
-<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }

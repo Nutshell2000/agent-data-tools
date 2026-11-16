@@ -34,7 +34,7 @@ function fnv(text: string): string {
 
 /** Everything outside the URL that changes a quote: the release, where payments go, and the switches that change its text. */
 export function quoteFingerprint(env: Env, version: string): string {
-  return fnv(JSON.stringify([version, paymentOptions(env), env.TRIALS_ENABLED ?? "", env.PDF_TRY ?? "", Boolean(env.STRIPE_READ_KEY), env.QUOTE_BODY ?? "", env.MPP_EVM ?? "", env.TEMPO_PAY_TO ?? ""]));
+  return fnv(JSON.stringify([version, paymentOptions(env), env.TRIALS_ENABLED ?? "", env.PDF_TRY ?? "", Boolean(env.STRIPE_READ_KEY), env.QUOTE_BODY ?? "", env.MPP_EVM ?? "", env.TEMPO_PAY_TO ?? "", env.PUBLIC_SITE_ORIGIN ?? ""]));
 }
 
 /**

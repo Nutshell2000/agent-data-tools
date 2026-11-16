@@ -2146,3 +2146,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - lexglyph-i18n.ts holds every interface string per language (tests/lexglyph.test.cjs requires the same keys in all six); add a language there, never inline. `eurlexIn(url, code)` swaps the /legal-content/XX/ segment; EUR-Lex anchors are the same in every language. Light-mode colour overrides in PAGE_STYLE keep AAA contrast; re-measure after any style change.
 
+
+
+## Sales plan, second batch (1.215.0, 16 Nov 2026)
+
+- Owner, 16 Nov 2026: "Implement the ENTIRE research agents plan". This release finishes the cloud builder's draft PRs #492 (small /mcp), #494 (brand) and #497 (packs) on 1.213.0.
+- `/pack/counterparty-full` and `/pack/einvoice-check` (src/routes/packs-business.ts), $0.01, run existing tools' handlers only. `PACK_OF` makes the counterparty pack the first related tool of /check/payee and its siblings.
+- `/mcp` lists the small surface (`SURFACE_TOOLS` + `MCP_PINNED_PATHS`, src/mcp-contract.ts); every tool still runs there by name; `/mcp/all` lists the catalog without entry paths. `TOOL_COUNT` (endpoints.ts) is the one count in copy, README and server.json (scripts/bump-version.mjs kind `toolCount`).
+- Free calls per MCP connection (src/lib/free-sessions.ts) are built and tested but OFF: `MCP_FREE_SESSIONS` must be "on" (not set in wrangler.jsonc). The owner's 25-per-caller rule stands until she decides otherwise.
+- Brand: `SERVICE_BRAND` (src/lib/public-brand.ts) in service-level names only (never a tool's listing name); `serviceIconUrl` puts the icon on `PUBLIC_SITE_ORIGIN`; `movedBrowserPageUrl` (src/lib/public-site.ts) 301s browser GETs of human pages on `BROWSER_PAGES_MOVED_HOSTS` to glyphcall.com and never touches tool paths, payments, MCP, /v1, /credits or non-HTML clients. `api.glyphcall.com` and `mcp.glyphcall.com` are custom domains of the Worker.
+- Voice: `CREDITS_TRIAL` "on" with `CREDITS_TRIAL_MINUTES` 60 (all trials together per UTC day) and `VOICE_TEST_KEYS` "on". The voice site (C:\SpellzCode\...\glyphcall-voice-tools) carries the trial button (docs/voice-site-patches/transcribe-trial.patch applied) and the two OpenAI shutdown guides (guides-src/, built by build-guides.mjs).
+- Pro keeps 300 hours at $9 (decided 16 Nov under the delegated prices): cutting it to 100 hours would mean tripling the long-transcription price for every buyer while there are no voice buyers; Whisper costs about $0.03 an hour.
