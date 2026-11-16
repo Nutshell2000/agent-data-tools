@@ -56,7 +56,8 @@ const toolName = (path) => path.slice(1).replace(/[/-]/g, "_");
 const get = (url, headers = {}) => fetch(url, { headers: { "user-agent": UA, ...headers }, signal: AbortSignal.timeout(30_000) });
 
 // 1. The catalog: every tool's price and a working example URL.
-const card = await (await get(ORIGIN, { accept: "application/json" })).json();
+// The full card moved from "/" to /service-card.json (src/lib/first-call.ts); "/" is now a short card without the tools.
+const card = await (await get(`${ORIGIN}/service-card.json`, { accept: "application/json" })).json();
 const payTo = String(card.payment.payTo).toLowerCase();
 const byName = new Map(card.endpoints.map((e) => [toolName(new URL(e.url).pathname), e]));
 

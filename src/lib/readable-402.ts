@@ -5,7 +5,7 @@ import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
-import type { Endpoint } from "../endpoints";
+import { exampleParams, type Endpoint } from "../endpoints";
 import { relatedList } from "./related";
 import { WEB_PACKS, callsAt, usdcPrepayLine } from "./credits";
 import { keyPriceLine } from "./key-prices";
@@ -19,6 +19,25 @@ function cardHint(origin: string, cardReady: boolean, price = "$0.01") {
   return cardReady
     ? `No wallet? Pay $${starter.usdCents / 100} by card in one step at ${starter.url} (${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits), then send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`
     : `No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`;
+}
+
+/** The keyless route, as data: the request that was just refused (or the tool's published example when it carried no input) with trial=1. */
+function freeTrialOffer(page: { endpoint: Endpoint; url: string }) {
+  const url = new URL(page.url);
+  for (const control of ["x402", "sample"]) url.searchParams.delete(control);
+  if (![...url.searchParams.keys()].length) for (const [k, p] of exampleParams(page.endpoint)) url.searchParams.set(k, String(p.example));
+  url.searchParams.set("trial", "1");
+  return { what: `No key, no wallet: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller on this and most other tools. Failed calls do not count.`, url: url.href };
+}
+
+/** The card route, as data: where credits are sold and the smallest pack (named only while card payments can issue keys). */
+function payByCard(origin: string, cardReady: boolean) {
+  const [starter] = WEB_PACKS;
+  return {
+    credits: `${origin}/credits`,
+    ...(cardReady && starter ? { smallestPack: { price: `$${starter.usdCents / 100}`, credits: starter.credits, buy: starter.url } } : {}),
+    use: "Send the key as Authorization: Bearer adt_…, or add api_key=adt_… to the URL.",
+  };
 }
 
 /** v1 terms in the 402 body only when the caller asks (x402=1) or the switch QUOTE_BODY=v1 is set; see readable402. */
@@ -42,7 +61,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   } catch {
     return res;
   }
-  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
+  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."} ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // The body mirrors the v2 header (1.117.0, 10 Nov 2026). Until then it was a v1 PaymentRequired on every tool, and
   // vAPI Call's listing check read that as "header and body declare different x402 versions" and found no input
   // description, because the Bazaar extension only exists in v2 terms; seven of nine sellers its monitor calls healthy
@@ -54,7 +73,10 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   const prepay = page ? usdcPrepayLine(origin) : undefined;
   // Where a prepaid key pays less than the public price, the refusal says so (lib/key-prices.ts).
   const withKey = page ? keyPriceLine(page.endpoint.path, page.endpoint.price, origin) : undefined;
-  const body = v1Accepts.length ? { ...v1Body(v1Accepts, challenge.error ?? "Payment required", hint), resource: challenge.resource, related, prepay, withKey } : { ...challenge, hint, related, prepay, withKey };
+  // What a newcomer can do right now comes first (16 Nov 2026): a model reads a JSON body top down, and the payment terms
+  // are long. Key order only; the x402 fields below keep their names and values, and the header is untouched.
+  const first = { hint, freeTrial: freeCalls && page ? freeTrialOffer(page) : undefined, payByCard: payByCard(origin, cardReady), prepay };
+  const body = v1Accepts.length ? { ...first, ...v1Body(v1Accepts, challenge.error ?? "Payment required"), resource: challenge.resource, related, withKey } : { ...first, ...challenge, related, withKey };
   const headers = new Headers(res.headers);
   headers.delete("content-length");
   return new Response(JSON.stringify(body), { status: 402, headers });
