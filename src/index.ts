@@ -22,8 +22,8 @@ import { EINVOICE_BASE, EINVOICE_BASE_DE, EINVOICE_RULES, EINVOICE_RULES_DE, ein
 import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } from "./lib/einvoice-pages-de";
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
-import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
-import { publicBrand } from "./lib/public-brand";
+import { movedBrowserPageUrl, movedPageUrl, serviceIconUrl, withPublicCanonical, withPublicSitemap } from "./lib/public-site";
+import { publicBrand, SERVICE_BRAND } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { isV2PaymentHeader, payV1, v1Requirements } from "./lib/x402-v1";
@@ -145,6 +145,15 @@ app.use(async (c, next) => {
   const rewritten = new Response(withPublicCanonical(html, here, site), { status: 200, headers });
   c.res = undefined as never;
   c.res = rewritten;
+});
+// On the paid origin (BROWSER_PAGES_MOVED_HOSTS) a browser that asks for a human page is sent to the public site,
+// page for page. Tool paths, payments, MCP, /v1, /credits, catalogs, HEAD, POST and clients that do not ask for HTML
+// are answered here as before (lib/public-site.ts movedBrowserPageUrl holds the whole rule).
+app.use(async (c, next) => {
+  await next();
+  if (!c.env.BROWSER_PAGES_MOVED_HOSTS) return;
+  const moved = movedBrowserPageUrl({ method: c.req.method, url: c.req.url, header: (name) => c.req.header(name) }, { status: c.res.status, contentType: c.res.headers.get("content-type") }, c.env.PUBLIC_SITE_ORIGIN, c.env.BROWSER_PAGES_MOVED_HOSTS, (path) => PAID_PATHS.has(path));
+  if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600", Vary: "Accept" } }); }
 });
 // /weather/today (1.105.0, one day old, never on the Bazaar) became /weather/current in 1.107.0: the few catalogs that
 // crawled the old path are sent on with the same query, and a paying client's retry follows the same redirect.
@@ -283,7 +292,7 @@ function buildPaywall(env: Env, only?: (typeof ENDPOINTS)[number]): MiddlewareHa
         description: listingDescription(e),
         mimeType: "application/json",
         serviceName: listingName(e.summary),
-        iconUrl: SERVICE_ICON_URL,
+        iconUrl: serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL),
         tags: listingTags(e.tags, e.path),
         extensions: { ...bazaarExtensionFor(e), ...builderCodeExtension() },
       },
@@ -297,8 +306,8 @@ function buildPaywall(env: Env, only?: (typeof ENDPOINTS)[number]): MiddlewareHa
         accepts: [{ scheme: "exact", price: `$${p.priceUsd}`, network: env.NETWORK, payTo: env.PAY_TO }],
         description: `${p.title}: ${p.tagline} Returns a download link for the product file.`,
         mimeType: "application/json",
-        serviceName: SERVICE_NAME,
-        iconUrl: SERVICE_ICON_URL,
+        serviceName: SERVICE_BRAND,
+        iconUrl: serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL),
         tags: ["template", "x402", "starter", "guide"],
         extensions: {
           ...declareDiscoveryExtension({
@@ -689,7 +698,7 @@ app.get("/tools/:slug", async (c) => {
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
 app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
 app.get("/sitemap.xml", (c) => c.body(withEinvoicePages(sitemapXml(origin(c.req.url)), origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
-app.get("/robots.txt", (c) => c.text(robotsTxt(origin(c.req.url))));
+app.get("/robots.txt", (c) => c.text(withPublicSitemap(robotsTxt(origin(c.req.url)), origin(c.req.url), c.env.PUBLIC_SITE_ORIGIN)));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
 const LOGO = Uint8Array.from(atob(LOGO_PNG_BASE64), (ch) => ch.charCodeAt(0));
@@ -854,7 +863,7 @@ app.get("/.well-known/mcp.json", (c) => c.json(mcpServerCard(origin(c.req.url), 
 app.get("/.well-known/mcp", (c) => c.json(mcpServerCard(origin(c.req.url), paymentRails(c.env).networks)));
 // A2A agent card (1.84.0): the Agent2Agent discovery file A2A registries and FluxA's AgentMarket crawl.
 for (const path of ["/.well-known/agent.json", "/.well-known/agent-card.json"]) {
-  app.get(path, (c) => c.json(agentCard(origin(c.req.url), paymentRails(c.env).networks), 200, { "Cache-Control": "public, max-age=3600" }));
+  app.get(path, (c) => c.json(agentCard(origin(c.req.url), paymentRails(c.env).networks, c.env.PUBLIC_SITE_ORIGIN), 200, { "Cache-Control": "public, max-age=3600" }));
 }
 // Pages published through /page/publish (1.84.0): sanitised HTML from KV, noindex, strict CSP, gone after at most 7 days.
 app.get("/p/:id", async (c) => {
