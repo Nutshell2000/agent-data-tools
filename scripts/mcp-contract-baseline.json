@@ -1,5 +1,5 @@
 {
-  "version": "1.205.0",
+  "version": "1.206.0",
   "tools": [
     {
       "name": "extract",
@@ -20710,6 +20710,46 @@
       "price": "$0.01"
     },
     {
+      "name": "audio_transcribe",
+      "description": "Transcribe audio to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments and words. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meeting and podcast clips, call recordings and subtitles. Example: url=https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of an audio file (max 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)"
+          },
+          "subtitles": {
+            "type": "string",
+            "description": "srt or vtt: also return subtitle text"
+          },
+          "timestamps": {
+            "description": "true: also return timed segments and words",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language code such as en, sv or de (default: detected)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "solana_price",
       "description": "Solana price now: the current SOL spot price in USD with its 24-hour change, from Coinbase; add vs=eur,gbp for up to 5 currencies, or ids for other coins in the same call. No input needed. Use to value a Solana payment or wallet, convert between SOL and fiat, or check the SOL price before a trade. Example: ids=solana. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -22278,6 +22318,86 @@
         ]
       },
       "price": "$0.02"
+    },
+    {
+      "name": "dialogue",
+      "description": "Turn a script into a multi-voice conversation: write one line per turn as \"Name: text\", each speaker gets their own natural voice (Deepgram Aura-2, English or Spanish, or pick voices), and the whole dialogue comes back as one MP3 with SRT captions naming the speaker, timed from the real audio. Up to 6 speakers and 2,500 characters. Use for podcast intros, language-lesson dialogues, explainer videos, ads and game or story scenes. Example: script=Anna: Welcome back to the show!\nBen: Thanks, it is great to be here.. Price $0.10/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string",
+            "description": "One turn per line as Name: text (up to 6 speakers, 2,500 characters)"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (default en)"
+          },
+          "voices": {
+            "type": "string",
+            "description": "Voice per speaker, as JSON {\"Anna\":\"luna\"} or Anna=luna, Ben=orion (default: a different voice each, in order)"
+          },
+          "captions": {
+            "type": "string",
+            "description": "srt (default) or vtt"
+          }
+        },
+        "required": [
+          "script"
+        ]
+      },
+      "price": "$0.10"
+    },
+    {
+      "name": "text_to_speech_captions",
+      "description": "Text to speech that comes with subtitles: up to 2,000 characters spoken as one MP3 in English or Spanish (Deepgram Aura-2, pick a voice), plus SRT or VTT captions whose timings come from the generated audio itself, sentence by sentence. Ready for a video editor, no transcription step. Use for narrated videos, social clips, e-learning and accessible audio with captions. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 2,000 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (default en)"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Aura-2 voice name (default luna for en, aquila for es)"
+          },
+          "captions": {
+            "type": "string",
+            "description": "srt (default) or vtt"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.08"
     },
     {
       "name": "einvoice_create",

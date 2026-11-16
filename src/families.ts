@@ -116,6 +116,9 @@ CATALOG.push(...VOICE);
 // Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): speaker labels and subtitle translation.
 import { VOICE_PLUS } from "./routes/voice-plus";
 CATALOG.push(...VOICE_PLUS);
+// Glyphcall Voice round 5 (1.206.0, routes/voice-studio.ts): dialogue audio and speech with captions.
+import { VOICE_STUDIO } from "./routes/voice-studio";
+CATALOG.push(...VOICE_STUDIO);
 export const LOCAL_PATHS: ReadonlySet<string> = new Set([
   ...LOCAL_FAMILIES.flatMap((family) => family.map((e) => e.endpoint.path)),
   "/yaml/to-json", "/json/to-yaml", "/phone/validate", "/geo/distance", "/useragent/parse", "/text/language", "/keccak",

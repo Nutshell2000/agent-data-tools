@@ -2095,3 +2095,14 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Tests: tests/payee.test.cjs (real viem signatures with Hardhat test key #0, a generated Ed25519 key, no network).
 - Not built in Phase 0 (plan): on-chain attestation on Base (needs gas and a hot key: owner's call), self-billing mandate and per-payment e-invoices (Phase 1), Peppol directory lookup of the declared ID.
 
+
+
+## Dialogue audio and speech with captions (1.206.0, 15 Nov 2026)
+
+- src/routes/voice-studio.ts. `speakTimed(env, model, items)` speaks each item (its own voice, `speechParts` for long ones, 6 at a time) and joins all parts with `joinMp3`. It returns each item's start and end, counted from its MP3 frames (`mp3Seconds` uses `mp3Frames` from voice.ts).
+  - Checked live on 15 Nov: Aura-2 returns MPEG-2 frames (`fff3`), and 54 characters measured 3.408 s.
+- `/dialogue` ($0.10): `parseScript` reads "Name: line" (a line without a name continues the last speaker). `castVoices` takes JSON or "A=voice" pairs, then `DIALOGUE_VOICES` in order. Caps: 6 speakers, 80 turns, 2,500 characters (Aura-2 at most $0.075).
+- `/text-to-speech/captions` ($0.08): `captionCues` splits at sentence ends, then commas, keeping cues at 120 characters or less. Only fragments (under 25 characters, or a next cue under 15) are joined. Cap: 2,000 characters.
+- Both tools are in `CAPACITY_LIMITED`, `GENERATIVE_MEDIA` and recommend `JOBS`. `FOCUSED_SERVERS.voice` swapped ai_speech and text_to_speech_lite for them, because the server holds at most 10 tools.
+- tests/gateway-startup.test.cjs: the stalled-initialization deadline went from 1.5 s to 5 s. CI on Linux passed at 1.5 s, but every local run on the owner's PC failed. A truly blocked quote waits for `release()`, so 5 s still detects it.
+
