@@ -414,7 +414,7 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd(faqLd)}</script>
 <style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(brand)}</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a>${freeKey ? ` · <a href="/keys/free">Get a free key</a>` : ""}</nav>
 <h1>${esc(p.name)}</h1>
 <p class="tag">${esc(p.tagline)}</p>
 <ul class="points">${p.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>

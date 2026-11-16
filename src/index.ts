@@ -10,6 +10,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402, wantsV1Body } from "./lib/readable-402";
+import { SERVICE_CARD_PATH, llmsShortTxt, rootCard, type FirstCallFacts } from "./lib/first-call";
 import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
@@ -579,14 +580,21 @@ app.get("/", async (c) =>
   // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(c.env.PUBLIC_BRAND?.trim()
-      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY))
+      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env) })
       : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
-    : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))),
+    // Programs get the short card (lib/first-call.ts, under 4 KB); the full one moved to SERVICE_CARD_PATH.
+    : c.json(rootCard(origin(c.req.url), { ...firstCallFacts(c.env), payTo: c.env.PAY_TO })),
 );
+// The full service card: every tool with its inputs, price and example (what "/" answered programs before 16 Nov 2026).
+app.get(SERVICE_CARD_PATH, (c) => c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))));
+/** What the short llms.txt and the short root card say about this deployment. */
+function firstCallFacts(env: Env): FirstCallFacts {
+  return { brand: publicBrand(env, SERVICE_NAME), trials: trialsEnabled(env), freeKeys: freeKeysOn(env), ...paymentRails(env) };
+}
 // The agent catalogue page, whatever "/" shows.
 app.get("/agents", async (c) => c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url)))));
 // Quick-start docs for people who call the APIs with a key (lib/site-pages.ts); /pricing is the card page.
-app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url))));
+app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), freeKeysOn(c.env))));
 app.get("/pricing", (c) => c.redirect("/credits", 302));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
@@ -611,7 +619,8 @@ app.get("/openapi.json", (c) => {
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
-app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+// The short file (lib/first-call.ts, under 8 KB); the long one, unchanged, is /llms-full.txt below.
+app.get("/llms.txt", (c) => c.text(llmsShortTxt(origin(c.req.url), firstCallFacts(c.env))));
 app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), READER_VERSION)));
 app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), READER_VERSION)));
 app.get("/guides/ai-sdk", c => c.html(aiSdkHtml(origin(c.req.url))));

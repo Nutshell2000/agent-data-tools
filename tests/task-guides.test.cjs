@@ -95,7 +95,9 @@ test('the guides are reachable: index page, homepage, tool pages, llms.txt and t
   assert.match(home, /Buy credits from \$1/, 'the homepage names the $1 pack and the real credit prices');
   const tool = await (await mf.dispatchFetch('https://api.test/tools/pdf-text')).text();
   assert.match(tool, /href="\/guides\/pdf-to-text-api">PDF to text API</);
-  const llms = await (await mf.dispatchFetch('https://api.test/llms.txt')).text();
+  // The guide list is in the full file; the short /llms.txt (lib/first-call.ts) links it.
+  const llms = await (await mf.dispatchFetch('https://api.test/llms-full.txt')).text();
+  assert.match(await (await mf.dispatchFetch('https://api.test/llms.txt')).text(), /https:\/\/api\.test\/llms-full\.txt/);
   assert.match(llms, /PDF to text API: https:\/\/api\.test\/guides\/pdf-to-text-api\.md/);
   assert.match(llms, /\$1 = 1,000 credits/);
   const sitemap = await (await mf.dispatchFetch('https://api.test/sitemap.xml')).text();
