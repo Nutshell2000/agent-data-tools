@@ -32,6 +32,7 @@ test("the front page opens on the console, with text already in it and a voice c
   assert.equal((hero.match(/aria-pressed="true"/g) ?? []).length, 1, "one voice preselected");
   assert.match(hero, /&#9654; Play/);
   assert.match(hero, /Drop a recording here/);
+  assert.match(hero, /Fix one sentence without redoing the rest<\/summary><ol id="hero-vc-sents">/, "one sentence can be redone alone");
   assert.equal(scripts(html), 1, "the console's script, once");
   assert.ok(html.indexOf("<script>") > html.indexOf("</main>"), "the script runs after the markup exists");
   assert.match(html, /href="#try">Try it free, no account/);

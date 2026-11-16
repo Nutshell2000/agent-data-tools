@@ -7,6 +7,8 @@
 // - the tool is the hero: text is already filled in and a voice is chosen, one click on Play speaks it;
 // - voice previews, retries and downloads are free and unlimited, because the models run on the visitor's device;
 // - playback starts with the first sentence while the rest is still being made;
+// - any one sentence can be edited and redone alone and is spliced into the same download (their users regenerate a
+//   whole paragraph, and pay for it, to fix one word);
 // - one console for both jobs; a recording dropped anywhere on it is transcribed.
 //
 // The models are the ones the free tools at voice.glyphcall.com use (Kokoro 82M for speech, Whisper base for
@@ -71,6 +73,8 @@ export const VOICE_CONSOLE_CSS = `.vc{--vc-card:#11111c;--vc-card2:#0b0b13;--vc-
 .vc-opts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 0}.vc select{font:inherit;font-size:.9rem;border-radius:10px;border:1px solid var(--vc-line);background:var(--vc-card2);color:var(--vc-fg);padding:8px 10px}
 .vc-rec.on{border-color:#f87171;color:#fecaca}
 .vc-foot{border-top:1px solid var(--vc-line);padding:10px 16px;color:var(--vc-muted);font-size:.8rem;display:flex;flex-wrap:wrap;gap:4px 16px}.vc-foot span::before{content:"\\2713";color:var(--vc-ok);font-weight:800;margin-right:6px}
+.vc-fix{margin:0 0 10px}.vc-fix summary{cursor:pointer;color:var(--vc-accent);font-size:.88rem;font-weight:600}.vc-fix ol{margin:8px 0 0;padding-left:22px;display:grid;gap:6px;max-height:260px;overflow:auto}
+.vc-fix li{color:var(--vc-muted);font-size:.85rem}.vc-fix li div{display:flex;gap:6px}.vc-fix input{flex:1;min-width:0;font:inherit;font-size:.9rem;border-radius:8px;border:1px solid var(--vc-line);background:var(--vc-card);color:var(--vc-fg);padding:6px 8px}.vc-fix button{padding:6px 10px}
 .vc kbd{font:inherit;font-size:.75rem;border:1px solid var(--vc-line);border-bottom-width:2px;border-radius:5px;padding:0 5px}
 @media (max-width:520px){.vc-speed{margin-left:0;width:100%}.vc-go{flex:1}}`;
 
@@ -94,7 +98,7 @@ export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSi
 <div class="vc-row"><button type="button" class="vc-go" id="${v("speak")}">&#9654; Play</button><button type="button" class="vc-sec" id="${v("stop")}" hidden>&#9632; Stop</button>
 <label class="vc-speed">Speed <input type="range" id="${v("speed")}" min="0.6" max="1.6" step="0.1" value="1"><span id="${v("speedv")}">1.0x</span></label></div>
 <progress id="${v("tbar")}" max="1" hidden></progress><p class="vc-status" id="${v("tstatus")}" role="status" aria-live="polite">First play fetches the voice once (about 90 MB), then it starts in seconds.</p>
-<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-speech.wav" href="#">Download WAV</a><button type="button" class="vc-sec" id="${v("mp3")}">Download MP3</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
+<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><details class="vc-fix"><summary>Fix one sentence without redoing the rest</summary><ol id="${v("sents")}"></ol></details><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-speech.wav" href="#">Download WAV</a><button type="button" class="vc-sec" id="${v("mp3")}">Download MP3</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
 </div>
 <div class="vc-pane" id="${v("stt")}" role="tabpanel" aria-labelledby="${v("t-stt")}"${first === "stt" ? "" : " hidden"}>
 <label class="vc-drop" id="${v("drop")}"><input type="file" id="${v("file")}" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.webm,.mp4,.mov,.flac,.aac"><b>Drop a recording here, or click to choose one</b><span>MP3, M4A, WAV, OGG, WebM or a video. It stays on your computer.</span></label>
@@ -116,7 +120,7 @@ function load(){if(tts)return Promise.resolve(tts);if(!loading)loading=KokoroTTS
 self.onmessage=async(e)=>{const m=e.data;if(m.type==="cancel"){cancelled=m.id;return;}
 try{const model=await load();self.postMessage({type:"ready",id:m.id});if(m.type!=="speak")return;
 const s=new TextSplitterStream();s.push(m.text);s.close();let done=0;
-for await(const piece of model.stream(s,{voice:m.voice,speed:m.speed})){if(cancelled===m.id)return;const a=piece.audio;done+=(piece.text||"").length;const pcm=a.audio;self.postMessage({type:"chunk",id:m.id,pcm,rate:a.sampling_rate,done,total:m.text.length},[pcm.buffer]);}
+for await(const piece of model.stream(s,{voice:m.voice,speed:m.speed})){if(cancelled===m.id)return;const a=piece.audio;done+=(piece.text||"").length;const pcm=a.audio;self.postMessage({type:"chunk",id:m.id,pcm,text:piece.text||"",rate:a.sampling_rate,done,total:m.text.length},[pcm.buffer]);}
 self.postMessage({type:"end",id:m.id});}catch(err){self.postMessage({type:"error",id:m.id,message:String((err&&err.message)||err)});}};`;
 
 const STT_WORKER = `import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1";
@@ -166,28 +170,39 @@ text.addEventListener("input",()=>{upd();store.set("gc-vc-text",text.value);});
 speed.oninput=()=>{$("speedv").textContent=Number(speed.value).toFixed(1)+"x";};
 let voice=store.get("gc-vc-voice")||"af_heart";const chips=root.querySelectorAll("[data-voice]");
 const mark=()=>chips.forEach((c)=>c.setAttribute("aria-pressed",String(c.dataset.voice===voice)));if(![...chips].some((c)=>c.dataset.voice===voice))voice="af_heart";mark();
-let tw=null,ready=false,job=0,ctx=null,next=0,parts=[],rate=24000,last=null,t0=0,first=0;const tdl=dl();
+// mode: "main" builds the result sentence by sentence, "redo" replaces one sentence of it, "preview" only plays.
+let tw=null,ready=false,job=0,ctx=null,next=0,sents=[],mode="main",redoAt=-1,redoBuf=[],redoText="",rate=24000,last=null,t0=0,first=0;const tdl=dl();
+const sentList=$("sents"),attr=(s)=>s.replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const flat=()=>{const out=[];for(const s of sents){for(const p of s.pcm)out.push(p);out.push(new Float32Array(Math.round(rate*0.12)));}return out;};
+function listSents(){sentList.innerHTML=sents.map((s,i)=>'<li><div><input aria-label="Sentence '+(i+1)+'" value="'+attr(s.text.trim())+'"><button type="button" class="vc-sec" data-redo="'+i+'">Redo</button></div></li>').join("");}
+sentList.addEventListener("click",(e)=>{const b=e.target.closest("[data-redo]");if(!b||speak.disabled)return;const i=Number(b.dataset.redo),t=b.previousElementSibling.value.trim();if(t)redoOne(i,t);});
+sentList.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault();e.target.nextElementSibling.click();}});
 function tworker(){if(tw)return tw;tw=mk(TTS_SRC);tw.onmessage=(e)=>{const m=e.data;
 if(m.type==="download"){const {l,t}=tdl(m);tbar.hidden=false;tbar.value=t?l/t:0;say(tst,"Fetching the voice (first time only): "+mb(l)+" of "+mb(t)+" MB");}
 else if(m.type==="ready"){if(!ready){ready=true;tbar.hidden=true;if(!busy())say(tst,"Voice ready. Press Play, or click a voice name twice to hear it.","ok");}}
-else if(m.type==="chunk"&&m.id===job){rate=m.rate;parts.push(m.pcm);parts.push(new Float32Array(Math.round(rate*0.12)));
+else if(m.type==="chunk"&&m.id===job){rate=m.rate;if(mode==="main")sents.push({text:m.text,pcm:[m.pcm]});else if(mode==="redo")redoBuf.push(m.pcm);
 if(ctx){const b=ctx.createBuffer(1,m.pcm.length,rate);b.copyToChannel(m.pcm,0);const s=ctx.createBufferSource();s.buffer=b;s.playbackRate.value=1;s.connect(ctx.destination);next=Math.max(next,ctx.currentTime+0.05);s.start(next);next+=b.duration+0.12;}
 if(!first){first=performance.now();}tbar.hidden=false;tbar.value=Math.min(1,m.done/m.total);say(tst,"Speaking while the rest is made: "+Math.round(100*Math.min(1,m.done/m.total))+"%");}
 else if(m.type==="end"&&m.id===job){finish();}
-else if(m.type==="error"){tbar.hidden=true;speak.disabled=false;stop.hidden=true;say(tst,"That did not work: "+m.message+". Reload the page and try again.","err");}};
+else if(m.type==="error"){mode="main";tbar.hidden=true;speak.disabled=false;stop.hidden=true;say(tst,"That did not work: "+m.message+". Reload the page and try again.","err");}};
 tw.onerror=(e)=>{tbar.hidden=true;speak.disabled=false;say(tst,"The voice could not be loaded"+(e.message?": "+e.message:"")+". Check your connection and try again.","err");};return tw;}
 const busy=()=>speak.disabled;
 function warm(){if(!tw){tworker().postMessage({type:"load",id:0});if(!ready)say(tst,"Fetching the voice (first time only)...");}}
-function finish(){const audio=parts.length?parts:null;speak.disabled=false;stop.hidden=true;tbar.hidden=true;if(!audio)return;
-last={parts:audio.slice(),rate};const blob=toWav(audio,rate);if(wav.href.startsWith("blob:"))URL.revokeObjectURL(wav.href);const url=URL.createObjectURL(blob);wav.href=url;player.src=url;tout.hidden=false;
-let secs=0;for(const p of audio)secs+=p.length;say(tst,preview?"That was "+preview+". Press Play to hear your own text in this voice.":"Done: "+(secs/rate).toFixed(1)+" seconds of audio. Edit the text and press Play to make it again, free.","ok");}
+function finish(cancelled){speak.disabled=false;stop.hidden=true;tbar.hidden=true;const was=mode;mode="main";
+if(was==="preview"){if(!cancelled)say(tst,"That was "+preview+". Press Play to hear your own text in this voice.","ok");return;}
+if(was==="redo"){const ok=!cancelled&&redoBuf.length;if(ok){sents[redoAt].pcm=redoBuf;sents[redoAt].text=redoText;}redoBuf=[];if(!ok)return;}
+if(!sents.length)return;const audio=flat();
+last={parts:audio,rate};const blob=toWav(audio,rate);if(wav.href.startsWith("blob:"))URL.revokeObjectURL(wav.href);const url=URL.createObjectURL(blob);wav.href=url;player.src=url;tout.hidden=false;listSents();
+let secs=0;for(const p of audio)secs+=p.length;say(tst,was==="redo"?"Sentence "+(redoAt+1)+" redone; the download has the new take.":"Done: "+(secs/rate).toFixed(1)+" seconds of audio. Edit the text and press Play to make it again, or fix one sentence below. Free.","ok");}
 let preview="";
-function go(str,v,who){preview=who||"";const s=(str||"").trim();if(!s){say(tst,"Type something to hear first.","err");text.focus();return;}
-const C=window.AudioContext||window.webkitAudioContext;if(ctx)ctx.close().catch(()=>{});ctx=C?new C():null;next=0;parts=[];first=0;t0=performance.now();
+function redoOne(i,t){mode="redo";redoAt=i;redoBuf=[];redoText=t;run(t,voice);}
+function go(str,v,who){if(!(str||"").trim()){say(tst,"Type something to hear first.","err");text.focus();return;}preview=who||"";mode=who?"preview":"main";if(!who)sents=[];run(str,v);}
+function run(str,v){const s=str.trim();
+const C=window.AudioContext||window.webkitAudioContext;if(ctx)ctx.close().catch(()=>{});ctx=C?new C():null;next=0;first=0;t0=performance.now();
 job++;speak.disabled=true;stop.hidden=false;tbar.hidden=false;tbar.removeAttribute("value");if(ready)say(tst,"Making the first sentence...");else say(tst,"Fetching the voice (first time only)...");
 tworker().postMessage({type:"speak",id:job,text:s,voice:v||voice,speed:Number(speed.value)});}
 speak.onclick=()=>go(text.value);
-stop.onclick=()=>{if(tw)tw.postMessage({type:"cancel",id:job});if(ctx){ctx.close().catch(()=>{});ctx=null;}finish();say(tst,"Stopped. Press Play to start again.");};
+stop.onclick=()=>{const j=job;job++;if(tw)tw.postMessage({type:"cancel",id:j});if(ctx){ctx.close().catch(()=>{});ctx=null;}finish(mode!=="main");say(tst,"Stopped. Press Play to start again.");};
 text.addEventListener("keydown",(e)=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();if(!speak.disabled)go(text.value);}});
 chips.forEach((c)=>c.onclick=()=>{const again=voice===c.dataset.voice;voice=c.dataset.voice;store.set("gc-vc-voice",voice);mark();if(again||ready){if(!speak.disabled)go(HELLO[voice]||"Hello.",voice,c.firstChild.textContent);}else warm();});
 text.addEventListener("focus",warm,{once:true});
