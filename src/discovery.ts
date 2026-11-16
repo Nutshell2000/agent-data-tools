@@ -515,7 +515,7 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
       ? { "x-agentcash-provenance": { ownershipProofs: [...OWNERSHIP_PROOFS] }, "x-discovery": { ownershipProofs: [...OWNERSHIP_PROOFS] } }
       : {}),
     servers: [{ url: origin }],
-    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...openAiSpeechOpenApiPath(origin, { short: catalogEndpoint(SPEECH_TOOL_PATH).price, long: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price }, mpp), ...voiceFrontsOpenApiPaths(origin, { speechShort: catalogEndpoint(SPEECH_TOOL_PATH).price, speechLong: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price, transcribe: catalogEndpoint("/transcribe").price, transcribeLong: catalogEndpoint("/transcribe/long").price }, mpp),...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
+    paths: completeResponses({ ...openAiOpenApiPaths(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...openAiEmbeddingsOpenApiPath(origin, catalogEndpoint(EMBED_TOOL_PATH).price, mpp), ...openAiImagesOpenApiPath(origin, catalogEndpoint(IMAGE_TOOL_PATH).price, mpp), ...openAiSpeechOpenApiPath(origin, { short: catalogEndpoint(SPEECH_TOOL_PATH).price, long: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price }, mpp), ...openAiVoicesOpenApiPath(), ...voiceFrontsOpenApiPaths(origin, { speechShort: catalogEndpoint(SPEECH_TOOL_PATH).price, speechLong: catalogEndpoint(SPEECH_LONG_TOOL_PATH).price, transcribe: catalogEndpoint("/transcribe").price, transcribeLong: catalogEndpoint("/transcribe/long").price }, mpp),...anthropicMessagesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp),...openAiResponsesOpenApiPath(origin, { small: catalogEndpoint(CHAT_TOOL_PATH).price, large: catalogEndpoint(CHAT_LARGE_TOOL_PATH).price }, mpp), ...Object.fromEntries(
       salesOrdered(ENDPOINTS).map((e) => [
         e.path,
         {
@@ -619,6 +619,7 @@ import { CHAT_LARGE_TOOL_PATH, CHAT_TOOL_PATH, openAiOpenApiPaths } from "./lib/
 import { EMBED_TOOL_PATH, openAiEmbeddingsOpenApiPath } from "./lib/openai-embeddings";
 import { IMAGE_TOOL_PATH, openAiImagesOpenApiPath } from "./lib/openai-images";
 import { SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, openAiSpeechOpenApiPath } from "./lib/openai-speech";
+import { openAiVoicesOpenApiPath } from "./lib/openai-voices";
 import { voiceFrontsOpenApiPaths } from "./lib/voice-fronts-openapi";
 import { anthropicMessagesOpenApiPath } from "./lib/anthropic-messages";
 import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
