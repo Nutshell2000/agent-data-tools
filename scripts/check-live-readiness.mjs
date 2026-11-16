@@ -6,7 +6,8 @@ const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== "--output")) {
   throw new Error("Only --output <path> is supported. Self-payment seeding is disabled; this script never pays.");
 }
-const cardResponse = await fetch(origin, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
+// The full card (every tool) moved from "/" to /service-card.json (src/lib/first-call.ts); "/" is now a short card.
+const cardResponse = await fetch(`${origin}/service-card.json`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
 if (!cardResponse.ok) throw new Error(`Service card HTTP ${cardResponse.status}`);
 const card = await cardResponse.json();
 const queue = [...card.endpoints], results = [];

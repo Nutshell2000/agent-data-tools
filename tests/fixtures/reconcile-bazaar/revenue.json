@@ -1,0 +1,52 @@
+{
+  "sinceUtc": "2026-11-01",
+  "settlements": 8,
+  "grossAtomic": "80000",
+  "selfPayments": 5,
+  "byEndpoint": {
+    "/weather": { "settlements": 5, "grossAtomic": "50000" },
+    "/price/token": { "settlements": 3, "grossAtomic": "30000" }
+  },
+  "asset": "USDC",
+  "decimals": 6,
+  "payerActivity": { "distinctExternalWallets": 3, "returningOnAnotherUtcDay": 2, "repeatPayerToolPairs": 1, "coverage": "complete since activity tracking began" },
+  "funnel": {
+    "sinceUtc": "2026-11-01",
+    "days": {
+      "2026-11-01": {
+        "http:/weather:quote": 500,
+        "http:/weather:attempt": 6,
+        "http:/weather:verified": 5,
+        "http:/weather:verification_failed": 1,
+        "http:/weather:settled": 4,
+        "http:/weather:completed": 4,
+        "http:/weather:execution_failed": 1,
+        "http:/caller/node:free_exhausted_by": 3
+      },
+      "2026-11-02": {
+        "http:/weather:attempt": 4,
+        "http:/weather:verified": 3,
+        "http:/weather:refused_format": 1,
+        "http:/weather:settled": 3,
+        "http:/weather:completed": 3,
+        "http:/price/token:attempt": 3,
+        "http:/price/token:verified": 3,
+        "http:/price/token:settlement_failed": 1,
+        "http:/price/token:refused_format": 1,
+        "http:/price/token:settled": 2,
+        "http:/price/token:completed": 1
+      },
+      "2026-11-03": {
+        "mcp:/price/token:attempt": 2,
+        "mcp:/price/token:verified": 2,
+        "mcp:/price/token:settled": 2,
+        "mcp:/price/token:completed": 2,
+        "http:/time:attempt": 2,
+        "http:/time:verified": 2,
+        "http:/time:settled": 2,
+        "http:/time:completed": 2,
+        "http:/time:visit": 40
+      }
+    }
+  }
+}

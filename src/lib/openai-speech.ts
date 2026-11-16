@@ -9,6 +9,9 @@ import type { Context } from "hono";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody, type FrontMeta } from "./openai-chat";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
+import { apiKeyFrom } from "./credits";
+import { admitVoiceKey, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
+import { SPEECH_CREDITS_PER_100, asFrontKeyError, foreignKey, foreignKeySentence, frontError, setFrontKeyPrice, speechRatePrice, withSentenceFirst, type ErrorShape } from "./voice-billing";
 
 export const OPENAI_SPEECH_PATH = "/v1/audio/speech";
 export const SPEECH_TOOL_PATH = "/ai/speech";
@@ -22,6 +25,8 @@ type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
+/** What a key was charged and has left (set by the paywall on the tool's answer), shown on the front's answer too. */
+export const KEY_RESPONSE_HEADERS = ["x-credits-charged", "x-credits-remaining", "x-credits-low", "x-free-calls-left", "x-review-calls-left", "x-test-calls-left", "x-trial-files-left", "x-trial-minutes", "x-key-limits"];
 
 export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string }
 
@@ -78,7 +83,7 @@ export async function openAiSpeech(c: C, forward: Forward): Promise<Response> {
 }
 
 /** Runs one speech request through the speech tool it maps to and answers with the MP3 bytes (or the tool's quote under the caller's path). */
-export async function speakThrough(c: C, forward: Forward, request: SpeechRequest, description: string, meta?: FrontMeta): Promise<Response> {
+export async function speakThrough(c: C, forward: Forward, request: SpeechRequest, description: string, meta?: FrontMeta, shape: ErrorShape = "openai"): Promise<Response> {
   const outer = new URL(c.req.url);
   const inner = new URL(request.tool, outer.origin);
   inner.searchParams.set("text", request.text);
@@ -89,22 +94,43 @@ export async function speakThrough(c: C, forward: Forward, request: SpeechReques
   headers.delete("content-length");
   headers.set("accept", "application/json");
   withXiKey(headers);
-  const answer = await forward(new Request(inner.href, { method: "GET", headers }));
-  if (answer.status === 402) return asFrontQuote(answer, outer, description, request.tool, meta);
+  const toolRequest = new Request(inner.href, { method: "GET", headers });
+  const key = apiKeyFrom((name) => headers.get(name) ?? undefined);
+  if (key && voiceKeyKind(key)) {
+    // A free test or trial key (lib/voice-keys.ts): the limits are checked here, where the text is known.
+    const refusal = await admitVoiceKey(c.env, key, { what: "speech", characters: request.text.length }, toolRequest, outer.origin);
+    if (refusal) return frontError(shape, refusal.status, refusal.message, refusal.code, { more: refusal.more });
+  } else if (key && shape === "openai") {
+    // On /v1/audio/speech a prepaid key pays per started 100 characters, never more than the tool's flat price
+    // (lib/voice-billing.ts); the paywall applies the cap.
+    setFrontKeyPrice(toolRequest, speechRatePrice(request.text.length));
+  }
+  const answer = await forward(toolRequest);
+  const keyError = await asFrontKeyError(answer, shape);
+  if (keyError) return keyError;
+  if (answer.status === 402) {
+    const quote = await asFrontQuote(answer, outer, description, request.tool, meta);
+    return foreignKey((name) => c.req.header(name), Boolean(key)) ? withSentenceFirst(quote, foreignKeySentence(outer.origin, voiceTestKeysOn(c.env))) : quote;
+  }
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as { audioBase64?: string; contentType?: string; voice?: string; characters?: number };
   if (!result.audioBase64) return answer;
   const out = new Response(audioBytes(result.audioBase64), { status: 200, headers: { "content-type": result.contentType ?? "audio/mpeg", "cache-control": "no-store" } });
-  for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
+  for (const name of [...PASSTHROUGH_RESPONSE_HEADERS, ...KEY_RESPONSE_HEADERS]) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   if (result.voice) out.headers.set("x-voice", result.voice);
   out.headers.set("x-tool", request.tool);
   return out;
 }
 
+/** The prepaid-key price of speech in one sentence, from the rate and the two tools' prices. */
+export const speechKeyRule = (prices: { short: string; long: string }) =>
+  `With a prepaid key the charge is ${SPEECH_CREDITS_PER_100} credits ($${(SPEECH_CREDITS_PER_100 / 1000).toFixed(3)}) per started 100 characters, never more than ${prices.short} up to ${SPEECH_SHORT_LIMIT} characters or ${prices.long} above; the answer's X-Credits-Charged header states it.`;
+
 /** The /v1/audio/speech path for /openapi.json: priced by input length, at the two speech tools' prices and terms. */
 export function openAiSpeechOpenApiPath(origin: string, prices: { short: string; long: string }, mpp: readonly unknown[]) {
   const paymentInfo = buildPaymentInfo({ min: prices.short, max: prices.long }, mpp);
   const priced = `${prices.short} for input up to ${SPEECH_SHORT_LIMIT} characters, ${prices.long} for longer input up to ${SPEECH_INPUT_LIMIT.toLocaleString("en-US")} characters`;
+  const keyPriced = speechKeyRule(prices);
   const audio = { description: "The speech as an MP3 file", content: { "audio/mpeg": { schema: { type: "string", format: "binary" } } } };
   const others = { "400": { description: "Invalid request (not charged)" }, "402": { description: "Payment Required" }, "503": { description: "Daily AI capacity used up (not charged)" } };
   return {
@@ -122,7 +148,7 @@ export function openAiSpeechOpenApiPath(origin: string, prices: { short: string;
       post: {
         operationId: "audio_speech",
         summary: "OpenAI-compatible text to speech (Deepgram Aura-2, MP3 file)",
-        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format must be mp3 and speed 1; model is accepted and ignored. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
+        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. ${keyPriced} OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format must be mp3 and speed 1; model is accepted and ignored. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
         tags: ["ai", "text-to-speech", "tts", "audio", "openai"],
         "x-payment-info": paymentInfo,
         requestBody: {
