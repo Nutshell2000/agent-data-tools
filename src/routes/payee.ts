@@ -55,10 +55,64 @@ export function payeeDomain(raw: string | undefined): string {
 }
 
 export interface DeclaredWallet { address: string; network: string; signature: string | null }
+/**
+ * How the business takes payment (declaration v2, step A of the all-rails plan). Each entry names a rail and what a
+ * buyer needs to pay on it. Card and bank rails are references the business publishes (a checkout link, a Swish
+ * business number, a page with bank instructions); we never execute a payment and never store card data.
+ */
+export type Accepted =
+  | { rail: "x402"; network: string; payTo: string | null; url: string | null }
+  | { rail: "mpp"; method: string; url: string | null }
+  | { rail: "card"; checkoutUrl: string; provider: string | null }
+  | { rail: "sepa-instant"; instructionsUrl: string }
+  | { rail: "swish"; number: string };
+export const RAILS = ["x402", "mpp", "card", "sepa-instant", "swish"] as const;
+/** Checkout hosts of known payment providers; another host is kept but flagged. */
+export const PSP_HOSTS: Record<string, string> = { "buy.stripe.com": "Stripe", "checkout.stripe.com": "Stripe", "pay.adyen.com": "Adyen", "www.paypal.com": "PayPal", "paypal.me": "PayPal", "pay.klarna.com": "Klarna", "checkout.mollie.com": "Mollie", "pay.sumup.com": "SumUp", "checkout.revolut.com": "Revolut" };
+
 export interface Declaration {
   company: { name: string | null; country: string | null; id: string | null; vat: string | null; lei: string | null } | null;
   wallets: DeclaredWallet[];
   einvoice: { peppolId: string | null; formats: string[] } | null;
+  accepts: Accepted[];
+}
+
+const httpsUrl = (v: unknown) => {
+  const s = str(v, 2_000);
+  if (!s) return null;
+  try { const u = new URL(s); return u.protocol === "https:" ? u.href : null; } catch { return null; }
+};
+
+export function parseAccepts(raw: unknown, problems: string[]): Accepted[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) { problems.push("accepts must be a list"); return []; }
+  const out: Accepted[] = [];
+  for (const a of raw.slice(0, 20)) {
+    const o = a && typeof a === "object" ? (a as Record<string, unknown>) : {};
+    const rail = str(o.rail, 20)?.toLowerCase();
+    if (rail === "x402") {
+      const payTo = str(o.payTo, 100);
+      if (payTo && !isAddress(payTo) && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(payTo)) { problems.push("an x402 entry's payTo is not a wallet address"); continue; }
+      out.push({ rail, network: (str(o.network, 20) ?? "base").toLowerCase(), payTo: payTo ? (isAddress(payTo) ? getAddress(payTo) : payTo) : null, url: httpsUrl(o.url) });
+    } else if (rail === "mpp") {
+      out.push({ rail, method: (str(o.method, 20) ?? "tempo").toLowerCase(), url: httpsUrl(o.url) });
+    } else if (rail === "card") {
+      const checkoutUrl = httpsUrl(o.checkoutUrl ?? o.url);
+      if (!checkoutUrl) { problems.push("a card entry needs an https checkoutUrl"); continue; }
+      out.push({ rail, checkoutUrl, provider: PSP_HOSTS[new URL(checkoutUrl).hostname] ?? null });
+    } else if (rail === "sepa-instant" || rail === "sepa") {
+      const instructionsUrl = httpsUrl(o.instructionsUrl ?? o.url);
+      if (!instructionsUrl) { problems.push("a sepa-instant entry needs an https instructionsUrl (we do not store account numbers)"); continue; }
+      out.push({ rail: "sepa-instant", instructionsUrl });
+    } else if (rail === "swish") {
+      const number = str(o.number, 20)?.replace(/[\s-]/g, "") ?? "";
+      if (!/^123\d{7}$/.test(number)) { problems.push("a swish entry needs a Swish business number (123 and 7 digits)"); continue; }
+      out.push({ rail, number });
+    } else {
+      problems.push(`unknown rail ${String(o.rail ?? "").slice(0, 20) || "(none)"}; known: ${RAILS.join(", ")}`);
+    }
+  }
+  return out;
 }
 
 const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
@@ -66,7 +120,7 @@ const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.
 /** Reads a declaration leniently: unknown fields are ignored, bad ones are dropped and named in `problems`. */
 export function parseDeclaration(doc: unknown): { declaration: Declaration; problems: string[] } {
   const problems: string[] = [];
-  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { declaration: { company: null, wallets: [], einvoice: null }, problems: ["the file is not a JSON object"] };
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { declaration: { company: null, wallets: [], einvoice: null, accepts: [] }, problems: ["the file is not a JSON object"] };
   const d = doc as Record<string, unknown>;
 
   let company: Declaration["company"] = null;
@@ -106,7 +160,8 @@ export function parseDeclaration(doc: unknown): { declaration: Declaration; prob
     einvoice = { peppolId: peppol && /^\d{4}:[A-Za-z0-9.:_-]{1,60}$/.test(peppol) ? peppol : null, formats };
     if (peppol && !einvoice.peppolId) problems.push("einvoice.peppolId must look like 0007:5567037485 (scheme:identifier)");
   }
-  return { declaration: { company, wallets, einvoice }, problems };
+  const accepts = parseAccepts(d.accepts, problems);
+  return { declaration: { company, wallets, einvoice, accepts }, problems };
 }
 
 type Kyb = Awaited<ReturnType<typeof kybCheck>>;
@@ -132,7 +187,7 @@ export async function verifyPayee(domain: string, deps: PayeeDeps) {
 
   const file = await deps.declaration(domain);
   if (!file.found) {
-    return { ...base, status: "none" as const, flags: [`no declaration at ${declarationUrl} (${file.reason})`], checks: { domain: "not-proven", company: "not-declared", wallets: [], einvoice: "not-declared" }, company: null, wallets: [], einvoice: null, sources: [] as string[] };
+    return { ...base, status: "none" as const, flags: [`no declaration at ${declarationUrl} (${file.reason})`], checks: { domain: "not-proven", company: "not-declared", wallets: [], einvoice: "not-declared" }, company: null, wallets: [], einvoice: null, accepts: [] as Accepted[], sources: [] as string[] };
   }
   let parsed: unknown;
   try { parsed = JSON.parse(file.text); } catch { parsed = null; }
@@ -188,12 +243,20 @@ export async function verifyPayee(domain: string, deps: PayeeDeps) {
   if (!wallets.length) flags.push("no payTo wallet is declared");
   else if (!wallets.some((w) => w.proof === "signature")) flags.push(`no wallet is proven by a signature: sign "${walletMessage(domain, "<address>")}" with each payout wallet and put the signature next to it`);
 
+  // Rails: an x402 payTo must be one of the declared wallets (else a quote could name a wallet nobody proved).
+  const walletSet = new Set(wallets.map((w) => w.address.toLowerCase()));
+  for (const a of declaration.accepts) {
+    if (a.rail === "x402" && a.payTo && !walletSet.has(a.payTo.toLowerCase())) flags.push(`accepts: the x402 payTo ${a.payTo} is not in payTo, so it is not proven`);
+    if (a.rail === "card" && !a.provider) flags.push(`accepts: the card checkout host ${new URL(a.checkoutUrl).hostname} is not a payment provider we know`);
+  }
+  if (!declaration.accepts.length) flags.push("no accepts list: buyers can only be told about the wallets in payTo");
+
   const proven = wallets.some((w) => w.proof === "signature");
   const status = review ? "review" as const : companyCheck === "pass" && proven ? "verified" as const : "partial" as const;
   return {
     ...base, status, flags,
     checks: { domain: "proven", company: companyCheck, wallets: wallets.map((w) => ({ address: w.address, proof: w.proof, sanctions: w.sanctions })), einvoice: declaration.einvoice ? "declared" : "not-declared" },
-    company, wallets, einvoice: declaration.einvoice,
+    company, wallets, einvoice: declaration.einvoice, accepts: declaration.accepts,
     sources: [...sources],
   };
 }
@@ -318,6 +381,15 @@ export function ownDeclaration(env: Env, origin: string) {
   };
 }
 
+/** The stored record when under FRESH_DAYS old, otherwise checked now (and stored when the domain declares anything). */
+export async function recordFor(env: Env, domain: string, deps: PayeeDeps): Promise<{ record: PayeeRecord; fresh: boolean }> {
+  const stored = await readRecord(env, domain);
+  if (stored && Date.now() - Date.parse(stored.verifiedAt) < FRESH_DAYS * 86_400_000) return { record: { ...stored, accepts: stored.accepts ?? [] }, fresh: true };
+  const record = await verifyPayee(domain, deps);
+  if (record.status !== "none") await storeRecord(env, record).catch(() => {});
+  return { record, fresh: true };
+}
+
 // ---- The paid check ----
 
 export type Verdict = "pass" | "partial" | "review" | "unknown" | "block";
@@ -387,17 +459,7 @@ export const PAYEE: Entry[] = [
       const screened = await Promise.all(evmLive.map((w) => deps.walletSanctions(w).catch(() => "not-checked")));
       walletBlock = screened.includes("block");
 
-      let record: PayeeRecord | null = null;
-      let fresh = false;
-      if (domain) {
-        record = await readRecord(env, domain);
-        fresh = !!record && Date.now() - Date.parse(record.verifiedAt) < FRESH_DAYS * 86_400_000;
-        if (!fresh) {
-          record = await verifyPayee(domain, deps);
-          fresh = true;
-          if (record.status !== "none") await storeRecord(env, record).catch(() => {});
-        }
-      }
+      const { record, fresh } = domain ? await recordFor(env, domain, deps) : { record: null, fresh: false };
       const matches = walletMatches(liveWallets, record);
       const v = checkVerdict(record, matches, walletBlock);
       return {

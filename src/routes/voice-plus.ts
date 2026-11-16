@@ -12,6 +12,8 @@ import { franc } from "franc-min";
 import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
+import { tidyTranslation } from "../lib/translation-tidy";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, meloSentences, meloSpeech } from "../lib/melo";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles } from "./ai";
@@ -150,6 +152,17 @@ export const DUB_PRICE = "$0.10";
 export const DUB_MAX_SECONDS = 10 * 60;
 export const DUB_MAX_CHARS = 2_500;
 export const DUB_OTHER_MAX_BYTES = 2 * MB;
+/** Languages the new voice speaks: Aura-2 (en, es, MP3) and MeloTTS (fr, zh, ja, ko, WAV; src/lib/melo.ts). */
+export const DUB_TARGETS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
+const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish", fr: "French", zh: "Chinese (Mandarin, simplified characters)", ja: "Japanese", ko: "Korean" };
+const DUB_TARGET_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", español: "es", french: "fr", français: "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
+/** The target language as a code, from a code or an English name; anything else is a 400 naming the six. */
+export function dubTarget(raw: string | undefined): (typeof DUB_TARGETS)[number] {
+  const t = (raw ?? "").trim().toLowerCase();
+  const code = Object.hasOwn(DUB_TARGET_NAMES, t) ? DUB_TARGET_NAMES[t] : t;
+  if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `to must be one of ${DUB_TARGETS.join(", ")}: the languages the voices speak (nothing was charged)`);
+  return code as (typeof DUB_TARGETS)[number];
+}
 
 /** Translates timed segments one by one, keeping their timings; the same language returns them unchanged. */
 async function translateSegments(env: Env, segments: readonly { start: number; end: number; text: string }[], from: string, to: string) {
@@ -158,7 +171,7 @@ async function translateSegments(env: Env, segments: readonly { start: number; e
   for (let i = 0; i < segments.length; i += PARALLEL_CUES) {
     await Promise.all(segments.slice(i, i + PARALLEL_CUES).map(async (s, k) => {
       const r = await runAi<{ translated_text?: string }>(env, SUBTITLE_TRANSLATE_MODEL, { text: s.text, source_lang: from, target_lang: to });
-      const t = String(r?.translated_text ?? "").trim();
+      const t = tidyTranslation(String(r?.translated_text ?? ""), to);
       if (!t) throw new HttpError(502, `the translation model returned nothing for segment ${i + k + 1}; nothing was charged`);
       out[i + k] = { ...s, text: t };
     }));
@@ -201,20 +214,20 @@ export function spokenReply(text: string, max = VOICE_AGENT_REPLY_MAX): string {
 }
 export const VOICE_PLUS: Entry[] = [
   entry(VOICE_AGENT_PATH, "Voice agent: spoken question in, spoken answer out, with memory",
-    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken as MP3 (Aura-2, English or Spanish) and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
+    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English, Spanish, French, Chinese, Japanese or Korean and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
     ["voice-agent", "voice-assistant", "conversational-ai", "speech-to-text", "text-to-speech", "voice-bot", "audio"], {
       text: { type: "string", description: "The user's turn as text (or send audio with url or a POSTed file)", example: "What time do you open on Saturday?" },
       url: { type: "string", description: "Absolute http(s) URL of the user's spoken turn (MP3/WAV up to 2 minutes, other formats up to 1 MB); or POST the file; or send text instead", example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
       instructions: { type: "string", description: "Who the assistant is and what it knows (up to 2,000 characters)", example: "You answer for a bakery. Open Monday to Saturday 7 to 17, closed Sunday." },
       history: { type: "string", description: "Earlier turns as a JSON array of {role, content}, as returned in history by the last call", example: "[]" },
-      lang: { type: "string", description: "Reply language and voice: en or es (default en)", example: "en", enum: ["en", "es"] },
-      voice: { type: "string", description: "Aura-2 voice for the reply (default luna for en, aquila for es)", example: "luna" },
+      lang: { type: "string", description: "Reply language and voice: en, es (Aura-2 MP3), fr, zh, ja or ko (MeloTTS WAV); default en", example: "en", enum: [...DUB_TARGETS] },
+      voice: { type: "string", description: "Aura-2 voice for an en or es reply (default luna for en, aquila for es); fr, zh, ja and ko have one voice each", example: "luna" },
     },
     { heard: "What time do you open on Saturday?", reply: "On Saturday we are open from seven in the morning until five in the afternoon.", contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 61440, voice: "luna", lang: "en", history: [{ role: "user", content: "What time do you open on Saturday?" }, { role: "assistant", content: "On Saturday we are open from seven in the morning until five in the afternoon." }], model: CHAT_MODEL, speechModel: "@cf/deepgram/aura-2-en" },
     async (env: Env, q: Input) => {
-      const lang = (q("lang") ?? "en").trim().toLowerCase() || "en";
-      if (lang !== "en" && lang !== "es") throw new HttpError(400, "lang must be en or es: the languages the reply voices speak");
-      const { voice, model } = speechVoice((k) => (k === "lang" ? lang : q(k)));
+      const lang = q("lang")?.trim() ? dubTarget(q("lang")) : "en";
+      const melo = isMeloLang(lang);
+      const { voice, model } = melo ? { voice: "default", model: MELO_MODEL } : speechVoice((k) => (k === "lang" ? lang : q(k)));
       const instructions = (q("instructions") ?? "").trim();
       if (instructions.length > 2000) throw new HttpError(400, "instructions must be at most 2,000 characters");
       const history = readHistory(q("history"));
@@ -233,28 +246,32 @@ export const VOICE_PLUS: Entry[] = [
       }
       if (heard.length > 2000) throw new HttpError(400, "the user's turn must be at most 2,000 characters");
       const convo = [...history, { role: "user" as const, content: heard }].map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.content}`).join("\n");
-      const raw = await chat(env, VOICE_AGENT_SYSTEM, `<instructions>\n${instructions || "Be a helpful, friendly assistant."}\n</instructions>\nReply in ${lang === "es" ? "Spanish" : "English"}.\n<conversation>\n${convo}\n</conversation>\nAssistant:`, 300, 0.4, CHAT_MODEL);
+      const raw = await chat(env, VOICE_AGENT_SYSTEM, `<instructions>\n${instructions || "Be a helpful, friendly assistant."}\n</instructions>\nReply in ${LANGUAGE_NAMES[lang]}.\n<conversation>\n${convo}\n</conversation>\nAssistant:`, 300, 0.4, CHAT_MODEL);
       const reply = spokenReply(raw.replace(/^Assistant:\s*/i, ""));
       if (!reply) throw new HttpError(502, "the AI model returned no reply; nothing was charged");
-      const parts = speechParts(reply);
-      const spoken = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p)));
-      const audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      let audioBase64: string;
+      if (melo) audioBase64 = (await meloSpeech(env, speechParts(meloSentences(reply), MELO_PART_MAX), lang)).audioBase64;
+      else {
+        const spoken = await Promise.all(speechParts(reply).map((p) => speakOnce(env, model, voice, p)));
+        audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      }
       const next = [...history, { role: "user" as const, content: heard }, { role: "assistant" as const, content: reply }].slice(-VOICE_AGENT_HISTORY_TURNS);
-      return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
-    }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dub audio: translated voice track in English or Spanish, plus subtitles",
-    "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again as one MP3 in English or Spanish (Aura-2, pick a voice), with translated SRT on the original timings. MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload; up to 2,500 characters of new speech. The voice keeps the original order, not exact timing. Use for course clips, product videos and social posts in a second language.",
+      return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: melo ? "audio/wav" : "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
+    }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dub audio: translated voice track in 6 languages, plus subtitles",
+    "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters) or French, Chinese, Japanese or Korean (MeloTTS WAV, up to 1,200 characters). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos.",
     ["dubbing", "dub-audio", "voice-over", "translation", "text-to-speech", "subtitles", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of the recording (MP3/WAV up to 10 minutes; M4A, OGG or WebM up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
-      to: { type: "string", description: "Language of the new voice: en or es", required: true, example: "es", enum: ["en", "es"] },
+      to: { type: "string", description: "Language of the new voice: en, es, fr, zh, ja or ko", required: true, example: "es", enum: [...DUB_TARGETS] },
       from: { type: "string", description: "Spoken language of the recording (default: detected)", example: "en" },
-      voice: { type: "string", description: "Aura-2 voice for the new track (default luna for en, aquila for es)", example: "aquila" },
+      voice: { type: "string", description: "Aura-2 voice for an en or es track (default luna for en, aquila for es); fr, zh, ja and ko have one voice each", example: "aquila" },
     },
     { url: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3", from: "en", to: "es", durationSeconds: 1, contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 9216, voice: "aquila", characters: 7, text: "Tofino.", subtitles: "1\n00:00:00,000 --> 00:00:01,000\nTofino.\n", model: "@cf/deepgram/aura-2-es" },
     async (env: Env, q: Input) => {
-      const to = (q("to") ?? "").trim().toLowerCase();
-      if (to !== "en" && to !== "es") throw new HttpError(400, "to must be en or es: the languages the dubbing voices speak");
+      const to = dubTarget(q("to"));
+      const melo = isMeloLang(to);
       const fromGiven = langCode(q, "from", false);
-      const { voice, model } = speechVoice((k) => (k === "lang" ? to : q(k)));
+      // French, Chinese, Japanese and Korean are spoken by MeloTTS (one voice each, WAV); English and Spanish by Aura-2.
+      const { voice, model } = melo ? { voice: "default", model: MELO_MODEL } : speechVoice((k) => (k === "lang" ? to : q(k)));
       const { bytes, url } = await audioInput(q);
       const measured = measuredSeconds(bytes);
       if (measured === null && bytes.byteLength > DUB_OTHER_MAX_BYTES) throw new HttpError(415, `send an MP3 or WAV file for recordings over ${DUB_OTHER_MAX_BYTES / MB} MB (nothing was charged)`);
@@ -265,16 +282,26 @@ export const VOICE_PLUS: Entry[] = [
       const from = fromGiven || (t.language ?? "").slice(0, 2) || "en";
       const translated = await translateSegments(env, segments, from, to);
       const spokenText = translated.map((s) => s.text).join(" ").replace(/\s+/g, " ").trim();
-      if (spokenText.length > DUB_MAX_CHARS) throw new HttpError(400, `the translated speech is ${spokenText.length.toLocaleString("en-US")} characters; this tool speaks up to ${DUB_MAX_CHARS.toLocaleString("en-US")} per call: send a shorter clip (nothing was charged)`);
-      const parts = speechParts(spokenText);
-      const spoken = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p)));
-      const audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      const maxChars = melo ? MELO_MAX_CHARS : DUB_MAX_CHARS;
+      if (spokenText.length > maxChars) throw new HttpError(400, `the translated speech is ${spokenText.length.toLocaleString("en-US")} characters; this tool speaks up to ${maxChars.toLocaleString("en-US")} per call in ${melo ? "fr, zh, ja and ko" : "en and es"}: send a shorter clip (nothing was charged)`);
+      let audioBase64: string, parts: string[], contentType: string;
+      if (melo) {
+        // Chinese and Japanese end sentences with full-width marks and no space: a line break makes them cut points.
+        parts = speechParts(meloSentences(spokenText), MELO_PART_MAX);
+        audioBase64 = (await meloSpeech(env, parts, to)).audioBase64;
+        contentType = "audio/wav";
+      } else {
+        parts = speechParts(spokenText);
+        const spoken = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p)));
+        audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+        contentType = "audio/mpeg";
+      }
       return {
         url,
         ...(url ? {} : { source: "upload", bytes: bytes.byteLength }),
         from, to,
         durationSeconds: Math.round(t.seconds * 10) / 10,
-        contentType: "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64),
+        contentType, audioBase64, audioBytes: base64Bytes(audioBase64),
         voice, characters: spokenText.length, parts: parts.length,
         text: spokenText,
         subtitles: toSubtitles(translated, "srt"),
@@ -358,7 +385,7 @@ export const VOICE_PLUS: Entry[] = [
         await Promise.all(cues.slice(i, i + PARALLEL_CUES).map(async (c, k) => {
           // Lines of one cue are translated together and split back where the translation keeps the line breaks.
           const r = await runAi<{ translated_text?: string }>(env, SUBTITLE_TRANSLATE_MODEL, { text: c.text, source_lang: from, target_lang: to });
-          const t = String(r?.translated_text ?? "").trim();
+          const t = tidyTranslation(String(r?.translated_text ?? ""), to);
           if (!t) throw new HttpError(502, `the translation model returned nothing for cue ${i + k + 1}; nothing was charged`);
           out[i + k] = { ...c, text: t };
         }));

@@ -9,6 +9,7 @@ import { MODELS, runAi } from "../lib/ai";
 import { messagesAsArray } from "../lib/chat-messages";
 import { DOCUMENT_RULES, fieldHints } from "../lib/extract-hints";
 import { HttpError, type Env } from "../lib/env";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, SPEECH_LANGS, isMeloLang, meloSentences, meloSpeech, speechLangOf } from "../lib/melo";
 
 export const AI_PRICE = "$0.01";
 const T = ["ai", "llm", "text"];
@@ -30,6 +31,24 @@ export const SPEECH_VOICES = {
   en: ["amalthea", "andromeda", "apollo", "arcas", "aries", "asteria", "athena", "atlas", "aurora", "callista", "cora", "cordelia", "delia", "draco", "electra", "harmonia", "helena", "hera", "hermes", "hyperion", "iris", "janus", "juno", "jupiter", "luna", "mars", "minerva", "neptune", "odysseus", "ophelia", "orion", "orpheus", "pandora", "phoebe", "pluto", "saturn", "thalia", "theia", "vesta", "zeus"],
   es: ["sirio", "nestor", "carina", "celeste", "alvaro", "diana", "aquila", "selena", "estrella", "javier"],
 } as const satisfies Record<string, readonly string[]>;
+const SPEECH_LANG_HELP = "Language: en or es (Aura-2 MP3, many voices), fr, zh, ja or ko (MeloTTS WAV, one voice each); default en";
+/**
+ * The MeloTTS language a speech request asks for (fr, zh, ja, ko; English names too), or undefined for Aura-2's en and es.
+ * A language neither model speaks is a 400 naming all six (16 Nov 2026: before, only en and es existed).
+ */
+function meloLang(q: Input): "fr" | "zh" | "ja" | "ko" | undefined {
+  const raw = q("lang");
+  if (!raw?.trim()) return undefined;
+  const lang = speechLangOf(raw);
+  if (!lang) throw new HttpError(400, `lang must be one of ${SPEECH_LANGS.join(", ")} (nothing was charged)`);
+  return isMeloLang(lang) ? (lang as "fr" | "zh" | "ja" | "ko") : undefined;
+}
+/** One WAV in a MeloTTS language, in parts of up to 200 characters spoken in parallel. */
+async function meloAnswer(env: Env, t: string, lang: "fr" | "zh" | "ja" | "ko") {
+  const parts = speechParts(meloSentences(t), MELO_PART_MAX);
+  const { audioBase64, seconds } = await meloSpeech(env, parts, lang);
+  return { contentType: "audio/wav", audioBase64, bytes: base64Bytes(audioBase64), lang, voice: "default", characters: t.length, parts: parts.length, seconds, model: MELO_MODEL };
+}
 // Aura-2 bills $0.030 per 1,000 characters on Workers AI: 300 characters cost at most $0.009, under the $0.01 price
 // (owner's rule: every tool at most $0.01). Longer text would need a higher price: the owner's decision.
 // /ai/speech is capacity-limited, so free calls never run it.
@@ -468,16 +487,18 @@ export const AI_TEXT: Entry[] = [
     ["extraction", "json", "structured-data"], { text: { type: "string", description: "Source text, up to 12,000 characters", required: true, example: "Invoice 1043 from Acme AB, due 2026-11-01, total 2 450 SEK incl. VAT." }, fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "invoice_number,company,due_date,total,currency" } },
     { data: { invoice_number: "1043", company: "Acme AB", due_date: "2026-11-01", total: 2450, currency: "SEK" }, missing: [], model: MODELS.text },
     async (env, q) => extractFields(env, text(q), fieldNames(need(q, "fields", 1000)))),
-  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
+  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or WAV in French, Chinese, Japanese or Korean with MeloTTS (one voice each). Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
     ["tts", "text-to-speech", "voice", "audio", "voice-generation", ...T], {
       text: { type: "string", description: "Text to speak, up to 300 characters", required: true, example: "Your payment was received. Thank you!" },
-      lang: { type: "string", description: "Language: en or es (default en)", example: "en", enum: ["en", "es"] },
+      lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 41472, lang: "en", voice: "luna", characters: 37, model: AI_MODELS.speech },
     async (env, q) => {
       // Longer text is not a dead end: the refusal names the tool that reads it.
       if ((q("text")?.trim().length ?? 0) > SPEECH_MAX) throw new HttpError(400, `text is longer than ${SPEECH_MAX} characters; /text-to-speech reads up to ${SPEECH_LONG_MAX} characters (${SPEECH_LONG_PRICE})`);
       const t = text(q, SPEECH_MAX).trim();
+      const other = meloLang(q);
+      if (other) return meloAnswer(env, t, other);
       const { lang, voice, model } = speechVoice(q);
       const audioBase64 = await speakOnce(env, model, voice, t);
       return { contentType: audioType(audioBase64), audioBase64, bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, model };
@@ -489,14 +510,19 @@ export const AI_TEXT: Entry[] = [
   // the call a 502 and nothing is charged. Aura-2 costs $0.030 per 1,000 characters, so a full call costs $0.06.
   // The name is the bare phrase: Zero.xyz writes a tool's record once, from its first crawl, and retrieves by name similarity
   // (a two-phrase name misses the short search), and the Bazaar matches the phrase a name starts with.
-  entry("/text-to-speech", "Text to speech: long text, up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: turn up to 2,000 characters of text into natural, human-sounding speech as one MP3 (base64), in English (40 voices) or Spanish (10 voices), with Deepgram Aura-2. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
+  entry("/text-to-speech", "Text to speech: long text, up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or up to 1,200 characters as one WAV in French, Chinese, Japanese or Korean with MeloTTS. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
     ["text-to-speech", "tts", "tts-api", "voice-generation", "narration", "audio", ...T], {
-      text: { type: "string", description: "Text to speak, up to 2,000 characters", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
-      lang: { type: "string", description: "Language: en or es (default en)", example: "en", enum: ["en", "es"] },
+      text: { type: "string", description: "Text to speak, up to 2,000 characters (1,200 in fr, zh, ja and ko)", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
+      lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 187392, lang: "en", voice: "luna", characters: 168, parts: 1, model: AI_MODELS.speech },
     async (env, q) => {
       const t = text(q, SPEECH_LONG_MAX).trim();
+      const other = meloLang(q);
+      if (other) {
+        if (t.length > MELO_MAX_CHARS) throw new HttpError(400, `text is ${t.length.toLocaleString("en-US")} characters; in ${other} this tool reads up to ${MELO_MAX_CHARS.toLocaleString("en-US")} (nothing was charged)`);
+        return meloAnswer(env, t, other);
+      }
       const { lang, voice, model } = speechVoice(q);
       const parts = speechParts(t);
       const spoken = await Promise.all(parts.map((part) => speakOnce(env, model, voice, part)));
