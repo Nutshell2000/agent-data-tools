@@ -116,7 +116,7 @@ export async function keywordIdeas(seedIn: string, opts: { engines?: string; dee
 export const KEYWORDS: Entry[] = [
   entry("/keywords/ideas", "Keyword ideas, keyword research",
     "Keyword ideas for SEO and ads: the search phrases real users type for a seed keyword, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, deduplicated and ranked by how many engines suggest each, with question and buying-intent phrases listed apart. deep=true adds the Google long tail (seed + a-z, how, what, best, vs), up to 200 keywords. Use to plan content, find long-tail and question keywords, or name a product. No search volumes.",
-    ["keyword-ideas", "keyword-research", "seo-keywords", "long-tail-keywords", "autocomplete"],
+    ["keyword-ideas", "seo-keyword-ideas", "keyword-research", "seo-keywords", "long-tail-keywords"],
     {
       seed: { type: "string", description: "Seed keyword or topic, 2-80 characters", required: true, example: "crm software" },
       deep: { type: "string", description: "true to add the Google long tail (seed + each letter, question words); about 30 more lookups", example: "false" },

@@ -176,7 +176,7 @@ export const STOCKS: Entry[] = [
     (_env, q) => stockQuote(need(q, "symbol", 100))),
   entry("/stock/history", "Historical stock prices, OHLCV",
     "Stock price history as OHLCV bars for any ticker or company name: open, high, low, close, adjusted close and volume from 1-minute to monthly bars over 1 day to the full history, plus first, last, change, high and low. Use to chart a stock, backtest a signal, compute returns or feed indicators.",
-    ["stock-history", "ohlcv", "historical-stock-prices", "candles", "stocks"],
+    ["stock-ohlcv-history", "stock-history", "ohlcv", "historical-stock-prices", "stocks"],
     {
       symbol: { type: "string", description: "Ticker (AAPL, ^GSPC, BTC-USD) or a company name", required: true, example: "AAPL" },
       range: { type: "string", description: "1d, 5d, 1mo (default), 3mo, 6mo, 1y, 2y, 5y, 10y, ytd or max", enum: RANGES, example: "1mo" },
