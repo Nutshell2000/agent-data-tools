@@ -257,7 +257,7 @@ export const VOICE_PLUS: Entry[] = [
       }
       const next = [...history, { role: "user" as const, content: heard }, { role: "assistant" as const, content: reply }].slice(-VOICE_AGENT_HISTORY_TURNS);
       return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: melo ? "audio/wav" : "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
-    }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dub audio: translated voice track in 6 languages, plus subtitles",
+    }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dubbing, dub audio: translated voice track in 6 languages, plus subtitles",
     "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters) or French, Chinese, Japanese or Korean (MeloTTS WAV, up to 1,200 characters). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos.",
     ["dubbing", "dub-audio", "voice-over", "translation", "text-to-speech", "subtitles", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of the recording (MP3/WAV up to 10 minutes; M4A, OGG or WebM up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
@@ -308,7 +308,7 @@ export const VOICE_PLUS: Entry[] = [
         model,
       };
     }, DUB_PRICE),
-  entry(SPEAKERS_PATH, "Speaker labels: transcribe audio with who said what (diarization)",
+  entry(SPEAKERS_PATH, "Speaker diarization and labels: transcribe audio with who said what",
     "Transcribe a meeting, interview, call or podcast with speaker labels: each turn says which speaker talked, with start and end times (Deepgram Nova-3). MP3/WAV up to 15 minutes, other formats up to 2 MB, by URL or upload. Optional redaction of personal data (pii), card numbers (pci) or numbers, and subtitles with the speaker in each line. Use for meeting minutes, interview transcripts, call reviews and podcast show notes.",
     ["speaker-diarization", "speaker-labels", "transcription", "speech-to-text", "meeting-transcription", "redaction", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of the recording (MP3/WAV up to 15 minutes; M4A, OGG, WebM or FLAC up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
