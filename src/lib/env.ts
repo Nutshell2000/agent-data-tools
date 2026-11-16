@@ -36,6 +36,10 @@ export interface Env {
   // wrangler.jsonc sets 120 to stay inside Brave's free monthly credits).
   /** Hosts that used to be the public site, comma-separated: their pages answer 301 to PUBLIC_SITE_ORIGIN (lib/public-site.ts). */
   RETIRED_PUBLIC_HOSTS?: string;
+  /** Hosts whose human pages moved to PUBLIC_SITE_ORIGIN for browsers only, comma-separated (the paid workers.dev origin):
+   *  a GET that asks for text/html and would answer a 200 page gets a 301; every API, MCP, payment and tool path stays
+   *  (lib/public-site.ts movedBrowserPageUrl). */
+  BROWSER_PAGES_MOVED_HOSTS?: string;
   /** Origin of the public site for people (canonical URLs), e.g. https://tools.funwords.eu; unset = each host names itself. */
   PUBLIC_SITE_ORIGIN?: string;
   /** The name shown on the pages written for people (lib/public-brand.ts); unset = the service name. */

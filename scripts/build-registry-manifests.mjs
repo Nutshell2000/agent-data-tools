@@ -79,3 +79,33 @@ for (const { slug, title, description } of extra) {
   await writeFile(new URL(`registry/${slug}.json`, root), JSON.stringify(manifest, null, 2) + "\n");
   console.log(`${manifest.name} (${description.length} chars)`);
 }
+// Drafts for the com.glyphcall namespace (16 Nov 2026): the same three servers under the brand's own domain. NOT
+// published: publish-mcp.yml reads server.json and registry/*.json only, and registry-drafts/ is outside both
+// (tests/glyphcall-registry-drafts.test.cjs holds that). Publishing needs the owner to prove control of
+// glyphcall.com to the registry first. No tool counts in these.
+const BRAND = "Glyphcall", BRAND_ORIGIN = "https://glyphcall.com";
+const rebased = (value) => JSON.parse(JSON.stringify(value).replaceAll(origin, BRAND_ORIGIN));
+const drafts = [
+  { name: "tools", slug: "compact", title: "Tools (find, describe, run)", what: "find, describe and run pay-per-call data tools: prices, chain, web, PDF" },
+  { name: "company-check", slug: "company-check", title: FOCUSED_SERVERS["company-check"].title, what: FOCUSED_SERVERS["company-check"].registry },
+  // The voice server's own registry line does not fit behind the brand (100 characters), so this one is written here.
+  { name: "voice", slug: "voice", title: FOCUSED_SERVERS.voice.title, what: "transcribe audio and video with SRT/VTT subtitles, and text to speech as MP3" },
+];
+await mkdir(new URL("registry-drafts/com.glyphcall/", root), { recursive: true });
+for (const { name, slug, title, what } of drafts) {
+  const description = `${BRAND}: ${what}.`;
+  if (description.length > 100) throw new Error(`com.glyphcall/${name}: description is ${description.length} characters (max 100)`);
+  const manifest = {
+    $schema: server.$schema,
+    name: `com.glyphcall/${name}`,
+    title: `${BRAND}: ${title}`,
+    description,
+    version: server.version,
+    repository: server.repository,
+    websiteUrl: `${BRAND_ORIGIN}/`,
+    ...(server.icons ? { icons: rebased(server.icons) } : {}),
+    remotes: [{ ...rebased(server.remotes[0]), url: `${BRAND_ORIGIN}/mcp/${slug}` }],
+  };
+  await writeFile(new URL(`registry-drafts/com.glyphcall/${name}.json`, root), JSON.stringify(manifest, null, 2) + "\n");
+  console.log(`draft, not published: ${manifest.name} (${description.length} chars)`);
+}
