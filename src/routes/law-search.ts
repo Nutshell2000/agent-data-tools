@@ -188,11 +188,24 @@ const EU_LANGUAGES: Record<string, string> = {
   bul: "Bulgarian", hrv: "Croatian", slk: "Slovak", slv: "Slovenian", lit: "Lithuanian", lvs: "Latvian", ekk: "Estonian",
   gle: "Irish", mlt: "Maltese",
 };
+/** EUR-Lex's language codes (the two letters in /legal-content/XX/TXT/) for the same ISO 639-3 codes. */
+export const EURLEX_CODES: Record<string, string> = {
+  eng: "EN", swe: "SV", deu: "DE", fra: "FR", spa: "ES", pol: "PL", ita: "IT", nld: "NL", por: "PT", dan: "DA", fin: "FI",
+  ces: "CS", ron: "RO", hun: "HU", ell: "EL", bul: "BG", hrv: "HR", slk: "SK", slv: "SL", lit: "LT", lvs: "LV", ekk: "ET",
+  gle: "GA", mlt: "MT",
+};
+/** The question's EU language: its ISO 639-3 code, English name and EUR-Lex code; English when unsure. */
+export function questionLang(question: string): { iso: string; name: string; eurlex: string } {
+  const code = franc(question, { minLength: 10, only: Object.keys(EU_LANGUAGES) });
+  const iso = Object.hasOwn(EU_LANGUAGES, code) ? code : "eng";
+  return { iso, name: EU_LANGUAGES[iso], eurlex: EURLEX_CODES[iso] };
+}
 /** The question's language among the EU languages, English when unsure (short questions are hard to tell). */
 export function questionLanguage(question: string): string {
-  const code = franc(question, { minLength: 10, only: Object.keys(EU_LANGUAGES) });
-  return Object.hasOwn(EU_LANGUAGES, code) ? EU_LANGUAGES[code] : "English";
+  return questionLang(question).name;
 }
+/** The same EUR-Lex page in another official language (the article anchors are the same in every language). */
+export const eurlexIn = (url: string, eurlexCode: string) => url.replace(/\/legal-content\/[A-Z]{2}\//, `/legal-content/${eurlexCode}/`);
 
 export async function answerFromArticles(env: Env, question: string, results: { citation: string; heading?: string; text: string }[], opts: { plain?: boolean } = {}) {
   if (!results.length) return { answer: "No provision in the indexed EU acts matches this question.", model: null };

@@ -665,7 +665,7 @@ app.get(COMPARE_BASE, (c) => c.html(compareHtml(c.env, origin(c.req.url))!));
 app.get(`${COMPARE_BASE}/:slug{[a-z0-9-]+}`, (c) => { const html = compareHtml(c.env, origin(c.req.url), c.req.param("slug")); return html ? c.html(html) : c.notFound(); });
 app.get(BENCHMARKS_PATH, (c) => c.html(benchmarksHtml(c.env, origin(c.req.url))));
 // LexGlyph (16 Nov 2026): EU law search for people, free within a daily allowance (lib/lexglyph-page.ts).
-app.get(LEXGLYPH_PATH, async (c) => c.html(await lexglyphHtml(c.env, origin(c.req.url), new URL(c.req.url).searchParams, c.req.header("cf-connecting-ip"))));
+app.get(LEXGLYPH_PATH, async (c) => c.html(await lexglyphHtml(c.env, origin(c.req.url), new URL(c.req.url).searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language"))));
 // Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
 const voicePriceOf = (path: string) => ENDPOINTS.find((e) => e.path === path)?.price ?? "$0.05";
 setVoicePrices({ long: voicePriceOf("/transcribe/long"), short: voicePriceOf("/transcribe"), summary: voicePriceOf("/transcribe/summary") });
