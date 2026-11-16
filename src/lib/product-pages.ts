@@ -186,8 +186,8 @@ export const PRODUCTS: readonly Product[] = [
   // business/research-2026-11-14-biggest-earners/benchmark-eu-law-vs-exa-2026-11-14.md; rerun the benchmark before changing them.
   {
     slug: "eu-law-search-api",
-    name: "EU law search API",
-    tagline: "Ask a compliance question in plain words; get the exact EU articles that answer it, with act, article number, full text and the EUR-Lex link. GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT and more.",
+    name: "LexGlyph: EU law search API",
+    tagline: "Ask a compliance question in plain words, in any EU language; LexGlyph returns the exact EU articles that answer it, with act, article number, full text and the EUR-Lex link. GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT and more.",
     tool: "/law/search",
     also: ["/company/search", "/vat/validate"],
     points: [
@@ -209,7 +209,7 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: [],
-    more: [["/exa-alternative-api", "Exa alternative for EU law and company search"], ["/benchmarks", "Benchmarks against Exa"]],
+    more: [["/lexglyph", "Search LexGlyph free, no account"], ["/exa-alternative-api", "Exa alternative for EU law and company search"], ["/benchmarks", "Benchmarks against Exa"]],
   },
   {
     slug: "eu-sanctions-screening-api",
