@@ -60,7 +60,9 @@ The answer of **Extract Fields** looks like this:
 }
 ```
 
-A ready workflow is in [templates/invoice-attachment-to-sheet.json](templates/invoice-attachment-to-sheet.json): every new Gmail message with an invoice attached becomes one Google Sheets row. Import it with **Import from File** and connect your accounts.
+A ready voice workflow is in [templates/telegram-voice-note-summary.json](templates/telegram-voice-note-summary.json): send a voice message to your Telegram bot and it replies with a title, a summary and the action items. Import it, then connect your Telegram bot and Glyphcall API credentials.
+
+A ready document workflow is in [templates/invoice-attachment-to-sheet.json](templates/invoice-attachment-to-sheet.json): every new Gmail message with an invoice attached becomes one Google Sheets row. Import it with **Import from File** and connect your accounts.
 
 ## Good to know
 

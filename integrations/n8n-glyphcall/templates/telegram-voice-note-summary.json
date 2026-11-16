@@ -1,0 +1,83 @@
+{
+  "name": "Telegram voice note to summary and action items (Glyphcall Voice)",
+  "nodes": [
+    {
+      "parameters": { "updates": ["message"], "additionalFields": {} },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "webhookId": "glyphcall-voice-note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.message.voice ? $json.message.voice.file_id : ($json.message.audio ? $json.message.audio.file_id : '') }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Is it a voice message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice ? $json.message.voice.file_id : $json.message.audio.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Download the recording",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [440, -100]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "summarize",
+        "source": "file",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Glyphcall Voice: summarize",
+      "type": "n8n-nodes-glyphcall.glyphcallVoice",
+      "typeVersion": 1,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ '*' + ($json.title || 'Voice note') + '*\\n\\n' + ($json.summary || '') + ($json.actionItems && $json.actionItems.length ? '\\n\\n*Action items*\\n' + $json.actionItems.map(a => '- ' + (a.task || a.text || a) + (a.owner ? ' (' + a.owner + ')' : '') + (a.due ? ', due ' + a.due : '')).join('\\n') : '') }}",
+        "additionalFields": { "parse_mode": "Markdown", "reply_to_message_id": "={{ $('Telegram Trigger').item.json.message.message_id }}" }
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Reply with the summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, -100]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": { "main": [[{ "node": "Is it a voice message?", "type": "main", "index": 0 }]] },
+    "Is it a voice message?": { "main": [[{ "node": "Download the recording", "type": "main", "index": 0 }], []] },
+    "Download the recording": { "main": [[{ "node": "Glyphcall Voice: summarize", "type": "main", "index": 0 }]] },
+    "Glyphcall Voice: summarize": { "main": [[{ "node": "Reply with the summary", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "pinData": {}
+}
