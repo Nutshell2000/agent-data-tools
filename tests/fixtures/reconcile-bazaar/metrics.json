@@ -1,0 +1,13 @@
+{
+  "2026-11-03": {
+    "/time": { "challenged": 30, "paid": 2, "trackedPaidCalls": 2, "revenueUsdMicros": 4000 },
+    "/price/token": { "paid": 2, "trackedPaidCalls": 2, "revenueUsdMicros": 20000 }
+  },
+  "2026-11-02": {
+    "/weather": { "challenged": 80, "paid": 3, "trackedPaidCalls": 3, "revenueUsdMicros": 30000, "v1_payment": 1 },
+    "/price/token": { "challenged": 12, "paid": 2, "trackedPaidCalls": 2, "revenueUsdMicros": 20000, "v2_payment": 2 }
+  },
+  "2026-11-01": {
+    "/weather": { "challenged": 100, "paid": 4, "trackedPaidCalls": 4, "revenueUsdMicros": 40000, "v2_payment": 1, "failed": 1 }
+  }
+}
