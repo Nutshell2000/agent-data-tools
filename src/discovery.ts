@@ -436,6 +436,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <h1>${esc(SERVICE_NAME)}</h1>
 <p class="lead">${esc(SERVICE_SUMMARY)}</p>
 <p><strong>APIs for developers, by monthly plan or pay as you go:</strong> ${PRODUCTS.map((p) => `<a href="/${p.slug}">${esc(p.name)}</a>`).join(" · ")}</p>
+${firstCallHtml(origin, trialsEnabled)}
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
 <li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
@@ -627,6 +628,12 @@ import { openAiResponsesOpenApiPath } from "./lib/openai-responses";
 import { MODELS } from "./lib/ai";
 import { paymentInfo } from "./lib/payment-info";
 import { usdcPrepayLine } from "./lib/credits";
+import { firstCall } from "./lib/first-call";
+/** The agent catalogue page opens with a request that needs no key, and its published answer (lib/first-call.ts). */
+function firstCallHtml(origin: string, trials: boolean): string {
+  const call = trials ? firstCall(origin) : null;
+  return call ? `<section class="start" aria-label="First call"><h2>First call: no key, no wallet</h2><pre><code>${esc(call.curl)}</code></pre><pre><code>${esc(call.output)}</code></pre><p>Add <code>trial=1</code> to a GET request: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller over HTTP on most tools (${FREE_CALLS_PER_CALLER} over MCP). Failed calls do not count.</p></section>` : "";
+}
 export { CAPACITY_LIMITED };
 
 /** The same tools described for an API marketplace, where the marketplace handles payment. */
@@ -737,7 +744,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpBundleTools(slug)!.length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
-    `- [Service card](${origin}/)`,
+    `- [Service card](${origin}/service-card.json)`,
     `- [x402 resource list](${origin}/.well-known/x402)`,
     ...EXTRA_LINKS.map((l) => `- [${l.label}](${origin}${l.href})`),
   ];

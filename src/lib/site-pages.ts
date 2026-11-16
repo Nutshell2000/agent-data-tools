@@ -27,14 +27,14 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;paddin
 table{border-collapse:collapse;width:100%;font-size:.94rem}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}.wrap{overflow-x:auto}
 ul{padding-left:20px}.small{color:var(--muted);font-size:.92rem}footer{max-width:980px;margin:0 auto;padding:24px 16px 48px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}`;
 
-const top = (brand: string) => `<header class="top"><a class="brand" href="/">${esc(brand)}</a><nav>${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name.replace(/ API$/, ""))}</a>`).join("")}<a href="/credits">Pricing</a><a href="/docs">Docs</a></nav></header>`;
+const top = (brand: string, freeKey = false) => `<header class="top"><a class="brand" href="/">${esc(brand)}</a><nav>${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name.replace(/ API$/, ""))}</a>`).join("")}<a href="/credits">Pricing</a><a href="/docs">Docs</a>${freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}</nav></header>`;
 const foot = () => `<footer>${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name)}</a>`).join(" · ")} · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/agents">For AI agents</a> · <a href="/status">Status</a> · ${COMPANY_FOOTER}</footer>`;
 
 /** The front page lives in lib/home-page.ts (15 Nov 2026 redesign); re-exported so callers keep one import. */
 export { landingPage } from "./home-page";
 
 /** /docs: how to call any of the APIs with a key. Only what the service does today. */
-export function docsPage(brand: string, origin: string): string {
+export function docsPage(brand: string, origin: string, freeKey = false): string {
   const pdf = BY_PATH.get("/pdf/text");
   const title = `Docs: keys, requests, errors and uploads · ${brand}`;
   const description = `How to call the ${brand} APIs: send your key in a header, read JSON back, what an error looks like, how to check your balance, replace a key and send a file.`;
@@ -47,7 +47,7 @@ export function docsPage(brand: string, origin: string): string {
 <link rel="canonical" href="${esc(origin)}/docs">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}/docs"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
-<style>${STYLE}</style></head><body>${top(brand)}<main>
+<style>${STYLE}</style></head><body>${top(brand, freeKey)}<main>
 <h1>Docs</h1>
 <p class="tag">Every API here is one HTTPS request that returns JSON. This page is everything that is the same for all of them.</p>
 
