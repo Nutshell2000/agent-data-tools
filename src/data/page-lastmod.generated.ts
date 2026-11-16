@@ -708,6 +708,7 @@ export const PAGE_LASTMOD: Readonly<Record<string, string>> = {
   "/tools/pack-coin-research": "2026-11-16",
   "/tools/pack-counterparty-full": "2026-11-16",
   "/tools/pack-crypto-market": "2026-11-16",
+  "/tools/pack-daily-brief": "2026-11-21",
   "/tools/pack-domain-intel": "2026-11-16",
   "/tools/pack-einvoice-check": "2026-11-16",
   "/tools/pack-email-deliverability": "2026-11-16",
