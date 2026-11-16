@@ -172,7 +172,10 @@ if (-not $merged) {
   }
   Step 'merge' { gh pr merge $pr.number --squash; 'merged' } 'merged'
 }
-Step 'checkout-main' { git fetch -q origin; git checkout -q --detach origin/main; git rev-parse HEAD }
+# 16 Nov 2026: 1.206.0 was resumed with its PR already open, so commit+push was skipped and sync-main's pin edits stayed in the
+# tree; this checkout then failed quietly, and the run waited 20 minutes for CI on its own local pin commit. After the merge
+# nothing local is needed: drop it, detach at main, and stop if HEAD is not main.
+Step 'checkout-main' { git fetch -q origin; git reset -q --hard; git checkout -q --detach origin/main; if ((git rev-parse HEAD) -ne (git rev-parse origin/main)) { throw 'could not check out origin/main after the merge' }; git rev-parse HEAD }
 $sha = (git rev-parse HEAD).Trim()
 # The deploy guard (scripts/deploy-production.mjs) wants a completed, successful run of mcp-contract.yml for this exact
 # commit, so wait for that workflow by name: on 22 Oct 2026 a resumed run passed this wait on another workflow's run and
