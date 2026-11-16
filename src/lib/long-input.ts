@@ -13,6 +13,7 @@ export const LONG_INPUT_FIELDS: Readonly<Record<string, readonly string[]>> = Ob
   "/einvoice/create": ["invoice"],
   "/einvoice/validate": ["xml"],
   "/einvoice/to-json": ["xml"],
+  "/pack/einvoice-check": ["xml"],
 });
 /** Shorter values stay in the URL as before. */
 export const LONG_INPUT_MIN = 1_500;

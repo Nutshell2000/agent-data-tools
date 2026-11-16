@@ -92,6 +92,9 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "invoice check": "/invoice/check", "check invoice": "/invoice/check", "invoice validation": "/invoice/check", "invoice fraud": "/invoice/check", "invoice parser": "/document/extract",
   "my ip": "/ip/geolocate", "ip geolocation": "/ip/geolocate", "ip location": "/ip/geolocate", "ip lookup": "/ip/lookup", "ip whois": "/ip/lookup",
   "national debt": "/econ/national-debt", "usdc yield": "/defi/usdc-yield", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
+  // Business packs (16 Nov 2026, routes/packs-business.ts).
+  "should i pay": "/pack/counterparty-full", "should my agent pay": "/pack/counterparty-full", "safe to pay": "/pack/counterparty-full", "pay this counterparty": "/pack/counterparty-full", "full counterparty check": "/pack/counterparty-full", "counterparty due diligence": "/pack/counterparty-full", "seller due diligence": "/pack/counterparty-full", "vet a seller": "/pack/counterparty-full",
+  "e invoice check": "/pack/einvoice-check", "einvoice check": "/pack/einvoice-check", "check e invoice": "/pack/einvoice-check", "e invoice usable": "/pack/einvoice-check", "xrechnung check": "/pack/einvoice-check", "check xrechnung": "/pack/einvoice-check", "zugferd check": "/pack/einvoice-check", "check zugferd": "/pack/einvoice-check",
 });
 /** The tool for the longest job phrase the request holds as whole words, if any. */
 export function jobTool(needText: string): string | undefined {
