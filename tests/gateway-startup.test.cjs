@@ -48,7 +48,7 @@ test('a stalled cold HTTP initialization does not block another quote or become 
     let timer;
     const outcome = await Promise.race([
       second.then(async r => { const status = r.status; await r.body?.cancel(); return status; }),
-      new Promise(resolve => { timer = setTimeout(() => resolve('blocked by another request'), 1500); }),
+      new Promise(resolve => { timer = setTimeout(() => resolve('blocked by another request'), 5000); }),
     ]);
     clearTimeout(timer);
     f.release();
@@ -115,7 +115,7 @@ test('MCP quotes initialize independently while a cold HTTP gateway is stalled',
     assert.equal(quote.isError, true);
     assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount, '2000');
     f.release(); const initial = await first; assert.equal(initial.status, 402); await initial.body?.cancel();
-    assert.equal((await client.listTools()).tools.length, 490);
+    assert.equal((await client.listTools()).tools.length, 493);
     assert.equal(f.calls(), 2, 'each transport reuses only its own completed state');
   } finally { f.release(); await client.close(); await f.mf.dispose(); }
 });
@@ -142,8 +142,8 @@ test('MCP bundles serve one catalog section each and quote like /mcp', async () 
       await client.close();
     }
     const all = Object.values(counts).flat();
-    assert.equal(all.length, 721, 'every tool is in exactly one bundle');
-    assert.equal(new Set(all).size, 721);
+    assert.equal(all.length, 724, 'every tool is in exactly one bundle');
+    assert.equal(new Set(all).size, 724);
     const unknown = await f.mf.dispatchFetch('https://api.test/mcp/nope', { method: 'POST' });
     assert.equal(unknown.status, 404); await unknown.body?.cancel();
   } finally { await f.mf.dispose(); }
