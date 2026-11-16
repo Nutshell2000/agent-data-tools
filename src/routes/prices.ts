@@ -105,8 +105,13 @@ const PRICE_TOOLS: Entry[] = [
   entry("/price/token", "Crypto price and token price: USD price of a token from Uniswap v3 pools",
     "Token price in USD for a crypto token by symbol, coin name or CoinGecko id from a built-in list of main tokens (ETH, BTC, USDC, AERO, ARB, OP, LINK, PEPE…) or any ERC-20 0x address on Base, Ethereum, Arbitrum or Optimism, from the deepest Uniswap v3 pool against USDC or WETH, read live. Returns pool, fee tier, reserve and a thin-liquidity flag. Spot price; no pool is 422, uncharged. Use to value a token or check a quote before a swap or payment.",
     ["price", "token", "crypto", "market-data", "uniswap", "defi"], {
-      symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)", example: "ETH" },
-      address: { type: "string", description: "0x ERC-20 token contract address (instead of symbol)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf" },
+      // symbol and address are alternatives (16 Nov 2026). The listing said `required: ["symbol"]` and gave both an
+      // example, so a planner could not send an address alone, and one that fills every input from its example sent
+      // symbol=ETH with the cbBTC address and was charged for the price of cbBTC. So: the descriptions say "one of the
+      // two", the listing states it as `anyOf` (EITHER_INPUT in lib/bazaar-extension.ts), and address offers no example
+      // value to fill in (an empty example is "none to offer", like the section input of /extract); its sample is in words.
+      symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)", example: "ETH" },
+      address: { type: "string", description: "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006", example: "" },
       chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
     },
     {
@@ -120,7 +125,8 @@ const PRICE_TOOLS: Entry[] = [
     },
     async (env, q) => {
       // token= and ticker= as agents send them (26 Oct 2026 probe: /price/token?token=0x… was refused).
-      const raw = (q("address") ?? q("symbol") ?? q("token") ?? q("ticker") ?? q("coin"))?.trim();
+      // An input sent empty is no input: symbol=ETH&address= (a form with the address left blank) is a symbol call.
+      const raw = [q("address"), q("symbol"), q("token"), q("ticker"), q("coin")].find((v) => v?.trim())?.trim();
       if (!raw) throw new HttpError(400, "symbol (e.g. ETH) or address (a 0x token address) is required");
       // No chain named: a ticker Base does not list (LINK, ARB, OP) is priced on the first network that does.
       const slug = q("chain")?.trim() ? pick(q, "chain", SLUGS, "base") : tickerNetwork(raw, "base", SLUGS);

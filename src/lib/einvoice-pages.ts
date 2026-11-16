@@ -6,6 +6,7 @@
 // Rule numbers are the published ones (EN 16931-1; XRechnung 3.0, KoSIT); the wording is ours.
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { COMPANY_FOOTER } from "./legal";
+import { lastmodTag } from "./page-lastmod";
 import { PAGE_STYLE } from "./vat-pages";
 import { TRY_FORM_CSS } from "./try-form";
 import { RULES, ruleDoc, ruleSlug, type RuleDoc } from "./einvoice/validate";
@@ -28,7 +29,7 @@ export const languageLinks = (origin: string, enPath: string) =>
   `\n<link rel="alternate" hreflang="en" href="${esc(origin + enPath)}"><link rel="alternate" hreflang="de" href="${esc(origin + toGermanPath(enPath))}"><link rel="alternate" hreflang="x-default" href="${esc(origin + enPath)}">`;
 export const einvoiceRule = (slug: string) => ruleDoc(slug);
 /** A sitemap with these pages added. Done where the sitemap is served, so lib/discovery's page list stays one line that parallel releases edit. */
-export const withEinvoicePages = (sitemap: string, origin: string) => sitemap.replace("</urlset>", () => `${einvoicePagePaths().map((p) => `<url><loc>${esc(origin + p)}</loc></url>`).join("")}</urlset>`);
+export const withEinvoicePages = (sitemap: string, origin: string) => sitemap.replace("</urlset>", () => `${einvoicePagePaths().map((p) => `<url><loc>${esc(origin + p)}</loc>${lastmodTag(p)}</url>`).join("")}</urlset>`);
 
 /** Business terms the rules name: what each is called and where it sits in the two syntaxes. */
 export const TERMS: Readonly<Record<string, readonly [name: string, cii: string, ubl: string]>> = Object.freeze({
