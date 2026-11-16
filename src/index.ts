@@ -47,6 +47,7 @@ import { ALIAS_OF, NO_INPUT, TOOLS } from "./tools";
 import { marketplaceOf, orthogonalSecret } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
+import { OG_GLYPHCALL_PNG_BASE64 } from "./lib/og-glyphcall";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
@@ -689,6 +690,8 @@ for (const path of ["/.well-known/owners.json", "/mcp/.well-known/owners.json"])
 app.get("/favicon.svg", (c) => c.body(FAVICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" }));
 const OG_IMAGE = Uint8Array.from(atob(OG_IMAGE_PNG_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/og.png", (c) => c.body(OG_IMAGE, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
+const OG_GLYPHCALL = Uint8Array.from(atob(OG_GLYPHCALL_PNG_BASE64), (ch) => ch.charCodeAt(0));
+app.get("/og-glyphcall.png", (c) => c.body(OG_GLYPHCALL, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
 app.on(["GET","HEAD"],"/skills/index.json",c=>c.json(readerSkillIndex(origin(c.req.url),READER_VERSION)));
