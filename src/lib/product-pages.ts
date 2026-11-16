@@ -7,6 +7,7 @@
 // restate what the tools' own descriptions and limits say. Prices and call counts are computed from the catalog and
 // the plans, never typed, so a price change cannot leave a wrong number on a page.
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { FREE_KEY_CALLS, WEB_PACKS, WEB_PLANS, PLAN_PORTAL_URL, callsAt } from "./credits";
 import { keyPrice } from "./key-prices";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
@@ -466,6 +467,6 @@ ${guides.length || p.more?.length ? `<h2>Guides</h2><ul>${(p.more ?? []).map(([h
 
 <h2>For AI agents</h2>
 <p>The same tool is on the MCP server <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free), and an agent with a wallet can pay per call in USDC: the tool URL answers <code>402 Payment Required</code> with x402 and MPP terms. Reference: <a href="/tools/${esc(toolSlug(e.path))}">tool page</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/llms.txt">docs for agents</a>.</p>
-<footer>${PRODUCTS.filter((o) => o !== p).map((o) => `<a href="/${esc(o.slug)}">${esc(o.name)}</a>`).join(" · ")} · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+<footer>${PRODUCTS.filter((o) => o !== p).map((o) => `<a href="/${esc(o.slug)}">${esc(o.name)}</a>`).join(" · ")} · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }

@@ -37,7 +37,8 @@ export function buildContract(endpoints, version, helpers) {
         name,
         description: helpers.toolDescription(endpoint),
         annotations: helpers.annotationsFor ? helpers.annotationsFor(endpoint.path) : helpers.toolAnnotations,
-        inputSchema: z4mini.toJSONSchema(z.object(helpers.toolInputShape(endpoint, z)), {
+        // The schema tools/list publishes: integer inputs with their stated range (toolInputShape, listed = true).
+        inputSchema: z4mini.toJSONSchema(z.object(helpers.toolInputShape(endpoint, z, undefined, true)), {
           target: "draft-7",
           io: "input",
         }),

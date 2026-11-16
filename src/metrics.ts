@@ -4,6 +4,7 @@ import { saveSettlement, ledgerSummary, type SettlementRecord } from "./lib/sett
 import { saveFunnel, funnelSummary, assertFunnelEvent, funnelLabel, COUNTED_ONLY, type FunnelEvent } from "./lib/funnel";
 import { issueCredits, issueFreeKey, grantPlanInvoices, spendCredits, refundCredits, rebateCredits, creditBalance, creditSummary, rotateKey } from "./lib/credits";
 import { takeFreeCall, refundFreeCall, takeDailyCall, refundDailyCall } from "./lib/free-calls";
+import { freeSessionSecret, takeSessionFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
 import type { MetricsBatch } from "./lib/metrics-batch";
 import { FAILURE_PREFIX, REFUSED_PAYMENT } from "./lib/failure-reason";
@@ -235,6 +236,9 @@ export class Metrics extends DurableObject {
   async mppSwap(key: string, expected: string, next: { value: unknown } | null) { return swapReplay(this.ctx.storage, key, expected, next); }
   async takeFreeCall(caller: string, day: string, limit?: number) { return takeFreeCall(this.ctx.storage, caller, day, limit); }
   async refundFreeCall(caller: string, day: string) { return refundFreeCall(this.ctx.storage, caller, day); }
+  // Free MCP calls counted per connection (lib/free-sessions.ts). Called on "credits".
+  async freeSessionSecret() { return freeSessionSecret(this.ctx.storage); }
+  async takeSessionFreeCall(session: string, address: string, day: string, limit?: number) { return takeSessionFreeCall(this.ctx.storage, session, address, day, limit); }
   async takeDailyCall(caller: string, day: string, perCaller: number, total: number) { return takeDailyCall(this.ctx.storage, caller, day, perCaller, total); }
   async refundDailyCall(caller: string, day: string) { return refundDailyCall(this.ctx.storage, caller, day); }
 

@@ -25,6 +25,11 @@ import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
 import { queueBatched } from "./lib/metrics-batch";
 import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
+import { ALL_BUNDLE, MCP_PINNED_PATHS, SURFACE_TOOLS } from "./mcp-contract";
+import { TOOL_COUNT } from "./endpoints";
+import { freeSessionFor } from "./lib/free-sessions";
+import * as z4mini from "zod/v4-mini";
+import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, COMPACT_PRICE_CEILING, COMPACT_TOOLS, aboveCompactCeiling, annotationsFor, compactPricePermits, compactReach, directoryToolDescription, mcpName, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { relatedTools } from "./lib/related";
 import { TOOLS } from "./tools";
@@ -153,7 +158,7 @@ const DIRECTORY_EXCLUDED: ReadonlySet<string> = new Set([
   "/search", "/search/web", "/web/search", "/news", "/news/search", "/crypto/news", "/pack/web-research", "/ai/answer", "/ai/fact-check", "/pack/news-sentiment",
 ]);
 const inputShapes = new Map<string, ReturnType<typeof toolInputShape>>();
-const listedTools = new Map<string, ReturnType<typeof protocolTool>[]>();
+const listedTools = new Map<string, Record<string, unknown>[]>();
 
 /**
  * The compact server, /mcp/compact (also /mcp/k/<key>/compact and /mcp/account/compact): the whole catalog behind three
@@ -175,7 +180,13 @@ function registerCompactTools(
   trackedFor: (e: Endpoint) => (args: Args, extra: unknown) => Promise<unknown>,
   // capped: the twin without max_price. priceFor: what this caller pays for one call of a tool (a key may pay less).
   capped: boolean, priceFor: (e: Endpoint) => string,
+  // surface: the same trio on /mcp (16 Nov 2026), where the second tool is listed as describe_tool and the count is the
+  // service's own. Left out, as on /mcp/compact and its capped twin, every name and text is what it was.
+  surface?: { count: number },
 ) {
+  const details = surface ? SURFACE_TOOLS[1] : COMPACT_TOOLS[1];
+  const total = surface ? surface.count : endpoints.length;
+  const registered: Record<string, RegisteredTool> = {};
   const byName = new Map(endpoints.map((e) => [toolName(e), e]));
   // A tool by its MCP name (weather_forecast), its path (/weather/forecast) or the path without the slash.
   const lookup = (name: string) => { const n = name.trim(); return byName.get(mcpName(n.startsWith("/") ? n : `/${n}`)); };
@@ -186,9 +197,9 @@ function registerCompactTools(
   };
   const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: true };
 
-  mcp.tool(
+  registered.find_tool = mcp.tool(
     "find_tool",
-    `Find which of this service's ${endpoints.length} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to ten tools, best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
+    `Find which of this service's ${total} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to ten tools, best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
     {
       need: z.string().min(2).max(300).describe("The job in plain words, for example: current weather in Paris"),
       count: z.number().int().min(1).max(10).optional().describe("How many tools to return, 1-10 (default 5)"),
@@ -200,7 +211,7 @@ function registerCompactTools(
         const tools = found.picks.map((p) => byName.get(p.mcpTool)).filter((e): e is Endpoint => Boolean(e)).slice(0, count ?? 5)
           .map((e) => ({ ...priced(e), does: e.description.slice(0, 280), requiredInputs: Object.entries(e.params).filter(([, p]) => p.required).map(([name]) => name), exampleArguments: exampleInput(e) }));
         if (!tools.length) return compactText({ error: `no tool here matches ${JSON.stringify(need.slice(0, 80))}. Nothing was charged.`, catalog: `${origin}/tools` }, true);
-        return compactText({ need, tools, next: "tool_details for every input of one tool, or call_tool with its name and arguments" });
+        return compactText({ need, tools, next: `${details} for every input of one tool, or call_tool with its name and arguments` });
       } catch (err) {
         if (!(err instanceof HttpError)) throw err;
         return compactText({ error: err.message.replace("; nothing was charged", "").replace(/ The full catalog is at \S+$/, ""), note: "Nothing was charged.", catalog: `${origin}/tools` }, true);
@@ -208,8 +219,9 @@ function registerCompactTools(
     },
   );
 
-  mcp.tool(
-    "tool_details",
+  // On /mcp the old name stays callable beside the listed one.
+  for (const name of surface ? [details, COMPACT_TOOLS[1]] : [details]) registered[name] = mcp.tool(
+    name,
     "Everything needed to call one tool: what it does, every input with its type, whether it is required and an example value, the price per successful call (and the lower price with a prepaid key where there is one), whether it is in the free calls, an example call and the shape of its answer. Free. Take the name from find_tool.",
     { name: z.string().min(1).max(120).describe("The tool's name from find_tool, for example weather_forecast") },
     { title: "Inputs, price and example of one tool", ...annotations, idempotentHint: true, openWorldHint: false },
@@ -229,12 +241,12 @@ function registerCompactTools(
     },
   );
 
-  mcp.tool(
+  registered.call_tool = mcp.tool(
     "call_tool",
-    `Run one of this service's tools by name. Costs that tool's own price per successful call (most $0.01; ${capped ? `never more than ${COMPACT_PRICE_CEILING}; ` : ""}tool_details and find_tool show it); a failed call costs nothing, and tools marked inFreeCalls run free while the caller has free calls left. Pass the tool's inputs as "arguments". If you do not know the name or the inputs, call find_tool or tool_details first: a wrong name or a missing input is refused before anything is charged.${capped ? "" : ` A tool that costs more than ${COMPACT_PRICE_CEILING} a call (find_tool marks it needsMaxPrice) runs only when you pass that price as "max_price"; without it the call is refused, uncharged, and the refusal states the price.`}`,
+    `Run one of this service's tools by name. Costs that tool's own price per successful call (most $0.01; ${capped ? `never more than ${COMPACT_PRICE_CEILING}; ` : ""}${details} and find_tool show it); a failed call costs nothing, and tools marked inFreeCalls run free while the caller has free calls left. Pass the tool's inputs as "arguments". If you do not know the name or the inputs, call find_tool or ${details} first: a wrong name or a missing input is refused before anything is charged.${capped ? "" : ` A tool that costs more than ${COMPACT_PRICE_CEILING} a call (find_tool marks it needsMaxPrice) runs only when you pass that price as "max_price"; without it the call is refused, uncharged, and the refusal states the price.`}`,
     {
       name: z.string().min(1).max(120).describe("The tool's name from find_tool, for example weather_forecast"),
-      arguments: z.record(z.string(), z.unknown()).optional().describe("The tool's inputs as an object, for example {\"city\": \"Paris\"}. See tool_details for a tool's inputs"),
+      arguments: z.record(z.string(), z.unknown()).optional().describe(`The tool's inputs as an object, for example {\"city\": \"Paris\"}. See ${details} for a tool's inputs`),
       ...(capped ? {} : { max_price: z.union([z.string().max(20), z.number()]).optional().describe(`Only for a tool that costs more than ${COMPACT_PRICE_CEILING} a call: the most this call may cost, for example "$1.00". Leave it out for every other tool`) }),
     },
     // Not idempotent: a repeat is charged again, as on the ordinary servers.
@@ -256,7 +268,21 @@ function registerCompactTools(
       return trackedFor(e)(parsed.data as Args, extra);
     }) as never,
   );
+  return registered;
 }
+
+/** One finder tool as tools/list states it, built as the SDK builds it for /mcp/compact (same converter, same fields). */
+const surfaceDefinition = (name: string, tool: RegisteredTool) => ({
+  name, title: tool.title ?? tool.annotations?.title, description: tool.description,
+  inputSchema: z4mini.toJSONSchema(tool.inputSchema as never, { target: "draft-7", io: "input" }),
+  annotations: tool.annotations, execution: tool.execution,
+});
+/**
+ * What /mcp says about its small list (16 Nov 2026). The full list was 452 definitions and 568,570 bytes on 11 Nov; an
+ * assistant carried all of it before its first call, and directories scored it low. Calls are unchanged: every name
+ * /mcp took before still runs there.
+ */
+const surfaceHow = (origin: string, pinned: readonly string[]) => `This server lists ${SURFACE_TOOLS.length + pinned.length} tools and reaches the whole catalog: find_tool (say the job in plain words and get the tools that do it, free), then describe_tool (one tool's inputs, price and an example call, free), then call_tool (run any tool by name at that tool's own price; above ${COMPACT_PRICE_CEILING} a call only when the call names the price in max_price). The most used tools are also listed as their own definitions: ${pinned.join(", ")}. Every other tool name in this text is a name for call_tool, or can be called directly by a client that already knows it; the full list, every tool as its own definition, is at ${origin}/mcp/all.`;
 
 /** "Prices per successful call: $0.002 to $0.03." for a focused server's instructions (its tools' own prices). */
 export function priceRange(endpoints: readonly Endpoint[]) {
@@ -277,12 +303,17 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   }
   // The compact server (/mcp/compact): the whole catalog behind three tools, so a client carries three definitions
   // instead of hundreds. See registerCompactTools below.
+  // /mcp/all (16 Nov 2026) is the main server with its full list; /mcp itself lists the small surface (SURFACE_TOOLS and
+  // the pinned tools) and still runs every tool by name. The signed-in servers keep the lists the directories reviewed.
+  const full = bundle === ALL_BUNDLE;
+  if (full) bundle = "";
+  const small = !full && bundle === "" && !account;
   const capped = bundle === COMPACT_CAPPED_BUNDLE;
   const compact = bundle === COMPACT_BUNDLE || capped;
   // A focused server (FOCUSED_SERVERS: documents, company-check) is a hand-picked product, not a catalog section.
   const focus = bundle && Object.hasOwn(FOCUSED_SERVERS, bundle) ? FOCUSED_SERVERS[bundle] : undefined;
   const catalog = compact ? ENDPOINTS : bundle ? mcpBundleTools(bundle) ?? focusedServerTools(bundle) : ENDPOINTS;
-  if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${[COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, ...Object.keys(MCP_BUNDLES), ...Object.keys(FOCUSED_SERVERS)].join(", ")}` }, 404);
+  if (!catalog) return c.json({ error: `unknown MCP bundle; use one of: ${[ALL_BUNDLE, COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, ...Object.keys(MCP_BUNDLES), ...Object.keys(FOCUSED_SERVERS)].join(", ")}` }, 404);
   // The signed-in server is what app directories list; their policy excludes AI generation of images,
   // video and audio, so those two tools stay on the open /mcp and HTTP only.
   // Sales order, as in /discovery/resources: payee and risk checks first, toys last (tools/list and registration).
@@ -303,7 +334,11 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // directory: the ChatGPT plugin server (/mcp/chatgpt). Free inside ChatGPT (its rules allow no sale of digital services
   // and no freemium upsell): a daily allowance per signed-in user, and no price, plan, credit, key, link or request id in
   // anything ChatGPT shows.
-  const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : bundle;
+  // Entry paths are second names for outside search engines (ENTRY_OF): they run by name as before and are no longer
+  // listed anywhere (16 Nov 2026; /mcp/account never registered them). The compact servers list no catalog tool at all.
+  const listable = compact ? endpoints : endpoints.filter((e) => !Object.hasOwn(ENTRY_OF, e.path));
+  const pinned = small ? MCP_PINNED_PATHS.map((p) => endpoints.find((e) => e.path === p)).filter((e): e is Endpoint => Boolean(e)) : [];
+  const listKey = account ? `${bundle}#${directory ? "chatgpt" : "account"}` : small ? "#small" : bundle;
   const env = c.env;
   if (c.req.method === "POST" && env.METRICS) {
     // Which apps connect: counted on initialize only, by the client's self-reported name.
@@ -324,10 +359,14 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // Signed-in connectors (app directories) never see crypto payment requests: free calls, then a credit key.
   const x402 = paid && !creditKey && !account;
   const freeOnly = paid && !creditKey && Boolean(account);
+  // Free calls per connection: an unpaid, keyless connection gets a signed token at initialize and sends it back as
+  // Mcp-Session-Id (lib/free-sessions.ts). The transport stays stateless; the header is only the name of a counter.
+  // Free calls per connection stay OFF until the owner decides (the rule: 25 per caller); MCP_FREE_SESSIONS="on" enables them.
+  const freeSession = x402 && c.req.method === "POST" && (env as { MCP_FREE_SESSIONS?: string }).MCP_FREE_SESSIONS === "on" ? await freeSessionFor(env, c.req.header("mcp-session-id"), () => c.req.raw.clone().text()) : {};
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: focus ? `${SERVICE_NAME}: ${focus.title}` : SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(endpoints.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : ""}${mcpInstructions(origin, Boolean(creditKey), endpoints.length, mppEnabled(env), Boolean(account), focus && { ...focus, prices: priceRange(endpoints) })}` });
+  const mcp = new McpServer({ name: SERVICE_ID, title: focus ? `${SERVICE_NAME}: ${focus.title}` : SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(listable.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : small ? `${surfaceHow(origin, pinned.map(toolName))} ` : ""}${mcpInstructions(origin, Boolean(creditKey), compact ? endpoints.length : small ? TOOL_COUNT : listable.length, mppEnabled(env), Boolean(account), focus && { ...focus, prices: priceRange(listable) })}` });
 
   // Tools this server offers, so a result names only next tools the client can actually call here.
   const served = new Set(endpoints.map((x) => x.path));
@@ -364,7 +403,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
         let freePaused = false;
         const free = directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
-          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }) : null;
+          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id) : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
         if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
@@ -409,12 +448,21 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
     }
     // SDK Zod conversion cannot represent the existing oneOf/not output contract.
     // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.
-    mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: listedTools.get(listKey) ?? (listedTools.set(listKey, endpoints.map((e) => protocolTool(e, directory))), listedTools.get(listKey)!)}));
+    // The small surface: the finder trio over everything the compact server reaches, registered beside the tools above.
+    const finder = small ? registerCompactTools(mcp, env, origin, salesOrdered(ENDPOINTS).filter((e) => compactReach(e)), shapeOf, trackedFor, false, (e) => creditKey ? keyPrice(e.path, e.price) : e.price, { count: TOOL_COUNT }) : undefined;
+    const list = () => finder
+      ? [...SURFACE_TOOLS.map((name) => surfaceDefinition(name, finder[name])), ...pinned.map((e) => protocolTool(e))]
+      : listable.map((e) => protocolTool(e, directory));
+    mcp.server.setRequestHandler(ListToolsRequestSchema, async () => ({tools: (listedTools.get(listKey) ?? (listedTools.set(listKey, list()), listedTools.get(listKey)!)) as never}));
   }
   const transport = new StreamableHTTPTransport();
   await mcp.connect(transport);
   try {
-    return (await transport.handleRequest(c)) ?? c.body(null, 204);
+    const answer = (await transport.handleRequest(c)) ?? c.body(null, 204);
+    if (!freeSession.send) return answer;
+    const headers = new Headers(answer.headers);
+    headers.set("Mcp-Session-Id", freeSession.send);
+    return new Response(answer.body, { status: answer.status, headers });
   } catch (err) {
     // @hono/mcp rejects transport problems (an unsupported MCP-Protocol-Version, a wrong Accept header) with an
     // HTTPException that carries its JSON-RPC answer; app.onError turned it into a 500, so health probes sending
