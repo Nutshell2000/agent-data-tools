@@ -271,7 +271,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <meta name="theme-color" content="#07070c">
 <link rel="canonical" href="${esc(origin)}/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="${esc(brand)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og.png"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <style>${STYLE}</style></head><body>

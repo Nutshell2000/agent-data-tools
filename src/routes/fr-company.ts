@@ -95,14 +95,39 @@ export function frCompanyView(u: Unit) {
 }
 
 type Answer = { results?: Unit[]; total_results?: number };
-const ask = (params: Record<string, string>) =>
+const askOnce = (params: Record<string, string>) =>
   getJson<Answer>(`${API}?${new URLSearchParams({ ...params, est_entrepreneur_individuel: "false" })}`, { timeoutMs: 8_000 }).catch((e: unknown) => {
     // A busy API (429 after getJson's one retry) is an uncharged 503 rather than a 502.
     if (e instanceof HttpError && / 429/.test(e.message)) throw new HttpError(503, "the French company register is busy; try again in a few seconds, nothing was charged");
     throw e;
   });
+/**
+ * 16 Nov 2026: /status showed 2 of 5 /fr/company calls in three days ending "the data source did not answer in time";
+ * the API answers most requests in under a second, so a timed-out request is asked once more before the call fails.
+ */
+export async function ask(params: Record<string, string>, once: typeof askOnce = askOnce) {
+  try {
+    return await once(params);
+  } catch (e) {
+    if (!(e instanceof Error && (e as HttpError).status === 502 && /in time/i.test(e.message))) throw e;
+    return once(params);
+  }
+}
+
+/** A company found by SIREN is kept at the edge for a day: routers and testers repeat the published example. */
+const LOOKUP_CACHE_SECONDS = 86_400;
+const lookupStore = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
 
 export async function frLookup(siren: string) {
+  const key = `https://fr-company.cache.invalid/${siren}`;
+  const kept = await lookupStore()?.match(key).catch(() => undefined);
+  if (kept) { const hit = (await kept.json().catch(() => null)) as ReturnType<typeof frCompanyView> | null; if (hit?.siren === siren) return hit; }
+  const view = await frFind(siren);
+  await lookupStore()?.put(key, new Response(JSON.stringify(view), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${LOOKUP_CACHE_SECONDS}` } })).catch(() => {});
+  return view;
+}
+
+async function frFind(siren: string) {
   const r = await ask({ q: siren, per_page: "5" });
   const u = (r.results ?? []).find((x) => x.siren === siren);
   if (!u) throw new HttpError(404, `no company with SIREN ${siren} that the register publishes (sole traders and units that opted out are not shown); nothing was charged`);
