@@ -3,6 +3,7 @@
 // keeps the register, how fresh our copy is) and a working lookup. Part of the company-check product
 // (lib/product-pages.ts); same reasoning as lib/vat-pages.ts. The "what you get" text is the tool's own description.
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { PAGE_STYLE, VAT_BASE } from "./vat-pages";
 import { COMPANY_FOOTER } from "./legal";
@@ -125,7 +126,7 @@ ${tryIt ? tryForm(e, undefined, `Look up a ${c.adjective} company now`) : `<p><a
 ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 <h2>Other registers</h2>
 <p>${REGISTER_COUNTRIES.filter((o) => o !== c).map((o) => `<a href="${REGISTER_BASE}/${esc(o.slug)}">${esc(o.country)}</a>`).join(" · ")} · <a href="${VAT_BASE}">EU VAT numbers</a></p>
-<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
@@ -149,6 +150,6 @@ export function registerIndexPage(origin: string, brand: string = SERVICE_NAME):
 ${REGISTER_COUNTRIES.map((c) => `<tr><td><a href="${REGISTER_BASE}/${esc(c.slug)}">${esc(c.country)}</a></td><td>${esc(c.numberName)}</td><td>${esc(c.format)}</td><td>${esc(c.authority)}</td></tr>`).join("\n")}
 </table></div>
 <p>Register facts only: names, legal form, status, bankruptcy or liquidation, dates, industry codes and address. Not a credit report. For VAT numbers in every EU country: <a href="${VAT_BASE}">EU VAT number check</a>. Keys and monthly plans: <a href="/company-check-api">Company check API</a>.</p>
-<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/company-check-api">Company check API</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }

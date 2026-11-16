@@ -38,8 +38,9 @@ test("builds a priced contract with required, numeric, and enum parameter schema
             name: { type: "string", description: "Name to look up" },
             limit: {
               type: "integer",
-              minimum: Number.MIN_SAFE_INTEGER,
-              maximum: Number.MAX_SAFE_INTEGER,
+              // "limit" with no range in its description: the range for that kind of input (integerRange).
+              minimum: 1,
+              maximum: 20_000,
               description: "Maximum results",
             },
             score: { type: "number", description: "Minimum score" },

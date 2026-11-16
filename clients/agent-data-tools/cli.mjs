@@ -14,7 +14,7 @@ const NAME = "agent-data-tools";
 // The server a client is connected to. The default is the compact one: three tools (find_tool, tool_details, call_tool)
 // that reach the whole catalog, so the assistant does not carry several hundred tool definitions. --full picks the
 // server that lists every tool as its own definition.
-const serverPath = (full) => (full ? "/mcp" : "/mcp/compact");
+const serverPath = (full) => (full ? "/mcp/all" : "/mcp/compact");
 const stdio = (full) => ({ command: "npx", args: full ? ["-y", NAME, "mcp", "--full"] : ["-y", NAME, "mcp"] });
 const TARGETS = ["claude-code", "claude-desktop", "cursor", "vscode"];
 
@@ -59,7 +59,7 @@ const HELP = `Usage:
   agent-data-tools mcp [--key adt_...] [--full]
                                          stdio MCP server that forwards to ${ORIGIN}/mcp/compact
   The client gets three tools that find, describe and run any tool in the catalog.
-  --full connects ${ORIGIN}/mcp instead: every tool as its own definition (several hundred).
+  --full connects ${ORIGIN}/mcp/all instead: every tool as its own definition (several hundred).
   agent-data-tools key [adt_...]         save a prepaid key; without a key, show whether one is set and its balance
   agent-data-tools credits               where to get a prepaid key (card or USDC)
   agent-data-tools list [words]          tools and prices

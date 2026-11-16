@@ -106,6 +106,9 @@ CATALOG.push(...KYB);
 // Verified payee records (2027 flagship, Phase 0; routes/payee.ts).
 CATALOG.push(...PAYEE);
 CATALOG.push(...PAYEE_PLAN);
+// Business packs (16 Nov 2026, routes/packs-business.ts): /pack/counterparty-full and /pack/einvoice-check.
+import { PACKS_BUSINESS } from "./routes/packs-business";
+CATALOG.push(...PACKS_BUSINESS);
 // EU law search over our own index (1.185.0, routes/law-search.ts).
 CATALOG.push(...LAW_SEARCH);
 // Czech (ARES) and Estonian (e-Business Register) company lookups, also searched by /company/search (routes/cz-ee-company.ts).

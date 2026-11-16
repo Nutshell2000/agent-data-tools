@@ -122,7 +122,7 @@ test('MCP initialize with ?src= logs the client software name, the tag, the rout
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(`${O}/mcp?src=glama`), { requestInit: { headers: { 'cf-connecting-ip': IP, 'user-agent': 'node' } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
     const { tools } = await client.listTools();
-    assert.ok(tools.length > 100, `the full server lists its tools, got ${tools.length}`);
+    assert.ok(tools.length >= 10, `the server still lists tools (the small /mcp surface since 1.215.0), got ${tools.length}`);
   } finally { await client.close(); }
   const got = await points();
   // One point for the initialize request only: not for notifications/initialized, tools/list or the stream.

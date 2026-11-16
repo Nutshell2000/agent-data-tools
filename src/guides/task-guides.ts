@@ -5,6 +5,7 @@
 // an agent can make it (free trial, card key in a header or in the URL, x402/MPP, MCP) and links the tool pages.
 import { PRODUCT_FOR_TOOL, PRODUCTS } from "../lib/product-pages";
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
 import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
 import { keyOfferNumbers } from "../lib/key-prices";
@@ -232,7 +233,7 @@ ${g.code ? `<h2>${esc(g.code.language)} example</h2><pre><code>${esc(g.code.text
 ${uses.length ? `<h2>When an agent wants this</h2><ul>${uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
 ${tools.map((e) => toolBlock(e, origin, freeCalls, false)).join("\n")}
 <h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
-<footer><a href="/guides">All guides</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/guides">All guides</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
@@ -257,5 +258,5 @@ export function guidesIndexHtml(origin: string): string {
 <p><strong>By monthly plan, one API key:</strong> ${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name)}</a>`).join(" · ")}</p>
 <ul>${TASK_GUIDES.map((g) => { const e = byPath.get(g.tools[0]); return `<li><a href="/guides/${esc(g.slug)}">${esc(g.phrase)}</a>${e ? ` · from ${esc(e.price)}: ${esc(leadOf(g, e).slice(0, 160))}` : ""}</li>`; }).join("")}</ul>
 <h2>Buying guides and clients</h2><ul>${older.map(([h, t]) => `<li><a href="${esc(h)}">${esc(t)}</a></li>`).join("")}</ul>
-<footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a></footer></main></body></html>`;
+<footer><a href="/tools">All ${TOOL_COUNT} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a></footer></main></body></html>`;
 }

@@ -10,6 +10,7 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   // E-invoices (XML, or a ZUGFeRD / Factur-X PDF that embeds one).
   "/einvoice/validate": 5 * 1024 * 1024,
   "/einvoice/to-json": 5 * 1024 * 1024,
+  "/pack/einvoice-check": 5 * 1024 * 1024, // runs the two tools above on the same file
   "/pdf/text": 10 * 1024 * 1024,
   "/pdf/extract": 10 * 1024 * 1024,
   // Audio (14 Nov 2026, voice plan): the same 5 MB as a URL fetch, so the price per call covers the longest file.
