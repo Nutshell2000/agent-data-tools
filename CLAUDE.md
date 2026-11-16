@@ -2125,3 +2125,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - `/ai/speech` and `/text-to-speech`: `meloLang()` / `meloAnswer()` in ai-text.ts; `lang` enum is `SPEECH_LANGS`; MeloTTS text cap `MELO_MAX_CHARS` 1,200. The ElevenLabs and OpenAI speech fronts stay en/es because they promise MP3.
 
 
+
+
+## The voice list for OpenAI-compatible apps (1.209.0, 16 Nov 2026)
+
+- `GET /v1/audio/voices` (src/lib/openai-voices.ts, free, CORS open): `openAiVoiceList(language)` builds the list from `SPEECH_VOICES` and `OPENAI_VOICES` (src/routes/ai-text.ts), so a voice added there is listed automatically. English by default, with the OpenAI names last (each with `alias_of`). Spanish only with `?language=es`, because a Spanish voice also needs `language=es` on the speech request.
+- Why: apps with an OpenAI-compatible speech setting fill their voice picker from the sibling of the speech endpoint. Home Assistant's openai_tts (sfortis/openai_tts, `voice_listing.py`) reads `items`, then `data` ([{id, name}]), then `voices` ([string]). We answer `data` and `voices`. Setup guides for those apps live at voice.glyphcall.com/guides (glyphcall-voice-tools/build-guides.mjs). Keep that file's voice table and prices in step with this list and the speech prices.
+- Tests: tests/openai-voices.test.cjs.
+
