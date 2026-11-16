@@ -23,3 +23,7 @@ export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_F
 for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summary"]) CAPACITY_LIMITED.add(p);
 // Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): Nova-3 diarization and M2M100 subtitle translation: paid only.
 for (const p of ["/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent"]) CAPACITY_LIMITED.add(p);
+CAPACITY_LIMITED.add("/audio/transcribe"); // 15 Nov 2026: the door to /transcribe
+// Voice studio (1.206.0, routes/voice-studio.ts): Aura-2 for every line or caption, paid only (16 Nov 2026: they were
+// missing here, so the free calls and the local smoke run would have run them).
+for (const p of ["/dialogue", "/text-to-speech/captions"]) CAPACITY_LIMITED.add(p);
