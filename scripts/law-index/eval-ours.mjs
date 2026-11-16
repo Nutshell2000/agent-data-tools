@@ -52,7 +52,7 @@ const deps = {
   },
 };
 
-const set = JSON.parse(readFileSync(join(here, "eval-questions.json"), "utf8"));
+const set = JSON.parse(readFileSync(process.env.EVAL_FILE ?? join(here, "eval-questions.json"), "utf8"));
 const rows = [];
 for (const { q, expect, heldOut } of set) {
   const t = Date.now();

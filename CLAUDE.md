@@ -2138,3 +2138,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - `business/agentic/base-bots/new-phrases-1116.mjs` measures 57 Bazaar searches that search-ranks.mjs does not track (voice, invoices, registers, KYB, the Exa-style family); `losses-1116.mjs` splits every non-#1 tracked search into text losses (a listing above us has no more payers) and payer losses. On 16 Nov: 80 text, 74 payer, 1 absent. Most text losses are exact-name ties that the name cannot break; rename only where our name lacks the phrase.
 - Renamed: /transcribe/long, /transcribe/summary, /transcribe/speakers, /dub, /pdf/extract, /einvoice/validate (tests/chart-names-1210.test.cjs keeps each phrase in its name). "Whisper" is honest: /transcribe/long runs Whisper large-v3-turbo.
+## LexGlyph (1.211.0, 16 Nov 2026)
+
+- src/lib/lexglyph-page.ts: `lexglyphPage(origin, brand, state)` renders; `lexglyphHtml(env, origin, params, ip)` runs a search within `LEXGLYPH_PER_VISITOR` (20/day per visitor; KV key `lexglyph:<day>:<sha256(ip) 12 bytes>`, TTL 2 days) and the global `takeDailyBudget(env, "lexglyph", LEXGLYPH_DAILY_CAP, 2000)`. Route GET /lexglyph in src/index.ts; in the sitemap. Search result pages carry noindex; the start page is indexable.
+- `answerFromArticles(env, q, results, { plain: true })` asks for plain words in the question's language: `questionLanguage()` (franc-min restricted to the 24 EU languages) names it, because Llama 4 Scout answered a Swedish question in English when told "the language of the question". The API path (no opts) is unchanged.
+- Page rules (file header): no JS needed (copy button is progressive), contrast checked (the copy button was 1:1 before its explicit colours), every claim measured. Multilingual test set: scripts/law-index/eval-multilingual.json (`EVAL_FILE=… node scripts/law-index/eval-ours.mjs`).
+
+- lexglyph-i18n.ts holds every interface string per language (tests/lexglyph.test.cjs requires the same keys in all six); add a language there, never inline. `eurlexIn(url, code)` swaps the /legal-content/XX/ segment; EUR-Lex anchors are the same in every language. Light-mode colour overrides in PAGE_STYLE keep AAA contrast; re-measure after any style change.
+
