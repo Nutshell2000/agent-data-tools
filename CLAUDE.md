@@ -2146,3 +2146,11 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 
 - lexglyph-i18n.ts holds every interface string per language (tests/lexglyph.test.cjs requires the same keys in all six); add a language there, never inline. `eurlexIn(url, code)` swaps the /legal-content/XX/ segment; EUR-Lex anchors are the same in every language. Light-mode colour overrides in PAGE_STYLE keep AAA contrast; re-measure after any style change.
 
+
+## The free voice console on glyphcall.com (1.212.0, 16 Nov 2026)
+
+- `src/lib/voice-console.ts`: `voiceConsole()` (markup, ids prefixed per instance), `VOICE_CONSOLE_CSS` (colours from `--vc-*`, the product pages map them to their own palette with `.vc-light`) and `voiceConsoleScript()` (one inline script per page, after `</main>`). Its web workers are built from blob URLs and import kokoro-js 1.2.1 and @huggingface/transformers 3.5.1 from jsDelivr; the models come from Hugging Face (reachable from glyphcall.com, checked 16 Nov) and are cached by the browser. Nothing is uploaded and nothing is charged.
+- Used by the front page hero (`landingPage`) and by the product pages whose tool is in `VOICE_CONSOLE_FIRST` (/transcribe, /text-to-speech): those tools are outside the HTTP trial, so before this the two voice pages had no free try at all. A new product page for a capacity-limited tool needs its own free try the same way, or its "Try it free" button points nowhere.
+- Whisper runs as the 8-bit CPU build only: the graphics build fetched over 270 MB on 16 Nov. Voice 88 MB, listening 76 MB. Make no speed claim (not measured on a fair machine).
+- The front page's only script is the console; tests/voice-console.test.cjs pins one script per page, the preselected voice, the try on both voice pages, and versioned CDN URLs.
+

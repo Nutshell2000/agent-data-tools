@@ -12,6 +12,10 @@ import { keyPrice } from "./key-prices";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { COMPANY_FOOTER } from "./legal";
+import { VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
+
+/** Which product pages carry the free voice console, and the tab it opens on. */
+const VOICE_CONSOLE_FIRST: Record<string, "tts" | "stt"> = { "/transcribe": "stt", "/text-to-speech": "tts" };
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -403,6 +407,10 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
     offers: offers.map((o) => ({ "@type": "Offer", price: o.label.replace(/[^0-9.]/g, ""), priceCurrency: "USD", description: `${o.label}: ${o.calls} ${p.unit}` })),
   };
   const faqLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: p.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
+  // The voice tools are outside the HTTP trial (they cost per call), so these two pages had no free try at all while
+  // the front page promised one. They get the free in-browser console instead (lib/voice-console.ts).
+  const voiceTry = VOICE_CONSOLE_FIRST[p.tool];
+  const consoleHtml = voiceTry ? `<div id="try"><h2>Try it free, right here</h2><p class="small">Runs in your browser with open models, so it is free and unlimited and nothing is uploaded. The API below does the same job on our servers for your app.</p>${voiceConsole({ id: "try-vc", first: voiceTry, voiceSite: VOICE_SITE, className: "vc-light" })}</div>` : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
@@ -413,18 +421,19 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd(faqLd)}</script>
-<style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}</style></head><body><main>
+<style>${STYLE}${tryIt ? TRY_FORM_CSS : ""}${voiceTry ? `${VOICE_CONSOLE_CSS}\n.vc.vc-light{--vc-card:var(--card);--vc-card2:var(--bg);--vc-line:var(--line);--vc-fg:var(--fg);--vc-muted:var(--muted);--vc-accent:var(--accent);--vc-btn:var(--accent);--vc-btn-fg:var(--accent-fg);--vc-ok:var(--ok);--vc-err:#c5221f;margin:10px 0 6px}` : ""}</style></head><body><main>
 <nav class="crumbs"><a href="/">${esc(brand)}</a></nav>
 <h1>${esc(p.name)}</h1>
 <p class="tag">${esc(p.tagline)}</p>
 <ul class="points">${p.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
 <div class="actions">
 ${freeKey ? `<a class="btn primary" href="/keys/free">Get a free API key</a>` : ""}
-${tryIt ? `<a class="btn${freeKey ? "" : " primary"}" href="#try">${esc(tryLabel ?? "Try it free")}</a>` : ""}
-<a class="btn${tryIt || freeKey ? "" : " primary"}" href="#pricing">${lead ? `Plans from ${esc(lead.label.replace(" once", ""))}` : "Pricing"}</a>
+${tryIt || voiceTry ? `<a class="btn${freeKey ? "" : " primary"}" href="#try">${esc(voiceTry ? "Try it free, no account" : tryLabel ?? "Try it free")}</a>` : ""}
+<a class="btn${tryIt || voiceTry || freeKey ? "" : " primary"}" href="#pricing">${lead ? `Plans from ${esc(lead.label.replace(" once", ""))}` : "Pricing"}</a>
 <a class="btn" href="${esc(`${e.path}?${exampleParams(e).map(([k, v]) => `${k}=${encodeURIComponent(String(v.example ?? ""))}`).join("&")}&sample=1`)}">Sample answer (JSON)</a>
 </div>
 <p class="small">${freeKey ? `A free key makes ${FREE_KEY_CALLS} calls a month: leave an e-mail address, open the link, paste the key. ` : "No account to create. "}Failed calls are never charged.</p>
+${consoleHtml}
 
 <h2>One request</h2>
 <pre><code>${esc(s.curl)}</code></pre>
@@ -465,5 +474,5 @@ ${guides.length || p.more?.length ? `<h2>Guides</h2><ul>${(p.more ?? []).map(([h
 <h2>For AI agents</h2>
 <p>The same tool is on the MCP server <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free), and an agent with a wallet can pay per call in USDC: the tool URL answers <code>402 Payment Required</code> with x402 and MPP terms. Reference: <a href="/tools/${esc(toolSlug(e.path))}">tool page</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/llms.txt">docs for agents</a>.</p>
 <footer>${PRODUCTS.filter((o) => o !== p).map((o) => `<a href="/${esc(o.slug)}">${esc(o.name)}</a>`).join(" · ")} · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
-</main></body></html>`;
+</main>${voiceTry ? voiceConsoleScript() : ""}</body></html>`;
 }
