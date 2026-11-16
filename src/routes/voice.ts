@@ -260,7 +260,7 @@ async function audioBytes(q: Input): Promise<{ bytes: Uint8Array; url: string | 
 }
 
 export const VOICE: Entry[] = [
-  entry(LONG_TRANSCRIBE_PATH, "Transcribe long audio: up to 60 minutes of MP3 or WAV, with subtitles",
+  entry(LONG_TRANSCRIBE_PATH, "Whisper audio transcription: up to 60 minutes of MP3 or WAV, with subtitles",
     "Transcribe a podcast, meeting, interview or lecture: up to 60 minutes of MP3 or WAV (25 MB) by URL or uploaded in a POST body, 90+ languages, Whisper large-v3-turbo. Parts are joined, so subtitles=srt or vtt and timestamps=true cover the whole recording; longer audio is refused before anything runs. Use for meeting notes, podcast show notes, video subtitles and interviews; for a short clip in any format, transcribe costs less.",
     ["transcription", "speech-to-text", "long-audio", "podcast-transcription", "subtitles", "whisper", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of an MP3 or WAV file (max 25 MB, 60 minutes); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
@@ -292,7 +292,7 @@ export const VOICE: Entry[] = [
         ...(subtitles ? { subtitleFormat: subtitles, subtitles: toSubtitles(segments, subtitles as "srt" | "vtt") } : {}),
       };
     }, LONG_TRANSCRIBE_PRICE),
-  entry(SUMMARY_PATH, "Summarize audio: voice note or meeting recording to summary and action items",
+  entry(SUMMARY_PATH, "Meeting transcript and summary: voice note or meeting recording to summary and action items",
     "Summarize a voice note, meeting, call or podcast in one call: transcribes up to 60 minutes (MP3/WAV up to 25 MB; M4A, OGG or WebM up to 5 MB) by URL or upload, then returns a title, summary, key points, action items with owner and due date, open questions and the transcript, in the recording's language. Use for meeting notes, voicemail to CRM and call notes.",
     ["audio-summary", "meeting-notes", "voice-note", "transcription", "summarize", "action-items", "speech-to-text"], {
       url: { type: "string", description: "Absolute http(s) URL of the recording (MP3/WAV up to 25 MB and 60 minutes; M4A, OGG or WebM up to 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
