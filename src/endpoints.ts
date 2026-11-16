@@ -984,6 +984,11 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/weather/forecast", "/fx/rates", "/geocode/address", "/token/price", "/crypto/fear-and-greed", "/wallet/balance",
   "/price/crypto", "/balance/wallet", "/weather/current", "/dns/records", "/sec/edgar",
   "/bitcoin/price", "/gas/price", "/market/sentiment",
+  // 16 Nov 2026 (prices delegated; ladder plan after tracing the daily buyer 0x0fcb): the other jobs that scheduled buyer pays
+  // separate sellers for each morning (stock history, keyword ideas, USDC yield, prediction-market odds) enter at the acquisition
+  // price like its token-price, CVE and time jobs. All read free public sources, so a call costs us nothing. Rank follows distinct
+  // payers, and the explorer and quest wallets that supply new payers buy the cheapest listing. Review with the 20 Nov review.
+  "/stock/history", "/stock/quote", "/keywords/ideas", "/defi/usdc-yield", "/defi/yields", "/polymarket/markets", "/polymarket/events", "/polymarket/search",
 ]);
 /**
  * Finder price test (12 Nov 2026, the owner: "Yes, test those two"). The x402 Service Finder scores

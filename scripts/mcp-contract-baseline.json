@@ -1,5 +1,5 @@
 {
-  "version": "1.215.0",
+  "version": "1.216.0",
   "tools": [
     {
       "name": "extract",
@@ -11124,7 +11124,7 @@
     },
     {
       "name": "polymarket_markets",
-      "description": "Polymarket prediction markets: the most traded open markets by 24-hour volume, or the markets matching a search, each with outcome prices (implied probability), best bid and ask, last trade, day change, volume, liquidity, end date, slug and CLOB token ids. Use to get the odds on an election, sports, crypto or news event, or to find a market before reading its order book. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Polymarket prediction markets: the most traded open markets by 24-hour volume, or the markets matching a search, each with outcome prices (implied probability), best bid and ask, last trade, day change, volume, liquidity, end date, slug and CLOB token ids. Use to get the odds on an election, sports, crypto or news event, or to find a market before reading its order book. Example: q=bitcoin. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11155,11 +11155,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polymarket_events",
-      "description": "Polymarket events (one question with one or several markets, such as an election with many candidates): the busiest open events by 24-hour volume or those matching a search, with volume, liquidity, end date, tags, the number of open markets and the five leading outcomes by price. Use to see who leads a multi-candidate market or to browse what is being traded now. Example: q=president. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Polymarket events (one question with one or several markets, such as an election with many candidates): the busiest open events by 24-hour volume or those matching a search, with volume, liquidity, end date, tags, the number of open markets and the five leading outcomes by price. Use to see who leads a multi-candidate market or to browse what is being traded now. Example: q=president. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11182,7 +11182,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polymarket_orderbook",
@@ -11291,7 +11291,7 @@
     },
     {
       "name": "stock_quote",
-      "description": "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line. Example: symbol=AAPL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11311,11 +11311,11 @@
           "symbol"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "stock_history",
-      "description": "Stock price history as OHLCV bars for any ticker or company name: open, high, low, close, adjusted close and volume from 1-minute to monthly bars over 1 day to the full history, plus first, last, change, high and low. Use to chart a stock, backtest a signal, compute returns or feed indicators. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Stock price history as OHLCV bars for any ticker or company name: open, high, low, close, adjusted close and volume from 1-minute to monthly bars over 1 day to the full history, plus first, last, change, high and low. Use to chart a stock, backtest a signal, compute returns or feed indicators. Example: symbol=AAPL. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11367,7 +11367,7 @@
           "symbol"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "stock_search",
@@ -11872,7 +11872,7 @@
     },
     {
       "name": "keywords_ideas",
-      "description": "Keyword ideas for SEO and ads: the search phrases real users type for a seed keyword, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, deduplicated and ranked by how many engines suggest each, with question and buying-intent phrases listed apart. deep=true adds the Google long tail (seed + a-z, how, what, best, vs), up to 200 keywords. Use to plan content, find long-tail and question keywords, or name a product. No search volumes. Example: seed=crm software. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Keyword ideas for SEO and ads: the search phrases real users type for a seed keyword, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, deduplicated and ranked by how many engines suggest each, with question and buying-intent phrases listed apart. deep=true adds the Google long tail (seed + a-z, how, what, best, vs), up to 200 keywords. Use to plan content, find long-tail and question keywords, or name a product. No search volumes. Example: seed=crm software. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -11912,7 +11912,7 @@
           "seed"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "pdf_text",
@@ -15806,6 +15806,37 @@
       "price": "$0.01"
     },
     {
+      "name": "pack_daily_brief",
+      "description": "A morning brief in one call for a scheduled agent or a dashboard: USD prices for up to 5 crypto tokens, quotes for up to 4 stock tickers or indexes, the Crypto Fear & Greed index, the best USDC yields, Ethereum and Arbitrum gas, the top Polymarket markets by 24-hour volume and the UTC time. Cheaper than the six tools bought one by one. Use for a daily market brief, a trading or treasury agent's context, or a morning report. Example: tokens=BTC,ETH,SOL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "tokens": {
+            "type": "string",
+            "description": "Up to 5 crypto tickers, comma separated (default BTC,ETH,SOL)"
+          },
+          "stocks": {
+            "type": "string",
+            "description": "Up to 4 stock tickers or indexes, comma separated (default AAPL,MSFT,NVDA,^GSPC)"
+          },
+          "markets": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Prediction markets to include, 1-5 (default 3)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "pack_web_research",
       "description": "One call to research a question on the web: a Brave web search, then the text of the top 1-5 result pages, read in parallel and clipped to your length, with titles and URLs. A page that cannot be read is listed with its reason. Results are for the caller's immediate use only: no storing, resale or model training (Brave API terms). Use when an agent needs current, sourced information in one step instead of a search plus several page reads. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -17750,7 +17781,7 @@
     },
     {
       "name": "defi_yields",
-      "description": "The best DeFi yields now across ~15,000 lending, staking, LP and vault pools: APY (base, reward), 30-day mean and change, TVL, stablecoin flag, impermanent-loss risk and exposure. Filter by chain, protocol, token, stablecoins, no IL, single exposure, TVL and APY range; sort by APY, TVL or 30-day mean. Source: DefiLlama. Use to find where to earn yield on a token or stablecoin. Not investment advice. Example: chain=Base. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "The best DeFi yields now across ~15,000 lending, staking, LP and vault pools: APY (base, reward), 30-day mean and change, TVL, stablecoin flag, impermanent-loss risk and exposure. Filter by chain, protocol, token, stablecoins, no IL, single exposure, TVL and APY range; sort by APY, TVL or 30-day mean. Source: DefiLlama. Use to find where to earn yield on a token or stablecoin. Not investment advice. Example: chain=Base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -17821,7 +17852,7 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "defi_yield_history",
@@ -18527,7 +18558,7 @@
     },
     {
       "name": "defi_usdc_yield",
-      "description": "USDC yield right now: the best stablecoin APY across DeFi lending, vault and LP pools (Aave, Morpho, Compound, Pendle and more) on Ethereum, Base, Arbitrum, Solana and other chains, with APY base and reward, 30-day mean, TVL, exposure and risk flags, from DefiLlama. Filter by chain, protocol or another stablecoin (USDT, DAI). Use to find where an agent can earn yield on USDC or any stablecoin. Not investment advice. Example: symbol=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "USDC yield right now: the best stablecoin APY across DeFi lending, vault and LP pools (Aave, Morpho, Compound, Pendle and more) on Ethereum, Base, Arbitrum, Solana and other chains, with APY base and reward, 30-day mean, TVL, exposure and risk flags, from DefiLlama. Filter by chain, protocol or another stablecoin (USDT, DAI). Use to find where an agent can earn yield on USDC or any stablecoin. Not investment advice. Example: symbol=USDC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18562,11 +18593,11 @@
           }
         }
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "polymarket_search",
-      "description": "Search Polymarket prediction markets by keyword (election, bitcoin, fed, world cup) and get the matching open markets with outcome odds as implied probabilities, best bid and ask, volume, liquidity, end date and token ids. Use to look up the odds on an event, find a market before reading its order book, or feed a forecasting agent. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Search Polymarket prediction markets by keyword (election, bitcoin, fed, world cup) and get the matching open markets with outcome odds as implied probabilities, best bid and ask, volume, liquidity, end date and token ids. Use to look up the odds on an event, find a market before reading its order book, or feed a forecasting agent. Example: q=bitcoin. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -18600,7 +18631,7 @@
           "q"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.002"
     },
     {
       "name": "search_web",

@@ -67,7 +67,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "email auth": "/pack/email-deliverability", "spf": "/pack/email-deliverability", "dmarc": "/pack/email-deliverability", "dkim": "/pack/email-deliverability",
   "fear and greed": "/crypto/fear-greed", "fear greed": "/crypto/fear-greed",
   "token price": "/price/token", "crypto price": "/price/token", "coin price": "/price/token",
-  "gas oracle": "/pack/gas-tracker", "gas tracker": "/pack/gas-tracker", "multichain gas": "/pack/gas-tracker",
+  "daily brief": "/pack/daily-brief", "market brief": "/pack/daily-brief", "morning brief": "/pack/daily-brief", "gas oracle": "/pack/gas-tracker", "gas tracker": "/pack/gas-tracker", "multichain gas": "/pack/gas-tracker",
   "erc20 balance": "/base/token-balance", "token balance": "/base/token-balance", "wallet balance": "/wallet/balances", "wallet portfolio": "/wallet/portfolio",
   "weather forecast": "/weather", "current weather": "/weather",
   "screenshot": "/screenshot", "status check": "/url/uptime", "uptime": "/url/uptime", "is it down": "/url/uptime",
