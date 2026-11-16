@@ -102,7 +102,10 @@ test('actual MCP transport supplies a free quote and returns a separately tracke
     const req=new Request(input,init);return mf.dispatchFetch(req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:await req.text()}:{} )});
   }});
   try{
-    await client.connect(transport);const listed=(await client.listTools()).tools;assert.equal(listed.length,494);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name).sort(),['btc_fees','extract','sitemap']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
+    await client.connect(transport);
+    // /mcp lists a small surface since 16 Nov 2026 (tests/mcp-surface.test.cjs); the full list is /mcp/all. The calls below stay on /mcp.
+    const fullList=new Client({name:'offline-list-fixture',version:'1.0.0'});await fullList.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/all'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));
+    const listed=(await fullList.listTools()).tools;await fullList.close();assert.equal(listed.length,427);assert.ok((await client.listTools()).tools.length<20);assert.equal(listed.find(t=>t.name==='extract').annotations.idempotentHint,false);const api=await(await mf.dispatchFetch('https://api.test/openapi.json')).json();assert.deepEqual(listed.filter(t=>t.outputSchema).map(t=>t.name).sort(),['btc_fees','extract','sitemap']);for(const tool of listed.filter(t=>t.outputSchema)) assert.deepEqual(tool.outputSchema,Object.values(api.paths).find(p=>p.get?.operationId===tool.name).get.responses['200'].content['application/json'].schema);
     const quote=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
     assert.equal(quote.isError,true);assert.equal(quote.structuredContent,undefined);const required=quote.structuredContent??JSON.parse(quote.content[0].text);assert.equal(required.accepts[0].amount,'2000');
     const result=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'},_meta:{'x402/payment':payload(required.accepts[0],'5'.repeat(64),'mcp://tool/extract')}});
@@ -232,6 +235,7 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
   assert.match(client.getInstructions(),/25 free successful calls.*\/credits/);
   const r=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
+  // One counter per caller while MCP_FREE_SESSIONS is off (the default): the HTTP trial call above used one.
   assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(23 of 25/);
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
   const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);

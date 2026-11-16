@@ -1,5 +1,6 @@
 import { FIELDS_PARAM } from "./lib/fields";
 import { FAMILIES } from "./families";
+import { ENTRY_OF } from "./routes/entry-paths";
 import { SITEMAP_OUTPUT_SCHEMA } from "./lib/sitemap-contract";
 import { BITCOIN_FEES_OUTPUT_SCHEMA } from "./lib/bitcoin-fees-contract";
 import { SITEMAP_OUTPUT_EXAMPLE } from "./lib/sitemap-example";
@@ -17,8 +18,9 @@ export const SUPPORT_EMAIL = "spellz111122@gmail.com";
 /** Shown with our listings in the Bazaar and Agentic.Market (served by this Worker at /logo.png). */
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 
-export const SERVICE_SUMMARY =
-  "725 pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Free calls to start (25 over MCP, 3 over HTTP); then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
+// The count that leads the summary is TOOL_COUNT (below ENDPOINTS), never typed here.
+const SUMMARY_AFTER_COUNT =
+  " pay-per-call tools for AI agents over HTTP or MCP, from $0.002 a call, most at $0.01. Free calls to start (25 over MCP, 3 over HTTP); then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.";
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -999,6 +1001,16 @@ export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/comm
 const acquisitionPriced = (e: Endpoint): Endpoint =>
   FINDER_TEST_PATHS.has(e.path) ? { ...e, price: FINDER_TEST_PRICE } : ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e;
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
+/**
+ * The one tool count (16 Nov 2026): the tools a caller can call, each counted once. That is every tool in ENDPOINTS
+ * except the entry paths (ENTRY_OF: second names of a tool, kept for outside search engines). It equals the /mcp/all list
+ * plus the extra networks' chain reads, which are served over HTTP, through call_tool and on /mcp/chain. Every place that
+ * states how many tools the service has reads this: SERVICE_SUMMARY, the MCP instructions and server card, the home
+ * pages; README.md, server.json and the registry manifests are held to it by scripts/bump-version.mjs and
+ * tests/tool-count.test.cjs. ENDPOINTS.length stays the number of paid paths (listings, routes, tool pages).
+ */
+export const TOOL_COUNT = ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).length;
+export const SERVICE_SUMMARY = `${TOOL_COUNT}${SUMMARY_AFTER_COUNT}`;
 // Tools with no input of their own still publish an input schema: the generic `only` key filter (lib/fields.ts).
 for (const e of ENDPOINTS) if (!Object.keys(e.params).length) (e as { params: Record<string, Param> }).params = { only: FIELDS_PARAM };
 // Short listing names get their task sentence after the colon (lib/summary-details.ts); the name before the colon is unchanged.

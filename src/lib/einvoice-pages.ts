@@ -5,6 +5,7 @@
 // fix it, from the rule table the validator itself uses (lib/einvoice/validate.ts), so page and tool cannot drift.
 // Rule numbers are the published ones (EN 16931-1; XRechnung 3.0, KoSIT); the wording is ours.
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { COMPANY_FOOTER } from "./legal";
 import { lastmodTag } from "./page-lastmod";
 import { PAGE_STYLE } from "./vat-pages";
@@ -99,7 +100,7 @@ const head = (title: string, description: string, url: string, origin: string, e
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">${languageLinks(origin, url.slice(origin.length))}${extra}
 <style>${PAGE_STYLE}${TRY_FORM_CSS}</style></head><body><main>`;
-const foot = () => `<footer><a href="${EINVOICE_BASE}">E-invoice API</a> · <a href="${EINVOICE_RULES}">All validation rules</a> · <a href="/tools">All ${ENDPOINTS.length} tools</a> · ${COMPANY_FOOTER}</footer>
+const foot = () => `<footer><a href="${EINVOICE_BASE}">E-invoice API</a> · <a href="${EINVOICE_RULES}">All validation rules</a> · <a href="/tools">All ${TOOL_COUNT} tools</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 
 /** The upload form: a plain multipart POST to the validator as a free trial, no script. */

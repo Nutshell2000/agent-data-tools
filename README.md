@@ -4,7 +4,7 @@
 [![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-0098FF?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%2Fcompact%22%7D)
 [![Install in VS Code Insiders](https://img.shields.io/badge/Install_in-VS_Code_Insiders-24bfa5?style=flat-square)](https://insiders.vscode.dev/redirect/mcp/install?name=agent-data-tools&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fagent-data-tools.revmesh2074.workers.dev%2Fmcp%2Fcompact%22%7D&quality=insiders)
 
-187 pay-per-call tools for AI agents over MCP and plain HTTP: web search and news, payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, World Bank GDP, inflation, population and unemployment, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.01** per successful call.
+658 pay-per-call tools for AI agents over MCP and plain HTTP: web search and news, payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, World Bank GDP, inflation, population and unemployment, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.01** per successful call.
 
 ## APIs for developers, by monthly plan
 
@@ -16,7 +16,7 @@ One API key, from $9 a month or pay as you go, paid by card. Each page has the r
 
 ## Quick start
 
-1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (Streamable HTTP, no sign-up): three tools that find, describe and run any tool in the catalog, so your assistant's context stays small. The buttons above connect it too. Claude Code: `claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp/compact`. Every tool as its own definition: `https://agent-data-tools.revmesh2074.workers.dev/mcp`. From a terminal, for Claude Code, Claude Desktop, Cursor or VS Code: `npx -y agent-data-tools setup`. Claude.ai and ChatGPT: add a custom connector with `https://agent-data-tools.revmesh2074.workers.dev/mcp/account`. Or connect one section: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.
+1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (Streamable HTTP, no sign-up): three tools that find, describe and run any tool in the catalog, so your assistant's context stays small. The buttons above connect it too. Claude Code: `claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp/compact`. Every tool as its own definition: `https://agent-data-tools.revmesh2074.workers.dev/mcp/all`. From a terminal, for Claude Code, Claude Desktop, Cursor or VS Code: `npx -y agent-data-tools setup`. Claude.ai and ChatGPT: add a custom connector with `https://agent-data-tools.revmesh2074.workers.dev/mcp/account`. Or connect one section: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.
 2. **Try free:** every caller gets **25 free successful calls** over MCP, used automatically, or **3** over HTTP with `trial=1` (PDF reading is not free over HTTP). Failed calls never count. AI, rendering and search tools are not included.
 3. **Then pay either way:**
    - **Card:** buy prepaid credits at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits) ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001) and send the key as `Authorization: Bearer adt_…` (or `X-API-Key`) on HTTP calls or in your MCP client's connection headers.
@@ -30,7 +30,7 @@ Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
-- [Browse all 187 tools and prices](https://agent-data-tools.revmesh2074.workers.dev/tools)
+- [Browse all 658 tools and prices](https://agent-data-tools.revmesh2074.workers.dev/tools)
 - [Chain client: download, verify, quote and buy one result](docs/chain-checks.md)
 - [View a real result → Inspect a free quote → Buy one page](https://agent-data-tools.revmesh2074.workers.dev/guides/web-reading)
 - [Use the local MCP adapter without writing a client](docs/local-mcp.md)
@@ -51,7 +51,7 @@ The reader also supports an exact HTML section ID and retains labelled source im
 
 Cached examples are actual build-time results on owned HTML and are labelled separately from illustrative snippets. Local tests do not establish funded production delivery or customer demand.
 
-A Cloudflare Worker that sells more than 600 tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum or Solana), through MPP (Tempo), or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
+A Cloudflare Worker that sells 658 tools to AI agents. Each call is paid in USDC through the x402 protocol (Base, Polygon, Arbitrum or Solana), through MPP (Tempo), or with prepaid card credits, and the money goes straight to the address in `PAY_TO`.
 
 | Endpoint | Returns | Price |
 |---|---|---|
@@ -116,7 +116,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 ## MCP
 
-All 179 catalog tools are available as an MCP server at `/mcp` (streamable HTTP, stateless), in smaller section servers at `/mcp/<section>`, and behind three tools at `/mcp/compact` (`find_tool`, `tool_details`, `call_tool`: the whole catalog without hundreds of tool definitions in the assistant's context; same prices, same free calls). Listing tools is free. Every MCP caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
+All 658 catalog tools are reachable from the MCP server at `/mcp` (streamable HTTP, stateless). It lists a small surface, `find_tool`, `describe_tool`, `call_tool` and a dozen of the most used tools, and `tools/call` runs every tool by name, so a client that learned the names earlier keeps working. Every tool as its own definition is at `/mcp/all`, smaller section servers are at `/mcp/<section>`, and `/mcp/compact` lists only three tools (`find_tool`, `tool_details`, `call_tool`: the whole catalog without hundreds of tool definitions in the assistant's context; same prices, same free calls). Listing tools is free. Every MCP caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, MCP tool, OpenAPI document and web page are generated from that catalog.
 

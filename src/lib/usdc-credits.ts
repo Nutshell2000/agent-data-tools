@@ -22,6 +22,8 @@ import { builderCodeExtension } from "./bazaar-extension";
 import { paymentInfo } from "./payment-info";
 import { markStage } from "./funnel";
 import { SERVICE_ICON_URL } from "../endpoints";
+import { SERVICE_BRAND } from "./public-brand";
+import { serviceIconUrl } from "./public-site";
 
 type C = Context<{ Bindings: Env }>;
 type Pack = (typeof USDC_PACKS)[number];
@@ -31,7 +33,7 @@ const packOf = (param: string | undefined) => USDC_PACKS.find((p) => String(usd(
 
 /** What the listing says (Bazaar limit 500 characters; no instruction to the reader beyond "use when"). */
 export const usdcPackDescription = (p: Pack) =>
-  `Prepaid API credits for Agent Data Tools, paid once in USDC: returns an API key worth ${p.credits.toLocaleString("en-US")} credits (1 credit = $0.001) that pays any of the service's tools over HTTP (Authorization: Bearer) or MCP, with no payment signature per call. Failed calls are refunded and credits never expire. Use when an agent will make many calls and wants one payment instead of one per call. An existing key in the X-API-Key header is topped up instead of a new key being issued.`;
+  `${SERVICE_BRAND} prepaid API credits, paid once in USDC: returns an API key worth ${p.credits.toLocaleString("en-US")} credits (1 credit = $0.001) that pays any of the service's tools over HTTP (Authorization: Bearer) or MCP, with no payment signature per call. Failed calls are refunded and credits never expire. Use when an agent will make many calls and wants one payment instead of one per call. An existing key in the X-API-Key header is topped up instead of a new key being issued.`;
 
 const example = (origin: string, p: Pack) => ({
   apiKey: "adt_EXAMPLEexampleEXAMPLEexampleEXAMPLEexample0",
@@ -49,8 +51,8 @@ function routes(env: Env): Record<string, RouteConfig> {
       accepts: paymentOptions(env).map(({ network, payTo }) => ({ scheme: "exact" as const, price: priceOn(network, `$${usd(p)}`), network, payTo })),
       description: usdcPackDescription(p),
       mimeType: "application/json",
-      serviceName: `API credits, prepaid $${usd(p)}`,
-      iconUrl: SERVICE_ICON_URL,
+      serviceName: `${SERVICE_BRAND} API credits, $${usd(p)}`,
+      iconUrl: serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL),
       tags: ["api-credits", "prepaid", "api-key", "top-up", "credits"],
       extensions: {
         ...declareDiscoveryExtension({ input: {}, inputSchema: { properties: {} }, output: { example: example("https://example.com", p) } }),

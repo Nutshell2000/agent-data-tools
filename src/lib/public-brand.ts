@@ -9,3 +9,11 @@ export const publicBrand = (env: { PUBLIC_BRAND?: string }, fallback: string): s
   const brand = env.PUBLIC_BRAND?.trim();
   return brand && /^[\p{L}\p{N} .&'-]{2,40}$/u.test(brand) ? brand : fallback;
 };
+
+/**
+ * The brand in the service-level fields of payment terms and service cards (16 Nov 2026): the store products' and the
+ * credit packs' `serviceName`, the pack description and the A2A agent card. A code constant, so a quote and its
+ * settlement always agree. A tool's own listing name and description keep opening with the task buyers search for
+ * (lib/bazaar-extension.ts listingName), and SERVICE_NAME, the MCP server name and the registry names stay.
+ */
+export const SERVICE_BRAND = "Glyphcall";
