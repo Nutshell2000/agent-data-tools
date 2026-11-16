@@ -55,10 +55,10 @@
     // stops its keys at once. Worst case per UTC day if every limit is reached, from the model prices in that file:
     // test keys about $3.50 (never above $6: 2,000 counted calls of at most $0.003), trial keys about $0.15.
     // OFF in production until both are proven on staging (wrangler.staging.jsonc has them on): set to "on" to offer them.
-    "VOICE_TEST_KEYS": "off",
+    "VOICE_TEST_KEYS": "on",
     "VOICE_TEST_KEYS_PER_DAY": "100",
-    "CREDITS_TRIAL": "off",
-    "CREDITS_TRIAL_MINUTES": "200",
+    "CREDITS_TRIAL": "on",
+    "CREDITS_TRIAL_MINUTES": "60",
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
     // eip155:8453 = Base mainnet, eip155:84532 = Base Sepolia testnet.
