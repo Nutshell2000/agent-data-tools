@@ -2133,3 +2133,8 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Why: apps with an OpenAI-compatible speech setting fill their voice picker from the sibling of the speech endpoint. Home Assistant's openai_tts (sfortis/openai_tts, `voice_listing.py`) reads `items`, then `data` ([{id, name}]), then `voices` ([string]). We answer `data` and `voices`. Setup guides for those apps live at voice.glyphcall.com/guides (glyphcall-voice-tools/build-guides.mjs). Keep that file's voice table and prices in step with this list and the speech prices.
 - Tests: tests/openai-voices.test.cjs.
 
+
+## Listing names for searched voice, PDF and e-invoice phrases (1.210.0, 16 Nov 2026)
+
+- `business/agentic/base-bots/new-phrases-1116.mjs` measures 57 Bazaar searches that search-ranks.mjs does not track (voice, invoices, registers, KYB, the Exa-style family); `losses-1116.mjs` splits every non-#1 tracked search into text losses (a listing above us has no more payers) and payer losses. On 16 Nov: 80 text, 74 payer, 1 absent. Most text losses are exact-name ties that the name cannot break; rename only where our name lacks the phrase.
+- Renamed: /transcribe/long, /transcribe/summary, /transcribe/speakers, /dub, /pdf/extract, /einvoice/validate (tests/chart-names-1210.test.cjs keeps each phrase in its name). "Whisper" is honest: /transcribe/long runs Whisper large-v3-turbo.

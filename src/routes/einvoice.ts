@@ -153,7 +153,7 @@ export const EINVOICE: Entry[] = [
         note: format === "zugferd" ? `${NOT_OFFICIAL} This is the XML part (factur-x.xml) of a ZUGFeRD / Factur-X invoice; ask for format zugferd-pdf to get the PDF that carries it.` : NOT_OFFICIAL,
       };
     }),
-  entry("/einvoice/validate", "Validate an XRechnung, ZUGFeRD, Factur-X or UBL e-invoice",
+  entry("/einvoice/validate", "E-invoice validation: XRechnung, ZUGFeRD, Factur-X or UBL e-invoice",
     "Validate an EU e-invoice: send XRechnung, ZUGFeRD / Factur-X (XML or the PDF that embeds it), Peppol or other EN 16931 XML as text, as a file in a POST body or by URL. Returns valid or not and every broken business rule with its number (BR-CO-15, BR-DE-15…), the field, a plain message and the fix. Checks a subset of the EN 16931 and XRechnung 3.0 rules: sums, VAT, mandatory fields. Use before sending an e-invoice or when one is rejected.",
     ["xrechnung-validator", "e-invoice-validation", "zugferd", "factur-x", "en16931", "e-rechnung", "peppol", "invoice-validation"], {
       url: { type: "string", description: "Absolute public http(s) URL of the e-invoice: an XML file or a ZUGFeRD / Factur-X PDF (or send `xml`, or the file in a POST body)", example: SAMPLE_XRECHNUNG },
