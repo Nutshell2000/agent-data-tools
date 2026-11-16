@@ -75,6 +75,7 @@ import { NORDIC_COMPANY } from "./routes/nordic-company";
 import { FR_COMPANY } from "./routes/fr-company";
 import { COMPANY_SEARCH } from "./routes/company-search";
 import { KYB } from "./routes/kyb";
+import { PAYEE } from "./routes/payee";
 import { LAW_SEARCH } from "./routes/law-search";
 import { CZ_EE_COMPANY } from "./routes/cz-ee-company";
 import { GITHUB } from "./routes/github";
@@ -101,6 +102,8 @@ export const LOCAL_TEST_PRICE = PRICE;
 // so releases prepared at the same time that add to that one line do not collide with it.
 CATALOG.push(...COMPANY_SEARCH);
 CATALOG.push(...KYB);
+// Verified payee records (2027 flagship, Phase 0; routes/payee.ts).
+CATALOG.push(...PAYEE);
 // EU law search over our own index (1.185.0, routes/law-search.ts).
 CATALOG.push(...LAW_SEARCH);
 // Czech (ARES) and Estonian (e-Business Register) company lookups, also searched by /company/search (routes/cz-ee-company.ts).

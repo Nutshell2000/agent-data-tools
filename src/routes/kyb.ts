@@ -44,6 +44,7 @@ export interface KybDeps {
   now?: () => Date;
 }
 
+export const kybDeps = (env: Env): KybDeps => defaultDeps(env);
 const defaultDeps = (env: Env): KybDeps => ({
   search: (name, countries) => companySearch(name, countries, 5, { env }) as ReturnType<KybDeps["search"]>,
   vies: async (vat) => {
