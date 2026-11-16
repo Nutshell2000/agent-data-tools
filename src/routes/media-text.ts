@@ -6,6 +6,7 @@ import { franc, francAll } from "franc-min";
 import { entry, need, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { fetchFile, fetchPublic, parseTarget } from "../lib/fetch";
+import { AI_CRAWLERS } from "../lib/ai-crawlers";
 
 const U = ["utility", "data"];
 
@@ -89,7 +90,9 @@ export const ISO1: Record<string, string> = { eng: "en", spa: "es", fra: "fr", d
 const langName = (code: string) => { const two = ISO1[code]; try { return LANGS?.of(two ?? code) ?? null; } catch { return null; } };
 
 // ---------- user agents ----------
-const BOTS: [RegExp, string][] = [[/googlebot/i, "Googlebot"], [/bingbot/i, "Bingbot"], [/gptbot/i, "GPTBot (OpenAI)"], [/chatgpt-user/i, "ChatGPT-User"], [/oai-searchbot/i, "OAI-SearchBot"], [/claudebot|claude-web|anthropic/i, "ClaudeBot (Anthropic)"], [/perplexitybot/i, "PerplexityBot"], [/applebot/i, "Applebot"], [/yandex/i, "YandexBot"], [/baiduspider/i, "Baiduspider"], [/duckduckbot/i, "DuckDuckBot"], [/facebookexternalhit|meta-externalagent/i, "Meta crawler"], [/twitterbot/i, "Twitterbot"], [/slackbot/i, "Slackbot"], [/discordbot/i, "Discordbot"], [/ahrefsbot/i, "AhrefsBot"], [/semrushbot/i, "SemrushBot"], [/bytespider/i, "Bytespider"], [/ccbot/i, "CCBot"], [/curl\//i, "curl"], [/wget\//i, "Wget"], [/python-requests|python-urllib|aiohttp|httpx/i, "Python HTTP client"], [/node-fetch|undici|axios/i, "Node HTTP client"], [/go-http-client/i, "Go HTTP client"], [/postmanruntime/i, "Postman"], [/headlesschrome/i, "Headless Chrome"], [/bot|crawler|spider|crawl|slurp/i, "Other bot"]];
+// The AI crawlers live in lib/ai-crawlers.ts (the per-day crawler counts read the same table); they stand before the
+// shorter tokens they contain (Applebot-Extended before Applebot).
+const BOTS: [RegExp, string][] = [[/googlebot/i, "Googlebot"], [/bingbot/i, "Bingbot"], ...AI_CRAWLERS, [/applebot/i, "Applebot"], [/yandex/i, "YandexBot"], [/baiduspider/i, "Baiduspider"], [/duckduckbot/i, "DuckDuckBot"], [/facebookexternalhit/i, "Meta crawler"], [/twitterbot/i, "Twitterbot"], [/slackbot/i, "Slackbot"], [/discordbot/i, "Discordbot"], [/ahrefsbot/i, "AhrefsBot"], [/semrushbot/i, "SemrushBot"], [/curl\//i, "curl"], [/wget\//i, "Wget"], [/python-requests|python-urllib|aiohttp|httpx/i, "Python HTTP client"], [/node-fetch|undici|axios/i, "Node HTTP client"], [/go-http-client/i, "Go HTTP client"], [/postmanruntime/i, "Postman"], [/headlesschrome/i, "Headless Chrome"], [/bot|crawler|spider|crawl|slurp/i, "Other bot"]];
 const WINDOWS: Record<string, string> = { "10.0": "10 or 11", "6.3": "8.1", "6.2": "8", "6.1": "7", "6.0": "Vista", "5.1": "XP" };
 export function parseUserAgent(ua: string) {
   const m = (re: RegExp) => re.exec(ua)?.[1] ?? null;

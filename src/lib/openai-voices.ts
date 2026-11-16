@@ -25,6 +25,35 @@ export function openAiVoiceList(language?: string | null): { object: "list"; lan
   return { object: "list", language: lang, default: def, data, voices: data.map((v) => v.id) };
 }
 
+/** The model behind each voice front; the fronts accept any `model` value and run these. */
+export const TRANSCRIPTION_MODEL = "@cf/openai/whisper-large-v3-turbo";
+export const SPEECH_MODEL = "@cf/deepgram/aura-2-en";
+
+/**
+ * The audio entries of GET /v1/models: the two models that run, and the OpenAI names apps send for them. `whisper-1` and
+ * `tts-1` are accepted names only (the fronts ignore `model`), and each entry says what runs behind it: never OpenAI's
+ * hosted models or voices.
+ */
+export function audioModels(origin: string, testKeys: boolean) {
+  const created = 1735689600;
+  const stt = { object: "model" as const, created, owned_by: "cloudflare-workers-ai", endpoint: "/v1/audio/transcriptions", tool: "/transcribe" };
+  const tts = { object: "model" as const, created, owned_by: "cloudflare-workers-ai", endpoint: "/v1/audio/speech", tool: "/ai/speech" };
+  return {
+    data: [
+      { id: TRANSCRIPTION_MODEL, ...stt },
+      { id: "whisper-1", ...stt, alias_of: TRANSCRIPTION_MODEL, note: "Accepted name. Transcription here runs Whisper large-v3-turbo (the open model) on Cloudflare Workers AI, not OpenAI's hosted whisper-1." },
+      { id: SPEECH_MODEL, ...tts },
+      { id: "tts-1", ...tts, alias_of: SPEECH_MODEL, note: "Accepted name. Speech here is Deepgram Aura-2 on Cloudflare Workers AI, not OpenAI's tts-1; OpenAI voice names are mapped to Aura-2 voices (GET /v1/audio/voices)." },
+    ],
+    about: {
+      note: "The audio endpoints accept any model name and run the models listed here. Reading this list and the voice list is free and needs no key.",
+      voices: `${origin}${OPENAI_VOICES_PATH}`,
+      keys: `${origin}/credits`,
+      ...(testKeys ? { freeTestKey: `POST ${origin}/keys/voice-test` } : {}),
+    },
+  };
+}
+
 /** The /v1/audio/voices path for /openapi.json. */
 export function openAiVoicesOpenApiPath() {
   return {

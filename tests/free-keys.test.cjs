@@ -223,3 +223,77 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   const failing = { ...on, TRIALS: kv(), EMAIL: { send: async () => { throw Object.assign(new Error('no'), { code: 'E_SENDER_NOT_VERIFIED' }); } } };
   assert.equal((await post(failing, 'bob@example.com')).status, 503);
 });
+
+// 16 Nov 2026: the optional news box. The plain address is stored only when the box was ticked AND the link was opened.
+test('the news box: unticked stores no address; ticked but unconfirmed stores none; ticked and confirmed stores it with the consent time', async () => {
+  const store = storage();
+  const mail = [];
+  const TRIALS = kv();
+  const env = { FREE_KEYS: 'on', FREE_KEY_FROM: 'keys@example.test', EMAIL: { send: async (m) => { mail.push(m); return { messageId: 'm1' }; } }, TRIALS, METRICS: metricsFor(store) };
+  const app = new Hono();
+  app.route('/', keys.freeKeys);
+  let ip = 10;
+  const post = (body, form = false) => app.fetch(new Request('https://api.test/keys/free', { method: 'POST', headers: { accept: 'application/json', 'content-type': form ? 'application/x-www-form-urlencoded' : 'application/json', 'cf-connecting-ip': `203.0.113.${ip++}` }, body: form ? new URLSearchParams(body).toString() : JSON.stringify(body) }), env, { waitUntil() {} });
+  const get = (path, accept = 'application/json') => app.fetch(new Request(`https://api.test${path}`, { headers: { accept, 'user-agent': accept === 'text/html' ? 'Mozilla/5.0' : 'node' } }), env, { waitUntil() {} });
+  const linkIn = (message) => /(\/keys\/free\/confirm\?token=[A-Za-z0-9_-]+)/.exec(message.text)[1];
+  // Search for the WHOLE address (a short substring can match a hex hash by chance: the 1.175.0 flake).
+  const kept = () => (JSON.stringify([...TRIALS.data]) + JSON.stringify([...store.records])).toLowerCase();
+  const optIns = () => [...TRIALS.data.keys()].filter((k) => k.startsWith('freekey:optin:'));
+
+  // The form offers the box, unticked.
+  const form = await (await get('/keys/free', 'text/html')).text();
+  const box = /<input type="checkbox" name="updates"[^>]*>/.exec(form);
+  assert.ok(box, 'the form has the box');
+  assert.doesNotMatch(box[0], /checked/, 'unticked by default');
+  assert.ok(form.includes(keys.OPT_IN_LABEL));
+
+  // 1. Unticked (JSON without the field, and a form post without it): nothing of the address is stored, before or after the link.
+  const plain = 'Grace.Hopper@Navy-Example.org';
+  assert.equal((await post({ email: plain })).status, 200);
+  assert.equal((await post({ email: plain, updates: false })).status, 200);
+  assert.equal((await post({ email: plain }, true)).status, 200);
+  for (const message of mail.splice(0)) {
+    assert.doesNotMatch(message.text, /ticked the box/);
+    assert.match((await (await get(linkIn(message))).json()).apiKey, /^adt_/);
+  }
+  assert.ok(!kept().includes(plain.toLowerCase()), 'unticked: the address is not stored');
+  assert.deepEqual(optIns(), []);
+
+  // 2. Ticked, link never opened: still no address anywhere, and no opt-in record.
+  const never = 'Alan.Turing@Bletchley-Example.org';
+  assert.equal((await post({ email: never, updates: true })).status, 200);
+  assert.equal(mail.length, 1);
+  assert.match(mail[0].text, /ticked the box/);
+  assert.ok(!kept().includes(never.toLowerCase()), 'ticked but unconfirmed: the address is not readable in what is stored');
+  assert.deepEqual(optIns(), []);
+  mail.splice(0);
+
+  // 3. Ticked (as the form sends it) and the link opened: the address as typed, with when consent was given.
+  const yes = 'Ada.Lovelace+news@Engine-Example.org';
+  const before = Date.now();
+  assert.equal((await post({ email: yes, updates: '1' }, true)).status, 200);
+  assert.ok(!kept().includes(yes.toLowerCase()), 'not stored until the link is opened');
+  const link = linkIn(mail[0]);
+  assert.match((await (await get(link)).json()).apiKey, /^adt_/);
+  const hash = await keys.emailHash(keys.normalEmail(yes));
+  assert.deepEqual(optIns(), [keys.optInKey(hash)]);
+  const record = JSON.parse(TRIALS.data.get(keys.optInKey(hash)));
+  assert.deepEqual(Object.keys(record).sort(), ['confirmedAt', 'consentAt', 'email']);
+  assert.equal(record.email, yes);
+  assert.ok(Date.parse(record.consentAt) >= before && Date.parse(record.consentAt) <= Date.parse(record.confirmedAt), 'consent time is when the box was sent, before the confirmation');
+  // Opening the link again keeps the first record.
+  await get(link);
+  assert.deepEqual(JSON.parse(TRIALS.data.get(keys.optInKey(hash))), record);
+  // The address whose link was never opened is still nowhere.
+  assert.ok(!kept().includes(never.toLowerCase()));
+});
+
+test('the privacy page says what the news box stores and how to be removed', async () => {
+  const { PRIVACY_HTML: html } = await load(require.resolve('../src/lib/legal.ts'));
+  const item = /<li><strong>Free keys by e-mail\.<\/strong>[\s\S]*?<\/li>/.exec(html)[0];
+  assert.match(item, /unticked unless you tick it/);
+  assert.match(item, /If you tick it and then open the link[^.]*we store that address with the time you agreed/);
+  assert.match(item, /If you do not tick it nothing is stored/);
+  assert.match(item, /an address whose link is never opened is not kept/);
+  assert.match(item, /To be removed, write to <a href="mailto:spellz111122@gmail\.com">/);
+});

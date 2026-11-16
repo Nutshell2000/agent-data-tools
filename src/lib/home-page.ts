@@ -14,10 +14,12 @@
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
 import { BENCHMARKS, BENCHMARKS_PATH } from "./benchmarks-page";
 import { PLAN_PORTAL_URL } from "./credits";
-import { FREE_CALLS_PER_CALLER } from "./free-calls";
+import { firstCall } from "./first-call";
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCTS, productOffers, type Product } from "./product-pages";
 import { STT_RIVALS, TTS_RIVALS, VOICE_CHECKED, ourVoice } from "./voice-compare";
+import { webApplicationScript } from "./app-jsonld";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -79,10 +81,11 @@ h1{font-size:clamp(2.4rem,5.6vw,4.3rem);line-height:1.02;letter-spacing:-.035em;
 .tabs label{cursor:pointer;padding:8px 13px;border-radius:9px 9px 0 0;color:var(--dim);font-size:.86rem;font-weight:600}
 .tabs label:hover{color:var(--fg)}
 .panes{border-top:1px solid var(--line)}.pane{display:none}
-#t1:checked~.panes .p1,#t2:checked~.panes .p2,#t3:checked~.panes .p3{display:block}
-#t1:checked~label[for=t1],#t2:checked~label[for=t2],#t3:checked~label[for=t3]{color:var(--fg);background:rgba(255,255,255,.05);box-shadow:inset 0 -2px 0 var(--c)}
-#t1:focus-visible~label[for=t1],#t2:focus-visible~label[for=t2],#t3:focus-visible~label[for=t3]{outline:2px solid var(--c)}
+#t1:checked~.panes .p1,#t2:checked~.panes .p2,#t3:checked~.panes .p3,#t4:checked~.panes .p4{display:block}
+#t1:checked~label[for=t1],#t2:checked~label[for=t2],#t3:checked~label[for=t3],#t4:checked~label[for=t4]{color:var(--fg);background:rgba(255,255,255,.05);box-shadow:inset 0 -2px 0 var(--c)}
+#t1:focus-visible~label[for=t1],#t2:focus-visible~label[for=t2],#t3:focus-visible~label[for=t3],#t4:focus-visible~label[for=t4]{outline:2px solid var(--c)}
 .pane pre{margin:0;padding:18px 20px 8px;font-size:.84rem;line-height:1.7;color:#d6d6ea;white-space:pre-wrap;word-break:break-all}
+.pane pre.res{padding-top:0;color:#a7f3d0}
 .pane pre .k{color:#c4b5fd}.pane pre .s{color:#67e8f9}.pane pre .c{color:var(--dim)}
 .pane .out{margin:0 20px 18px;padding:10px 12px;border-radius:10px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.25);color:#a7f3d0;font-size:.84rem}
 .stats{padding:28px 0 18px}.stats .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -172,8 +175,12 @@ function faqItems(brand: string, languages: string, cheapestStt: boolean): [q: s
   ];
 }
 
-/** The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts). */
-export function landingPage(brand: string, origin: string, cardReady: boolean): string {
+/**
+ * The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts).
+ * `opts.trial`: free calls are on, so the hero opens with a request that needs no key (lib/first-call.ts);
+ * `opts.freeKey`: free keys by e-mail are offered (lib/free-keys.ts `freeKeysOn`), so the nav links /keys/free.
+ */
+export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean } = {}): string {
   const us = ourVoice();
   const scribe = STT_RIVALS.find((r) => r.name === "ElevenLabs");
   const flash = TTS_RIVALS.find((r) => r.name === "ElevenLabs" && /Flash/.test(r.model));
@@ -196,11 +203,17 @@ export function landingPage(brand: string, origin: string, cardReady: boolean): 
     const q = queryOf(e).replace(/%3A/gi, ":").replace(/%2F/gi, "/");
     return `<span class="k">curl</span> -H <span class="s">"Authorization: Bearer $GLYPHCALL_KEY"</span> \\\n  <span class="s">"${esc(origin)}${esc(e.path)}${q ? `?${esc(q)}` : ""}"</span>`;
   };
-  const tabs: [label: string, path: string, out: string][] = [
-    ["Transcribe", "/transcribe/long", `200 OK: transcript, SRT subtitles and word timings for up to an hour of audio. ${us.long}.`],
-    ["PDF to text", "/pdf/text", `200 OK: the text of every page as JSON. ${BY_PATH.get("/pdf/text")?.price ?? ""} a call.`],
-    ["EU law search", "/law/search", `200 OK: the exact articles, with act, article number, full text and EUR-Lex link.`],
-  ].filter(([, p]) => BY_PATH.has(p)) as [string, string, string][];
+  // The first tab needs no key: the request is a tool's published example with trial=1 and the answer under it is that
+  // tool's published example answer (tests/first-call.test.cjs runs the printed URL and compares the two).
+  const keyless = opts.trial ? firstCall(origin) : null;
+  const tabs: [label: string, code: string, out: string][] = [
+    ...(keyless ? [["Try it now", `<pre><code><span class="k">curl</span> <span class="s">"${esc(keyless.url)}"</span></code></pre><pre class="res"><code>${esc(keyless.output)}</code></pre>`, `That is the real answer, and the request needs no key: ${FREE_HTTP_CALLS_PER_CALLER} free calls per caller on most tools. After that, one key runs everything.`] as [string, string, string]] : []),
+    ...([
+      ["Transcribe", "/transcribe/long", `200 OK: transcript, SRT subtitles and word timings for up to an hour of audio. ${us.long}.`],
+      ["PDF to text", "/pdf/text", `200 OK: the text of every page as JSON. ${BY_PATH.get("/pdf/text")?.price ?? ""} a call.`],
+      ["EU law search", "/law/search", `200 OK: the exact articles, with act, article number, full text and EUR-Lex link.`],
+    ].filter(([, p]) => BY_PATH.has(p)).map(([label, path, out]) => [label, `<pre><code>${sample(path)}</code></pre>`, out] as [string, string, string])),
+  ];
   const bars = Array.from({ length: 34 }, (_, i) => `<i style="animation-delay:-${((i * 137) % 1400) / 1000}s"></i>`).join("");
 
   // The four headline numbers.
@@ -274,10 +287,11 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
+${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
 <style>${STYLE}</style></head><body>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${SHELVES.map((s) => `<a href="#${s.id}">${esc(s.kicker.split(" ")[0])}</a>`).join("")}<a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="/docs">Docs</a></nav>
-<div class="nav-cta"><a class="btn sm" href="/docs">Docs</a><a class="btn sm primary" href="/credits">Get an API key</a></div></div></header>
+<div class="nav-cta"><a class="btn sm" href="/docs">Docs</a>${opts.freeKey ? `<a class="btn sm" href="/keys/free">Get a free key</a>` : ""}<a class="btn sm primary" href="/credits">Get an API key</a></div></div></header>
 <main>
 <section class="hero"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
 <div><a class="pill" href="${VOICE_SITE}/transcribe"><b>NEW</b> ${esc(brand)} Transcribe Pro: long recordings, any format &rarr;</a>
@@ -287,7 +301,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <ul class="trust"><li>Free try on every API</li><li>No account to start</li><li>Failed calls cost $0</li><li>Cancel any time</li></ul></div>
 <div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
 <div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
-<div class="panes" style="width:100%">${tabs.map(([, path, out], i) => `<div class="pane p${i + 1}"><pre><code>${sample(path)}</code></pre><p class="out">${esc(out)}</p></div>`).join("")}</div></div></div>
+<div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div>
 </div></section>
 
 <section class="stats" aria-label="In numbers"><div class="wrap">${stats.map(([n, l, s]) => `<div class="stat"><div class="n gt">${esc(n)}</div><div class="l">${esc(l)}</div><div class="s">${s}</div></div>`).join("")}</div></section>

@@ -95,6 +95,15 @@ export interface Env {
    * send_email binding) and FREE_KEY_FROM (a sender on a domain onboarded there) are both set.
    */
   FREE_KEYS?: string;
+  /**
+   * Free voice keys (lib/voice-keys.ts), each off unless "on": VOICE_TEST_KEYS offers POST /keys/voice-test (25 short calls
+   * on the voice fronts; VOICE_TEST_KEYS_PER_DAY keys a day, default 100), CREDITS_TRIAL offers POST /credits/trial (one
+   * file a day per address for the voice site; CREDITS_TRIAL_MINUTES audio minutes a day, default 200).
+   */
+  VOICE_TEST_KEYS?: string;
+  VOICE_TEST_KEYS_PER_DAY?: string;
+  CREDITS_TRIAL?: string;
+  CREDITS_TRIAL_MINUTES?: string;
   FREE_KEY_FROM?: string;
   /** Payee records (routes/payee.ts): Ed25519 private JWK that signs attestations (secret; unset = unsigned). */
   PAYEE_SIGNING_KEY?: string;

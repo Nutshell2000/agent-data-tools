@@ -7,6 +7,7 @@
 // task words, never "ElevenLabs text to speech" first: the voices are Deepgram Aura, only the request shape is theirs.
 import { openApiGetVariant, type FrontMeta } from "./openai-chat";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
+import { SHORT_AUDIO_KEY_PRICE, SHORT_AUDIO_SECONDS } from "./voice-billing";
 
 export const VOICE_FRONT_DESCRIPTIONS = {
   tts: "ElevenLabs-compatible text to speech, pay per request: text in, one MP3 file out (Deepgram Aura-2 voices; ElevenLabs premade voice IDs map to a similar voice). Up to 2,000 characters, English or Spanish. No account; failed calls are not charged.",
@@ -20,6 +21,9 @@ export const VOICE_FRONT_META: Readonly<Record<keyof typeof VOICE_FRONT_DESCRIPT
   stt: { serviceName: "Speech to text, ElevenLabs-compatible API", tags: ["speech-to-text", "elevenlabs-compatible", "transcription", "scribe-compatible", "audio"] },
   openaiStt: { serviceName: "Audio transcription, OpenAI Whisper-compatible API", tags: ["speech-to-text", "whisper", "transcription", "openai-compatible", "subtitles"] },
 });
+
+/** The prepaid-key price of short audio on POST /v1/audio/transcriptions, in one sentence (the numbers are lib/voice-billing.ts's). */
+export const SHORT_AUDIO_KEY_RULE = `With a prepaid key, audio of ${SHORT_AUDIO_SECONDS} seconds or less costs 1 credit (${SHORT_AUDIO_KEY_PRICE}): MP3 and WAV are measured before the charge, other formats are charged the full price and the difference is given back when the model reports ${SHORT_AUDIO_SECONDS} seconds or less. The answer's X-Credits-Charged header states what was charged. Calls paid one by one with x402 or MPP keep the prices above.`;
 
 export const ELEVEN_TTS_OPENAPI_PATH = "/v1/text-to-speech/{voice_id}";
 export const ELEVEN_STT_OPENAPI_PATH = "/v1/speech-to-text";
@@ -73,7 +77,7 @@ export function voiceFrontsOpenApiPaths(origin: string, prices: { speechShort: s
       post: {
         operationId: "audio_transcriptions",
         summary: "Audio transcription, OpenAI Whisper-compatible API (SRT/VTT subtitles, no account)",
-        description: `${VOICE_FRONT_DESCRIPTIONS.openaiStt} Same request as OpenAI's POST /v1/audio/transcriptions: point an OpenAI SDK at ${origin}/v1 with an adt_ prepaid key as apiKey, or pay per call with x402 or MPP. ${sttPriced}.`,
+        description: `${VOICE_FRONT_DESCRIPTIONS.openaiStt} Same request as OpenAI's POST /v1/audio/transcriptions: point an OpenAI SDK at ${origin}/v1 with an adt_ prepaid key as apiKey, or pay per call with x402 or MPP. ${sttPriced}. ${SHORT_AUDIO_KEY_RULE}`,
         tags: oaTags,
         "x-payment-info": sttPay,
         requestBody: { required: true, content: fileForm({ model: { type: "string", description: "Accepted and ignored (whisper-1 works)" }, response_format: { type: "string", description: "json (default), text, srt, vtt or verbose_json" }, language: { type: "string" } }) },
