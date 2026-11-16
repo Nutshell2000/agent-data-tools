@@ -132,7 +132,8 @@ async function mcp(origin, tool, args) {
   await client.connect(new StreamableHTTPClientTransport(url));
   try {
     const listed = (await client.listTools()).tools;
-    if (!listed.some((t) => t.name === tool)) { console.log(`no such tool ${tool}; ${listed.length} tools listed`); process.exitCode = 1; return; }
+    // Since 1.215.0 /mcp lists a small surface (15 tools) and still runs every tool by name, so an unlisted tool is called anyway.
+    if (!listed.some((t) => t.name === tool)) console.log(`${tool} is not in /mcp's short list (${listed.length} tools); calling it by name`);
     // Staging runs with TRIALS_ENABLED off, so this call is quoted and the wrapper pays; with free calls on it would run free.
     const result = await client.callTool(tool, args);
     // The wrapper lifts the server's _meta["x402/payment-response"] into paymentResponse.
