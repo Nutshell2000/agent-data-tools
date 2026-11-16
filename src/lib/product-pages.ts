@@ -303,18 +303,18 @@ export const PRODUCTS: readonly Product[] = [
   {
     slug: "text-to-speech-api",
     name: "Text to speech API",
-    tagline: "Send text, get one MP3 back: 50 natural voices in English and Spanish, or a low-cost English voice at $0.02 per 1,000 characters. ElevenLabs- and OpenAI-compatible.",
+    tagline: "Send text, get one audio file back: 50 natural voices in English and Spanish, French, Chinese, Japanese and Korean too, or a low-cost English voice at $0.02 per 1,000 characters. ElevenLabs- and OpenAI-compatible.",
     tool: "/text-to-speech",
     also: ["/text-to-speech/lite", "/ai/speech"],
     points: [
       "Up to 2,000 characters as one MP3 in a single call; longer text in several calls",
-      "Natural voices (Deepgram Aura-2): 40 English and 10 Spanish, pick by name",
+      "Natural voices (Deepgram Aura-2): 40 English and 10 Spanish, pick by name; French, Chinese, Japanese and Korean with MeloTTS (one voice each, up to 1,200 characters)",
       "Low-cost English voices (Aura-1) with text-to-speech/lite: $0.04 for up to 2,000 characters",
       "Drop-in for existing code: POST /v1/text-to-speech/{voice_id} (ElevenLabs shape; premade voice IDs map to a similar voice) and POST /v1/audio/speech (OpenAI shape)",
     ],
     limits: [
-      "English and Spanish only; the low-cost voices are English only.",
-      "MP3 output only, no streaming in parts, no voice cloning.",
+      "Six languages: English, Spanish, French, Chinese, Japanese and Korean; no German yet. The low-cost voices are English only.",
+      "MP3 in English and Spanish, WAV in the other four; no streaming in parts, no voice cloning.",
     ],
     unit: "requests",
     more: [["https://glyphcall-voice.pages.dev/text-to-speech", "Try it free in your browser: text to speech without an account, WAV or MP3 download"]],
