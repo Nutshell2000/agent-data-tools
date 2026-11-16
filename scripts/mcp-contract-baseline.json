@@ -1,5 +1,5 @@
 {
-  "version": "1.210.0",
+  "version": "1.211.0",
   "tools": [
     {
       "name": "extract",
@@ -21995,7 +21995,7 @@
         "properties": {
           "q": {
             "type": "string",
-            "description": "Question or keywords, in English (at most 400 characters)"
+            "description": "Question or keywords in any EU language; the articles are in English (at most 400 characters)"
           },
           "act": {
             "type": "string",
