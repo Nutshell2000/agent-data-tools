@@ -155,7 +155,7 @@ test('/dub transcribes, translates each segment, speaks Spanish with Aura-2 and 
 test('/dub refuses a voice language it cannot speak and an unknown voice, before any model call', async () => {
   const e = env(async () => { throw new Error('model must not run'); });
   const ref = await m.holdFile(ogg(5000));
-  await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'sv' })), /to must be en or es/);
+  await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'sv' })), /to must be one of en, es, fr, zh, ja, ko/);
   await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'es', voice: 'luna' })), /voice must be one of the es voices/);
 });
 
