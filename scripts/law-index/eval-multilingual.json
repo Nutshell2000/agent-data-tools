@@ -1,0 +1,17 @@
+[
+  { "q": "när måste ett företag utse ett dataskyddsombud", "lang": "sv", "expect": ["GDPR, Article 37"] },
+  { "q": "rätt att få sina personuppgifter raderade", "lang": "sv", "expect": ["GDPR, Article 17"] },
+  { "q": "vilka AI-system räknas som högrisk", "lang": "sv", "expect": ["AI Act, Article 6"] },
+  { "q": "Frist für die Meldung einer Verletzung des Schutzes personenbezogener Daten", "lang": "de", "expect": ["GDPR, Article 33"] },
+  { "q": "welche KI-Praktiken sind verboten", "lang": "de", "expect": ["AI Act, Article 5"] },
+  { "q": "Pflichtangaben auf einer Rechnung für die Mehrwertsteuer", "lang": "de", "expect": ["VAT Directive, Article 226"] },
+  { "q": "droit de rétractation de 14 jours pour les contrats à distance", "lang": "fr", "expect": ["Consumer Rights Directive, Article 9"] },
+  { "q": "mesures de gestion des risques en matière de cybersécurité", "lang": "fr", "expect": ["NIS2, Article 21"] },
+  { "q": "qui est un contrôleur d'accès", "lang": "fr", "expect": ["DMA, Article 3"] },
+  { "q": "autenticación reforzada del cliente para pagos en línea", "lang": "es", "expect": ["PSD2, Article 97"] },
+  { "q": "evaluación de impacto relativa a la protección de datos", "lang": "es", "expect": ["GDPR, Article 35"] },
+  { "q": "obligaciones de los proveedores de modelos de IA de uso general", "lang": "es", "expect": ["AI Act, Article 53"] },
+  { "q": "ochrona sygnalistów przed działaniami odwetowymi", "lang": "pl", "expect": ["Whistleblower Directive, Article 19", "Whistleblower Directive, Article 21"] },
+  { "q": "zgłaszanie poważnych incydentów związanych z ICT", "lang": "pl", "expect": ["DORA, Article 19"] },
+  { "q": "zgoda rodzica dla dzieci korzystających z usług online", "lang": "pl", "expect": ["GDPR, Article 8"] }
+]
