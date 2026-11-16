@@ -87,7 +87,7 @@ import { OPENAI_SPEECH_PATH, openAiSpeech } from "./lib/openai-speech";
 import { OPENAI_VOICES_PATH, audioModels, openAiVoiceList } from "./lib/openai-voices";
 import { chargeVoiceKey, voiceKeyKind, voiceKeys, voiceTestKeysOn } from "./lib/voice-keys";
 import { frontKeyPrice } from "./lib/voice-billing";
-import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
+import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, admitTrialUpload, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -365,7 +365,7 @@ app.use(async (c, next) => {
   // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
   // A free voice test or trial key (lib/voice-keys.ts) never reaches the credit ledger: it runs only what a voice front admitted.
-  if (endpoint && creditKey && voiceKeyKind(creditKey)) return chargeVoiceKey(c, creditKey, next);
+  if (endpoint && creditKey && voiceKeyKind(creditKey)) return (await admitTrialUpload(c, creditKey)) ?? chargeVoiceKey(c, creditKey, next);
   // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
   if (endpoint && creditKey) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,

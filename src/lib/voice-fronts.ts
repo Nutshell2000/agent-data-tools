@@ -15,9 +15,9 @@ import { asFrontQuote, requestBody } from "./openai-chat";
 import { VOICE_FRONT_DESCRIPTIONS, VOICE_FRONT_META } from "./voice-fronts-openapi";
 import { KEY_RESPONSE_HEADERS, SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
 import { apiKeyFrom } from "./credits";
-import { admitVoiceKey, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
+import { admitVoiceKey, hasVoiceGrant, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
 import { SHORT_AUDIO_KEY_PRICE, SHORT_AUDIO_SECONDS, asFrontKeyError, foreignKey, foreignKeySentence, frontError, rebateShortAudio, setFrontKeyPrice, withSentenceFirst } from "./voice-billing";
-import { FILE_INPUT, holdFile, releaseFile, sentFile } from "./file-input";
+import { FILE_INPUT, heldFile, holdFile, releaseFile, sentFile } from "./file-input";
 import { TRANSCRIBE_MAX_BYTES } from "../routes/ai";
 import { LONG_TRANSCRIBE_MAX_BYTES, LONG_TRANSCRIBE_PATH, mp3Frames, wavInfo } from "../routes/voice";
 import { voicePrices } from "./voice-pro";
@@ -159,6 +159,21 @@ export function measuredSeconds(bytes: Uint8Array): number | null {
   let seconds = 0;
   for (const f of frames) seconds += f.seconds;
   return seconds;
+}
+
+/**
+ * A free trial key sent straight to a transcription tool with an uploaded file, as the voice site's Pro mode sends it
+ * (POST /transcribe/long or /transcribe): the file is measured here and admitted like a front's request. Returns the
+ * refusal to answer with, or null to go on to the paywall (which refuses whatever was not admitted). Called from
+ * src/index.ts for a voice key, before `chargeVoiceKey`.
+ */
+export async function admitTrialUpload(c: C, key: string): Promise<Response | null> {
+  if (voiceKeyKind(key) !== "trial" || hasVoiceGrant(c.req.raw)) return null;
+  if (c.req.path !== TRANSCRIBE_TOOL_PATH && c.req.path !== LONG_TRANSCRIBE_PATH) return null;
+  const bytes = heldFile(c.req.query(FILE_INPUT));
+  if (!bytes) return null;
+  const refusal = await admitVoiceKey(c.env, key, { what: "audio", upload: true, seconds: measuredSeconds(bytes), bytes: bytes.byteLength }, c.req.raw, new URL(c.req.url).origin);
+  return refusal ? c.json({ error: refusal.message, code: refusal.code, more: refusal.more }, refusal.status) : null;
 }
 
 /** Handles POST /v1/audio/transcriptions (OpenAI) and POST /v1/speech-to-text (ElevenLabs) through /transcribe. */

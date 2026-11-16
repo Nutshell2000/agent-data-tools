@@ -13,7 +13,9 @@
 // A voice key works only through the /v1 voice fronts, because only a front has read the text or the file and knows its
 // length: the front checks the limits (`admitVoiceKey`), marks the tool request it forwards (`GRANTS`), and the paywall
 // (`chargeVoiceKey`, called from src/index.ts) runs the tool only for a marked request. Sent anywhere else the key is
-// refused with a sentence. This module must not import the catalog (lib/credit-routes.ts imports it).
+// refused with a sentence. One exception, because the voice site's Pro mode uploads straight to the tools: a trial key
+// also takes a file POSTed to /transcribe/long or /transcribe (lib/voice-fronts.ts `admitTrialUpload` measures it).
+// This module must not import the catalog (lib/credit-routes.ts imports it).
 //
 // Worst case per UTC day, computed from Cloudflare's model prices read on 14 Nov 2026 (Aura-2 $0.030 per 1,000
 // characters, Whisper large-v3-turbo $0.000513 per audio minute):
@@ -80,7 +82,7 @@ const trialMinutesPerDay = (env: Env) => Math.max(0, Math.floor(Number(env.CREDI
 /** What the test key allows, in one sentence; every answer about a test key carries it. */
 export const VOICE_TEST_LIMITS = `A free voice test key makes ${VOICE_TEST_CALLS} successful calls within ${VOICE_TEST_KEY_HOURS} hours on POST /v1/audio/speech (up to ${VOICE_TEST_SPEECH_CHARS} characters a call) and POST /v1/audio/transcriptions (an MP3 or WAV file of up to ${VOICE_TEST_AUDIO_SECONDS} seconds a call). One key per network address per day. Failed calls do not count.`;
 /** What the trial key allows, in one sentence. */
-export const TRIAL_LIMITS = `A free trial key transcribes one file a day per network address through POST /v1/audio/transcriptions: an MP3 or WAV file of up to ${TRIAL_MAX_SECONDS / 60} minutes (25 MB), or another format up to 5 MB. It works for ${TRIAL_KEY_HOURS} hours. A failed call does not count.`;
+export const TRIAL_LIMITS = `A free trial key transcribes one uploaded file a day per network address, with POST /v1/audio/transcriptions, /transcribe/long or /transcribe: an MP3 or WAV file of up to ${TRIAL_MAX_SECONDS / 60} minutes (25 MB), or another format up to 5 MB. It works for ${TRIAL_KEY_HOURS} hours. A failed call does not count.`;
 
 /** Where a caller who wants more goes; `origin` is the API's. */
 export function paidOptions(origin: string) {
@@ -189,7 +191,7 @@ voiceKeys.post(VOICE_TEST_PATH, async (c) => {
 const trialInfo = (origin: string) => ({
   limits: TRIAL_LIMITS,
   files: 1, maxMinutes: TRIAL_MAX_SECONDS / 60, validHours: TRIAL_KEY_HOURS,
-  worksOn: [`POST ${origin}/v1/audio/transcriptions`, `POST ${origin}/v1/speech-to-text`],
+  worksOn: [`POST ${origin}/v1/audio/transcriptions`, `POST ${origin}/v1/speech-to-text`, `POST ${origin}/transcribe/long`, `POST ${origin}/transcribe`],
   privacy: "We keep a one-way hash of your network address for two days, so one address gets one free file a day, and a hash of the key until it expires. The address itself is not stored.",
   more: { transcribePro: `${origin}/transcribe-pro`, buyPro: VOICE_PRO_URL, credits: `${origin}/credits` },
 });
@@ -206,7 +208,7 @@ voiceKeys.post(CREDITS_TRIAL_PATH, async (c) => {
       : `Today's free trial minutes are used up; they come back at 00:00 UTC. ${proSentence(origin)}`;
     return c.json({ error: message, code: issued.why === "caller" ? "trial_asked_too_often" : "daily_trial_used_up", ...trialInfo(origin) }, 429);
   }
-  return c.json({ apiKey: issued.key, expires: issued.expires, transcribe: `${origin}/v1/audio/transcriptions`, use: "POST the file as a multipart `file` part with Authorization: Bearer <apiKey>; response_format may be json, text, srt, vtt or verbose_json.", ...trialInfo(origin) });
+  return c.json({ apiKey: issued.key, expires: issued.expires, transcribe: `${origin}/v1/audio/transcriptions`, transcribeLong: `${origin}/transcribe/long`, use: "POST the file with Authorization: Bearer <apiKey>: to /v1/audio/transcriptions as a multipart `file` part (response_format json, text, srt, vtt or verbose_json), or to /transcribe/long as the raw body (timestamps=true and subtitles=srt or vtt in the query).", ...trialInfo(origin) });
 });
 voiceKeys.get(CREDITS_TRIAL_PATH, (c) => {
   const origin = new URL(c.req.url).origin;
@@ -232,6 +234,8 @@ export interface VoiceRefusal { status: 401 | 402 | 503; message: string; code: 
 interface Grant { key: string; kind: VoiceKeyKind; counter: string; speech: boolean; minutes: number | null }
 
 const GRANTS = new WeakMap<Request, Grant>();
+/** True when a front (or `admitTrialUpload`) has already admitted this request. */
+export const hasVoiceGrant = (request: Request) => GRANTS.has(request);
 
 /**
  * A front asks before it forwards: may this voice key do this? Marks `inner` (the tool request the front is about to
@@ -275,7 +279,7 @@ export async function chargeVoiceKey(c: C, key: string, next: Next) {
   const pay = test ? paidSentence(origin) : proSentence(origin);
   const refuse = (message: string, code: string, status: 402 | 503 = 402) => c.json({ error: `${message} Nothing was charged. ${pay}`, code, more }, status, status === 503 ? { "Retry-After": "300" } : undefined);
   const grant = GRANTS.get(c.req.raw);
-  if (!grant || grant.key !== key) return refuse(test ? `A free voice test key works only on POST ${origin}/v1/audio/speech and POST ${origin}/v1/audio/transcriptions, not on this path.` : `A free trial key works only on POST ${origin}/v1/audio/transcriptions, not on this path.`, test ? "test_key_scope" : "trial_key_scope");
+  if (!grant || grant.key !== key) return refuse(test ? `A free voice test key works only on POST ${origin}/v1/audio/speech and POST ${origin}/v1/audio/transcriptions, not on this path.` : `A free trial key transcribes one uploaded file with POST ${origin}/v1/audio/transcriptions, /transcribe/long or /transcribe; it does not work on this path or with a URL.`, test ? "test_key_scope" : "trial_key_scope");
   const kv = c.env.TRIALS;
   const store = c.env.METRICS?.get(c.env.METRICS.idFromName("credits"));
   if (!kv || !store || !kindOn(c.env, kind)) return refuse("This key cannot be checked right now; try again in a few minutes.", "unavailable", 503);

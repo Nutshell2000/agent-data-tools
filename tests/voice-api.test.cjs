@@ -49,7 +49,7 @@ export default { fetch() { return new Response('fake ai'); } };`;
 let mf, key;
 const O = 'https://api.test';
 const SESSION = 'cs_live_VoiceApi0000001';
-const TEST_KEYS_PER_DAY = 4, TRIAL_MINUTES = 6;
+const TEST_KEYS_PER_DAY = 4, TRIAL_MINUTES = 8;
 before(async () => {
   const b = await build({ entryPoints: ['src/index.ts'], bundle: true, format: 'esm', platform: 'browser', write: false, external: ['cloudflare:workers', 'node:*'],
     plugins: [{ name: 'url', setup(b) { b.onResolve({ filter: /^url$/ }, () => ({ path: 'node:url', external: true })); } }] });
@@ -441,16 +441,34 @@ test('POST /credits/trial: one file a day per address, at most 30 minutes, withi
   assert.equal(voiceNote.status, 200);
   assert.equal(voiceNote.headers.get('x-tool'), '/transcribe');
   assert.equal(voiceNote.headers.get('x-trial-minutes'), '3');
-  // 5 of the day's 6 minutes are used: a 2-minute file does not fit, a 1-minute file does, and then the day is over.
+  // The voice site's Pro mode uploads straight to the tools: a trial key takes that too, measured the same way.
+  const k5 = (await (await issue(5)).json()).apiKey;
+  const raw = (path, file, k) => mf.dispatchFetch(`${O}${path}`, { method: 'POST', headers: { ...bearer(k), 'content-type': 'application/octet-stream' }, body: file });
+  const directLong = await raw('/transcribe/long?timestamps=true', wav(31 * 60), k5);
+  assert.equal(directLong.status, 402);
+  const dl = await directLong.json();
+  assert.match(dl.error, /^The free trial reads recordings of up to 30 minutes; this one is 31 minutes long\./);
+  assert.equal(dl.code, 'trial_key_limit');
+  const directOk = await raw('/transcribe/long?timestamps=true', wav(50), k5);
+  assert.equal(directOk.status, 200, await directOk.clone().text());
+  assert.equal(directOk.headers.get('x-trial-minutes'), '1');
+  assert.equal(charged(directOk), '0');
+  const directBody = await directOk.json();
+  assert.equal(directBody.text, 'Hello there.');
+  assert.equal(directBody.durationSeconds, 50);
+  assert.equal((await raw('/transcribe', wav(5), k5)).status, 402, 'the one file of the day is used');
+  // Uploads to any other tool are out of scope.
+  assert.equal((await (await raw('/transcribe/summary', wav(5), (await (await issue(6)).json()).apiKey)).json()).code, 'trial_key_scope');
+  // 6 of the day's 8 minutes are used: a 3-minute file does not fit, a 2-minute file does, and then the day is over.
   const k3 = (await (await issue(3)).json()).apiKey;
-  const noRoom = await transcribe(wav(100), bearer(k3));
+  const noRoom = await transcribe(wav(170), bearer(k3));
   assert.equal(noRoom.status, 402);
   const nr = await noRoom.json();
   assert.match(nr.error.message, /^Today's free trial minutes are used up; they come back at 00:00 UTC\./);
   assert.equal(nr.error.code, 'daily_trial_used_up');
-  const fits = await transcribe(wav(50), bearer(k3));
+  const fits = await transcribe(wav(100), bearer(k3));
   assert.equal(fits.status, 200);
-  assert.equal(fits.headers.get('x-trial-minutes'), '1');
+  assert.equal(fits.headers.get('x-trial-minutes'), '2');
   const closed = await issue(4);
   assert.equal(closed.status, 429);
   const cb = await closed.json();

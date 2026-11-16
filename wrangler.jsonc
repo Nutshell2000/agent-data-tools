@@ -49,9 +49,10 @@
     // Free voice keys without e-mail (lib/voice-keys.ts, 16 Nov 2026). Anything but "on" switches a route off (404) and
     // stops its keys at once. Worst case per UTC day if every limit is reached, from the model prices in that file:
     // test keys about $3.50 (never above $6: 2,000 counted calls of at most $0.003), trial keys about $0.15.
-    "VOICE_TEST_KEYS": "on",
+    // OFF in production until both are proven on staging (wrangler.staging.jsonc has them on): set to "on" to offer them.
+    "VOICE_TEST_KEYS": "off",
     "VOICE_TEST_KEYS_PER_DAY": "100",
-    "CREDITS_TRIAL": "on",
+    "CREDITS_TRIAL": "off",
     "CREDITS_TRIAL_MINUTES": "200",
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
