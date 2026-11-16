@@ -509,8 +509,8 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     faq: [["What if a field is not in the text?", "It is null and listed under missing; the model is told never to guess."]],
   },
   "/ai/speech": {
-    title: "Text to speech API: turn text into an audio file (MeloTTS)",
-    uses: ["Voice replies, audio notes, accessibility and phone or chat bots", "Speak up to 1,000 characters in English, Spanish, French, Chinese, Japanese or Korean"],
+    title: "Text to speech API: turn text into an audio file",
+    uses: ["Voice replies, audio notes, accessibility and phone or chat bots", "Speak up to 300 characters: English or Spanish (Aura-2, MP3) or French, Chinese, Japanese or Korean (MeloTTS, WAV)"],
     faq: [["What do I get back?", "The audio as base64 with its content type and size in bytes."]],
   },
   "/describe": {

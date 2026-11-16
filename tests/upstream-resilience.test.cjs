@@ -64,6 +64,28 @@ test('recent logs: a node that lags behind the newest block is stepped past, not
   assert.ok(node.calls.slice(1).every((c) => c[1] <= 995), JSON.stringify(node.calls));
 });
 
+// 16 Nov 2026: a wide first window that public nodes refuse used to fail the whole call (/arb/token-transfers 4 of 5).
+test('recent logs: a refused wide first window is retried at a quarter, and later windows stay that small', async () => {
+  const { recentLogs } = await load();
+  const node = fakeNode(0);
+  const request = node.request;
+  node.request = async (args) => { const f = args.params[0]; if (BigInt(f.toBlock) - BigInt(f.fromBlock) + 1n > 300n) { node.calls.push(['refused']); throw new Error('block range too large'); } return request(args); };
+  const r = await recentLogs(node, { address: '0x' + '1'.repeat(40) }, 10_000n, 1000n, 50, { first: 1000n, max: 1000n, now: () => 0 });
+  assert.equal(r.complete, true);
+  assert.deepEqual(node.calls[0], ['refused']);
+  assert.deepEqual(node.calls[1], [9751, 10000]);
+  assert.equal(node.calls.filter((c) => c[0] === 'refused').length, 1);
+  assert.ok(node.calls.slice(1).every((c) => c[1] - c[0] + 1 <= 250), JSON.stringify(node.calls));
+});
+
+test('recent logs: a node that refuses every window still fails the call after three smaller tries', async () => {
+  const { recentLogs } = await load();
+  let calls = 0;
+  const node = { request: async () => { calls++; throw new Error('upstream down'); } };
+  await assert.rejects(recentLogs(node, { address: '0x' + '1'.repeat(40) }, 10_000n, 1000n, 50, { first: 1000n, now: () => 0 }), /did not answer/);
+  assert.equal(calls, 4);
+});
+
 test('outside sources: one retry after a short 429/503, none when told to wait long', async () => {
   const b = await build({ entryPoints: ['src/family.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent' });
   const m = { exports: {} };
