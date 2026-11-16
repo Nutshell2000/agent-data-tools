@@ -2,6 +2,7 @@
 // not index, so before these pages Google saw only the homepage. Each page says what the tool does, its inputs,
 // a request and an example result, and the ways in (free calls, card credits, MCP, x402/MPP).
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { TOOL_SEO } from "./tool-seo";
@@ -108,7 +109,7 @@ ${live ? `<p class="muted">The real answer to the request above, read ${esc(live
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
 ${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}
 ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) => `<li><a href="/tools/${esc(toolSlug(o.path))}">${esc(o.summary)}</a> · ${esc(o.price)}</li>`).join("")}</ul>` : ""}
-<footer><a href="/tools">All ${ENDPOINTS.length} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
+<footer><a href="/tools">All ${TOOL_COUNT} tools</a> · <a href="/llms.txt">Docs for agents</a> · <a href="/openapi.json">OpenAPI</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
@@ -116,7 +117,7 @@ ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) 
 export function toolIndexPage(origin: string, groups: { name: string; tools: readonly Endpoint[] }[]): string {
   // Entry paths are second names for tools: the index and the sitemap list each tool once, under its own name.
   groups = groups.map((g) => ({ name: g.name, tools: g.tools.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)) })).filter((g) => g.tools.length > 0);
-  const title = `All ${ENDPOINTS.length} tools · ${SERVICE_NAME}`;
+  const title = `All ${TOOL_COUNT} tools · ${SERVICE_NAME}`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>

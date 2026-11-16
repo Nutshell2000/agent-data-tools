@@ -3,6 +3,7 @@
 // person fixing it searches in German. Same facts as the English pages (lib/einvoice-pages.ts), same rule table;
 // only the wording differs (lib/einvoice/rules-de.ts). The two versions name each other with hreflang links.
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { COMPANY_FOOTER } from "./legal";
 import { PAGE_STYLE } from "./vat-pages";
 import { TRY_FORM_CSS } from "./try-form";
@@ -23,7 +24,7 @@ const head = (title: string, description: string, enPath: string, dePath: string
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin + dePath)}"><meta property="og:image" content="${esc(origin)}/og.png"><meta property="og:locale" content="de_DE">
 <link rel="icon" href="/favicon.ico">${languageLinks(origin, enPath)}${extra}
 <style>${PAGE_STYLE}${TRY_FORM_CSS}</style></head><body><main>`;
-const foot = () => `<footer><a href="${EINVOICE_BASE_DE}">E-Rechnungs-API</a> · <a href="${EINVOICE_RULES_DE}">Alle Prüfregeln</a> · <a href="/tools">Alle ${ENDPOINTS.length} Tools (englisch)</a> · ${COMPANY_FOOTER}</footer>
+const foot = () => `<footer><a href="${EINVOICE_BASE_DE}">E-Rechnungs-API</a> · <a href="${EINVOICE_RULES_DE}">Alle Prüfregeln</a> · <a href="/tools">Alle ${TOOL_COUNT} Tools (englisch)</a> · ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 
 const validatorForm = (label: string) => `<form class="try" method="post" action="/einvoice/validate?trial=1" enctype="multipart/form-data">

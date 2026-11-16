@@ -1,6 +1,7 @@
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./reader-buying";
 import { readerDownloadMarkdown } from "./reader-download";
 import { ENDPOINTS, READER_VERSION, paymentClientExample } from "../discovery";
+import { TOOL_COUNT } from "../endpoints";
 
 export type PromotedTool = "web-reading" | "bitcoin-fees";
 const esc = (s: string) => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
@@ -34,7 +35,7 @@ export function toolBuyingGuide(kind: PromotedTool, origin: string, payTo: strin
 export function toolGuideMarkdown(kind: PromotedTool, origin: string, payTo: string) {
   const g = toolBuyingGuide(kind, origin, payTo), fence = "```";
   const quickBuy = kind === "web-reading" ? [
-    `Browse all ${ENDPOINTS.length} tools and prices: ${origin}/#tools . This guide focuses on the page reader.`,
+    `Browse all ${TOOL_COUNT} tools and prices: ${origin}/#tools . This guide focuses on the page reader.`,
     "",
     "## Inspect real results, then use the CLI",
     "",

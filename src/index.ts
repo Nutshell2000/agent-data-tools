@@ -26,6 +26,7 @@ import { movedPageUrl, withPublicCanonical } from "./lib/public-site";
 import { publicBrand } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
+import { TOOL_COUNT } from "./endpoints";
 import { isV2PaymentHeader, payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
@@ -753,7 +754,7 @@ for (const prefix of ["/examples/extract/*", "/examples/sitemap/*", "/clients/re
   app.on(["GET", "HEAD"], prefix, async c => readerAssets.has(c.req.path) ? await c.env.ASSETS.fetch(c.req.raw) : c.json({ error: "not found" }, 404));
 }
 // Product walkthrough: one stable demo link on our own domain (src/lib/demo-page.ts, recording in public/demo.gif).
-app.get("/demo", c => c.html(demoPage(origin(c.req.url), ENDPOINTS.length)));
+app.get("/demo", c => c.html(demoPage(origin(c.req.url), TOOL_COUNT)));
 app.on(["GET", "HEAD"], "/demo.gif", c => c.env.ASSETS.fetch(c.req.raw));
 // ChatGPT plugin review walkthrough (recorded 26 Oct 2026 in ChatGPT with the custom MCP plugin): OpenAI's reviewers open it from the submission.
 app.on(["GET", "HEAD"], "/review/chatgpt-demo.gif", c => c.env.ASSETS.fetch(c.req.raw));

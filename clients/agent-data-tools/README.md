@@ -66,4 +66,4 @@ When payment is needed and none is set up, `call()` throws `PaymentRequired` wit
 
 ## Also
 
-Full catalog and prices: [`/tools`](https://agent-data-tools.revmesh2074.workers.dev/tools), [`/openapi.json`](https://agent-data-tools.revmesh2074.workers.dev/openapi.json). MCP servers: `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (three tools for the whole catalog) and `https://agent-data-tools.revmesh2074.workers.dev/mcp` (every tool). Terms: [`/terms`](https://agent-data-tools.revmesh2074.workers.dev/terms).
+Full catalog and prices: [`/tools`](https://agent-data-tools.revmesh2074.workers.dev/tools), [`/openapi.json`](https://agent-data-tools.revmesh2074.workers.dev/openapi.json). MCP servers: `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (three tools for the whole catalog) and `https://agent-data-tools.revmesh2074.workers.dev/mcp/all` (every tool as its own definition). Terms: [`/terms`](https://agent-data-tools.revmesh2074.workers.dev/terms).

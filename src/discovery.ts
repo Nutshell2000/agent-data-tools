@@ -9,6 +9,7 @@ import { comparePaths } from "./lib/compare-pages";
 import { BENCHMARKS_PATH } from "./lib/benchmarks-page";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
+import { TOOL_COUNT } from "./endpoints";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, PAUSED_FAMILY_TOOLS, SERVICE_ICON_URL, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 import { salesOrdered } from "./lib/discovery-index";
@@ -58,7 +59,11 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
     serverInfo: { name: SERVICE_ID, title: SERVICE_NAME, version: MCP_SERVER_VERSION },
     description: SERVICE_SUMMARY,
     transport: { type: "streamable-http", endpoint: `${origin}/mcp` },
-    bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpBundleTools(slug)!.length })),
+    // /mcp lists a small surface (find, describe, call and the most used tools) and runs every tool by name; the list
+    // with every tool as its own definition is /mcp/all. toolCount is TOOL_COUNT, the one count (endpoints.ts).
+    toolCount: TOOL_COUNT,
+    fullList: { endpoint: `${origin}/mcp/all` },
+    bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpListed(mcpBundleTools(slug)!).length })),
     capabilities: { tools: { listChanged: false } },
     // /mcp needs no sign-in; /mcp/account is the same tools behind OAuth for app directories.
     authentication: { required: false, optional: { type: "oauth2", endpoint: `${origin}/mcp/account`, metadata: `${origin}/.well-known/oauth-authorization-server` } },
@@ -292,6 +297,8 @@ export const MCP_BUNDLES: Readonly<Record<string, string>> = Object.freeze({
   everyday: "Everyday data",
   utilities: "Utilities",
 });
+/** What a server's tools/list shows of its tools: entry paths (second names, ENTRY_OF) run by name and are not listed. */
+export const mcpListed = <T extends { path: string }>(tools: readonly T[]) => tools.filter((e) => !Object.hasOwn(ENTRY_OF, e.path));
 export const mcpBundleTools = (slug: string) =>
   Object.hasOwn(MCP_BUNDLES, slug) ? ENDPOINTS.filter((e) => categoryOf(e.path) === MCP_BUNDLES[slug]) : undefined;
 
@@ -343,7 +350,7 @@ const GOOGLE_SITE_VERIFICATION = "HeQjGo464TFyKSavKXvOaOF3C2o62GLeO5XySvLiHco";
 /** What a tool does first, then its fine print: directories and agents read the opening words to pick a tool. */
 export const fullDescription = (e: Pick<Endpoint, "description"> & { details?: string }) => e.details ? `${e.description} Details: ${e.details}` : e.description;
 
-export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${ENDPOINTS.length} tools, 25 free calls, then from $0.002`;
+export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${TOOL_COUNT} tools, 25 free calls, then from $0.002`;
 
 /**
  * One-click installs of the MCP server: Cursor and VS Code deep links (each opens the editor's own "add server"
@@ -351,14 +358,14 @@ export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data,
  * homepage and the README; before these, both only showed the bare URL to copy.
  * Since 1.132.0 the links, the command and our own packages (Claude plugin, Gemini extension, npm client) connect the
  * compact server, /mcp/compact: three tools instead of several hundred definitions in the assistant's context. `full`
- * is the server with every tool as its own definition.
+ * is the server with every tool as its own definition: /mcp/all since 16 Nov 2026, when /mcp itself got a small list.
  */
 export function mcpInstallLinks(origin: string) {
   const url = `${origin}/mcp/compact`;
   const vscodeConfig = encodeURIComponent(JSON.stringify({ name: "agent-data-tools", type: "http", url }));
   return {
     url,
-    full: `${origin}/mcp`,
+    full: `${origin}/mcp/all`,
     cursor: `cursor://anysphere.cursor-deeplink/mcp/install?name=agent-data-tools&config=${encodeURIComponent(btoa(JSON.stringify({ url })))}`,
     vscode: `vscode:mcp/install?${vscodeConfig}`,
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
@@ -443,11 +450,11 @@ Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude De
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
 <li><strong>Agents with a wallet pay per call:</strong> x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). Terms are in every 402; see <a href="/llms.txt">llms.txt</a>.</li>
 </ol></section>
-${readerBuyingHtml(origin, READER_VERSION, ENDPOINTS.length, demo)}
+${readerBuyingHtml(origin, READER_VERSION, TOOL_COUNT, demo)}
 <p><strong>Guides by job:</strong> ${TASK_GUIDES.slice(0, 8).map((g) => `<a href="/guides/${g.slug}">${esc(g.phrase)}</a>`).join(" · ")} · <a href="/guides">all ${TASK_GUIDES.length} guides</a></p>
 <p><a href="/guides/web-reading">Full reader guide, three-page research workflow and failure handling</a> · <a href="/guides/sitemap">Discover documentation URLs from a sitemap for $0.002</a> · Secondary tool: <a href="/guides/bitcoin-fees">Bitcoin fees for $0.002</a></p>
 
-<h2 id="tools" tabindex="-1">Tools and prices: all ${ENDPOINTS.length}</h2>
+<h2 id="tools" tabindex="-1">Tools and prices: all ${TOOL_COUNT}${ENDPOINTS.length > TOOL_COUNT ? ` (${ENDPOINTS.length} paths: some tools also answer under a second name)` : ""}</h2>
 ${rows}
 
 <h2>How paying works</h2>
@@ -732,9 +739,9 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     ])]),
     "## Machine-readable",
     "",
-    `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp`,
+    `- MCP server (streamable HTTP, same tools and prices): ${origin}/mcp (lists find_tool, describe_tool, call_tool and the most used tools, and runs every tool by name; every tool as its own definition: ${origin}/mcp/all)`,
     `- Set it up in Claude Code, Claude Desktop, Cursor or VS Code from a terminal: npx -y agent-data-tools setup (npm package agent-data-tools; "npx -y agent-data-tools mcp" is a local stdio server for clients that only start commands)`,
-    `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpBundleTools(slug)!.length} tools)`).join("; ")}`,
+    `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpListed(mcpBundleTools(slug)!).length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
     `- [Service card](${origin}/)`,

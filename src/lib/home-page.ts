@@ -12,6 +12,7 @@
 // - No payment protocol, wallet or crypto word before the "For AI agents" section (tests/site-pages.test.cjs).
 // - No script: the code tabs are radio inputs, the motion is CSS and stops under prefers-reduced-motion.
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
+import { TOOL_COUNT } from "../endpoints";
 import { BENCHMARKS, BENCHMARKS_PATH } from "./benchmarks-page";
 import { PLAN_PORTAL_URL } from "./credits";
 import { FREE_CALLS_PER_CALLER } from "./free-calls";
@@ -337,7 +338,7 @@ ${pricing}
 
 <div class="agents">
 <h2>For AI agents</h2>
-<p>The same APIs, and the rest of a catalogue of ${ENDPOINTS.length} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free) and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
+<p>The same APIs, and the rest of a catalogue of ${TOOL_COUNT} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free) and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
 </div>
 </div></section>
 

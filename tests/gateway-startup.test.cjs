@@ -115,7 +115,8 @@ test('MCP quotes initialize independently while a cold HTTP gateway is stalled',
     assert.equal(quote.isError, true);
     assert.equal(JSON.parse(quote.content[0].text).accepts[0].amount, '2000');
     f.release(); const initial = await first; assert.equal(initial.status, 402); await initial.body?.cancel();
-    assert.equal((await client.listTools()).tools.length, 494);
+    // /mcp lists the small surface since 16 Nov 2026; tests/mcp-surface.test.cjs pins the lists.
+    assert.ok((await client.listTools()).tools.length < 20);
     assert.equal(f.calls(), 2, 'each transport reuses only its own completed state');
   } finally { f.release(); await client.close(); await f.mf.dispose(); }
 });
@@ -142,8 +143,9 @@ test('MCP bundles serve one catalog section each and quote like /mcp', async () 
       await client.close();
     }
     const all = Object.values(counts).flat();
-    assert.equal(all.length, 725, 'every tool is in exactly one bundle');
-    assert.equal(new Set(all).size, 725);
+    // Entry paths (second names) are not listed since 16 Nov 2026, so the sections together list TOOL_COUNT tools.
+    assert.equal(all.length, 656, 'every tool is in exactly one bundle');
+    assert.equal(new Set(all).size, 656);
     const unknown = await f.mf.dispatchFetch('https://api.test/mcp/nope', { method: 'POST' });
     assert.equal(unknown.status, 404); await unknown.body?.cancel();
   } finally { await f.mf.dispose(); }

@@ -42,7 +42,7 @@ const jsonOf = (result) => JSON.parse(result.content.find((c) => c.type === 'tex
 const call = (client, name, args) => client.callTool({ name, arguments: args });
 const SHA_HELLO = crypto.createHash('sha256').update('hello').digest('hex');
 
-test('the compact server lists three small tools and says how to use them; the ordinary server is unchanged', async () => {
+test('the compact server lists three small tools and says how to use them; the full server is unchanged', async () => {
   await withClient(async (client) => {
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map((t) => t.name), ['find_tool', 'tool_details', 'call_tool']);
@@ -62,7 +62,8 @@ test('the compact server lists three small tools and says how to use them; the o
     const names = new Set(tools.map((t) => t.name));
     for (const own of ['find_tool', 'tool_details', 'call_tool']) assert.ok(!names.has(own), `${own} must not be a catalog tool name`);
     assert.ok(names.has('hash') && names.has('weather_forecast'));
-  }, { path: '/mcp' });
+    // The full list is /mcp/all since 16 Nov 2026; /mcp lists a small surface (tests/mcp-surface.test.cjs).
+  }, { path: '/mcp/all' });
 });
 
 test('find_tool answers a job in plain words with names, prices and inputs, and costs nothing', async () => {

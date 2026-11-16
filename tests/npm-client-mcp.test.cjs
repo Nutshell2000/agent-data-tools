@@ -24,7 +24,7 @@ async function remote() {
       }
       const body = JSON.parse(raw);
       seen.push({ url: req.url, method: req.method, headers: req.headers, body });
-      if ((req.url !== '/mcp/compact' && req.url !== '/mcp') || req.method !== 'POST') { res.writeHead(404); return res.end('not found'); }
+      if ((req.url !== '/mcp/compact' && req.url !== '/mcp/all') || req.method !== 'POST') { res.writeHead(404); return res.end('not found'); }
       if (body.method === 'initialize') {
         res.writeHead(200, { 'content-type': 'application/json', 'mcp-session-id': 'sess-1' });
         return res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: { protocolVersion: '2025-06-18', capabilities: {}, serverInfo: { name: 'fake', version: '1' } } }));
@@ -231,13 +231,13 @@ test('npm client: the compact server is the default; --full names the server wit
     const init = [SESSION[0]];
     await run(['mcp'], { env: { ...t.env, AGENT_DATA_TOOLS_ORIGIN: server.origin }, stdin: init });
     await run(['mcp', '--full'], { env: { ...t.env, AGENT_DATA_TOOLS_ORIGIN: server.origin }, stdin: init });
-    assert.deepEqual(server.seen.map((s) => s.url), ['/mcp/compact', '/mcp']);
+    assert.deepEqual(server.seen.map((s) => s.url), ['/mcp/compact', '/mcp/all']);
     const cursor = await run(['setup', 'cursor', '--print', '--full'], { env: t.env });
-    assert.deepEqual(JSON.parse(cursor.stdout.split('\n').slice(1).join('\n')), { mcpServers: { 'agent-data-tools': { url: 'https://agent-data-tools.revmesh2074.workers.dev/mcp' } } });
+    assert.deepEqual(JSON.parse(cursor.stdout.split('\n').slice(1).join('\n')), { mcpServers: { 'agent-data-tools': { url: 'https://agent-data-tools.revmesh2074.workers.dev/mcp/all' } } });
     const desktop = await run(['setup', 'claude-desktop', '--print', '--full'], { env: t.env });
     assert.deepEqual(JSON.parse(desktop.stdout.split('\n').slice(1).join('\n')).mcpServers['agent-data-tools'].args, ['-y', 'agent-data-tools', 'mcp', '--full']);
     const code = await run(['setup', 'claude-code', '--full'], { env: t.env });
-    assert.equal(code.stdout.trim(), 'claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp');
+    assert.equal(code.stdout.trim(), 'claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp/all');
   } finally { await server.close(); fs.rmSync(t.home, { recursive: true, force: true }); }
 });
 
