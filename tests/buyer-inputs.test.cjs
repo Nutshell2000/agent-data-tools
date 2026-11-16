@@ -137,6 +137,17 @@ test("a tool that refuses an empty call lists an input as required, so a router 
       try { await Promise.race([T.TOOLS[e.path](env, () => undefined), new Promise((_, r) => setTimeout(() => r(new Error("NET timeout")), 300))]); }
       catch (err) { refused = err?.status === 400; }
       assert.equal(B.ONE_OF_INPUT_PATHS.has(e.path), refused, `${e.path}: ${refused ? "refuses an empty call, so add it to ONE_OF_INPUT_PATHS" : "answers an empty call, so it must not be in ONE_OF_INPUT_PATHS"}`);
+      // Alternatives stated as such (EITHER_INPUT): no single input is required and `anyOf` names each one. Allowed only
+      // where an empty HTTP call is answered, so a router that plans `{}` from an empty `required` still gets a result.
+      const either = B.EITHER_INPUT[e.path];
+      if (either) {
+        assert.ok(refused, `${e.path} takes one of several inputs`);
+        assert.deepEqual(B.requiredInputs(e), [], `${e.path}: neither alternative alone is required`);
+        assert.ok(either.length >= 2 && either.every((name) => name in e.params), `${e.path} names its own inputs`);
+        assert.ok(Object.keys(B.exampleInput(e)).length === 1 && either.includes(Object.keys(B.exampleInput(e))[0]), `${e.path}: the published example is one of the alternatives`);
+        assert.ok(Object.hasOwn(T.EMPTY_CALL_DEFAULTS, e.path), `${e.path} must answer an empty HTTP call (EMPTY_CALL_DEFAULTS)`);
+        continue;
+      }
       if (refused) {
         const required = B.requiredInputs(e);
         assert.ok(required.length >= 1, `${e.path} lists a required input`);
@@ -146,6 +157,7 @@ test("a tool that refuses an empty call lists an input as required, so a router 
     }
   } finally { globalThis.fetch = realFetch; }
   for (const p of B.ONE_OF_INPUT_PATHS) assert.ok(E.ENDPOINTS.some((e) => e.path === p), `${p} is a tool`);
+  for (const p of Object.keys(B.EITHER_INPUT)) assert.ok(B.ONE_OF_INPUT_PATHS.has(p), `${p} is a one-of tool`);
 });
 test("10 Nov probe: shapes that were refused or silently answered for a default", async () => {
   const q = (o) => T.normalizedInput(sent(o));

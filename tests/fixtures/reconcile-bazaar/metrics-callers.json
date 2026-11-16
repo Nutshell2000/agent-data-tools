@@ -1,0 +1,7 @@
+{
+  "http": {
+    "2026-11-02": { "node": { "paid": 4, "v2_payment": 2 }, "python-requests": { "paid": 1, "v1_payment": 1 } },
+    "2026-11-01": { "node": { "paid": 4, "v2_payment": 1, "challenged": 9 }, "examplebot": { "challenged": 50 } }
+  },
+  "mcpConnections": {}
+}
