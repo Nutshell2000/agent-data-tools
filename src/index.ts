@@ -87,8 +87,10 @@ import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiMode
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
 import { OPENAI_SPEECH_PATH, openAiSpeech } from "./lib/openai-speech";
-import { OPENAI_VOICES_PATH, openAiVoiceList } from "./lib/openai-voices";
-import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
+import { OPENAI_VOICES_PATH, audioModels, openAiVoiceList } from "./lib/openai-voices";
+import { chargeVoiceKey, voiceKeyKind, voiceKeys, voiceTestKeysOn } from "./lib/voice-keys";
+import { frontKeyPrice } from "./lib/voice-billing";
+import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, admitTrialUpload, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -369,7 +371,10 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key (header, or api_key= in the URL for fetch-only clients) replaces the
   // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
-  if (endpoint && creditKey) return chargeCredits(c, keyPrice(endpoint.path, endpoint.price), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
+  // A free voice test or trial key (lib/voice-keys.ts) never reaches the credit ledger: it runs only what a voice front admitted.
+  if (endpoint && creditKey && voiceKeyKind(creditKey)) return (await admitTrialUpload(c, creditKey)) ?? chargeVoiceKey(c, creditKey, next);
+  // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
+  if (endpoint && creditKey) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
@@ -547,7 +552,8 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 // middleware, so every payment path and price applies unchanged. POST takes the OpenAI body; GET takes the same
 // inputs in the query (directories that index every route as GET send agents that way). GET /v1/models is free.
 app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
-app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
+// The chat models, then the audio models and names the voice fronts take (lib/openai-voices.ts `audioModels`). Always 200, with or without a key.
+app.get(OPENAI_MODELS_PATH, (c) => { const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
@@ -570,6 +576,7 @@ for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GE
 
 app.route("/", credits);
 app.route("/", freeKeys);
+app.route("/", voiceKeys);
 // Privacy policy, terms and support.
 app.route("/", legal);
 // OAuth sign-in for MCP apps.

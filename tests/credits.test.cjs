@@ -161,7 +161,7 @@ test('paywall charges a key per successful call and refunds failed calls', async
   res = await fetch('/tool', auth);
   assert.equal(res.status, 402);
   const short = await res.json();
-  assert.match(short.error, /not enough credits.*Top up this key/);
+  assert.match(short.error, /^This key does not have enough credits.*Top up this key/);
   assert.match(short.topUp[0].buy, /^https:\/\/buy\.stripe\.com\/.+\?client_reference_id=topup_[0-9a-f]{64}$/);
 
   res = await fetch('/tool', { authorization: `Bearer ${credits.newCreditKey()}` });
