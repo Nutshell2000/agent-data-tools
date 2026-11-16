@@ -130,13 +130,20 @@ async function crawlSite(site, n, out, perSite, textChars) {
   const host = site.prefix.split("/")[0];
   let last = 0, delay = 1000;
   const pace = async () => { const wait = last + delay - Date.now(); if (wait > 0) await sleep(wait); last = Date.now(); };
-  let robots;
-  try {
-    await pace();
-    const r = await get(`https://${host}/robots.txt`);
-    if (r.status >= 500) return { skipped: `robots.txt HTTP ${r.status}` };
-    robots = parseRobots(r.ok ? await r.text() : "");
-  } catch (e) { return { skipped: `robots.txt unreachable (${e.message})` }; }
+  // robots.txt is asked up to three times (10 s, then 30 s apart): on 15-16 Nov a network blip skipped 93 whole sites
+  // whose first request happened to fail.
+  let robots, lastError = "";
+  for (const wait of [0, 10_000, 30_000]) {
+    if (wait) await sleep(wait);
+    try {
+      await pace();
+      const r = await get(`https://${host}/robots.txt`);
+      if (r.status >= 500) { lastError = `robots.txt HTTP ${r.status}`; continue; }
+      robots = parseRobots(r.ok ? await r.text() : "");
+      break;
+    } catch (e) { lastError = `robots.txt unreachable (${e.message})`; }
+  }
+  if (!robots) return { skipped: lastError };
   delay = Math.max(1000, robots.delayMs);
   const allowed = (u) => { try { const x = new URL(u); return robots.allow(x.pathname + x.search); } catch { return false; } };
   const fromSitemaps = (await sitemapUrls(site, robots, perSite, pace)).filter(allowed);
