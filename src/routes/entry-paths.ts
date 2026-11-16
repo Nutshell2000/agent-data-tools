@@ -360,7 +360,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Public holidays for a country and year: date, local and English name, whether it is nationwide and the observed day, for over 100 countries. Use to plan deliveries, schedules and business days, or to tell whether today is a holiday somewhere.",
     ["public-holidays", "holidays", "bank-holidays", "calendar", "country", "business-days"], from(PUBLIC_DATA, "/holidays")),
 
-  door("/pdf/extract", "Extract text from a PDF URL",
+  door("/pdf/extract", "PDF extract, text from a PDF URL",
     "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context.",
     ["pdf-to-text", "extract-pdf-text", "pdf", "pdf-parser", "document", "rag"], from(PDF, "/pdf/text")),
 
