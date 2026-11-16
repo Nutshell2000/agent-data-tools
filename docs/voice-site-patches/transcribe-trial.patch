@@ -1,0 +1,124 @@
+# transcribe-trial.patch: adds the "Try Pro free on this file" button to the voice site's transcribe.js.
+# A real unified diff against the LIVE file: https://voice.glyphcall.com/transcribe.js fetched with one plain GET on
+# 16 Nov 2026 (20,032 bytes, sha256 ae27f113e96150db11c7d3425c6b7248fc67e2dbd0ea101ab72ef14b64230ef3).
+# Apply in the voice site's repository: patch -p1 < transcribe-trial.patch   (see README.md). Not run in a browser.
+--- a/transcribe.js	2026-11-16 12:14:41.680973510 +0000
++++ b/transcribe.js	2026-11-16 12:14:41.693636623 +0000
+@@ -28,6 +28,7 @@
+ function pick(f) {
+   chosen = f || null; go.disabled = !chosen;
+   if ($("fastgo")) $("fastgo").disabled = !chosen;
++  if ($("trygo")) $("trygo").disabled = !chosen;
+   if (chosen) setStatus(chosen.name + " (" + (chosen.size / 1048576).toFixed(1) + " MB) is ready.");
+ }
+ file.addEventListener("change", () => pick(file.files[0]));
+@@ -221,12 +222,14 @@
+ }
+ 
+ class PayError extends Error {}
+-async function callApi(path, blob, lang) {
++// The sentence the API put first in a refusal: { error: "..." } from a tool, { error: { message } } from a /v1 route.
++const sentenceOf = (b) => (b && (typeof b.error === "string" ? b.error : b.error && b.error.message)) || "";
++async function callApi(path, blob, lang, key) {
+   const res = await fetch(API + path + "?timestamps=true" + (lang ? "&language=" + lang : ""), {
+-    method: "POST", headers: { authorization: "Bearer " + proKey, "content-type": "application/octet-stream" }, body: blob,
++    method: "POST", headers: { authorization: "Bearer " + (key || proKey), "content-type": "application/octet-stream" }, body: blob,
+   });
+   const body = await res.json().catch(() => ({}));
+-  if (res.status === 401 || res.status === 402 || res.status === 403) throw new PayError("pay");
++  if (res.status === 401 || res.status === 402 || res.status === 403) throw new PayError(sentenceOf(body) || "pay");
+   if (!res.ok) throw new Error(body.error || body.message || ("status " + res.status));
+   return body;
+ }
+@@ -240,19 +243,20 @@
+   $("proshow").addEventListener("click", () => { $("prokey").type = $("prokey").type === "password" ? "text" : "password"; });
+   refreshAccount(); claimCheckout();
+ 
+-  $("fastgo").addEventListener("click", async () => {
+-    if (!chosen) return;
+-    if (!proKey) { setStatus("Start Pro ($1 first month, then $9) or try 20 hours for $1 first, with the buttons below.", true); $("buypro").focus(); return; }
++  // Runs the chosen file on our servers with `key`. trial: a free trial key from POST /credits/trial (one file a day,
++  // up to 30 minutes, no summary); the API's own sentence is shown when it refuses.
++  const TRIAL_MAX_SECONDS = 30 * 60;
++  async function serverRun(btn, key, trial) {
+     const isMp3Wav = /\.(mp3|wav)$/i.test(chosen.name) || /^audio\/(mpeg|mp3|wav|x-wav|wave)$/i.test(chosen.type);
+-    const wantSummary = !!(sumBox && sumBox.checked);
++    const wantSummary = !trial && !!(sumBox && sumBox.checked);
+     const lang = codeOf[$("lang").value] || "";
+-    const btn = $("fastgo"); btn.disabled = true; bar.hidden = false; bar.removeAttribute("value");
++    btn.disabled = true; bar.hidden = false; bar.removeAttribute("value");
+     $("summary").hidden = true; segments = []; out.value = ""; t0 = performance.now();
+     let seconds = 0;
+     try {
+       if (!wantSummary && chosen.size <= 5 * MB) {
+         setStatus("Transcribing on the server...");
+-        const body = await callApi("/transcribe", chosen, lang);
++        const body = await callApi("/transcribe", chosen, lang, key);
+         seconds = +body.durationSeconds || 0; show(segsOf(body, 0));
+       } else {
+         setStatus("Reading the file...");
+@@ -260,6 +264,7 @@
+         try { pcm = await decode(chosen); } catch { throw new Error("this file could not be read as audio. Try MP3, M4A, WAV, MP4 or MOV"); }
+         seconds = pcm.length / 16000;
+         if (!seconds) throw new Error("this file has no audio");
++        if (trial && seconds > TRIAL_MAX_SECONDS) throw new PayError("The free trial reads recordings of up to 30 minutes; this one is " + Math.ceil(seconds / 60) + " minutes long. Nothing was sent. Start Pro for longer recordings.");
+         if (wantSummary && seconds > 3600) throw new Error("summaries take recordings up to 60 minutes; untick the summary to transcribe longer files");
+         const parts = isMp3Wav && chosen.size <= 24 * MB && seconds <= 3590
+           ? [{ blob: chosen, offset: 0 }]
+@@ -268,18 +273,52 @@
+         for (let i = 0; i < parts.length; i++) {
+           bar.value = i / parts.length;
+           setStatus(parts.length > 1 ? "Transcribing part " + (i + 1) + " of " + parts.length + " on the server..." : "Transcribing on the server...");
+-          const body = await callApi(wantSummary ? "/transcribe/summary" : "/transcribe/long", parts[i].blob, lang);
++          const body = await callApi(wantSummary ? "/transcribe/summary" : "/transcribe/long", parts[i].blob, lang, key);
+           all.push(...segsOf(body, parts[i].offset)); show(all);
+           if (body.summary) showSummary(body);
+         }
+       }
+       const mins = Math.round(seconds / 60);
+-      setStatus("Done in " + ((performance.now() - t0) / 1000).toFixed(0) + " seconds" + (seconds ? " (" + (mins >= 1 ? mins + " minutes" : Math.round(seconds) + " seconds") + " of audio)." : "."));
+-      refreshAccount();
++      setStatus("Done in " + ((performance.now() - t0) / 1000).toFixed(0) + " seconds" + (seconds ? " (" + (mins >= 1 ? mins + " minutes" : Math.round(seconds) + " seconds") + " of audio)." : ".") + (trial ? " That was today's free Pro file." : ""));
++      if (!trial) refreshAccount();
+     } catch (err) {
+-      if (err instanceof PayError) setStatus("Your Pro time has run out, or the access key is not valid. Add time with the buttons below; failed files cost nothing.", true);
++      if (err instanceof PayError) setStatus(trial && err.message !== "pay" ? err.message : "Your Pro time has run out, or the access key is not valid. Add time with the buttons below; failed files cost nothing.", true);
+       else setStatus("The server could not transcribe this file: " + (err && err.message ? err.message : err) + ". Nothing was charged for the failed part.", true);
+     } finally { btn.disabled = !chosen; bar.hidden = true; }
++  }
++
++  $("fastgo").addEventListener("click", () => {
++    if (!chosen) return;
++    if (!proKey) { setStatus("Start Pro ($1 first month, then $9) or try 20 hours for $1 first, with the buttons below.", true); $("buypro").focus(); return; }
++    serverRun($("fastgo"), proKey, false);
++  });
++
++  // "Try Pro free on this file": POST /credits/trial answers with a key for one file a day per network address (up to
++  // 30 minutes). The key lives in this variable for this page view only: it is never written to localStorage.
++  let trialKey = "";
++  const tryBtn = document.createElement("button");
++  tryBtn.id = "trygo"; tryBtn.type = "button"; tryBtn.className = "ghost"; tryBtn.textContent = "Try Pro free on this file"; tryBtn.disabled = !chosen;
++  $("fastgo").after(tryBtn);
++  const tryNote = document.createElement("p");
++  tryNote.id = "trynote"; tryNote.className = "hint"; tryNote.textContent = "One file a day, up to 30 minutes. No card, no sign-up.";
++  $("fastgo").parentElement.after(tryNote);
++  tryBtn.addEventListener("click", async () => {
++    if (!chosen) return;
++    tryBtn.disabled = true;
++    try {
++      if (!trialKey) {
++        setStatus("Getting your free trial...");
++        const res = await fetch(API + "/credits/trial", { method: "POST" });
++        const b = await res.json().catch(() => ({}));
++        // Not offered, used today, or the day's minutes are gone: the API says which, with the way to Pro.
++        if (!res.ok || !b.apiKey) { setStatus(sentenceOf(b) || "The free trial is not available right now. Start Pro with the buttons above.", true); return; }
++        trialKey = b.apiKey;
++        if (b.limits) tryNote.textContent = b.limits;
++      }
++      await serverRun(tryBtn, trialKey, true);
++    } catch {
++      setStatus("The free trial could not be reached. Check your connection and try again.", true);
++    } finally { tryBtn.disabled = !chosen; }
+   });
+ }
+ 
