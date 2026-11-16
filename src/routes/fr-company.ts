@@ -9,6 +9,7 @@
  *   rating or opinion on creditworthiness is computed or implied, the same line as the Nordic tools.
  */
 import { entry, getJson, num, opt, type Entry } from "../family";
+import { sleep } from "../lib/retry";
 import { HttpError } from "../lib/env";
 
 const API = "https://recherche-entreprises.api.gouv.fr/search";
@@ -105,12 +106,22 @@ const askOnce = (params: Record<string, string>) =>
  * 16 Nov 2026: /status showed 2 of 5 /fr/company calls in three days ending "the data source did not answer in time";
  * the API answers most requests in under a second, so a timed-out request is asked once more before the call fails.
  */
-export async function ask(params: Record<string, string>, once: typeof askOnce = askOnce) {
-  try {
-    return await once(params);
-  } catch (e) {
-    if (!(e instanceof Error && (e as HttpError).status === 502 && /in time/i.test(e.message))) throw e;
-    return once(params);
+export async function ask(params: Record<string, string>, once: typeof askOnce = askOnce, wait: (ms: number) => Promise<void> = sleep) {
+  // 16 Nov 2026, later: the register limits requests per address and Workers share addresses, so a 429 survived getJson's
+  // single 0.7 s retry (a production trial of the published example answered "busy"). A busy answer is asked again after
+  // 1 s and 2.2 s with a little jitter (three tries, about 3.5 s of waiting, inside the Worker's budget).
+  const BUSY_WAITS = [1_000, 2_200];
+  for (let attempt = 0, timedOut = false; ; attempt++) {
+    try {
+      return await once(params);
+    } catch (e) {
+      const status = e instanceof Error ? (e as HttpError).status : undefined;
+      const slow = status === 502 && /in time/i.test((e as Error).message);
+      const busy = status === 503 && /register is busy/i.test((e as Error).message);
+      if (slow && !timedOut) { timedOut = true; continue; }
+      if (busy && attempt < BUSY_WAITS.length) { await wait(BUSY_WAITS[attempt] + Math.floor(Math.random() * 300)); continue; }
+      throw e;
+    }
   }
 }
 

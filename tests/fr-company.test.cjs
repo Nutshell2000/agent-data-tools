@@ -95,6 +95,19 @@ test('register API: one more try after a timeout, none after a refusal', async (
   assert.equal(n, 2);
   n = 0;
   const busy = async () => { n++; throw new HttpError(503, 'the French company register is busy; try again in a few seconds, nothing was charged'); };
-  await assert.rejects(F.ask({ q: 'x' }, busy), /busy/);
+  const waits = [];
+  await assert.rejects(F.ask({ q: 'x' }, busy, async (ms) => { waits.push(ms); }), /busy/);
+  assert.equal(n, 3, 'a busy register is asked three times');
+  assert.equal(waits.length, 2);
+  assert.ok(waits[0] >= 1000 && waits[1] >= 2200, 'waits grow');
+  // A refusal that is not "busy" or "slow" is never retried.
+  n = 0;
+  const refused = async () => { n++; throw new HttpError(404, 'no such company'); };
+  await assert.rejects(F.ask({ q: 'x' }, refused, async () => {}), /no such company/);
   assert.equal(n, 1);
+  // Busy twice, then an answer: the call succeeds.
+  n = 0;
+  const busyTwice = async () => { if (++n <= 2) throw new HttpError(503, 'the French company register is busy; try again in a few seconds, nothing was charged'); return { results: [] }; };
+  assert.deepEqual(await F.ask({ q: 'x' }, busyTwice, async () => {}), { results: [] });
+  assert.equal(n, 3);
 });
