@@ -42,6 +42,8 @@ const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntri
   ["/pack/web-research", ["/extract", "/summarize"]],
   ["/pack/news-sentiment", ["/news", "/ai/sentiment"]],
   ["/pack/url-safety", ["/url/redirects", "/domain-report", "/text/prompt-injection"]],
+  ["/pack/counterparty-full", ["/check/x402-seller", "/x402/payout-check", "/payee/check", "/check/counterparty", "/check/payee"]],
+  ["/pack/einvoice-check", ["/einvoice/validate", "/einvoice/to-json"]],
 ] as const).flatMap(([pack, tools]) => tools.map((t) => [t, pack]))));
 
 /** The tool a path runs: an entry path's canonical tool, or the path itself. */

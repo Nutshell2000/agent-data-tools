@@ -70,6 +70,8 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/ip/lookup", "/ip/geolocate",
   // An e-invoice arrives as a url, as xml text or as an uploaded file; the listing names the example's url.
   "/einvoice/validate", "/einvoice/to-json",
+  // Business packs (16 Nov 2026): url, address or domain; an e-invoice by url, xml text or upload.
+  "/pack/counterparty-full", "/pack/einvoice-check",
 ]);
 /**
  * One-of tools whose listing states the alternatives themselves (16 Nov 2026): `anyOf` with one branch per input and no

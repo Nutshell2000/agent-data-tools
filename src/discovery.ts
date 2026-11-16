@@ -263,6 +263,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/pack/kyb-eu": "Company, compliance and checks", // 1.197.0
   "/payee/check": "Company, compliance and checks", // payee records
   "/payee/plan": "Company, compliance and checks", // payee records, step A
+  "/pack/counterparty-full": "Company, compliance and checks", "/pack/einvoice-check": "Company, compliance and checks", // business packs, 16 Nov 2026
   "/law/search": "Company, compliance and checks",
   "/cz/company": "Company, compliance and checks", "/ee/company": "Company, compliance and checks",
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",
