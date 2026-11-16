@@ -44,7 +44,7 @@ async function fetchFrom(env: Env, target: URL, accept: string, allow: number[])
     : fetchPublic(target, accept, allow);
 }
 
-async function liveTerms(env: Env, target: URL) {
+export async function liveTerms(env: Env, target: URL) {
   const res = await fetchFrom(env, target, "application/json", [402]);
   const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
   return analyze(target.href, res.status, res.headers.get("payment-required"), body);
