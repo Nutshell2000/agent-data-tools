@@ -11,6 +11,8 @@ import { LEXGLYPH_PATH } from "./lib/lexglyph-page";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
 import { TOOL_COUNT } from "./endpoints";
+import { SERVICE_BRAND } from "./lib/public-brand";
+import { serviceIconUrl } from "./lib/public-site";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, PAUSED_FAMILY_TOOLS, SERVICE_ICON_URL, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
 import { schemaFromExample } from "./lib/output-schema";
 import { salesOrdered } from "./lib/discovery-index";
@@ -84,16 +86,16 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
  * AgentMarket crawl. We are a tool provider, not a conversational agent, so every skill is one paid HTTP call, and the
  * card points at the x402 payment terms and the MCP endpoint instead of an A2A task endpoint.
  */
-export function agentCard(origin: string, networks: readonly string[] = ["eip155:8453"]) {
+export function agentCard(origin: string, networks: readonly string[] = ["eip155:8453"], site?: string) {
   const lead = salesOrdered(ENDPOINTS).filter((e) => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path)).slice(0, 60);
   return {
-    name: SERVICE_NAME,
-    description: SERVICE_SUMMARY,
+    name: SERVICE_BRAND,
+    description: `${SERVICE_BRAND}: ${SERVICE_SUMMARY}`,
     url: origin,
     provider: { organization: "SpellzCode", url: `${origin}/about` },
     version: MCP_SERVER_VERSION,
     documentationUrl: `${origin}/llms.txt`,
-    iconUrl: SERVICE_ICON_URL,
+    iconUrl: serviceIconUrl(site, SERVICE_ICON_URL),
     capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false },
     defaultInputModes: ["text/plain", "application/json"],
     defaultOutputModes: ["application/json"],

@@ -232,7 +232,7 @@ const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "fro
  */
 export function listingName(summary: string): string {
   const head = summary.split(":")[0].replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim();
-  if (head.length <= 32) return head || "Agent Data Tools";
+  if (head.length <= 32) return head || "Glyphcall";
   let words = head.slice(0, 33).split(" ");
   if (words.length > 1) words.pop(); // the last word may be cut
   // A connecting word near the end starts a phrase that no longer fits ("…filings for a US"): cut before it.

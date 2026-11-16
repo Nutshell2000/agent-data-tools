@@ -12,6 +12,7 @@ import { FREE_CALLS_PER_CALLER, freeCallNote } from "./lib/free-calls";
 import { freeCallsPausedNote } from "./lib/browser-402";
 import { mppEnabled } from "./lib/mpp-credits";
 import { SERVICE_ICON_URL } from "./endpoints";
+import { serviceIconUrl } from "./lib/public-site";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { createPaymentWrapper } from "@x402/mcp";
@@ -98,7 +99,7 @@ async function startPayments(env: Env) {
 // Each tool's payment wrapper depends only on the per-isolate payment server and the tool's fixed
 // terms, so build it once per isolate instead of on every MCP request (the whole catalog).
 const wrappers = new Map<string, ReturnType<typeof createPaymentWrapper>>();
-function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
+function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>, iconUrl: string) {
   let factory = wrappers.get(e.path);
   if (!factory) {
     const required = Object.entries(e.params).filter(([, p]) => p.required).map(([name]) => name);
@@ -111,7 +112,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>) {
         description: listingDescription(e),
         mimeType: "application/json",
         serviceName: listingName(e.summary),
-        iconUrl: SERVICE_ICON_URL,
+        iconUrl,
         tags: listingTags(e.tags, e.path),
       },
       extensions: {
@@ -366,7 +367,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
   const origin = new URL(c.req.url).origin;
-  const mcp = new McpServer({ name: SERVICE_ID, title: focus ? `${SERVICE_NAME}: ${focus.title}` : SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: `${origin}/logo.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(listable.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : small ? `${surfaceHow(origin, pinned.map(toolName))} ` : ""}${mcpInstructions(origin, Boolean(creditKey), compact ? endpoints.length : small ? TOOL_COUNT : listable.length, mppEnabled(env), Boolean(account), focus && { ...focus, prices: priceRange(listable) })}` });
+  const mcp = new McpServer({ name: SERVICE_ID, title: focus ? `${SERVICE_NAME}: ${focus.title}` : SERVICE_NAME, version: MCP_SERVER_VERSION, websiteUrl: origin, icons: [{ src: serviceIconUrl(env.PUBLIC_SITE_ORIGIN, `${origin}/logo.png`), mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] }, { instructions: directory ? directoryInstructions(listable.length, CHATGPT_CALLS_PER_DAY) : `${compact ? `${compactHow(capped)} ` : small ? `${surfaceHow(origin, pinned.map(toolName))} ` : ""}${mcpInstructions(origin, Boolean(creditKey), compact ? endpoints.length : small ? TOOL_COUNT : listable.length, mppEnabled(env), Boolean(account), focus && { ...focus, prices: priceRange(listable) })}` });
 
   // Tools this server offers, so a result names only next tools the client can actually call here.
   const served = new Set(endpoints.map((x) => x.path));
@@ -378,7 +379,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       ? (args: Args) => creditCharger(env, creditKey, keyPrice(e.path, e.price), origin, directory, !CAPACITY_LIMITED.has(e.path))(() => handler(args))
       : x402
       ? async (args: Args, extra: unknown) => {
-          const wrapped = paymentWrapperFor(e, await payment())(handler as never) as (args: Args, extra: unknown) => Promise<{
+          const wrapped = paymentWrapperFor(e, await payment(), serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL))(handler as never) as (args: Args, extra: unknown) => Promise<{
             isError?: boolean;
             _meta?: Record<string, unknown>;
           }>;
