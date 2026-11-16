@@ -19,6 +19,7 @@ import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls"
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCTS, productOffers, type Product } from "./product-pages";
 import { STT_RIVALS, TTS_RIVALS, VOICE_CHECKED, ourVoice } from "./voice-compare";
+import { webApplicationScript } from "./app-jsonld";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -286,6 +287,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
+${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
 <style>${STYLE}</style></head><body>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${SHELVES.map((s) => `<a href="#${s.id}">${esc(s.kicker.split(" ")[0])}</a>`).join("")}<a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="/docs">Docs</a></nav>
