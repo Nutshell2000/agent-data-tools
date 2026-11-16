@@ -15,6 +15,7 @@ import { freeKeysOn } from "./free-keys";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
 import { markStage } from "./funnel";
 import { voiceKeyHtml, voiceKeyJson, voicePrices } from "./voice-pro";
+import { voiceKeyBalance, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
 import { REVIEW_CALLS_PER_DAY, REVIEW_CALLS_TOTAL_PER_DAY, REVIEW_MAX_PRICE, REVIEW_NOTE, isReviewKey, reviewAllows, reviewCaller } from "./review-keys";
 
 type C = Context<{ Bindings: Env }>;
@@ -190,8 +191,8 @@ credits.post("/credits/rotate", async (c) => {
   if (!store) return c.json({ error: "credits are unavailable right now; try again later" }, 503);
   const fresh = newCreditKey();
   const rotated = await store.rotateKey(await hashCreditKey(key), fresh, await hashCreditKey(fresh));
-  if (!rotated) return c.json({ error: "unknown API key" }, 401);
   const origin = new URL(c.req.url).origin;
+  if (!rotated) return c.json(unknownKey(c.env, origin, key), 401);
   return c.json({
     apiKey: rotated.key, mcpUrl: `${origin}/mcp/k/${rotated.key}`, balanceCredits: creditsFromMicros(rotated.balanceMicros),
     note: "The old key no longer works. Update your apps: sign in again on /mcp/account connectors, and replace the header or /mcp/k/ URL elsewhere. Save this key now; it is shown only here.",
@@ -225,10 +226,14 @@ credits.get("/credits/balance", async (c) => {
   if (!store) return c.json({ error: "credits are unavailable right now" }, 503);
   const keyHash = await hashCreditKey(key);
   if (isReviewKey(c.env, keyHash)) return c.json({ reviewKey: true, callsPerDay: REVIEW_CALLS_PER_DAY, maxPrice: REVIEW_MAX_PRICE, note: REVIEW_NOTE });
+  const origin = new URL(c.req.url).origin;
+  // A free voice test key or trial key (lib/voice-keys.ts) has no ledger record: say what it is and what it allows.
+  const voiceKey = voiceKeyKind(key) ? await voiceKeyBalance(c.env, key, origin) : null;
+  if (voiceKey) return c.json(voiceKey);
   // A USDC purchase whose credits could not be written when it settled is applied here (lib/usdc-credits.ts).
   await applyUnsavedCredits(c.env, keyHash).catch((e: unknown) => { console.error("credits: applying parked credits failed", e); });
   let account = await store.creditBalance(keyHash);
-  if (!account) return c.json({ error: "unknown API key" }, 401);
+  if (!account) return c.json(unknownKey(c.env, origin, key), 401);
   // A key on the monthly plan: apply any renewal Stripe has been paid for since the last read, then answer.
   if (account.plans && await syncPlans(c.env, store, keyHash, account.plans, false) !== undefined) account = await store.creditBalance(keyHash) ?? account;
   const monthly = account.plans?.length
@@ -249,6 +254,19 @@ export const LOW_BALANCE_MICROS = 200_000;
 /** True for the one successful call that takes the balance from at or above the threshold to below it. */
 export const crossedLow = (before: number, after: number) => before >= LOW_BALANCE_MICROS && after < LOW_BALANCE_MICROS;
 
+/**
+ * What a caller is told about a key the ledger does not know (HTTP 401). The sentence comes first, because SDKs and
+ * people read the first thing in the body: what is wrong, that nothing was charged, and where a key comes from.
+ */
+export function unknownKey(env: Env, origin: string, key: string) {
+  const expired = voiceKeyKind(key) ? " If this was a free test or trial key, it has expired." : "";
+  const testKey = voiceTestKeysOn(env) ? { freeVoiceTestKey: `POST ${origin}/keys/voice-test` } : {};
+  return {
+    error: `This API key is not recognised, so nothing was charged.${expired} Check it for missing characters, or buy a key from $1 at ${origin}/credits (no account)${voiceTestKeysOn(env) ? `; for the voice endpoints a free test key comes from POST ${origin}/keys/voice-test` : ""}.`,
+    code: "invalid_api_key", buy: `${origin}/credits`, ...testKey,
+  };
+}
+
 /** Paywall branch for a request that carries an API key: spend, run, refund on failure. */
 export async function chargeCredits(c: C, price: string, key: string, next: Next, freeEligible = false) {
   const store = ledger(c.env);
@@ -256,7 +274,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   const keyHash = await hashCreditKey(key);
   if (isReviewKey(c.env, keyHash)) {
     const call = await takeReviewCall(c.env, keyHash, price);
-    if (typeof call === "string") return c.json({ error: reviewRefusal(call) }, call === "unavailable" ? 503 : call === "price" ? 402 : 429, call === "unavailable" ? { "Retry-After": "300" } : undefined);
+    if (typeof call === "string") return c.json({ error: reviewRefusal(call), code: call === "unavailable" ? "unavailable" : "review_key_limit" }, call === "unavailable" ? 503 : call === "price" ? 402 : 429, call === "unavailable" ? { "Retry-After": "300" } : undefined);
     try { await next(); } catch (err) { await call.refund(); throw err; }
     if (c.res.status >= 400) await call.refund();
     c.res.headers.set("X-Credits-Charged", "0");
@@ -280,8 +298,8 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   if (!spent.ok) {
     const origin = new URL(c.req.url).origin;
     return spent.reason === "unknown_key"
-      ? c.json({ error: "unknown API key. Not charged.", buy: `${origin}/credits` }, 401)
-      : c.json({ error: `not enough credits: this call costs ${creditsFromMicros(micros)}, the key has ${creditsFromMicros(spent.balanceMicros)}. Not charged. Top up this key by card (no new key needed):`, ...(spent.freeKey ? { freeKey: freeEligible ? "this free key has used its calls for this month (UTC); they start again next month, or add credits to keep going" : "a free key's monthly calls do not cover this tool; add credits to use it" } : {}), topUp: topUpLinks(keyHash) }, 402);
+      ? c.json(unknownKey(c.env, origin, key), 401)
+      : c.json({ error: `This key does not have enough credits for this call: it costs ${creditsFromMicros(micros)} credits and the key has ${creditsFromMicros(spent.balanceMicros)}. Nothing was charged. Top up this key by card (no new key needed) with one of the links in topUp.`, code: "insufficient_credits", ...(spent.freeKey ? { freeKey: freeEligible ? "this free key has used its calls for this month (UTC); they start again next month, or add credits to keep going" : "a free key's monthly calls do not cover this tool; add credits to use it" } : {}), topUp: topUpLinks(keyHash) }, 402);
   }
   let remaining = spent.balanceMicros;
   try {
