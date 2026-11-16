@@ -156,12 +156,13 @@ export const DUB_OTHER_MAX_BYTES = 2 * MB;
 export const DUB_TARGETS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
 /** MeloTTS parts: shorter than Aura-2's, so the parallel parts finish together. */
 export const MELO_PART_MAX = 200;
+const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish", fr: "French", zh: "Chinese (Mandarin, simplified characters)", ja: "Japanese", ko: "Korean" };
 const DUB_TARGET_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", español: "es", french: "fr", français: "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
 /** The target language as a code, from a code or an English name; anything else is a 400 naming the six. */
 export function dubTarget(raw: string | undefined): (typeof DUB_TARGETS)[number] {
   const t = (raw ?? "").trim().toLowerCase();
   const code = Object.hasOwn(DUB_TARGET_NAMES, t) ? DUB_TARGET_NAMES[t] : t;
-  if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `to must be one of ${DUB_TARGETS.join(", ")}: the languages the dubbing voices speak (nothing was charged)`);
+  if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `to must be one of ${DUB_TARGETS.join(", ")}: the languages the voices speak (nothing was charged)`);
   return code as (typeof DUB_TARGETS)[number];
 }
 
@@ -215,20 +216,20 @@ export function spokenReply(text: string, max = VOICE_AGENT_REPLY_MAX): string {
 }
 export const VOICE_PLUS: Entry[] = [
   entry(VOICE_AGENT_PATH, "Voice agent: spoken question in, spoken answer out, with memory",
-    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken as MP3 (Aura-2, English or Spanish) and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
+    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English, Spanish, French, Chinese, Japanese or Korean and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
     ["voice-agent", "voice-assistant", "conversational-ai", "speech-to-text", "text-to-speech", "voice-bot", "audio"], {
       text: { type: "string", description: "The user's turn as text (or send audio with url or a POSTed file)", example: "What time do you open on Saturday?" },
       url: { type: "string", description: "Absolute http(s) URL of the user's spoken turn (MP3/WAV up to 2 minutes, other formats up to 1 MB); or POST the file; or send text instead", example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
       instructions: { type: "string", description: "Who the assistant is and what it knows (up to 2,000 characters)", example: "You answer for a bakery. Open Monday to Saturday 7 to 17, closed Sunday." },
       history: { type: "string", description: "Earlier turns as a JSON array of {role, content}, as returned in history by the last call", example: "[]" },
-      lang: { type: "string", description: "Reply language and voice: en or es (default en)", example: "en", enum: ["en", "es"] },
-      voice: { type: "string", description: "Aura-2 voice for the reply (default luna for en, aquila for es)", example: "luna" },
+      lang: { type: "string", description: "Reply language and voice: en, es (Aura-2 MP3), fr, zh, ja or ko (MeloTTS WAV); default en", example: "en", enum: [...DUB_TARGETS] },
+      voice: { type: "string", description: "Aura-2 voice for an en or es reply (default luna for en, aquila for es); fr, zh, ja and ko have one voice each", example: "luna" },
     },
     { heard: "What time do you open on Saturday?", reply: "On Saturday we are open from seven in the morning until five in the afternoon.", contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 61440, voice: "luna", lang: "en", history: [{ role: "user", content: "What time do you open on Saturday?" }, { role: "assistant", content: "On Saturday we are open from seven in the morning until five in the afternoon." }], model: CHAT_MODEL, speechModel: "@cf/deepgram/aura-2-en" },
     async (env: Env, q: Input) => {
-      const lang = (q("lang") ?? "en").trim().toLowerCase() || "en";
-      if (lang !== "en" && lang !== "es") throw new HttpError(400, "lang must be en or es: the languages the reply voices speak");
-      const { voice, model } = speechVoice((k) => (k === "lang" ? lang : q(k)));
+      const lang = q("lang")?.trim() ? dubTarget(q("lang")) : "en";
+      const melo = isMeloLang(lang);
+      const { voice, model } = melo ? { voice: "default", model: MELO_MODEL } : speechVoice((k) => (k === "lang" ? lang : q(k)));
       const instructions = (q("instructions") ?? "").trim();
       if (instructions.length > 2000) throw new HttpError(400, "instructions must be at most 2,000 characters");
       const history = readHistory(q("history"));
@@ -247,14 +248,17 @@ export const VOICE_PLUS: Entry[] = [
       }
       if (heard.length > 2000) throw new HttpError(400, "the user's turn must be at most 2,000 characters");
       const convo = [...history, { role: "user" as const, content: heard }].map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.content}`).join("\n");
-      const raw = await chat(env, VOICE_AGENT_SYSTEM, `<instructions>\n${instructions || "Be a helpful, friendly assistant."}\n</instructions>\nReply in ${lang === "es" ? "Spanish" : "English"}.\n<conversation>\n${convo}\n</conversation>\nAssistant:`, 300, 0.4, CHAT_MODEL);
+      const raw = await chat(env, VOICE_AGENT_SYSTEM, `<instructions>\n${instructions || "Be a helpful, friendly assistant."}\n</instructions>\nReply in ${LANGUAGE_NAMES[lang]}.\n<conversation>\n${convo}\n</conversation>\nAssistant:`, 300, 0.4, CHAT_MODEL);
       const reply = spokenReply(raw.replace(/^Assistant:\s*/i, ""));
       if (!reply) throw new HttpError(502, "the AI model returned no reply; nothing was charged");
-      const parts = speechParts(reply);
-      const spoken = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p)));
-      const audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      let audioBase64: string;
+      if (melo) audioBase64 = (await meloSpeech(env, speechParts(reply.replace(/([。！？])/g, "$1\n"), MELO_PART_MAX), lang)).audioBase64;
+      else {
+        const spoken = await Promise.all(speechParts(reply).map((p) => speakOnce(env, model, voice, p)));
+        audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
+      }
       const next = [...history, { role: "user" as const, content: heard }, { role: "assistant" as const, content: reply }].slice(-VOICE_AGENT_HISTORY_TURNS);
-      return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
+      return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: melo ? "audio/wav" : "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
     }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dub audio: translated voice track in 6 languages, plus subtitles",
     "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters) or French, Chinese, Japanese or Korean (MeloTTS WAV, up to 1,200 characters). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos.",
     ["dubbing", "dub-audio", "voice-over", "translation", "text-to-speech", "subtitles", "audio"], {

@@ -199,7 +199,7 @@ test('/voice/agent hears a voice note through Whisper before answering', async (
 test('/voice/agent refuses bad input before any model call', async () => {
   const e = env(async () => { throw new Error('model must not run'); });
   await assert.rejects(tool('/voice/agent').run(e, q({})), /send the user's turn/);
-  await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', lang: 'sv' })), /lang must be en or es/);
+  await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', lang: 'sv' })), /must be one of en, es, fr, zh, ja, ko/);
   await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', history: '{nope' })), /history must be a JSON array/);
 });
 
