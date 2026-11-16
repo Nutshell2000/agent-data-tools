@@ -2106,3 +2106,22 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Both tools are in `CAPACITY_LIMITED`, `GENERATIVE_MEDIA` and recommend `JOBS`. `FOCUSED_SERVERS.voice` swapped ai_speech and text_to_speech_lite for them, because the server holds at most 10 tools.
 - tests/gateway-startup.test.cjs: the stalled-initialization deadline went from 1.5 s to 5 s. CI on Linux passed at 1.5 s, but every local run on the owner's PC failed. A truly blocked quote waits for `release()`, so 5 s still detects it.
 
+
+
+## Payment plans across rails (1.207.0, 15 Nov 2026)
+
+- Owner, 15 Nov 2026: Seal grows into "all kinds of payments" as a NON-CUSTODIAL layer ("Non-custodial layer", then "Yes, build step A"). Plan file section 10. Hard lines: never execute, route, hold or move money; never store card data or bank account numbers; never ask for a buyer's account.
+- `parseAccepts` (src/routes/payee.ts): rails `x402` (network, payTo, url), `mpp` (method, url), `card` (https checkoutUrl; `provider` from `PSP_HOSTS`), `sepa-instant` (https instructionsUrl only: an IBAN in the file is ignored on purpose), `swish` (business number ^123\d{7}$). Records carry `accepts`; records stored by 1.205.0 have none and `recordFor` defaults it to [] (the plan then falls back to the x402 wallets in payTo).
+- `recordFor(env, domain, deps)` is shared by /payee/check and /payee/plan (stored record under 7 days, else checked and stored).
+- `/payee/plan` (src/routes/payee-plan.ts, $0.01, domain required): `planPayment(record, verdict, input)` scores rails (x402 100, mpp 90, sepa-instant 70, swish 65, card 50), minus 30 when a stablecoin rail pays a non-USD price, minus 20 for an unproven wallet, minus 25 for an unknown card host, minus 10 when the check verdict is not pass. SEPA Instant is EUR-only, Swish SEK-only, card below 0.50 and Swish below 1 are left out, an OFAC-blocked wallet is left out; verdict unknown or block gives no plan. Output: chosen, options, excluded (with reasons), finality and chargebacks, proof hint (/x402/receipt for crypto rails).
+- Tests: tests/payee-plan.test.cjs.
+
+## Narrower log windows, the French register retry, tidy translations (1.207.0, shipped with Seal step A, 16 Nov 2026)
+
+- `recentLogs` (src/routes/chain-reads.ts): a refused first window with nothing read is retried at a quarter (min 10 blocks, 3 times, inside the budget) and `maxSize` drops to that size. tests/upstream-resilience.test.cjs.
+- `/fr/company`: `ask()` retries one timeout (502 "in time"); `frLookup` caches a SIREN answer a day in `caches.default`.
+- `tidyTranslation()` (src/lib/translation-tidy.ts) on every M2M100 answer in voice-plus.ts. Not applied to /ai/translate's M2M100 path, which joins chunks with their own spacing.
+- `/dub` targets `DUB_TARGETS` (en, es, fr, zh, ja, ko; `dubTarget()` reads codes and English names). fr/zh/ja/ko go to MeloTTS (`src/lib/melo.ts`: `{prompt, lang}` with its own codes jp/kr, answers a 44.1 kHz WAV; `wavSamples`, `resample` to 16 kHz, `joinWav`; no German). Answers `contentType: audio/wav` there, MCP sends that MIME type. Prove one fr dub on staging after the release (the PC run cannot call Workers AI).
+- `/ai/speech` and `/text-to-speech`: `meloLang()` / `meloAnswer()` in ai-text.ts; `lang` enum is `SPEECH_LANGS`; MeloTTS text cap `MELO_MAX_CHARS` 1,200. The ElevenLabs and OpenAI speech fronts stay en/es because they promise MP3.
+
+

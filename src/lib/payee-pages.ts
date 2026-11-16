@@ -22,6 +22,12 @@ export const EXAMPLE_DECLARATION = {
   company: { name: "Example Shop AB", country: "SE", id: "559999-9999", vat: "SE559999999901" },
   payTo: [{ address: "0x1111111111111111111111111111111111111111", network: "base", signature: "0x…" }],
   einvoice: { peppolId: "0007:5599999999", formats: ["xrechnung-cii", "ubl", "zugferd"] },
+  accepts: [
+    { rail: "x402", network: "base", payTo: "0x1111111111111111111111111111111111111111" },
+    { rail: "card", checkoutUrl: "https://buy.stripe.com/example" },
+    { rail: "swish", number: "1239999999" },
+    { rail: "sepa-instant", instructionsUrl: "https://shop.example.com/pay-by-bank" },
+  ],
 };
 
 export function payeeLandingPage(origin: string) {
@@ -37,6 +43,7 @@ export function payeeLandingPage(origin: string) {
 <li>Publish <code>${esc(DECLARATION_PATH)}</code> on your domain, served over https:
 <pre>${esc(JSON.stringify(EXAMPLE_DECLARATION, null, 2))}</pre></li>
 <li>Prove each payout wallet: sign the text <code>agent-payee:&lt;your domain&gt;:&lt;wallet address in lower case&gt;</code> with that wallet (EIP-191 personal sign; contract wallets via ERC-1271 work too) and put the signature next to it.</li>
+<li>List how you take payment in <code>accepts</code>: x402 or MPP wallets, a card checkout link, a Swish business number, or a page with bank details for SEPA Instant. We never store account numbers or card data; agents get a plan from <code>/payee/plan</code> and pay with their own wallet or provider.</li>
 <li>Claim it below. We read the file, check the company in the official registers, EU VIES, GLEIF and the OFAC, EU, UN and UK sanctions lists, verify each signature and screen each wallet.</li>
 </ol>
 <form action="${esc(origin)}/payee/claim" method="get"><input name="domain" placeholder="shop.example.com" required aria-label="Your domain"><button>Check and claim</button></form>
@@ -68,6 +75,7 @@ ${c?.sanctions ? row("Sanctions (company)", esc(c.sanctions.verdict)) : ""}
 </table>
 <h2>Payout wallets</h2>
 <table>${record.wallets.length ? record.wallets.map((w) => row(`${w.network}`, `<code>${esc(w.address)}</code><br>${w.proof === "signature" ? "proven by signature" : w.proof === "bad-signature" ? "signature does not verify" : "declared, not signed"}; sanctions: ${esc(w.sanctions)}`)).join("") : row("Wallets", "none declared")}</table>
+${(record.accepts ?? []).length ? `<h2>Takes payment by</h2><table>${(record.accepts ?? []).map((a) => row(a.rail, esc(a.rail === "x402" ? `USDC on ${a.network}${a.payTo ? ` to ${a.payTo}` : ""}` : a.rail === "mpp" ? `MPP ${a.method}` : a.rail === "card" ? `card checkout${a.provider ? ` (${a.provider})` : ""}` : a.rail === "swish" ? `Swish ${a.number}` : "SEPA Instant (bank details on the business's page)"))).join("")}</table>` : ""}
 ${record.einvoice ? `<h2>E-invoices</h2><table>${row("Peppol ID", esc(record.einvoice.peppolId ?? "not given"))}${row("Formats", esc(record.einvoice.formats.join(", ") || "not given"))}</table>` : ""}
 ${record.flags.length ? `<h2>Notes</h2><ul>${record.flags.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
 <h2>Attestation</h2>
