@@ -13,10 +13,14 @@ import type { Context } from "hono";
 import type { Env } from "./env";
 import { asFrontQuote, requestBody } from "./openai-chat";
 import { VOICE_FRONT_DESCRIPTIONS, VOICE_FRONT_META } from "./voice-fronts-openapi";
-import { SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
+import { KEY_RESPONSE_HEADERS, SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
+import { apiKeyFrom } from "./credits";
+import { admitVoiceKey, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
+import { SHORT_AUDIO_KEY_PRICE, SHORT_AUDIO_SECONDS, asFrontKeyError, foreignKey, foreignKeySentence, frontError, rebateShortAudio, setFrontKeyPrice, withSentenceFirst } from "./voice-billing";
 import { FILE_INPUT, holdFile, releaseFile, sentFile } from "./file-input";
 import { TRANSCRIBE_MAX_BYTES } from "../routes/ai";
-import { LONG_TRANSCRIBE_MAX_BYTES, LONG_TRANSCRIBE_PATH } from "../routes/voice";
+import { LONG_TRANSCRIBE_MAX_BYTES, LONG_TRANSCRIBE_PATH, mp3Frames, wavInfo } from "../routes/voice";
+import { voicePrices } from "./voice-pro";
 import { SPEECH_VOICES, OPENAI_VOICES } from "../routes/ai-text";
 
 type Forward = (request: Request) => Response | Promise<Response>;
@@ -100,7 +104,7 @@ export async function elevenLabsSpeech(c: C, forward: Forward): Promise<Response
   const mapped = elevenSpeechRequest(body, c.req.param("voice_id"), c.req.query("output_format"));
   if ("error" in mapped && paying) return c.json({ detail: { status: "invalid_request", message: mapped.error } }, 400);
   const request: SpeechRequest = "error" in mapped ? { text: PROBE_TEXT, tool: SPEECH_TOOL_PATH } : mapped;
-  return speakThrough(c, forward, request, VOICE_FRONT_DESCRIPTIONS.tts, VOICE_FRONT_META.tts);
+  return speakThrough(c, forward, request, VOICE_FRONT_DESCRIPTIONS.tts, VOICE_FRONT_META.tts, "eleven");
 }
 
 export type TranscriptShape = "openai" | "eleven";
@@ -146,6 +150,17 @@ async function jsonFields(c: C): Promise<Record<string, string>> {
   return out;
 }
 
+/** The length of an MP3 or WAV file read from its bytes, or null for any other format (and for a file with no frames). */
+export function measuredSeconds(bytes: Uint8Array): number | null {
+  const wav = wavInfo(bytes);
+  if (wav) return wav.dataLength / wav.byteRate;
+  const frames = mp3Frames(bytes);
+  if (frames.length < 2) return null;
+  let seconds = 0;
+  for (const f of frames) seconds += f.seconds;
+  return seconds;
+}
+
 /** Handles POST /v1/audio/transcriptions (OpenAI) and POST /v1/speech-to-text (ElevenLabs) through /transcribe. */
 export async function transcribeFront(c: C, forward: Forward, shape: TranscriptShape): Promise<Response> {
   const outer = new URL(c.req.url);
@@ -156,7 +171,13 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   // Up to OpenAI's own 25 MB: a file over 5 MB goes to /transcribe/long (MP3 or WAV, up to 60 minutes) at its price.
   const sent = c.req.method === "POST" ? await sentFile(c.req.raw, LONG_TRANSCRIBE_MAX_BYTES) : { kind: "none" as const, fields: {} as Record<string, string> };
   if (sent.kind === "too-large") return refuse(`the audio file is larger than ${Math.round(LONG_TRANSCRIBE_MAX_BYTES / 1024 / 1024)} MB (nothing was charged)`, 413);
-  const tool = sent.kind === "file" && sent.bytes.byteLength > TRANSCRIBE_MAX_BYTES ? LONG_TRANSCRIBE_PATH : TRANSCRIBE_TOOL_PATH;
+  let tool = sent.kind === "file" && sent.bytes.byteLength > TRANSCRIBE_MAX_BYTES ? LONG_TRANSCRIBE_PATH : TRANSCRIBE_TOOL_PATH;
+  const key = apiKeyFrom((name) => withXiKey(new Headers(c.req.raw.headers)).get(name) ?? undefined);
+  // The file's length, read from its bytes (MP3 and WAV only) for a caller with a key: it decides the short-audio
+  // price, and the limits of a free test or trial key (lib/voice-billing.ts, lib/voice-keys.ts).
+  const seconds = key && sent.kind === "file" ? measuredSeconds(sent.bytes) : null;
+  // A trial key reads one recording the way Transcribe Pro does: a measured MP3 or WAV goes to /transcribe/long.
+  if (key && voiceKeyKind(key) === "trial" && seconds !== null) tool = LONG_TRANSCRIBE_PATH;
   const fields = { ...c.req.query(), ...(await jsonFields(c)), ...sent.fields };  const options = transcriptionOptions(fields, shape);
   if ("error" in options && paying) return refuse(options.error);
   const opts: TranscriptionOptions = "error" in options ? { format: shape === "openai" ? "json" : "eleven" } : options;
@@ -175,9 +196,22 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   headers.delete("content-length");
   headers.set("accept", "application/json");
   try {
-    const answer = await forward(new Request(inner.href, { method: "GET", headers }));
+    const toolRequest = new Request(inner.href, { method: "GET", headers });
+    if (key && voiceKeyKind(key)) {
+      const refusal = await admitVoiceKey(c.env, key, { what: "audio", upload: sent.kind === "file", seconds, bytes: sent.kind === "file" ? sent.bytes.byteLength : 0 }, toolRequest, outer.origin);
+      if (refusal) return frontError(shape, refusal.status, refusal.message, refusal.code, { more: refusal.more });
+    } else if (key && shape === "openai" && seconds !== null && seconds <= SHORT_AUDIO_SECONDS) {
+      // /v1/audio/transcriptions with a prepaid key: audio of 30 seconds or less costs 1 credit, decided before the charge.
+      setFrontKeyPrice(toolRequest, SHORT_AUDIO_KEY_PRICE);
+    }
+    const answer = await forward(toolRequest);
     const description = shape === "openai" ? VOICE_FRONT_DESCRIPTIONS.openaiStt : VOICE_FRONT_DESCRIPTIONS.stt;
-    if (answer.status === 402) return asFrontQuote(answer, outer, description, tool, shape === "openai" ? VOICE_FRONT_META.openaiStt : VOICE_FRONT_META.stt);
+    const keyError = await asFrontKeyError(answer, shape);
+    if (keyError) return keyError;
+    if (answer.status === 402) {
+      const quote = await asFrontQuote(answer, outer, description, tool, shape === "openai" ? VOICE_FRONT_META.openaiStt : VOICE_FRONT_META.stt);
+      return foreignKey((name) => c.req.header(name), Boolean(key)) ? withSentenceFirst(quote, foreignKeySentence(outer.origin, voiceTestKeysOn(c.env))) : quote;
+    }
     if (answer.status !== 200) return answer;
     const result = (await answer.json().catch(() => null)) as Transcript | null;
     if (!result || typeof result.text !== "string") return answer;
@@ -185,7 +219,13 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
     const out = "json" in shaped
       ? new Response(JSON.stringify(shaped.json), { status: 200, headers: { "content-type": "application/json; charset=utf-8" } })
       : new Response(shaped.text, { status: 200, headers: { "content-type": shaped.type } });
-    for (const name of PASSTHROUGH) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
+    for (const name of [...PASSTHROUGH, ...KEY_RESPONSE_HEADERS]) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
+    // A format that could not be measured first was charged the tool's price: when the model itself reports 30 seconds
+    // or less, the difference to the short price is given back. No reported length, no change.
+    if (key && shape === "openai" && !voiceKeyKind(key) && seconds === null) {
+      const rebate = await rebateShortAudio(c.env, key, tool === LONG_TRANSCRIBE_PATH ? voicePrices().long : voicePrices().short, answer.headers.get("x-credits-charged"), result.durationSeconds);
+      if (rebate) { out.headers.set("x-credits-charged", rebate.charged); out.headers.set("x-credits-remaining", rebate.remaining); }
+    }
     out.headers.set("cache-control", "no-store");
     out.headers.set("x-tool", tool);
     return out;
