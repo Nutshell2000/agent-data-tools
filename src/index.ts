@@ -39,6 +39,7 @@ import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { callerFamily } from "./lib/caller";
+import { measurement } from "./lib/beacon";
 import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
@@ -124,6 +125,10 @@ app.use(async (c, next) => {
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
   }
 });
+
+// Cookieless measurement on Analytics Engine (lib/beacon.ts): the /e beacon, MCP client names, AI-crawler reads, and a
+// visitor's utm tag carried into Stripe links. No Durable Object write; a no-op without the ANALYTICS binding.
+app.use(measurement(PAID_PATHS));
 
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
 app.use(async (c, next) => {
