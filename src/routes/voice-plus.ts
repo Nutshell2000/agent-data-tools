@@ -13,7 +13,7 @@ import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
 import { tidyTranslation } from "../lib/translation-tidy";
-import { MELO_MAX_CHARS, MELO_MODEL, isMeloLang, meloSpeech } from "../lib/melo";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, meloSentences, meloSpeech } from "../lib/melo";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles } from "./ai";
@@ -154,8 +154,6 @@ export const DUB_MAX_CHARS = 2_500;
 export const DUB_OTHER_MAX_BYTES = 2 * MB;
 /** Languages the new voice speaks: Aura-2 (en, es, MP3) and MeloTTS (fr, zh, ja, ko, WAV; src/lib/melo.ts). */
 export const DUB_TARGETS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
-/** MeloTTS parts: shorter than Aura-2's, so the parallel parts finish together. */
-export const MELO_PART_MAX = 200;
 const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish", fr: "French", zh: "Chinese (Mandarin, simplified characters)", ja: "Japanese", ko: "Korean" };
 const DUB_TARGET_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", español: "es", french: "fr", français: "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
 /** The target language as a code, from a code or an English name; anything else is a 400 naming the six. */
@@ -252,7 +250,7 @@ export const VOICE_PLUS: Entry[] = [
       const reply = spokenReply(raw.replace(/^Assistant:\s*/i, ""));
       if (!reply) throw new HttpError(502, "the AI model returned no reply; nothing was charged");
       let audioBase64: string;
-      if (melo) audioBase64 = (await meloSpeech(env, speechParts(reply.replace(/([。！？])/g, "$1\n"), MELO_PART_MAX), lang)).audioBase64;
+      if (melo) audioBase64 = (await meloSpeech(env, speechParts(meloSentences(reply), MELO_PART_MAX), lang)).audioBase64;
       else {
         const spoken = await Promise.all(speechParts(reply).map((p) => speakOnce(env, model, voice, p)));
         audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
@@ -289,7 +287,7 @@ export const VOICE_PLUS: Entry[] = [
       let audioBase64: string, parts: string[], contentType: string;
       if (melo) {
         // Chinese and Japanese end sentences with full-width marks and no space: a line break makes them cut points.
-        parts = speechParts(spokenText.replace(/([。！？])/g, "$1\n"), MELO_PART_MAX);
+        parts = speechParts(meloSentences(spokenText), MELO_PART_MAX);
         audioBase64 = (await meloSpeech(env, parts, to)).audioBase64;
         contentType = "audio/wav";
       } else {

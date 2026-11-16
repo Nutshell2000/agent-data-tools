@@ -19,6 +19,20 @@ export const isMeloLang = (lang: string) => Object.hasOwn(MELO_LANGS, lang);
 /** About 90 seconds of French or 1,000 Chinese characters spoken slowly; keeps the WAV near 3 MB. */
 export const MELO_MAX_CHARS = 1_200;
 export const MELO_RATE = 16_000;
+/** MeloTTS parts: shorter than Aura-2's, so the parallel parts finish together. */
+export const MELO_PART_MAX = 200;
+/** Chinese and Japanese end sentences with full-width marks and no space: a line break makes them cut points. */
+export const meloSentences = (t: string) => t.replace(/([。！？])/g, "$1\n");
+/** Every language our speech tools speak: Aura-2 (en, es) and MeloTTS (the rest). */
+export const SPEECH_LANGS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
+export type SpeechLang = (typeof SPEECH_LANGS)[number];
+const LANG_NAMES: Readonly<Record<string, SpeechLang>> = { english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
+/** A language code or English name as one of `SPEECH_LANGS`, else undefined. */
+export function speechLangOf(raw: string | undefined): SpeechLang | undefined {
+  const t = (raw ?? "").trim().toLowerCase();
+  const code = Object.hasOwn(LANG_NAMES, t) ? LANG_NAMES[t] : t;
+  return (SPEECH_LANGS as readonly string[]).includes(code) ? (code as SpeechLang) : undefined;
+}
 
 /** The 16-bit mono samples and rate of a PCM WAV (the first channel when there are more). */
 export function wavSamples(bytes: Uint8Array): { samples: Int16Array; rate: number } {

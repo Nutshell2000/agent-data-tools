@@ -53,3 +53,23 @@ test('dub target: codes and English names for six languages; others are a 400 na
   assert.throws(() => V.dubTarget('constructor'), (e) => e.status === 400);
   assert.deepEqual(Object.keys(M.MELO_LANGS).sort(), ['fr', 'ja', 'ko', 'zh']);
 });
+
+// The speech tools in fr, zh, ja and ko (16 Nov 2026): MeloTTS with its own language codes, one WAV, limits stated.
+test('speech tools: fr/zh/ja/ko go to MeloTTS as one 16 kHz WAV; unknown languages are a 400 naming all six', async () => {
+  const { AI_TEXT } = await load('src/routes/ai-text.ts');
+  const tool = (p) => AI_TEXT.find((e) => e.endpoint.path === p);
+  const seen = [];
+  const env = { AI: { run: async (model, body) => { seen.push({ model, ...body }); return { audio: Buffer.from(wav(new Array(441).fill(100))).toString('base64') }; } } };
+  const q = (o) => (n) => o[n];
+  const short = await tool('/ai/speech').run(env, q({ text: 'Bonjour à tous.', lang: 'French' }));
+  assert.equal(short.contentType, 'audio/wav');
+  assert.equal(short.lang, 'fr');
+  assert.deepEqual(seen.map((s) => [s.model, s.lang, s.prompt]), [['@cf/myshell-ai/melotts', 'fr', 'Bonjour à tous.']]);
+  assert.equal(M.wavSamples(Uint8Array.from(Buffer.from(short.audioBase64, 'base64'))).rate, 16000);
+  seen.length = 0;
+  const ja = await tool('/text-to-speech').run(env, q({ text: 'こんにちは。'.repeat(60), lang: 'ja' }));
+  assert.ok(ja.parts >= 2 && seen.every((s) => s.lang === 'jp' && s.prompt.length <= 200), JSON.stringify(seen.map((s) => s.prompt.length)));
+  await assert.rejects(tool('/text-to-speech').run(env, q({ text: 'a'.repeat(1201), lang: 'ko' })), (e) => e.status === 400 && /1,200/.test(e.message));
+  await assert.rejects(tool('/ai/speech').run(env, q({ text: 'Hallo', lang: 'de' })), (e) => e.status === 400 && /en, es, fr, zh, ja, ko/.test(e.message));
+  for (const p of ['/ai/speech', '/text-to-speech']) assert.deepEqual(tool(p).endpoint.params.lang.enum, ['en', 'es', 'fr', 'zh', 'ja', 'ko']);
+});
