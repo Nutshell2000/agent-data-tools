@@ -12,6 +12,7 @@ import { franc } from "franc-min";
 import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
+import { tidyTranslation } from "../lib/translation-tidy";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles } from "./ai";
@@ -158,7 +159,7 @@ async function translateSegments(env: Env, segments: readonly { start: number; e
   for (let i = 0; i < segments.length; i += PARALLEL_CUES) {
     await Promise.all(segments.slice(i, i + PARALLEL_CUES).map(async (s, k) => {
       const r = await runAi<{ translated_text?: string }>(env, SUBTITLE_TRANSLATE_MODEL, { text: s.text, source_lang: from, target_lang: to });
-      const t = String(r?.translated_text ?? "").trim();
+      const t = tidyTranslation(String(r?.translated_text ?? ""), to);
       if (!t) throw new HttpError(502, `the translation model returned nothing for segment ${i + k + 1}; nothing was charged`);
       out[i + k] = { ...s, text: t };
     }));
@@ -358,7 +359,7 @@ export const VOICE_PLUS: Entry[] = [
         await Promise.all(cues.slice(i, i + PARALLEL_CUES).map(async (c, k) => {
           // Lines of one cue are translated together and split back where the translation keeps the line breaks.
           const r = await runAi<{ translated_text?: string }>(env, SUBTITLE_TRANSLATE_MODEL, { text: c.text, source_lang: from, target_lang: to });
-          const t = String(r?.translated_text ?? "").trim();
+          const t = tidyTranslation(String(r?.translated_text ?? ""), to);
           if (!t) throw new HttpError(502, `the translation model returned nothing for cue ${i + k + 1}; nothing was charged`);
           out[i + k] = { ...c, text: t };
         }));
