@@ -1,5 +1,5 @@
 {
-  "version": "1.211.0",
+  "version": "1.213.0",
   "tools": [
     {
       "name": "extract",
@@ -10987,11 +10987,11 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
-            "description": "0x ERC-20 token contract address (instead of symbol)"
+            "description": "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006"
           },
           "chain": {
             "type": "string",
@@ -18505,11 +18505,11 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
-            "description": "0x ERC-20 token contract address (instead of symbol)"
+            "description": "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006"
           },
           "chain": {
             "type": "string",
@@ -19301,11 +19301,11 @@
         "properties": {
           "symbol": {
             "type": "string",
-            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK (instead of address; ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
           },
           "address": {
             "type": "string",
-            "description": "0x ERC-20 token contract address (instead of symbol)"
+            "description": "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006"
           },
           "chain": {
             "type": "string",

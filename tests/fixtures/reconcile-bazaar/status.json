@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-11-03T12:00:00.000Z",
+  "windowDays": 7,
+  "tools": [
+    { "path": "/weather", "served": 7, "serverErrors": 0, "buyerErrors": 3,
+      "topFailures": [
+        { "reason": "400 send city (for example city=London) or lat and lon [sent location,units]", "count": 2 },
+        { "reason": "502 the data source did not answer in time; try again", "count": 1 }
+      ],
+      "paymentRefusals": [ { "reason": "402 insufficient_funds: contract call failed", "count": 1 } ] },
+    { "path": "/time", "served": 2, "serverErrors": 0, "buyerErrors": 0 }
+  ]
+}

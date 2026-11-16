@@ -318,6 +318,23 @@ export async function refundCredits(storage: CreditStorage, keyHash: string, mic
   });
 }
 
+/**
+ * Gives part of a successful call's price back without undoing the call: the short-audio price of the transcription
+ * front (lib/voice-billing.ts) when the length is known only after the model ran. Returns the balance, or null for an
+ * unknown key. Never gives back more than the key has spent.
+ */
+export async function rebateCredits(storage: CreditStorage, keyHash: string, micros: number): Promise<number | null> {
+  if (!Number.isSafeInteger(micros) || micros <= 0) throw new Error("invalid rebate");
+  return storage.transaction(async (txn) => {
+    const account = await txn.get<Account>(accountKey(keyHash));
+    if (!account || account.spentMicros < micros) return null;
+    account.balanceMicros += micros;
+    account.spentMicros -= micros;
+    await txn.put(accountKey(keyHash), account);
+    return account.balanceMicros;
+  });
+}
+
 export async function creditBalance(storage: CreditStorage, keyHash: string) {
   return storage.transaction(async (txn) => {
     const a = await txn.get<Account>(accountKey(keyHash));
