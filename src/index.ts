@@ -10,6 +10,7 @@ import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
 import { readable402, wantsV1Body } from "./lib/readable-402";
+import { SERVICE_CARD_PATH, llmsShortTxt, rootCard, type FirstCallFacts } from "./lib/first-call";
 import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
@@ -39,6 +40,7 @@ import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { callerFamily } from "./lib/caller";
+import { measurement } from "./lib/beacon";
 import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
@@ -85,8 +87,10 @@ import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiMode
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
 import { OPENAI_SPEECH_PATH, openAiSpeech } from "./lib/openai-speech";
-import { OPENAI_VOICES_PATH, openAiVoiceList } from "./lib/openai-voices";
-import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
+import { OPENAI_VOICES_PATH, audioModels, openAiVoiceList } from "./lib/openai-voices";
+import { chargeVoiceKey, voiceKeyKind, voiceKeys, voiceTestKeysOn } from "./lib/voice-keys";
+import { frontKeyPrice } from "./lib/voice-billing";
+import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, admitTrialUpload, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -124,6 +128,10 @@ app.use(async (c, next) => {
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
   }
 });
+
+// Cookieless measurement on Analytics Engine (lib/beacon.ts): the /e beacon, MCP client names, AI-crawler reads, and a
+// visitor's utm tag carried into Stripe links. No Durable Object write; a no-op without the ANALYTICS binding.
+app.use(measurement(PAID_PATHS));
 
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
 app.use(async (c, next) => {
@@ -363,7 +371,10 @@ app.use(async (c, next) => {
   // Prepaid card credits: a valid-looking API key (header, or api_key= in the URL for fetch-only clients) replaces the
   // x402 payment for this call. It comes before the free calls, so a keyed request never spends one.
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
-  if (endpoint && creditKey) return chargeCredits(c, keyPrice(endpoint.path, endpoint.price), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
+  // A free voice test or trial key (lib/voice-keys.ts) never reaches the credit ledger: it runs only what a voice front admitted.
+  if (endpoint && creditKey && voiceKeyKind(creditKey)) return (await admitTrialUpload(c, creditKey)) ?? chargeVoiceKey(c, creditKey, next);
+  // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
+  if (endpoint && creditKey) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
@@ -541,7 +552,8 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 // middleware, so every payment path and price applies unchanged. POST takes the OpenAI body; GET takes the same
 // inputs in the query (directories that index every route as GET send agents that way). GET /v1/models is free.
 app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
-app.get(OPENAI_MODELS_PATH, (c) => c.json(openAiModels(), 200, { "Cache-Control": "public, max-age=3600" }));
+// The chat models, then the audio models and names the voice fronts take (lib/openai-voices.ts `audioModels`). Always 200, with or without a key.
+app.get(OPENAI_MODELS_PATH, (c) => { const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
@@ -564,6 +576,7 @@ for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GE
 
 app.route("/", credits);
 app.route("/", freeKeys);
+app.route("/", voiceKeys);
 // Privacy policy, terms and support.
 app.route("/", legal);
 // OAuth sign-in for MCP apps.
@@ -579,14 +592,21 @@ app.get("/", async (c) =>
   // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(c.env.PUBLIC_BRAND?.trim()
-      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY))
+      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env) })
       : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
-    : c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))),
+    // Programs get the short card (lib/first-call.ts, under 4 KB); the full one moved to SERVICE_CARD_PATH.
+    : c.json(rootCard(origin(c.req.url), { ...firstCallFacts(c.env), payTo: c.env.PAY_TO })),
 );
+// The full service card: every tool with its inputs, price and example (what "/" answered programs before 16 Nov 2026).
+app.get(SERVICE_CARD_PATH, (c) => c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))));
+/** What the short llms.txt and the short root card say about this deployment. */
+function firstCallFacts(env: Env): FirstCallFacts {
+  return { brand: publicBrand(env, SERVICE_NAME), trials: trialsEnabled(env), freeKeys: freeKeysOn(env), ...paymentRails(env) };
+}
 // The agent catalogue page, whatever "/" shows.
 app.get("/agents", async (c) => c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url)))));
 // Quick-start docs for people who call the APIs with a key (lib/site-pages.ts); /pricing is the card page.
-app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url))));
+app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), freeKeysOn(c.env))));
 app.get("/pricing", (c) => c.redirect("/credits", 302));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
@@ -611,7 +631,8 @@ app.get("/openapi.json", (c) => {
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });
 });
 app.get("/openapi-marketplace.json", (c) => c.json(marketplaceOpenApi(origin(c.req.url), trialsEnabled(c.env))));
-app.get("/llms.txt", (c) => c.text(llmsTxt(origin(c.req.url), trialsEnabled(c.env), c.env.PAY_TO)));
+// The short file (lib/first-call.ts, under 8 KB); the long one, unchanged, is /llms-full.txt below.
+app.get("/llms.txt", (c) => c.text(llmsShortTxt(origin(c.req.url), firstCallFacts(c.env))));
 app.get("/guides/local-mcp", c => c.html(localMcpHtml(origin(c.req.url), READER_VERSION)));
 app.get("/guides/local-mcp.md", c => c.text(localMcpMarkdown(origin(c.req.url), READER_VERSION)));
 app.get("/guides/ai-sdk", c => c.html(aiSdkHtml(origin(c.req.url))));

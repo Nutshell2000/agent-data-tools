@@ -71,9 +71,19 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   // An e-invoice arrives as a url, as xml text or as an uploaded file; the listing names the example's url.
   "/einvoice/validate", "/einvoice/to-json",
 ]);
+/**
+ * One-of tools whose listing states the alternatives themselves (16 Nov 2026): `anyOf` with one branch per input and no
+ * single input required, so a planner may send either one alone (/price/token listed `required: ["symbol"]`, which ruled
+ * out an address on its own). Only for tools that also answer an empty HTTP call (EMPTY_CALL_DEFAULTS in src/tools.ts):
+ * a router that reads `required` alone plans `{}`, and must still get an answer (tests/buyer-inputs.test.cjs).
+ */
+export const EITHER_INPUT: Readonly<Record<string, readonly string[]>> = {
+  "/price/token": ["symbol", "address"], "/token/price": ["symbol", "address"], "/price/crypto": ["symbol", "address"],
+};
+const eitherInput = (e: Endpoint) => (Object.hasOwn(EITHER_INPUT, e.path) ? { anyOf: EITHER_INPUT[e.path].map((name) => ({ required: [name] })) } : {});
 export const requiredInputs = (e: Endpoint) => {
   const required = Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
-  return required.length || !ONE_OF_INPUT_PATHS.has(e.path) ? required : exampleParams(e).map(([k]) => k);
+  return required.length || !ONE_OF_INPUT_PATHS.has(e.path) || Object.hasOwn(EITHER_INPUT, e.path) ? required : exampleParams(e).map(([k]) => k);
 };
 /** The published example call's inputs: what the Bazaar sends when it checks a listed tool (HTTP and MCP alike). */
 export const exampleInput = (e: Endpoint) => Object.fromEntries(exampleParams(e).map(([k, p]) => [k, p.example]));
@@ -90,7 +100,7 @@ export const listingOutputSchema = (e: Endpoint) =>
 export function bazaarExtensionFor(e: Endpoint) {
   return declareDiscoveryExtension({
     input: exampleInput(e),
-    inputSchema: { properties: bazaarInputProperties(e), required: requiredInputs(e) },
+    inputSchema: { properties: bazaarInputProperties(e), required: requiredInputs(e), ...eitherInput(e) },
     output: { example: e.outputExample, schema: listingOutputSchema(e) },
   });
 }

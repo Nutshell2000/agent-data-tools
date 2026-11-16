@@ -203,8 +203,9 @@ test('buyer skill GET/HEAD is free, byte-consistent and discoverable without exp
  assert.equal(await response.text(),(await fs.readFile('skills/spellzcode-x402-reader/SKILL.md','utf8')).replaceAll('https://agent-data-tools.revmesh2074.workers.dev','https://api.test'));
  const head=await call(route,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
  const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.7.6');
- const card=await(await call('/')).json();assert.equal(card.docs.buyerSkill,'https://api.test'+route);
- for(const p of ['/','/guides/web-reading','/llms.txt']){const text=await(await call(p,'GET','text/html')).text();assert.ok(text.includes(route),p);}
+ // The full service card moved from "/" to /service-card.json and the long llms.txt to /llms-full.txt (lib/first-call.ts); the short ones link them.
+ const card=await(await call('/service-card.json')).json();assert.equal(card.docs.buyerSkill,'https://api.test'+route);assert.equal((await(await call('/')).json()).links.serviceCard,'https://api.test/service-card.json');assert.ok((await(await call('/llms.txt')).text()).includes('https://api.test/llms-full.txt'));
+ for(const p of ['/','/guides/web-reading','/llms-full.txt']){const text=await(await call(p,'GET','text/html')).text();assert.ok(text.includes(route),p);}
  assert.equal((await call('/skills/spellzcode-x402-reader/private.json')).status,404);
  assert.equal((await call('/skills/unknown/SKILL.md')).status,404);
 });
@@ -218,7 +219,7 @@ test('local MCP guide and downloadable adapter are available without paid work',
   assert.ok(md.includes('/clients/reader/1.7.6/reader-mcp.mjs'));
   assert.equal((await call('/clients/reader/1.7.6/reader-mcp.mjs')).status,200);
   assert.equal((await call('/clients/reader/1.2.0/reader-mcp.mjs')).status,404);
-  for(const route of ['/','/guides/web-reading','/llms.txt'])assert.ok((await(await call(route,'GET','text/html')).text()).includes('/guides/local-mcp'),route);
+  for(const route of ['/','/guides/web-reading','/llms-full.txt'])assert.ok((await(await call(route,'GET','text/html')).text()).includes('/guides/local-mcp'),route);
 });
 test('secondary Bitcoin guide leads with the capped CLI and shared local MCP path',async()=>{
  const html=await(await call('/guides/bitcoin-fees','GET','text/html')).text();assert.ok(html.includes('quote-btc-fees'));assert.ok(html.includes('buy-btc-fees --max-usdc 0.002'));assert.ok(html.indexOf('quote-btc-fees')<html.indexOf('Install npm install'));assert.ok(html.includes('btc_fees_quote'));assert.ok(html.includes('does not buy Bitcoin'));assert.ok(html.includes('reader-client.mjs.sha256'));

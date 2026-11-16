@@ -199,7 +199,7 @@ test('empty call: a price call with no input at all answers for BTC with a note;
     const e = ENDPOINTS.find((x) => x.path === path);
     assert.ok(e, `${path} is a tool`);
     // The listing still names an input (a router plans a real one), and the default is one of the tool's own inputs.
-    assert.ok(B.requiredInputs(e).length >= 1, `${path} lists a required input`);
+    assert.ok(B.requiredInputs(e).length >= 1 || B.EITHER_INPUT[path]?.length >= 2, `${path} lists a required input, or its alternatives (EITHER_INPUT)`);
     for (const k of Object.keys(d.input)) assert.ok(Object.hasOwn(e.params, k), `${path} has the input ${k}`);
     assert.match(d.note, /^No input was sent/);
     // The default is written where a buyer reads the inputs.

@@ -200,7 +200,7 @@ test('a key on the plan that runs short gets its paid renewal on the next call; 
     // The month's payment has not been made: Stripe is read once, nothing is added, the call is refused uncharged.
     let res = await fetch('/tool', auth);
     assert.equal(res.status, 402);
-    assert.match((await res.json()).error, /not enough credits: this call costs 10, the key has 5/);
+    assert.match((await res.json()).error, /^This key does not have enough credits for this call: it costs 10 credits and the key has 5\./);
     assert.equal(stripeCalls, 1);
     // A second refused call within the minute does not read Stripe again.
     res = await fetch('/tool', auth);
