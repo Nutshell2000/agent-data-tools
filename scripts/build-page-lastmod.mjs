@@ -27,7 +27,6 @@ export async function loadSite(root = ROOT) {
     `export { ENDPOINTS, toolSlug } from "./endpoints";`,
     `export { TOOL_SEO } from "./lib/tool-seo";`,
     `export { productPaths } from "./lib/product-pages";`,
-    `export { voiceComparePaths } from "./lib/voice-compare";`,
     `export { lastmodOf, lastmodTag } from "./lib/page-lastmod";`,
     `export { PAGE_LASTMOD } from "./data/page-lastmod.generated";`,
     ...routeFiles.map((f, i) => `import * as r${i} from "./routes/${f.slice(0, -3)}";`),
@@ -59,7 +58,6 @@ export async function loadSite(root = ROOT) {
     toolOfPage: new Map(m.ENDPOINTS.map((e) => [`/tools/${m.toolSlug(e.path)}`, e.path])),
     seoTools: new Set(Object.keys(m.TOOL_SEO)),
     productPaths: new Set(m.productPaths()),
-    voiceComparePaths: new Set(m.voiceComparePaths()),
     lastmodOf: m.lastmodOf, lastmodTag: m.lastmodTag, PAGE_LASTMOD: m.PAGE_LASTMOD,
   };
 }
@@ -86,9 +84,6 @@ export function sourcesFor(page, site) {
   if (page === "/") return ["src/lib/home-page.ts", "src/lib/product-pages.ts"];
   if (page === "/docs") return ["src/lib/site-pages.ts"];
   if (site.productPaths.has(page)) return ["src/lib/product-pages.ts"];
-  if (site.voiceComparePaths.has(page)) return ["src/lib/voice-compare.ts"];
-  if (page === "/compare" || page.startsWith("/compare/")) return ["src/lib/compare-pages.ts"];
-  if (page === "/benchmarks") return ["src/lib/benchmarks-page.ts"];
   if (page === "/lexglyph") return ["src/lib/lexglyph-page.ts", "src/lib/lexglyph-i18n.ts"];
   if (page === "/vat-number-check" || page.startsWith("/vat-number-check/")) return ["src/lib/vat-pages.ts"];
   if (page === "/company-register" || page.startsWith("/company-register/")) return ["src/lib/register-pages.ts"];

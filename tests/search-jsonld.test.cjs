@@ -162,9 +162,8 @@ test('served from the Worker\'s own host, the WebApplication data names the publ
 });
 
 const FAMILIES = () => [
-  '/', '/docs', '/credits', '/tools', '/guides', '/benchmarks', '/about', '/transcribe-pro',
+  '/', '/docs', '/credits', '/tools', '/guides', '/about', '/transcribe-pro',
   ...P.PRODUCTS.map((p) => `/${p.slug}`),
-  ...[...D.sitemapXml('').matchAll(/<loc>(\/compare[^<]*)<\/loc>/g)].map((m) => m[1]),
   '/vat-number-check', '/vat-number-check/austria', '/company-register', '/company-register/sweden',
   '/tools/weather', '/tools/sanctions-check', '/tools/pdf-text', '/tools/time', '/tools/vat-validate',
   ...[...D.sitemapXml('').matchAll(/<loc>(\/guides\/[^<]*)<\/loc>/g)].map((m) => m[1]).filter((_, i) => i % 6 === 0),
@@ -197,9 +196,8 @@ test('on every page family: JSON-LD parses, FAQ data repeats only questions and 
   }
   assert.deepEqual(withApp.sort(), ['/', ...P.PRODUCTS.map((p) => `/${p.slug}`)].sort(), 'WebApplication data only on the front page and the product pages');
   for (const path of ['/', ...P.PRODUCTS.map((p) => `/${p.slug}`), '/tools/weather', '/vat-number-check/austria', '/company-register/sweden', '/e-invoice/rules/br-01', '/de/e-rechnung/regeln/br-01', '/transcribe-pro']) assert.ok(withFaq.includes(path), `${path} shows questions and carries FAQ data`);
-  // Audited 16 Nov 2026: these pages have no question-and-answer section (the question-shaped headings of /benchmarks are
-  // titles of result tables), so they carry no FAQ data.
-  for (const path of ['/docs', '/credits', '/tools', '/guides', '/about', '/benchmarks', '/compare']) assert.ok(!withFaq.includes(path), `${path} shows no questions and answers, so it carries no FAQ data`);
+  // Audited 16 Nov 2026: these pages have no question-and-answer section, so they carry no FAQ data.
+  for (const path of ['/docs', '/credits', '/tools', '/guides', '/about']) assert.ok(!withFaq.includes(path), `${path} shows no questions and answers, so it carries no FAQ data`);
 });
 
 test('the IndexNow key file answers on every host, and the sitemap lists the host that was asked', async () => {

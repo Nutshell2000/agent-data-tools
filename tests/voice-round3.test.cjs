@@ -81,16 +81,18 @@ test('voice jobs reach the right tools in the finder; voice tools are in the AI 
   for (const p of ['/transcribe/long', '/text-to-speech/lite', '/transcribe/summary']) assert.equal(d.categoryOf(p), 'AI', p);
 });
 
-test('comparison figures: our hour is cheaper than every listed rival; OpenAI tts-1 is admitted as cheaper per character', async () => {
-  const c = await load('src/lib/voice-compare.ts');
-  const us = c.ourVoice();
+test('no rival figures on the site (owner, 17 Nov 2026): our prices come from the catalog, the home page names no rival', async () => {
+  const v = await load('src/lib/voice-prices.ts');
+  const us = v.ourVoice();
   assert.equal(us.long, '$0.05');
-  for (const r of c.STT_RIVALS) assert.ok(us.longPerHour < r.perHourUsd, r.name + ' ' + r.model);
-  const html = c.whisperPage('https://o.test', 'X');
-  assert.match(html, /OpenAI's tts-1 costs less per character/);
-  assert.ok(!/cheapest/i.test(c.elevenLabsPage('https://o.test', 'X')), 'never claim "cheapest"');
+  assert.equal(us.longPerHour, 0.05);
+  const h = await load('src/lib/home-page.ts');
+  const html = h.landingPage('Glyphcall', 'https://glyphcall.test', true, { trial: true });
+  // Only the request-format facts may name another service ("OpenAI- and ElevenLabs-shaped requests", "ElevenLabs- and OpenAI-compatible").
+  const prose = html.replace(/\b(?:OpenAI- and |ElevenLabs- and )?(?:OpenAI|ElevenLabs|Exa)-(?:shaped|compatible)/g, '');
+  for (const name of ['ElevenLabs', 'Deepgram', 'AssemblyAI', 'Exa ', "Exa's", 'Whisper API', 'tts-1']) assert.ok(!prose.includes(name), name);
+  assert.ok(!/\/compare|\/benchmarks|exa-alternative|cheaper than|cheapest/i.test(html));
 });
-
 let mf;
 const O = 'https://api.test';
 before(async () => {
@@ -105,7 +107,7 @@ before(async () => {
 });
 after(async () => { await mf?.dispose(); });
 
-test('/transcribe/summary is a paid tool at $0.05 and outside the free calls; the comparison pages are served and in the sitemap', async () => {
+test('/transcribe/summary is a paid tool at $0.05 and outside the free calls; the removed comparison pages redirect and are not in the sitemap', async () => {
   const res = await mf.dispatchFetch(`${O}/transcribe/summary?url=https://example.com/a.mp3`, { headers: { accept: 'application/json' } });
   assert.equal(res.status, 402);
   const q = JSON.parse(Buffer.from(res.headers.get('PAYMENT-REQUIRED'), 'base64').toString());
@@ -116,13 +118,13 @@ test('/transcribe/summary is a paid tool at $0.05 and outside the free calls; th
   const upload = await mf.dispatchFetch(`${O}/transcribe/summary`, { method: 'POST', headers: { 'content-type': 'audio/mpeg' }, body: Buffer.from(mp3(200)) });
   assert.equal(upload.status, 402);
   assert.match((JSON.parse(Buffer.from(upload.headers.get('PAYMENT-REQUIRED'), 'base64').toString())).resource.url, /\/transcribe\/summary\?file=/);
-  for (const slug of ['elevenlabs-alternative', 'whisper-api-alternative']) {
-    const page = await mf.dispatchFetch(`${O}/compare/${slug}`);
-    assert.equal(page.status, 200, slug);
-    assert.match(await page.text(), /pricing page/);
+  // 17 Nov 2026: the comparison pages are gone; every old path is a 301 to its product page, query kept.
+  const moved = { '/compare': '/invoice-data-extraction-api', '/compare/mindee-alternative': '/invoice-data-extraction-api', '/compare/elevenlabs-alternative': '/text-to-speech-api', '/compare/whisper-api-alternative': '/speech-to-text-api', '/benchmarks': '/eu-law-search-api', '/exa-alternative-api': '/company-check-api', '/compare/anything-new': '/invoice-data-extraction-api' };
+  for (const [from, to] of Object.entries(moved)) {
+    const r = await mf.dispatchFetch(`${O}${from}?utm=x`, { redirect: 'manual' });
+    assert.equal(r.status, 301, from);
+    assert.equal(new URL(r.headers.get('location'), O).pathname + new URL(r.headers.get('location'), O).search, `${to}?utm=x`, from);
   }
-  const hub = await (await mf.dispatchFetch(`${O}/compare`)).text();
-  assert.match(hub, /\/compare\/elevenlabs-alternative/);
   const sitemap = await (await mf.dispatchFetch(`${O}/sitemap.xml`)).text();
-  assert.match(sitemap, /\/compare\/whisper-api-alternative/);
+  assert.ok(!/\/compare|\/benchmarks|exa-alternative/.test(sitemap));
 });
