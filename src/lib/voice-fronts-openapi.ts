@@ -52,7 +52,7 @@ export function voiceFrontsOpenApiPaths(origin: string, prices: { speechShort: s
       post: {
         operationId: "elevenlabs_tts",
         summary: "Text to speech, ElevenLabs-compatible API (MP3 file, no account)",
-        description: `${VOICE_FRONT_DESCRIPTIONS.tts} Same request as ElevenLabs' POST /v1/text-to-speech/{voice_id}: point an ElevenLabs SDK's base URL at ${origin} and send an adt_ prepaid key as xi-api-key, or pay per call with x402 or MPP. ${ttsPriced}. output_format must be an mp3 format. POST /v1/text-to-speech/{voice_id}/with-timestamps returns ElevenLabs' audio_base64 plus character alignment (cue times measured from the audio), at the /text-to-speech/captions price.`,
+        description: `${VOICE_FRONT_DESCRIPTIONS.tts} Same request as ElevenLabs' POST /v1/text-to-speech/{voice_id}: point an ElevenLabs SDK's base URL at ${origin} and send an adt_ prepaid key as xi-api-key, or pay per call with x402 or MPP. ${ttsPriced}. output_format: mp3_* (default), pcm_8000/16000/24000/48000, ulaw_8000 and alaw_8000 for phone lines, wav_*, or opus_48000_* (opus up to 450 characters). An optional pronunciations object in the body ({"Nginx":"engine x"}) says how to read names and terms. POST /v1/text-to-speech/{voice_id}/with-timestamps returns ElevenLabs' audio_base64 plus character alignment (cue times measured from the audio), at the /text-to-speech/captions price.`,
         tags: ttsTags,
         "x-payment-info": ttsPay,
         parameters: [voiceParam, { name: "output_format", in: "query", required: false, description: "mp3_* only (mp3_44100_128 by default)", schema: { type: "string" } }],

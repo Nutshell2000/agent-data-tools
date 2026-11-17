@@ -13,6 +13,7 @@ import type { Context } from "hono";
 import type { Env } from "./env";
 import { asFrontQuote, requestBody } from "./openai-chat";
 import { VOICE_FRONT_DESCRIPTIONS, VOICE_FRONT_META } from "./voice-fronts-openapi";
+import { pronunciationsParam } from "./openai-speech";
 import { KEY_RESPONSE_HEADERS, SPEECH_INPUT_LIMIT, SPEECH_SHORT_LIMIT, SPEECH_LONG_TOOL_PATH, SPEECH_TOOL_PATH, speakThrough, withXiKey, type SpeechRequest } from "./openai-speech";
 import { apiKeyFrom } from "./credits";
 import { admitVoiceKey, hasVoiceGrant, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
@@ -23,6 +24,7 @@ import { LONG_TRANSCRIBE_MAX_BYTES, LONG_TRANSCRIBE_PATH, mp3Frames, wavInfo } f
 import { voicePrices } from "./voice-pro";
 import { SPEECH_VOICES, OPENAI_VOICES } from "../routes/ai-text";
 import { SPEAKERS_PATH } from "../routes/voice-plus";
+import { fromElevenFormat } from "./speech-formats";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -86,22 +88,24 @@ export function elevenVoice(idOrName: string | undefined): string | undefined {
 /** The speech request an ElevenLabs text-to-speech body stands for, or why it cannot be served. */
 export function elevenSpeechRequest(body: unknown, voiceId: string | undefined, outputFormat: string | null | undefined): SpeechRequest | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object with text" };
-  const b = body as { text?: unknown; language_code?: unknown };
+  const b = body as { text?: unknown; language_code?: unknown; pronunciations?: unknown };
   const text = typeof b.text === "string" ? b.text.trim() : "";
   if (!text) return { error: "text is required: the text to speak" };
   if (text.length > SPEECH_INPUT_LIMIT) return { error: `text must be at most ${SPEECH_INPUT_LIMIT} characters` };
-  const format = (outputFormat ?? "").trim().toLowerCase();
-  if (format && !format.startsWith("mp3")) return { error: "output_format must be an mp3 format such as mp3_44100_128 (the only format this endpoint returns)" };
+  const say = pronunciationsParam(b.pronunciations);
+  if ("error" in say) return { error: say.error };
+  const format = fromElevenFormat(outputFormat);
+  if ("error" in format) return { error: format.error };
   const lang = typeof b.language_code === "string" ? b.language_code.trim().toLowerCase().slice(0, 2) : "";
   if (lang && lang !== "en" && lang !== "es") return { error: "language_code must be en or es" };
   const voice = elevenVoice(voiceId);
-  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
+  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), ...(format.name !== "mp3" ? { format } : {}), ...(say.value ? { pronunciations: say.value } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
 }
 
 /** Handles POST /v1/text-to-speech/{voice_id} (and /stream): the MP3 file as the response body. */
 export async function elevenLabsSpeech(c: C, forward: Forward): Promise<Response> {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
-  const body = await requestBody(c, (q) => (q.text === undefined ? null : { text: q.text, language_code: q.language_code }));
+  const body = await requestBody(c, (q) => (q.text === undefined ? null : { text: q.text, language_code: q.language_code, pronunciations: q.pronunciations }));
   const mapped = elevenSpeechRequest(body, c.req.param("voice_id"), c.req.query("output_format"));
   if ("error" in mapped && paying) return c.json({ detail: { status: "invalid_request", message: mapped.error } }, 400);
   const request: SpeechRequest = "error" in mapped ? { text: PROBE_TEXT, tool: SPEECH_TOOL_PATH } : mapped;

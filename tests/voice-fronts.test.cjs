@@ -36,7 +36,9 @@ test('ElevenLabs voices and text-to-speech bodies map onto the speech tools', as
   assert.deepEqual(v.elevenSpeechRequest({ text: ' Hello. ', model_id: 'eleven_flash_v2_5' }, 'Orion', null), { text: 'Hello.', voice: 'orion', tool: '/ai/speech' });
   assert.equal(v.elevenSpeechRequest({ text: 'x'.repeat(301) }, '', 'mp3_44100_128').tool, '/text-to-speech');
   assert.match(v.elevenSpeechRequest({ text: 'x'.repeat(2001) }, '', null).error, /at most 2000/);
-  assert.match(v.elevenSpeechRequest({ text: 'Hi' }, '', 'pcm_16000').error, /mp3/);
+  assert.deepEqual(v.elevenSpeechRequest({ text: 'Hi' }, '', 'ulaw_8000').format, { name: 'ulaw', sampleRate: 8000 });
+  assert.deepEqual(v.elevenSpeechRequest({ text: 'Hi' }, '', 'pcm_16000').format, { name: 'pcm', sampleRate: 16000 });
+  assert.match(v.elevenSpeechRequest({ text: 'Hi' }, '', 'pcm_44100').error, /sample_rate/);
   assert.match(v.elevenSpeechRequest({ text: 'Hallo', language_code: 'de' }, '', null).error, /en or es/);
   assert.equal(v.elevenSpeechRequest({ text: 'Hola', language_code: 'es' }, '', null).lang, 'es');
   assert.match(v.elevenSpeechRequest({}, '', null).error, /text is required/);
@@ -117,9 +119,9 @@ test('ElevenLabs text to speech quotes under its own path at the price of the to
   const unknownKey = await post('Rachel', { text: 'Hi' }, { 'xi-api-key': 'adt_notreal' });
   assert.notEqual(unknownKey.status, 200);
   // Invalid input with a payment attached is refused before anything is used.
-  const badFormat = await mf.dispatchFetch(`${O}/v1/text-to-speech/Rachel?output_format=pcm_16000`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-payment': 'not-real' }, body: JSON.stringify({ text: 'Hi' }) });
+  const badFormat = await mf.dispatchFetch(`${O}/v1/text-to-speech/Rachel?output_format=pcm_44100`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-payment': 'not-real' }, body: JSON.stringify({ text: 'Hi' }) });
   assert.equal(badFormat.status, 400);
-  assert.match((await badFormat.json()).detail.message, /mp3/);
+  assert.match((await badFormat.json()).detail.message, /pcm_44100/);
 });
 
 test('OpenAI transcriptions and ElevenLabs speech to text quote an uploaded file at the /transcribe price', async () => {
