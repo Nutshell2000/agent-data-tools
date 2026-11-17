@@ -4,11 +4,12 @@
 // Owner, 15 Nov 2026: "make our great homepage that beats ElevenLabs, Exa, everybody's homepages ... must draw in a lot
 // of customers", and "no personal information, only market Glyphcall".
 //
-// Rules for this page (the same as the comparison and benchmark pages it links):
-// - Every number is computed from the catalog, the plans, STT_RIVALS / TTS_RIVALS (each rival figure copied from the
-//   rival's own pricing page on VOICE_CHECKED, linked) or a recorded benchmark run (BENCHMARKS). Never type a number.
-// - The "where others are better" panel was removed on the owner's order (17 Nov 2026): the front page sells, and the
-//   comparison tables still show every rival's own figures.
+// Rules for this page:
+// - Every number is computed from the catalog or the plans. Never type a number.
+// - No rival names, prices or benchmarks (owner, 17 Nov 2026: "Remove compare pages ... we are gonna just have the
+//   better products, people will compare themselves"). The /compare pages, /benchmarks and /exa-alternative-api were
+//   removed in 1.216.2 and redirect to product pages (REMOVED_PAGES in lib/removed-pages.ts). Only the factual
+//   request-format lines ("OpenAI- and ElevenLabs-shaped requests work") stay: they say what the API accepts.
 // - No payment protocol, wallet or crypto word before the "For AI agents" section (tests/site-pages.test.cjs).
 // - The only script is the free voice console in the hero (lib/voice-console.ts, 16 Nov 2026: "make glyphcall.com
 //   way easier to use ... better than ElevenLabs"): the tool comes first, the API second. Everything else stays
@@ -17,13 +18,12 @@
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
 import { STUDIO_SITE, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
-import { BENCHMARKS, BENCHMARKS_PATH } from "./benchmarks-page";
 import { PLAN_PORTAL_URL } from "./credits";
 import { firstCall } from "./first-call";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCTS, productOffers, type Product } from "./product-pages";
-import { STT_RIVALS, TTS_RIVALS, VOICE_CHECKED, ourVoice } from "./voice-compare";
+import { ourVoice } from "./voice-prices";
 import { webApplicationScript } from "./app-jsonld";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -39,7 +39,7 @@ export { VOICE_SITE, STUDIO_SITE };
 const SHELVES: readonly { id: string; kicker: string; title: string; lead: string; slugs: readonly string[] }[] = [
   { id: "voice", kicker: "Voice", title: "Speech to text and text to speech", lead: "Transcripts, subtitles and word timings from any recording. Natural voices back from your text. Drop-in shapes for the APIs you already call.", slugs: ["speech-to-text-api", "text-to-speech-api"] },
   { id: "documents", kicker: "Documents", title: "Any file or page, as clean text or fields", lead: "PDFs, Word, Excel, scans, photos and web pages in; Markdown, text or the exact fields you asked for out.", slugs: ["pdf-to-text-api", "document-to-text-api", "invoice-data-extraction-api", "web-page-to-markdown-api"] },
-  { id: "search", kicker: "Search and checks", title: "Search that knows Europe", lead: "EU law article by article, companies in official registers, VAT numbers and sanctions lists. Exa-compatible requests.", slugs: ["exa-alternative-api", "eu-law-search-api", "company-check-api", "eu-sanctions-screening-api"] },
+  { id: "search", kicker: "Search and checks", title: "Search that knows Europe", lead: "EU law article by article, companies in official registers, VAT numbers and sanctions lists.", slugs: ["eu-law-search-api", "company-check-api", "eu-sanctions-screening-api"] },
 ];
 
 const ICON: Record<string, string> = {
@@ -172,11 +172,11 @@ function productCard(p: Product, cardReady: boolean): string {
 }
 
 /** The FAQ: every answer restates what the docs, the privacy page or the tool descriptions already say. */
-function faqItems(brand: string, languages: string, cheapestStt: boolean): [q: string, a: string][] {
+function faqItems(languages: string, longPrice: string): [q: string, a: string][] {
   return [
     ["Do I need an account?", `No. Every product page runs the real thing on your own input for free. When you want more, pay by card and your API key is shown straight away: no sign-up form, no sales call.`],
     ["What happens when a call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
-    ["Is it cheaper than ElevenLabs, OpenAI or Exa?", `${cheapestStt ? `For transcription, yes: an hour of audio costs less with ${brand} than on any of the price lists compared on this page, each linked to the rival's own page.` : `Compare for yourself: every rival price on this page links to the rival's own price list.`} For text to speech, OpenAI's tts-1 is cheaper per character and ElevenLabs has far more voices; we say so on the comparison page.`],
+    ["What does it cost?", `In the browser, nothing. Over the API, an hour of transcription is ${longPrice}, and every tool shows its price per call before you pay. No credit pool to convert, no automatic top-ups, and a call that fails is free.`],
     ["Will it work with the code I already have?", `The speech endpoints accept OpenAI- and ElevenLabs-shaped requests, the search endpoints accept Exa-shaped requests, and every tool is also one plain HTTPS request that returns JSON. AI assistants can connect through MCP.`],
     ["What happens to my files?", `The free browser tools never upload your file: it is processed on your own device. The PDF reader reads an uploaded file in memory for that one request and does not keep it. Everything else is on the privacy page.`],
     ["Which languages does transcription cover?", `${languages} Subtitles come back as SRT or VTT with word timings.`],
@@ -192,13 +192,7 @@ function faqItems(brand: string, languages: string, cheapestStt: boolean): [q: s
  */
 export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean } = {}): string {
   const us = ourVoice();
-  const scribe = STT_RIVALS.find((r) => r.name === "ElevenLabs");
-  const flash = TTS_RIVALS.find((r) => r.name === "ElevenLabs" && /Flash/.test(r.model));
   const hasLite = BY_PATH.has("/text-to-speech/lite");
-  const law = BENCHMARKS.find((b) => b.id === "eu-law");
-  const lawUs = law?.rows.find((r) => r.ours);
-  const lawThem = law?.rows.find((r) => !r.ours);
-  const times = scribe ? Math.round(scribe.perHourUsd / us.longPerHour) : 0;
   const longTool = BY_PATH.get("/transcribe/long");
   const languages = longTool && /90\+ languages/.test(longTool.description) ? "More than 90 languages, detected or chosen." : "Many languages; set the language for the best result.";
 
@@ -228,9 +222,9 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
 
   // The four headline numbers.
   const stats: [n: string, l: string, s: string][] = [
-    [us.long, "for an hour of transcription", scribe ? `ElevenLabs Scribe: ${esc(scribe.price)} (<a href="${esc(scribe.source)}">their price list</a>, ${esc(VOICE_CHECKED)})` : "Up to 60 minutes in one call, with subtitles"],
-    ...(hasLite && flash ? [[money(us.lite1k), "per 1,000 characters of speech", `ElevenLabs Flash: ${esc(flash.price.replace(" per 1,000 characters", ""))} (<a href="${esc(flash.source)}">their price list</a>)`] as [string, string, string]] : []),
-    ...(lawUs && lawThem && law ? [[lawUs.cells[0].replace(/\s/g, ""), `EU law questions: ${law.columns[0].toLowerCase()}`, `Exa search: ${esc(lawThem.cells[0])} on the same questions (<a href="${BENCHMARKS_PATH}#eu-law">benchmark, ${esc(law.date)}</a>)`] as [string, string, string]] : []),
+    [us.long, "for an hour of transcription", "Up to 60 minutes in one call, with subtitles and word timings"],
+    ...(hasLite ? [[money(us.lite1k), "per 1,000 characters of speech", "Natural voices back as MP3, no credit pool to convert"] as [string, string, string]] : []),
+    ["$0", "in the browser", "The free tools run on your own device: no account, no cap, nothing uploaded"],
     ["$0", "for any call that fails", "Errors, bad input and outages are never charged"],
   ];
 
@@ -241,23 +235,6 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
     if (!items.length) return "";
     return `<div class="shelf" id="${s.id}"><div class="shelf-head"><span class="badge">${icon(s.id)}</span><h3>${esc(s.title)}</h3></div><p>${esc(s.lead)}</p><div class="cards">${items.map((p) => productCard(p, cardReady)).join("")}</div></div>`;
   }).join("");
-
-  // Transcription price per hour against each rival's own price list, cheapest bar = ours.
-  const rows = [
-    { name: brand, model: "Whisper large-v3-turbo, up to 60 min a call", per: us.longPerHour, price: `${us.long} per hour`, source: "", us: true },
-    ...STT_RIVALS.map((r) => ({ name: r.name, model: r.model, per: r.perHourUsd, price: r.price, source: r.source, us: false })),
-  ].sort((a, b) => a.per - b.per || (a.us ? -1 : 1));
-  const maxPer = Math.max(...rows.map((r) => r.per));
-  const sttRows = rows.map((r) => `<tr${r.us ? ` class="us"` : ""}><td>${r.us ? esc(r.name) : `<a href="${esc(r.source)}">${esc(r.name)}</a>`}</td><td>${esc(r.model)}</td><td>${esc(money(r.per))}</td><td><div class="bar"><span style="width:${Math.max(6, Math.round((r.per / maxPer) * 100))}%"></span></div></td></tr>`).join("");
-
-  const lawDuel = lawUs && lawThem && law ? (() => {
-    const n = (s: string) => Number(s.split("/")[0].trim());
-    const d = (s: string) => Number(s.split("/")[1]?.trim() || 1);
-    const pct = (s: string) => Math.round((n(s) / d(s)) * 100);
-    return `<div class="panel"><h3>EU law: the right article, first</h3><p>${esc(String(d(lawUs.cells[0])))} real compliance questions across GDPR, the AI Act, DSA, NIS2, DORA and more. Questions and scripts are public, so anyone can re-run them.</p>
-<div class="duel"><div class="us"><b>${esc(brand)}</b><b>${esc(lawUs.cells[0])}</b><div class="bar"><span style="width:${pct(lawUs.cells[0])}%;background:var(--grad)"></span></div></div><div><span>Exa search</span><span>${esc(lawThem.cells[0])}</span><div class="bar"><span style="width:${pct(lawThem.cells[0])}%"></span></div></div></div>
-<a href="${BENCHMARKS_PATH}">All benchmarks, including where Exa wins &rarr;</a></div>`;
-  })() : "";
 
   // Pricing: the monthly plans as cards, the packs as chips, the full table folded.
   const offers = productOffers(PRODUCTS[0], cardReady);
@@ -274,7 +251,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 </table></div><p class="small">Each column is what that amount buys if you spend it all on that one API. <a href="${esc(PLAN_PORTAL_URL)}">Cancel a plan at any time</a>. Details: <a href="/credits">pricing</a>.</p></div></details>`
     : `<p><a href="/credits">Plans and packs</a></p>`;
 
-  const faq = faqItems(brand, languages, rows[0]?.us === true);
+  const faq = faqItems(languages, us.long);
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
@@ -287,7 +264,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   // The hero's own console is the free try, so the first button is the API, not another "try" page.
   const cta = `<a class="btn primary" href="/${esc(first.slug)}">Use it in your app</a><a class="btn" href="#pricing">See pricing</a>`;
   const finalCta = `<a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/credits">Get an API key</a>`;
-  const navLinks = `<a href="#try">Text to speech</a><a href="#try">Transcribe</a><a href="#products">APIs</a><a href="#compare">Compare</a><a href="/app">Get the app</a><a href="#pricing">Pricing</a>`;
+  const navLinks = `<a href="#try">Text to speech</a><a href="#try">Transcribe</a><a href="#products">APIs</a><a href="#free">Free tools</a><a href="/app">Get the app</a><a href="#pricing">Pricing</a>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -333,14 +310,6 @@ ${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Need it insid
 ${shelves}
 </div></section>
 
-<section class="sec" id="compare"><div class="wrap">
-<span class="kicker">Compare</span><h2>${scribe && times >= 2 ? `An hour of transcription: ${esc(us.long)} here, ${esc(money(scribe.perHourUsd))} at ElevenLabs` : "Priced against the big names, openly"}</h2>
-<p class="sub">Every rival price below is copied from the rival's own pricing page on ${esc(VOICE_CHECKED)} and linked. Every benchmark has its questions and scripts in public.</p>
-<div class="vs"><div class="table"><div class="scroll"><table><thead><tr><th>Speech to text</th><th>Model</th><th>Per hour</th><th></th></tr></thead><tbody>${sttRows}</tbody></table></div>
-<p class="note">Pre-recorded audio, pay as you go. <a href="/compare/whisper-api-alternative">Full comparison</a> &middot; <a href="/compare/elevenlabs-alternative">vs ElevenLabs</a></p></div>
-<div class="side">${lawDuel}</div></div>
-</div></section>
-
 <section class="sec" id="free"><div class="wrap">
 <span class="kicker">More free tools</span><h2>Bigger jobs, still free and private.</h2>
 <p class="sub">Full-page versions of the console, subtitles for whole videos, and a studio that turns a book into an audiobook. They run on your own device, so your files stay on your computer.</p>
@@ -384,6 +353,6 @@ ${pricing}
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Focused APIs for voice, documents and search. Pay only for calls that work.</p></div>
 ${SHELVES.map((s) => `<div><h4>${esc(s.kicker)}</h4><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
 </div>
-<p class="legal"><a href="/app">Install the app</a> · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="${BENCHMARKS_PATH}">Benchmarks</a> · <a href="/compare/elevenlabs-alternative">vs ElevenLabs</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
+<p class="legal"><a href="/app">Install the app</a> · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> ·<a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
 </div></footer></body></html>`;
 }

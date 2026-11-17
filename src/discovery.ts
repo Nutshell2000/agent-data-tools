@@ -5,8 +5,6 @@ import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/rea
 import { TASK_GUIDES } from "./guides/task-guides";
 import { PRODUCTS, productPaths } from "./lib/product-pages";
 import { vatPagePaths } from "./lib/vat-pages";
-import { comparePaths } from "./lib/compare-pages";
-import { BENCHMARKS_PATH } from "./lib/benchmarks-page";
 import { LEXGLYPH_PATH } from "./lib/lexglyph-page";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
@@ -20,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.216.1";
+export const MCP_SERVER_VERSION = "1.216.2";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -768,6 +766,6 @@ export const robotsTxt = (origin: string) =>
 import { lastmodTag } from "./lib/page-lastmod";
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/docs", ...productPaths(), ...comparePaths(), BENCHMARKS_PATH, LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/docs", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`).join("")}</urlset>`;
 }
