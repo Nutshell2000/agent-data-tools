@@ -1,5 +1,5 @@
 {
-  "version": "1.217.0",
+  "version": "1.218.0",
   "tools": [
     {
       "name": "extract",
@@ -18961,6 +18961,31 @@
           "voice": {
             "type": "string",
             "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm",
+              "ulaw",
+              "alaw",
+              "opus",
+              "flac"
+            ],
+            "description": "Audio format: mp3 (default), wav, pcm (raw 16-bit little-endian mono), ulaw or alaw (8 kHz telephony, e.g. Twilio), opus (Ogg) or flac. opus and flac only for text spoken in one part (up to 450 characters)"
+          },
+          "sample_rate": {
+            "description": "Sample rate in Hz for wav and pcm (8000, 16000, 24000 default, 32000, 48000) or ulaw/alaw (8000 default, 16000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "pronunciations": {
+            "type": "string",
+            "description": "How to say words: JSON {\"Nginx\":\"engine x\",\"GIF\":\"jif\"} or Nginx=engine x, GIF=jif (up to 50, whole words, any case)"
           }
         },
         "required": [
@@ -21912,6 +21937,31 @@
           "voice": {
             "type": "string",
             "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm",
+              "ulaw",
+              "alaw",
+              "opus",
+              "flac"
+            ],
+            "description": "Audio format: mp3 (default), wav, pcm (raw 16-bit little-endian mono), ulaw or alaw (8 kHz telephony, e.g. Twilio), opus (Ogg) or flac. opus and flac only for text spoken in one part (up to 450 characters)"
+          },
+          "sample_rate": {
+            "description": "Sample rate in Hz for wav and pcm (8000, 16000, 24000 default, 32000, 48000) or ulaw/alaw (8000 default, 16000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "pronunciations": {
+            "type": "string",
+            "description": "How to say words: JSON {\"Nginx\":\"engine x\",\"GIF\":\"jif\"} or Nginx=engine x, GIF=jif (up to 50, whole words, any case)"
           }
         },
         "required": [
@@ -21952,6 +22002,31 @@
           "voice": {
             "type": "string",
             "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm",
+              "ulaw",
+              "alaw",
+              "opus",
+              "flac"
+            ],
+            "description": "Audio format: mp3 (default), wav, pcm (raw 16-bit little-endian mono), ulaw or alaw (8 kHz telephony, e.g. Twilio), opus (Ogg) or flac. opus and flac only for text spoken in one part (up to 450 characters)"
+          },
+          "sample_rate": {
+            "description": "Sample rate in Hz for wav and pcm (8000, 16000, 24000 default, 32000, 48000) or ulaw/alaw (8000 default, 16000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "pronunciations": {
+            "type": "string",
+            "description": "How to say words: JSON {\"Nginx\":\"engine x\",\"GIF\":\"jif\"} or Nginx=engine x, GIF=jif (up to 50, whole words, any case)"
           }
         },
         "required": [
