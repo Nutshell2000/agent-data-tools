@@ -1,5 +1,5 @@
 {
-  "version": "1.216.3",
+  "version": "1.217.0",
   "tools": [
     {
       "name": "extract",
@@ -15833,6 +15833,91 @@
             "description": "Prediction markets to include, 1-5 (default 3)"
           }
         }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_email_verify",
+      "description": "Verify an email address in one call: syntax, whether the domain exists and has mail servers (MX), disposable and role addresses, free-provider flag, SPF and DMARC, and the sending domain's age and trust flags, rolled into one verdict (likely-deliverable, risky or invalid) with reasons. It does not contact the mail server, so it cannot confirm one mailbox exists. Use to clean a lead list, screen a sign-up or check a contact before outreach. Example: email=alex.morgan@stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The email address to verify"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_contact_verify",
+      "description": "Verify a lead's contact details in one call: the email (mail servers, disposable or role address, domain age), the phone number (valid, E.164 format, country, line type) and the website (redirects, destination domain age, risk signals). Give any of the three; each gets a status (ok, review or invalid) and so does the call. Offline checks and public DNS: nothing is dialled or sent. Use to qualify leads, clean a CRM or vet a prospect. Example: email=alex.morgan@stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address to verify"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number, ideally with +country code"
+          },
+          "country": {
+            "type": "string",
+            "description": "Two-letter country for a phone number without +code (US, GB, SE…)"
+          },
+          "website": {
+            "type": "string",
+            "description": "Website or domain of the lead"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_vendor_check",
+      "description": "Screen a vendor before you buy from it: where its website really leads, the destination domain's age and trust flags, HTTPS and security headers, named risk signals and, with a company name, a sanctions screen (OFAC, EU, UN, UK). One verdict: pass, review or block. Heuristic signals from public facts, not legal advice. Use for supplier onboarding, marketplace seller checks or a payee's website before an invoice is paid. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "The vendor's website or domain (a URL, a domain or an email address works)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Company name for the sanctions screen (recommended)"
+          }
+        },
+        "required": [
+          "domain"
+        ]
       },
       "price": "$0.01"
     },
