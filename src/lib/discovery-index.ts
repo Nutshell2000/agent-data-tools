@@ -49,7 +49,7 @@ const SALES_FIRST = [
   "/hyperliquid/market", "/sec/filings", "/contents", "/ai/rerank", "/memory/set", "/memory/get", "/whale/transfers", "/dex/new-pools", "/recommend", "/airport/status",
   // Packs (1.60.0): several tools in one paid call, cheaper than buying them one by one.
   "/pack/token-analysis", "/pack/wallet-profile", "/pack/crypto-market", "/pack/daily-brief", "/pack/website-audit", "/pack/email-deliverability", "/pack/ip-intelligence", "/pack/hash-toolbox", "/pack/json-toolbox", "/pack/encoding-toolbox",
-  "/pack/tx-explain", "/pack/nft-analysis", "/pack/text-analysis", "/pack/location-brief", "/pack/id-toolbox", "/pack/string-toolbox", "/pack/coin-research", "/pack/api-health", "/openapi/summary", "/mcp/inspect", "/text/language", "/image/metadata", "/url/favicon", "/useragent/parse", "/pack/evm-toolbox", "/pack/seo-toolkit", "/pack/gas-tracker", "/pack/domain-intel", "/tech/stack", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
+  "/pack/tx-explain", "/pack/nft-analysis", "/pack/text-analysis", "/pack/location-brief", "/pack/id-toolbox", "/pack/string-toolbox", "/pack/coin-research", "/pack/api-health", "/openapi/summary", "/mcp/inspect", "/text/language", "/image/metadata", "/url/favicon", "/useragent/parse", "/pack/evm-toolbox", "/pack/seo-toolkit", "/pack/gas-tracker", "/pack/domain-intel", "/pack/email-verify", "/pack/contact-verify", "/pack/vendor-check", "/tech/stack", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
   "/base-gas", "/extract", "/extract/rendered", "/email", "/company", "/domain", "/domain-report", "/weather",
   "/econ/gdp", "/econ/inflation", "/econ/population", "/econ/unemployment", "/pdf/text", "/package", "/package-audit",
 ];

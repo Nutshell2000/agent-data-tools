@@ -64,6 +64,8 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",
   "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
   "email verifier": "/email", "verify email": "/email", "email verification": "/email", "email validation": "/email",
+  "lead verification": "/pack/contact-verify", "contact verification": "/pack/contact-verify", "verify contact": "/pack/contact-verify", "lead qualification": "/pack/contact-verify", "verify lead": "/pack/contact-verify",
+  "vendor check": "/pack/vendor-check", "supplier due diligence": "/pack/vendor-check", "vendor due diligence": "/pack/vendor-check", "vendor screening": "/pack/vendor-check", "supplier check": "/pack/vendor-check",
   "email auth": "/pack/email-deliverability", "spf": "/pack/email-deliverability", "dmarc": "/pack/email-deliverability", "dkim": "/pack/email-deliverability",
   "fear and greed": "/crypto/fear-greed", "fear greed": "/crypto/fear-greed",
   "token price": "/price/token", "crypto price": "/price/token", "coin price": "/price/token",
