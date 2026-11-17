@@ -72,6 +72,8 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/einvoice/validate", "/einvoice/to-json",
   // Business packs (16 Nov 2026): url, address or domain; an e-invoice by url, xml text or upload.
   "/pack/counterparty-full", "/pack/einvoice-check",
+  // Lead packs (17 Nov 2026): contact-verify takes any of email, phone or website; the listing names the example's email.
+  "/pack/contact-verify",
 ]);
 /**
  * One-of tools whose listing states the alternatives themselves (16 Nov 2026): `anyOf` with one branch per input and no

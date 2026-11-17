@@ -20,7 +20,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.216.0";
+export const MCP_SERVER_VERSION = "1.217.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -262,6 +262,8 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/invoice/check": "Company, compliance and checks",
   "/linkedin/profile": "Company, compliance and checks", "/linkedin/company-posts": "Web, documents and search", "/x/search": "Web, documents and search",
   "/cve": "Company, compliance and checks",
+  // 17 Nov 2026: lead and contact packs (src/routes/packs-lead.ts).
+  "/pack/email-verify": "Company, compliance and checks", "/pack/contact-verify": "Company, compliance and checks", "/pack/vendor-check": "Company, compliance and checks",
   "/se/company": "Company, compliance and checks",
   "/no/company": "Company, compliance and checks",
   "/fi/company": "Company, compliance and checks",
