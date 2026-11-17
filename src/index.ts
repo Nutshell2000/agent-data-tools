@@ -136,11 +136,22 @@ app.use(async (c, next) => {
 // visitor's utm tag carried into Stripe links. No Durable Object write; a no-op without the ANALYTICS binding.
 app.use(measurement(PAID_PATHS));
 
+// lex.glyphcall.com (17 Nov 2026): LexGlyph's own address. Its root is the LexGlyph page; every other path answers as on
+// the main host. The page names itself canonical there (the canonical rewrite below skips this host).
+const LEX_HOST = "lex.glyphcall.com";
+app.use(async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.hostname === LEX_HOST && c.req.method === "GET" && url.pathname === "/") {
+    return c.html(await lexglyphHtml(c.env, origin(c.req.url), url.searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language")));
+  }
+  return next();
+});
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
 app.use(async (c, next) => {
   await next();
   const site = c.env.PUBLIC_SITE_ORIGIN;
   if (!site || c.req.method !== "GET" || c.res.status !== 200) return;
+  if (new URL(c.req.url).hostname === LEX_HOST) return;
   // The sitemap moves with the pages: left on a retired host, search engines would keep reading the old addresses from it.
   const isPage = (c.res.headers.get("content-type") ?? "").includes("text/html");
   if (!isPage && c.req.path !== "/sitemap.xml") return;
