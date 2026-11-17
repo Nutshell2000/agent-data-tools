@@ -15,7 +15,7 @@
 //   LEXGLYPH_DAILY_CAP in total; software uses the paid API (/law/search) like every other tool.
 // - Every claim on the page is measured (benchmarks page, multilingual run of 16 Nov 2026) or stated as a limit.
 import { SERVICE_NAME } from "../endpoints";
-import { STYLE } from "./compare-pages";
+import { STYLE } from "./page-style";
 import { COMPANY_FOOTER } from "./legal";
 import { publicBrand } from "./public-brand";
 import { takeDailyBudget } from "./daily-cap";

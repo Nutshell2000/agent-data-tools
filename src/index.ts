@@ -15,8 +15,7 @@ import { relatedLinkHeader } from "./lib/related";
 import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, freeCallsPausedNote, hoursToUtcMidnight, isBrowser } from "./lib/browser-402";
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
-import { COMPARE_BASE, compareHtml } from "./lib/compare-pages";
-import { BENCHMARKS_PATH, benchmarksHtml } from "./lib/benchmarks-page";
+import { removedPageTarget } from "./lib/removed-pages";
 import { LEXGLYPH_PATH, lexglyphHtml } from "./lib/lexglyph-page";
 import { VOICE_PRO_PATH, setVoicePrices, voicePrices, voiceProPage } from "./lib/voice-pro";
 import { VAT_BASE, vatCountry, vatCountryPage, vatIndexPage } from "./lib/vat-pages";
@@ -165,6 +164,13 @@ app.use(async (c, next) => {
   if (!c.env.BROWSER_PAGES_MOVED_HOSTS) return;
   const moved = movedBrowserPageUrl({ method: c.req.method, url: c.req.url, header: (name) => c.req.header(name) }, { status: c.res.status, contentType: c.res.headers.get("content-type") }, c.env.PUBLIC_SITE_ORIGIN, c.env.BROWSER_PAGES_MOVED_HOSTS, (path) => PAID_PATHS.has(path));
   if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600", Vary: "Accept" } }); }
+});
+// The comparison, benchmark and rival-alternative pages were removed on 17 Nov 2026 (lib/removed-pages.ts): each
+// old path is a 301 to the product page it was about, with the query kept.
+app.use(async (c, next) => {
+  const to = removedPageTarget(c.req.path);
+  if (!to) return next();
+  return c.redirect(`${to}${new URL(c.req.url).search}`, 301);
 });
 // /weather/today (1.105.0, one day old, never on the Bazaar) became /weather/current in 1.107.0: the few catalogs that
 // crawled the old path are sent on with the same query, and a paying client's retry follows the same redirect.
@@ -700,10 +706,6 @@ app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
   const country = registerCountry(c.req.param("country"));
   return country ? c.html(registerCountryPage(country, origin(c.req.url), trialsEnabled(c.env) && httpFree(country.tool), publicBrand(c.env, SERVICE_NAME))) : c.notFound();
 });
-// Comparison pages against the document-extraction leaders (lib/compare-pages.ts).
-app.get(COMPARE_BASE, (c) => c.html(compareHtml(c.env, origin(c.req.url))!));
-app.get(`${COMPARE_BASE}/:slug{[a-z0-9-]+}`, (c) => { const html = compareHtml(c.env, origin(c.req.url), c.req.param("slug")); return html ? c.html(html) : c.notFound(); });
-app.get(BENCHMARKS_PATH, (c) => c.html(benchmarksHtml(c.env, origin(c.req.url))));
 // LexGlyph (16 Nov 2026): EU law search for people, free within a daily allowance (lib/lexglyph-page.ts).
 app.get(LEXGLYPH_PATH, async (c) => c.html(await lexglyphHtml(c.env, origin(c.req.url), new URL(c.req.url).searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language"))));
 // Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
