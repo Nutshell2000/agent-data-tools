@@ -92,6 +92,8 @@ import { OPENAI_VOICES_PATH, audioModels, openAiVoiceList } from "./lib/openai-v
 import { chargeVoiceKey, voiceKeyKind, voiceKeys, voiceTestKeysOn } from "./lib/voice-keys";
 import { frontKeyPrice } from "./lib/voice-billing";
 import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, admitTrialUpload, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
+import { ELEVEN_TTS_TIMESTAMPS_PATH, elevenSpeechWithTimestamps } from "./lib/eleven-timestamps";
+import { ELEVEN_LIST_HEADERS, ELEVEN_SUBSCRIPTION_PATH, ELEVEN_USER_PATH, ELEVEN_VOICES_PATHS, ELEVEN_VOICE_PATH, elevenModels, elevenSubscriptionRoute, elevenUserRoute, elevenVoiceRoute, elevenVoicesRoute, wantsElevenShape } from "./lib/eleven-account";
 import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
@@ -570,7 +572,7 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 // inputs in the query (directories that index every route as GET send agents that way). GET /v1/models is free.
 app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 // The chat models, then the audio models and names the voice fronts take (lib/openai-voices.ts `audioModels`). Always 200, with or without a key.
-app.get(OPENAI_MODELS_PATH, (c) => { const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
+app.get(OPENAI_MODELS_PATH, (c) => { if (wantsElevenShape((n) => c.req.header(n))) return c.json(elevenModels(), 200, { ...ELEVEN_LIST_HEADERS, Vary: "xi-api-key" }); const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
@@ -582,7 +584,14 @@ app.get(OPENAI_VOICES_PATH, (c) => {
   if ("error" in list) return c.json({ error: { message: list.error, type: "invalid_request_error" } }, 400);
   return c.json(list, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" });
 });
+// The ElevenLabs account surface (lib/eleven-account.ts): voice list, one voice, user and subscription. Free to read;
+// ElevenLabs apps read these on setup before they speak. GET /v1/models answers ElevenLabs' shape when xi-api-key is sent.
+for (const path of ELEVEN_VOICES_PATHS) app.get(path, (c) => elevenVoicesRoute(c));
+app.get(ELEVEN_VOICE_PATH, (c) => elevenVoiceRoute(c));
+app.get(ELEVEN_USER_PATH, (c) => elevenUserRoute(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+app.get(ELEVEN_SUBSCRIPTION_PATH, (c) => elevenSubscriptionRoute(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 // Drop-in voice APIs (lib/voice-fronts.ts): ElevenLabs text to speech and speech to text, OpenAI transcription.
+app.on(["GET", "HEAD", "POST"], ELEVEN_TTS_TIMESTAMPS_PATH, (c) => elevenSpeechWithTimestamps(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 for (const path of [ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH]) app.on(["GET", "HEAD", "POST"], path, (c) => elevenLabsSpeech(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], ELEVEN_STT_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "eleven"));
 app.on(["GET", "HEAD", "POST"], OPENAI_TRANSCRIPTIONS_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "openai"));

@@ -52,7 +52,7 @@ export function voiceFrontsOpenApiPaths(origin: string, prices: { speechShort: s
       post: {
         operationId: "elevenlabs_tts",
         summary: "Text to speech, ElevenLabs-compatible API (MP3 file, no account)",
-        description: `${VOICE_FRONT_DESCRIPTIONS.tts} Same request as ElevenLabs' POST /v1/text-to-speech/{voice_id}: point an ElevenLabs SDK's base URL at ${origin} and send an adt_ prepaid key as xi-api-key, or pay per call with x402 or MPP. ${ttsPriced}. output_format must be an mp3 format.`,
+        description: `${VOICE_FRONT_DESCRIPTIONS.tts} Same request as ElevenLabs' POST /v1/text-to-speech/{voice_id}: point an ElevenLabs SDK's base URL at ${origin} and send an adt_ prepaid key as xi-api-key, or pay per call with x402 or MPP. ${ttsPriced}. output_format must be an mp3 format. POST /v1/text-to-speech/{voice_id}/with-timestamps returns ElevenLabs' audio_base64 plus character alignment (cue times measured from the audio), at the /text-to-speech/captions price.`,
         tags: ttsTags,
         "x-payment-info": ttsPay,
         parameters: [voiceParam, { name: "output_format", in: "query", required: false, description: "mp3_* only (mp3_44100_128 by default)", schema: { type: "string" } }],
@@ -65,7 +65,7 @@ export function voiceFrontsOpenApiPaths(origin: string, prices: { speechShort: s
       post: {
         operationId: "elevenlabs_stt",
         summary: "Speech to text, ElevenLabs-compatible API (Whisper, word timings, no account)",
-        description: `${VOICE_FRONT_DESCRIPTIONS.stt} Same request as ElevenLabs' POST /v1/speech-to-text (Scribe): multipart file or cloud_storage_url, optional language_code; diarize is not supported. ${sttPriced}. An adt_ prepaid key works as xi-api-key.`,
+        description: `${VOICE_FRONT_DESCRIPTIONS.stt} Same request as ElevenLabs' POST /v1/speech-to-text (Scribe): multipart file or cloud_storage_url, optional language_code; diarize=true labels every word with speaker_id (served by /transcribe/speakers at its price; word times inside a turn are spread by length). The voice picker and key check ElevenLabs apps read on setup also answer here, free: GET /v1/voices, /v2/voices, /v1/voices/{voice_id}, /v1/models (with xi-api-key), /v1/user and /v1/user/subscription. ${sttPriced}. An adt_ prepaid key works as xi-api-key.`,
         tags: sttTags,
         "x-payment-info": sttPay,
         requestBody: { required: true, content: fileForm({ cloud_storage_url: { type: "string", description: "Public URL of the file instead of an upload" }, language_code: { type: "string" }, model_id: { type: "string", description: "Accepted and ignored" } }) },

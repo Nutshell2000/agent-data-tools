@@ -48,7 +48,13 @@ test('transcription options and answer shapes for OpenAI and ElevenLabs clients'
   assert.deepEqual(v.transcriptionOptions({ response_format: 'SRT', language: 'sv' }, 'openai'), { format: 'srt', language: 'sv' });
   assert.match(v.transcriptionOptions({ response_format: 'docx' }, 'openai').error, /response_format/);
   assert.deepEqual(v.transcriptionOptions({ model_id: 'scribe_v1', cloud_storage_url: 'https://x.test/a.mp3', language_code: 'en' }, 'eleven'), { format: 'eleven', language: 'en', url: 'https://x.test/a.mp3' });
-  assert.match(v.transcriptionOptions({ diarize: 'true' }, 'eleven').error, /diarize/);
+  assert.deepEqual(v.transcriptionOptions({ diarize: 'true' }, 'eleven'), { format: 'eleven', diarize: true });
+  assert.deepEqual(v.transcriptionOptions({ diarize: 'true' }, 'openai'), { format: 'json' }, 'diarize is an ElevenLabs field only');
+  const dw = v.diarizedWords([{ speaker: 1, start: 0, end: 1, text: 'Hi there' }, { speaker: 2, start: 1.2, end: 2, text: 'Hello' }]);
+  assert.deepEqual(dw.filter((w) => w.type === 'word').map((w) => [w.text, w.speaker_id]), [['Hi', 'speaker_0'], ['there', 'speaker_0'], ['Hello', 'speaker_1']]);
+  assert.equal(dw[0].start, 0); assert.equal(dw.filter((w) => w.type === 'word')[1].end, 1, 'a turn ends at its own end');
+  assert.equal(dw.filter((w) => w.type === 'word')[2].start, 1.2);
+  assert.deepEqual(v.shapeTranscript({ text: 'Hi there Hello', language: 'en', turns: [{ speaker: 1, start: 0, end: 1, text: 'Hi there' }] }, 'eleven', 'eleven').json.words.filter((w) => w.type === 'word').length, 2);
   assert.match(v.transcriptionOptions({ language: 'en; drop' }, 'openai').error, /language/);
   const t = { text: 'Hello there.', language: 'en', languageProbability: 0.98, durationSeconds: 1.2, segments: [{ start: 0, end: 1.2, text: 'Hello there.' }], words: [{ word: 'Hello', start: 0, end: 0.5 }, { word: 'there.', start: 0.5, end: 1.2 }], subtitles: '1\n00:00:00,000 --> 00:00:01,200\nHello there.\n' };
   assert.deepEqual(v.shapeTranscript(t, 'openai', 'json'), { json: { text: 'Hello there.' } });
@@ -140,11 +146,56 @@ test('OpenAI transcriptions and ElevenLabs speech to text quote an uploaded file
   const bf = await postForm('/v1/audio/transcriptions', { response_format: 'docx' }, { 'x-payment': 'not-real' });
   assert.equal(bf.status, 400);
   assert.match((await bf.json()).error.message, /response_format/);
-  const dr = await postForm('/v1/speech-to-text', { diarize: 'true' }, { 'xi-api-key': 'adt_notreal' });
-  assert.equal(dr.status, 400);
-  assert.match((await dr.json()).detail.message, /diarize/);
+  // 17 Nov 2026: diarize=true is served by the speaker-label tool, quoted at its price.
+  const dr = await postForm('/v1/speech-to-text', { diarize: 'true' });
+  assert.equal(dr.status, 402);
+  assert.equal(dr.headers.get('X-Tool'), '/transcribe/speakers');
+  assert.equal((await quote(dr)).accepts[0].amount, await atomicOf('/transcribe/speakers'));
 });
 
+test('ElevenLabs account surface: voices, one voice, models in their shape, and the key check', async () => {
+  const a = await load('src/lib/eleven-account.ts');
+  const list = a.elevenVoiceList();
+  assert.equal(list[0].voice_id, 'luna');
+  assert.ok(list.length >= 50);
+  assert.ok(list.every((v) => v.category === 'premade' && v.labels.language));
+  assert.equal(a.elevenVoiceById('21m00Tcm4TlvDq8ikWAM').labels.gender, 'female', 'a premade ID answers with the voice it maps to');
+  assert.equal(a.elevenVoiceById('aquila').labels.language, 'es');
+  assert.equal(a.elevenVoiceById('nobody'), undefined);
+  const v1 = await (await mf.dispatchFetch(`${O}/v1/voices`)).json();
+  assert.equal(v1.voices.length, list.length);
+  const v2 = await (await mf.dispatchFetch(`${O}/v2/voices`)).json();
+  assert.equal(v2.total_count, list.length); assert.equal(v2.has_more, false);
+  assert.equal((await mf.dispatchFetch(`${O}/v1/voices/orion`)).status, 200);
+  assert.equal((await mf.dispatchFetch(`${O}/v1/voices/nobody`)).status, 404);
+  const em = await (await mf.dispatchFetch(`${O}/v1/models`, { headers: { 'xi-api-key': 'adt_x' } })).json();
+  assert.ok(Array.isArray(em) && em[0].can_do_text_to_speech === true);
+  const om = await (await mf.dispatchFetch(`${O}/v1/models`)).json();
+  assert.equal(om.object, 'list', 'without xi-api-key /v1/models stays OpenAI-shaped');
+  const nokey = await mf.dispatchFetch(`${O}/v1/user`);
+  assert.equal(nokey.status, 401);
+  assert.equal((await nokey.json()).detail.status, 'invalid_api_key');
+  assert.equal((await mf.dispatchFetch(`${O}/v1/user/subscription`, { headers: { 'xi-api-key': 'sk_their_key' } })).status, 401);
+});
+
+test('ElevenLabs with-timestamps: character alignment from measured cues, quoted at the captions tool price', async () => {
+  const w = await load('src/lib/eleven-timestamps.ts');
+  const a = w.alignmentFromCues([{ start: 0, end: 1, text: 'Hi.' }, { start: 1.2, end: 2, text: 'Yo' }]);
+  assert.equal(a.characters.join(''), 'Hi. Yo');
+  assert.equal(a.characters.length, a.character_start_times_seconds.length);
+  assert.equal(a.character_end_times_seconds[2], 1, 'a cue ends at its measured end');
+  assert.equal(a.character_start_times_seconds[4], 1.2, 'the next cue starts at its measured start');
+  assert.deepEqual(Object.fromEntries(w.timestampsRequest({ text: 'Hello' }, '21m00Tcm4TlvDq8ikWAM', null)), { text: 'Hello', voice: w.timestampsRequest({ text: 'x' }, '21m00Tcm4TlvDq8ikWAM', null).get('voice') });
+  assert.match(w.timestampsRequest({ text: 'Hi' }, 'luna', 'pcm_16000').error, /mp3/);
+  const res = await mf.dispatchFetch(`${O}/v1/text-to-speech/luna/with-timestamps`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: 'Hello there.' }) });
+  assert.equal(res.status, 402);
+  assert.equal(res.headers.get('X-Tool'), '/text-to-speech/captions');
+  const q = await quote(res);
+  assert.equal(q.resource.url, `${O}/v1/text-to-speech/luna/with-timestamps`);
+  assert.equal(q.accepts[0].amount, await atomicOf('/text-to-speech/captions'));
+  const bad = await mf.dispatchFetch(`${O}/v1/text-to-speech/luna/with-timestamps?output_format=pcm_16000`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-payment': 'not-real' }, body: JSON.stringify({ text: 'Hi' }) });
+  assert.equal(bad.status, 400);
+});
 test('/transcribe takes the audio file itself in a POST body', async () => {
   // Raw bytes as application/octet-stream (raw audio/* bodies wait for 1.182.0, which edits the same line), or multipart.
   const raw = await mf.dispatchFetch(`${O}/transcribe`, { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: fakeMp3Bytes() });
