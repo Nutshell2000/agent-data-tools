@@ -25,7 +25,10 @@ test('OpenAI speech body: input, voice, format and length decide the tool', asyn
   assert.match(lib.toSpeechRequest({ voice: 'nova' }).error, /input is required/);
   assert.match(lib.toSpeechRequest(null).error, /JSON object/);
   // Only what the tools can return is accepted; a paying caller is told before anything is charged.
-  assert.match(lib.toSpeechRequest({ input: 'Hi', response_format: 'wav' }).error, /mp3/);
+  // 17 Nov 2026: wav, pcm (24 kHz as OpenAI sends it), opus and flac are served; aac is refused.
+  assert.deepEqual(lib.toSpeechRequest({ input: 'Hi', response_format: 'wav' }).format, { name: 'wav', sampleRate: 24000 });
+  assert.deepEqual(lib.toSpeechRequest({ input: 'Hi', response_format: 'pcm' }).format, { name: 'pcm', sampleRate: 24000 });
+  assert.match(lib.toSpeechRequest({ input: 'Hi', response_format: 'aac' }).error, /aac/);
   assert.equal(lib.toSpeechRequest({ input: 'Hi', response_format: 'MP3' }).tool, '/ai/speech');
   assert.match(lib.toSpeechRequest({ input: 'Hi', speed: 1.5 }).error, /speed/);
   assert.equal(lib.toSpeechRequest({ input: 'Hi', speed: 1 }).tool, '/ai/speech');
@@ -81,7 +84,7 @@ test('/v1/audio/speech quotes under its own name, at the price of the tool the i
 });
 
 test('/v1/audio/speech refuses what it cannot return before any payment is used, and is in the OpenAPI document', async () => {
-  for (const body of [{ input: 'Hi', response_format: 'wav' }, { input: 'x'.repeat(2001) }, { voice: 'nova' }]) {
+  for (const body of [{ input: 'Hi', response_format: 'aac' }, { input: 'x'.repeat(2001) }, { voice: 'nova' }]) {
     const res = await post(body, { 'x-payment': 'not-a-real-payment' });
     assert.equal(res.status, 400, JSON.stringify(body).slice(0, 60));
     assert.equal((await res.json()).error.type, 'invalid_request_error');

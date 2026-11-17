@@ -11,6 +11,14 @@ import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody, type 
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
 import { apiKeyFrom } from "./credits";
 import { admitVoiceKey, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
+import { fromOpenAiFormat, parsePronunciations, type SpeechFormat } from "./speech-formats";
+
+/** A body's pronunciations as the query string the speech tools read, or why it cannot be used. */
+export function pronunciationsParam(raw: unknown): { value?: string } | { error: string } {
+  const pairs = parsePronunciations(raw);
+  if ("error" in pairs) return pairs;
+  return pairs.length ? { value: JSON.stringify(Object.fromEntries(pairs)) } : {};
+}
 import { SPEECH_CREDITS_PER_100, asFrontKeyError, foreignKey, foreignKeySentence, frontError, setFrontKeyPrice, speechRatePrice, withSentenceFirst, type ErrorShape } from "./voice-billing";
 
 export const OPENAI_SPEECH_PATH = "/v1/audio/speech";
@@ -28,7 +36,7 @@ const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", 
 /** What a key was charged and has left (set by the paywall on the tool's answer), shown on the front's answer too. */
 export const KEY_RESPONSE_HEADERS = ["x-credits-charged", "x-credits-remaining", "x-credits-low", "x-free-calls-left", "x-review-calls-left", "x-test-calls-left", "x-trial-files-left", "x-trial-minutes", "x-key-limits"];
 
-export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string }
+export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string; format?: SpeechFormat; pronunciations?: string }
 
 /** ElevenLabs SDKs send the API key as `xi-api-key`: an adt_ prepaid key sent that way is read as X-API-Key. */
 export function withXiKey(headers: Headers): Headers {
@@ -41,26 +49,28 @@ export function withXiKey(headers: Headers): Headers {
 /** The speech request an OpenAI audio body stands for, or why it cannot be served. */
 export function toSpeechRequest(body: unknown): SpeechRequest | { error: string } {
   if (!body || typeof body !== "object") return { error: "the body must be a JSON object with input" };
-  const b = body as { input?: unknown; text?: unknown; voice?: unknown; response_format?: unknown; lang?: unknown; language?: unknown; speed?: unknown };
+  const b = body as { input?: unknown; text?: unknown; voice?: unknown; response_format?: unknown; lang?: unknown; language?: unknown; speed?: unknown; pronunciations?: unknown };
   const raw = typeof b.input === "string" ? b.input : typeof b.text === "string" ? b.text : "";
   const text = raw.trim();
   if (!text) return { error: "input is required: the text to speak" };
   if (text.length > SPEECH_INPUT_LIMIT) return { error: `input must be at most ${SPEECH_INPUT_LIMIT} characters` };
-  const format = b.response_format === undefined || b.response_format === null ? "mp3" : String(b.response_format).toLowerCase();
-  if (format !== "mp3") return { error: "response_format must be mp3 (the only format this endpoint returns)" };
+  const format = fromOpenAiFormat(b.response_format);
+  if ("error" in format) return { error: format.error };
+  const say = pronunciationsParam(b.pronunciations);
+  if ("error" in say) return { error: say.error };
   if (b.speed !== undefined && Number(b.speed) !== 1) return { error: "speed must be 1 (other speeds are not supported)" };
   // OpenAI voices may be sent as a name or as { id }; anything else is left to the tool's default voice.
   const voice = typeof b.voice === "string" ? b.voice.trim().toLowerCase() : b.voice && typeof b.voice === "object" && typeof (b.voice as { id?: unknown }).id === "string" ? String((b.voice as { id: string }).id).trim().toLowerCase() : "";
   const langRaw = typeof b.lang === "string" ? b.lang : typeof b.language === "string" ? b.language : "";
   const lang = langRaw.trim().toLowerCase().slice(0, 2);
   if (lang && lang !== "en" && lang !== "es") return { error: "language must be en or es" };
-  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
+  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), ...(format.name !== "mp3" ? { format } : {}), ...(say.value ? { pronunciations: say.value } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
 }
 
 /** The audio body a GET query stands for (`input=` or `text=`), or null when it names no text. */
 export function speechBodyFromQuery(params: Record<string, string>): Record<string, unknown> | null {
   const input = params.input ?? params.text;
-  return input === undefined ? null : { input, voice: params.voice, response_format: params.response_format, language: params.language ?? params.lang };
+  return input === undefined ? null : { input, voice: params.voice, response_format: params.response_format, language: params.language ?? params.lang, pronunciations: params.pronunciations };
 }
 
 /** Base64 to bytes. */
@@ -89,6 +99,8 @@ export async function speakThrough(c: C, forward: Forward, request: SpeechReques
   inner.searchParams.set("text", request.text);
   if (request.voice) inner.searchParams.set("voice", request.voice);
   if (request.lang) inner.searchParams.set("lang", request.lang);
+  if (request.pronunciations) inner.searchParams.set("pronunciations", request.pronunciations);
+  if (request.format && request.format.name !== "mp3") { inner.searchParams.set("format", request.format.name); if (request.format.sampleRate) inner.searchParams.set("sample_rate", String(request.format.sampleRate)); }
   const headers = new Headers(c.req.raw.headers);
   headers.delete("content-type");
   headers.delete("content-length");
@@ -148,14 +160,14 @@ export function openAiSpeechOpenApiPath(origin: string, prices: { short: string;
       post: {
         operationId: "audio_speech",
         summary: "OpenAI-compatible text to speech (Deepgram Aura-2, MP3 file)",
-        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. ${keyPriced} OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format must be mp3 and speed 1; model is accepted and ignored. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
+        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. ${keyPriced} OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format may be mp3 (default), opus, flac, wav or pcm (raw 16-bit, 24 kHz, as OpenAI sends it); opus and flac up to 450 characters; speed must be 1; model is accepted and ignored. An optional pronunciations object ({"Nginx":"engine x"}) says how to read names and terms. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
         tags: ["ai", "text-to-speech", "tts", "audio", "openai"],
         "x-payment-info": paymentInfo,
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { type: "object", required: ["input"], properties: { input: { type: "string", description: `Text to speak (up to ${SPEECH_INPUT_LIMIT.toLocaleString("en-US")} characters)` }, voice: { type: "string", description: "An OpenAI voice name or an Aura-2 voice name; default luna" }, model: { type: "string", description: "Ignored; the model is Deepgram Aura-2" }, response_format: { type: "string", description: "mp3 (the only format)" }, language: { type: "string", description: "en (default) or es" } } },
+              schema: { type: "object", required: ["input"], properties: { input: { type: "string", description: `Text to speak (up to ${SPEECH_INPUT_LIMIT.toLocaleString("en-US")} characters)` }, voice: { type: "string", description: "An OpenAI voice name or an Aura-2 voice name; default luna" }, model: { type: "string", description: "Ignored; the model is Deepgram Aura-2" }, response_format: { type: "string", description: "mp3 (default), opus, flac, wav or pcm" }, language: { type: "string", description: "en (default) or es" }, pronunciations: { type: "object", description: "Optional: how to say words, e.g. {\"Nginx\":\"engine x\"} (whole words, any case, up to 50)" } } },
               example: { model: "tts-1", input: "Your order has shipped and should reach you within three working days.", voice: "nova" },
             },
           },
