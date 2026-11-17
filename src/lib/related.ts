@@ -41,7 +41,10 @@ const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntri
   ["/ai/answer", ["/search", "/ai/chat"]],
   ["/pack/web-research", ["/extract", "/summarize"]],
   ["/pack/news-sentiment", ["/news", "/ai/sentiment"]],
-  ["/pack/url-safety", ["/url/redirects", "/domain-report", "/text/prompt-injection"]],
+  ["/pack/url-safety", ["/url/redirects", "/domain-report", "/text/prompt-injection", "/pack/contact-verify", "/pack/vendor-check"]],
+  ["/pack/email-verify", ["/email", "/pack/contact-verify", "/pack/email-deliverability", "/domain-report"]],
+  ["/pack/contact-verify", ["/pack/email-verify", "/phone/validate", "/pack/url-safety", "/pack/domain-intel"]],
+  ["/pack/vendor-check", ["/sanctions/check", "/pack/url-safety", "/pack/kyb-eu", "/pack/domain-intel"]],
   ["/pack/counterparty-full", ["/check/x402-seller", "/x402/payout-check", "/payee/check", "/check/counterparty", "/check/payee"]],
   ["/pack/einvoice-check", ["/einvoice/validate", "/einvoice/to-json"]],
 ] as const).flatMap(([pack, tools]) => tools.map((t) => [t, pack]))));
