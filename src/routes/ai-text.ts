@@ -15,6 +15,7 @@ export const AI_PRICE = "$0.01";
 const T = ["ai", "llm", "text"];
 const TEXT_MAX = 12_000;
 
+import { FORMAT_HELP, PRONUNCIATIONS_HELP, RATE_HELP, applyPronunciations, auraParams, formatType, joinRaw, joinable, parseFormat, parsePronunciations, type SpeechFormat } from "../lib/speech-formats";
 const AI_MODELS = {
   sentiment: "@cf/huggingface/distilbert-sst-2-int8",
   translate: "@cf/meta/m2m100-1.2b",
@@ -43,7 +44,10 @@ function meloLang(q: Input): "fr" | "zh" | "ja" | "ko" | undefined {
   if (!lang) throw new HttpError(400, `lang must be one of ${SPEECH_LANGS.join(", ")} (nothing was charged)`);
   return isMeloLang(lang) ? (lang as "fr" | "zh" | "ja" | "ko") : undefined;
 }
-/** One WAV in a MeloTTS language, in parts of up to 200 characters spoken in parallel. */
+/** French, Chinese, Japanese and Korean come from MeloTTS as WAV only. */
+function meloFormatCheck(fmt: SpeechFormat) {
+  if (fmt.name !== "mp3" && fmt.name !== "wav") throw new HttpError(400, "format applies to English and Spanish; fr, zh, ja and ko come as WAV (nothing was charged)");
+}/** One WAV in a MeloTTS language, in parts of up to 200 characters spoken in parallel. */
 async function meloAnswer(env: Env, t: string, lang: "fr" | "zh" | "ja" | "ko") {
   const parts = speechParts(meloSentences(t), MELO_PART_MAX);
   const { audioBase64, seconds } = await meloSpeech(env, parts, lang);
@@ -492,16 +496,20 @@ export const AI_TEXT: Entry[] = [
       text: { type: "string", description: "Text to speak, up to 300 characters", required: true, example: "Your payment was received. Thank you!" },
       lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
+      format: { type: "string", description: FORMAT_HELP, example: "mp3", enum: ["mp3", "wav", "pcm", "ulaw", "alaw", "opus", "flac"] },
+      sample_rate: { type: "string", description: RATE_HELP, example: "24000" },
+      pronunciations: { type: "string", description: PRONUNCIATIONS_HELP, example: "Nginx=engine x" },
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 41472, lang: "en", voice: "luna", characters: 37, model: AI_MODELS.speech },
     async (env, q) => {
       // Longer text is not a dead end: the refusal names the tool that reads it.
       if ((q("text")?.trim().length ?? 0) > SPEECH_MAX) throw new HttpError(400, `text is longer than ${SPEECH_MAX} characters; /text-to-speech reads up to ${SPEECH_LONG_MAX} characters (${SPEECH_LONG_PRICE})`);
       const t = text(q, SPEECH_MAX).trim();
+      const fmt = speechFormat(q);
       const other = meloLang(q);
-      if (other) return meloAnswer(env, t, other);
+      if (other) { meloFormatCheck(fmt); return meloAnswer(env, t, other); }
       const { lang, voice, model } = speechVoice(q);
-      const audioBase64 = await speakOnce(env, model, voice, t);
-      return { contentType: audioType(audioBase64), audioBase64, bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, model };
+      const audioBase64 = await speakFormatted(env, model, voice, [sayAs(q, t, SPEECH_MAX)], fmt);
+      return { contentType: fmt.name === "mp3" ? audioType(audioBase64) : formatType(fmt), audioBase64, ...(fmt.name === "mp3" ? {} : { format: fmt.name, ...(fmt.sampleRate ? { sampleRate: fmt.sampleRate } : {}) }), bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, model };
     }, SPEECH_PRICE),
   // Long text to speech (11 Nov 2026). Our steadiest buyer's router paid other sellers $37 that week for speech at $0.02 to
   // $0.10 a call (base-bots/buyer-next.mjs), while /ai/speech stops at 300 characters because of its one-cent price: a
@@ -515,19 +523,23 @@ export const AI_TEXT: Entry[] = [
       text: { type: "string", description: "Text to speak, up to 2,000 characters (1,200 in fr, zh, ja and ko)", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
       lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
+      format: { type: "string", description: FORMAT_HELP, example: "mp3", enum: ["mp3", "wav", "pcm", "ulaw", "alaw", "opus", "flac"] },
+      sample_rate: { type: "string", description: RATE_HELP, example: "24000" },
+      pronunciations: { type: "string", description: PRONUNCIATIONS_HELP, example: "Nginx=engine x" },
     }, { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", bytes: 187392, lang: "en", voice: "luna", characters: 168, parts: 1, model: AI_MODELS.speech },
     async (env, q) => {
       const t = text(q, SPEECH_LONG_MAX).trim();
+      const fmt = speechFormat(q);
       const other = meloLang(q);
       if (other) {
+        meloFormatCheck(fmt);
         if (t.length > MELO_MAX_CHARS) throw new HttpError(400, `text is ${t.length.toLocaleString("en-US")} characters; in ${other} this tool reads up to ${MELO_MAX_CHARS.toLocaleString("en-US")} (nothing was charged)`);
         return meloAnswer(env, t, other);
       }
       const { lang, voice, model } = speechVoice(q);
-      const parts = speechParts(t);
-      const spoken = await Promise.all(parts.map((part) => speakOnce(env, model, voice, part)));
-      const audioBase64 = spoken.length === 1 ? spoken[0] : joinMp3(spoken);
-      return { contentType: audioType(audioBase64), audioBase64, bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, parts: parts.length, model };
+      const parts = speechParts(sayAs(q, t, SPEECH_LONG_MAX));
+      const audioBase64 = await speakFormatted(env, model, voice, parts, fmt);
+      return { contentType: fmt.name === "mp3" ? audioType(audioBase64) : formatType(fmt), audioBase64, ...(fmt.name === "mp3" ? {} : { format: fmt.name, ...(fmt.sampleRate ? { sampleRate: fmt.sampleRate } : {}) }), bytes: base64Bytes(audioBase64), lang, voice, characters: t.length, parts: parts.length, model };
     }, SPEECH_LONG_PRICE),
 ];
 
@@ -541,8 +553,8 @@ export function speechVoice(q: Input) {
   if (asked && !voices.includes(asked)) throw new HttpError(400, `voice must be one of the ${lang} voices: ${voices.join(", ")}`);
   return { lang, voice: asked || (lang === "es" ? "aquila" : "luna"), model: lang === "es" ? AI_MODELS.speechEs : AI_MODELS.speech };
 }
-export async function speakOnce(env: Env, model: string, voice: string, t: string): Promise<string> {
-  const audioBase64 = await audioToBase64(await runAi<unknown>(env, model, { text: t, speaker: voice, encoding: "mp3" }));
+export async function speakOnce(env: Env, model: string, voice: string, t: string, params: Record<string, string | number> = { encoding: "mp3" }): Promise<string> {
+  const audioBase64 = await audioToBase64(await runAi<unknown>(env, model, { text: t, speaker: voice, ...params }));
   if (!audioBase64) throw new HttpError(502, "the AI model returned no audio");
   return audioBase64;
 }
@@ -602,6 +614,30 @@ export function joinMp3(partsBase64: string[]): string {
   return toBase64(out);
 }
 
+/** The text as it should be spoken, with the request's pronunciations applied; a bad list or a result far over the limit is a 400. */
+export function sayAs(q: Input, t: string, limit: number): string {
+  const pairs = parsePronunciations(q("pronunciations"));
+  if ("error" in pairs) throw new HttpError(400, `${pairs.error} (nothing was charged)`);
+  const out = pairs.length ? applyPronunciations(t, pairs) : t;
+  if (out.length > limit + 500) throw new HttpError(400, `the text with its pronunciations applied is ${out.length.toLocaleString("en-US")} characters; at most ${(limit + 500).toLocaleString("en-US")} (nothing was charged)`);
+  return out;
+}
+/** The request's audio format (format, sample_rate); a bad value is a 400 before anything runs. */
+export function speechFormat(q: Input): SpeechFormat {
+  const f = parseFormat(q("format"), q("sample_rate"));
+  if ("error" in f) throw new HttpError(400, `${f.error} (nothing was charged)`);
+  return f;
+}
+/**
+ * The parts spoken in the asked format and joined into one file, as base64. MP3 frames, raw PCM and the telephony codecs
+ * join; Opus and FLAC files do not, so they are refused for text that needs more than one part, before anything runs.
+ */
+export async function speakFormatted(env: Env, model: string, voice: string, parts: readonly string[], fmt: SpeechFormat): Promise<string> {
+  if (fmt.name === "mp3") { const s = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p))); return s.length === 1 ? s[0] : joinMp3(s); }
+  if (!joinable(fmt) && parts.length > 1) throw new HttpError(400, `${fmt.name} is available for text spoken in one part (up to ${SPEECH_PART_MAX} characters); use mp3, wav or pcm for longer text (nothing was charged)`);
+  const spoken = await Promise.all(parts.map((p) => speakOnce(env, model, voice, p, auraParams(fmt))));
+  return joinable(fmt) ? toBase64(joinRaw(spoken.map(fromBase64), fmt)) : spoken[0];
+}
 const B = ["utility", "basics"];
 export const BASICS: Entry[] = [
   entry("/echo", "Echo a message", "Returns the message you send, with its length and the server time. Use to test an x402 client, payment flow or agent tool wiring end to end.",
