@@ -52,6 +52,7 @@ import { marketplaceOf, orthogonalSecret } from "./lib/marketplace";
 import { FAVICON_ICO_BASE64 } from "./lib/favicon";
 import { OG_IMAGE_PNG_BASE64 } from "./lib/og-image";
 import { OG_GLYPHCALL_PNG_BASE64 } from "./lib/og-glyphcall";
+import { APP_PATH, appManifest, appPage, appServiceWorker } from "./lib/voice-app";
 import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
@@ -736,6 +737,10 @@ app.get("/favicon.svg", (c) => c.body(FAVICON_SVG, 200, { "Content-Type": "image
 const OG_IMAGE = Uint8Array.from(atob(OG_IMAGE_PNG_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/og.png", (c) => c.body(OG_IMAGE, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
 const OG_GLYPHCALL = Uint8Array.from(atob(OG_GLYPHCALL_PNG_BASE64), (ch) => ch.charCodeAt(0));
+// The installable voice app (lib/voice-app.ts): page, manifest and a service worker limited to /app.
+app.get(APP_PATH, (c) => c.html(appPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url)), 200, { "Cache-Control": "public, max-age=300" }));
+app.get("/manifest.webmanifest", (c) => c.body(JSON.stringify(appManifest(publicBrand(c.env, SERVICE_NAME))), 200, { "Content-Type": "application/manifest+json", "Cache-Control": "public, max-age=3600" }));
+app.get("/sw.js", (c) => c.body(appServiceWorker(), 200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-cache", "Service-Worker-Allowed": APP_PATH }));
 app.get("/og-glyphcall.png", (c) => c.body(OG_GLYPHCALL, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" }));
 app.get("/health", (c) => c.json({ ok: true }));
 // Owned buyer instructions only. No installation, wallet work or paid execution.
