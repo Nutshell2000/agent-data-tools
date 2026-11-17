@@ -16,6 +16,8 @@
     // 16 Nov 2026 (sales plan item 12): brand hosts for API and MCP clients; workers.dev stays the paid origin in listings.
     { "pattern": "api.glyphcall.com", "custom_domain": true },
     { "pattern": "mcp.glyphcall.com", "custom_domain": true },
+    // 17 Nov 2026 (owner: LexGlyph needs its own address): the root of this host is the LexGlyph page.
+    { "pattern": "lex.glyphcall.com", "custom_domain": true },
     { "pattern": "tools.funwords.eu", "custom_domain": true }
   ],
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
