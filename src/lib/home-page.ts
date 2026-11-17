@@ -7,12 +7,16 @@
 // Rules for this page (the same as the comparison and benchmark pages it links):
 // - Every number is computed from the catalog, the plans, STT_RIVALS / TTS_RIVALS (each rival figure copied from the
 //   rival's own pricing page on VOICE_CHECKED, linked) or a recorded benchmark run (BENCHMARKS). Never type a number.
-// - Say where a rival is better: OpenAI's tts-1 costs less per character than our cheapest voice, ElevenLabs has far
-//   more voices and languages, and Exa wins the research-paper benchmark.
+// - The "where others are better" panel was removed on the owner's order (17 Nov 2026): the front page sells, and the
+//   comparison tables still show every rival's own figures.
 // - No payment protocol, wallet or crypto word before the "For AI agents" section (tests/site-pages.test.cjs).
-// - No script: the code tabs are radio inputs, the motion is CSS and stops under prefers-reduced-motion.
+// - The only script is the free voice console in the hero (lib/voice-console.ts, 16 Nov 2026: "make glyphcall.com
+//   way easier to use ... better than ElevenLabs"): the tool comes first, the API second. Everything else stays
+//   script-free: the code tabs are radio inputs, the phone menu is a <details>, the motion is CSS and stops under
+//   prefers-reduced-motion.
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
+import { STUDIO_SITE, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
 import { BENCHMARKS, BENCHMARKS_PATH } from "./benchmarks-page";
 import { PLAN_PORTAL_URL } from "./credits";
 import { firstCall } from "./first-call";
@@ -29,9 +33,7 @@ const queryOf = (e: Endpoint) => exampleParams(e).map(([k, p]) => `${k}=${encode
 /** $0.05, $0.20, $0.258, $1.50: two decimals, a third only when it carries a digit. */
 const money = (n: number) => `$${n.toFixed(3).replace(/(\.\d\d)0$/, "$1")}`;
 
-/** The free in-browser tools on their own subdomains (Cloudflare Pages projects glyphcall-voice and glyphcall-studio). */
-export const VOICE_SITE = "https://voice.glyphcall.com";
-export const STUDIO_SITE = "https://studio.glyphcall.com";
+export { VOICE_SITE, STUDIO_SITE };
 
 /** Which shelf of the page each product sits on. A product not named here lands on the last shelf. */
 const SHELVES: readonly { id: string; kicker: string; title: string; lead: string; slugs: readonly string[] }[] = [
@@ -119,7 +121,6 @@ tr:last-child td{border-bottom:0}tr.us td{background:linear-gradient(90deg,rgba(
 .panel h3{margin:0 0 6px;font-size:1.1rem}.panel p{color:var(--muted);margin:0 0 10px;font-size:.95rem}
 .duel{display:grid;gap:10px;margin:14px 0}.duel div{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:.92rem}
 .duel .bar{grid-column:1/-1;height:10px}.duel .us b{color:var(--fg)}
-.honest{border-color:rgba(52,211,153,.3);background:linear-gradient(180deg,rgba(52,211,153,.06),var(--card))}.honest h3::before{content:"\\2696  ";}
 .free{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .tool{padding:24px;border-radius:18px;border:1px solid var(--line);background:radial-gradient(500px 200px at 0 0,rgba(34,211,238,.10),transparent 60%),var(--card)}
 .tool .tag{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);padding:3px 9px;border-radius:999px}
@@ -147,6 +148,14 @@ details>div{padding:0 18px 16px;color:var(--muted)}details .scroll{overflow-x:au
 footer{border-top:1px solid var(--line);margin-top:0;padding:40px 0 56px;color:var(--dim);font-size:.9rem}
 footer .cols{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:24px;margin-bottom:26px}footer h4{color:var(--fg);margin:0 0 10px;font-size:.92rem}
 footer ul{list-style:none;padding:0;margin:0}footer li{padding:3px 0}footer a{color:var(--muted)}footer .legal a{color:var(--muted)}
+.hero .wrap{grid-template-columns:.9fr 1.1fr}.hero .vc{box-shadow:0 30px 80px -30px rgba(34,211,238,.28)}
+.menu{display:none;position:relative}.menu summary{list-style:none;cursor:pointer;padding:8px 12px;border:1px solid var(--line);border-radius:10px;font-weight:650;font-size:.92rem}.menu summary::-webkit-details-marker{display:none}.menu summary::after{content:""}
+.menu div{position:absolute;right:0;top:44px;display:grid;min-width:220px;padding:8px;border-radius:14px;border:1px solid var(--line);background:#0d0d16;box-shadow:0 20px 50px rgba(0,0,0,.5)}.menu div a{color:var(--fg);padding:10px 12px;border-radius:8px}.menu div a:hover{background:rgba(255,255,255,.06);text-decoration:none}
+.easy{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.easy div{padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--card)}.easy h3{margin:0 0 6px;font-size:1.05rem}.easy p{margin:0;color:var(--muted);font-size:.93rem}
+.dev{display:grid;grid-template-columns:.8fr 1.2fr;gap:28px;align-items:center}
+@media (max-width:960px){.easy{grid-template-columns:1fr 1fr}.dev{grid-template-columns:1fr}.menu{display:block}}
+@media (max-width:520px){.easy{grid-template-columns:1fr}.hero .pill,.hero .ctas,.hero .trust{display:none}.hero .lede{margin-bottom:6px}.hero .wrap{gap:22px}}
+${VOICE_CONSOLE_CSS}
 @media (max-width:960px){.hero .wrap,.vs{grid-template-columns:1fr}.stats .wrap{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr}.faq{grid-template-columns:1fr}header.nav nav{display:none}footer .cols{grid-template-columns:1fr 1fr}}
 @media (max-width:520px){.hero{padding-top:44px}.stats .wrap{grid-template-columns:1fr}.nav-cta .btn:not(.primary){display:none}.shelf>p{margin-left:0}.btn{padding:12px 16px}.ctas .btn{flex:1 1 100%}}
 @media (prefers-reduced-motion:reduce){.wave i{animation:none;height:45%}.card,.btn{transition:none}html{scroll-behavior:auto}}`;
@@ -275,8 +284,10 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
     ],
   };
   const first = PRODUCTS.find((p) => p.slug === "speech-to-text-api") ?? PRODUCTS[0];
-  const cta = `<a class="btn primary" href="/${esc(first.slug)}">Try it free, no account</a><a class="btn" href="#pricing">See pricing</a>`;
-  const sampleCurl = `curl -H "Authorization: Bearer $GLYPHCALL_KEY" \\\n  "${origin}${BY_PATH.get("/pdf/text") ? `/pdf/text?${queryOf(BY_PATH.get("/pdf/text")!)}` : "/docs"}"`;
+  // The hero's own console is the free try, so the first button is the API, not another "try" page.
+  const cta = `<a class="btn primary" href="/${esc(first.slug)}">Use it in your app</a><a class="btn" href="#pricing">See pricing</a>`;
+  const finalCta = `<a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/credits">Get an API key</a>`;
+  const navLinks = `<a href="#try">Text to speech</a><a href="#try">Transcribe</a><a href="#products">APIs</a><a href="#compare">Compare</a><a href="/app">Get the app</a><a href="#pricing">Pricing</a>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -291,21 +302,30 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
 <style>${STYLE}</style></head><body>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
-<nav aria-label="Main">${SHELVES.map((s) => `<a href="#${s.id}">${esc(s.kicker.split(" ")[0])}</a>`).join("")}<a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="/docs">Docs</a></nav>
-<div class="nav-cta"><a class="btn sm" href="/docs">Docs</a>${opts.freeKey ? `<a class="btn sm" href="/keys/free">Get a free key</a>` : ""}<a class="btn sm primary" href="/credits">Get an API key</a></div></div></header>
+<nav aria-label="Main">${navLinks}</nav>
+<div class="nav-cta"><a class="btn sm" href="/docs">Docs</a>${opts.freeKey ? `<a class="btn sm" href="/keys/free">Get a free key</a>` : ""}<a class="btn sm primary" href="/credits">Get an API key</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
 <main>
-<section class="hero"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
+<section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
 <div><a class="pill" href="${VOICE_SITE}/transcribe"><b>NEW</b> ${esc(brand)} Transcribe Pro: long recordings, any format &rarr;</a>
-<h1>Voice, documents and search.<br><span class="gt">One key. Fair prices.</span></h1>
-<p class="lede">Transcribe <strong>an hour of audio for ${esc(us.long)}</strong>. Turn PDFs, scans and web pages into clean text. Find the exact EU law article or company record. <strong>You only pay for calls that work.</strong></p>
+<h1>Type it. Hear it.<br><span class="gt">Drop it. Read it.</span></h1>
+<p class="lede">Natural text to speech and accurate transcripts, <strong>free right here in your browser</strong>: no account, no credits to count, nothing uploaded. When you build it into your app, <strong>an hour of transcription costs ${esc(us.long)}</strong> and failed calls cost nothing.</p>
 <div class="ctas">${cta}</div>
-<ul class="trust"><li>Free try on every API</li><li>No account to start</li><li>Failed calls cost $0</li><li>Cancel any time</li></ul></div>
-<div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
-<div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
-<div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div>
+<ul class="trust"><li>Free and unlimited in the browser</li><li>No sign-up</li><li>Failed API calls cost $0</li><li>No automatic top-ups</li></ul></div>
+${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Need it inside your app? The <a href="/text-to-speech-api">text to speech API</a> takes the same text and returns MP3.`, upsellStt: `Long recordings or a slow computer? <a href="${VOICE_SITE}/transcribe">Transcribe Pro</a> does an hour on our servers, or use the <a href="/speech-to-text-api">speech to text API</a> at ${esc(us.long)} an hour.` })}
+<p style="margin:12px 2px 0;color:var(--dim);font-size:.9rem">Prefer an app? <a href="/app">Install {esc(brand)} Voice</a> on Windows, Mac, Linux, Android or iPhone: it works offline and needs no installer.</p>
 </div></section>
 
 <section class="stats" aria-label="In numbers"><div class="wrap">${stats.map(([n, l, s]) => `<div class="stat"><div class="n gt">${esc(n)}</div><div class="l">${esc(l)}</div><div class="s">${s}</div></div>`).join("")}</div></section>
+
+<section class="sec" id="easy"><div class="wrap">
+<span class="kicker">Easier by design</span><h2>No credit maths. No surprises.</h2>
+<p class="sub">The things people dislike most about voice platforms are the things we left out.</p>
+<div class="easy">
+<div><h3>Try first, for real</h3><p>The tools above run on your own input, with every voice and every download, before you ever see a price.</p></div>
+<div><h3>Priced in hours and characters</h3><p>${esc(us.long)} for an hour of transcription${hasLite ? `, ${esc(money(us.lite1k))} per 1,000 characters of speech` : ""}. No credit pool to convert.</p></div>
+<div><h3>Retries and previews are free</h3><p>In the browser nothing is counted, and over the API a call that fails is never charged.</p></div>
+<div><h3>Credits you keep</h3><p>Unused plan credits roll over, packs never expire, nothing tops up by itself, and you can cancel any time.</p></div>
+</div></div></section>
 
 <section class="sec" id="products"><div class="wrap">
 <span class="kicker">The APIs</span><h2>Small, focused APIs that each do one job well</h2>
@@ -318,12 +338,12 @@ ${shelves}
 <p class="sub">Every rival price below is copied from the rival's own pricing page on ${esc(VOICE_CHECKED)} and linked. Every benchmark has its questions and scripts in public.</p>
 <div class="vs"><div class="table"><div class="scroll"><table><thead><tr><th>Speech to text</th><th>Model</th><th>Per hour</th><th></th></tr></thead><tbody>${sttRows}</tbody></table></div>
 <p class="note">Pre-recorded audio, pay as you go. <a href="/compare/whisper-api-alternative">Full comparison</a> &middot; <a href="/compare/elevenlabs-alternative">vs ElevenLabs</a></p></div>
-<div class="side">${lawDuel}<div class="panel honest"><h3>Where others are better</h3><p>OpenAI's tts-1 costs less per character than our cheapest voice, ElevenLabs has far more voices and languages, and Exa finds research papers better than we do. We would rather tell you than have you find out.</p></div></div></div>
+<div class="side">${lawDuel}</div></div>
 </div></section>
 
 <section class="sec" id="free"><div class="wrap">
-<span class="kicker">Free tools</span><h2>Try it in your browser. Free, private, no sign-up.</h2>
-<p class="sub">The free modes run on your own device, so your recording or book stays on your computer.</p>
+<span class="kicker">More free tools</span><h2>Bigger jobs, still free and private.</h2>
+<p class="sub">Full-page versions of the console, subtitles for whole videos, and a studio that turns a book into an audiobook. They run on your own device, so your files stay on your computer.</p>
 <div class="free">
 <div class="tool"><span class="tag">Free</span><h3>Transcribe audio and video</h3><p>Speech to text in your browser, with text and subtitles to download.</p><a class="btn sm" href="${VOICE_SITE}/transcribe">Open Transcribe &rarr;</a></div>
 <div class="tool"><span class="tag">Free</span><h3>Text to speech</h3><p>Natural voices from your text, saved as WAV or MP3.</p><a class="btn sm" href="${VOICE_SITE}/text-to-speech">Open Text to speech &rarr;</a></div>
@@ -331,13 +351,15 @@ ${shelves}
 </div></div></section>
 
 <section class="sec" id="how"><div class="wrap">
-<span class="kicker">How it works</span><h2>From zero to first answer in a minute</h2>
-<ol class="steps">
-<li><strong>Try it.</strong> Every product page has a form that runs the real thing on your own input, free.</li>
+<span class="kicker">For developers</span><h2>From zero to first answer in a minute</h2>
+<div class="dev"><ol class="steps" style="grid-template-columns:1fr;margin:0">
+<li><strong>Try it.</strong> The console at the top, and a form on every product page, run the real thing on your own input, free.</li>
 <li><strong>Get a key.</strong> Pick a monthly plan or a one-off pack and pay by card. No account to create: the key is shown right after payment.</li>
-<li><strong>Call it.</strong> Send the key in a header. A call that fails costs nothing.</li>
+<li><strong>Call it.</strong> Send the key in a header. A call that fails costs nothing. OpenAI- and ElevenLabs-shaped requests work as they are.</li>
 </ol>
-<pre class="code"><code>${esc(sampleCurl)}</code></pre>
+<div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
+<div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
+<div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div></div>
 </div></section>
 
 <section class="sec" id="pricing"><div class="wrap">
@@ -356,12 +378,12 @@ ${pricing}
 </div>
 </div></section>
 
-<section class="final"><h2>Ship the feature today, <span class="gt">not next quarter</span></h2><p>Free to try, no account, and you only pay for answers that come back.</p><div class="ctas">${cta}</div></section>
-</main>
+<section class="final"><h2>Ship the feature today, <span class="gt">not next quarter</span></h2><p>Free to try, no account, and you only pay for answers that come back.</p><div class="ctas">${finalCta}</div></section>
+</main>${voiceConsoleScript()}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Focused APIs for voice, documents and search. Pay only for calls that work.</p></div>
 ${SHELVES.map((s) => `<div><h4>${esc(s.kicker)}</h4><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
 </div>
-<p class="legal"><a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="${BENCHMARKS_PATH}">Benchmarks</a> · <a href="/compare/elevenlabs-alternative">vs ElevenLabs</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
+<p class="legal"><a href="/app">Install the app</a> · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="${BENCHMARKS_PATH}">Benchmarks</a> · <a href="/compare/elevenlabs-alternative">vs ElevenLabs</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
 </div></footer></body></html>`;
 }

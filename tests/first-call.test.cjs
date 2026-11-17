@@ -200,7 +200,8 @@ test('a tool outside the HTTP free trial gets no freeTrial, and a caller who use
 test('the hero of the front page opens with a keyless curl and the answer that request really gives', async () => {
   const html = await (await get('/', browser)).text();
   assert.match(html, /<a class="brand" href="\/">Glyphcall<\/a>/, 'the product front page');
-  const hero = html.slice(html.indexOf('<section class="hero">'), html.indexOf('<section class="stats"'));
+  // The hero is the free in-browser voice console since 16 Nov 2026; the keyless curl opens the developers section.
+  const hero = html.slice(html.indexOf('<span class="kicker">For developers</span>'));
   const firstCode = /<pre><code>([\s\S]*?)<\/code><\/pre>/.exec(hero)[1];
   const curl = unescape(firstCode.replace(/<[^>]+>/g, ''));
   const url = /^curl "(https:\/\/api\.test\/[^"]+[?&]trial=1)"$/.exec(curl)?.[1];
