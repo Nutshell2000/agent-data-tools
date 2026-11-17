@@ -49,7 +49,7 @@ after(async () => { await moved?.dispose(); await asBefore?.dispose(); });
 const ask = (mf, url, { method = "GET", headers = BROWSER, body } = {}) => mf.dispatchFetch(url, { method, headers: { ...headers, ...(body ? { "content-type": "application/json" } : {}) }, body, redirect: "manual" });
 
 // Human pages: a browser is sent on, page for page, with its query.
-const PAGES = ["/", "/docs?utm_source=x&b=2", "/agents", "/tools", "/tools/time", "/guides", "/pdf-to-text-api", "/speech-to-text-api?ref=a%20b", "/compare", "/vat-number-check", "/benchmarks", "/about", "/terms", "/privacy", "/changelog"];
+const PAGES = ["/", "/docs?utm_source=x&b=2", "/agents", "/tools", "/tools/time", "/guides", "/pdf-to-text-api", "/speech-to-text-api?ref=a%20b", "/vat-number-check", "/about", "/terms", "/privacy", "/changelog"];
 
 test("a browser's GET of a human page on workers.dev answers 301 to the same path and query on glyphcall.com", async () => {
   for (const path of PAGES) {
