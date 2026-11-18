@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.221.0";
+export const MCP_SERVER_VERSION = "1.222.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -277,6 +277,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
   "/pack/token-flows": "Prices and DeFi", "/token/flow": "Prices and DeFi", "/token/who-bought-sold": "Prices and DeFi", // 18 Nov 2026: token flows
+  "/phishing/check": "Company, compliance and checks", "/url/safety-check": "Company, compliance and checks", "/merchant/trust": "Company, compliance and checks", // 18 Nov 2026: phishing blocklists
   "/stablecoin/charts": "Prices and DeFi",
   "/document/text": "Web, documents and search", "/document/extract": "Web, documents and search",
   "/gpt/pricing": "Utilities", "/claude/pricing": "Utilities", "/grok/pricing": "Utilities", "/minimax/pricing": "Utilities",

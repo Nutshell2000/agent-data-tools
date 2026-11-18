@@ -34,7 +34,7 @@ import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, COMPACT_PRICE_CEILING, COMPACT_TOOLS, aboveCompactCeiling, annotationsFor, compactPricePermits, compactReach, directoryToolDescription, mcpName, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { relatedTools } from "./lib/related";
 import { TOOLS } from "./tools";
-import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
+import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingNameFor, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
 import { EXTRA_CHAIN_PATHS } from "./routes/chain-reads";
 
@@ -111,7 +111,7 @@ function paymentWrapperFor(e: Endpoint, payment: NonNullable<typeof payments>, i
         url: `mcp://tool${e.path}`,
         description: listingDescription(e),
         mimeType: "application/json",
-        serviceName: listingName(e.summary),
+        serviceName: listingNameFor(e),
         iconUrl,
         tags: listingTags(e.tags, e.path),
       },

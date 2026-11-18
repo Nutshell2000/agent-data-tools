@@ -24,12 +24,13 @@ test('url safety signals: bare IPs, punycode, new domains, plain HTTP, user@host
 
 test('research packs: names within 32 characters, descriptions within 450, one cent, inputs checked before any request', async () => {
   const { PACKS_RESEARCH } = await load();
-  assert.deepEqual(PACKS_RESEARCH.map((e) => e.endpoint.path), ['/pack/web-research', '/ai/answer', '/ai/fact-check', '/pack/news-sentiment', '/pack/url-safety']);
+  assert.deepEqual(PACKS_RESEARCH.map((e) => e.endpoint.path), ['/pack/web-research', '/ai/answer', '/ai/fact-check', '/pack/news-sentiment', '/phishing/check', '/pack/url-safety']);
   for (const e of PACKS_RESEARCH) {
     assert.ok(e.endpoint.summary.split(':')[0].length <= 32, e.endpoint.summary);
     assert.ok(e.endpoint.description.length <= 450, `${e.endpoint.path} ${e.endpoint.description.length}`);
     // $0.03 on two of them for a few hours on 11 Nov 2026 (1.130.0); back at $0.01 in 1.136.0 (Mercator's gateway did not pay the dearer quote).
-    assert.equal(e.endpoint.price, '$0.01', e.endpoint.path);
+    // /phishing/check (1.222.0) is a single KV lookup at the entry price.
+    assert.equal(e.endpoint.price, e.endpoint.path === '/phishing/check' ? '$0.002' : '$0.01', e.endpoint.path);
     await assert.rejects(Promise.resolve().then(() => e.run({}, () => undefined)), (err) => err.status === 400, e.endpoint.path);
   }
   await assert.rejects(Promise.resolve().then(() => PACKS_RESEARCH[2].run({}, (n) => (n === 'url' ? 'http://127.0.0.1/' : undefined))), (err) => err.status === 400);
