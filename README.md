@@ -6,13 +6,28 @@
 
 665 pay-per-call tools for AI agents over MCP and plain HTTP: web search and news, payee screening and OFAC sanctions checks, crypto token prices, wallet balances and token transfers, web page to Markdown, PDF to text, email verification, company and domain lookups, weather, SEC filings, World Bank GDP, inflation, population and unemployment, LLM chat and embeddings. In full: blockchain reads on 5 EVM chains plus Bitcoin, token prices and risk, OFAC sanctions and counterparty checks, company and domain data, web pages and PDFs as text, weather, time, countries, and everyday utilities (JSON, CSV, hashes, dates, validators). Most tools cost **$0.01** per successful call.
 
+## For batch jobs: lists of links, companies and pages
+
+Each check is one GET, JSON back, no rate limit on our side, and a failed call is never charged, so a messy list costs only what answers. Run a worker pool over your list.
+
+| Job over a list | Tool | Price per item |
+|---|---|---|
+| Is this link a phishing site? (Phishing.Database + MetaMask blocklists, without opening the link) | [/phishing/check](https://glyphcall.com/tools/phishing-check) | $0.002 |
+| Is this link safe to open or pay? (redirect hops, domain age, blocklists, HTTPS) | [/pack/url-safety](https://glyphcall.com/tools/pack-url-safety) | see the tool page |
+| Web page to clean Markdown or text for an LLM | [/extract](https://glyphcall.com/bulk-web-reader-api) | $0.002 ($2 per 1,000 pages) |
+| EU VAT number valid? (VIES, registered name) | [/vat/validate](https://glyphcall.com/tools/vat-validate) | $0.01 |
+| Know-your-business check of a European company | [/pack/kyb-eu](https://glyphcall.com/tools/pack-kyb-eu) | $0.02 |
+| Person, company or wallet on a sanctions list? (OFAC, EU, UN, UK) | [/sanctions/check](https://glyphcall.com/tools/sanctions-check) | $0.009 |
+| Merchant or vendor domain trustworthy? | [/domain-report](https://glyphcall.com/tools/domain-report) | $0.02 |
+
+From a terminal, one JSON line per page: `npx agent-data-tools read urls.txt > pages.jsonl` (save a key once with `npx agent-data-tools key adt_...`). Agents with a USDC wallet pay per call over x402 on Base, Polygon, Arbitrum or Solana instead of using a key.
 ## APIs for developers, by monthly plan
 
 One API key, from $9 a month or pay as you go, paid by card. Each page has the request in curl, Python and Node.js and a free try:
 
-- **[Company check API](https://tools.funwords.eu/company-check-api)**: EU VAT number validation (VIES), the Swedish, Norwegian, Finnish and French company registers, OFAC sanctions screening and LEI lookup. [VAT number formats and a live check for every EU country](https://tools.funwords.eu/vat-number-check).
-- **[PDF to text API](https://tools.funwords.eu/pdf-to-text-api)**: text page by page as JSON, from a URL.
-- **[Web page to Markdown API](https://tools.funwords.eu/web-page-to-markdown-api)**: clean Markdown or text for an LLM, with a rendered reader for JavaScript pages.
+- **[Company check API](https://glyphcall.com/company-check-api)**: EU VAT number validation (VIES), the Swedish, Norwegian, Finnish and French company registers, OFAC sanctions screening and LEI lookup. [VAT number formats and a live check for every EU country](https://glyphcall.com/vat-number-check).
+- **[PDF to text API](https://glyphcall.com/pdf-to-text-api)**: text page by page as JSON, from a URL.
+- **[Web page to Markdown API](https://glyphcall.com/web-page-to-markdown-api)**: clean Markdown or text for an LLM, with a rendered reader for JavaScript pages.
 
 ## Quick start
 
