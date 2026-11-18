@@ -459,7 +459,10 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
     registerCompactTools(mcp, env, origin, endpoints, shapeOf, trackedFor, capped, (e) => creditKey ? keyPrice(e.path, e.price) : e.price);
   } else {
     for (const e of endpoints) {
-      mcp.tool(toolName(e), directory ? directoryToolDescription(e) : toolDescription(e), shapeOf(e), annotationsFor(e.path), trackedFor(e) as never);
+      // Keep aliases and let each tool's own need() enforce required inputs: the SDK would otherwise reject an
+      // alias name before the shared resolver can read it. tools/list still advertises the declared schema.
+      const callShape = Object.fromEntries(Object.entries(shapeOf(e)).map(([name, field]) => [name, field.optional()]));
+      mcp.registerTool(toolName(e), { description: directory ? directoryToolDescription(e) : toolDescription(e), inputSchema: z.object(callShape).passthrough(), annotations: annotationsFor(e.path) }, trackedFor(e) as never);
     }
     // SDK Zod conversion cannot represent the existing oneOf/not output contract.
     // Advertise it verbatim; TOOLS validates before settlement, rather than after the SDK handler.

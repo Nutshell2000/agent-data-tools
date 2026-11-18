@@ -146,6 +146,14 @@ test('compact call_tool keeps input aliases so MCP agents can send the names HTT
   }, { path: '/mcp/compact', ip: '203.0.113.31' });
 });
 
+test('ordinary MCP servers also accept the HTTP input aliases', async () => {
+  await withClient(async (client) => {
+    const aliased = await client.callTool({ name: 'hash', arguments: { input: 'hello' } });
+    assert.equal(aliased.isError, undefined, JSON.stringify(aliased));
+    assert.equal(aliased.structuredContent.hex, SHA_HELLO);
+  }, { ip: '203.0.113.32' });
+});
+
 test('on /mcp find_tool, describe_tool and call_tool work as on the compact server, and tool_details still answers', async () => {
   await withClient(async (client) => {
     const found = jsonOf(await client.callTool({ name: 'find_tool', arguments: { need: 'sha256 hash of a text', count: 3 } }));
