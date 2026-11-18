@@ -1,6 +1,7 @@
 // Read-only Coinbase readiness validation. Never signs, settles or seeds listings.
 // node scripts/check-live-readiness.mjs [--output path-to-private-evidence.json]
 import { writeFile } from "node:fs/promises";
+import { isValidatorGlitch } from "./validator-glitch.mjs";
 const origin = "https://agent-data-tools.revmesh2074.workers.dev";
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== "--output")) {
@@ -30,8 +31,13 @@ async function worker() {
         });
         const text = await response.text();
         try { detail = text ? JSON.parse(text) : null; } catch { detail = null; }
-        if (detail && response.status !== 429 && response.status < 500) break;
-        if (attempt >= 5) throw new Error(`validator answered HTTP ${response.status} ${text ? "with unreadable JSON" : "with an empty body"} five times`);
+        // A throttled validator answer is HTTP 200 with JSON but no quote and every required check failed.
+        // Retry that shape too; a real failure repeats and still fails after five tries.
+        const glitch = isValidatorGlitch(detail);
+        if (detail && response.status !== 429 && response.status < 500 && !glitch) break;
+        if (attempt >= 5) throw new Error(glitch
+          ? `validator answered a throttled body (no quote, every required check failed) five times for ${path}`
+          : `validator answered HTTP ${response.status} ${text ? "with unreadable JSON" : "with an empty body"} five times`);
         const retryAfter = Number(response.headers.get("retry-after")) * 1000;
         const waitMs = Math.min(120_000, Math.max(retryAfter || 0, 10_000 * 2 ** (attempt - 1)));
         if (response.status === 429) pausedUntil = new Promise((r) => setTimeout(r, waitMs));
