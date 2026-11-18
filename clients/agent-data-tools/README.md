@@ -43,6 +43,18 @@ const weather = await adt.call("/weather", { city: "London" });
 const matches = await adt.tools({ search: "sanctions" });
 ```
 
+## Read a list of web pages
+
+One URL per line in a file (or on stdin); one JSON line per page comes out, 8 pages at a time by default:
+
+```sh
+npx agent-data-tools key adt_...                 # once
+npx agent-data-tools read urls.txt > pages.jsonl
+npx agent-data-tools read urls.txt --concurrency 16 --format text --max-chars 5000
+```
+
+Each line is `{url, ok, status, title, markdown, chars}` or `{url, ok: false, status, error}`. Pages that block bots, need JavaScript, are empty or missing are reported and never charged; the run goes on. Pricing per page: https://agent-data-tools.revmesh2074.workers.dev/bulk-web-reader-api
+
 ## Give the tools to a model
 
 `openAiTools()` returns OpenAI function-calling definitions; [examples/openai-agent.mjs](examples/openai-agent.mjs) is a complete loop in 30 lines.

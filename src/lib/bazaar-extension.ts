@@ -232,6 +232,23 @@ const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "fro
  * 32 printable ASCII characters: the summary's lead phrase (before a colon), cut at a word within 32 characters,
  * without trailing filler words. Example: "Weather forecast: current weather…" -> "Weather forecast".
  */
+/**
+ * Listing names that are not the tool's lead phrase (1.222.0, 18 Nov 2026). Mercator (the router behind our biggest
+ * buyer) imports us from the Coinbase Bazaar as ONE service and names all 727 endpoints after our best-ranked listing in
+ * the Bazaar default list (on 7 Nov /news: "News headlines, latest news"; on 18 Nov /btc-fees: "Bitcoin fee rates"; other
+ * sellers the same way). Its reranker reads that name: endpoints under a mismatched service name ("Bitcoin fee rates /cve",
+ * "Weather Forecast /v1/cve") rank below lower-scored ones, so our /cve had the top score for "cve lookup" and sat at #12.
+ * /btc-fees is our best-ranked listing, so it carries a service-wide name; /bitcoin/fees keeps the "bitcoin fees" phrase
+ * and the description still opens with "Bitcoin fee rates". If another listing becomes our best-ranked, add it here.
+ */
+export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
+  "/btc-fees": "Web, crypto and security data",
+});
+/** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
+export function listingNameFor(e: { path: string; summary: string }): string {
+  return Object.hasOwn(LISTING_NAME_OF, e.path) ? LISTING_NAME_OF[e.path] : listingName(e.summary);
+}
+
 export function listingName(summary: string): string {
   const head = summary.split(":")[0].replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim();
   if (head.length <= 32) return head || "Glyphcall";

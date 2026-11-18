@@ -73,6 +73,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "daily brief": "/pack/daily-brief", "market brief": "/pack/daily-brief", "morning brief": "/pack/daily-brief", "gas oracle": "/pack/gas-tracker", "gas tracker": "/pack/gas-tracker", "multichain gas": "/pack/gas-tracker",
   "erc20 balance": "/base/token-balance", "token balance": "/base/token-balance", "wallet balance": "/wallet/balances", "wallet portfolio": "/wallet/portfolio",
   "weather forecast": "/weather", "current weather": "/weather",
+  "phishing check": "/phishing/check", "phishing domain": "/phishing/check", "phishing blocklist": "/phishing/check", "url safety": "/pack/url-safety", "is this link safe": "/pack/url-safety", "scam url": "/pack/url-safety", "merchant trust": "/domain-report", "is this site legit": "/domain-report",
   "screenshot": "/screenshot", "status check": "/url/uptime", "uptime": "/url/uptime", "is it down": "/url/uptime",
   "image generation": "/image", "generate image": "/image", "image gen": "/image",
   "chat completion": "/ai/chat", "chat completions": "/ai/chat", "llm": "/ai/chat",

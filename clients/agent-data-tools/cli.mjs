@@ -63,6 +63,9 @@ const HELP = `Usage:
   agent-data-tools key [adt_...]         save a prepaid key; without a key, show whether one is set and its balance
   agent-data-tools credits               where to get a prepaid key (card or USDC)
   agent-data-tools list [words]          tools and prices
+  agent-data-tools read [urls.txt|-] [--concurrency 8] [--format markdown|text|both] [--max-chars N] [--key adt_...]
+                                         read a list of web pages (one URL per line); one JSON line per page on stdout;
+                                         failed pages are reported and not charged
   agent-data-tools <tool> key=value ...  call a tool by name or /path; prints its JSON
 
 25 free calls without any setup. A prepaid key is read from --key, then AGENT_DATA_TOOLS_KEY,
@@ -161,6 +164,52 @@ async function keyCommand(value) {
   }
 }
 
+/**
+ * Bulk web reading (1.4.0, 18 Nov 2026): one URL per line from a file or stdin, read through /extract with a worker pool,
+ * one JSON line per page on stdout ({url, ok, status, markdown|text, chars, error}). A failed page is reported and not
+ * charged; the run goes on. It stops only when payment is needed (no key and the free calls are used up).
+ */
+async function readCommand(args) {
+  let file, concurrency = 8, format = "markdown", maxChars;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--concurrency" || a === "-c") concurrency = Number(args[++i]);
+    else if (a.startsWith("--concurrency=")) concurrency = Number(a.slice(14));
+    else if (a === "--format") format = args[++i];
+    else if (a.startsWith("--format=")) format = a.slice(9);
+    else if (a === "--max-chars") maxChars = args[++i];
+    else if (a.startsWith("--max-chars=")) maxChars = a.slice(12);
+    else if (!file) file = a;
+    else throw new ToolError(`unexpected argument "${a}"`, 400, null);
+  }
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 64) throw new ToolError("--concurrency must be 1-64", 400, null);
+  if (!["markdown", "text", "both"].includes(format)) throw new ToolError("--format must be markdown, text or both", 400, null);
+  const source = !file || file === "-" ? readFileSync(0, "utf8") : readFileSync(file, "utf8");
+  const urls = [...new Set(source.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^https?:\/\//i.test(l)))];
+  if (!urls.length) throw new ToolError("no http(s) URLs found (one per line)", 400, null);
+  const { key } = resolveKey(globalThis.__adtKeyFlag);
+  const adt = new AgentDataTools({ apiKey: key, origin: origin() });
+  let next = 0, ok = 0, stopped = null;
+  const started = Date.now();
+  const worker = async () => {
+    while (next < urls.length && !stopped) {
+      const url = urls[next++];
+      try {
+        const r = await adt.call("/extract", { url, format, ...(maxChars ? { maxChars } : {}) });
+        const body = format === "text" ? { text: r.text } : format === "both" ? { markdown: r.markdown, text: r.text } : { markdown: r.markdown };
+        ok++;
+        process.stdout.write(`${JSON.stringify({ url, ok: true, status: 200, title: r.title ?? null, ...body, chars: (r.markdown ?? r.text ?? "").length })}\n`);
+      } catch (e) {
+        if (e instanceof PaymentRequired) { stopped = e; return; }
+        process.stdout.write(`${JSON.stringify({ url, ok: false, status: e?.status ?? null, error: e?.body?.error ?? e?.message ?? String(e) })}\n`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker));
+  console.error(`read ${ok} of ${urls.length} pages in ${((Date.now() - started) / 1000).toFixed(1)} s; failed pages are not charged.`);
+  if (stopped) { console.error(`Stopped: ${stopped.message}. Save a key with \`${NAME} key adt_...\` (${NAME} credits).`); process.exitCode = 2; }
+}
+
 function credits() {
   const o = origin();
   console.log(`Card: ${o}/credits
@@ -197,6 +246,10 @@ try {
     await keyCommand(rest[0]);
   } else if (command === "credits") {
     credits();
+  } else if (command === "read") {
+    const { rest: readArgs, key } = parseArgs(rest);
+    globalThis.__adtKeyFlag = key;
+    await readCommand(readArgs);
   } else {
     const adt = new AgentDataTools({ apiKey: resolveKey().key, origin: origin() });
     if (command === "list") {

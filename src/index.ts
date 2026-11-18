@@ -84,7 +84,7 @@ import { takeDailyBudget } from "./lib/daily-cap";
 const CONTROL_PARAMS: ReadonlySet<string> = new Set(["only", "trial", "sample", "api_key", "apikey", "key", "x402"]);
 import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp-tempo";
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
-import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingTags } from "./lib/bazaar-extension";
+import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingNameFor, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
 import { LONG_INPUT_FIELDS, LONG_INPUT_MIN, holdLongInput, releaseLongInput } from "./lib/long-input";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
@@ -327,7 +327,7 @@ function buildPaywall(env: Env, only?: (typeof ENDPOINTS)[number]): MiddlewareHa
         accepts: paymentOptions(env).map(({ network, payTo }) => ({ scheme: "exact" as const, price: priceOn(network, e.price), network, payTo })),
         description: listingDescription(e),
         mimeType: "application/json",
-        serviceName: listingName(e.summary),
+        serviceName: listingNameFor(e),
         iconUrl: serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL),
         tags: listingTags(e.tags, e.path),
         extensions: { ...bazaarExtensionFor(e), ...builderCodeExtension() },

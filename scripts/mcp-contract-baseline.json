@@ -1,5 +1,5 @@
 {
-  "version": "1.221.0",
+  "version": "1.222.0",
   "tools": [
     {
       "name": "extract",
@@ -16120,8 +16120,32 @@
       "price": "$0.01"
     },
     {
+      "name": "phishing_check",
+      "description": "Phishing check: is this domain or link safe? Without opening it, looks the host and its parent domains up in two public phishing blocklists (Phishing.Database active phishing domains, about 390,000; MetaMask eth-phishing-detect, about 120,000 crypto scam domains), flags look-alikes of brands MetaMask watches, and returns block, warn or not_listed with the source and list date. Use before an agent opens, signs or pays at a URL. Example: url=https://github.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The link or domain to check (https://… or example.com); it is never requested"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
       "name": "pack_url_safety",
-      "description": "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a link before an agent opens or pays it: two phishing blocklists (Phishing.Database, MetaMask) on every host it passes through, where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -20621,6 +20645,54 @@
           "url": {
             "type": "string",
             "description": "Absolute http(s) URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "merchant_trust",
+      "description": "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee. Example: name=cloudflare.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Domain name, e.g. cloudflare.com"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "price": "$0.02"
+    },
+    {
+      "name": "url_safety_check",
+      "description": "URL safety check: is this link safe to open or pay? Two phishing blocklists (Phishing.Database, MetaMask) on every host the link passes through, each redirect hop and the final URL, the destination domain's age and trust flags, HTTPS and security headers, and named risk signals (new domain, bare IP, punycode look-alike, user@host trick), with an overall risk of low, medium or high. Use to vet links in emails, chats or scraped pages. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The link to check (http or https)"
           }
         },
         "required": [

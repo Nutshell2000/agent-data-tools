@@ -10,6 +10,25 @@ import { domainReport } from "./domain-report";
 import { extract } from "./extract";
 import { call, runSections } from "./packs";
 import { MERCATOR_TEST_PRICE, SEARCH } from "./search";
+import { PHISHING_SOURCES, phishingLookup, type PhishingVerdict } from "../lib/phishing-list";
+
+/** The host of a link or a bare domain, as sent ("https://a.example/x", "a.example", "a.example/path"). */
+export function hostOf(raw: string): string {
+  const s = raw.trim();
+  try { return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(s) ? s : `https://${s}`).hostname.replace(/^\[|\]$/g, ""); }
+  catch { throw new HttpError(400, "url must be a link or a domain name"); }
+}
+const PHISHING_ATTRIBUTION = PHISHING_SOURCES.map((s) => `${s.name}, ${s.url} (${s.licence})`).join("; ");
+/** Blocklist verdict, with the module's error names turned into an uncharged 400 or 503. */
+export async function blocklist(env: Env, host: string): Promise<PhishingVerdict> {
+  try { return await phishingLookup(env.TRIALS ?? null, host); }
+  catch (e) {
+    const m = e instanceof Error ? e.message : "";
+    if (m === "bad_domain") throw new HttpError(400, "that is not a public domain name");
+    if (m === "unavailable") throw new HttpError(503, "the phishing lists are being loaded; try again later, nothing was charged");
+    throw e;
+  }
+}
 
 function run(list: Entry[], env: Env, path: string, inputs: Record<string, string | number | undefined>) {
   const e = list.find((x) => x.endpoint.path === path);
@@ -148,12 +167,31 @@ export const PACKS_RESEARCH: Entry[] = [
       return { pack: "news-sentiment", query, summary: { articles: articles.length, positive, negative, averageScore: avg, tone }, articles, terms: found.terms, failed };
     }, MERCATOR_TEST_PRICE),
 
+  // 18 Nov 2026 (1.222.0): an agent routed by Mercator checked ~460 URLs and paid six URL-safety providers per URL; the five
+  // others answer from phishing blocklists. /phishing/check is the blocklist alone (no request to the link, so it is safe on
+  // a live phishing URL, and fast), at the entry price; the pack adds the same lists to its redirect and domain checks.
+  entry("/phishing/check", "Phishing check: is this domain or link safe",
+    "Phishing check: is this domain or link safe? Without opening it, looks the host and its parent domains up in two public phishing blocklists (Phishing.Database active phishing domains, about 390,000; MetaMask eth-phishing-detect, about 120,000 crypto scam domains), flags look-alikes of brands MetaMask watches, and returns block, warn or not_listed with the source and list date. Use before an agent opens, signs or pays at a URL.",
+    ["phishing-check", "is-this-domain-safe", "phishing-domain", "scam-url", "url-safety", "blocklist"], {
+      url: { type: "string", description: "The link or domain to check (https://… or example.com); it is never requested", required: true, example: "https://github.com" },
+    },
+    { url: "https://github.com", domain: "github.com", verdict: "not_listed", listed: false, matchedOn: null, sources: [], lookalikeOf: null, whitelisted: false, listDate: "2026-11-18", listedDomains: { phishingDatabase: 391546, metamask: 119351, total: 510425 }, note: "Not on either list. A list checks known phishing hosts only; use /pack/url-safety to also follow redirects and read the domain's age.", attribution: "Phishing.Database, https://github.com/Phishing-Database/Phishing.Database (MIT); MetaMask eth-phishing-detect, https://github.com/MetaMask/eth-phishing-detect (DBAD public licence)" },
+    async (env, q) => {
+      const url = need(q, "url", 2000);
+      const v = await blocklist(env, hostOf(url));
+      const verdict = v.listed ? "block" : v.lookalikeOf ? "warn" : "not_listed";
+      const note = v.listed ? `${v.matchedOn} is on ${v.sources.join(" and ")}: do not open, sign or pay here.`
+        : v.lookalikeOf ? `Not listed, but ${v.domain} is one letter away from ${v.lookalikeOf}: treat it as a possible look-alike.`
+        : v.whitelisted ? "On MetaMask's list of known-good domains." : "Not on either list. A list checks known phishing hosts only; use /pack/url-safety to also follow redirects and read the domain's age.";
+      return { url, domain: v.domain, verdict, listed: v.listed, matchedOn: v.matchedOn, sources: v.sources, lookalikeOf: v.lookalikeOf, whitelisted: v.whitelisted, listDate: v.listDate, listedDomains: v.listedDomains, note, attribution: PHISHING_ATTRIBUTION };
+    }, "$0.002"),
+
   entry("/pack/url-safety", "URL safety check, scam signals: domain age, redirects and HTTPS",
-    "Check a link before an agent opens or pays it: where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick, chains across many hosts). Heuristic signals from public facts, not a phishing blocklist. Use to vet links in emails, chats and scraped pages, or a payee's website.",
+    "Check a link before an agent opens or pays it: two phishing blocklists (Phishing.Database, MetaMask) on every host it passes through, where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use to vet links in emails, chats and scraped pages, or a payee's website.",
     ["url-safety", "scam-check", "phishing-check", "link-checker", "pack", "security"], {
       url: { type: "string", description: "The link to check (http or https)", required: true, example: "http://github.com" },
     },
-    { pack: "url-safety", url: "http://github.com/", finalUrl: "https://github.com/", risk: "low", signals: [], redirects: { count: 1, hosts: ["github.com"], hops: [{ url: "http://github.com/", status: 301 }] }, domain: { domain: "github.com", trust: "high", ageDays: 6600, registrar: "MarkMonitor Inc." }, security: { https: true, score: 80, grade: "B" }, failed: {} },
+    { pack: "url-safety", url: "http://github.com/", finalUrl: "https://github.com/", risk: "low", signals: [], blocklist: { listed: false, hosts: [{ host: "github.com", listed: false, matchedOn: null, sources: [], lookalikeOf: null }], listDate: "2026-11-18" }, redirects: { count: 1, hosts: ["github.com"], hops: [{ url: "http://github.com/", status: 301 }] }, domain: { domain: "github.com", trust: "high", ageDays: 6600, registrar: "MarkMonitor Inc." }, security: { https: true, score: 80, grade: "B" }, failed: {} },
     async (env, q) => {
       const input = parseTarget(need(q, "url", 2000));
       const redirects = await call(env, "/url/redirects", { url: input.href }).catch(() => null) as { finalUrl: string; redirects: number; hops: { url: string; status: number }[] } | null;
@@ -166,11 +204,21 @@ export const PACKS_RESEARCH: Entry[] = [
       const d = data.domain as Awaited<ReturnType<typeof domainReport>> | undefined;
       const h = data.headers as { score?: number; grade?: string } | undefined;
       const hosts = redirects ? [...new Set(redirects.hops.map((x) => new URL(x.url).hostname))] : [input.hostname];
-      const { risk, signals } = urlSignals(input, final, hosts, d?.facts.ageDays ?? null);
-      if (d?.trust === "low" && risk === "low") signals.push({ level: "medium", code: "domain_low_trust", message: d.summary });
+      const { risk: heuristic, signals } = urlSignals(input, final, hosts, d?.facts.ageDays ?? null);
+      // Every host the link passes through, looked up in both phishing lists (at most 6; a failure is listed, never fatal).
+      const listHosts = [...new Set([input.hostname, ...hosts, host].map((h) => h.replace(/^www\./, "")))].slice(0, 6);
+      const listed = await Promise.all(listHosts.map((h) => blocklist(env, h).then((v) => ({ host: h, v }), () => null)));
+      const seen = listed.filter((x): x is { host: string; v: PhishingVerdict } => x !== null);
+      const hits = seen.filter((x) => x.v.listed), lookalike = seen.find((x) => !x.v.listed && x.v.lookalikeOf);
+      for (const x of hits) signals.unshift({ level: "high", code: "phishing_blocklist", message: `${x.v.matchedOn} is on ${x.v.sources.join(" and ")}.` });
+      if (lookalike) signals.push({ level: "medium", code: "brand_lookalike", message: `${lookalike.v.domain} is one letter away from ${lookalike.v.lookalikeOf}.` });
+      let risk = hits.length ? "high" : heuristic === "low" && lookalike ? "medium" : heuristic;
+      if (d?.trust === "low" && risk === "low") { signals.push({ level: "medium", code: "domain_low_trust", message: d.summary }); risk = "medium"; }
+      if (!seen.length) failed.blocklist = "the phishing lists could not be read";
       return {
         pack: "url-safety", url: input.href, finalUrl: final?.href ?? null,
-        risk: d?.trust === "low" && risk === "low" ? "medium" : risk, signals,
+        risk, signals,
+        blocklist: seen.length ? { listed: hits.length > 0, hosts: seen.map((x) => ({ host: x.host, listed: x.v.listed, matchedOn: x.v.matchedOn, sources: x.v.sources, lookalikeOf: x.v.lookalikeOf })), listDate: seen[0].v.listDate } : null,
         redirects: redirects ? { count: redirects.redirects, hosts, hops: redirects.hops.map((x) => ({ url: x.url, status: x.status })) } : null,
         domain: d ? { domain: d.domain, trust: d.trust, ageDays: d.facts.ageDays, registrar: d.facts.registrar, flags: d.flags.map((f) => f.code) } : null,
         security: { https: final ? final.protocol === "https:" : input.protocol === "https:", score: h?.score ?? null, grade: h?.grade ?? null },

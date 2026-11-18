@@ -46,7 +46,15 @@ export interface Product {
   upload?: boolean;
   /** Further pages of the product: path and link text. */
   more?: readonly (readonly [string, string])[];
+  /** Show the "read a list" section: worker-pool code for many URLs, the sitemap flow and the measured bulk run. */
+  batch?: boolean;
 }
+
+/**
+ * The bulk run quoted on the bulk reader page (18 Nov 2026): 100 current Hacker News links read through the same
+ * extract() code from the owner's PC, 8 at a time. Rerun and update together; the page says where it was measured.
+ */
+export const BULK_RUN = { date: "18 Nov 2026", urls: 100, ok: 82, concurrency: 8, wallSeconds: 19, p50Ms: 350, p90Ms: 774, botBlocked: 9, jsOnly: 6, timeouts: 2, notFound: 1 } as const;
 
 export const PRODUCTS: readonly Product[] = [
   {
@@ -77,6 +85,37 @@ export const PRODUCTS: readonly Product[] = [
       ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
     ],
     guides: ["pdf-to-text-api-python", "pdf-to-text-api-nodejs", "pdf-to-text-api", "extract-text-from-pdf-url", "pdf-parser-api-for-llm-and-rag", "arxiv-paper-to-text-api"],
+  },
+  // 18 Nov 2026 (owner: "Cheap bulk reader pitch"): the batch research found the largest open batch job on Base is page
+  // reading wired into an agent by its developer (16,000+ reads in two days by one buyer). Listed before the Markdown page
+  // so PRODUCT_FOR_TOOL keeps sending /extract's tool page to the Markdown page.
+  {
+    slug: "bulk-web-reader-api",
+    name: "Bulk web page reader API",
+    tagline: "Read thousands of web pages as clean Markdown or text for an LLM: one GET per URL, run as many in parallel as you like, pay only for pages that read.",
+    tool: "/extract",
+    also: ["/sitemap", "/extract/rendered", "/contents", "/pdf/text"],
+    batch: true,
+    points: [
+      "Main content as Markdown or plain text with headings, tables, code blocks and links; menus and footers left out",
+      "No rate limit on our side: run a worker pool over your list and keep going",
+      "Bot-blocked, empty, JavaScript-only and missing pages are never charged, so a messy list costs only what it reads",
+      "A whole site from its sitemap: list the URLs, then read them",
+    ],
+    limits: [
+      "Public pages only: no logins or paywalls.",
+      "Sites that block automated readers stay blocked; the call fails and is not charged.",
+      "The bulk reader does not run JavaScript; single-page apps need the rendered reader, which costs more per page.",
+    ],
+    unit: "pages",
+    faq: [
+      ["Is there a rate limit?", "Not on our side. Each page is one GET; run them in parallel. The sites you read may slow down or block heavy traffic from one reader, so spread a large list over many sites or keep a few requests per site at a time."],
+      ["What does a failed page cost?", "Nothing. Pages that block bots, need JavaScript, are empty, time out or are missing answer an error and are not charged."],
+      ["Can an agent pay per page without a key?", "Yes. An agent with its own wallet can pay for each page as it reads it; the For AI agents section below has the details."],
+      ["How do I read a whole site?", "Read its sitemap with the sitemap tool (up to 100 URLs a call, with an offset to page through), then read each URL."],
+      ["Is there a subscription?", "There is a monthly plan and there are one-off credit packs. Both give one API key; a plan adds credits each month and unused credits stay."],
+    ],
+    guides: ["url-to-markdown-api", "sitemap-parser-api"],
   },
   {
     slug: "web-page-to-markdown-api",
@@ -342,6 +381,27 @@ function samples(e: Endpoint, origin: string) {
   };
 }
 
+/** The "read a list" section of a batch product: what a thousand pages cost, the measured run, and pool code. */
+function batchSection(e: Endpoint, origin: string, keyPrice: string): string {
+  const per = Number(keyPrice.replace(/[^0-9.]/g, ""));
+  const thousand = `$${(per * 1000).toFixed(2).replace(/\.00$/, "")}`;
+  const url = `${origin}${e.path}`;
+  const r = BULK_RUN;
+  const python = `import os, requests\nfrom concurrent.futures import ThreadPoolExecutor\n\nKEY = os.environ["API_KEY"]\nurls = [line.strip() for line in open("urls.txt") if line.strip()]\n\ndef read(url):\n    r = requests.get("${url}", params={"url": url, "format": "markdown"},\n                     headers={"Authorization": f"Bearer {KEY}"}, timeout=60)\n    return url, (r.json().get("markdown") if r.ok else None), r.status_code\n\nwith ThreadPoolExecutor(max_workers=8) as pool:\n    for url, md, status in pool.map(read, urls):\n        print(status, url, len(md or ""))  # failed pages are not charged`;
+  const node = `const urls = (await import("node:fs")).readFileSync("urls.txt", "utf8").split("\\n").filter(Boolean);\nconst read = async (url) => {\n  const q = new URLSearchParams({ url, format: "markdown" });\n  const r = await fetch(\`${url}?\${q}\`, { headers: { Authorization: \`Bearer \${process.env.API_KEY}\` } });\n  return { url, status: r.status, markdown: r.ok ? (await r.json()).markdown : null };\n};\nlet i = 0;\nconst results = [];\nawait Promise.all(Array.from({ length: 8 }, async () => { while (i < urls.length) results.push(await read(urls[i++])); }));\nconsole.log(results.filter((x) => x.markdown).length, "of", urls.length, "read");`;
+  const sitemap = `curl -H "Authorization: Bearer $API_KEY" \\\n  "${origin}/sitemap?url=https://www.sitemaps.org/sitemap.xml&maxUrls=100"\n# then read each entries[].url as above`;
+  return `<h2>Read a list of URLs</h2>
+<p>${esc(keyPrice)} a page with a key: ${esc(thousand)} for 1,000 pages that read, nothing for pages that fail. Each page is one GET, so a worker pool is all the batching you need.</p>
+<p class="small">Measured ${esc(r.date)}: ${r.urls} current Hacker News links, ${r.concurrency} at a time, read by the same code from a home PC (not from our servers): ${r.ok} read, all ${r.urls} done in ${r.wallSeconds} s, median ${r.p50Ms} ms a page (90th percentile ${r.p90Ms} ms). The ${r.urls - r.ok} that failed (${r.botBlocked} sites blocking bots, ${r.jsOnly} JavaScript-only pages, ${r.timeouts} timeouts, ${r.notFound} missing page) would not have been charged.</p>
+<h3>Python, 8 at a time</h3>
+<pre><code>${esc(python)}</code></pre>
+<h3>Node.js, 8 at a time</h3>
+<pre><code>${esc(node)}</code></pre>
+<h3>A whole site from its sitemap</h3>
+<pre><code>${esc(sitemap)}</code></pre>
+`;
+}
+
 const STYLE = `:root{--bg:#fff;--fg:#16181d;--muted:#5b616b;--card:#f5f6f8;--line:#e2e5ea;--accent:#0b57d0;--accent-fg:#fff;--ok:#0b6e4f}
 @media (prefers-color-scheme:dark){:root{--bg:#111316;--fg:#e9ebee;--muted:#a2a8b0;--card:#1a1d22;--line:#2b3037;--accent:#8ab4f8;--accent-fg:#0b1a33;--ok:#5fd0a5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
@@ -420,6 +480,7 @@ ${consoleHtml}
 ${p.upload ? `<h3>Send a file instead of a URL</h3>
 <pre><code>${esc(`curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@report.pdf" -F "pages=5" \\\n  "${origin}${e.path}"`)}</code></pre>
 <p class="small">Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB. The file is read in memory for this one request and not stored.</p>` : ""}
+${p.batch ? batchSection(e, origin, keyPrice) : ""}
 <h2>The answer</h2>
 <pre><code>${esc(shown)}</code></pre>
 ${tryIt ? `<div id="try">${p.upload ? `<form class="try" method="post" action="${esc(e.path)}?trial=1" enctype="multipart/form-data">

@@ -2195,3 +2195,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - Tests: tests/law-phase-b.test.cjs. Evaluation: `scripts/law-index/eval-se.mjs` (eval-se.json, 18 Swedish questions, section ids checked against the build before any search).
 - Swedish ranking (finished 18 Nov by the session that queued the release): core statutes +0.03, a statute the question names +0.05, judgments show the first citing paragraph that is the Court's reasoning (`bestParagraph`). eval-se.json 8/18 first, 12/18 top 3.
 
+
+
+## Phishing blocklists (1.222.0, 18 Nov 2026)
+
+- Why: on 16-17 Nov one agent routed by Mercator checked ~460 URLs and paid six URL-safety providers per URL ($4.55 to us of the week's $5.82 real income); the other five answer from blocklists. Fan-out batch jobs pay every provider in the top results, so presence under each phrasing a router matches is worth money.
+- `src/lib/phishing-list.ts`: KV keys `phish:<YYYYMMDD>:<0-1023>` (lines `domain\tbits`, bit 1 Phishing.Database, bit 2 MetaMask) and `phish:meta` (version, counts, MetaMask whitelist and fuzzylist). `phishingLookup` hashes the host and each parent (FNV-1a, `shardOf`), reads only those shards; the whitelist wins; `lookalikeOf` is an edit distance of 1 to a fuzzylist brand. Build: `node scripts/build-phishing-list.mjs <phishing-domains-ACTIVE.txt> <config.json> <out>` (refuses a list that looks truncated); upload: `business/agentic/release/train/upload-phishing.ps1 -OutDir <out>` (staging, production, meta last). Refresh weekly; delete the version before last afterwards. Built output of 18 Nov: business/agentic/phishing-list/out-20261118.
+- `/phishing/check` ($0.002, packs-research.ts): never requests the link; `hostOf` takes a URL or bare domain. In `NEEDS_REMOTE_DATA` (local smoke has no KV). `/pack/url-safety` adds `blocklist` and the `phishing_blocklist` / `brand_lookalike` signals. Door `/url/safety-check`. Tests: tests/phishing-list.test.cjs.
+- Mercator service name: Mercator names our whole service after our best-ranked Bazaar listing and its reranker reads that name (mismatched names sink). `LISTING_NAME_OF` / `listingNameFor` (src/lib/bazaar-extension.ts) override the listing `serviceName` (402 resource, MCP, /discovery/resources) for /btc-fees with "Web, crypto and security data". Check `GET https://mercator.sh/v1/services/x402-agent-data-tools-revmesh2074-workers-dev-b952bdcb` (service.name) after each import; if another listing becomes our best-ranked (bots.db resources, MIN(rank)), add it to the map.
+

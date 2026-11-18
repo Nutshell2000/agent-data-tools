@@ -44,7 +44,7 @@ export { VOICE_SITE, STUDIO_SITE };
 /** Which group of the developer section each product sits in. A product not named here lands in the last group. */
 const SHELVES: readonly { id: string; kicker: string; title: string; slugs: readonly string[] }[] = [
   { id: "voice", kicker: "Voice", title: "Voice", slugs: ["speech-to-text-api", "text-to-speech-api"] },
-  { id: "documents", kicker: "Documents", title: "Documents", slugs: ["pdf-to-text-api", "document-to-text-api", "invoice-data-extraction-api", "web-page-to-markdown-api"] },
+  { id: "documents", kicker: "Documents", title: "Documents", slugs: ["pdf-to-text-api", "document-to-text-api", "invoice-data-extraction-api", "web-page-to-markdown-api", "bulk-web-reader-api"] },
   { id: "search", kicker: "Search and checks", title: "Search and checks", slugs: ["eu-law-search-api", "company-check-api", "eu-sanctions-screening-api"] },
 ];
 
