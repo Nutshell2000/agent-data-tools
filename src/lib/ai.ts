@@ -1,5 +1,6 @@
 import { HttpError, type Env } from "./env";
 import { takeDailyBudget } from "./daily-cap";
+import { activeTrace } from "./funnel";
 
 /**
  * Workers AI calls per UTC day when AI_DAILY_CAP is unset. The free plan's 10,000 neurons stop earlier for most models;
@@ -19,6 +20,9 @@ export const MODELS = {
  * so running out is reported as 503 and the caller is not charged.
  */
 export async function runAi<T>(env: Env, model: string, input: Record<string, unknown>): Promise<T> {
+  // Owner, 18 Nov 2026: only profitable usage. A free call never runs a model (Workers AI is billed per neuron beyond
+  // the free allowance, and free AI calls never led to a purchase). The caller's free call is given back (status >= 400).
+  if (activeTrace()?.freeRun) throw new HttpError(422, "this tool runs an AI model, so it is paid only: free calls do not cover it. Pay per call with x402, or use a prepaid key from /credits (from $1).");
   await takeDailyBudget(env, "ai", env.AI_DAILY_CAP, DEFAULT_AI_DAILY_CAP, "AI");
   try {
     return (await env.AI.run(model as Parameters<Ai["run"]>[0], input as never)) as T;

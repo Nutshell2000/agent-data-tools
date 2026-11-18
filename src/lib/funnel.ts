@@ -16,9 +16,13 @@ export interface FunnelEvent {
 interface Trace {
   requestId: string; path: string; transport: "http" | "mcp"; source?: string;
   emit: (event: FunnelEvent) => void; stages: Set<FunnelStage>;
+  /** Set while a free call runs (HTTP trial, MCP free calls, the ChatGPT daily allowance): Workers AI is refused then. */
+  freeRun?: boolean;
 }
 const traces = new AsyncLocalStorage<Trace>();
 export const activeTrace = () => traces.getStore();
+/** Marks the current request as a free call, so lib/ai.ts refuses model calls (owner, 18 Nov 2026: no costs at all). */
+export const markFreeRun = () => { const t = traces.getStore(); if (t) t.freeRun = true; };
 export const safeSource = (source?: string | null) => source && /^[a-z0-9_-]{1,40}$/.test(source) ? source : undefined;
 
 export function withRequestTrace<T>(env: Env, path: string, source: string | null, waitUntil: (p: Promise<unknown>) => void, callback: () => T): T {

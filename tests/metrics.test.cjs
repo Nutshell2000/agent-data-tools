@@ -544,3 +544,17 @@ test("caller families with a buyer signal keep their name after the 60-family ca
   assert.equal(day.other.challenged, 1);
   assert.deepEqual(day["late-buyer"], { paid: 1, challenged: 1 }, "a paying family keeps its name");
 });
+
+test("a free call never runs a Workers AI model (owner, 18 Nov 2026: only profitable usage)", async () => {
+  // One bundle for both modules, so the trace the flag is set on is the one runAi reads.
+  const path = require("node:path");
+  const built = await esbuild.build({ stdin: { contents: 'export { runAi } from "./src/lib/ai.ts"; export { withRequestTrace, withToolTrace, markFreeRun } from "./src/lib/funnel.ts";', resolveDir: path.resolve(__dirname, ".."), loader: "ts" }, bundle: true, platform: "node", format: "cjs", write: false, logLevel: "silent" });
+  const loaded = new Module("ai-guard", module); loaded.paths = Module._nodeModulePaths(process.cwd()); loaded._compile(built.outputFiles[0].text, path.join(__dirname, "ai-guard.js"));
+  const { runAi, withRequestTrace, withToolTrace, markFreeRun } = loaded.exports;
+  let ran = 0;
+  const env = { AI: { run: async () => { ran++; return { response: "ok" }; } }, AI_DAILY_CAP: "0" };
+  await assert.rejects(withRequestTrace({}, "/mcp", null, () => {}, () => withToolTrace("/ai/chat", async () => { markFreeRun(); return runAi(env, "m", {}); })), /paid only/);
+  // A paid call in the same kind of trace still runs the model.
+  await withRequestTrace({}, "/mcp", null, () => {}, () => withToolTrace("/ai/chat", () => runAi({ ...env, AI_DAILY_CAP: undefined, TRIALS: undefined }, "m", {}))).catch(() => {});
+  assert.equal(ran, 1, "only the paid call reached the model; the free call never did");
+});

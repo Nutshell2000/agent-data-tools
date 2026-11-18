@@ -26,7 +26,7 @@ import { resourceServer } from "./lib/payments";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { withMcpRevenue } from "./lib/revenue";
 import { queueBatched } from "./lib/metrics-batch";
-import { activeTrace, markStage, withToolTrace } from "./lib/funnel";
+import { activeTrace, markFreeRun, markStage, withToolTrace } from "./lib/funnel";
 import { ALL_BUNDLE, MCP_PINNED_PATHS, SURFACE_TOOLS } from "./mcp-contract";
 import { TOOL_COUNT } from "./endpoints";
 import { freeSessionFor } from "./lib/free-sessions";
@@ -422,7 +422,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
         if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
-          ? await handler(args) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
+          ? (markFreeRun(), await handler(args)) as { isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }
           : await (callback as (args: Args, extra: unknown) => Promise<{ isError?: boolean; structuredContent?: { accepts?: unknown[] }; _meta?: Record<string, unknown> }>)(args, extra);
         if (free && result.isError) await free.refund();
         else if (free) markStage("free_call");

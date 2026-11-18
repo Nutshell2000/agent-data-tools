@@ -167,11 +167,14 @@ test('search copy: every TOOL_SEO entry is a real tool page with a short title, 
     assert.match(html, /<h2>When to use it<\/h2>/, path);
     assert.match(html, /How do I pay\?/, path);
   }
-  // AI media pages must not promise free calls (outside the allowance); AI text pages do (since 25 Oct 2026).
+  // AI pages must not promise free calls: media since the start, AI text again since 18 Nov 2026 (owner: only
+  // profitable usage). A non-AI tool page still offers them.
   const image = await (await mf.dispatchFetch('https://api.test/tools/image')).text();
   assert.match(image, /This tool is not in the free calls/);
   const chat = await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text();
-  assert.match(chat, /The first 3 calls are free \(25 through an MCP client\)/);
+  assert.match(chat, /This tool is not in the free calls/);
+  const weather = await (await mf.dispatchFetch('https://api.test/tools/weather')).text();
+  assert.match(weather, /The first 3 calls are free \(25 through an MCP client\)/);
 });
 
 test('a POST with a flat JSON body is the GET with those fields: quoted, not refused with 405', async () => {

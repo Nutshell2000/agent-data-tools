@@ -1,4 +1,4 @@
-import { MODEL_PATHS } from "../routes/ai-text";
+import { AI_PATHS, MODEL_PATHS } from "../routes/ai-text";
 import { HTTP_FREE_EXCLUDED } from "./free-calls";
 
 /**
@@ -17,6 +17,9 @@ export const CAPACITY_LIMITED = new Set(["/summarize", "/page/publish", "/page/h
 CAPACITY_LIMITED.add("/invoice/check");
 // Resold LinkedIn and X data (src/routes/resale.ts): every call buys from another seller, so never a free call.
 for (const p of ["/linkedin/profile", "/linkedin/company-posts", "/x/search"]) CAPACITY_LIMITED.add(p);
+// Owner, 18 Nov 2026 ("only profitable usage"): the AI text tools are paid only again (they left this set on 25 Oct).
+// lib/ai.ts also refuses any model call inside a free call, so tools that use a model on the side stay costless too.
+for (const p of [...AI_PATHS, "/llm/chat", "/ai/summarize", "/ai/sentiment-analysis", "/ai/translate-text", "/ai/embeddings"]) CAPACITY_LIMITED.add(p);
 /** True when a plain HTTP request with trial=1 may run this tool free (lib/free-calls.ts): not capacity-limited, and not taken out of the HTTP trial. */
 export const httpFree = (path: string) => !CAPACITY_LIMITED.has(path) && !HTTP_FREE_EXCLUDED.has(path);
 // Glyphcall Voice (1.189.0, routes/voice.ts): Whisper over up to an hour of audio and Aura-1 speech: paid only.

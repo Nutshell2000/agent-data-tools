@@ -44,7 +44,7 @@ import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { callerFamily } from "./lib/caller";
 import { measurement } from "./lib/beacon";
-import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
+import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markFreeRun, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
 import { handleMcp } from "./mcp";
 import { Metrics } from "./metrics";
 import { PRODUCTS } from "./store/catalog";
@@ -449,6 +449,7 @@ app.use(async (c, next) => {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
     }
     if (free) {
+      markFreeRun();
       await next();
       if (c.res.status >= 400) await free.refund();
       else markStage("free_call");

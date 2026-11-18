@@ -36,10 +36,13 @@ export function firstCall(origin: string): { path: string; summary: string; url:
  * Twelve tools for a first look, most-bought jobs first (the order of SALES_FIRST in lib/discovery-index.ts). Only
  * tools a newcomer can run with trial=1 are shown: one that left the free trial, the catalog or SALES_FIRST drops out.
  */
-const FEATURED = ["/ai/chat", "/extract", "/ai/extract-json", "/ai/summarize-text", "/ai/translate", "/sanctions/check", "/company", "/email", "/domain", "/price/token", "/sec/filings", "/weather", "/check/payee", "/ai/embed", "/package", "/contents"];
+const FEATURED = ["/ai/chat", "/extract", "/ai/extract-json", "/ai/summarize-text", "/ai/translate", "/sanctions/check", "/company", "/email", "/domain", "/price/token", "/sec/filings", "/weather", "/check/payee", "/ai/embed", "/package", "/contents", "/check/counterparty", "/hyperliquid/market", "/btc-fees", "/pack/hash-toolbox", "/text/language", "/econ/gdp"];
 export function featuredTools(): Endpoint[] {
   const first = salesFirstPaths();
-  return FEATURED.filter((p) => first.includes(p) && httpFree(p)).flatMap((p) => BY_PATH.get(p) ?? []).slice(0, 12);
+  // Sales-first tools lead; since the AI text tools left the free calls (18 Nov 2026) the rest of FEATURED fills the twelve.
+  const free = FEATURED.filter((p) => httpFree(p));
+  const ordered = [...free.filter((p) => first.includes(p)), ...free.filter((p) => !first.includes(p))];
+  return ordered.flatMap((p) => BY_PATH.get(p) ?? []).slice(0, 12);
 }
 
 export interface FirstCallFacts {
