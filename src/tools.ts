@@ -87,7 +87,7 @@ const EVM_HEX = /^(0x)?([0-9a-fA-F]{40})$/;
 const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // "email" and "domain"/"host" (26 Oct 2026 probe): agents call /email?email= and /domain?domain=, which both refused.
   address: ["wallet", "addr", "account", "email", "pool", "wallet_address", "walletAddress", "email_address", "emailAddress", "mail", "q", "query"],
-  token: ["token_address", "contract", "tokenAddress", "contract_address"], hash: ["tx", "txhash", "transaction", "txHash", "tx_hash", "transaction_hash", "transactionHash", "txid"],
+  token: ["token_address", "contract", "tokenAddress", "contract_address"], hash: ["tx", "txhash", "transaction", "digest", "txHash", "tx_hash", "transaction_hash", "transactionHash", "txid"],
   lat: ["latitude"], lon: ["longitude", "lng", "long"], zone: ["tz", "timezone", "time_zone", "timeZone", "location", "city", "place", "country", "q", "query"], at: ["time", "timestamp", "datetime", "when"], date: ["day"],
   text: ["input", "json", "yaml", "xml", "csv", "content", "data", "value", "prompt", "message", "body", "string", "document", "article", "q", "query"],
   // The document tools read their own input name; agents send json= to /json/validate and text= to /json/to-yaml (26 Oct 2026 probe).
@@ -105,8 +105,8 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
   name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site", "address", "location", "place", "city", "search", "term", "entity", "entity_name", "entityName", "legal_name", "legalName", "business_name", "businessName", "person"],
   domain: ["name", "host", "hostname", "website", "url", "site"],
-  word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
-  url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],
+  word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11", "payment_request", "pr", "invoice_string"],
+  url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url", "host", "domain", "link_url", "linkUrl"],
   urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
   // /audit/contract (1.131.0): other audit sellers take the code as code or, in one free-text field, as description.
   source: ["code", "source_code", "sourceCode", "solidity", "contract_source", "description"],
@@ -140,6 +140,38 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // /sec/financials (11 Nov 2026): statement APIs name the period frequency or timeframe.
   period: ["frequency", "timeframe", "periodicity"],
   user: ["username", "login", "owner", "account", "org", "organization", "handle", "name", "q", "query", "url"],
+  // Expanded aliases (quality pass): every input name in the catalog gets the names agents and other APIs send for it,
+  // so a paid call is not refused for a naming mismatch (10 Nov 2026: 9 of 19 paid /weather calls were lost this way).
+  contains: ["search", "filter", "q", "query", "match", "pattern", "text", "keyword", "term"],
+  ecosystem: ["package_manager", "pm", "lang", "language", "type", "platform"],
+  format: ["output", "type", "as", "mode", "style", "encoding"],
+  fromYear: ["from_year", "year", "since", "start_year", "min_year", "from"],
+  fullPage: ["full_page", "fullpage", "entire", "whole", "full"],
+  hours: ["h", "hrs", "count", "limit", "n", "num"],
+  language: ["lang", "locale", "code", "target_language", "to", "target"],
+  limit: ["max", "count", "n", "size", "top", "num", "numResults", "num_results", "max_results", "maxResults"],
+  maxChars: ["max_chars", "max_length", "limit", "size", "chars", "maxCharacters", "max_characters"],
+  maxUrls: ["max_urls", "max_links", "limit", "count"],
+  mempool: ["mempool", "pool"],
+  offset: ["skip", "start", "page", "cursor", "from"],
+  packages: ["deps", "dependencies", "libs", "modules", "list", "names"],
+  question: ["q", "query", "prompt", "text", "ask", "message"],
+  scenario: ["type", "kind", "mode", "case", "example"],
+  section: ["id", "anchor", "fragment", "name", "heading", "selector"],
+  spender: ["spender_address", "delegate", "spenderAddress"],
+  steps: ["n", "count", "num", "iterations", "num_steps"],
+  subtitles: ["srt", "vtt", "captions", "format", "subs"],
+  timestamps: ["ts", "time", "chunks", "with_timestamps"],
+  tokens: ["addresses", "contracts", "list", "token_addresses"],
+  version: ["v", "ver", "release", "ver", "tag"],
+  wallet: ["address", "addr", "account", "owner", "wallet_address", "walletAddress"],
+  owner: ["address", "wallet", "account", "addr", "from", "holder"],
+  fees: ["fee", "cost", "price", "gas"],
+  prices: ["price", "prices", "cost", "value"],
+  outputExample: ["example", "sample", "demo"],
+  suggested: ["recommendations", "suggestions", "related"],
+  estimatedExecutionFeeEth: ["fee", "execution_fee", "gas_cost"],
+  typicalPaymentSats: ["sats", "satoshis", "amount"],
 };
 
 /** The text of one OpenAI message's content: a string, or the text parts of a content array. */
@@ -186,7 +218,11 @@ export const normalizedInput = (sent: Input): Input => (name) => {
     return v?.trim() ? v : undefined;
   };
   const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => viaAlias(n, alias)).find((v) => v !== undefined);
-  const value = input(name);
+  // Trim surrounding whitespace on every string input: agents and routers frequently send " weather " or "BTC " and the
+  // tool then failed with "city is required" / "unknown unit" even though the value was right there (10 Nov 2026 paid
+  // calls). Applied before address handling so ENS names and addresses are unaffected.
+  let value = input(name);
+  if (typeof value === "string") value = value.trim();
   // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
   // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.
   if (name === "url" && value && !/^[a-z][a-z0-9+.-]*:/i.test(value.trim()) && SCHEMELESS_URL.test(value.trim())) return `https://${value.trim()}`;
