@@ -56,6 +56,46 @@ test('Norway: bankruptcy reads as status, VAT number only when VAT-registered, p
   });
 });
 
+test('Norway register: one retry on 429/503, but 404, 410 and a long Retry-After are not retried', async () => {
+  const unit = (suffix = '') => ({ organisasjonsnummer: '935567645', navn: `TEST KAFE${suffix} AS`, organisasjonsform: { kode: 'AS' } });
+
+  // A transient 429 is retried once with a fresh timeout; the answer comes from the second call.
+  let n = 0;
+  await withFetch(() => ++n === 1 ? new Response('slow', { status: 429 }) : json(unit()), async (calls) => {
+    const k = await N.noLookup('935567645');
+    assert.equal(n, 2, 'one retry on 429');
+    assert.equal(calls.length, 2);
+    assert.equal(k.name, 'TEST KAFE AS');
+  });
+
+  // A 503 is retried too.
+  n = 0;
+  await withFetch(() => ++n === 1 ? new Response('busy', { status: 503 }) : json(unit()), async () => {
+    assert.equal((await N.noLookup('935567645')).name, 'TEST KAFE AS');
+    assert.equal(n, 2, 'one retry on 503');
+  });
+
+  // A source asking to wait longer than 2 s is respected: no retry, uncharged 502.
+  n = 0;
+  await withFetch(() => { n++; return new Response('wait', { status: 503, headers: { 'retry-after': '60' } }); }, async () => {
+    await assert.rejects(N.noLookup('935567645'), (e) => e.status === 502 && /register answered HTTP 503/.test(e.message));
+    assert.equal(n, 1, 'a long Retry-After is not retried');
+  });
+
+  // 404 (no unit) and 410 (deleted, with its record) are final and never retried.
+  n = 0;
+  await withFetch(() => { n++; return json({}, 404); }, async () => {
+    await assert.rejects(N.noLookup('935567645'), (e) => e.status === 404);
+    assert.equal(n, 1, '404 is not retried');
+  });
+  n = 0;
+  await withFetch(() => { n++; return json({ ...unit(), slettedato: '2020-01-01' }, 410); }, async () => {
+    const k = await N.noLookup('935567645');
+    assert.equal(n, 1, '410 is not retried');
+    assert.equal(k.status, 'deleted');
+  });
+});
+
 test('Norway name search: whole words and trading companies first, sole proprietorships left out, city filter', async () => {
   const enheter = [
     { organisasjonsnummer: '1', navn: 'KIWISKOLEN AS', organisasjonsform: { kode: 'AS' }, forretningsadresse: { poststed: 'LIER' } },
