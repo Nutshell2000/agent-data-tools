@@ -558,8 +558,9 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
                 description: "Result",
                 content: {
                   "application/json": {
+                    // 18 Nov 2026 (owner: "Drop example bodies"): the full example answer is no longer repeated here (256 KB of the
+                    // 2 MB cap); each tool's page, its 402 body and its Bazaar listing still carry it.
                     schema: (e as Endpoint).outputSchema ?? schemaFromExample(e.outputExample),
-                    example: e.outputExample,
                   },
                 },
               },

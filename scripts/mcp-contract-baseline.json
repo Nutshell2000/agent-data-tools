@@ -15838,7 +15838,7 @@
     },
     {
       "name": "token_flow",
-      "description": "Token flow for an ERC-20: how much was bought from and sold to DEX pools and routers over recent blocks, net flow, buy and sell counts, distinct buyers and sellers, mints and burns, and the share of buying done by the five largest buyers, split into equal time buckets (default 6), from the token's live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon. Use to see whether a token is being accumulated or dumped right now and whether a few wallets drive it, before you trade it. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Token flow of an ERC-20: DEX buy and sell volume, net flow, buy and sell counts, distinct buyers and sellers and the top-5 wallets' share of buying, in time buckets, from live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon. Use to see whether a token is being accumulated or dumped right now, and by how few wallets. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -15878,7 +15878,7 @@
     },
     {
       "name": "pack_token_flows",
-      "description": "Token flows in one call: the token's USD price, its net buy and sell flow over recent blocks in time buckets, the wallets that bought and sold the most through DEX pools and routers, and an OFAC sanctions screen of the top three buyers and sellers, on Base (default), Ethereum, Arbitrum, Optimism or Polygon. Cheaper than the four tools bought one by one. A part that fails is listed in `failed` and the rest still answer. Use before trading a token, for a trading agent's context, or to watch a launch. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Token flows in one call: USD price, net DEX buy and sell flow in time buckets, the top buyers and sellers, and an OFAC screen of the top three of each, on Base (default), Ethereum, Arbitrum, Optimism or Polygon. A failed part is listed in `failed`. Use before trading a token, for a trading agent's context, or to watch a launch. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
