@@ -446,7 +446,7 @@ export const DOCUMENT: Entry[] = [
   entry("/document/extract", "Extract data from a document: invoice, receipt, contract fields as JSON",
     "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: EXTRACT_EXAMPLE_URL },
+      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead). With no input at all this reads the public sample invoice PDF in the example.", required: true, example: EXTRACT_EXAMPLE_URL },
       fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items", required: true, example: "invoice" },
     },
     {
