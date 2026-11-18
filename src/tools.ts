@@ -157,7 +157,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   packages: ["deps", "dependencies", "libs", "modules", "list", "names"],
   question: ["q", "query", "prompt", "text", "ask", "message"],
   scenario: ["type", "kind", "mode", "case", "example"],
-  section: ["id", "anchor", "fragment", "name", "heading", "selector"],
+  section: ["id", "anchor", "fragment", "heading", "selector"],
   spender: ["spender_address", "delegate", "spenderAddress"],
   steps: ["n", "count", "num", "iterations", "num_steps"],
   subtitles: ["srt", "vtt", "captions", "format", "subs"],
