@@ -1,5 +1,5 @@
 {
-  "version": "1.219.0",
+  "version": "1.220.0",
   "tools": [
     {
       "name": "extract",
@@ -15837,6 +15837,86 @@
       "price": "$0.01"
     },
     {
+      "name": "token_flow",
+      "description": "Token flow of an ERC-20: DEX buy and sell volume, net flow, buy and sell counts, distinct buyers and sellers and the top-5 wallets' share of buying, in time buckets, from live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon. Use to see whether a token is being accumulated or dumped right now, and by how few wallets. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC"
+          },
+          "chain": {
+            "type": "string",
+            "description": "base (default), ethereum, arbitrum, optimism or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000,
+            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about 6 hours on Ethereum); on Base, which makes a block every 0.2 s, ten times that (default 18000, about an hour, up to 100000)"
+          },
+          "buckets": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 12,
+            "description": "Time buckets to split the window into, 2 to 12 (default 6)"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "pack_token_flows",
+      "description": "Token flows in one call: USD price, net DEX buy and sell flow in time buckets, the top buyers and sellers, and an OFAC screen of the top three of each, on Base (default), Ethereum, Arbitrum, Optimism or Polygon. A failed part is listed in `failed`. Use before trading a token, for a trading agent's context, or to watch a launch. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC"
+          },
+          "chain": {
+            "type": "string",
+            "description": "base (default), ethereum, arbitrum, optimism or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000,
+            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about 6 hours on Ethereum); on Base, which makes a block every 0.2 s, ten times that (default 18000, about an hour, up to 100000)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Buyers and sellers to return each, 1 to 10 (default 5)"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "pack_email_verify",
       "description": "Verify an email address in one call: syntax, whether the domain exists and has mail servers (MX), disposable and role addresses, free-provider flag, SPF and DMARC, and the sending domain's age and trust flags, rolled into one verdict (likely-deliverable, risky or invalid) with reasons. It does not contact the mail server, so it cannot confirm one mailbox exists. Use to clean a lead list, screen a sign-up or check a contact before outreach. Example: email=alex.morgan@stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -20943,6 +21023,46 @@
         }
       },
       "price": "$0.002"
+    },
+    {
+      "name": "token_who_bought_sold",
+      "description": "Who bought and who sold a token lately: the wallets that took the most of an ERC-20 from DEX pools and routers (buyers) or sent the most to them (sellers) over recent blocks, from its live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon, with bought, sold, net and transfers. Contracts are left out. Use to see who accumulates or dumps a token before you trade it. Example: token=0x940181a94A35A4569E4529A3CDfB74e38FD98631. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: 0x ERC-20 address, or a ticker such as AERO, DEGEN or USDC"
+          },
+          "chain": {
+            "type": "string",
+            "description": "base (default), ethereum, arbitrum, optimism or polygon"
+          },
+          "blocks": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000,
+            "description": "How many recent blocks to read, 100 to 10000 (default 1800: about 6 hours on Ethereum); on Base, which makes a block every 0.2 s, ten times that (default 18000, about an hour, up to 100000)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Buyers and sellers to return each, 1 to 20 (default 10)"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "coin",
