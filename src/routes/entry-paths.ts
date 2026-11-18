@@ -393,7 +393,7 @@ export const ENTRY_PATHS: Entry[] = [
     ["web-page-to-markdown", "url-to-markdown", "html-to-markdown", "page-markdown", "markdown", "llm-ready"], CORE_EXTRACT,
     (env, q) => CORE_EXTRACT.run(env, markdownInput(q)),
     {
-      url: { type: "string", description: "Absolute http(s) URL of the page to convert", required: true, example: "https://www.iana.org/help/example-domains" },
+      url: { type: "string", description: "Absolute http(s) URL of the page to convert. With no input at all this converts the public example page shown here.", required: true, example: "https://www.iana.org/help/example-domains" },
       maxChars: CORE_EXTRACT.endpoint.params.maxChars,
       format: { type: "string", description: "Returned representation: markdown (default), text, or both", enum: ["text", "markdown", "both"], example: "markdown" },
       section: CORE_EXTRACT.endpoint.params.section,

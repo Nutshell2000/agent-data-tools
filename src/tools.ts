@@ -258,6 +258,12 @@ export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Reco
   "/price/tokens": { input: { symbols: "BTC,ETH" }, note: "No input was sent, so these are the prices of BTC and ETH (the wrapped tokens on Base), the default. Send symbols (for example symbols=ETH,AERO) or addresses for other tokens." },
   "/fx": { input: { from: "USD" }, note: USD_NOTE },
   "/fx/rates": { input: { from: "USD" }, note: USD_NOTE },
+  // 18 Nov 2026: four vAPI topic listings open with these endpoints and its console sends the first one with no
+  // input. A documented default lets that first paid call succeed without touching the owner's vAPI account.
+  "/dns/lookup": { input: { name: "example.com" }, note: "No input was sent, so this looks up example.com, the default documented on the input. Send name=... for another domain or type=... for another record type." },
+  "/ai/chat": { input: { prompt: "Explain HTTP status code 402 in one sentence." }, note: 'No input was sent, so this answers the default prompt: "Explain HTTP status code 402 in one sentence." Send prompt=... for your own question.' },
+  "/transcribe": { input: { url: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg" }, note: "No input was sent, so this transcribes the short public sample audio shown in the input example. Send url=... for your own file." },
+  "/page/markdown": { input: { url: "https://www.iana.org/help/example-domains" }, note: "No input was sent, so this converts the public example page shown in the input example. Send url=... for your own page." },
 };
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
