@@ -1,0 +1,20 @@
+[
+{"q":"hur många semesterdagar har en arbetstagare rätt till","expect":["se:1977:480:4"],"heldOut":true},
+{"q":"hur lång uppsägningstid gäller enligt lagen om anställningsskydd","expect":["se:1982:80:11"],"heldOut":true},
+{"q":"när är en uppsägning från arbetsgivaren sakligt grundad","expect":["se:1982:80:7"],"heldOut":true},
+{"q":"turordningsregler vid uppsägning på grund av arbetsbrist","expect":["se:1982:80:22"],"heldOut":true},
+{"q":"styrelsens ansvar för bolagets organisation och förvaltning","expect":["se:2005:551:8k4"],"heldOut":true},
+{"q":"är ett avtal giltigt om någon tvingats att ingå det","expect":["se:1915:218:28","se:1915:218:29"],"heldOut":true},
+{"q":"kan ett oskäligt avtalsvillkor jämkas","expect":["se:1915:218:36"],"heldOut":true},
+{"q":"när får köparen häva köpet på grund av fel i varan","expect":["se:1990:931:39"],"heldOut":true},
+{"q":"högsta ordinarie arbetstid per vecka","expect":["se:1982:673:5"],"heldOut":true},
+{"q":"rätt till elva timmars dygnsvila","expect":["se:1982:673:13"],"heldOut":true},
+{"q":"måste arbetsgivaren förhandla med facket innan en viktigare förändring av verksamheten","expect":["se:1976:580:11"],"heldOut":true},
+{"q":"vad räknas som diskriminering enligt diskrimineringslagen","expect":["se:2008:567:1k4"],"heldOut":true},
+{"q":"grundläggande principer för offentlig upphandling, likabehandling och öppenhet","expect":["se:2016:1145:4k1"],"heldOut":true},
+{"q":"förbud mot konkurrensbegränsande samarbete mellan företag","expect":["se:2008:579:2k1"],"heldOut":true},
+{"q":"rätt att vara helt ledig för vård av barn","expect":["se:1995:584:5"],"heldOut":true},
+{"q":"när måste styrelsen upprätta en kontrollbalansräkning","expect":["se:2005:551:25k13"],"heldOut":true},
+{"q":"vem har upphovsrätt till ett litterärt verk","expect":["se:1960:729:1"],"heldOut":true},
+{"q":"får personnummer behandlas utan samtycke","expect":["se:2018:218:3k10"],"heldOut":true}
+]

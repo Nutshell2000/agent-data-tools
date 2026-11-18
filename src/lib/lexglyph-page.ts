@@ -22,10 +22,13 @@ import { takeDailyBudget } from "./daily-cap";
 import { HttpError, type Env } from "./env";
 import { INDEXED_LANGS, LAW_ACTS, actOf, answerFromArticles, eurlexIn, inLanguage, lawAnswer, lawDeps, lawSearch, questionLang, sourcesOf } from "../routes/law-search";
 import { MORE, STRINGS, UI_LANGS, UI_LANG_NAMES, languageName, pickUiLang, type UiLang } from "./lexglyph-i18n";
-import type { GroundedClaim } from "./law-grounding";
+import type { GroundedClaim, GroundSource } from "./law-grounding";
+import { caseParaUrl, caseSource, caseTitle, casesForArticle, seDeps, seLabel, seSearch, seSource, swedishImplementations, type CaseRef, type SeSection } from "../routes/law-layers";
 
 export const LEXGLYPH_PATH = "/lexglyph";
 export const LEXGLYPH_SECURITY_PATH = "/lexglyph/security";
+export const LEXGLYPH_VERSION_PATH = "/lexglyph/version";
+export const LEXGLYPH_EXPORT_PATH = "/lexglyph/export";
 export const LEXGLYPH_PER_VISITOR = 20;
 export const LEXGLYPH_DAILY_CAP = 2000;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -53,6 +56,10 @@ export interface LexState {
   claims?: GroundedClaim[];
   /** False when the model gave nothing that passed the quote check: the provisions are shown without a summary. */
   grounded?: boolean;
+  /** Phase B (18 Nov 2026): judgments per result (same order), Swedish statutes implementing the acts found, Swedish sections. */
+  cases?: CaseRef[][];
+  seImpl?: { short: string; sfs: string; name: string; url: string }[];
+  se?: SeSection[];
   /** The question's language: EUR-Lex code (SV, DE…) for the official-text links and BCP 47 tag for reading aloud. */
   qLang?: { eurlex: string; tag: string };
   error?: string;
@@ -90,6 +97,9 @@ const PAGE_STYLE = `
 .quotes{list-style:none;padding:0;margin:0}.quotes li{margin:0 0 .6rem}
 .quotes blockquote{margin:0;padding:6px 12px;border-left:3px solid var(--line);font-style:italic}
 .quotes cite{font-style:normal;font-size:.95rem}.pin{white-space:nowrap}
+.cases ul{padding-left:1.1rem}.cases li{margin:.4rem 0}.cases p{margin:.2rem 0;font-size:.95rem}
+.ondate,.export{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:.6rem 0 0}
+.ondate input[type=date]{min-height:44px;font-size:1rem;padding:0 8px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
 .note{color:var(--muted);font-size:.95rem}
 @media (prefers-color-scheme: light){.lex .note,.lex .meta,.lex .note span{color:#3f444b}.lex a,.langs a,a.skip{color:#0842a0}.lex button.primary{background:#0842a0;color:#fff;border-color:#0842a0}}
 `;
@@ -105,6 +115,13 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
   const option = (a: (typeof LAW_ACTS)[number]) => `<option value="${esc(a.short)}"${s.act === a.short ? " selected" : ""} lang="en">${esc(a.short === a.name ? a.name : `${a.short}: ${a.name}`)}</option>`;
   const areas = Object.keys(more.areas).filter((k) => LAW_ACTS.some((a) => (a.area ?? "other") === k));
   const actOptions = [`<option value="">${esc(t.allActs(LAW_ACTS.length))}</option>`, ...areas.map((k) => `<optgroup label="${esc(more.areas[k])}">${LAW_ACTS.filter((a) => (a.area ?? "other") === k).map(option).join("")}</optgroup>`)].join("");
+  // Phase B blocks under each provision (18 Nov 2026).
+  const caseBlock = (cases: CaseRef[], linkLang: string) => cases.length ? `<details class="cases"><summary>${esc(more.caseLaw)} (${cases.length})</summary><ul>${cases.map((c) => `<li><a href="${esc(caseParaUrl(c.url, c.para, linkLang))}" rel="noopener" lang="en">${esc(caseTitle(c))}, para ${esc(c.para)}</a>${c.date ? ` <span class="note">(${esc(c.date)}${c.ecli ? `, ${esc(c.ecli)}` : ""}; ${esc(more.moreParas(c.mentions))})</span>` : ""}<p lang="en">${esc(c.text.slice(0, 360))}${c.text.length > 360 ? "…" : ""}</p></li>`).join("")}</ul></details>` : "";
+  const implBlock = (short: string) => {
+    const laws = (s.seImpl ?? []).filter((x) => x.short === short);
+    return laws.length ? `<p class="note">${esc(more.implementedBy)}: ${laws.slice(0, 6).map((l) => `<a href="${esc(l.url)}" rel="noopener" lang="sv">${esc(l.name)}</a>`).join(", ")}</p>` : "";
+  };
+  const dateForm = (r: LawResult) => `<form method="get" action="${LEXGLYPH_VERSION_PATH}" class="ondate"><input type="hidden" name="lang" value="${ui}"><input type="hidden" name="act" value="${esc(r.short)}"><input type="hidden" name="article" value="${esc(r.label.replace(/^Article /, ""))}"><label>${esc(more.onDate)} <input type="date" name="date" required max="${new Date().toISOString().slice(0, 10)}"></label> <button type="submit" class="tool">${esc(more.onDateGo)}</button></form>`;
   // The official text in the asker's language: the question's language, else the interface language, unless English.
   const officialCode = s.qLang && s.qLang.eurlex !== "EN" ? s.qLang.eurlex : ui !== "en" ? ui.toUpperCase() : null;
   const keep = (lang: UiLang) => `${LEXGLYPH_PATH}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}), ...(s.q && !s.explain ? { explain: "0" } : {}) })}`;
@@ -122,6 +139,7 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
 <details><summary>${esc(more.readWholeIn(r.kind === "recital", tlName))}</summary><pre lang="${tl}">${esc(r.text)}</pre></details>
 <p class="note" lang="en"><span class="cite">${esc(citationLine(r))}</span></p>
 <div class="tools"><button type="button" class="tool js copy" data-copy="${esc(citationLine(r))}" hidden>${esc(t.copyCite)}</button><button type="button" class="tool js speak" data-lang="${tl}" data-speak="${esc(`${r.citation}. ${r.heading ?? ""}. ${r.text.slice(0, 3000)}`)}" hidden>${esc(t.readAloud)}</button></div>
+${caseBlock(s.cases?.[i] ?? [], officialCode ?? tl.toUpperCase())}${implBlock(r.short)}${r.kind === "article" ? dateForm(r) : ""}
 </article>`;
   }).join("\n");
   // The answer: each sentence with the pinpoint citation it rests on, then the quotes themselves, word for word.
@@ -132,8 +150,16 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
 <h3>${esc(more.quotedHeading)}</h3>
 <ul class="quotes">${claims.map((c) => `<li><blockquote>“${esc(c.quote)}”</blockquote> <cite><a href="${esc(c.url)}" rel="noopener">${esc(c.citation)}</a></cite></li>`).join("")}</ul>
 <div class="tools"><button type="button" class="tool js speak" data-lang="${s.qLang?.tag ?? ui}" data-speak="${esc(claims.map((c) => c.text).join(" "))}" hidden>${esc(t.readAloud)}</button><button type="button" class="tool js copy" data-copy="${esc(claims.map((c) => `${c.text} (${c.citation})`).join(" "))}" hidden>${esc(t.copyCite)}</button></div>
-<p class="note">${esc(more.aiNote)}</p></div>`
+<p class="note">${esc(more.aiNote)}</p>
+${exportForm()}</div>`
     : s.q && s.explain && s.grounded === false && results.length ? `<p class="note answer">${esc(more.notGrounded)}</p>` : "";
+  // Swedish statutes for the question (Swedish questions, or the Swedish interface).
+  const seHtml = (s.se ?? []).length ? `<section class="se" lang="sv"><h2>${esc(more.swedishLaw)}</h2>${(s.se ?? []).map((x) => `<article class="result"><h3>${esc(`${seLabel(x)} ${x.name}`)}${x.heading ? `: ${esc(x.heading)}` : ""}</h3><p>${esc(x.text.slice(0, 500))}${x.text.length > 500 ? "…" : ""}</p><p class="note"><a href="${esc(x.url)}" rel="noopener">Riksdagen: ${esc(x.name)}</a></p></article>`).join("")}</section>` : "";
+  // The Word download posts the answer as shown; nothing is searched again and nothing is stored.
+  function exportForm() {
+    const data = JSON.stringify({ q: s.q, lang: s.qLang?.tag ?? ui, ui, claims: claims.map((c) => ({ text: c.text, quote: c.quote, citation: c.citation, url: c.url })), provisions: results.map((r) => ({ citation: r.citation, heading: r.heading, text: r.text, url: r.url, version: r.version })) });
+    return `<form method="post" action="${LEXGLYPH_EXPORT_PATH}" class="export"><input type="hidden" name="data" value="${esc(data)}"><button type="submit" class="tool">${esc(more.exportWord)}</button></form>`;
+  }
   const status = s.error
     ? `<p role="alert">${esc(s.error)}</p>`
     : s.q
@@ -160,6 +186,7 @@ ${s.q ? "" : `<h2>${esc(t.tryOne)}</h2><ul class="chips">${EXAMPLES.map(([lang, 
 ${status}
 ${answerHtml}
 ${resultHtml}
+${seHtml}
 </section>
 <h2>${esc(t.why)}</h2>
 <ul>${t.whyItems(LAW_ACTS.length, LEXGLYPH_PER_VISITOR).map((x) => `<li>${x}</li>`).join("")}</ul>
@@ -234,9 +261,22 @@ export async function lexglyphHtml(env: Env, origin: string, params: URLSearchPa
     const textLang = INDEXED_LANGS.includes(qLang.tag) ? qLang.tag : "en";
     const shown = { ...found, candidates: await inLanguage(found.candidates.slice(0, 5), textLang, deps) };
     const out = lawAnswer(q, act, undefined, 5, shown);
-    const answered = explain && out.results.length ? await answerFromArticles(env, q, sourcesOf(out.results), { plain: true }).catch(() => null) : null;
+    // Phase B layers (18 Nov 2026): judgments on each article found, Swedish statutes implementing the acts found, and
+    // Swedish sections when the question or the interface is Swedish. A layer that fails is left out, never the page.
+    const db = env.LAW_DB!;
+    const se = seDeps(env);
+    const wantSe = qLang.tag === "sv" || ui === "sv";
+    const [cases, seImpl, seHits] = await Promise.all([
+      Promise.all(out.results.map((r) => (r.kind === "article" ? casesForArticle(db, r.short, r.label.replace(/^Article /, ""), 3).catch(() => [] as CaseRef[]) : Promise.resolve([] as CaseRef[])))),
+      swedishImplementations(db, out.results.map((r) => r.short)).catch(() => []),
+      wantSe && se ? seSearch(q, se, 3).catch(() => [] as SeSection[]) : Promise.resolve([] as SeSection[]),
+    ]);
+    // The answer may quote the EU provisions, the two best Swedish sections and the leading judgment paragraph on each of
+    // the first two articles; every quote is checked against the text it came from.
+    const sources: GroundSource[] = [...sourcesOf(out.results), ...seHits.slice(0, 2).map(seSource), ...cases.slice(0, 2).flatMap((l) => l.slice(0, 1)).filter((c) => c.text).map(caseSource)];
+    const answered = explain && out.results.length ? await answerFromArticles(env, q, sources, { plain: true }).catch(() => null) : null;
     await env.TRIALS?.put(key, String(used + 1), { expirationTtl: 2 * 86400 }).catch(() => {});
-    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer: answered?.grounded ? answered.answer : null, claims: answered?.claims ?? [], grounded: answered ? answered.grounded : undefined, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
+    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer: answered?.grounded ? answered.answer : null, claims: answered?.claims ?? [], grounded: answered ? answered.grounded : undefined, cases, seImpl, se: seHits, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
   } catch (e) {
     const busy = e instanceof HttpError && (e.status === 503 || e.status === 502);
     return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, error: busy ? t.busy : t.failed });

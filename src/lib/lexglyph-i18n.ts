@@ -309,6 +309,20 @@ export interface MoreStrings {
   areas: Record<string, string>;
   security: string;
   textIn: (language: string) => string;
+  /** Phase B (18 Nov 2026): case law, Swedish law, reading on a date, Word export. */
+  caseLaw: string;
+  moreParas: (n: number) => string;
+  swedishLaw: string;
+  implementedBy: string;
+  onDate: string;
+  onDateGo: string;
+  exportWord: string;
+  versionTitle: (citation: string, date: string) => string;
+  versionThen: (date: string) => string;
+  versionNow: (date: string) => string;
+  versionSame: string;
+  versionChanges: string;
+  docNote: string;
 }
 const AREA_EN = { treaties: "Treaties and Charter", data: "Data protection and cybersecurity", digital: "Digital and AI", competition: "Competition and State aid", procurement: "Public procurement", corporate: "Company law and audit", finance: "Financial services", employment: "Employment", contract: "Contract, consumer and civil procedure", ip: "Intellectual property", tax: "Tax and VAT", products: "Products, health and food", environment: "Environment and energy", trade: "Trade, customs and sanctions", public: "Citizens, migration and transparency", other: "Other" };
 export const MORE: Record<UiLang, MoreStrings> = {
@@ -320,6 +334,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: AREA_EN,
     security: "How we handle your questions",
     textIn: (l) => `Text in ${l}`,
+    caseLaw: "Court of Justice case law on this article",
+    moreParas: (n) => `${n} paragraphs discuss it`,
+    swedishLaw: "Swedish law",
+    implementedBy: "Implemented in Sweden by",
+    onDate: "Read this article as in force on",
+    onDateGo: "Show",
+    exportWord: "Download as Word",
+    versionTitle: (c, d) => `${c} as in force on ${d}`,
+    versionThen: (d) => `Version applying from ${d}`,
+    versionNow: (d) => `Today (version applying from ${d})`,
+    versionSame: "The wording is the same as today.",
+    versionChanges: "Changes since then: struck-through text was removed, underlined text was added.",
+    docNote: "Written with LexGlyph. Every sentence of the answer quotes the provision it rests on, checked word for word. AI-written; not legal advice. Only the Official Journal of the European Union and the printed SFS are authentic.",
   },
   sv: {
     aiNote: "Skrivet av AI. Varje mening citerar bestämmelsen den bygger på, och vi kontrollerar varje citat ord för ord mot den officiella texten innan det visas; meningar som inte klarar det tas bort. Läs bestämmelsen innan du förlitar dig på den.",
@@ -329,6 +356,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: { treaties: "Fördragen och stadgan", data: "Dataskydd och cybersäkerhet", digital: "Digitalt och AI", competition: "Konkurrens och statsstöd", procurement: "Offentlig upphandling", corporate: "Bolagsrätt och revision", finance: "Finansiella tjänster", employment: "Arbetsrätt", contract: "Avtal, konsument och civilprocess", ip: "Immaterialrätt", tax: "Skatt och moms", products: "Produkter, hälsa och livsmedel", environment: "Miljö och energi", trade: "Handel, tull och sanktioner", public: "Medborgare, migration och öppenhet", other: "Övrigt" },
     security: "Så hanterar vi dina frågor",
     textIn: (l) => `Text på ${l}`,
+    caseLaw: "EU-domstolens praxis om artikeln",
+    moreParas: (n) => `${n} punkter behandlar den`,
+    swedishLaw: "Svensk lag",
+    implementedBy: "Genomförd i Sverige genom",
+    onDate: "Läs artikeln i lydelsen den",
+    onDateGo: "Visa",
+    exportWord: "Ladda ner som Word",
+    versionTitle: (c, d) => `${c} i lydelsen den ${d}`,
+    versionThen: (d) => `Lydelse som gäller från ${d}`,
+    versionNow: (d) => `I dag (lydelse som gäller från ${d})`,
+    versionSame: "Lydelsen är densamma som i dag.",
+    versionChanges: "Ändringar sedan dess: överstruken text har tagits bort, understruken text har lagts till.",
+    docNote: "Skrivet med LexGlyph. Varje mening i svaret citerar bestämmelsen den bygger på, kontrollerat ord för ord. Skrivet av AI; inte juridisk rådgivning. Endast Europeiska unionens officiella tidning och den tryckta SFS är giltiga.",
   },
   de: {
     aiNote: "Von KI geschrieben. Jeder Satz zitiert die Bestimmung, auf der er beruht, und wir prüfen jedes Zitat Wort für Wort am amtlichen Text, bevor es angezeigt wird; Sätze, die das nicht bestehen, entfallen. Lesen Sie die Bestimmung, bevor Sie sich darauf verlassen.",
@@ -338,6 +378,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: AREA_EN,
     security: "Wie wir mit Ihren Fragen umgehen",
     textIn: (l) => `Text auf ${l}`,
+    caseLaw: "Rechtsprechung des Gerichtshofs zu diesem Artikel",
+    moreParas: (n) => `${n} Randnummern behandeln ihn`,
+    swedishLaw: "Schwedisches Recht",
+    implementedBy: "In Schweden umgesetzt durch",
+    onDate: "Artikel in der Fassung vom",
+    onDateGo: "Anzeigen",
+    exportWord: "Als Word herunterladen",
+    versionTitle: (c, d) => `${c} in der Fassung vom ${d}`,
+    versionThen: (d) => `Fassung gültig ab ${d}`,
+    versionNow: (d) => `Heute (Fassung gültig ab ${d})`,
+    versionSame: "Der Wortlaut ist derselbe wie heute.",
+    versionChanges: "Änderungen seitdem: durchgestrichener Text wurde entfernt, unterstrichener Text hinzugefügt.",
+    docNote: "Mit LexGlyph erstellt. Jeder Satz der Antwort zitiert die Bestimmung, auf der er beruht, Wort für Wort geprüft. Von KI geschrieben; keine Rechtsberatung. Verbindlich ist nur das Amtsblatt der Europäischen Union.",
   },
   fr: {
     aiNote: "Rédigé par une IA. Chaque phrase cite la disposition sur laquelle elle repose, et nous vérifions chaque citation mot pour mot dans le texte officiel avant de l'afficher ; les phrases qui échouent sont retirées. Lisez la disposition avant de vous y fier.",
@@ -347,6 +400,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: AREA_EN,
     security: "Comment nous traitons vos questions",
     textIn: (l) => `Texte en ${l}`,
+    caseLaw: "Jurisprudence de la Cour de justice sur cet article",
+    moreParas: (n) => `${n} points l'examinent`,
+    swedishLaw: "Droit suédois",
+    implementedBy: "Transposé en Suède par",
+    onDate: "Lire l'article dans sa version du",
+    onDateGo: "Afficher",
+    exportWord: "Télécharger en Word",
+    versionTitle: (c, d) => `${c} dans sa version du ${d}`,
+    versionThen: (d) => `Version applicable à partir du ${d}`,
+    versionNow: (d) => `Aujourd'hui (version applicable à partir du ${d})`,
+    versionSame: "Le texte est le même qu'aujourd'hui.",
+    versionChanges: "Modifications depuis : le texte barré a été supprimé, le texte souligné ajouté.",
+    docNote: "Rédigé avec LexGlyph. Chaque phrase de la réponse cite la disposition sur laquelle elle repose, vérifiée mot pour mot. Rédigé par une IA ; pas un conseil juridique. Seul le Journal officiel de l'Union européenne fait foi.",
   },
   es: {
     aiNote: "Escrito por IA. Cada frase cita la disposición en que se basa, y comprobamos cada cita palabra por palabra con el texto oficial antes de mostrarla; las frases que no la superan se omiten. Lee la disposición antes de basarte en ella.",
@@ -356,6 +422,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: AREA_EN,
     security: "Cómo tratamos tus preguntas",
     textIn: (l) => `Texto en ${l}`,
+    caseLaw: "Jurisprudencia del Tribunal de Justicia sobre este artículo",
+    moreParas: (n) => `${n} apartados lo tratan`,
+    swedishLaw: "Derecho sueco",
+    implementedBy: "Transpuesto en Suecia por",
+    onDate: "Leer el artículo en la versión vigente el",
+    onDateGo: "Mostrar",
+    exportWord: "Descargar en Word",
+    versionTitle: (c, d) => `${c} en la versión vigente el ${d}`,
+    versionThen: (d) => `Versión aplicable desde el ${d}`,
+    versionNow: (d) => `Hoy (versión aplicable desde el ${d})`,
+    versionSame: "El texto es el mismo que hoy.",
+    versionChanges: "Cambios desde entonces: el texto tachado se suprimió y el subrayado se añadió.",
+    docNote: "Escrito con LexGlyph. Cada frase de la respuesta cita la disposición en que se basa, comprobada palabra por palabra. Escrito por IA; no es asesoramiento jurídico. Solo el Diario Oficial de la Unión Europea es auténtico.",
   },
   pl: {
     aiNote: "Napisane przez AI. Każde zdanie cytuje przepis, na którym się opiera, a każdy cytat sprawdzamy słowo po słowie z oficjalnym tekstem, zanim go pokażemy; zdania, które nie przejdą, są pomijane. Przeczytaj przepis, zanim na nim polegasz.",
@@ -365,6 +444,19 @@ export const MORE: Record<UiLang, MoreStrings> = {
     areas: AREA_EN,
     security: "Jak traktujemy Twoje pytania",
     textIn: (l) => `Tekst: ${l}`,
+    caseLaw: "Orzecznictwo Trybunału Sprawiedliwości dotyczące artykułu",
+    moreParas: (n) => `omawia go punktów: ${n}`,
+    swedishLaw: "Prawo szwedzkie",
+    implementedBy: "Wdrożone w Szwecji przez",
+    onDate: "Czytaj artykuł w brzmieniu z dnia",
+    onDateGo: "Pokaż",
+    exportWord: "Pobierz jako Word",
+    versionTitle: (c, d) => `${c} w brzmieniu z dnia ${d}`,
+    versionThen: (d) => `Wersja obowiązująca od ${d}`,
+    versionNow: (d) => `Dziś (wersja obowiązująca od ${d})`,
+    versionSame: "Brzmienie jest takie samo jak dziś.",
+    versionChanges: "Zmiany od tamtej pory: tekst przekreślony usunięto, podkreślony dodano.",
+    docNote: "Napisane z LexGlyph. Każde zdanie odpowiedzi cytuje przepis, na którym się opiera, sprawdzony słowo po słowie. Napisane przez AI; to nie jest porada prawna. Autentyczny jest tylko Dziennik Urzędowy Unii Europejskiej.",
   },
 };
 
