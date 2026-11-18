@@ -60,7 +60,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "income statement": "/sec/financials", "balance sheet": "/sec/financials", "cash flow statement": "/sec/financials", "financial statements": "/sec/financials", "company financials": "/sec/financials", "stock fundamentals": "/sec/financials", "fundamentals": "/sec/financials", "company facts": "/sec/financials", "earnings per share": "/sec/financials",
   "arxiv": "/arxiv/search", "arxiv search": "/arxiv/search", "preprint": "/arxiv/search", "preprints": "/arxiv/search",
   "url to markdown": "/extract", "page to markdown": "/extract", "html to markdown": "/extract",
-  "wikipedia summary": "/wikipedia", "wiki summary": "/wikipedia", "trending crypto": "/crypto/trending", "trending coins": "/crypto/trending", "crypto ohlcv": "/hyperliquid/candles", "crypto candles": "/hyperliquid/candles",
+  "javascript page": "/extract/rendered", "rendered page": "/extract/rendered", "spa page": "/extract/rendered", "js rendered": "/extract/rendered", "dynamic page": "/extract/rendered", "client side rendered": "/extract/rendered",  "wikipedia summary": "/wikipedia", "wiki summary": "/wikipedia", "trending crypto": "/crypto/trending", "trending coins": "/crypto/trending", "crypto ohlcv": "/hyperliquid/candles", "crypto candles": "/hyperliquid/candles",
   "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",
   "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
   "email verifier": "/email", "verify email": "/email", "email verification": "/email", "email validation": "/email",

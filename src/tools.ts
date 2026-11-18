@@ -106,7 +106,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   name: ["q", "query", "domain", "host", "company", "company_name", "companyName", "organization", "hostname", "domain_name", "website", "url", "site", "address", "location", "place", "city", "search", "term", "entity", "entity_name", "entityName", "legal_name", "legalName", "business_name", "businessName", "person"],
   domain: ["name", "host", "hostname", "website", "url", "site"],
   word: ["q", "query", "term"], title: ["q", "query", "topic", "search", "term", "name", "article", "page", "subject", "keyword", "url"], query: ["q", "search", "term", "keywords", "topic", "question", "text"], invoice: ["bolt11"],
-  url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url"],
+  url: ["link", "urls", "website", "site", "page", "target", "uri", "href", "endpoint", "source", "image", "image_url", "imageUrl", "audio", "audio_url", "audioUrl", "pdf", "file", "file_url", "host", "domain", "link_url", "linkUrl"],
   urls: ["ids", "links", "url"], documents: ["docs", "texts", "contexts"],
   // /audit/contract (1.131.0): other audit sellers take the code as code or, in one free-text field, as description.
   source: ["code", "source_code", "sourceCode", "solidity", "contract_source", "description"],
