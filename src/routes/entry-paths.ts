@@ -26,6 +26,7 @@ import { bitcoinFees } from "./bitcoin";
 import { COMPANY } from "./company";
 import { DEFI_YIELDS } from "./defi-yields";
 import { domainInfo } from "./domain";
+import { domainReport } from "./domain-report";
 import { emailCheck } from "./email";
 import { FEAR_GREED } from "./fear-greed";
 import { POLYMARKET } from "./polymarket";
@@ -50,6 +51,7 @@ import { PDF } from "./pdf";
 import { UTILS } from "./utils";
 import { WEB_CHECKS } from "./web-checks";
 import { WHALE } from "./whale";
+import { PACKS_RESEARCH } from "./packs-research";
 
 /** The canonical tool each entry path runs (read by tests, the handover notes and the Zero registration check). */
 export const ENTRY_OF: Record<string, string> = {};
@@ -109,6 +111,17 @@ const CORE_BTC_PRICE = core("/btc-price", "$0.01", {
   satsPerUsd: 1198, usdPerSat: 0.00083463, priceTime: "2026-10-13T09:10:05.000Z",
   source: "mempool.space (average of major exchanges)", checkedAt: "2026-10-13T09:12:00.000Z",
 }, (_env, q) => bitcoinPriceIn(q("currency")));
+
+// /domain-report for the /merchant/trust door (1.222.0); inputs and example repeat endpoints.ts.
+const CORE_DOMAIN_REPORT = core("/domain-report", "$0.02", {
+  name: { type: "string", description: "Domain name, e.g. cloudflare.com", required: true, example: "cloudflare.com" },
+}, {
+  domain: "cloudflare.com", trust: "high",
+  summary: "high trust: 0 high and 0 medium flag(s). Based on DNS, registration and email-authentication signals only.",
+  flags: [],
+  facts: { exists: true, registrar: "Cloudflare, Inc.", registeredAt: "2009-02-17T22:07:54Z", expiresAt: "2033-02-17T22:07:54Z", ageDays: 6447, nameservers: ["ns3.cloudflare.com", "ns4.cloudflare.com"], acceptsMail: true, spfPolicy: "-all", dmarcPolicy: "reject", dnssecValidated: true },
+  checkedAt: "2026-10-14T19:25:28.425Z",
+}, (env, q) => domainReport(env, q("name") ?? ""));
 
 const CORE_BTC_FEES = core("/btc-fees", "$0.002", {}, {
   network: "bitcoin", unit: "sat/vB",
@@ -506,6 +519,18 @@ export const ENTRY_PATHS: Entry[] = [
   door("/url/unshorten", "URL unshortener: final destination",
     "URL unshortener: expand a short link (bit.ly, t.co and others) to its final destination without loading the page, with every redirect hop's status code and Location, total hops, timing and whether it loops. Each hop is checked before it is requested; redirects to private addresses are reported, not followed. Use to see where a link really goes before opening or sharing it.",
     ["url-unshortener", "unshorten-url", "expand-url", "link-expander", "redirects", "link-safety"], from(WEB_CHECKS, "/url/redirects")),
+
+  // 1.222.0 (18 Nov 2026): the same batch agent paid ShopperPulse's "Know Your Merchant trust score" 463 times ($0.02); the
+  // trust verdict of /domain-report answers that job, under a name no merchant-trust search found. Its first door.
+  door("/merchant/trust", "Merchant trust score: is this shop legit",
+    "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee.",
+    ["merchant-trust", "know-your-merchant", "is-this-site-legit", "vendor-check", "trust-score", "domain"], CORE_DOMAIN_REPORT),
+
+  // 1.222.0 (18 Nov 2026): Mercator's "url safety check" and "is this link safe" lists hold the providers an agent paid
+  // ~460 times each on 16-17 Nov; /pack/url-safety appeared under neither phrase. Its first door.
+  door("/url/safety-check", "URL safety check: is this link safe",
+    "URL safety check: is this link safe to open or pay? Two phishing blocklists (Phishing.Database, MetaMask) on every host the link passes through, each redirect hop and the final URL, the destination domain's age and trust flags, HTTPS and security headers, and named risk signals (new domain, bare IP, punycode look-alike, user@host trick), with an overall risk of low, medium or high. Use to vet links in emails, chats or scraped pages.",
+    ["url-safety-check", "is-this-link-safe", "link-checker", "phishing-check", "scam-url", "security"], from(PACKS_RESEARCH, "/pack/url-safety")),
 
   door("/exif", "EXIF data: camera, date and GPS",
     "EXIF data of a photo from its URL: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded, with the image format, width and height. JPEG EXIF; PNG, GIF and WebP give size only. Up to 15 MB. Use to check where and when a photo was taken or to verify an upload.",
