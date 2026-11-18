@@ -197,18 +197,18 @@ export const PRODUCTS: readonly Product[] = [
     tool: "/law/search",
     also: ["/company/search", "/vat/validate"],
     points: [
-      "47 EU acts article by article and recital by recital, in their latest consolidated English text",
-      "Every result cites the act and article, with its heading, full text, EUR-Lex link and the version it comes from",
+      "185 EU acts article by article and recital by recital, in their latest consolidated English and Swedish text: the Treaties and Charter, data, AI, employment, competition, procurement, company, financial, IP, consumer, tax, trade and environmental law",
+      "Every result cites the act and article, with its heading, full text, EUR-Lex link and the version it comes from; with answer=true every sentence quotes the provision it rests on, checked word for word, with a pinpoint citation such as Article 6(1)(f)",
       "Our own index (keyword and meaning search, reranked), hosted in the EU: no outside search engine in between",
       "On 102 held-out compliance questions the right article came first for 76 and was in our top 5 for 96 (15 Nov 2026)",
     ],
     limits: [
       "Not legal advice: only the Official Journal text is authentic.",
-      "EU acts only, in English; national laws and case law are not indexed yet.",
+      "EU acts only, in English and Swedish; national laws and case law are not indexed yet.",
     ],
     unit: "searches",
     faq: [
-      ["Which acts are covered?", "47 acts businesses ask about most: GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, the Data Act, the Cyber Resilience Act, eIDAS, PSD2, the anti-money-laundering package, the VAT Directive and its implementing regulation, ViDA, consumer law, product safety and liability, CSRD, the Accounting Directive, CSDDD, SFDR and more."],
+      ["Which acts are covered?", "185 acts: the Treaties (TEU, TFEU) and the Charter; GDPR, the AI Act, DSA, DMA, NIS2, DORA, MiCA and the Data Act; employment law (working time, transfers of undertakings, collective redundancies, equal treatment); competition and State aid (Regulation 1/2003, the Merger Regulation, the block exemptions); public procurement; company law, audit and anti-money-laundering; MiFID II, MAR, the Prospectus Regulation, CRR and EMIR; trade marks, designs, copyright and trade secrets; Rome I and II, Brussels Ia and consumer law; VAT and corporate tax directives; customs, export control and sanctions; REACH, waste and emissions trading."],
       ["How current is the text?", "Each act is the latest consolidated version in force when the index was built (monthly), and every result names that version. Recitals come from the text as published in the Official Journal."],
       ["How is it different from a web search?", "A web search returns pages about the law. This returns the provision itself: on 102 held-out questions the right article came first for 76 and was in the top 5 for 96."],
       ["Can I limit the search to one act?", "Yes: act=GDPR (or the full name, or the CELEX number). kind=article or kind=recital narrows further."],

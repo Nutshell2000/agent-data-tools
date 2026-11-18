@@ -30,7 +30,6 @@ if (LANGS[0] !== "en") throw new Error("English must come first: it decides the 
 const embed = !process.argv.includes("--no-embed");
 mkdirSync(out, { recursive: true });
 
-const ACCOUNT = "a71d95cc01c3cac8962c09cc2195eb88";
 const UA = "LexGlyph EU law index builder (https://lex.glyphcall.com)";
 /** CELLAR's language codes (accept-language) and EUR-Lex's (in the page address) for the languages we build. */
 const LANG = { en: { cellar: "eng", eurlex: "EN" }, sv: { cellar: "swe", eurlex: "SV" }, de: { cellar: "deu", eurlex: "DE" }, fr: { cellar: "fra", eurlex: "FR" }, fi: { cellar: "fin", eurlex: "FI" }, da: { cellar: "dan", eurlex: "DA" } };
@@ -66,19 +65,6 @@ async function xhtml(celex, lang = "en", accept = "application/xhtml+xml") {
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const sql = (v) => (v === null || v === undefined ? "NULL" : typeof v === "number" ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 
-let token = null;
-async function embedBatch(texts) {
-  token ??= execSync("npx wrangler auth token", { encoding: "utf8", cwd: join(here, "../..") }).trim().split(/\r?\n/).pop();
-  for (let i = 0; i < 5; i++) {
-    const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/ai/run/@cf/baai/bge-m3`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ text: texts }) }).catch(() => null);
-    const j = r ? await r.json().catch(() => null) : null;
-    if (r?.ok && Array.isArray(j?.result?.data) && j.result.data.length === texts.length) return j.result.data;
-    if (r?.status === 401) token = null;
-    await sleep(2000 * (i + 1));
-  }
-  throw new Error("embedding failed");
-}
-
 /** Passages of one act's text in one language. */
 function passagesOf(act, parsed, lang, celex, recitalCelex, consolidated) {
   const version = consolidated ? `consolidated text of ${consolidated.slice(-8, -4)}-${consolidated.slice(-4, -2)}-${consolidated.slice(-2)}` : "text as published in the Official Journal";
@@ -103,6 +89,7 @@ function passagesOf(act, parsed, lang, celex, recitalCelex, consolidated) {
 }
 
 const passages = [];
+const ids = new Set();
 const report = [];
 for (const act of ACTS) {
   if (only && !only.includes(act.short.toLowerCase())) continue;
@@ -127,7 +114,8 @@ for (const act of ACTS) {
         const oj = await xhtml(act.celex, lang).catch(() => null);
         if (oj) { parsed.items = [...parsed.items, ...parseAct(oj).items.filter((i) => i.kind === "recital")]; recitalCelex = act.celex; }
       }
-      const rows = passagesOf(act, parsed, lang, celex, recitalCelex, consolidated);
+      // A consolidated text can carry the same article twice (AIFMD Article 69a, 18 Nov 2026): the first copy is kept.
+      const rows = passagesOf(act, parsed, lang, celex, recitalCelex, consolidated).filter((r) => !ids.has(r.id) && ids.add(r.id));
       passages.push(...rows);
       counts.push(`${lang}: ${parsed.items.filter((i) => i.kind === "article").length} articles, ${parsed.items.filter((i) => i.kind === "recital").length} recitals, ${rows.length} passages`);
       await sleep(500);
@@ -167,15 +155,6 @@ files.push(cur);
 files.forEach((f, i) => writeFileSync(join(out, `passages-${i + 1}.sql`), f.join("\n")));
 console.log(`${passages.length} passages (${passages.filter((p) => p.lang === "en").length} English) from ${report.length} acts; ${files.length} SQL files`);
 
-if (embed) {
-  const en = passages.filter((p) => p.lang === "en");
-  const lines = [];
-  for (let i = 0; i < en.length; i += 25) {
-    const batch = en.slice(i, i + 25);
-    const vectors = await embedBatch(batch.map((p) => `${p.short} ${p.label}${p.heading ? `: ${p.heading}` : ""}\n${p.text}`.slice(0, 2500)));
-    batch.forEach((p, k) => lines.push(JSON.stringify({ id: p.id, values: vectors[k], metadata: { short: p.short, kind: p.kind } })));
-    if (i % 1000 === 0) console.log(`embedded ${i + batch.length}/${en.length}`);
-  }
-  writeFileSync(join(out, "vectors.ndjson"), lines.join("\n"));
-  console.log(`vectors.ndjson: ${lines.length}`);
-}
+// Embeddings: scripts/law-index/embed.mjs writes vectors-<n>.ndjson in pieces (one string for 33,000 vectors exceeded
+// Node's string limit on 18 Nov 2026 after the whole run). Run it here unless --no-embed.
+if (embed) execSync(`node "${join(here, "embed.mjs")}" "${out}"`, { stdio: "inherit" });

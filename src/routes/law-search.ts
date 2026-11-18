@@ -1,6 +1,7 @@
 /**
  * EU law search (14 Nov 2026): our own search index, the first of the beat-Exa plan
- * (business/research-2026-11-14-biggest-earners/beat-exa-master-plan.md, Phase 2). 46 EU acts that agents and companies
+ * (business/research-2026-11-14-biggest-earners/beat-exa-master-plan.md, Phase 2). Since 18 Nov 2026 185 acts with the
+ * official Swedish text beside the English (business/lexglyph/lexglyph-law-firm-plan-2026-11-18.md). Originally 46 EU acts that agents and companies
  * ask about (GDPR, AI Act, DSA, DMA, NIS2, DORA, MiCA, VAT Directive, CSRD…), article by article and recital by recital,
  * in the latest consolidated English text in force when the index was built (scripts/law-index/build.mjs, monthly).
  *
@@ -19,7 +20,7 @@ import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
 import { franc } from "franc-min";
 import { RERANK_MODEL } from "./retrieval";
-import { CHAT_MODEL, chat } from "./ai-text";
+import { CHAT_MODEL, LARGE_CHAT_MODELS, chat } from "./ai-text";
 import ACTS from "../data/eu-law-acts.json";
 import { groundedContext, groundedPrompt, parseClaims, verifyClaims, type GroundSource, type GroundedClaim } from "../lib/law-grounding";
 
@@ -222,8 +223,12 @@ export function lawAnswer(q: string, act: LawAct | undefined, kind: string | und
   return { query: q, ...(act ? { act: act.short } : {}), ...(kind ? { kind } : {}), count: results.length, results, actsIndexed: LAW_ACTS.length, attribution: ATTRIBUTION };
 }
 
-/** The model that writes grounded answers (chosen 18 Nov 2026 by scripts/law-index/eval-answers.mjs; see CLAUDE.md). */
-export const LAW_ANSWER_MODEL = CHAT_MODEL;
+/**
+ * The model that writes grounded answers. Chosen 18 Nov 2026 with scripts/law-index/eval-answers.mjs on 34 questions
+ * (24 held-out English, 10 in other languages): Llama 3.3 70B answered 32, kept 145 of 151 quotes, cited the expected
+ * article for 29, 5.5 s on average; Llama 4 Scout 32 / 83 of 87 / 28 / 16 s; gpt-oss-120b 30 / 103 of 114 / 26 / 8 s.
+ */
+export const LAW_ANSWER_MODEL = LARGE_CHAT_MODELS["llama-3.3-70b"];
 
 /**
  * A short answer from the articles found, the beat-Exa plan's answer over our own index (14 Nov 2026): Exa's /answer is
@@ -285,7 +290,7 @@ export async function answerFromArticles(env: Env, question: string, results: Gr
 
 export const LAW_SEARCH: Entry[] = [
   entry("/law/search", "EU law search: GDPR, AI Act, DSA, VAT and 180+ EU acts",
-    `Search ${LAW_ACTS.length} EU acts article by article: the Treaties and Charter, GDPR, AI Act, DSA, NIS2, DORA, MiCA, MiFID II, employment, competition, procurement, company, IP, consumer and tax law, in their latest consolidated English text (official Swedish text with lang=sv), plus recitals. Ask in plain words; get the matching articles with act, article number, heading, full text, EUR-Lex link and version. Our own index (keyword + meaning, reranked), hosted in the EU. Use for compliance questions and citing EU law. Not legal advice.`,
+    `Search ${LAW_ACTS.length} EU acts article by article: Treaties, Charter, GDPR, AI Act, NIS2, DORA, MiFID II, employment, competition, procurement, company, IP, consumer and tax law, latest consolidated text in English (Swedish with lang=sv). Get act, article, heading, full text, EUR-Lex link and version; answer=true adds quote-checked sentences with pinpoint citations. Our own EU-stored index. Use for compliance questions and citing EU law. Not legal advice.`,
     ["eu-law", "legal-search", "gdpr", "ai-act", "compliance", "regulation", "eur-lex", "legal-research"], {
       q: { type: "string", description: "Question or keywords in any EU language; the articles are in English (at most 400 characters)", required: true, example: "which AI practices are banned" },
       act: { type: "string", description: "Only this act: short name (GDPR, AI Act, DSA, VAT Directive…), full name or CELEX number", example: "GDPR" },

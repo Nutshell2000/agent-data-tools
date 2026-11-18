@@ -167,7 +167,7 @@ ${resultHtml}
 <h2>For developers and AI agents</h2>
 <ul>
 <li>API: <code>GET ${esc(origin)}/law/search?q=…</code>, $0.005 a search, pay per call or with a key. <a href="/eu-law-search-api">API details and plans</a>.</li>
-<li>Already on Exa's SDK? Change one line: <code>Exa(api_key, base_url="${esc(origin)}/v1")</code> and send <code>category="law"</code>.</li>
+<li>Grounded answers for your own app: add <code>answer=true</code>; every sentence comes with the quote it rests on and a pinpoint citation. Swedish text: <code>lang=sv</code>.</li>
 <li>MCP: add <code>${esc(origin)}/mcp</code> to your AI assistant and ask it EU-law questions.</li>
 </ul>
 </section>
