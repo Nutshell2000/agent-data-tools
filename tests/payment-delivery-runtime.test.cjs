@@ -335,6 +335,22 @@ test('a v2 payment sent in X-PAYMENT is paid through the v2 path, once, with the
  assert.equal(sum(after,'http:/extract:settled'),sum(before,'http:/extract:settled')+1,'counted once');
  assert.equal(sum(after,'http:/extract:completed'),sum(before,'http:/extract:completed')+1,'counted once');
 });
+test('a payment whose envelope lacks x402Version is still paid: v2 in PAYMENT-SIGNATURE or X-PAYMENT, and the flat v1 shape in X-PAYMENT',async()=>{
+ const before=await revenue();
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const q=await mf.dispatchFetch(url);assert.equal(q.status,402);await q.arrayBuffer();
+ const requirements=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
+ const noVersion=(nonce)=>{const p=payload(requirements,nonce);delete p.x402Version;assert.ok(p.accepted,'a v2 payload carries accepted');return Buffer.from(JSON.stringify(p)).toString('base64');};
+ const viaSignature=await mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':noVersion('9'.repeat(60)+'cc01')}});
+ assert.equal(viaSignature.status,200,await viaSignature.clone().text());assert.ok(viaSignature.headers.get('PAYMENT-RESPONSE'));await viaSignature.arrayBuffer();
+ const viaLegacy=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':noVersion('9'.repeat(60)+'cc02')}});
+ assert.equal(viaLegacy.status,200,await viaLegacy.clone().text());assert.equal(viaLegacy.headers.get('X-PAYMENT-RESPONSE'),viaLegacy.headers.get('PAYMENT-RESPONSE'));await viaLegacy.arrayBuffer();
+ const flatV1=Buffer.from(JSON.stringify({scheme:'exact',network:'base',payload:{signature:'0x'+'a'.repeat(130),authorization:{from:payer,to:recipient,value:'2000',validAfter:'0',validBefore:String(Math.floor(Date.now()/1000)+300),nonce:'0x'+'9'.repeat(60)+'cc03'}}})).toString('base64');
+ const v1Paid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':flatV1}});
+ assert.equal(v1Paid.status,200,await v1Paid.clone().text());await v1Paid.arrayBuffer();
+ await new Promise(r=>setTimeout(r,200));
+ const after=await revenue();assert.equal(after.settlements,before.settlements+3);
+});
 
 test("Orthogonal's credential serves any tool unpaid, from its header, X-API-Key or Bearer; a wrong one still gets the 402",async()=>{
 const s='orthogonal-fixture-secret-0123456789';
