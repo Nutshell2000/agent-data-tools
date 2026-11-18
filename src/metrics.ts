@@ -44,10 +44,22 @@ const today = () => new Date().toISOString().slice(0, 10);
  */
 const FLUSH_MS = 30_000;
 type Counts = { [name: string]: number | Counts };
-/** Adds the numbers in b into a at any depth; a top-level name beyond `cap` distinct names counts as "other". */
+/**
+ * A caller family that did more than ask for a quote or open a connection (paid, tried a payment, a free call, a
+ * key): the families that matter when tracing where buyers come from. On 18 Nov 2026 the 60-family cap had already
+ * filled with monitors, so 2,752 of 30 days' paid calls were counted under "other" with no name.
+ */
+const buyerSignal = (value: number | Counts) => typeof value === "object" && Object.keys(value).some((k) => k !== "challenged" && k !== "open");
+/** Names kept per day when only buyer-signal families may still be added, so one stored row stays small. */
+const BUYER_SIGNAL_CAP_FACTOR = 3;
+/**
+ * Adds the numbers in b into a at any depth; a top-level name beyond `cap` distinct names counts as "other", except a
+ * name with a buyer signal, which is kept up to `cap` x BUYER_SIGNAL_CAP_FACTOR names.
+ */
 function addCounts(a: Counts, b: Counts, cap?: number) {
   for (const [name, value] of Object.entries(b)) {
-    const key = name in a || cap === undefined || Object.keys(a).length < cap ? name : "other";
+    const size = Object.keys(a).length;
+    const key = name in a || cap === undefined || size < cap || (buyerSignal(value) && size < cap * BUYER_SIGNAL_CAP_FACTOR) ? name : "other";
     if (typeof value === "number") a[key] = ((a[key] as number | undefined) ?? 0) + value;
     else addCounts((a[key] ??= {}) as Counts, value);
   }

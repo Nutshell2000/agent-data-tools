@@ -1,6 +1,6 @@
 import { pickFields } from "./lib/fields";
 import { ALIAS_OF, normalizedInput } from "./tools";
-import { mcpClientName } from "./lib/caller";
+import { callerFamily, mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { WEB_PACKS, apiKeyFrom, isCreditKey } from "./lib/credits";
@@ -428,7 +428,12 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         else if (free) markStage("free_call");
         else if (creditKey && !result.isError) markStage("credits_call");
         const trace = activeTrace();
-        if (!paidAttempt && result.isError && result.structuredContent?.accepts) markStage("quote");
+        if (!paidAttempt && result.isError && result.structuredContent?.accepts) {
+          markStage("quote");
+          // Which software ran out of free calls over MCP (the HTTP route records the same at /caller/<family>);
+          // 18 Nov 2026: 113 MCP exhaustions a day with no way to tell a buyer's client from a directory probe.
+          if (trace?.stages.has("free_exhausted")) markStage("free_exhausted_by", `/caller/mcp-${callerFamily(c.req.header("user-agent")).replace(/_/g, "-")}`);
+        }
         if (trace?.stages.has("settled") && !result.isError) markStage("completed");
         else if (result.isError && trace?.stages.has("verified") && !trace.stages.has("settlement_failed")) markStage("execution_failed");
         // SDK clients validate any structuredContent, including isError responses.

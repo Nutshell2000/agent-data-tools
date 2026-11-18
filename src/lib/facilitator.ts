@@ -49,7 +49,10 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
     const cached = await readSupported(cacheKey(client));
     if (cached) {
       // Once per isolate: a colo's edge copy also seeds the durable one, so it exists even while the facilitator refuses.
-      await keepDurable(store, client.url, cached);
+      // Not awaited (18 Nov 2026): it is a KV read, and on a cold isolate it sat in front of the first quote; probes that
+      // rank by latency (Hagglyai, x402station) mostly hit cold isolates. keepDurable never throws, and another isolate
+      // seeds the copy if this one is cut short.
+      void keepDurable(store, client.url, cached);
       return (lastGood = cached as Supported);
     }
     let lastError: unknown;
