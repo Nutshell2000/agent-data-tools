@@ -27,6 +27,15 @@ before(async()=>{
 after(async()=>{await mf?.dispose();});
 const call=(page,section,extra={})=>mf.dispatchFetch('https://worker.test/?'+new URLSearchParams({url:'https://public.example/'+page,maxChars:'500',...(section===undefined?{}:{section}),...extra}));
 const result=async(...a)=>{const r=await call(...a);assert.equal(r.status,200);return r.json();};
+test('a generic section name reads the primary content with a warning instead of refusing',async()=>{
+  const v=await result('long','main');
+  assert.ok(v.warnings.includes('section_generic_ignored'));
+  assert.equal(v.section.id,'main');
+  assert.match(v.text,/Introduction/);
+  assert.doesNotMatch(v.text,/EXCLUDE/);
+  assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+
 test('late heading selection returns relevant instructions, nested code and tables within the same cap',async()=>{
  const full=await result('long');assert.doesNotMatch(full.text,/Stop after three/);assert.equal(full.truncated,true);assert.equal(full.section,null);
  const v=await result('long','retry-policy');assert.match(v.text,/Stop after three attempts/);assert.match(v.text,/retries\t3/);assert.doesNotMatch(v.text,/Unrelated|EXCLUDE/);assert.equal(v.truncated,false);
