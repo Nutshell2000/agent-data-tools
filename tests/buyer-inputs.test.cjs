@@ -91,6 +91,12 @@ test("more names buyers send: ip address, website, coin, hash, query words", () 
   assert.equal(q({ city: "Paris", location: "London" })("city"), "Paris");
 });
 
+test("a URL sent as url never becomes a section through chained aliases", () => {
+  const input = T.normalizedInput(T.declaredInputFor("/extract", sent({ url: "https://example.com/article" })));
+  assert.equal(input("url"), "https://example.com/article");
+  assert.equal(input("section"), undefined, "section must not inherit the url through name/alias chaining");
+});
+
 test("an alias that is one of the tool's own inputs is never read as another input", () => {
   const one = JSON.stringify([{ role: "user", content: "What is x402?" }]);
   const declared = new Map(E.ENDPOINTS.map((e) => [e.path, new Set(Object.keys(e.params))]));

@@ -397,7 +397,7 @@ export function paymentHint(origin: string, price: string, signedIn = false, car
     ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
     : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, price)} calls at ${price}) ${keyPlacement(origin, signedIn)}`;
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
-    + `${card}, and retry. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
+    + `${card}, and retry. A client with an x402 or MPP wallet can instead settle each call directly, or prepay a key in one paid HTTP request at ${origin}/credits/buy/1 (no checkout page) and retry with that key. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may
     // already be used by someone else; signing in gives this person their own allowance.
     + (signedIn ? "" : ` In Claude, ChatGPT or another app that connects from the cloud, the free calls are shared with everyone behind the same address; connect to ${origin}/mcp/account instead and continue without a key to get your own ${FREE_CALLS_PER_CALLER} free calls.`);
