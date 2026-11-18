@@ -13,12 +13,13 @@ const pages={
  unsupported:'<main><p>Paragraph <span id="inline">inline</span></p></main>',
  empty:'<main><div id="empty"></div><p>Outside</p></main>',
  odd:'<main><h2 id="a&amp;&quot;日">Odd ID</h2><p>ODD_BODY</p><h2>Next</h2><p>EXCLUDE_NEXT</p></main>',
- deep:'<main>'+'<div>'.repeat(140)+'<h2 id="deep">Deep</h2>'+'</div>'.repeat(140)+'</main>'
+ deep:'<main>'+'<div>'.repeat(140)+'<h2 id="deep">Deep</h2>'+'</div>'.repeat(140)+'</main>',
+ headtext:'<main><h1>Guide</h1><h2 id="install">Install</h2><p>FIRST_INSTALL</p><h2 id="usage">Usage</h2><p>USAGE_BODY</p><h2 id="later">Install</h2><p>SECOND_INSTALL</p></main>'
 };
 before(async()=>{
  const schemaBundle=await build({entryPoints:['src/lib/extract-contract.ts'],bundle:true,write:false,platform:'node',format:'cjs'});const mod={exports:{}};new Function('require','module','exports',schemaBundle.outputFiles[0].text)(require,mod,mod.exports);const Ajv=require('ajv/dist/2020').default;validateOutput=new Ajv({strict:false}).compile(mod.exports.EXTRACT_OUTPUT_SCHEMA);
 
- const b=await build({stdin:{contents:`import {extract} from './src/routes/extract';export default{async fetch(r){const q=new URL(r.url).searchParams;try{return Response.json(await extract(q.get('url'),q.get('maxChars')??undefined,q.get('format')??'both',q.get('section')??undefined))}catch(e){return Response.json({error:e.message,code:e.code},{status:e.status||500})}}}`,resolveDir:process.cwd(),sourcefile:'section-worker.ts'},bundle:true,write:false,format:'esm',platform:'browser'});
+ const b=await build({stdin:{contents:`import {extract} from './src/routes/extract';export default{async fetch(r){const q=new URL(r.url).searchParams;try{return Response.json(await extract(q.get('url'),q.get('maxChars')??undefined,q.get('format')??'both',q.get('section')??undefined))}catch(e){return Response.json({error:e.message,code:e.code,...(e.details??{})},{status:e.status||500})}}}`,resolveDir:process.cwd(),sourcefile:'section-worker.ts'},bundle:true,write:false,format:'esm',platform:'browser'});
  mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:b.outputFiles[0].text,compatibilityDate:'2026-09-01',outboundService:async r=>{
  const page=new URL(r.url).pathname.slice(1);return new Response(page==='plain'?'Plain page':pages[page],{headers:{'content-type':page==='plain'?'text/plain':'text/html'}});
  }}));
@@ -35,7 +36,8 @@ test('late heading selection returns relevant instructions, nested code and tabl
 });
 test('container scope includes its own headings and excludes adjacent content and navigation',async()=>{
  const v=await result('container','one');assert.match(v.text,/CONTAINER_BODY/);assert.match(v.text,/CONTAINER_END/);assert.doesNotMatch(v.text,/EXCLUDE|NAV/);assert.equal(v.section.kind,'container');assert.equal(v.section.headingLevel,null);
- const outside=await call('container','outside');assert.equal(outside.status,422);assert.equal((await outside.json()).code,'EXTRACTION_SECTION_NOT_FOUND');
+ const outside=await result('container','Outside');assert.match(outside.text,/EXCLUDE_OUTSIDE/);assert.doesNotMatch(outside.text,/NAV/);assert.equal(outside.section.id,'Outside');
+ const absent=await call('container','nav-only');assert.equal(absent.status,422);assert.equal((await absent.json()).code,'EXTRACTION_SECTION_NOT_FOUND');
 });
 test('heading anchors and hidden boundaries preserve the intended section hierarchy',async()=>{
  const a=await result('anchors','legacy');assert.match(a.text,/ANCHOR_BODY/);assert.match(a.text,/SUB_BODY/);assert.doesNotMatch(a.text,/EXCLUDE_NEXT/);assert.equal(a.headings[0].id,'legacy');
@@ -47,6 +49,36 @@ test('missing, duplicate, hidden, unsupported and empty sections fail clearly',a
  }
  assert.equal((await call('plain','one')).status,415);
  for(const id of ['x'.repeat(501), 'line\nbreak'])assert.equal((await call('long',id)).status,400);
+});
+test('a section sent as the docs-link fragment or the whole URL selects the same element',async()=>{
+ for(const value of ['#retry-policy','https://docs.example/long#retry-policy']){
+  const v=await result('long',value);assert.equal(v.section.id,'retry-policy');assert.match(v.text,/Stop after three attempts/);assert.doesNotMatch(v.text,/Unrelated|EXCLUDE/);
+ }
+ const sub=await result('long','#retry-code');assert.equal(sub.section.id,'retry-code');assert.equal(sub.section.headingLevel,3);
+ const encoded=await result('odd','#'+encodeURIComponent('a&"日'));assert.equal(encoded.section.id,'a&"日');
+ for(const value of ['#','#missing','#'.repeat(2)])assert.equal((await call('long',value)).status,422,value);
+ assert.equal((await call('long','#retry%0Apolicy')).status,422,'a control character inside a fragment is not silently rewritten');
+ assert.equal((await result('long','# Retry policy')).section.id,'retry-policy','a fragment keeps the heading-text rule');
+});
+test('a heading sent by its visible text resolves when that text is unique',async()=>{
+ const v=await result('long','Retry policy');assert.equal(v.section.id,'retry-policy');assert.equal(v.section.title,'Retry policy');
+ assert.ok(v.warnings.includes('section_matched_by_heading'));assert.match(v.text,/Stop after three attempts/);assert.doesNotMatch(v.text,/Unrelated|EXCLUDE/);
+ const spaced=await result('long','  retry   POLICY ');assert.equal(spaced.section.id,'retry-policy');assert.ok(spaced.warnings.includes('section_matched_by_heading'));
+ const exact=await result('long','retry-policy');assert.ok(!exact.warnings.includes('section_matched_by_heading'),'an exact id keeps the old answer');
+ const ambiguous=await call('headtext','Install');assert.equal(ambiguous.status,422);const body=await ambiguous.json();
+ assert.equal(body.code,'EXTRACTION_SECTION_AMBIGUOUS');assert.match(body.error,/2 headings/);assert.match(body.error,/install/);assert.match(body.error,/later/);
+ const unique=await result('headtext','usage');assert.equal(unique.section.id,'usage');assert.match(unique.text,/USAGE_BODY/);
+ assert.equal((await call('long','Retry')).status,422,'partial heading text is not a match');
+});
+test('a missing section lists the ids the page offers so the next call can succeed',async()=>{
+ const r=await call('long','#not-here');assert.equal(r.status,422);
+ const body=await r.json();assert.equal(body.code,'EXTRACTION_SECTION_NOT_FOUND');
+ assert.match(body.error,/not-here/);assert.match(body.error,/retry-policy/);assert.match(body.error,/nothing was charged/);
+ assert.deepEqual(body.sections.map((s)=>s.id),['retry-policy','retry-code','next'],'headings first, hidden and navigation excluded');
+ assert.deepEqual(body.sections[0],{id:'retry-policy',title:'Retry policy',kind:'heading'});
+ const container=await call('container','nav-only');assert.equal(container.status,422);
+ assert.deepEqual((await container.json()).sections,[{id:'one',title:null,kind:'container'}],'the nav copy stays unselectable');
+ const pageWithoutIds=await call('plain','one');assert.equal(pageWithoutIds.status,415,'plain text still refuses section selection before the id lookup');
 });
 test('our former published section example reads the whole page where the page lacks it (stale router copies)',async()=>{
  const v=await result('container','retry-policy');assert.match(v.text,/CONTAINER_BODY/);assert.equal(v.section,null);assert.ok(v.warnings.includes('section_example_ignored'));assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));

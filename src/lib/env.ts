@@ -134,6 +134,8 @@ export class HttpError extends Error {
     public status: 400 | 404 | 415 | 422 | 502 | 503 | 504,
     message: string,
     public code?: string,
+    /** Machine-readable parts of the refusal (for example the section ids a page does offer), sent beside `error`. */
+    public details?: Record<string, unknown>,
   ) {
     super(message);
   }
