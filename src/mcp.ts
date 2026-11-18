@@ -1,4 +1,5 @@
 import { pickFields } from "./lib/fields";
+import { ALIAS_OF, normalizedInput } from "./tools";
 import { mcpClientName } from "./lib/caller";
 import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
@@ -62,7 +63,10 @@ export function toContent(value: unknown) {
 async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Args) {
   try {
     const path: EndpointPath = e.path;
-    const result = pickFields(await TOOLS[path](env, (name) => (args[name] === undefined ? undefined : String(args[name]))), args.only === undefined ? undefined : String(args.only));
+    // The HTTP path reads inputs through normalizedInput, which resolves the aliases agents use (ids, query, u, ...).
+    // MCP used its raw argument object, so those aliases silently vanished here: accept them on every server.
+    const sent = (name: string) => (args[name] === undefined ? undefined : String(args[name]));
+    const result = pickFields(await TOOLS[path](env, normalizedInput(sent)), args.only === undefined ? undefined : String(args.only));
     const { imageBase64: _image, audioBase64: _audio, pdfBase64: _pdf, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
@@ -256,7 +260,17 @@ function registerCompactTools(
       const e = lookup(name);
       if (!e) return unknown(name);
       // The same check the ordinary servers make before a tool's handler runs: the tool's own input shape.
-      const parsed = z.object(shapeOf(e)).safeParse(given ?? {});
+      // HTTP accepts aliases through normalizedInput; copy the ones the caller sent onto the declared names
+      // before validation so MCP clients can use the same words (ids, query, u, ...).
+      const shape = shapeOf(e);
+      const supplied: Record<string, unknown> = { ...(given ?? {}) };
+      for (const [alias, names] of Object.entries(ALIAS_OF)) {
+        if (supplied[alias] === undefined) continue;
+        for (const name of names) {
+          if (Object.hasOwn(shape, name) && supplied[name] === undefined) supplied[name] = supplied[alias];
+        }
+      }
+      const parsed = z.object(shape).safeParse(supplied);
       if (!parsed.success) {
         const problems = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".") || "arguments"}: ${i.message}`);
         return compactText({ error: `${toolName(e)} was not run: ${problems.join("; ")}. Nothing was charged.`, inputs: Object.entries(e.params).map(([input, p]) => `${input} (${p.required ? "required" : "optional"} ${p.type})`), exampleCall: { name: toolName(e), arguments: exampleInput(e) } }, true);
