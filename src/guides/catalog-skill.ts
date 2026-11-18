@@ -106,7 +106,7 @@ export function catalogSkillMarkdown(origin: string): string {
     "",
     "A client that can only fetch a URL adds `&api_key=adt_…` instead of the header. Without a key or a free call the answer is HTTP 402 with the price and payment terms; nothing is charged until a call succeeds.",
     "",
-    `MCP clients can use the same tools at \`${origin}/mcp\` (tool names are the paths with \`/\` and \`-\` as \`_\`, for example \`price_token\`), with a key in the Authorization header or at \`${origin}/mcp/k/<key>\`. \`${origin}/mcp/compact\` reaches the same tools through three: \`find_tool\`, \`tool_details\` and \`call_tool\` (name and arguments).`,
+    `MCP clients should use \`${origin}/mcp/compact\` by default: three tools (\`find_tool\`, \`tool_details\`, \`call_tool\`) keep the tool list small so Tool Search and agents pick the right call. With a key, use \`${origin}/mcp/k/<key>\` instead of the Authorization header. The full catalog stays available at \`${origin}/mcp\` (tool names are the paths with \`/\` and \`-\` as \`_\`, for example \`price_token\`) for clients that list every tool; nothing is removed.`,
     "",
     "## 3. Pay",
     "",

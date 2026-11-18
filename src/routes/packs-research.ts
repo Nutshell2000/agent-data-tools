@@ -197,14 +197,24 @@ export const PACKS_RESEARCH: Entry[] = [
       const redirects = await call(env, "/url/redirects", { url: input.href }).catch(() => null) as { finalUrl: string; redirects: number; hops: { url: string; status: number }[] } | null;
       const final = redirects?.finalUrl ? new URL(redirects.finalUrl) : null;
       const host = (final ?? input).hostname.replace(/^www\./, "");
+      const hosts = redirects ? [...new Set(redirects.hops.map((x) => new URL(x.url).hostname))] : [input.hostname];
+      // A pure, local section always resolves: if every upstream lookup times out we still return a
+      // charged-worthy answer with the address-level verdict and a list of what failed, never a 502.
+      const local = urlSignals(input, final, hosts, null);
       const { data, failed } = await runSections({
+        local: Promise.resolve(local),
         domain: domainReport(env, host),
         headers: final && final.protocol === "https:" ? call(env, "/http/security-headers", { url: final.href }) : Promise.reject(new Error("the final page is not served over HTTPS")),
       });
       const d = data.domain as Awaited<ReturnType<typeof domainReport>> | undefined;
       const h = data.headers as { score?: number; grade?: string } | undefined;
-      const hosts = redirects ? [...new Set(redirects.hops.map((x) => new URL(x.url).hostname))] : [input.hostname];
-      const { risk: heuristic, signals } = urlSignals(input, final, hosts, d?.facts.ageDays ?? null);
+      const { risk: localRisk, signals } = data.local as ReturnType<typeof urlSignals>;
+      // The domain lookup is the only source of registration age; add its signals once it succeeds.
+      const ageDays = d?.facts.ageDays ?? null;
+      if (ageDays != null) {
+        if (ageDays < 30) signals.push({ level: "high", code: "very_new_domain", message: `The destination domain was registered ${ageDays} day(s) ago.` });
+        else if (ageDays < 180) signals.push({ level: "medium", code: "new_domain", message: `The destination domain was registered ${ageDays} days ago (under 6 months).` });
+      }
       // Every host the link passes through, looked up in both phishing lists (at most 6; a failure is listed, never fatal).
       const listHosts = [...new Set([input.hostname, ...hosts, host].map((h) => h.replace(/^www\./, "")))].slice(0, 6);
       const listed = await Promise.all(listHosts.map((h) => blocklist(env, h).then((v) => ({ host: h, v }), () => null)));
@@ -212,7 +222,9 @@ export const PACKS_RESEARCH: Entry[] = [
       const hits = seen.filter((x) => x.v.listed), lookalike = seen.find((x) => !x.v.listed && x.v.lookalikeOf);
       for (const x of hits) signals.unshift({ level: "high", code: "phishing_blocklist", message: `${x.v.matchedOn} is on ${x.v.sources.join(" and ")}.` });
       if (lookalike) signals.push({ level: "medium", code: "brand_lookalike", message: `${lookalike.v.domain} is one letter away from ${lookalike.v.lookalikeOf}.` });
-      let risk = hits.length ? "high" : heuristic === "low" && lookalike ? "medium" : heuristic;
+      const high = (ageDays != null && ageDays < 30) || signals.some((s) => s.level === "high");
+      const medium = signals.some((s) => s.level === "medium");
+      let risk = hits.length || high ? "high" : (localRisk === "low" && (lookalike || medium) ? "medium" : localRisk);
       if (d?.trust === "low" && risk === "low") { signals.push({ level: "medium", code: "domain_low_trust", message: d.summary }); risk = "medium"; }
       if (!seen.length) failed.blocklist = "the phishing lists could not be read";
       return {

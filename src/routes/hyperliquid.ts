@@ -237,7 +237,7 @@ export const HYPERLIQUID: Entry[] = [
     }),
 
   entry("/hyperliquid/indicators", "Technical indicators, RSI, MACD: moving averages, Bollinger bands and ATR for crypto",
-    "Technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles of any interval from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility, and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles. Use as context for a trading agent or a market dashboard; not investment advice.",
+    "Use when you need technical indicators for a Hyperliquid perpetual (BTC, ETH, SOL…) on closed candles from 1m to 1w: RSI 14, MACD 12/26/9, SMA 20/50/200, EMA 12/26/50, Bollinger bands 20/2 with %B, ATR 14, annualised realised volatility and plain readings such as overbought or above the 200 SMA. Computed from Hyperliquid's public candles; context for a trading agent or dashboard, not investment advice.",
     ["technical-indicators", "rsi", "macd", "moving-average", "hyperliquid", "crypto"], {
       coin: { type: "string", description: "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)", example: "BTC" },
       interval: { type: "string", description: "Candle length: 1m, 5m, 15m, 30m, 1h, 4h (default), 1d, 1w and others", example: "4h" },
