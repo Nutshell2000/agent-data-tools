@@ -20,7 +20,8 @@ Add this entry to the MCP settings file (`cline_mcp_settings.json` in Cline):
 
 The compact server exposes three tools: `find_tool` (find a tool for a job in plain words), `tool_details` (inputs and
 price of one tool) and `call_tool` (run it). Use `https://agent-data-tools.revmesh2074.workers.dev/mcp/all` instead to list
-every tool as its own definition (several hundred).
+every tool as its own definition (several hundred). Both HTTP and MCP accept the aliases other APIs use for inputs
+(`ids=` for `symbol`, `query=` for `q`, `target=` for `url`); the published names always work too.
 
 ## Alternative: local stdio server through npm
 
