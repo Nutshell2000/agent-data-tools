@@ -220,7 +220,11 @@ export const normalizedInput = (sent: Input): Input => (name) => {
     return v?.trim() ? v : undefined;
   };
   const input: Input = (n) => sent(n) ?? INPUT_ALIASES[n]?.map((alias) => viaAlias(n, alias)).find((v) => v !== undefined);
-  const value = input(name);
+  // Trim surrounding whitespace on every string input: agents and routers frequently send " weather " or "BTC " and the
+  // tool then failed with "city is required" / "unknown unit" even though the value was right there (10 Nov 2026 paid
+  // calls). Applied before address handling so ENS names and addresses are unaffected.
+  let value = input(name);
+  if (typeof value === "string") value = value.trim();
   // Every tool that takes a URL reads "example.com" as https://example.com (24 Oct 2026: uptime, redirects, SEO audit,
   // security headers and robots all refused it as "not an absolute URL"). Private hosts are still refused downstream.
   if (name === "url" && value && !/^[a-z][a-z0-9+.-]*:/i.test(value.trim()) && SCHEMELESS_URL.test(value.trim())) return `https://${value.trim()}`;
