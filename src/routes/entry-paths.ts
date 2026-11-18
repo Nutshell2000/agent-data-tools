@@ -569,4 +569,10 @@ export const ENTRY_PATHS: Entry[] = [
     ["ethereum-price", "eth-price", "eth-usd", "crypto-price", "ethereum", "market-data"], from(PUBLIC_DATA, "/crypto/price"),
     async (env, q) => from(PUBLIC_DATA, "/crypto/price").run(env, coinInput("ethereum")(q)), coinParams("ethereum"),
     { prices: { ethereum: { usd: 1886.7, usd_24h_change: -2.37, usd_market_cap: null } }, missing: [], source: "Coinbase" }),
+
+  // 18 Nov 2026: Nansen's "who bought/sold" listing had 62 payers at about 5 calls each on the Bazaar; /token/buyers answers
+  // the same job (5 Nov) but its path and name hold neither phrase buyers search, and it sold about one call. Its first door.
+  door("/token/who-bought-sold", "Who bought and sold a token: top DEX buyers and sellers",
+    "Who bought and who sold a token lately: the wallets that took the most of an ERC-20 from DEX pools and routers (buyers) or sent the most to them (sellers) over recent blocks, from its live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon, with bought, sold, net and transfers. Contracts are left out. Use to see who accumulates or dumps a token before you trade it.",
+    ["who-bought-sold", "who-bought", "token-buyers", "token-sellers", "smart-money", "dex"], from(CHAIN_MORE, "/token/buyers")),
 ];
