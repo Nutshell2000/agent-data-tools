@@ -4,7 +4,7 @@
 // first and use the body only when that header is absent, so a v1 body serves both generations.
 // Verification and settlement go through the same Coinbase facilitator, with the v1 request format.
 import type { Context, Next } from "hono";
-import { decodePaymentSignatureHeader, encodePaymentResponseHeader } from "@x402/core/http";
+import { decodePaymentSignatureHeader, encodePaymentResponseHeader, encodePaymentSignatureHeader } from "@x402/core/http";
 import type { Endpoint } from "../endpoints";
 import type { Env } from "./env";
 import { buildFacilitator } from "./facilitator";
@@ -56,10 +56,23 @@ export function v1Requirements(env: Env, endpoint: Endpoint, resourceUrl: string
 /** The leading snake_case reason code of a facilitator message ("invalid_exact_evm_insufficient_balance: …"). */
 export const reasonCode = (message: string) => /^[a-z][a-z0-9_]+/.exec(message.trim())?.[0] ?? "invalid_payment";
 
-/** True when an X-PAYMENT header holds an x402 version 2 payload (some clients send v2 under the v1 header name). */
-export function isV2PaymentHeader(header: string): boolean {
-  try { return Number((decodePaymentSignatureHeader(header) as { x402Version?: unknown })?.x402Version) === 2; } catch { return false; }
+/**
+ * The header value to hand to the v2 path when a payment header holds an x402 version 2 payload, else null. Some clients
+ * send v2 under the v1 header name, and some drop the envelope's `x402Version` field: a payload that names no version but
+ * carries the v2 `accepted` terms is a v2 payment, so it is re-encoded with the field set (the core library otherwise
+ * refuses it with "Unsupported x402 version: undefined").
+ */
+export function asV2Header(header: string): string | null {
+  try {
+    const p = decodePaymentSignatureHeader(header) as unknown as { x402Version?: unknown; accepted?: unknown };
+    if (Number(p?.x402Version) === 2) return header;
+    if (p?.x402Version == null && p?.accepted && typeof p.accepted === "object") return encodePaymentSignatureHeader({ ...p, x402Version: 2 } as never);
+  } catch { /* not a payment header */ }
+  return null;
 }
+
+/** True when an X-PAYMENT header holds an x402 version 2 payload (some clients send v2 under the v1 header name). */
+export const isV2PaymentHeader = (header: string): boolean => asV2Header(header) !== null;
 
 export const v1Body =(accepts: RequirementsV1[], error: string, hint?: string) => ({ x402Version: 1 as const, error, accepts, ...(hint ? { hint } : {}) });
 
@@ -86,7 +99,8 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   try { payment = decodePaymentSignatureHeader(header) as unknown as PayloadV1; } catch { return refuse("refused_format", "X-PAYMENT is not valid base64 JSON"); }
   // v1 clients vary: the version may arrive as a string, the network as a CAIP-2 id, the value as a number.
   // Normalize what the facilitator is strict about instead of refusing a buyer over a representation.
-  if (Number(payment?.x402Version) !== 1 || payment?.scheme !== "exact") return refuse("refused_format", `only x402 version 1 'exact' payments are accepted in X-PAYMENT (got version ${String(payment?.x402Version)}, scheme ${String(payment?.scheme)}); version 2 clients use PAYMENT-SIGNATURE`);
+  // A payload with no version field that is not v2-shaped (no `accepted` terms: those went to the v2 path) is v1's flat shape.
+  if (Number(payment?.x402Version ?? 1) !== 1 || payment?.scheme !== "exact") return refuse("refused_format", `only x402 version 1 'exact' payments are accepted in X-PAYMENT (got version ${String(payment?.x402Version)}, scheme ${String(payment?.scheme)}); version 2 clients use PAYMENT-SIGNATURE`);
   const network = v1NetworkName(payment.network);
   const requirements = accepts.find((r) => r.network === network);
   if (!requirements) return refuse("refused_network", `network ${String(payment.network)} is not accepted; use one of: ${accepts.map((r) => r.network).join(", ")}`);
