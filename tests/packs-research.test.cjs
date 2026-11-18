@@ -22,6 +22,20 @@ test('url safety signals: bare IPs, punycode, new domains, plain HTTP, user@host
   assert.ok(urlSignals(u('https://a.example/'), u('https://d.example/'), ['a.example', 'b.example', 'c.example', 'd.example'], 900).signals.some((s) => s.code === 'cross_domain_redirects'));
 });
 
+test('url safety still answers from local signals when every upstream lookup fails', async () => {
+  const { PACKS_RESEARCH } = await load();
+  const safety = PACKS_RESEARCH.find((e) => e.endpoint.path === '/pack/url-safety');
+  // No TRIALS, no network and no tool bindings: redirects, the domain report, the headers check and both
+  // phishing lists all fail, but the pure address-level section resolves, so this is a 200, not a 502.
+  const out = await safety.run({}, (n) => (n === 'url' ? 'https://no-such-host-12345.invalid/path' : undefined));
+  assert.equal(out.pack, 'url-safety');
+  assert.ok(['low', 'medium', 'high'].includes(out.risk), out.risk);
+  assert.equal(out.security.https, true, 'the local HTTPS verdict is present even with no upstream');
+  assert.ok(out.failed.redirects, JSON.stringify(out.failed));
+  assert.ok(out.failed.blocklist, JSON.stringify(out.failed));
+  assert.ok(out.failed.headers, JSON.stringify(out.failed));
+});
+
 test('research packs: names within 32 characters, descriptions within 450, one cent, inputs checked before any request', async () => {
   const { PACKS_RESEARCH } = await load();
   assert.deepEqual(PACKS_RESEARCH.map((e) => e.endpoint.path), ['/pack/web-research', '/ai/answer', '/ai/fact-check', '/pack/news-sentiment', '/phishing/check', '/pack/url-safety']);
