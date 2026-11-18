@@ -20,10 +20,12 @@ import { COMPANY_FOOTER } from "./legal";
 import { publicBrand } from "./public-brand";
 import { takeDailyBudget } from "./daily-cap";
 import { HttpError, type Env } from "./env";
-import { LAW_ACTS, actOf, answerFromArticles, eurlexIn, lawAnswer, lawDeps, lawSearch, questionLang } from "../routes/law-search";
-import { STRINGS, UI_LANGS, UI_LANG_NAMES, languageName, pickUiLang, type UiLang } from "./lexglyph-i18n";
+import { INDEXED_LANGS, LAW_ACTS, actOf, answerFromArticles, eurlexIn, inLanguage, lawAnswer, lawDeps, lawSearch, questionLang, sourcesOf } from "../routes/law-search";
+import { MORE, STRINGS, UI_LANGS, UI_LANG_NAMES, languageName, pickUiLang, type UiLang } from "./lexglyph-i18n";
+import type { GroundedClaim } from "./law-grounding";
 
 export const LEXGLYPH_PATH = "/lexglyph";
+export const LEXGLYPH_SECURITY_PATH = "/lexglyph/security";
 export const LEXGLYPH_PER_VISITOR = 20;
 export const LEXGLYPH_DAILY_CAP = 2000;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -47,6 +49,10 @@ export interface LexState {
   explain?: boolean;
   results?: LawResult[];
   answer?: string | null;
+  /** The answer's sentences, each with the quote it rests on (checked against the text) and a pinpoint citation. */
+  claims?: GroundedClaim[];
+  /** False when the model gave nothing that passed the quote check: the provisions are shown without a summary. */
+  grounded?: boolean;
   /** The question's language: EUR-Lex code (SV, DE…) for the official-text links and BCP 47 tag for reading aloud. */
   qLang?: { eurlex: string; tag: string };
   error?: string;
@@ -80,6 +86,10 @@ const PAGE_STYLE = `
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .answer{border-left:4px solid var(--accent);padding:12px 16px;background:var(--card);border-radius:8px}
 .answer .text{white-space:pre-line}
+.answer h3{font-size:1rem;margin:1rem 0 .4rem}
+.quotes{list-style:none;padding:0;margin:0}.quotes li{margin:0 0 .6rem}
+.quotes blockquote{margin:0;padding:6px 12px;border-left:3px solid var(--line);font-style:italic}
+.quotes cite{font-style:normal;font-size:.95rem}.pin{white-space:nowrap}
 .note{color:var(--muted);font-size:.95rem}
 @media (prefers-color-scheme: light){.lex .note,.lex .meta,.lex .note span{color:#3f444b}.lex a,.langs a,a.skip{color:#0842a0}.lex button.primary{background:#0842a0;color:#fff;border-color:#0842a0}}
 `;
@@ -90,25 +100,45 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
   const url = `${origin}${LEXGLYPH_PATH}`;
   const title = s.q ? `${s.q.slice(0, 60)} | LexGlyph` : `LexGlyph: ${t.lead(LAW_ACTS.length).split(". ")[0]}`;
   const description = t.lead(LAW_ACTS.length);
-  const actOptions = [`<option value="">${esc(t.allActs(LAW_ACTS.length))}</option>`, ...LAW_ACTS.map((a) => `<option value="${esc(a.short)}"${s.act === a.short ? " selected" : ""} lang="en">${esc(a.short === a.name ? a.name : `${a.short}: ${a.name}`)}</option>`)].join("");
+  const more = MORE[ui];
+  // 185 acts (18 Nov 2026): grouped by practice area, in the order a lawyer looks for them.
+  const option = (a: (typeof LAW_ACTS)[number]) => `<option value="${esc(a.short)}"${s.act === a.short ? " selected" : ""} lang="en">${esc(a.short === a.name ? a.name : `${a.short}: ${a.name}`)}</option>`;
+  const areas = Object.keys(more.areas).filter((k) => LAW_ACTS.some((a) => (a.area ?? "other") === k));
+  const actOptions = [`<option value="">${esc(t.allActs(LAW_ACTS.length))}</option>`, ...areas.map((k) => `<optgroup label="${esc(more.areas[k])}">${LAW_ACTS.filter((a) => (a.area ?? "other") === k).map(option).join("")}</optgroup>`)].join("");
   // The official text in the asker's language: the question's language, else the interface language, unless English.
   const officialCode = s.qLang && s.qLang.eurlex !== "EN" ? s.qLang.eurlex : ui !== "en" ? ui.toUpperCase() : null;
   const keep = (lang: UiLang) => `${LEXGLYPH_PATH}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}), ...(s.q && !s.explain ? { explain: "0" } : {}) })}`;
   const results = s.results ?? [];
-  const resultHtml = results.map((r, i) => `<article class="result" aria-labelledby="r${i}">
-<h3 id="r${i}" lang="en">${esc(r.citation)}${r.heading ? `: ${esc(r.heading)}` : ""}</h3>
-<p class="meta"><span lang="en">${esc(r.act)} · ${esc(r.version)}</span> · ${officialCode ? `<a href="${esc(eurlexIn(r.url, officialCode))}" hreflang="${officialCode.toLowerCase()}" rel="noopener">${esc(t.officialIn(languageName(officialCode.toLowerCase(), ui)))}</a> · ` : ""}<a href="${esc(r.url)}" hreflang="en" rel="noopener">${esc(t.officialEn)}</a></p>
-<p lang="en">${esc(r.text.slice(0, 420))}${r.text.length > 420 ? "…" : ""}</p>
-<details><summary>${esc(t.readWhole(r.kind === "recital"))}</summary><pre lang="en">${esc(r.text)}</pre></details>
+  const resultHtml = results.map((r, i) => {
+    // The text shown is in the reader's language where the index holds it (Swedish); its link opens the same language.
+    const tl = r.language ?? "en";
+    const tlName = languageName(tl, ui);
+    const otherOfficial = officialCode && officialCode.toLowerCase() !== tl ? `<a href="${esc(eurlexIn(r.url, officialCode))}" hreflang="${officialCode.toLowerCase()}" rel="noopener">${esc(t.officialIn(languageName(officialCode.toLowerCase(), ui)))}</a> · ` : "";
+    const ownLink = tl === "en" ? t.officialEn : t.officialIn(tlName);
+    return `<article class="result" aria-labelledby="r${i}">
+<h3 id="r${i}" lang="${tl}">${esc(r.citation)}${r.heading ? `: ${esc(r.heading)}` : ""}</h3>
+<p class="meta"><span lang="en">${esc(r.act)} · ${esc(r.version)}</span> · ${otherOfficial}<a href="${esc(r.url)}" hreflang="${tl}" rel="noopener">${esc(ownLink)}</a></p>
+<p lang="${tl}">${esc(r.text.slice(0, 420))}${r.text.length > 420 ? "…" : ""}</p>
+<details><summary>${esc(more.readWholeIn(r.kind === "recital", tlName))}</summary><pre lang="${tl}">${esc(r.text)}</pre></details>
 <p class="note" lang="en"><span class="cite">${esc(citationLine(r))}</span></p>
-<div class="tools"><button type="button" class="tool js copy" data-copy="${esc(citationLine(r))}" hidden>${esc(t.copyCite)}</button><button type="button" class="tool js speak" data-lang="en" data-speak="${esc(`${r.citation}. ${r.heading ?? ""}. ${r.text.slice(0, 3000)}`)}" hidden>${esc(t.readAloud)}</button></div>
-</article>`).join("\n");
+<div class="tools"><button type="button" class="tool js copy" data-copy="${esc(citationLine(r))}" hidden>${esc(t.copyCite)}</button><button type="button" class="tool js speak" data-lang="${tl}" data-speak="${esc(`${r.citation}. ${r.heading ?? ""}. ${r.text.slice(0, 3000)}`)}" hidden>${esc(t.readAloud)}</button></div>
+</article>`;
+  }).join("\n");
+  // The answer: each sentence with the pinpoint citation it rests on, then the quotes themselves, word for word.
+  const claims = s.claims ?? [];
+  const answerHtml = claims.length
+    ? `<div class="answer"><h2>${esc(t.plain)}</h2>
+<p class="text" lang="${s.qLang?.tag ?? ui}">${claims.map((c) => `${esc(c.text)} <a class="pin" href="${esc(c.url)}" rel="noopener" lang="${c.citation.includes("artikel") || c.citation.includes("skäl") ? "sv" : "en"}">[${esc(c.citation)}]</a>`).join(" ")}</p>
+<h3>${esc(more.quotedHeading)}</h3>
+<ul class="quotes">${claims.map((c) => `<li><blockquote>“${esc(c.quote)}”</blockquote> <cite><a href="${esc(c.url)}" rel="noopener">${esc(c.citation)}</a></cite></li>`).join("")}</ul>
+<div class="tools"><button type="button" class="tool js speak" data-lang="${s.qLang?.tag ?? ui}" data-speak="${esc(claims.map((c) => c.text).join(" "))}" hidden>${esc(t.readAloud)}</button><button type="button" class="tool js copy" data-copy="${esc(claims.map((c) => `${c.text} (${c.citation})`).join(" "))}" hidden>${esc(t.copyCite)}</button></div>
+<p class="note">${esc(more.aiNote)}</p></div>`
+    : s.q && s.explain && s.grounded === false && results.length ? `<p class="note answer">${esc(more.notGrounded)}</p>` : "";
   const status = s.error
     ? `<p role="alert">${esc(s.error)}</p>`
     : s.q
       ? `<p>${results.length ? esc(t.found(results.length)) : esc(t.none)}${s.left !== null && s.left !== undefined ? ` · ${esc(t.left(s.left))}` : ""} <button type="button" class="tool js share" hidden>${esc(t.share)}</button></p>`
       : "";
-  const answerLang = s.qLang?.tag ?? ui;
   const body = `<a class="skip" href="#results">${esc(t.skip)}</a>
 <nav aria-label="${esc(t.language)}"><ul class="langs">${UI_LANGS.map((l) => `<li><a href="${esc(keep(l))}" lang="${l}" hreflang="${l}"${l === ui ? ' aria-current="page"' : ""}>${UI_LANG_NAMES[l]}</a></li>`).join("")}</ul></nav>
 <div class="lex">
@@ -128,7 +158,7 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
 ${s.q ? "" : `<h2>${esc(t.tryOne)}</h2><ul class="chips">${EXAMPLES.map(([lang, label, q]) => `<li><a lang="${lang}" href="${LEXGLYPH_PATH}?${new URLSearchParams({ lang: ui, q })}">${esc(q)} <span class="note">(${esc(label)})</span></a></li>`).join("")}</ul>`}
 <section id="results" aria-live="polite" tabindex="-1">
 ${status}
-${s.answer ? `<div class="answer"><h2>${esc(t.plain)}</h2><p class="text" lang="${answerLang}">${esc(s.answer)}</p><div class="tools"><button type="button" class="tool js speak" data-lang="${answerLang}" data-speak="${esc(s.answer.replace(/\[\d+[a-z()]*\]/g, ""))}" hidden>${esc(t.readAloud)}</button></div><p class="note">${esc(t.aiNote)}</p></div>` : ""}
+${answerHtml}
 ${resultHtml}
 </section>
 <h2>${esc(t.why)}</h2>
@@ -137,7 +167,7 @@ ${resultHtml}
 <h2>For developers and AI agents</h2>
 <ul>
 <li>API: <code>GET ${esc(origin)}/law/search?q=…</code>, $0.005 a search, pay per call or with a key. <a href="/eu-law-search-api">API details and plans</a>.</li>
-<li>Already on Exa's SDK? Change one line: <code>Exa(api_key, base_url="${esc(origin)}/v1")</code> and send <code>category="law"</code>.</li>
+<li>Grounded answers for your own app: add <code>answer=true</code>; every sentence comes with the quote it rests on and a pinpoint citation. Swedish text: <code>lang=sv</code>.</li>
 <li>MCP: add <code>${esc(origin)}/mcp</code> to your AI assistant and ask it EU-law questions.</li>
 </ul>
 </section>
@@ -168,7 +198,7 @@ ${s.q ? '<meta name="robots" content="noindex">' : ""}
 ${ld.map((x) => `<script type="application/ld+json">${jsonLd(x)}</script>`).join("\n")}
 <style>${STYLE}${PAGE_STYLE}</style></head><body><main>
 ${body}
-<footer>LexGlyph · ${esc(brand)}. <span lang="en">Legal texts: © European Union, EUR-Lex, reused under the Commission's reuse policy.</span> ${COMPANY_FOOTER}</footer>
+<footer>LexGlyph · ${esc(brand)}. <a href="${LEXGLYPH_SECURITY_PATH}?lang=${ui}">${esc(MORE[ui].security)}</a>. <span lang="en">Legal texts: © European Union, EUR-Lex, reused under the Commission's reuse policy.</span> ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
 }
 
@@ -198,11 +228,15 @@ export async function lexglyphHtml(env: Env, origin: string, params: URLSearchPa
   if (used >= LEXGLYPH_PER_VISITOR) return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, error: t.limit(LEXGLYPH_PER_VISITOR), left: 0 });
   try {
     await takeDailyBudget(env, "lexglyph", env.LEXGLYPH_DAILY_CAP, LEXGLYPH_DAILY_CAP, "LexGlyph");
-    const found = await lawSearch(q, { act, count: 5 }, lawDeps(env));
-    const out = lawAnswer(q, act, undefined, 5, found);
-    const answer = explain && out.results.length ? (await answerFromArticles(env, q, out.results, { plain: true }).catch(() => ({ answer: null }))).answer : null;
+    const deps = lawDeps(env);
+    const found = await lawSearch(q, { act, count: 5, lang: ql.iso }, deps);
+    // The provisions in the question's language where the index holds it (Swedish), so answers quote that text.
+    const textLang = INDEXED_LANGS.includes(qLang.tag) ? qLang.tag : "en";
+    const shown = { ...found, candidates: await inLanguage(found.candidates.slice(0, 5), textLang, deps) };
+    const out = lawAnswer(q, act, undefined, 5, shown);
+    const answered = explain && out.results.length ? await answerFromArticles(env, q, sourcesOf(out.results), { plain: true }).catch(() => null) : null;
     await env.TRIALS?.put(key, String(used + 1), { expirationTtl: 2 * 86400 }).catch(() => {});
-    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
+    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer: answered?.grounded ? answered.answer : null, claims: answered?.claims ?? [], grounded: answered ? answered.grounded : undefined, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
   } catch (e) {
     const busy = e instanceof HttpError && (e.status === 503 || e.status === 502);
     return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, error: busy ? t.busy : t.failed });
