@@ -523,7 +523,9 @@ app.use(async (c, next) => {
   // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.
   if (response.status === 402 && c.req.header("payment-signature")) {
     const trace = activeTrace();
-    if (!trace?.stages.has("verification_failed") && !trace?.stages.has("facilitator_unavailable")) {
+    // A verified payment whose settlement failed is answered 402 too; it is already counted as settlement_failed,
+    // so marking it refused_* as well overstates refusals (16 Nov payments diagnosis: 11 payments, 45 → 34).
+    if (!trace?.stages.has("verification_failed") && !trace?.stages.has("facilitator_unavailable") && !trace?.stages.has("settlement_failed") && !trace?.stages.has("verified")) {
       const reason = decodedChallengeError(response.headers.get("payment-required"));
       const stage = /network|chain|unsupported/i.test(reason) ? "refused_network" : /amount|price|value/i.test(reason) ? "refused_amount" : "refused_format";
       markStage(stage);
