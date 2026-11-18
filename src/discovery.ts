@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.219.0";
+export const MCP_SERVER_VERSION = "1.220.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -276,6 +276,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/x402/payout-check": "Company, compliance and checks", "/x402/seller-record": "Company, compliance and checks", "/x402/receipt": "Company, compliance and checks",
   "/audit/contract": "Company, compliance and checks", "/contract/audit": "Company, compliance and checks",
   "/perp/funding": "Prices and DeFi",
+  "/pack/token-flows": "Prices and DeFi", "/token/flow": "Prices and DeFi", "/token/who-bought-sold": "Prices and DeFi", // 18 Nov 2026: token flows
   "/stablecoin/charts": "Prices and DeFi",
   "/document/text": "Web, documents and search", "/document/extract": "Web, documents and search",
   "/gpt/pricing": "Utilities", "/claude/pricing": "Utilities", "/grok/pricing": "Utilities", "/minimax/pricing": "Utilities",
@@ -557,8 +558,9 @@ export function openApi(origin: string, trialsEnabled = false, mpp: readonly Mpp
                 description: "Result",
                 content: {
                   "application/json": {
+                    // 18 Nov 2026 (owner: "Drop example bodies"): the full example answer is no longer repeated here (256 KB of the
+                    // 2 MB cap); each tool's page, its 402 body and its Bazaar listing still carry it.
                     schema: (e as Endpoint).outputSchema ?? schemaFromExample(e.outputExample),
-                    example: e.outputExample,
                   },
                 },
               },
