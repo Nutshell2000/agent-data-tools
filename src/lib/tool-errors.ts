@@ -9,10 +9,10 @@
 export const NOT_FOUND_CODE = "NOT_FOUND";
 
 export function toolErrorAnswer(
-  err: { status: number; message: string; code?: string },
+  err: { status: number; message: string; code?: string; details?: Record<string, unknown> },
   isToolPath: boolean,
   help: Record<string, unknown> = {},
 ): { status: number; body: Record<string, unknown> } {
-  if (err.status === 404 && isToolPath) return { status: 422, body: { error: err.message, code: err.code ?? NOT_FOUND_CODE } };
-  return { status: err.status, body: { error: err.message, ...(err.code ? { code: err.code } : {}), ...help } };
+  if (err.status === 404 && isToolPath) return { status: 422, body: { error: err.message, code: err.code ?? NOT_FOUND_CODE, ...err.details } };
+  return { status: err.status, body: { error: err.message, ...(err.code ? { code: err.code } : {}), ...err.details, ...help } };
 }

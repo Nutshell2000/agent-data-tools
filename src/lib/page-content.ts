@@ -63,6 +63,56 @@ const longestTicks = (s: string) => {
   return longest;
 };
 const escape = (s: string) => s.replace(/[\\`*_[\]<>|~]/g, "\\$&");
+/** A heading's visible text as a caller would retype it: case and whitespace differences do not change the section. */
+const headingKey = (s: string) => squash(s).toLowerCase();
+
+/** Elements whose HTML id can scope a reading, in the order callers usually want them (headings, then containers). */
+const SECTION_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "main", "div"]);
+/**
+ * The HTML id a section input names. Callers are told to send an id, but agents often paste the fragment as a docs link
+ * shows it ("#pricing") or the whole documentation URL that ends in one; both name the same element. A bare "#" or a
+ * fragment-less URL names nothing, so it is kept verbatim and fails like any other unknown id.
+ */
+function sectionName(input: string): string {
+  const value = input.trim();
+  let fragment: string | undefined;
+  if (value.startsWith("#")) fragment = value.slice(1);
+  else {
+    try {
+      const url = new URL(value);
+      if (/^https?:$/.test(url.protocol) && url.hash.length > 1) fragment = url.hash.slice(1);
+    } catch { /* an ordinary id, not a URL */ }
+  }
+  if (fragment === undefined) return value;
+  let decoded: string;
+  try { decoded = decodeURIComponent(fragment); } catch { decoded = fragment; }
+  const clean = decoded.trim();
+  return clean && !/[\u0000-\u001f\u007f]/.test(clean) ? clean : value;
+}
+
+/** The page's selectable ids, headings first, so a refused caller can retry with a real one in the same answer. */
+function sectionIndex(primary: Node[]) {
+  const rows: { id: string; title: string | null; kind: "heading" | "container" }[] = [];
+  const seen = new Set<string>();
+  for (const headingsFirst of [true, false]) {
+    for (const n of primary) {
+      const id = n.attrs.id;
+      if (!id || seen.has(id) || !SECTION_TAGS.has(n.tag) || /^h[1-6]$/.test(n.tag) !== headingsFirst) continue;
+      seen.add(id);
+      rows.push({ id, title: headingsFirst ? squash(raw(n, false, true)).slice(0, 200) || null : null, kind: headingsFirst ? "heading" : "container" });
+      if (rows.length === 30) return rows;
+    }
+  }
+  return rows;
+}
+
+/** A miss names the ids the page does offer (bounded), so the next call can succeed instead of guessing again. */
+function sectionNotFound(requested: string, sections: ReturnType<typeof sectionIndex>): string {
+  const asked = requested.length > 80 ? `${requested.slice(0, 80)}…` : requested;
+  if (!sections.length) return `Section ID "${asked}" was not found: the visible primary content has no selectable IDs. Call without section to read the whole page; nothing was charged.`;
+  const list = sections.slice(0, 15).map((s) => (s.id.length > 60 ? `${s.id.slice(0, 60)}…` : s.id)).join(", ");
+  return `Section ID "${asked}" was not found in the visible primary content. IDs this page offers: ${list}${sections.length > 15 ? `, and more in the "sections" list` : ""}. Send one of those IDs or a heading's visible text, or call without section to read the whole page; nothing was charged.`;
+}
 
 export const MAX_ELEMENTS = 60_000;
 /** Inert, bounded HTML parsing. No scripts, layout or external subrequests. */
@@ -183,19 +233,37 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   let renderRoot = selected;
   let scopedPermalinkOmitted = false;
   let section: { id: string; title: string | null; kind: "heading" | "container"; headingLevel: number | null } | null = null;
+  let matchedByHeading = false;
   if (sectionId !== undefined) {
     const primary: Node[] = [];
     const collect = (n: Node) => { if (hidden(n)) return; primary.push(n); for(const c of n.children) if(typeof c !== "string") collect(c); };
     collect(selected);
-    const matches = primary.filter(n => n.attrs.id === sectionId);
-    if (!matches.length) throw new HttpError(422, "Section ID was not found in visible primary content", "EXTRACTION_SECTION_NOT_FOUND");
-    if (matches.length !== 1) throw new HttpError(422, "Section ID is ambiguous in visible primary content", "EXTRACTION_SECTION_AMBIGUOUS");
-    let match = matches[0];
+    const requested = sectionName(sectionId);
+    const matches = primary.filter(n => n.attrs.id === requested);
+    let match: Node;
+    if (matches.length === 1) match = matches[0];
+    else if (matches.length > 1) throw new HttpError(422, "Section ID is ambiguous in visible primary content", "EXTRACTION_SECTION_AMBIGUOUS");
+    else {
+      // A caller who retypes the heading they see ("Retry policy") instead of its id ("retry-policy") names one section
+      // too, as long as that visible text identifies exactly one heading; the answer says which id it resolved to.
+      const byHeading = primary.filter(n => /^h[1-6]$/.test(n.tag) && headingKey(raw(n)) === headingKey(requested));
+      if (byHeading.length === 1) { match = byHeading[0]; matchedByHeading = true; }
+      else if (byHeading.length > 1) {
+        const ids = byHeading.map(n => n.attrs.id).filter((id): id is string => Boolean(id)).slice(0, 10);
+        throw new HttpError(422, `Section "${requested.length > 80 ? `${requested.slice(0, 80)}…` : requested}" matches ${byHeading.length} headings in the visible primary content${ids.length ? `; send one of their IDs instead: ${ids.join(", ")}` : ""}; nothing was charged.`, "EXTRACTION_SECTION_AMBIGUOUS", { sections: sectionIndex(primary) });
+      }
+      else {
+        const sections = sectionIndex(primary);
+        throw new HttpError(422, sectionNotFound(requested, sections), "EXTRACTION_SECTION_NOT_FOUND", { sections });
+      }
+    }
     // Documentation often puts an anchor ID inside a heading rather than on it.
     for (let ancestor: Node | undefined = match; ancestor; ancestor = parents.get(ancestor)) {
       if (/^h[1-6]$/.test(ancestor.tag)) { match = ancestor; break; }
       if (ancestor === selected) break;
     }
+    // A heading matched by its visible text reports the id it resolved to; an exact id reports what was sent.
+    const sectionLabel = matchedByHeading ? match.attrs.id ?? requested : requested;
     if (/^h[1-6]$/.test(match.tag)) {
       const level = +match.tag[1];
       let active = false, stopped = false;
@@ -214,7 +282,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         return children.length || n === match || (active && !stopped) ? { ...n, children } : null;
       };
       renderRoot = slice(selected)!;
-      section = { id: sectionId, title: squash(raw(match,false,true)).slice(0,1000) || null, kind: "heading", headingLevel: level };
+      section = { id: sectionLabel, title: squash(raw(match,false,true)).slice(0,1000) || null, kind: "heading", headingLevel: level };
     } else if (["section", "article", "main", "div"].includes(match.tag)) {
       renderRoot = match;
       const findHeading = (n: Node): Node | undefined => {
@@ -223,7 +291,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         for(const c of n.children) if(typeof c !== "string") { const found=findHeading(c); if(found) return found; }
       };
       const firstHeading = findHeading(match);
-      section = { id: sectionId, title: firstHeading ? squash(raw(firstHeading,false,true)).slice(0,1000) || null : null, kind: "container", headingLevel: null };
+      section = { id: sectionLabel, title: firstHeading ? squash(raw(firstHeading,false,true)).slice(0,1000) || null : null, kind: "container", headingLevel: null };
     } else throw new HttpError(422, "Section ID must identify a heading, heading anchor, section, article, main or div", "EXTRACTION_SECTION_UNSUPPORTED");
   }
   // Protect literal blocks from prose cleanup. The prefix cannot occur in decoded source text.
@@ -247,6 +315,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   const warnings = new Set<string>(baseWarnings);
+  if (matchedByHeading) warnings.add("section_matched_by_heading");
   if(scopedPermalinkOmitted) warnings.add("permalink_controls_omitted");
   const normalizeNotation = (n: Node, value: string, markdown = false, literal = false): string => {
     if((n.tag !== "sup" && n.tag !== "sub") || !value.trim() || literal) return value;
