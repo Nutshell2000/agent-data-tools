@@ -51,6 +51,10 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     else if (["/linkedin/profile", "/linkedin/company-posts", "/x/search"].includes(e.path)) assert.equal(e.price, "$0.012", e.path);
     // Round 8 doors (10 Nov 2026): a door carries its tool's price, and /page/markdown runs /extract ($0.002).
     else if (e.path === "/page/markdown") assert.equal(e.price, "$0.002", e.path);
+    // The phishing blocklist check (1.222.0, prices delegated): one KV lookup, no outside request, at the entry price.
+    else if (e.path === "/phishing/check") assert.equal(e.price, "$0.002", e.path);
+    // /merchant/trust (1.222.0) is /domain-report's door and carries its price.
+    else if (e.path === "/merchant/trust") assert.equal(e.price, "$0.02", e.path);
     // Company financial statements and their two doors (owner, 11 Nov 2026: "Yes, at $0.02"): the Bazaar's statement sellers charge $0.02-0.10.
     else if (["/sec/financials", "/stock/fundamentals", "/income-statement"].includes(e.path)) assert.equal(e.price, "$0.02", e.path);
     // Price test 5-19 Nov 2026 (owner): tools whose market leader charges more.
@@ -66,7 +70,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 708);
+  assert.equal(families.length, 711);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -94,7 +98,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,734);
+  assert.equal(ENDPOINTS.length,737);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
