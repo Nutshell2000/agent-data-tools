@@ -12,7 +12,39 @@ const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
 const STOP = new Set("a an and are as at be by can do does for from get give how i in is it me my of on or please show tell that the this to use want what when where which who why with you your api apis call tool tools find need".split(" "));
 
 // Words agents use for a task, mapped onto the words our tool names use.
-const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall: "memory", save: "memory", store: "memory", forget: "memory", sanctioned: "sanctions", ofac: "sanctions", scrape: "extract", crawl: "extract", markdown: "extract", llm: "chat", gpt: "chat", completion: "chat", forecast: "weather", temperature: "weather", currency: "fx", exchange: "fx", eur: "fx", usd: "fx", whois: "domain", rug: "honeypot", scam: "risk", ether: "eth", ethereum: "eth", bitcoin: "btc" };
+const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall: "memory", save: "memory", store: "memory", forget: "memory", sanctioned: "sanctions", ofac: "sanctions", scrape: "extract", crawl: "extract", markdown: "extract", llm: "chat", gpt: "chat", completion: "chat", forecast: "weather", temperature: "weather", currency: "fx", exchange: "fx", eur: "fx", usd: "fx", whois: "domain", rug: "honeypot", scam: "risk", ether: "eth", ethereum: "eth", bitcoin: "btc", // expanded synonym set for better tool discovery
+  price: "token", quote: "token", value: "token", balance: "wallet", portfolio: "wallet", holdings: "wallet",
+  fee: "gas", fees: "gas", gwei: "gas", gasprice: "gas",
+  vat: "invoice", tax: "invoice", iban: "invoice", billing: "invoice",
+  company: "domain", firm: "domain", business: "domain", organization: "domain", organisation: "domain",
+  email: "mail", mail: "email", mailbox: "email",
+  phone: "contact", contact: "phone", tel: "phone", telephone: "phone",
+  url: "link", link: "url", website: "url", site: "url", webpage: "url",
+  pdf: "document", document: "pdf", doc: "pdf", file: "pdf",
+  audio: "speech", voice: "speech", sound: "speech", tts: "speech", stt: "transcribe",
+  translate: "translation", language: "translation", localize: "translation", i18n: "translation",
+  crypto: "token", coin: "token", asset: "token", ticker: "token",
+  stock: "equity", equity: "stock", share: "stock", shares: "stock",
+  search: "find", find: "search", lookup: "search", query: "search",
+  audit: "check", verify: "check", validate: "check", test: "check",
+  block: "sanctions", blocked: "sanctions", screen: "sanctions", screening: "sanctions",
+  phishing: "risk", malicious: "risk", scam: "risk", fraud: "risk", suspicious: "risk",
+  hash: "crypto", encrypt: "crypto", decrypt: "crypto", sign: "crypto", verify: "crypto",
+  json: "data", csv: "data", xml: "data", yaml: "data", parse: "data",
+  date: "time", time: "date", timestamp: "time", datetime: "time", schedule: "time", cron: "time",
+  number: "math", calculate: "math", compute: "math", calc: "math",
+  ip: "network", network: "ip", dns: "domain", whois: "domain",
+  nft: "token", collection: "nft", metadata: "nft",
+  swap: "dex", trade: "dex", exchange: "dex", liquidity: "dex", pool: "dex",
+  defi: "token", yield: "defi", tvl: "defi", apr: "defi", apy: "defi",
+  news: "search", headline: "news", article: "news",
+  seo: "web", web: "seo", site: "web", page: "web",
+  company: "domain", business: "domain", firm: "domain", organization: "domain",
+  security: "risk", safe: "risk", unsafe: "risk", vulnerability: "risk", cve: "risk",
+  weather: "forecast", forecast: "weather",
+  location: "geo", geo: "location", map: "geo", address: "geo",
+  pdf: "document", text: "document", read: "extract", fetch: "extract", get: "extract",
+};
 /** Light stemming: "sanctioned" and "sanctions" both become "sanction"; prefix matching does the rest. */
 const stem = (w: string) => (w.length > 5 ? w.replace(/(ing|ed|es|s)$/, "") : w.length > 3 ? w.replace(/s$/, "") : w);
 export const tokens = (s: string) => {
