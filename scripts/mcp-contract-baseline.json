@@ -1,5 +1,5 @@
 {
-  "version": "1.220.1",
+  "version": "1.221.0",
   "tools": [
     {
       "name": "extract",
@@ -22410,6 +22410,22 @@
           },
           "answer": {
             "description": "true: also a short AI-written answer in which every sentence quotes the provision it rests on, checked word for word, with a pinpoint citation (Article 6(1)(f)); sentences whose quote is not found are dropped. Not legal advice",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "cases": {
+            "description": "true: each article also lists the Court of Justice judgments that discuss it most (case number, parties, ECLI, date, first paragraph citing it, link)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "swedish": {
+            "description": "true: also the Swedish statute sections that match the question (Swedish law, section by section) and the Swedish statutes implementing the directives found",
             "type": [
               "string",
               "number",

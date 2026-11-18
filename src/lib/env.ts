@@ -120,6 +120,8 @@ export interface Env {
   /** LexGlyph's free searches a day in total (src/lib/lexglyph-page.ts; default 2000). */
   LEXGLYPH_DAILY_CAP?: string;
   LAW_VECTORS?: VectorizeIndex;
+  /** Swedish statutes, section by section (18 Nov 2026; Vectorize se-law, scripts/law-index/build-se.mjs). */
+  SE_VECTORS?: VectorizeIndex;
   // Request counters. Optional so local runs without the binding still work.
   METRICS?: DurableObjectNamespace<import("../metrics").Metrics>;
 }
