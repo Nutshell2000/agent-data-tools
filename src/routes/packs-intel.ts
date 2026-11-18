@@ -338,7 +338,10 @@ export const PACKS_INTEL: Entry[] = [
       const dom = await domainInfo(domain);
       if (!dom.exists) throw new HttpError(404, `${domain} does not exist in DNS`);
       const ip = dom.dns.a[0] ?? null;
+      // domainInfo already resolved, so it is a guaranteed section: the pack never 502s just because the
+      // meta, favicon, tech-stack and hosting lookups all timed out.
       const { data, failed } = await runSections({
+        domain: Promise.resolve(dom),
         meta: local(env, "/url/meta", { url: home }),
         favicon: local(env, "/url/favicon", { url: home }),
         tech: local(env, "/tech/stack", { url: home }),
