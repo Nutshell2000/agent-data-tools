@@ -199,7 +199,7 @@ export const WEB_CHECKS: Entry[] = [
   entry("/dns/lookup", "DNS records lookup: A, AAAA, MX, TXT, CNAME, NS and more",
     "Look up DNS records of a domain over DNS-over-HTTPS (Cloudflare 1.1.1.1): A, AAAA, CNAME, MX, NS, TXT, SOA, CAA, SRV, PTR, DS, DNSKEY or HTTPS, with each answer's TTL, the response code (NOERROR, NXDOMAIN…) and whether DNSSEC validated. Use to check email (MX, SPF in TXT), verify a domain, or debug a DNS change; for whether the change has spread use dns_propagation.",
     ["dns-records", "dns-lookup", "dns", "domain", ...U], {
-      name: { type: "string", description: "Domain name (or a URL; its host is used)", required: true, example: "example.com" },
+      name: { type: "string", description: "Domain name (or a URL; its host is used). With no input at all this looks up example.com, the default.", required: true, example: "example.com" },
       type: { type: "string", description: `Record type: ${TYPES.join(", ")} (default A)`, example: "MX" },
     },
     { name: "example.com", type: "MX", status: "NOERROR", dnssec: true, answers: [{ data: "0 .", ttl: 86400 }], resolver: "Cloudflare" },

@@ -293,7 +293,7 @@ export const CORE_ENDPOINTS = [
       "Transcribe speech from an audio file at a public URL, or uploaded in a POST body, using Whisper large-v3-turbo. Returns the transcript text, detected language, duration and word count; subtitles=srt or vtt adds subtitle text and timestamps=true adds timed segments and words. Accepts common formats such as MP3, WAV, M4A and OGG up to 5 MB, in 90+ languages. Use for voice notes, podcast clips, meeting snippets, subtitles and voice messages.",
     tags: ["audio", "transcription", "whisper", "speech", "ai"],
     params: {
-      url: { type: "string", description: "Absolute http(s) URL of an audio file (max 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg" },
+      url: { type: "string", description: "Absolute http(s) URL of an audio file (max 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON). With no input at all this transcribes the short public sample shown in the example.", required: true, example: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg" },
       subtitles: { type: "string", description: "srt or vtt: also return subtitle text", example: "srt" },
       timestamps: { type: "string", description: "true: also return timed segments and words", example: "true" },
       language: { type: "string", description: "Spoken language code such as en, sv or de (default: detected)", example: "en" },
