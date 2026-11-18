@@ -2172,3 +2172,12 @@ Tests: tests/outage-resilience.test.cjs, tests/report-outage.test.cjs. The lasti
 - **Security page** `/lexglyph/security` (`src/lib/lexglyph-security.ts`, en and sv): we keep no questions; the allowance hash for two days; Cloudflare Workers Logs keep ~1% of requests (URL included) for up to 7 days; D1 is EU-stored; Workers AI has no EU-only option on our plan (DLS Regional Services not supported for Workers AI; sub-processors CoreWeave US, Nebius UK); no training on inputs per Cloudflare. Advice on the page: no client names or confidential facts in questions. Change the page when any of this changes. Never claim "EU-only processing" anywhere until it is true.
 - LexGlyph page: acts grouped by practice area (`MORE[ui].areas`), answer sentences with pinpoint links, "Quoted from the law" block, AI note says every quote is checked (EU AI Act Art. 50 transparency), footer link to the security page. The rival-SDK line on the page was replaced (no rival names on public pages, 17 Nov rule).
 
+
+
+## Token flows (1.220.0, 18 Nov 2026; 734 tools)
+
+- Why: the 18 Nov Bazaar scan (34,791 listings, repeat buying only: calls per payer) found token-flow data bought again and again by the same wallets: Nansen who-bought-sold 62 payers at ~5 calls each, flow intelligence 19 payers at ~18 calls each, smart-money netflow 15 payers at $0.05. Scan script: `business/agentic/base-bots/bazaar-dump-all.mjs <out.json>` (every listing's 30-day payers and calls), then `bazaar-repeat-buying.mjs <out.json>`; rank by calls/payers with payers >= 6 and leave out synthetic volume (clashofcoins, ax1, keyring-agent, api-xpay).
+- `src/routes/token-flows.ts`: `/token/flow` (`tokenFlow`, `flowBuckets`, `hubCandidates`, `topWalletShare`) and `/pack/token-flows`. The DEX-contract rule (3+ peers in 4+ transfers, the 30 busiest checked for code) is the same as /token/buyers in chain-more.ts, copied rather than shared so that tool stays unchanged; change both together. `topBuyerShare` leaves contracts out of the five largest buyers (with them AERO read 0.89, the top wallet had bought 2,260 of 31,186).
+- `/token/who-bought-sold` is /token/buyers' first door (entry-paths.ts, last in the list).
+- The pack runs two Transfer-log scans in parallel (flow and buyers) and then the sanctions screens: 12.6 s on the AERO example from the PC. If /status shows it slow from Cloudflare, share one scan between the two sections.
+
