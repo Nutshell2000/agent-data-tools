@@ -530,3 +530,17 @@ test("failure reasons are capped per day, the rest counted as other", async () =
   assert.equal(status.tools[0].topFailures[0].count, 1);
   assert.equal(status.tools[1].topFailures, undefined, "beyond the cap the reason is counted as other");
 });
+
+test("caller families with a buyer signal keep their name after the 60-family cap fills with monitors", async () => {
+  const { metrics } = createMetrics();
+  metrics.lastFlushMs = Date.now();
+  for (let i = 0; i < 60; i++) await metrics.bump("/time", "challenged", undefined, `monitor${i}`);
+  await metrics.bump("/time", "challenged", undefined, "late-monitor");
+  await metrics.bump("/weather", "paid", undefined, "late-buyer");
+  await metrics.bump("/weather", "challenged", undefined, "late-buyer");
+  await metrics.alarm();
+  const day = (await metrics.callers())[today];
+  assert.equal(day["late-monitor"], undefined, "a quote-only family past the cap still counts as other");
+  assert.equal(day.other.challenged, 1);
+  assert.deepEqual(day["late-buyer"], { paid: 1, challenged: 1 }, "a paying family keeps its name");
+});
