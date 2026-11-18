@@ -16,7 +16,8 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { removedPageTarget } from "./lib/removed-pages";
-import { LEXGLYPH_PATH, LEXGLYPH_SECURITY_PATH, lexglyphHtml } from "./lib/lexglyph-page";
+import { LEXGLYPH_EXPORT_PATH, LEXGLYPH_PATH, LEXGLYPH_SECURITY_PATH, LEXGLYPH_VERSION_PATH, lexglyphHtml } from "./lib/lexglyph-page";
+import { lexglyphExport, lexglyphVersionHtml } from "./lib/lexglyph-extra";
 import { lexglyphSecurityHtml } from "./lib/lexglyph-security";
 import { pickUiLang } from "./lib/lexglyph-i18n";
 import { VOICE_PRO_PATH, setVoicePrices, voicePrices, voiceProPage } from "./lib/voice-pro";
@@ -735,7 +736,18 @@ app.get(`${REGISTER_BASE}/:country{[a-z-]+}`, (c) => {
 app.get(LEXGLYPH_PATH, async (c) => c.html(await lexglyphHtml(c.env, origin(c.req.url), new URL(c.req.url).searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language"))));
 // LexGlyph's security and confidentiality page (18 Nov 2026): what is kept, where it is processed (lib/lexglyph-security.ts).
 app.get(LEXGLYPH_SECURITY_PATH, (c) => c.html(lexglyphSecurityHtml(origin(c.req.url), pickUiLang(c.req.query("lang") ?? null, c.req.header("accept-language")), LEXGLYPH_PATH)));
-// Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
+// Phase B (18 Nov 2026): an article as it read on a date, and the answer as a Word document (lib/lexglyph-extra.ts).
+app.get(LEXGLYPH_VERSION_PATH, async (c) => c.html(await lexglyphVersionHtml(c.env, new URL(c.req.url).searchParams, pickUiLang(c.req.query("lang") ?? null, c.req.header("accept-language")), LEXGLYPH_PATH)));
+app.post(LEXGLYPH_EXPORT_PATH, async (c) => {
+  const body = await c.req.parseBody().catch(() => ({} as Record<string, unknown>));
+  const data = typeof body.data === "string" ? body.data : "";
+  try {
+    const { bytes, filename } = lexglyphExport(data);
+    return new Response(bytes, { headers: { "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "content-disposition": `attachment; filename="${filename}"`, "cache-control": "no-store" } });
+  } catch (e) {
+    return c.text(e instanceof HttpError ? e.message : "could not build the document", e instanceof HttpError ? (e.status as 400) : 400);
+  }
+});// Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
 const voicePriceOf = (path: string) => ENDPOINTS.find((e) => e.path === path)?.price ?? "$0.05";
 setVoicePrices({ long: voicePriceOf("/transcribe/long"), short: voicePriceOf("/transcribe"), summary: voicePriceOf("/transcribe/summary") });
 app.get(VOICE_PRO_PATH, (c) => c.html(voiceProPage(origin(c.req.url), voicePrices())));

@@ -23,6 +23,7 @@ import { RERANK_MODEL } from "./retrieval";
 import { CHAT_MODEL, LARGE_CHAT_MODELS, chat } from "./ai-text";
 import ACTS from "../data/eu-law-acts.json";
 import { groundedContext, groundedPrompt, parseClaims, verifyClaims, type GroundSource, type GroundedClaim } from "../lib/law-grounding";
+import { CASE_ATTRIBUTION, SE_ATTRIBUTION, caseParaUrl, caseSource, casesForArticle, seDeps, seLabel, seSearch, seSource, swedishImplementations, type CaseRef, type SeSection } from "./law-layers";
 
 export const EMBED_MODEL = "@cf/baai/bge-m3";
 const ATTRIBUTION = "© European Union, https://eur-lex.europa.eu (Commission Decision 2011/833/EU). Only the Official Journal text is authentic. Not legal advice.";
@@ -282,7 +283,7 @@ export async function answerFromArticles(env: Env, question: string, results: Gr
   // LexGlyph's page (15-16 Nov 2026): people, not software, read the answer, in the language they asked in.
   // The model ignored "the language of the question" in a Swedish test, so the language is detected and named.
   const lang = opts.plain ? questionLanguage(question) : "English";
-  const reply = await chat(env, groundedPrompt(lang, Boolean(opts.plain)), groundedContext(question, results), 900, 0, model);
+  const reply = await chat(env, groundedPrompt(lang, Boolean(opts.plain)), groundedContext(question, results, 12000), 900, 0, model);
   const { kept, dropped } = verifyClaims(parseClaims(reply), results);
   if (!kept.length) return { answer: NOT_ANSWERED, claims: kept, grounded: false, dropped, model };
   return { answer: kept.map((k) => `${k.text} [${k.source}]`).join(" "), claims: kept, grounded: true, dropped, model };
@@ -298,6 +299,8 @@ export const LAW_SEARCH: Entry[] = [
       count: { type: "integer", description: "Results (1-10, default 5)", example: 5 },
       lang: { type: "string", description: "Language of the legal text returned: en (default) or sv (the official Swedish text of the same provisions)", enum: ["en", "sv"], example: "en" },
       answer: { type: "string", description: "true: also a short AI-written answer in which every sentence quotes the provision it rests on, checked word for word, with a pinpoint citation (Article 6(1)(f)); sentences whose quote is not found are dropped. Not legal advice", example: "false" },
+      cases: { type: "string", description: "true: each article also lists the Court of Justice judgments that discuss it most (case number, parties, ECLI, date, first paragraph citing it, link)", example: "false" },
+      swedish: { type: "string", description: "true: also the Swedish statute sections that match the question (Swedish law, section by section) and the Swedish statutes implementing the directives found", example: "false" },
     },
     // A real answer from the live index, 14 Nov 2026 (2 of 5 results shown; the first article's text shortened here).
     {
@@ -325,6 +328,23 @@ export const LAW_SEARCH: Entry[] = [
       const found = await lawSearch(query, { act, kind, count }, deps);
       const shown = { ...found, candidates: await inLanguage(found.candidates.slice(0, count), textLang, deps) };
       const out = lawAnswer(query, act, kind, count, shown);
-      return flag(q, "answer") ? { ...out, ...(await answerFromArticles(env, query, sourcesOf(out.results))) } : out;
+      // Phase B layers (18 Nov 2026), only when asked for: they add database reads and, for Swedish law, one embedding.
+      const withCases = flag(q, "cases"), withSe = flag(q, "swedish");
+      const db = env.LAW_DB!;
+      const se = withSe ? seDeps(env) : null;
+      const [cases, seImpl, seHits] = await Promise.all([
+        withCases ? Promise.all(out.results.map((r) => (r.kind === "article" ? casesForArticle(db, r.short, r.label.replace(/^Article /, ""), 3).catch(() => [] as CaseRef[]) : Promise.resolve([] as CaseRef[])))) : Promise.resolve(null),
+        withSe ? swedishImplementations(db, out.results.map((r) => r.short)).catch(() => []) : Promise.resolve(null),
+        se ? seSearch(query, se, 3).catch(() => [] as SeSection[]) : Promise.resolve(null),
+      ]);
+      const results = cases ? out.results.map((r, i) => ({ ...r, caseLaw: cases[i].map((c) => ({ case: c.number, parties: c.parties, ecli: c.ecli, date: c.date, paragraph: c.para, paragraphsCiting: c.mentions, text: c.text, url: caseParaUrl(c.url, c.para) })) })) : out.results;
+      const layered = {
+        ...out, results,
+        ...(seHits ? { swedishLaw: seHits.map((x) => ({ citation: `${seLabel(x)} ${x.name}`, heading: x.heading, text: x.text, url: x.url })), implementedInSweden: seImpl, swedishAttribution: SE_ATTRIBUTION } : {}),
+        ...(cases ? { caseAttribution: CASE_ATTRIBUTION } : {}),
+      };
+      if (!flag(q, "answer")) return layered;
+      const sources = [...sourcesOf(out.results), ...(seHits ?? []).slice(0, 2).map(seSource), ...(cases ?? []).slice(0, 2).flatMap((l) => l.slice(0, 1)).filter((c) => c.text).map(caseSource)];
+      return { ...layered, ...(await answerFromArticles(env, query, sources)) };
     }, "$0.005"),
 ];
