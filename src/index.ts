@@ -30,7 +30,7 @@ import { publicBrand, SERVICE_BRAND } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { TOOL_COUNT } from "./endpoints";
-import { isV2PaymentHeader, payV1, v1Requirements } from "./lib/x402-v1";
+import { asV2Header, payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { toolErrorAnswer } from "./lib/tool-errors";
@@ -261,12 +261,15 @@ app.use(async (c, next) => {
 // payment: it is forwarded as PAYMENT-SIGNATURE before tracing and metrics, so the v2 path verifies and settles it and
 // only the forwarded request is counted. On 14 Nov 2026 such a client was refused 15 times on /weather/forecast
 // ("only x402 version 1 'exact' payments are accepted in X-PAYMENT"). The receipt goes back under both header names.
+// The same goes for a v2 payment under PAYMENT-SIGNATURE whose envelope lacks `x402Version` (refused by the core library
+// with "Unsupported x402 version: undefined"): it is re-encoded with the field set.
 app.use(async (c, next) => {
-  const header = c.req.header("x-payment");
-  if (!header || c.req.header("payment-signature") || !PAID_PATHS.has(c.req.path) || !isV2PaymentHeader(header)) return next();
+  const legacy = c.req.header("x-payment"), signed = c.req.header("payment-signature");
+  const forward = legacy && !signed ? asV2Header(legacy) : signed && !legacy ? (asV2Header(signed) !== signed ? asV2Header(signed) : null) : null;
+  if (!forward || !PAID_PATHS.has(c.req.path)) return next();
   const headers = new Headers(c.req.raw.headers);
   headers.delete("x-payment");
-  headers.set("payment-signature", header);
+  headers.set("payment-signature", forward);
   const res = await app.fetch(new Request(c.req.raw, { headers }), c.env, c.executionCtx);
   const receipt = res.headers.get("PAYMENT-RESPONSE");
   if (!receipt || res.headers.has("X-PAYMENT-RESPONSE")) return res;
