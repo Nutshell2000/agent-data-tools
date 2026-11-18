@@ -37,6 +37,14 @@ test("everything else keeps its status; a 400 keeps the inputs and the example",
   assert.equal(E.toolErrorAnswer({ status: 422, message: "the call reverted" }, true).status, 422);
 });
 
+test("structured details travel beside the message, under both the tool and the tool-404 answers", () => {
+  const sections = [{ id: "pricing", title: "Pricing", kind: "heading" }];
+  assert.deepEqual(E.toolErrorAnswer({ status: 422, message: "no such section", code: "EXTRACTION_SECTION_NOT_FOUND", details: { sections } }, true),
+    { status: 422, body: { error: "no such section", code: "EXTRACTION_SECTION_NOT_FOUND", sections } });
+  assert.deepEqual(E.toolErrorAnswer({ status: 404, message: "nothing", details: { sections } }, true).body.sections, sections);
+  assert.deepEqual(E.toolErrorAnswer({ status: 404, message: "nothing" }, true).body, { error: "nothing", code: "NOT_FOUND" }, "a refusal without details keeps the old shape");
+});
+
 test("the HTTP error handler uses it, and no tool documents or promises a 404", () => {
   const index = readFileSync(require.resolve("../src/index.ts"), "utf8");
   assert.match(index, /toolErrorAnswer\(err, err\.status === 404 && ENDPOINTS\.some/);

@@ -1,5 +1,5 @@
 {
-  "version": "1.223.0",
+  "version": "1.224.0",
   "tools": [
     {
       "name": "extract",
@@ -35,7 +35,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within primary content, 1-500 characters. Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged. URL fragments alone do not select a section. Leave it out to read the whole page."
+            "description": "Optional visible HTML ID within primary content, 1-500 characters. A leading # (the fragment a docs link shows) or a URL ending in #id is accepted, and so is a heading's visible text when exactly one heading matches (answered with warning section_matched_by_heading). Heading scope includes subsections until next same/higher-level heading; section/article/main/div scope is its subtree. Missing/ambiguous/unsupported targets fail uncharged, and a miss lists the ids the page does offer under sections. A fragment added to url still does not select a section. Leave it out to read the whole page."
           }
         },
         "required": [
@@ -12081,7 +12081,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact HTML id to read only that element"
+            "description": "Optional HTML id to read only that element; a leading #, a URL ending in #id or a unique heading's visible text is accepted"
           }
         },
         "required": [
@@ -19339,7 +19339,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
+            "description": "Optional visible HTML ID within the main content, 1-500 characters; a leading # (a docs link's fragment) or a URL ending in #id is accepted, and so is a heading's visible text when exactly one heading matches; leave it out to read the whole page"
           }
         },
         "required": [
@@ -20073,7 +20073,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
+            "description": "Optional visible HTML ID within the main content, 1-500 characters; a leading # (a docs link's fragment) or a URL ending in #id is accepted, and so is a heading's visible text when exactly one heading matches; leave it out to read the whole page"
           }
         },
         "required": [
@@ -20389,7 +20389,7 @@
           },
           "section": {
             "type": "string",
-            "description": "Optional exact visible HTML ID within the main content, 1-500 characters; leave it out to read the whole page"
+            "description": "Optional visible HTML ID within the main content, 1-500 characters; a leading # (a docs link's fragment) or a URL ending in #id is accepted, and so is a heading's visible text when exactly one heading matches; leave it out to read the whole page"
           }
         },
         "required": [

@@ -15,7 +15,7 @@ export const EXTRACT_RENDERED: Entry[] = [
       url: { type: "string", description: "Absolute public http(s) URL of the page", required: true, example: "https://example.com/" },
       format: { type: "string", description: "text (default), markdown or both", enum: ["text", "markdown", "both"], example: "markdown" },
       maxChars: { type: "integer", description: "Output limit, 500-100000 characters (default 20000)", example: 20000 },
-      section: { type: "string", description: "Optional exact HTML id to read only that element", example: "main" },
+      section: { type: "string", description: "Optional HTML id to read only that element; a leading #, a URL ending in #id or a unique heading's visible text is accepted", example: "main" },
     },
     { ...EXTRACT_OUTPUT_EXAMPLE, rendered: true },
     async (env, q) => {
