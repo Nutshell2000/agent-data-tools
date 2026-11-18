@@ -300,6 +300,9 @@ export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Reco
   "/ai/chat": { input: { prompt: "Explain HTTP status code 402 in one sentence." }, note: 'No input was sent, so this answers the default prompt: "Explain HTTP status code 402 in one sentence." Send prompt=... for your own question.' },
   "/transcribe": { input: { url: "https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg" }, note: "No input was sent, so this transcribes the short public sample audio shown in the input example. Send url=... for your own file." },
   "/page/markdown": { input: { url: "https://www.iana.org/help/example-domains" }, note: "No input was sent, so this converts the public example page shown in the input example. Send url=... for your own page." },
+  // 18 Nov 2026: /status showed 41 buyer errors in 7 days, mostly an empty HTTP call refusing with "missing required
+  // query parameter: url". Answer the published sample invoice with the documented default field set instead.
+  "/document/extract": { input: { url: "https://raw.githubusercontent.com/invoice-x/invoice2data/master/tests/compare/coolblue1.pdf", fields: "invoice" }, note: "No input was sent, so this extracts the usual invoice fields from the public sample PDF shown in the input example. Send url=... and fields=... for your own document." },
 };
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);
