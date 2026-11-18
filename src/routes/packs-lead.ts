@@ -50,8 +50,11 @@ async function siteCheck(env: Env, raw: string) {
   const redirects = await call(env, "/url/redirects", { url: input.href }).catch(() => null) as Redirects | null;
   const final = redirects?.finalUrl ? new URL(redirects.finalUrl) : null;
   const host = (final ?? input).hostname.replace(/^www\./, "");
-  const { data, failed } = await runSections({ domain: domainReport(env, host) });
-  const d = data.domain as Domain | undefined;
+  // A domain lookup that times out must not kill the whole check: the address-level signals
+  // (bare IP, punycode, plain HTTP, redirect chain) still resolve, so the call stays charged.
+  let d: Domain | undefined;
+  const failed: Record<string, string> = {};
+  try { d = await domainReport(env, host); } catch (e) { failed.domain = (e as Error)?.message ?? "domain report did not answer"; }
   const hosts = redirects ? [...new Set(redirects.hops.map((x) => new URL(x.url).hostname))] : [input.hostname];
   const { risk, signals } = urlSignals(input, final, hosts, d?.facts.ageDays ?? null);
   const lowTrust = d?.trust === "low" && risk === "low";
@@ -72,8 +75,9 @@ export const PACKS_LEAD: Entry[] = [
       const email = need(q, "email", 320).trim().toLowerCase();
       const m = await emailCheck(email) as Mail;
       if (m.validSyntax === false || !m.domain) return { pack: "email-verify", email, verdict: "invalid", reasons: m.reasons ?? ["not a valid email address"], mailbox: null, domain: null, note: "Syntax check only: the address is malformed.", failed: {} };
-      const { data, failed } = await runSections({ domain: domainReport(env, m.domain) });
-      const d = data.domain as Domain | undefined;
+      // The domain report is the only network call here; if it times out we still answer with the mailbox facts.
+      const d = await domainReport(env, m.domain).catch(() => undefined) as Domain | undefined;
+      const failed = d ? {} : { domain: "domain report did not answer" };
       const { verdict, reasons } = mailVerdict(m, d);
       return { pack: "email-verify", email, verdict, reasons, mailbox: mailView(m), domain: domainView(d), note: "Checks syntax, DNS and provider lists. It does not contact the mail server, so it cannot confirm that this particular mailbox exists.", failed };
     }, "$0.01"),
@@ -124,7 +128,10 @@ export const PACKS_LEAD: Entry[] = [
       const screen = name && !BAD_NAMES.test(name);
       const site = await siteCheck(env, `https://${host}/`);
       const finalUrl = site.finalUrl ? new URL(site.finalUrl) : null;
+      // siteCheck already resolved (it has its own address-level verdict), so it is guaranteed to answer and
+      // the pack never 502s just because the security headers or sanctions list timed out.
       const { data, failed } = await runSections({
+        site: Promise.resolve(site),
         headers: finalUrl && finalUrl.protocol === "https:" ? call(env, "/http/security-headers", { url: finalUrl.href }) : Promise.reject(new Error("the final page is not served over HTTPS")),
         ...(screen ? { sanctions: call(env, "/sanctions/check", { name }) } : {}),
       });
