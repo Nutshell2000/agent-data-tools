@@ -234,6 +234,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   let scopedPermalinkOmitted = false;
   let section: { id: string; title: string | null; kind: "heading" | "container"; headingLevel: number | null } | null = null;
   let matchedByHeading = false;
+  let genericSection = false;
   if (sectionId !== undefined) {
     const primary: Node[] = [];
     const collect = (n: Node) => { if (hidden(n)) return; primary.push(n); for(const c of n.children) if(typeof c !== "string") collect(c); };
@@ -251,6 +252,12 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       else if (byHeading.length > 1) {
         const ids = byHeading.map(n => n.attrs.id).filter((id): id is string => Boolean(id)).slice(0, 10);
         throw new HttpError(422, `Section "${requested.length > 80 ? `${requested.slice(0, 80)}…` : requested}" matches ${byHeading.length} headings in the visible primary content${ids.length ? `; send one of their IDs instead: ${ids.join(", ")}` : ""}; nothing was charged.`, "EXTRACTION_SECTION_AMBIGUOUS", { sections: sectionIndex(primary) });
+      }
+      else if (/^(main|content|article|body|primary|full)$/i.test(requested.trim())) {
+        // Agents often paste a generic container name from a docs UI. There is no such ID here, but the answer they
+        // want is the visible primary content: read it instead of refusing, and say so in warnings.
+        match = selected;
+        genericSection = true;
       }
       else {
         const sections = sectionIndex(primary);
@@ -316,6 +323,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .trim();
   const warnings = new Set<string>(baseWarnings);
   if (matchedByHeading) warnings.add("section_matched_by_heading");
+  if (genericSection) warnings.add("section_generic_ignored");
   if(scopedPermalinkOmitted) warnings.add("permalink_controls_omitted");
   const normalizeNotation = (n: Node, value: string, markdown = false, literal = false): string => {
     if((n.tag !== "sup" && n.tag !== "sub") || !value.trim() || literal) return value;
