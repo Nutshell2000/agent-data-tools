@@ -29,7 +29,7 @@ const sql = async (query, params) => (await api(`/d1/database/${D1}/query`, { sq
 export async function loadModules() {
   const mods = {};
   for (const [name, entry] of [["law", "../../src/routes/law-search.ts"], ["ground", "../../src/lib/law-grounding.ts"]]) {
-    const out = join(here, `../../.law-eval-${name}.cjs`);
+    const out = join(here, `../../.law-eval-${name}-${process.pid}.cjs`);
     const bundled = await build({ entryPoints: [join(here, entry)], bundle: true, platform: "node", format: "cjs", write: false });
     writeFileSync(out, bundled.outputFiles[0].text);
     mods[name] = createRequire(import.meta.url)(out);

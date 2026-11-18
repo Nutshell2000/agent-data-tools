@@ -19,13 +19,14 @@ const en = readFileSync(join(out, "passages.jsonl"), "utf8").split("\n").filter(
 
 let token = null;
 async function embedBatch(texts) {
-  token ??= execSync("npx wrangler auth token", { encoding: "utf8", cwd: join(here, "../..") }).trim().split(/\r?\n/).pop();
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 12; i++) {
+    token ??= execSync("npx wrangler auth token", { encoding: "utf8", cwd: join(here, "../..") }).trim().split(/\r?\n/).pop();
     const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/ai/run/@cf/baai/bge-m3`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ text: texts }) }).catch(() => null);
     const j = r ? await r.json().catch(() => null) : null;
     if (r?.ok && Array.isArray(j?.result?.data) && j.result.data.length === texts.length) return j.result.data;
-    if (r?.status === 401) token = null;
-    await sleep(2000 * (i + 1));
+    // A refreshed wrangler token after an hour, or a busy model: ask for a new token and wait longer each time.
+    if (r?.status === 401 || r?.status === 403 || i % 4 === 3) token = null;
+    await sleep(Math.min(60000, 3000 * (i + 1)));
   }
   throw new Error("embedding failed");
 }

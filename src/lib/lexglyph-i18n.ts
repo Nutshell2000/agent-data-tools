@@ -73,7 +73,7 @@ const en: Strings = {
   notAct: "That act is not in the index; choose one from the list.",
   why: "Why LexGlyph",
   whyItems: (n, d) => [
-    `<strong>The article, not a page about it.</strong> On 102 compliance questions we had not seen before, the right article came first 76 times.`,
+    `<strong>The article, not a page about it.</strong> On 102 compliance questions we had not seen before, the right article came first 74 times and was in the top five 94 times; on 102 more questions across 15 practice areas, in English and Swedish, it was in the top five 92 times.`,
     `<strong>Your language.</strong> Ask in any EU language and open the official text in it; questions in Swedish, German, French, Spanish and Polish found the right article in the top five 13 times out of 15 in our test.`,
     `<strong>Official text, dated.</strong> ${n} acts article by article, from the EU's own publications office, with the version and a link to EUR-Lex.`,
     `<strong>No account, no cookies.</strong> ${d} free searches a day. Read aloud, share and copy a citation in one click.`,
@@ -115,7 +115,7 @@ const sv: Strings = {
   notAct: "Den rättsakten finns inte i indexet; välj en i listan.",
   why: "Varför LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Själva artikeln, inte en sida om den.</strong> På 102 efterlevnadsfrågor vi inte sett förut kom rätt artikel först 76 gånger.`,
+    `<strong>Själva artikeln, inte en sida om den.</strong> På 102 efterlevnadsfrågor vi inte sett förut kom rätt artikel först 74 gånger och fanns bland de fem första 94 gånger; på 102 nya frågor inom 15 rättsområden, på engelska och svenska, fanns den bland de fem första 92 gånger.`,
     `<strong>Ditt språk.</strong> Fråga på valfritt EU-språk och öppna den officiella texten på det; frågor på svenska, tyska, franska, spanska och polska hittade rätt artikel bland de fem första 13 gånger av 15 i vårt test.`,
     `<strong>Officiell text med datum.</strong> ${n} rättsakter artikel för artikel, från EU:s publikationsbyrå, med version och länk till EUR-Lex.`,
     `<strong>Inget konto, inga kakor.</strong> ${d} gratis sökningar per dag. Läs upp, dela och kopiera en hänvisning med ett klick.`,
@@ -157,7 +157,7 @@ const de: Strings = {
   notAct: "Dieser Rechtsakt ist nicht im Index; wählen Sie einen aus der Liste.",
   why: "Warum LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Der Artikel selbst, keine Seite darüber.</strong> Bei 102 Compliance-Fragen, die wir vorher nicht kannten, kam der richtige Artikel 76-mal zuerst.`,
+    `<strong>Der Artikel selbst, keine Seite darüber.</strong> Bei 102 Compliance-Fragen, die wir vorher nicht kannten, kam der richtige Artikel 74-mal zuerst und 94-mal unter die ersten fünf.`,
     `<strong>Ihre Sprache.</strong> Fragen Sie in jeder EU-Sprache und öffnen Sie den amtlichen Text in ihr; Fragen auf Schwedisch, Deutsch, Französisch, Spanisch und Polnisch fanden den richtigen Artikel in unserem Test 13 von 15 Mal unter den ersten fünf.`,
     `<strong>Amtlicher Text mit Datum.</strong> ${n} Rechtsakte Artikel für Artikel, vom Amt für Veröffentlichungen der EU, mit Fassung und Link zu EUR-Lex.`,
     `<strong>Kein Konto, keine Cookies.</strong> ${d} kostenlose Suchen pro Tag. Vorlesen, teilen und ein Zitat mit einem Klick kopieren.`,
@@ -199,7 +199,7 @@ const fr: Strings = {
   notAct: "Cet acte n'est pas dans l'index ; choisissez-en un dans la liste.",
   why: "Pourquoi LexGlyph",
   whyItems: (n, d) => [
-    `<strong>L'article lui-même, pas une page qui en parle.</strong> Sur 102 questions de conformité inédites, le bon article est arrivé en premier 76 fois.`,
+    `<strong>L'article lui-même, pas une page qui en parle.</strong> Sur 102 questions de conformité inédites, le bon article est arrivé en premier 74 fois et parmi les cinq premiers 94 fois.`,
     `<strong>Votre langue.</strong> Posez votre question dans n'importe quelle langue de l'UE et ouvrez le texte officiel dans cette langue ; des questions en suédois, allemand, français, espagnol et polonais ont trouvé le bon article parmi les cinq premiers 13 fois sur 15 dans notre test.`,
     `<strong>Texte officiel, daté.</strong> ${n} actes article par article, issus de l'Office des publications de l'UE, avec la version et un lien vers EUR-Lex.`,
     `<strong>Sans compte, sans cookies.</strong> ${d} recherches gratuites par jour. Lecture à voix haute, partage et référence copiée en un clic.`,
@@ -241,7 +241,7 @@ const es: Strings = {
   notAct: "Ese acto no está en el índice; elige uno de la lista.",
   why: "Por qué LexGlyph",
   whyItems: (n, d) => [
-    `<strong>El artículo, no una página sobre él.</strong> En 102 preguntas de cumplimiento que no habíamos visto, el artículo correcto salió primero 76 veces.`,
+    `<strong>El artículo, no una página sobre él.</strong> En 102 preguntas de cumplimiento que no habíamos visto, el artículo correcto salió primero 74 veces y entre los cinco primeros 94 veces.`,
     `<strong>Tu idioma.</strong> Pregunta en cualquier idioma de la UE y abre el texto oficial en él; preguntas en sueco, alemán, francés, español y polaco encontraron el artículo correcto entre los cinco primeros 13 de 15 veces en nuestra prueba.`,
     `<strong>Texto oficial, con fecha.</strong> ${n} actos artículo por artículo, de la Oficina de Publicaciones de la UE, con la versión y un enlace a EUR-Lex.`,
     `<strong>Sin cuenta, sin cookies.</strong> ${d} búsquedas gratis al día. Lectura en voz alta, compartir y copiar una cita con un clic.`,
@@ -283,7 +283,7 @@ const pl: Strings = {
   notAct: "Tego aktu nie ma w indeksie; wybierz akt z listy.",
   why: "Dlaczego LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Sam artykuł, a nie strona o nim.</strong> Na 102 nowych pytaniach o zgodność właściwy artykuł był pierwszy 76 razy.`,
+    `<strong>Sam artykuł, a nie strona o nim.</strong> Na 102 nowych pytaniach o zgodność właściwy artykuł był pierwszy 74 razy, a w pierwszej piątce 94 razy.`,
     `<strong>Twój język.</strong> Pytaj w dowolnym języku UE i otwieraj oficjalny tekst w tym języku; pytania po szwedzku, niemiecku, francusku, hiszpańsku i polsku znalazły właściwy artykuł w pierwszej piątce 13 razy na 15 w naszym teście.`,
     `<strong>Oficjalny tekst z datą.</strong> ${n} aktów artykuł po artykule, z Urzędu Publikacji UE, z wersją i linkiem do EUR-Lex.`,
     `<strong>Bez konta, bez plików cookie.</strong> ${d} bezpłatnych wyszukiwań dziennie. Czytanie na głos, udostępnianie i kopiowanie przypisu jednym kliknięciem.`,

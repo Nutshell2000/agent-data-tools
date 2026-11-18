@@ -57,7 +57,8 @@ export function locate(text: string, at: number, paraAtStart?: string | null): {
     if (offset > at) break;
     const p = /^(\d+)([a-z]?)\.\s/.exec(line);
     if (p && (Number(p[1]) === expect || (p[2] && Number(p[1]) === expect - 1))) { para = p[1] + p[2]; expect = Number(p[1]) + 1; point = null; sub = null; }
-    const m = /^\(([a-z]{1,2}|\d{1,3}[a-z]?)\)\s/.exec(line);
+    // English points read "(a) …"; the Swedish text writes "a)" on a line of its own.
+    const m = /^\(([a-z]{1,2}|\d{1,3}[a-z]?)\)\s/.exec(line) ?? /^([a-z]{1,2}|\d{1,3}[a-z]?)\)(?:\s|$)/.exec(line);
     if (m) {
       const mark = m[1];
       const nextLetter: string | null = point &&/^[a-z]$/.test(point) ? String.fromCharCode(point.charCodeAt(0) + 1) : null;

@@ -12,7 +12,8 @@ export function plain(html) {
     .replace(/[▼►][A-Z]\d*/g, "").replace(/[◄▼►]/g, "")
     .split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean)
     // A paragraph or point number stands on its own line in both layouts ("1.", "(a)", "(iv)"): join it to its text.
-    .reduce((acc, l) => { const prev = acc.at(-1); if (prev !== undefined && /^(\d+[a-z]?\.|\([a-z0-9]{1,5}\)|[ivx]{1,5}\))$/i.test(prev)) acc[acc.length - 1] = `${prev} ${l}`; else acc.push(l); return acc; }, [])
+    // The Swedish text writes points as "a)" on their own line (18 Nov 2026).
+    .reduce((acc, l) => { const prev = acc.at(-1); if (prev !== undefined && /^(\d+[a-z]?\.|\([a-z0-9]{1,5}\)|[a-z0-9]{1,5}\))$/i.test(prev)) acc[acc.length - 1] = `${prev} ${l}`; else acc.push(l); return acc; }, [])
     .join("\n");
 }
 export const textOf = (html, cls) => {

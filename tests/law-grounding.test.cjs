@@ -57,6 +57,9 @@ test("the quote's place gives paragraph and point: Article 6(1)(f), Swedish styl
   // "(i)" after "(h)" is a letter; "(ii)" inside "(a)" is a sub-point.
   assert.deepEqual(G.locate("(h) eight\n(i) nine items here", 12, null).point, "i");
   assert.deepEqual(G.locate("(a) first\n(i) one\n(ii) two items here", 22, null), { para: null, point: "a", sub: "ii" });
+  // The Swedish text: "a)" on its own line.
+  const sv = "1. Planen ska innehålla följande:\na)\nGäldenärens identitet.\nb)\nGäldenärens tillgångar och skulder vid tidpunkten.";
+  assert.equal(G.pinpoint("Restructuring Directive", "Article 8", G.locate(sv, G.findQuote(sv, "Gäldenärens tillgångar och skulder vid"), null), "sv"), "Restructuring Directive, artikel 8.1 b");
   assert.equal(G.pinpoint("GDPR", "Recital 47", { para: "1", point: "a", sub: null }), "GDPR, Recital 47");
   assert.equal(G.pinpoint("GDPR", "Recital 47", { para: null, point: null, sub: null }, "sv"), "GDPR, skäl 47");
 });
