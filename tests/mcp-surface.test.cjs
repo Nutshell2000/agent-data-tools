@@ -134,6 +134,18 @@ test('a call is counted under the tool\'s own path whichever way it is reached o
   assert.ok(!/find_tool|call_tool|describe_tool/.test(JSON.stringify(revenue)), 'no finder tool has a row of its own');
 });
 
+test('compact call_tool keeps input aliases so MCP agents can send the names HTTP accepts', async () => {
+  await withClient(async (client) => {
+    const aliased = await client.callTool({ name: 'call_tool', arguments: { name: 'hash', arguments: { input: 'hello' } } });
+    assert.equal(aliased.isError, undefined, JSON.stringify(aliased));
+    assert.equal(aliased.structuredContent.hex, SHA_HELLO);
+    const declared = await client.callTool({ name: 'call_tool', arguments: { name: 'hash', arguments: { text: 'hello' } } });
+    assert.equal(declared.structuredContent.hex, SHA_HELLO);
+    const unknown = await client.callTool({ name: 'call_tool', arguments: { name: 'hash', arguments: { text: 'hello', nonsense: 'ignored' } } });
+    assert.equal(unknown.structuredContent.hex, SHA_HELLO, 'an unknown key is harmless');
+  }, { path: '/mcp/compact', ip: '203.0.113.31' });
+});
+
 test('on /mcp find_tool, describe_tool and call_tool work as on the compact server, and tool_details still answers', async () => {
   await withClient(async (client) => {
     const found = jsonOf(await client.callTool({ name: 'find_tool', arguments: { need: 'sha256 hash of a text', count: 3 } }));
