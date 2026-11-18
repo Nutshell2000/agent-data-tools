@@ -31,7 +31,7 @@ test("acts resolve from short name, full name, alias and CELEX; unknown acts are
   assert.equal(L.actOf(undefined), undefined);
   assert.throws(() => L.actOf("Magna Carta"), (e) => e.status === 400);
   assert.equal(new Set(L.LAW_ACTS.map((a) => a.short)).size, L.LAW_ACTS.length, "short names are unique");
-  for (const a of L.LAW_ACTS) assert.match(a.celex, /^3\d{4}[RLD]\d{4}$/, a.short);
+  for (const a of L.LAW_ACTS) assert.match(a.celex, /^(3\d{4}[RLD]\d{4}|12016[MEP]\/TXT)$/, a.short);
 });
 
 test("a question becomes quoted content words OR-ed, so no FTS5 syntax gets through", () => {

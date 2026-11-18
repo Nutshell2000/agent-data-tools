@@ -73,7 +73,7 @@ const en: Strings = {
   notAct: "That act is not in the index; choose one from the list.",
   why: "Why LexGlyph",
   whyItems: (n, d) => [
-    `<strong>The article, not a page about it.</strong> On 102 compliance questions we had not seen before, the right article came first 76 times.`,
+    `<strong>The article, not a page about it.</strong> On 102 compliance questions we had not seen before, the right article came first 74 times and was in the top five 94 times; on 102 more questions across 15 practice areas, in English and Swedish, it was in the top five 92 times.`,
     `<strong>Your language.</strong> Ask in any EU language and open the official text in it; questions in Swedish, German, French, Spanish and Polish found the right article in the top five 13 times out of 15 in our test.`,
     `<strong>Official text, dated.</strong> ${n} acts article by article, from the EU's own publications office, with the version and a link to EUR-Lex.`,
     `<strong>No account, no cookies.</strong> ${d} free searches a day. Read aloud, share and copy a citation in one click.`,
@@ -115,7 +115,7 @@ const sv: Strings = {
   notAct: "Den rättsakten finns inte i indexet; välj en i listan.",
   why: "Varför LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Själva artikeln, inte en sida om den.</strong> På 102 efterlevnadsfrågor vi inte sett förut kom rätt artikel först 76 gånger.`,
+    `<strong>Själva artikeln, inte en sida om den.</strong> På 102 efterlevnadsfrågor vi inte sett förut kom rätt artikel först 74 gånger och fanns bland de fem första 94 gånger; på 102 nya frågor inom 15 rättsområden, på engelska och svenska, fanns den bland de fem första 92 gånger.`,
     `<strong>Ditt språk.</strong> Fråga på valfritt EU-språk och öppna den officiella texten på det; frågor på svenska, tyska, franska, spanska och polska hittade rätt artikel bland de fem första 13 gånger av 15 i vårt test.`,
     `<strong>Officiell text med datum.</strong> ${n} rättsakter artikel för artikel, från EU:s publikationsbyrå, med version och länk till EUR-Lex.`,
     `<strong>Inget konto, inga kakor.</strong> ${d} gratis sökningar per dag. Läs upp, dela och kopiera en hänvisning med ett klick.`,
@@ -157,7 +157,7 @@ const de: Strings = {
   notAct: "Dieser Rechtsakt ist nicht im Index; wählen Sie einen aus der Liste.",
   why: "Warum LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Der Artikel selbst, keine Seite darüber.</strong> Bei 102 Compliance-Fragen, die wir vorher nicht kannten, kam der richtige Artikel 76-mal zuerst.`,
+    `<strong>Der Artikel selbst, keine Seite darüber.</strong> Bei 102 Compliance-Fragen, die wir vorher nicht kannten, kam der richtige Artikel 74-mal zuerst und 94-mal unter die ersten fünf.`,
     `<strong>Ihre Sprache.</strong> Fragen Sie in jeder EU-Sprache und öffnen Sie den amtlichen Text in ihr; Fragen auf Schwedisch, Deutsch, Französisch, Spanisch und Polnisch fanden den richtigen Artikel in unserem Test 13 von 15 Mal unter den ersten fünf.`,
     `<strong>Amtlicher Text mit Datum.</strong> ${n} Rechtsakte Artikel für Artikel, vom Amt für Veröffentlichungen der EU, mit Fassung und Link zu EUR-Lex.`,
     `<strong>Kein Konto, keine Cookies.</strong> ${d} kostenlose Suchen pro Tag. Vorlesen, teilen und ein Zitat mit einem Klick kopieren.`,
@@ -199,7 +199,7 @@ const fr: Strings = {
   notAct: "Cet acte n'est pas dans l'index ; choisissez-en un dans la liste.",
   why: "Pourquoi LexGlyph",
   whyItems: (n, d) => [
-    `<strong>L'article lui-même, pas une page qui en parle.</strong> Sur 102 questions de conformité inédites, le bon article est arrivé en premier 76 fois.`,
+    `<strong>L'article lui-même, pas une page qui en parle.</strong> Sur 102 questions de conformité inédites, le bon article est arrivé en premier 74 fois et parmi les cinq premiers 94 fois.`,
     `<strong>Votre langue.</strong> Posez votre question dans n'importe quelle langue de l'UE et ouvrez le texte officiel dans cette langue ; des questions en suédois, allemand, français, espagnol et polonais ont trouvé le bon article parmi les cinq premiers 13 fois sur 15 dans notre test.`,
     `<strong>Texte officiel, daté.</strong> ${n} actes article par article, issus de l'Office des publications de l'UE, avec la version et un lien vers EUR-Lex.`,
     `<strong>Sans compte, sans cookies.</strong> ${d} recherches gratuites par jour. Lecture à voix haute, partage et référence copiée en un clic.`,
@@ -241,7 +241,7 @@ const es: Strings = {
   notAct: "Ese acto no está en el índice; elige uno de la lista.",
   why: "Por qué LexGlyph",
   whyItems: (n, d) => [
-    `<strong>El artículo, no una página sobre él.</strong> En 102 preguntas de cumplimiento que no habíamos visto, el artículo correcto salió primero 76 veces.`,
+    `<strong>El artículo, no una página sobre él.</strong> En 102 preguntas de cumplimiento que no habíamos visto, el artículo correcto salió primero 74 veces y entre los cinco primeros 94 veces.`,
     `<strong>Tu idioma.</strong> Pregunta en cualquier idioma de la UE y abre el texto oficial en él; preguntas en sueco, alemán, francés, español y polaco encontraron el artículo correcto entre los cinco primeros 13 de 15 veces en nuestra prueba.`,
     `<strong>Texto oficial, con fecha.</strong> ${n} actos artículo por artículo, de la Oficina de Publicaciones de la UE, con la versión y un enlace a EUR-Lex.`,
     `<strong>Sin cuenta, sin cookies.</strong> ${d} búsquedas gratis al día. Lectura en voz alta, compartir y copiar una cita con un clic.`,
@@ -283,7 +283,7 @@ const pl: Strings = {
   notAct: "Tego aktu nie ma w indeksie; wybierz akt z listy.",
   why: "Dlaczego LexGlyph",
   whyItems: (n, d) => [
-    `<strong>Sam artykuł, a nie strona o nim.</strong> Na 102 nowych pytaniach o zgodność właściwy artykuł był pierwszy 76 razy.`,
+    `<strong>Sam artykuł, a nie strona o nim.</strong> Na 102 nowych pytaniach o zgodność właściwy artykuł był pierwszy 74 razy, a w pierwszej piątce 94 razy.`,
     `<strong>Twój język.</strong> Pytaj w dowolnym języku UE i otwieraj oficjalny tekst w tym języku; pytania po szwedzku, niemiecku, francusku, hiszpańsku i polsku znalazły właściwy artykuł w pierwszej piątce 13 razy na 15 w naszym teście.`,
     `<strong>Oficjalny tekst z datą.</strong> ${n} aktów artykuł po artykule, z Urzędu Publikacji UE, z wersją i linkiem do EUR-Lex.`,
     `<strong>Bez konta, bez plików cookie.</strong> ${d} bezpłatnych wyszukiwań dziennie. Czytanie na głos, udostępnianie i kopiowanie przypisu jednym kliknięciem.`,
@@ -295,6 +295,78 @@ const pl: Strings = {
 };
 
 export const STRINGS: Record<UiLang, Strings> = { en, sv, de, fr, es, pl };
+
+/**
+ * Strings added 18 Nov 2026 (grounded answers, practice areas, the security page). Every sentence of an answer now
+ * quotes the law and is checked against it, so the AI note says so (EU AI Act Art. 50: people are told the text is
+ * written by AI).
+ */
+export interface MoreStrings {
+  aiNote: string;
+  quotedHeading: string;
+  notGrounded: string;
+  readWholeIn: (recital: boolean, language: string) => string;
+  areas: Record<string, string>;
+  security: string;
+  textIn: (language: string) => string;
+}
+const AREA_EN = { treaties: "Treaties and Charter", data: "Data protection and cybersecurity", digital: "Digital and AI", competition: "Competition and State aid", procurement: "Public procurement", corporate: "Company law and audit", finance: "Financial services", employment: "Employment", contract: "Contract, consumer and civil procedure", ip: "Intellectual property", tax: "Tax and VAT", products: "Products, health and food", environment: "Environment and energy", trade: "Trade, customs and sanctions", public: "Citizens, migration and transparency", other: "Other" };
+export const MORE: Record<UiLang, MoreStrings> = {
+  en: {
+    aiNote: "Written by AI. Every sentence quotes the provision it rests on, and we check each quote word for word against the official text before it is shown; sentences that fail are left out. Read the provision before you rely on it.",
+    quotedHeading: "Quoted from the law",
+    notGrounded: "The provisions below do not answer this directly enough to quote, so no summary is shown. Read them, or ask in other words.",
+    readWholeIn: (r, l) => `Read the whole ${r ? "recital" : "article"} (${l})`,
+    areas: AREA_EN,
+    security: "How we handle your questions",
+    textIn: (l) => `Text in ${l}`,
+  },
+  sv: {
+    aiNote: "Skrivet av AI. Varje mening citerar bestämmelsen den bygger på, och vi kontrollerar varje citat ord för ord mot den officiella texten innan det visas; meningar som inte klarar det tas bort. Läs bestämmelsen innan du förlitar dig på den.",
+    quotedHeading: "Citerat ur lagtexten",
+    notGrounded: "Bestämmelserna nedan svarar inte tillräckligt direkt för att citeras, så ingen sammanfattning visas. Läs dem, eller fråga med andra ord.",
+    readWholeIn: (r, l) => `Läs hela ${r ? "skälet" : "artikeln"} (${l})`,
+    areas: { treaties: "Fördragen och stadgan", data: "Dataskydd och cybersäkerhet", digital: "Digitalt och AI", competition: "Konkurrens och statsstöd", procurement: "Offentlig upphandling", corporate: "Bolagsrätt och revision", finance: "Finansiella tjänster", employment: "Arbetsrätt", contract: "Avtal, konsument och civilprocess", ip: "Immaterialrätt", tax: "Skatt och moms", products: "Produkter, hälsa och livsmedel", environment: "Miljö och energi", trade: "Handel, tull och sanktioner", public: "Medborgare, migration och öppenhet", other: "Övrigt" },
+    security: "Så hanterar vi dina frågor",
+    textIn: (l) => `Text på ${l}`,
+  },
+  de: {
+    aiNote: "Von KI geschrieben. Jeder Satz zitiert die Bestimmung, auf der er beruht, und wir prüfen jedes Zitat Wort für Wort am amtlichen Text, bevor es angezeigt wird; Sätze, die das nicht bestehen, entfallen. Lesen Sie die Bestimmung, bevor Sie sich darauf verlassen.",
+    quotedHeading: "Aus dem Gesetzestext zitiert",
+    notGrounded: "Die Bestimmungen unten beantworten die Frage nicht direkt genug, um sie zu zitieren; daher keine Zusammenfassung. Lesen Sie sie oder fragen Sie anders.",
+    readWholeIn: (r, l) => `${r ? "Ganzen Erwägungsgrund" : "Ganzen Artikel"} lesen (${l})`,
+    areas: AREA_EN,
+    security: "Wie wir mit Ihren Fragen umgehen",
+    textIn: (l) => `Text auf ${l}`,
+  },
+  fr: {
+    aiNote: "Rédigé par une IA. Chaque phrase cite la disposition sur laquelle elle repose, et nous vérifions chaque citation mot pour mot dans le texte officiel avant de l'afficher ; les phrases qui échouent sont retirées. Lisez la disposition avant de vous y fier.",
+    quotedHeading: "Cité du texte de loi",
+    notGrounded: "Les dispositions ci-dessous ne répondent pas assez directement pour être citées ; aucun résumé n'est affiché. Lisez-les ou reformulez.",
+    readWholeIn: (r, l) => `Lire ${r ? "tout le considérant" : "tout l'article"} (${l})`,
+    areas: AREA_EN,
+    security: "Comment nous traitons vos questions",
+    textIn: (l) => `Texte en ${l}`,
+  },
+  es: {
+    aiNote: "Escrito por IA. Cada frase cita la disposición en que se basa, y comprobamos cada cita palabra por palabra con el texto oficial antes de mostrarla; las frases que no la superan se omiten. Lee la disposición antes de basarte en ella.",
+    quotedHeading: "Citado del texto legal",
+    notGrounded: "Las disposiciones de abajo no responden lo bastante directamente para citarlas, así que no se muestra resumen. Léelas o pregunta de otra forma.",
+    readWholeIn: (r, l) => `Leer ${r ? "todo el considerando" : "todo el artículo"} (${l})`,
+    areas: AREA_EN,
+    security: "Cómo tratamos tus preguntas",
+    textIn: (l) => `Texto en ${l}`,
+  },
+  pl: {
+    aiNote: "Napisane przez AI. Każde zdanie cytuje przepis, na którym się opiera, a każdy cytat sprawdzamy słowo po słowie z oficjalnym tekstem, zanim go pokażemy; zdania, które nie przejdą, są pomijane. Przeczytaj przepis, zanim na nim polegasz.",
+    quotedHeading: "Cytat z tekstu prawnego",
+    notGrounded: "Poniższe przepisy nie odpowiadają na tyle wprost, by je zacytować, więc nie ma podsumowania. Przeczytaj je albo zapytaj inaczej.",
+    readWholeIn: (r, l) => `Przeczytaj ${r ? "cały motyw" : "cały artykuł"} (${l})`,
+    areas: AREA_EN,
+    security: "Jak traktujemy Twoje pytania",
+    textIn: (l) => `Tekst: ${l}`,
+  },
+};
 
 /** ?lang= first, then the browser's Accept-Language, then English. */
 export function pickUiLang(param: string | null, acceptLanguage: string | undefined): UiLang {
