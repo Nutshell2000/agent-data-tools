@@ -39,8 +39,8 @@
   "kv_namespaces": [{ "binding": "TRIALS", "id": "aa10fdf7e8f143dc876b89b91726bab5" }],
   // EU law search index (routes/law-search.ts, 14 Nov 2026): passages + FTS5 in D1 (EU jurisdiction), bge-m3 vectors in
   // Vectorize (1,024 dims, cosine, metadata indexes on short and kind). Built by scripts/law-index/build.mjs.
-  "d1_databases": [{ "binding": "LAW_DB", "database_name": "eu-law", "database_id": "287b65ee-e792-4b26-aeac-74212865007c" }],
-  "vectorize": [{ "binding": "LAW_VECTORS", "index_name": "eu-law" }],
+  "d1_databases": [{ "binding": "LAW_DB", "database_name": "eu-law-v2", "database_id": "9e240b67-4933-452d-adb9-18d5015da4c6" }],
+  "vectorize": [{ "binding": "LAW_VECTORS", "index_name": "eu-law-v2" }],
   // Request counters per paid path (see src/metrics.ts).
   // The Worker cannot fetch its own workers.dev URL, so /x402/check reaches this service through itself.
   "services": [{ "binding": "SELF", "service": "agent-data-tools" }],
