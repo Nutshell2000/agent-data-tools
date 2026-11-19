@@ -3,7 +3,8 @@
 // "recommend api", "find api" and "which api" had nothing of ours. This one recommends from our own catalog: each answer is
 // the exact call for the best-matching tools, so a bot that asks comes back to buy the call. Lexical scoring over each tool's
 // name, tags and copy, then BAAI bge-reranker-base orders the top candidates (lexical order when the model is unavailable).
-import { entry, need, num, type Entry } from "../family";
+import { entry, getJson, need, num, opt, type Entry } from "../family";
+import { listing, type BazaarItem } from "./x402-find";
 import { runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
 import { RERANK_MODEL } from "./retrieval";
@@ -244,21 +245,115 @@ export async function recommend(env: Env, needText: string, count: number, reran
   };
 }
 
+
+/**
+ * The market-wide half of "which API should I call?". The original /recommend only searched our own catalog, so a
+ * buyer comparing sellers had no reason to pay for it (Agents Trust earns $188.21/30 d from 59 payers for this job).
+ * This searches the whole public Bazaar, maps listings with the same function /x402/find uses, and orders them by
+ * capability (Bazaar relevance, in bands of five), then evidence (30-day payers, calls, recency), then price.
+ * Our own listings are marked and compete on exactly those fields - never boosted. No match means no charge.
+ */
+const BAZAAR_SEARCH = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
+
+async function searchBazaar(query: string): Promise<BazaarItem[]> {
+  const data = await getJson<{ resources?: BazaarItem[]; items?: BazaarItem[] }>(
+    `${BAZAAR_SEARCH}?${new URLSearchParams({ query, limit: "20" })}`, { timeoutMs: 10_000 });
+  return data.resources ?? data.items ?? [];
+}
+
+export async function marketRecommend(
+  env: Env,
+  needText: string,
+  count: number,
+  maxPrice?: number,
+  networks?: string[],
+  search: (q: string) => Promise<BazaarItem[]> = searchBazaar,
+) {
+  const task = needText.trim();
+  if (task.length < 3 || task.length > 300) throw new HttpError(400, "describe the task in 3 to 300 plain words");
+  const items = await search(task).catch(() => [] as BazaarItem[]);
+  let rows = items.map((it) => listing(it, env.PAY_TO ?? "")).filter((r) => r.url && r.priceUsd !== null);
+  if (maxPrice !== undefined) rows = rows.filter((r) => (r.priceUsd ?? Infinity) <= maxPrice);
+  if (networks?.length) rows = rows.filter((r) => r.networks.some((n) => networks.includes(n)));
+
+  // If the market has nothing usable, fall back to our own catalog but say so in the answer.
+  if (!rows.length) {
+    const own = await recommend(env, task, count, null).catch(() => null);
+    if (!own) throw new HttpError(404, `no tool matches "${task.slice(0, 80)}"; nothing was charged`);
+    return {
+      need: task,
+      market: { searched: items.length, eligible: 0, returned: own.picks.length, source: "own-catalog" },
+      picks: own.picks.map((p, i) => ({
+        rank: i + 1, name: p.name, resource: p.call.url, method: p.call.method,
+        priceUsd: Number(String(p.price).replace("$", "")), networks: [] as string[],
+        payers30d: null, calls30d: null, lastCalledAt: null,
+        evidence: [`our catalog: ${p.price}`],
+        why: "Our own tool for this task; no market listing matched.", ours: true,
+      })),
+      howToPay: own.howToPay,
+      method: "own-catalog",
+    };
+  }
+
+  const ranked = rows
+    .map((r, i) => ({ r, i, band: Math.floor(i / 5) }))
+    .sort((a, b) => a.band - b.band
+      || (b.r.payers30d ?? 0) - (a.r.payers30d ?? 0)
+      || (b.r.calls30d ?? 0) - (a.r.calls30d ?? 0)
+      || String(b.r.lastCalledAt ?? "").localeCompare(String(a.r.lastCalledAt ?? ""))
+      || (a.r.priceUsd ?? Infinity) - (b.r.priceUsd ?? Infinity)
+      || a.i - b.i);
+  const picks = ranked.slice(0, count).map(({ r, i }, n) => {
+    const evidence = [`Bazaar relevance #${i + 1}`];
+    if (r.payers30d != null) evidence.push(`${r.payers30d} payers in 30d`);
+    if (r.calls30d != null) evidence.push(`${r.calls30d} calls in 30d`);
+    if (r.lastCalledAt) evidence.push(`last paid ${r.lastCalledAt}`);
+    evidence.push(`${r.priceUsd} on ${r.networks.join(", ") || "x402"}`);
+    if (r.ours) evidence.push("our listing, marked not boosted");
+    return {
+      rank: n + 1, name: r.name, resource: r.url, method: r.method ?? "GET",
+      priceUsd: r.priceUsd, networks: r.networks, payers30d: r.payers30d,
+      calls30d: r.calls30d, lastCalledAt: r.lastCalledAt, evidence,
+      why: r.ours ? "Our own listing competes on the same evidence; it is not boosted." : `A paid API for this task, paid by ${r.payers30d ?? 0} wallets in 30 days.`,
+      ours: !!r.ours,
+    };
+  });
+  return {
+    need: task,
+    market: { searched: items.length, eligible: rows.length, returned: picks.length, source: "bazaar" },
+    picks,
+    howToPay: "GET the resource URL: unpaid it answers 402 with x402 terms (USDC on Base and other networks) and MPP; pay the seller directly. We never take custody. No picks means no charge.",
+    method: "market+evidence",
+  };
+}
+
 export const RECOMMEND: Entry[] = [
-  entry("/recommend", "API recommendation: which API to call for a task",
-    "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 600+ tools (web search and page reading, LLM chat, token prices and EVM chain reads, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one.",
-    ["api-recommendation", "which-api", "find-api", "api-discovery", "x402-discovery"], {
-      need: { type: "string", description: "The task in plain words, up to 300 characters", required: true, example: "current gas price on Base" },
+  entry("/recommend", "API recommendation: compare paid APIs for a task",
+    "Describe a task in plain words and compare up to five paid APIs for it across the whole Coinbase Bazaar: each pick with the exact URL to call, method, price in USD, networks, 30-day payers and calls, last paid date and the evidence behind the order. Our own listings are marked, never boosted. No matching tool means no charge. Use when an agent must choose which API to call before paying one.",
+    ["api-recommendation", "which-api", "which-api-to-call", "compare-apis", "find-api", "api-discovery", "x402-discovery"], {
+      need: { type: "string", description: "The task in plain words, 3 to 300 characters", required: true, example: "check whether a Base token is a honeypot" },
       count: { type: "string", description: "How many picks, 1 to 5 (default 3)", example: "3" },
+      maxPrice: { type: "number", description: "Only listings at or under this price in USD", example: 0.05 },
+      networks: { type: "string", description: "Comma-separated networks: base, polygon, arbitrum, solana", example: "base" },
     },
-    { need: "current gas price on Base", picks: [{ tool: "/base-gas", name: "Base gas price", what: "Base gas price: current fees for a transaction on Base", price: "$0.002", mcpTool: "base_gas", call: { method: "GET", url: `${ORIGIN}/base-gas` }, requiredInputs: [], inFreeCalls: true, score: 0.95 }], howToPay: "GET the call URL: unpaid it answers 402 with x402 terms…", mcp: `${ORIGIN}/mcp`, method: "lexical+rerank" },
-    (env, q) => recommend(env, need(q, "need", 300), num(q, "count", { min: 1, max: 5, fallback: 3, integer: true }),
-      async (query, docs) => {
-        const out = await runAi<{ response?: { id: number; score: number }[] }>(env, RERANK_MODEL, { query, contexts: docs.map((text) => ({ text })), top_k: docs.length });
-        if (!Array.isArray(out?.response)) return null;
-        const scores = new Array(docs.length).fill(0);
-        for (const r of out.response) if (Number.isInteger(r.id) && r.id >= 0 && r.id < docs.length) scores[r.id] = r.score;
-        return scores;
-      }),
-    "$0.002"),
+    {
+      need: "check whether a Base token is a honeypot",
+      market: { searched: 20, eligible: 7, returned: 1, source: "bazaar" },
+      picks: [{
+        rank: 1, name: "Honeypot token check, token risk", resource: `${ORIGIN}/token-report?address=0x...`, method: "GET",
+        priceUsd: 0.01, networks: ["base"], payers30d: 4, calls30d: 1160, lastCalledAt: "2026-11-19T05:51:13Z",
+        evidence: ["Bazaar relevance #2", "4 payers in 30d", "1,160 calls in 30d", "$0.01 on base", "our listing, marked not boosted"],
+        why: "Our own listing competes on the same evidence; it is not boosted.", ours: true,
+      }],
+      howToPay: "GET the resource URL: unpaid it answers 402 with x402 terms (USDC on Base and other networks) and MPP; pay the seller directly. We never take custody. No picks means no charge.",
+      method: "market+evidence",
+    },
+    (env, q) => {
+      const task = need(q, "need", 300);
+      const count = num(q, "count", { min: 1, max: 5, fallback: 3, integer: true });
+      const maxPrice = q("maxPrice") === undefined || q("maxPrice") === "" ? undefined : num(q, "maxPrice", { min: 0, max: 1000 });
+      const nets = opt(q, "networks", 80)?.split(",").map((n) => n.trim().toLowerCase()).filter(Boolean);
+      return marketRecommend(env, task, count, maxPrice, nets);
+    },
+    "$0.01"),
 ];

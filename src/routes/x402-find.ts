@@ -12,7 +12,7 @@ const SEARCH = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 const USDC_DECIMALS = 6;
 const NETWORKS: Record<string, string> = { "eip155:8453": "base", "eip155:84532": "base-sepolia", "eip155:137": "polygon", "eip155:42161": "arbitrum", "eip155:10": "optimism", "eip155:1": "ethereum", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp": "solana" };
 
-interface BazaarItem {
+export interface BazaarItem {
   resource?: string; serviceName?: string; description?: string; type?: string; lastUpdated?: string; tags?: string[];
   accepts?: { amount?: string; maxAmountRequired?: string; network?: string; payTo?: string; asset?: string; extra?: { name?: string } }[];
   quality?: { l30DaysTotalCalls?: number; l30DaysUniquePayers?: number; lastCalledAt?: string };

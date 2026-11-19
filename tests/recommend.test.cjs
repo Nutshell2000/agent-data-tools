@@ -95,3 +95,32 @@ test('finder: a job named as buyers name it gets its tool first, and every job p
     assert.equal(phrase, phrase.toLowerCase().replace(/[^a-z0-9$.]+/g, ' ').trim(), `${phrase} must be plain lower-case words`);
   }
 });
+
+test('market recommend: ranks the whole Bazaar by capability then evidence, marks ours, charges nothing on no match', async () => {
+  const { marketRecommend } = await load();
+  const item = (name, path, payers, calls, mine = false) => ({
+    resource: `https://example.com${path}`, serviceName: name,
+    accepts: [{ amount: String(1000 * (mine ? 1 : 2)), network: 'eip155:8453', payTo: mine ? '0xOURS' : '0xTHEM' }],
+    quality: { l30DaysUniquePayers: payers, l30DaysTotalCalls: calls, lastCalledAt: '2026-11-19T00:00:00Z' },
+  });
+  const rows = [
+    item('Other high-volume API', '/other', 40, 800),
+    item('Our token check', '/ours', 4, 120, true),
+    item('Low volume API', '/low', 1, 2),
+  ];
+  const env = { PAY_TO: '0xOURS' };
+  const a = await marketRecommend(env, 'token safety', 3, undefined, undefined, async () => rows);
+  assert.equal(a.method, 'market+evidence');
+  assert.equal(a.market.source, 'bazaar');
+  assert.equal(a.picks.length, 3);
+  assert.equal(a.picks[0].name, 'Other high-volume API', 'evidence orders inside the first capability band');
+  assert.equal(a.picks[1].ours, true);
+  assert.ok(a.picks[1].evidence.some((e) => e.includes('marked not boosted')));
+  assert.equal(a.picks[2].priceUsd, 0.002, 'price is in USD, not atomic units');
+  const b = await marketRecommend(env, 'token safety', 3, undefined, undefined, async () => rows);
+  assert.deepEqual(a.picks.map((p) => p.resource), b.picks.map((p) => p.resource), 'deterministic order');
+  const cheap = await marketRecommend(env, 'token safety', 3, 0.005, undefined, async () => rows);
+  assert.ok(cheap.picks.every((p) => p.priceUsd <= 0.005), 'maxPrice filters');
+  await assert.rejects(marketRecommend(env, 'zzqx vvbn', 3, undefined, undefined, async () => []),
+    (e) => e.status === 404, 'no market row and no own tool: 404, nothing charged');
+});
