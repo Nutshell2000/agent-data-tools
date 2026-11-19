@@ -27,6 +27,7 @@ import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } fro
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedBrowserPageUrl, movedPageUrl, serviceIconUrl, withPublicCanonical, withPublicSitemap } from "./lib/public-site";
+import { ttsHostAnswer } from "./lib/tts-host";
 import { publicBrand, SERVICE_BRAND } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
@@ -144,6 +145,8 @@ app.use(measurement(PAID_PATHS));
 // lex.glyphcall.com (17 Nov 2026): LexGlyph's own address. Its root is the LexGlyph page; every other path answers as on
 // the main host. The page names itself canonical there (the canonical rewrite below skips this host).
 const LEX_HOST = "lex.glyphcall.com";
+// tts.glyphcall.com (1.260.0): the speech tools only, so routers that group listings by host see a text-to-speech service.
+app.use(async (c, next) => ttsHostAnswer(c.req.url) ?? next());
 app.use(async (c, next) => {
   const url = new URL(c.req.url);
   if (url.hostname === LEX_HOST && c.req.method === "GET" && url.pathname === "/") {

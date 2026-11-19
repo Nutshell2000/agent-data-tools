@@ -4,8 +4,30 @@ import { domainInfo } from "./domain";
 type Info = Awaited<ReturnType<typeof domainInfo>>;
 type Flag = { level: "high" | "medium" | "info"; code: string; message: string };
 
-/** Domain facts turned into a trust verdict with named, explainable flags. */
-export async function domainReport(_env: Env, name: string) {
+/**
+ * 19 Nov 2026: the report is kept in the edge cache for DOMAIN_REPORT_TTL seconds per domain. Our biggest buyer (a Mercator
+ * URL-safety fan-out, ~700 links a day) runs this for every link's final host; Mercator measured /pack/url-safety at p50 1.6 s,
+ * p95 3.8 s, slower than every rival vendor, and its one failure in 1,171 calls was a timeout. Registration and DNS facts
+ * change slowly, the answer carries its own `checkedAt`, and the phishing blocklists are never cached here.
+ */
+export const DOMAIN_REPORT_TTL = 6 * 3600;
+const edgeCache = (): Cache | undefined => (typeof caches !== "undefined" ? (caches as unknown as { default?: Cache }).default : undefined);
+const cacheKey = (name: string) => new Request(`https://domain-report.cache.internal/${encodeURIComponent(name.toLowerCase())}`);
+
+/** Domain facts turned into a trust verdict with named, explainable flags (cached per domain, see DOMAIN_REPORT_TTL). */
+export async function domainReport(env: Env, name: string) {
+  const cache = edgeCache();
+  if (cache) {
+    try { const hit = await cache.match(cacheKey(name)); if (hit) return (await hit.json()) as Awaited<ReturnType<typeof freshDomainReport>>; } catch { /* a cache miss is fine */ }
+  }
+  const report = await freshDomainReport(env, name);
+  if (cache) {
+    try { await cache.put(cacheKey(name), new Response(JSON.stringify(report), { headers: { "content-type": "application/json", "cache-control": `max-age=${DOMAIN_REPORT_TTL}` } })); } catch { /* never fail a report on a cache write */ }
+  }
+  return report;
+}
+
+async function freshDomainReport(_env: Env, name: string) {
   const info: Info = await domainInfo(name);
   const flags: Flag[] = [];
   const reg = info.registration;

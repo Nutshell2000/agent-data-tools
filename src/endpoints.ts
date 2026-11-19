@@ -940,6 +940,12 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   "/linkedin/profile": "LinkedIn profile lookups open once the provider account is funded.",
   "/linkedin/company-posts": "LinkedIn company posts open once the provider account is funded.",
   "/x/search": "X search opens once the provider account is funded.",
+  // Batch doors (shipped in 1.261.0 via PR #559): ON HOLD by the owner's decision of 19 Nov 2026 ("Hold PR #557").
+  // /batch/url-safety sells up to 10 /pack/url-safety checks for $0.01 while our biggest buyer (the Mercator URL-safety
+  // fan-out, ~700 links a day) pays $0.01 per link, and both doors sat inside the free trial (25 free calls = up to 250
+  // url-safety checks). Re-open only at per-link price parity or with the owner's explicit go-ahead.
+  "/batch/url-safety": "Batch URL safety is paused; check each link with /pack/url-safety (one call per link).",
+  "/batch/phishing-check": "Batch phishing check is paused; check each link or domain with /phishing/check.",
   // Duplicates of richer core tools; one name per job keeps agents from choosing between twins.
   "/base/gas": "Use /base-gas (MCP tool base_gas): the same Base gas data plus EIP-1559 fee suggestions.",
   "/base/tx": "Use /base-tx (MCP tool base_tx): the same Base transaction lookup plus confirmations and method id.",
