@@ -63,6 +63,14 @@ export const CONSOLE_LANGUAGES: readonly [value: string, label: string][] = [
 
 export const CONSOLE_SAMPLE = "Welcome! This voice is being made right now, on your own computer. Change this text to anything you like, pick a voice, and press Play. There is no account, no credit counter, and no limit.";
 
+/** Short, use-case scripts so a first-time visitor can hear a realistic result in one click. */
+export const CONSOLE_PRESETS: readonly { label: string; text: string }[] = [
+  { label: "Narration", text: "The harbour woke slowly. Gulls called above the empty quay, and the first boat slipped out into the grey morning." },
+  { label: "Advertisement", text: "Ready in ten seconds. Just type your script, pick a voice, and press play. No account, no credit counter, no limit." },
+  { label: "Podcast", text: "Welcome back. Today: how a sentence can be rebuilt without recording the whole episode again. Let's listen to the result." },
+  { label: "Character", text: "\"You came a long way for a story,\" the dragon said, folding its wings. \"Then let's make it worth the journey.\"" },
+];
+
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** Styles. The host page sets the --vc-* colours on .vc (the defaults are the dark front page). */
@@ -74,6 +82,7 @@ export const VOICE_CONSOLE_CSS = `.vc{--vc-card:#11111c;--vc-card2:#0b0b13;--vc-
 .vc textarea{display:block;width:100%;min-height:118px;resize:vertical;border-radius:12px;border:1px solid var(--vc-line);background:var(--vc-card2);color:var(--vc-fg);font:inherit;font-size:1rem;line-height:1.55;padding:12px 14px}
 .vc textarea:focus,.vc select:focus{outline:2px solid var(--vc-accent);outline-offset:1px}
 .vc-meta{display:flex;justify-content:space-between;gap:10px;color:var(--vc-muted);font-size:.8rem;margin:6px 2px 12px}
+.vc-presets{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.vc-presets button{appearance:none;font:inherit;font-size:.8rem;border:1px dashed var(--vc-line);background:none;color:var(--vc-muted);padding:5px 10px;border-radius:8px;cursor:pointer}.vc-presets button:hover{border-color:var(--vc-accent);color:var(--vc-fg)}
 .vc-voices{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.vc-voices button{appearance:none;font:inherit;font-size:.86rem;border:1px solid var(--vc-line);background:none;color:var(--vc-fg);padding:6px 11px;border-radius:999px;cursor:pointer}
 .vc-voices button small{color:var(--vc-muted);margin-left:5px}.vc-voices button[aria-pressed=true]{border-color:var(--vc-accent);background:rgba(34,211,238,.12)}
 .vc-more{flex-basis:100%}.vc-more summary{cursor:pointer;color:var(--vc-accent);font-size:.86rem;font-weight:600;padding:4px 2px}.vc-more .vc-voices{margin:8px 0 0}
@@ -115,6 +124,7 @@ export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSi
 <label class="sr" for="${v("text")}" style="position:absolute;left:-9999px">Text to speak</label>
 <textarea id="${v("text")}" spellcheck="true" maxlength="200000">${esc(CONSOLE_SAMPLE)}</textarea>
 <div class="vc-meta"><span id="${v("count")}"></span><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to play</span></div>
+<div class="vc-presets" role="group" aria-label="Try a sample script">${CONSOLE_PRESETS.map((p, i) => `<button type="button" data-preset="${i}">${esc(p.label)}</button>`).join("")}</div>
 <div class="vc-voices" role="group" aria-label="Voice">${voices}</div>
 <div class="vc-row"><button type="button" class="vc-go" id="${v("speak")}">&#9654; Play</button><button type="button" class="vc-sec" id="${v("stop")}" hidden>&#9632; Stop</button>
 <label class="vc-speed">Speed <input type="range" id="${v("speed")}" min="0.6" max="1.6" step="0.1" value="1"><span id="${v("speedv")}">1.0x</span></label></div>
@@ -188,6 +198,7 @@ const text=$("text"),count=$("count"),speak=$("speak"),stop=$("stop"),speed=$("s
 const saved=store.get("gc-vc-text");if(saved)text.value=saved;
 const upd=()=>{count.textContent=text.value.length.toLocaleString()+" characters, no limit";};upd();
 text.addEventListener("input",()=>{upd();store.set("gc-vc-text",text.value);});
+root.querySelectorAll("[data-preset]").forEach((b)=>b.addEventListener("click",()=>{const p=CONSOLE_PRESETS[Number(b.dataset.preset)];if(!p)return;text.value=p.text;upd();store.set("gc-vc-text",text.value);text.focus();}));
 speed.oninput=()=>{$("speedv").textContent=Number(speed.value).toFixed(1)+"x";};
 let voice=store.get("gc-vc-voice")||"af_heart";const chips=root.querySelectorAll("[data-voice]");
 const mark=()=>chips.forEach((c)=>c.setAttribute("aria-pressed",String(c.dataset.voice===voice)));if(![...chips].some((c)=>c.dataset.voice===voice))voice="af_heart";mark();
