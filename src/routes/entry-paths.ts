@@ -52,6 +52,7 @@ import { UTILS } from "./utils";
 import { WEB_CHECKS } from "./web-checks";
 import { WHALE } from "./whale";
 import { PACKS_RESEARCH } from "./packs-research";
+import { ECON } from "./econ";
 
 /** The canonical tool each entry path runs (read by tests, the handover notes and the Zero registration check). */
 export const ENTRY_OF: Record<string, string> = {};
@@ -600,4 +601,10 @@ export const ENTRY_PATHS: Entry[] = [
   door("/token/who-bought-sold", "Who bought and sold a token: top DEX buyers and sellers",
     "Who bought and who sold a token lately: the wallets that took the most of an ERC-20 from DEX pools and routers (buyers) or sent the most to them (sellers) over recent blocks, from its live Transfer logs on Base (default), Ethereum, Arbitrum, Optimism or Polygon, with bought, sold, net and transfers. Contracts are left out. Use to see who accumulates or dumps a token before you trade it.",
     ["who-bought-sold", "who-bought", "token-buyers", "token-sellers", "smart-money", "dex"], from(CHAIN_MORE, "/token/buyers")),
+
+  // 19 Nov 2026: "macro economic data" and "economic indicators" are job phrases another router sells at $0.10; a fresh
+  // task-named URL gets a first crawl instead of inheriting our old "/econ/gdp lat/lon"-era text.
+  door("/macro/data", "Economic indicators by country: GDP, inflation, unemployment and population",
+    "Macro economic data for any country in one call: GDP, consumer-price inflation, unemployment and population from a committed World Bank Open Data snapshot, with up to 10 years of history. Country by ISO code or English name. Use for country briefs, market sizing and economic indicators.",
+    ["macro-economic-data", "economic-indicators", "world-bank", "country-data", "economy"], from(ECON, "/econ/snapshot")),
 ];
