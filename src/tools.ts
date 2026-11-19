@@ -131,6 +131,9 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // 10 Nov 2026 probe: a wrong name here did not refuse, it silently answered for the default (4h candles for a 1d request,
   // every earthquake for a magnitude-5 request), which is worse than a refusal.
   interval: ["timeframe", "period", "tf", "resolution", "granularity"], minMagnitude: ["min_magnitude", "magnitude", "minmag", "min_mag", "mag"],
+  // 19 Nov 2026: candle buyers send limit/count/n, but /hyperliquid/candles and friends read `bars`. Without this a
+  // paid call silently answered with the 50-bar default instead of the 200 requested — worse than a refusal.
+  bars: ["limit", "count", "n"],
   currency: ["vs", "fiat", "vs_currency", "vs_currencies", "quote"],
   // 11 Nov 2026: the contract-call tools take a function signature in data; agents name it in several ways.
   data: ["calldata", "input", "function", "signature", "method", "sig", "abi"], args: ["arguments", "params", "parameters"],
