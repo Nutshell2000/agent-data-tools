@@ -18,6 +18,16 @@ const EIGHT_BALL = [
   "Don't count on it.", "My reply is no.", "My sources say no.", "Outlook not so good.", "Very doubtful.",
 ];
 const F = ["fun", "random"];
+/** Short fortune-cookie sayings. For fun only; the answer is random, not a prediction. */
+const FORTUNES = [
+  "A pleasant surprise is waiting for you.", "Good news will come to you by mail.", "You will find luck in unexpected places.",
+  "Your hard work is about to pay off.", "A new friendship will bring you joy.", "Now is the time to try something new.",
+  "Your patience will be rewarded.", "An opportunity you did not expect is near.", "You will make the right decision.",
+  "Someone is thinking of you fondly.", "Your creativity leads to something good.", "A journey brings you fresh ideas.",
+  "Help someone today and they will help you tomorrow.", "Your cheerful nature attracts good fortune.", "Take the chance; the timing is right.",
+  "The answer you seek comes when you stop looking.", "Small steps today lead somewhere worthwhile.", "You will soon hear a welcome word.",
+  "Trust your instinct in the days ahead.", "Better days are just around the corner.",
+];
 
 export const FUN: Entry[] = [
   entry("/coin", "Flip a coin", "Flip one or more fair coins using a cryptographic random source. Returns each result and the totals. Use for fair decisions and games.",
@@ -41,6 +51,12 @@ export const FUN: Entry[] = [
   entry("/magic-8-ball", "Magic 8-ball", "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots.",
     ["8ball", "games", ...F], { question: { type: "string", description: "Your question (optional, not stored)", example: "Will it ship today?" } }, { question: "Will it ship today?", answer: "Signs point to yes.", kind: "positive" },
     (_e, q) => { const i = randInt(EIGHT_BALL.length); return { question: opt(q, "question", 500) ?? null, answer: EIGHT_BALL[i], kind: i < 10 ? "positive" : i < 15 ? "non-committal" : "negative" }; }),
+  // 19 Nov 2026: "Random fortune" is a large steady paid job on a router that pins one seller. A fresh,
+  // task-named URL with the phrase in its name and first sentence is the established way to enter that search.
+  entry("/fortune", "Random fortune: a short fortune chosen at random",
+    "Random fortune: get one short fortune-cookie saying chosen at random with a cryptographic source, with no input needed. For fun only; a fortune is not a prediction. Use for games, chat bots and a light daily message.",
+    ["fortune", "random-fortune", "fortune-cookie", ...F], {}, { fortune: "A pleasant surprise is waiting for you." },
+    () => ({ fortune: FORTUNES[randInt(FORTUNES.length)] })),
   entry("/random/password", "Password generator", "Generate strong random passwords or passphrase-style strings: choose length and character sets, from a cryptographic random source. Generated on demand; nothing is stored or logged. Use when creating accounts or secrets.",
     ["password", "security", ...F], { length: { type: "integer", description: "8-128 characters (default 20)", example: 20 }, symbols: { type: "string", description: "false to leave out symbols", example: "true" }, count: { type: "integer", description: "How many (1-20, default 1)", example: 1 } }, { passwords: ["q7#Lx9v!Tz2@pW4m$Rk8"], entropyBits: 130 },
     (_e, q) => { const len = num(q, "length", { min: 8, max: 128, fallback: 20, integer: true }); const sets = ["abcdefghijkmnopqrstuvwxyz", "ABCDEFGHJKLMNPQRSTUVWXYZ", "23456789", ...(q("symbols") === "false" ? [] : ["!@#$%^&*-_=+?"])]; const all = sets.join(""); const make = () => { const chars = sets.map((s) => s[randInt(s.length)]); while (chars.length < len) chars.push(all[randInt(all.length)]); for (let i = chars.length - 1; i > 0; i--) { const j = randInt(i + 1); [chars[i], chars[j]] = [chars[j], chars[i]]; } return chars.join(""); }; return { passwords: Array.from({ length: num(q, "count", { min: 1, max: 20, fallback: 1, integer: true }) }, make), entropyBits: Math.floor(len * Math.log2(all.length)) }; }),
