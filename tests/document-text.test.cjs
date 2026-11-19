@@ -209,6 +209,21 @@ test('OCR: an image and a scanned PDF are read through the reader it is given; w
   await assert.rejects(D.readDocument(scan, 'text', 50_000), (e) => e.status === 422 && /no text layer/.test(e.message), 'without a reader a scan fails as before');
 });
 
+test('fields with no URL read the published sample and say so', async () => {
+  const D = await load('src/routes/document.ts');
+  const tool = D.DOCUMENT.find((e) => e.endpoint.path === '/document/extract');
+  const realFetch = globalThis.fetch;
+  let asked = null;
+  globalThis.fetch = async (url) => { asked = String(url); return new Response(tinyPdf(), { status: 200, headers: { 'content-type': 'application/pdf' } }); };
+  const env = { AI: { run: async () => ({ response: '{"invoice_number":"2026-001"}' }) } };
+  try {
+    const answer = await tool.run(env, (n) => (n === 'fields' ? 'invoice_number' : undefined));
+    assert.match(asked, /coolblue1\.pdf/);
+    assert.deepEqual(answer.data, { invoice_number: '2026-001' });
+    assert.match(answer.note, /No URL was sent, so the fields were read from the public sample invoice/);
+  } finally { globalThis.fetch = realFetch; }
+});
+
 test('fields out of a document: the file\'s text goes to the model once, and the answer has exactly the fields asked for', async () => {
   // One bundle, so the tool and this test share the module that holds an uploaded file.
   const b = await build({ stdin: { contents: `export * as D from './src/routes/document.ts'; export * as F from './src/lib/file-input.ts';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['@cloudflare/puppeteer', 'cloudflare:workers'] });
