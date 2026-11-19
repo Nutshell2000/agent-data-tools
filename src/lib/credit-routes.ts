@@ -322,10 +322,12 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
 }
 
 /** One free call for this caller, or null. The returned refund gives it back when the tool fails. */
-export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER, session?: string) {
+export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER, session?: string, surface?: string) {
   const store = ledger(env);
   if (!store || !trialsEnabled(env)) return null;
-  const address = await callerHash(ip ?? "unknown");
+  // HTTP (3 calls) and MCP (25) must not share one counter: a shared-IP MCP user spending 25 used to lock out every
+  // HTTP trial=1 caller at that address (25 >= 3), and an HTTP trial user got only 22 MCP calls. Namespace the hash.
+  const address = (surface ? `${surface}:` : "") + await callerHash(ip ?? "unknown");
   const day = utcDay();
   // If the allowance cannot be counted (storage over its daily write limit), the caller gets the payment
   // request like any unpaid call instead of a 500, and onUnavailable lets the caller say why.

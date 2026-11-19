@@ -442,7 +442,7 @@ app.use(async (c, next) => {
   // The capped PDF try (lib/pdf-try.ts): off unless PDF_TRY=on; a browser only, inside the day's total.
   const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"));
   if (endpoint && trialable && (httpFree(c.req.path) || pdfTry) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER, undefined, "http");
     // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
     // visitor who is out of tries cannot use up the total for everyone else.
     if (free && pdfTry) {

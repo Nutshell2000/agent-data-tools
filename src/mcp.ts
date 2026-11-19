@@ -418,7 +418,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
         let freePaused = false;
         const free = directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
-          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id) : null;
+          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id, "mcp") : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
         if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
