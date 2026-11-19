@@ -406,7 +406,7 @@ test('POST /credits/trial: one file a day per address, at most 30 minutes, withi
   const tooLong = await transcribe(wav(31 * 60), bearer(k));
   assert.equal(tooLong.status, 402);
   const tl = await tooLong.json();
-  assert.match(tl.error.message, /^The free trial reads recordings of up to 30 minutes; this one is 31 minutes long\. Nothing was charged\. For longer or more recordings, Transcribe Pro is \$9 a month at /);
+  assert.match(tl.error.message, /^The free trial reads recordings of up to 30 minutes; this one is 31 minutes long\. Nothing was charged\. For longer or more recordings, Transcribe Pro is \$3 a month at /);
   assert.equal(tl.error.code, 'trial_key_limit');
   assert.equal(tl.more.transcribePro, `${O}/transcribe-pro`);
   // Only transcription, only through the front.
@@ -472,7 +472,7 @@ test('POST /credits/trial: one file a day per address, at most 30 minutes, withi
   const closed = await issue(4);
   assert.equal(closed.status, 429);
   const cb = await closed.json();
-  assert.match(cb.error, /^Today's free trial minutes are used up; they come back at 00:00 UTC\. For longer or more recordings, Transcribe Pro is \$9 a month/);
+  assert.match(cb.error, /^Today's free trial minutes are used up; they come back at 00:00 UTC\. For longer or more recordings, Transcribe Pro is \$3 a month/);
   assert.equal(cb.code, 'daily_trial_used_up');
   // One address may ask a few times (a reloaded page), not without end.
   for (let i = 0; i < vk.TRIAL_KEYS_PER_CALLER; i++) await issue(1);
