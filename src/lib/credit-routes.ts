@@ -149,12 +149,16 @@ credits.get("/credits/claim", async (c) => {
     const planHtml = pack.plan ? `<h2>Your monthly plan</h2><p>${pack.credits.toLocaleString("en-US")} credits are added to this key each month when the payment renews. ${esc(PLAN_TERMS)} <a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel the plan</a> (Stripe asks for the e-mail you paid with).</p>` : "";
     const added = topUp ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: topUp, ...plan }) : undefined;
     if (added) {
+      // 19 Nov 2026: the card purchase is the main conversion this funnel measures. issueCredits is idempotent, so only
+      // a genuine first grant counts — re-opening the claim page must not inflate it. (The USDC path already marks it.)
+      if (!added.repeated) markStage("credits_bought");
       const result = { toppedUp: true, creditsAdded: added.credits, balanceCredits: creditsFromMicros(added.balanceMicros), note: "Added to your existing key; keep using it as before.", ...planNote };
       if (!html) return c.json(result);
       return c.html(page("Credits added", `<h1>Payment received</h1><p>${added.credits.toLocaleString("en-US")} credits were added to your existing key. Balance: ${result.balanceCredits.toLocaleString("en-US")} credits.</p><p>Nothing to change: keep using the same key in your apps.</p>${planHtml}`));
     }
     const fresh = newCreditKey();
     const issued = await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: fresh, keyHash: await hashCreditKey(fresh), ...plan });
+    if (!issued.repeated) markStage("credits_bought");
     // A repeat claim returns the key stored for this session. Only a top-up session stores none,
     // and those are answered above, so this cannot show a key that was never issued.
     const key = issued.key;

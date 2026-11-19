@@ -309,7 +309,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
 <h1>Make any text talk.<br><span class="gt">Turn voice into text.</span></h1>
 <p class="lede">Free, right here in your browser. No sign-up, nothing to install.</p>
-<div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="${VOICE_SITE}/transcribe">Transcribe Pro</a> does up to an hour for you.` })}
+<div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
 <p class="after">Rather use an app? <a href="/app">Install ${esc(brand)} Voice</a>, free on your phone or computer.</p></div>
 </div></section>
 
