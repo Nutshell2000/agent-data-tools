@@ -1,0 +1,32 @@
+{
+  // Quote front (19 Nov 2026, owner: "Yes, build it"): NOT DEPLOYED. Deploy only through the cut-over in
+  // C:\MoneyWallet\business\agentic\quote-front-plan-2026-11-19.md, after the rehearsal on throwaway Workers.
+  //
+  // The front takes the Worker name "agent-data-tools", so the workers.dev address and every custom domain the
+  // listings use stay where they are; the full app is renamed "agent-data-tools-core" (wrangler.jsonc gets
+  // name, SELF and a transferred_classes migration for Metrics at the cut-over, not before).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-data-tools",
+  "main": "src/front/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  // The same routes as wrangler.jsonc today: they stay attached to this script name through the rename.
+  "routes": [
+    { "pattern": "glyphcall.com", "custom_domain": true },
+    { "pattern": "www.glyphcall.com", "custom_domain": true },
+    { "pattern": "api.glyphcall.com", "custom_domain": true },
+    { "pattern": "mcp.glyphcall.com", "custom_domain": true },
+    { "pattern": "lex.glyphcall.com", "custom_domain": true },
+    { "pattern": "tts.glyphcall.com", "custom_domain": true },
+    { "pattern": "web.glyphcall.com", "custom_domain": true },
+    { "pattern": "tools.funwords.eu", "custom_domain": true }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 0.01 },
+  "services": [{ "binding": "CORE", "service": "agent-data-tools-core" }],
+  // Created at the cut-over (`wrangler kv namespace create QUOTES`); the id goes here then.
+  "kv_namespaces": [{ "binding": "QUOTES", "id": "REPLACE_AT_CUTOVER" }],
+  // Secret MPP_SECRET_KEY: the same fresh random value on this Worker and on the core (never the CDP key).
+  // "off" passes every request to the core: the first rollback step (a config deploy, no code change).
+  "vars": { "FRONT": "on" }
+}

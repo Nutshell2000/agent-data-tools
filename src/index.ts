@@ -129,13 +129,19 @@ app.use(
 );
 
 // HSTS on every response: the Worker is HTTPS-only, and MCP directories score this header.
+// X-Quote-Release (19 Nov 2026): the quote fingerprint (release plus payment settings) on every answer, so the quote
+// front (src/front/index.ts) retires its stored quotes as soon as it sees a new core. A hash, nothing secret.
+let releaseStamp: { env: unknown; value: string } | undefined;
 app.use(async (c, next) => {
   await next();
+  if (releaseStamp?.env !== c.env) releaseStamp = { env: c.env, value: quoteFingerprint(c.env, MCP_SERVER_VERSION) };
   try {
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("X-Quote-Release", releaseStamp.value);
   } catch {
     c.res = new Response(c.res.body, c.res); // immutable headers (e.g. asset responses): copy first
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("X-Quote-Release", releaseStamp.value);
   }
 });
 
