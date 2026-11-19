@@ -446,7 +446,7 @@ export const DOCUMENT: Entry[] = [
   entry("/document/extract", "Extract data from a document: invoice, receipt, contract fields as JSON",
     "Extract named fields from a document as JSON: give a PDF, Word, Excel or PowerPoint file, a scan or a photo (PNG, JPEG, WebP) by URL or in a POST body (up to 10 MB; images 3 MB) and the field names you want, such as invoice_number, total, due_date. An AI model reads the file, scans by OCR, and returns one JSON object, with null where a value is not stated. Use to turn invoices, receipts, orders and contracts into rows.",
     ["invoice-parser", "document-extraction", "pdf-to-json", "invoice-ocr", "data-extraction", "document", "ai"], {
-      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead). With no input at all this reads the public sample invoice PDF in the example.", required: true, example: EXTRACT_EXAMPLE_URL },
+      url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead). With no input at all (no URL) this reads the public sample invoice PDF in the example and the answer says so.", required: true, example: EXTRACT_EXAMPLE_URL },
       fields: { type: "string", description: "Comma-separated field names to extract (1-30). For rows, give the row keys in brackets: line_items[description,quantity,amount]. Or one word, invoice or receipt, for the usual fields of that document with its line items", required: true, example: "invoice" },
     },
     {
@@ -474,19 +474,25 @@ export const DOCUMENT: Entry[] = [
       const sent = q(FILE_REF_INPUT);
       let bytes: Uint8Array;
       let url: string | null = null;
+      let usedSample = false;
       if (isFileRef(sent)) {
         const held = heldFile(sent);
         if (!held) throw new HttpError(400, "send the file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON) with fields in the query; a file reference cannot be used in a GET");
         bytes = held;
       } else {
-        const file = await fetchFile(q("url"), /^/, DOCUMENT_MAX_BYTES, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
+        // 19 Nov 2026: /status showed 44 empty HTTP calls on this tool, mostly a `fields=` value with no URL. The
+        // published example answers that shape too; say so in the answer, exactly as the no-input default does.
+        const sample = !q("url");
+        const file = await fetchFile(q("url") || EXTRACT_EXAMPLE_URL, /^/, DOCUMENT_MAX_BYTES, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
         bytes = file.bytes;
         url = file.url;
+        if (sample) usedSample = true;
       }
       // Plain text for the model: Markdown table rules add characters and no information.
       const doc = await readDocument(bytes, "text", EXTRACT_CHARS, visionOcr(env));
       const found = await extractFields(env, doc.text, fields, EXTRACT_MODEL, Object.keys(lists).length ? 2600 : 1200, lists, true);
-      return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...("ocr" in doc ? { ocr: true } : {}), ...found, charsRead: doc.chars, truncated: doc.truncated };
+      return { url, ...(url ? {} : { source: "upload" }), type: doc.type, ...("ocr" in doc ? { ocr: true } : {}), ...found, charsRead: doc.chars, truncated: doc.truncated,
+        ...(usedSample ? { note: "No URL was sent, so the fields were read from the public sample invoice shown in the input example. Send url=... for your own document." } : {}) };
       // $0.03 a document: one model call, and a tenth to a half of what document-extraction sellers charge (14 Nov 2026).
     }, "$0.03"),
 ];

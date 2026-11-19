@@ -1,5 +1,5 @@
 {
-  "version": "1.239.0",
+  "version": "1.240.0",
   "tools": [
     {
       "name": "extract",
@@ -12009,7 +12009,7 @@
         "properties": {
           "url": {
             "type": "string",
-            "description": "Absolute public http(s) URL of the file (or send the file in a POST body instead). With no input at all this reads the public sample invoice PDF in the example."
+            "description": "Absolute public http(s) URL of the file (or send the file in a POST body instead). With no input at all (no URL) this reads the public sample invoice PDF in the example and the answer says so."
           },
           "fields": {
             "type": "string",
