@@ -11,7 +11,9 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/einvoice/validate": 5 * 1024 * 1024,
   "/einvoice/to-json": 5 * 1024 * 1024,
   "/pack/einvoice-check": 5 * 1024 * 1024, // runs the two tools above on the same file
-  "/pdf/text": 10 * 1024 * 1024,
+  // 1.256.0: /pdf/text reads 10-20 MB URLs at a bounded one-time retry, so an automation tool that holds the
+  // PDF rather than a URL gets the same ceiling. A 12 MB upload used to get a 413 while the same file over a URL worked.
+  "/pdf/text": 20 * 1024 * 1024,
   "/pdf/extract": 10 * 1024 * 1024,
   // Audio (14 Nov 2026, voice plan): the same 5 MB as a URL fetch, so the price per call covers the longest file.
   "/transcribe": 5 * 1024 * 1024,
@@ -22,7 +24,8 @@ export const FILE_INPUT_PATHS: Readonly<Record<string, number>> = Object.freeze(
   "/transcribe/speakers": 25 * 1024 * 1024,
   "/dub": 25 * 1024 * 1024,
   "/voice/agent": 25 * 1024 * 1024,
-  "/document/text": 10 * 1024 * 1024,
+  // Same alignment as /pdf/text: the URL path retries 10-20 MB once at the bounded ceiling (1.244.0).
+  "/document/text": 20 * 1024 * 1024,
   "/document/extract": 10 * 1024 * 1024,
   "/invoice/check": 10 * 1024 * 1024,
 });
