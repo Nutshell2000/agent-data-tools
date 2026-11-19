@@ -34,6 +34,7 @@ test('a browser opening a paid tool gets a page with the tool, a free trial and 
   assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;trial=1"/, 'the trial keeps the caller\'s own inputs');
   assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;sample=1"/);
   assert.match(html, /href="\/credits"/);
+  assert.match(html, /href="\/credits\/buy\/1"/, 'MPP agents can fund a key without a checkout page');
   assert.match(html, /https:\/\/api\.test\/mcp/);
   assert.doesNotMatch(html, /<script/i, 'static page, nothing executes');
 });
@@ -199,6 +200,20 @@ test('/demo is a static walkthrough page that points at the recording and the fr
   assert.match(html, /bc_09e30bdm/);
   assert.match(html, /href="\/tools\/check-counterparty"/);
   assert.doesNotMatch(html, /<script/i);
+});
+
+test('signed seller evidence is served as public JSON at both well-known spellings', async () => {
+  for (const path of ['/.well-known/seller-evidence.json', '/.well-known/seller-evidence']) {
+    const res = await mf.dispatchFetch(`https://api.test${path}`);
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get('cache-control') ?? '', /public/);
+    const e = await res.json();
+    assert.equal(e.payload.type, 'agent-data-tools.seller-evidence.v1');
+    assert.equal(e.payload.iss, 'https://api.test');
+    assert.equal(typeof e.payload.delivery.paidCalls, 'number');
+    assert.match(e.canonical, /^\{"delivery":/);
+    assert.equal(e.alg, 'EdDSA');
+  }
 });
 
 test('free-trial links are nofollow, robots.txt disallows them and trial answers are noindex', async () => {
