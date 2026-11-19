@@ -964,9 +964,22 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
  * The $0.01 floor of 25 Oct was set for the sweeper, which paid every listing at its live price and has been gone since
  * 28 Oct. $0.002, not $0.001: CDP charges $0.001 per settlement above 1,000 a month. Picked from price-anchors.mjs ("market
  * below ours") plus zero-cost reads and data; excluded: Brave-backed (/news, /search), AI, browser rendering and the
- * 8 tools in the 5-19 Nov upward price test. Review on 20 Nov against payers and calls (business/agentic/base-bots).
+ * 8 tools in the 5-19 Nov upward price test. The 20 Nov review concluded "raise, don't cut": the 5-19 Nov test lost no
+ * volume on any of the 7 raised tools, and 80.4% of market spend is at >= $0.01 while our average was half the market's.
+ * ACQUISITION_PATHS is kept for provenance and the entry-door tests; every path priced below FLOOR_PRICE now lifts to it,
+ * except the three breadth loss-leaders below. Owner decision 19 Nov 2026; re-settle the Bazaar after any price move.
  */
 export const ACQUISITION_PRICE = "$0.002";
+export const FLOOR_PRICE = "$0.01";
+export const LOSS_LEADERS: ReadonlySet<string> = new Set(["/weather/forecast", "/weather/current", "/weather", "/wikipedia", "/wiki/summary"]);
+// Buyer-facing clients and guides hard-code these exact quotes and their --max-usdc caps at $0.002 (reader-client.mjs,
+// local-mcp, the web-reading/Bitcoin-fee guides and the portable reader skill). Raising them here would make a funded
+// buyer's client refuse the new quote; they need a coordinated client+doc release, so the floor deliberately skips them.
+export const DOC_PINNED_PATHS: ReadonlySet<string> = new Set([
+  "/extract", "/sitemap", "/btc-fees", "/package", "/ai/chat",
+  // Doors to those tools carry their canonical's price (entry-paths.test.cjs).
+  "/scrape", "/llm/chat", "/page/markdown", "/web/fetch", "/bitcoin/fees", "/chat/completions", "/web/read",
+]);
 export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/price/token", "/price/tokens", "/crypto/price", "/crypto/trending", "/crypto/fear-greed", "/btc-price", "/pack/crypto-market",
   "/hyperliquid/orderbook", "/hyperliquid/prices", "/hyperliquid/market", "/hyperliquid/candles",
@@ -1009,9 +1022,14 @@ export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/comm
 // Weather margin test ($0.003 on /weather/forecast, 14 Nov 2026) ended 15 Nov 2026: at $0.002 the door sold 112 outside
 // calls on 14 Nov; after the step at 15 UTC it sold 2 and none overnight, while the rival listing in vAPI search sat at
 // $0.002. The owner asked to "fix weather and pricing so we get outside payers"; prices are delegated (14 Nov).
-const acquisitionPriced = (e: Endpoint): Endpoint =>
-  FINDER_TEST_PATHS.has(e.path) ? { ...e, price: FINDER_TEST_PRICE } : ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e;
-export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(acquisitionPriced);
+const priceAtomic = (p: string) => Math.round(Number(p.slice(1)) * 1_000_000);
+const floorPriced = (e: Endpoint): Endpoint => {
+  if (FINDER_TEST_PATHS.has(e.path)) return { ...e, price: FINDER_TEST_PRICE }; // a deliberate rank test, not a revenue path
+  if (LOSS_LEADERS.has(e.path)) return { ...e, price: ACQUISITION_PRICE }; // the breadth doors stay at $0.002
+  if (DOC_PINNED_PATHS.has(e.path)) return e; // published client caps still quote these at their current price
+  return priceAtomic(e.price) < priceAtomic(FLOOR_PRICE) ? { ...e, price: FLOOR_PRICE } : e;
+};
+export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(floorPriced);
 /**
  * The one tool count (16 Nov 2026): the tools a caller can call, each counted once. That is every tool in ENDPOINTS
  * except the entry paths (ENTRY_OF: second names of a tool, kept for outside search engines). It equals the /mcp/all list
