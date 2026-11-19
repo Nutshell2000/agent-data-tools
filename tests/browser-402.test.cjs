@@ -34,6 +34,7 @@ test('a browser opening a paid tool gets a page with the tool, a free trial and 
   assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;trial=1"/, 'the trial keeps the caller\'s own inputs');
   assert.match(html, /href="\/weather\?lat=59.33&amp;lon=18.07&amp;sample=1"/);
   assert.match(html, /href="\/credits"/);
+  assert.match(html, /href="\/credits\/buy\/1"/, 'MPP agents can fund a key without a checkout page');
   assert.match(html, /https:\/\/api\.test\/mcp/);
   assert.doesNotMatch(html, /<script/i, 'static page, nothing executes');
 });
