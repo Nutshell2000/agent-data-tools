@@ -74,6 +74,11 @@ export const asWritten = (s: string) => s.toLowerCase().replace(/[^a-z0-9$.]+/g,
  */
 export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "text to speech": "/ai/speech", "tts": "/ai/speech", "read aloud": "/ai/speech", "voice over": "/ai/speech", "speak text": "/ai/speech",
+  // 19 Nov 2026: plain-language TTS requests were misrouted by generic synonyms (article->news, text->document,
+  // read->extract) — "turn my article into an mp3" hit /page/publish, "make an mp3 from text" hit /document/text,
+  // "read this article aloud as audio" and "text to audio for my video" hit /transcribe (the wrong direction). These
+  // whole-word phrases carry the buyer's output intent and win over the lexical score on all three finder surfaces.
+  "into an mp3": "/ai/speech", "into mp3": "/ai/speech", "mp3 from text": "/ai/speech", "text to audio": "/ai/speech", "aloud as audio": "/ai/speech", "read aloud as": "/ai/speech",
   "long text to speech": "/text-to-speech", "narrate": "/text-to-speech", "narration": "/text-to-speech",
   "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
   // 1.192.0 (Glyphcall Voice): the long, cheap and summary voice tools by the jobs buyers name.
@@ -124,6 +129,10 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "estonian company": "/ee/company", "estonia company": "/ee/company", "registrikood": "/ee/company", "ariregister": "/ee/company",
   "french company": "/fr/company", "siren": "/fr/company", "siret": "/fr/company", "sirene": "/fr/company", "france company": "/fr/company",
   "rss": "/feed", "feed json": "/feed", "pdf to text": "/pdf/text", "web page to markdown": "/extract", "scrape": "/extract",
+  // 19 Nov 2026: "extract text from a website" was hijacked by the generic `text→document` synonym to /pdf/text (a
+  // website URL is not a PDF and fails there); "summarize a long article" by `article→news` to /news. Both are paid
+  // jobs with a direct tool, and both were lost at the free finder.
+  "extract text from a website": "/extract", "text from a website": "/extract", "read a web page": "/extract", "summarize a long article": "/summarize", "summarize this article": "/summarize", "summarize a web page": "/summarize",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
