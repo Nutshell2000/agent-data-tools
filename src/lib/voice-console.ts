@@ -61,12 +61,12 @@ export const CONSOLE_LANGUAGES: readonly [value: string, label: string][] = [
   ["arabic", "Arabic"], ["hindi", "Hindi"], ["japanese", "Japanese"], ["korean", "Korean"], ["chinese", "Chinese"],
 ];
 
-export const CONSOLE_SAMPLE = "Welcome! This voice is being made right now, on your own phone or computer. Change this text to anything you like, pick a voice, and press Play. There is no account, no credit counter, and no limit.";
+export const CONSOLE_SAMPLE = "Welcome! This voice is being made right now, on your own phone or computer. Change this text to anything you like, pick a voice, and press Play. There is no account, no credit counter, and nothing to install.";
 
 /** Short, use-case scripts so a first-time visitor can hear a realistic result in one click. */
 export const CONSOLE_PRESETS: readonly { label: string; text: string }[] = [
   { label: "Narration", text: "The harbour woke slowly. Gulls called above the empty quay, and the first boat slipped out into the grey morning." },
-  { label: "Advertisement", text: "Ready in ten seconds. Just type your script, pick a voice, and press play. No account, no credit counter, no limit." },
+  { label: "Advertisement", text: "Ready in ten seconds. Just type your script, pick a voice, and press play. No account, no credit counter, nothing to install." },
   { label: "Podcast", text: "Welcome back. Today: how a sentence can be rebuilt without recording the whole episode again. Let's listen to the result." },
   { label: "Character", text: "\"You came a long way for a story,\" the dragon said, folding its wings. \"Then let's make it worth the journey.\"" },
 ];
@@ -137,7 +137,7 @@ export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSi
 <progress id="${v("sbar")}" max="1" hidden></progress><p class="vc-status" id="${v("sstatus")}" role="status" aria-live="polite">The first time, your browser fetches the listening model once; after that it starts straight away.</p>
 <div class="vc-out" id="${v("sout")}" hidden><textarea id="${v("transcript")}" aria-label="Transcript" spellcheck="true"></textarea><div class="vc-row" style="margin-top:10px"><button type="button" class="vc-sec" id="${v("copy")}">Copy text</button><button type="button" class="vc-sec" data-fmt="txt">TXT</button><button type="button" class="vc-sec" data-fmt="srt">SRT subtitles</button><button type="button" class="vc-sec" data-fmt="vtt">VTT</button></div>${opts.upsellStt ? `<p class="vc-status">${opts.upsellStt}</p>` : ""}</div>
 </div>
-<div class="vc-foot"><span>No account</span><span>No credits or limits</span><span>Nothing uploaded</span><span>Free downloads</span></div>
+<div class="vc-foot"><span>No account</span><span>No credits or sign-up</span><span>Nothing uploaded</span><span>Free downloads</span></div>
 <noscript><p class="vc-pane">This console needs JavaScript. The same tools: <a href="${esc(opts.voiceSite)}/text-to-speech">text to speech</a> and <a href="${esc(opts.voiceSite)}/transcribe">transcription</a>.</p></noscript>
 </div>`;
 }
@@ -196,7 +196,7 @@ root.querySelector(".vc-tabs").addEventListener("keydown",(e)=>{if(e.key==="Arro
 // Text to speech
 const text=$("text"),count=$("count"),speak=$("speak"),stop=$("stop"),speed=$("speed"),tbar=$("tbar"),tst=$("tstatus"),tout=$("tout"),player=$("player"),wav=$("wav");
 const saved=store.get("gc-vc-text");if(saved)text.value=saved;
-const upd=()=>{count.textContent=text.value.length.toLocaleString()+" characters, no limit";};upd();
+const upd=()=>{count.textContent=text.value.length.toLocaleString()+" characters (up to 200,000)";};upd();
 text.addEventListener("input",()=>{upd();store.set("gc-vc-text",text.value);});
 root.querySelectorAll("[data-preset]").forEach((b)=>b.addEventListener("click",()=>{const p=CONSOLE_PRESETS[Number(b.dataset.preset)];if(!p)return;text.value=p.text;upd();store.set("gc-vc-text",text.value);text.focus();}));
 speed.oninput=()=>{$("speedv").textContent=Number(speed.value).toFixed(1)+"x";};

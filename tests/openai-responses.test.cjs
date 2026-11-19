@@ -68,3 +68,16 @@ test('an unpaid POST /v1/responses is quoted like the chat tool, a large model a
   assert.deepEqual(api.paths['/v1/responses'].get['x-payment-info'], api.paths['/v1/responses'].post['x-payment-info']);
   assert.equal(api.paths['/v1/responses'].get.parameters[0].name, 'input');
 });
+
+test('stream: true emits official Responses semantic SSE events, not a JSON body', () => {
+  const answer = lib.toResponsesAnswer({ prompt: 'hi' }, { response: 'Hello there' }, undefined);
+  const events = lib.toResponsesStream(answer).trim().split('\n\n').map((e) => {
+    const lines = e.split('\n');
+    return { event: lines[0].replace('event: ', ''), data: JSON.parse(lines[1].replace('data: ', '')) };
+  });
+  assert.deepEqual(events.map((e) => e.event), ['response.created', 'response.output_item.added', 'response.content_part.added', 'response.output_text.delta', 'response.output_text.done', 'response.content_part.done', 'response.output_item.done', 'response.completed']);
+  assert.ok(events.every((e) => e.data.type === e.event), 'each event carries its type in the data too');
+  assert.equal(events.find((e) => e.event === 'response.output_text.delta').data.delta, 'Hello there');
+  assert.equal(events.find((e) => e.event === 'response.completed').data.response.output_text, 'Hello there');
+  assert.equal(events[0].data.response.status, 'in_progress');
+});
