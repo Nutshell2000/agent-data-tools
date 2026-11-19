@@ -26,6 +26,8 @@ test("the app page holds the console, links the manifest and registers the worke
   assert.match(html, /serviceWorker\.register\("\/sw\.js",\{scope:"\/app"\}\)/);
   assert.match(html, /beforeinstallprompt/);
   assert.match(html, /Add to Home Screen/);
+  assert.match(html, /Want this in your own app\?.*<a href="\/text-to-speech-api">text to speech API<\/a>/, "the console points a delighted visitor at the paid TTS API");
+  assert.match(html, /Need transcription in your app\? See the <a href="\/speech-to-text-api">speech to text API<\/a>/, "the STT tab points at the paid STT API");
   assert.doesNotMatch(html, /x402|MPP|USDC|Tempo|wallet/i, "no payment protocol words on a human page");
 });
 

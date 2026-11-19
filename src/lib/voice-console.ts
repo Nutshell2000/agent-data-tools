@@ -61,7 +61,7 @@ export const CONSOLE_LANGUAGES: readonly [value: string, label: string][] = [
   ["arabic", "Arabic"], ["hindi", "Hindi"], ["japanese", "Japanese"], ["korean", "Korean"], ["chinese", "Chinese"],
 ];
 
-export const CONSOLE_SAMPLE = "Welcome! This voice is being made right now, on your own computer. Change this text to anything you like, pick a voice, and press Play. There is no account, no credit counter, and no limit.";
+export const CONSOLE_SAMPLE = "Welcome! This voice is being made right now, on your own phone or computer. Change this text to anything you like, pick a voice, and press Play. There is no account, no credit counter, and no limit.";
 
 /** Short, use-case scripts so a first-time visitor can hear a realistic result in one click. */
 export const CONSOLE_PRESETS: readonly { label: string; text: string }[] = [
