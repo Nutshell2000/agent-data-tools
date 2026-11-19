@@ -19094,13 +19094,9 @@
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Language: en or es (Aura-2 MP3, many voices), fr, zh, ja or ko (MeloTTS WAV, one voice each); default en"
+            "description": "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
           },
           "voice": {
             "type": "string",
@@ -22443,13 +22439,9 @@
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Language: en or es (Aura-2 MP3, many voices), fr, zh, ja or ko (MeloTTS WAV, one voice each); default en"
+            "description": "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
           },
           "voice": {
             "type": "string",
@@ -22489,7 +22481,7 @@
     },
     {
       "name": "text_to_speech",
-      "description": "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or up to 1,200 characters as one WAV in French, Chinese, Japanese or Korean with MeloTTS. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, ; fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -22502,19 +22494,15 @@
         "properties": {
           "text": {
             "type": "string",
-            "description": "Text to speak, up to 2,000 characters (1,200 in fr, zh, ja and ko)"
+            "description": "Text to speak, up to 2,000 characters"
           },
           "lang": {
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Language: en or es (Aura-2 MP3, many voices), fr, zh, ja or ko (MeloTTS WAV, one voice each); default en"
+            "description": "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
           },
           "voice": {
             "type": "string",
@@ -23020,7 +23008,7 @@
     },
     {
       "name": "voice_agent",
-      "description": "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English, Spanish, French, Chinese, Japanese or Korean and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers. Example: text=What time do you open on Saturday?. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English or Spanish and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers. Example: text=What time do you open on Saturday?. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -23051,17 +23039,13 @@
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Reply language and voice: en, es (Aura-2 MP3), fr, zh, ja or ko (MeloTTS WAV); default en"
+            "description": "Reply language and voice: en or es (Aura-2 MP3); fr, zh, ja and ko are retired, so a request for them is a 422 (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
           },
           "voice": {
             "type": "string",
-            "description": "Aura-2 voice for an en or es reply (default luna for en, aquila for es); fr, zh, ja and ko have one voice each"
+            "description": "Aura-2 voice for an en or es reply (default luna for en, aquila for es)"
           }
         }
       },
@@ -23069,7 +23053,7 @@
     },
     {
       "name": "dub",
-      "description": "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters) or French, Chinese, Japanese or Korean (MeloTTS WAV, up to 1,200 characters). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos. Example: url=https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3, to=es. Price $0.10/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters); fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos. Example: url=https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3, to=es. Price $0.10/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -23088,13 +23072,9 @@
             "type": "string",
             "enum": [
               "en",
-              "es",
-              "fr",
-              "zh",
-              "ja",
-              "ko"
+              "es"
             ],
-            "description": "Language of the new voice: en, es, fr, zh, ja or ko"
+            "description": "Language of the new voice: en or es (Aura-2; fr, zh, ja and ko are retired with MeloTTS, 20 Nov 2026)"
           },
           "from": {
             "type": "string",
@@ -23102,7 +23082,7 @@
           },
           "voice": {
             "type": "string",
-            "description": "Aura-2 voice for an en or es track (default luna for en, aquila for es); fr, zh, ja and ko have one voice each"
+            "description": "Aura-2 voice for the new track (default luna for en, aquila for es)"
           }
         },
         "required": [
