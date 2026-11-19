@@ -32,7 +32,7 @@
 // says of its own; the per-key call count is exact.
 import { Hono, type Context, type Next } from "hono";
 import type { Env } from "./env";
-import { VOICE_PRO_URL, hashCreditKey } from "./credits";
+import { VOICE_PRO_CENTS, VOICE_PRO_URL, hashCreditKey } from "./credits";
 import { FREE_CALLS_PER_DAY, callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
 
@@ -90,7 +90,7 @@ export function paidOptions(origin: string) {
   return { credits: `${origin}/credits`, transcribePro: VOICE_PRO_URL, payPerCall: "Without a key every call can be paid on its own with x402 or MPP (USDC): send the request with no key to get the quote." };
 }
 const paidSentence = (origin: string) => `For more, buy a prepaid key from $1 at ${origin}/credits (no account), or pay per call with x402.`;
-const proSentence = (origin: string) => `For longer or more recordings, Transcribe Pro is $9 a month at ${origin}/transcribe-pro, or buy a prepaid key from $1 at ${origin}/credits.`;
+const proSentence = (origin: string) => `For longer or more recordings, Transcribe Pro is $${VOICE_PRO_CENTS / 100} a month at ${origin}/transcribe-pro, or buy a prepaid key from $1 at ${origin}/credits.`;
 
 interface KeyRecord { kind: VoiceKeyKind; expires: string; caller: string; day: string }
 const recordKey = (keyHash: string) => `voicekey:${keyHash}`;
