@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.253.0";
+export const MCP_SERVER_VERSION = "1.254.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -102,7 +102,7 @@ export function agentCard(origin: string, networks: readonly string[] = ["eip155
       apiKey: { type: "apiKey", in: "header", name: "Authorization", description: `Prepaid card credits from ${origin}/credits: "Bearer adt_…" (or api_key=adt_… in the URL).` },
     },
     payment: { protocol: "x402", asset: "USDC", networks, freeCalls: FREE_CALLS_PER_CALLER, credits: `${origin}/credits` },
-    interfaces: { openapi: `${origin}/openapi.json`, mcp: `${origin}/mcp`, llms: `${origin}/llms.txt`, discovery: `${origin}/discovery/resources` },
+    interfaces: { openapi: `${origin}/openapi.json`, mcp: `${origin}/mcp`, llms: `${origin}/llms.txt`, discovery: `${origin}/discovery/resources`, evidence: `${origin}/.well-known/seller-evidence.json` },
     skills: lead.map((e) => ({ id: mcpName(e.path), name: bazaarName(e.summary), description: e.description, tags: e.tags.slice(0, 5), price: e.price, examples: [`${origin}${e.path}?${exampleQuery(e)}`], inputModes: ["application/json"], outputModes: ["application/json"] })),
   };
 }

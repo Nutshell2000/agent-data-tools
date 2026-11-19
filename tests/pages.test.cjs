@@ -64,4 +64,5 @@ test('A2A agent card lists the service, payment and the leading tools as skills'
   assert.ok(card.skills.every((s) => s.id && s.name && s.description && s.examples?.[0]?.startsWith('https://api.test/')));
   assert.equal(card.capabilities.streaming, false);
   assert.ok(card.securitySchemes.x402 && card.payment.protocol === 'x402');
+  assert.equal(card.interfaces.evidence, 'https://api.test/.well-known/seller-evidence.json');
 });
