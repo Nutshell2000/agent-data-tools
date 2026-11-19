@@ -209,18 +209,25 @@ test('OCR: an image and a scanned PDF are read through the reader it is given; w
   await assert.rejects(D.readDocument(scan, 'text', 50_000), (e) => e.status === 422 && /no text layer/.test(e.message), 'without a reader a scan fails as before');
 });
 
-test('a large URL stays within the default cap but an explicit maxBytes=20 reads it', async () => {
+test('a 10-20 MB URL is retried once at the bounded ceiling; over 20 MB still fails', async () => {
   const D = await load('src/routes/document.ts');
   const tool = D.DOCUMENT.find((e) => e.endpoint.path === '/document/text');
   const realFetch = globalThis.fetch;
   const url = 'https://public.example/large.docx';
-  const respond = () => new Response(tinyPdf(), { status: 200, headers: { 'content-type': 'application/pdf', 'content-length': String(12 * 1024 * 1024) } });
-  globalThis.fetch = async () => respond();
+  const respond = (mb) => new Response(tinyPdf(), { status: 200, headers: { 'content-type': 'application/pdf', 'content-length': String(mb * 1024 * 1024) } });
   try {
-    await assert.rejects(tool.run({}, (n) => (n === 'url' ? url : undefined)), (e) => e.status === 422 && /10 MB limit/.test(e.message));
-    const ok = await tool.run({}, (n) => ({ url, maxBytes: '20' })[n]);
-    assert.match(ok.text, /Invoice 2026-001/);
-    assert.equal(ok.url, url);
+    let calls = 0;
+    globalThis.fetch = async () => { calls++; return respond(12); };
+    const retried = await tool.run({}, (n) => (n === 'url' ? url : undefined));
+    assert.equal(calls, 2, 'the first cap checks Content-Length, the second reads the file');
+    assert.match(retried.text, /Invoice 2026-001/);
+    assert.match(retried.note, /over the 10 MB default.*20 MB ceiling/);
+    calls = 0;
+    const explicit = await tool.run({}, (n) => ({ url, maxBytes: '20' })[n]);
+    assert.equal(calls, 1, 'an explicit cap needs no retry');
+    assert.equal(explicit.note, undefined);
+    globalThis.fetch = async () => respond(25);
+    await assert.rejects(tool.run({}, (n) => (n === 'url' ? url : undefined)), (e) => e.status === 422 && /20 MB limit/.test(e.message));
   } finally { globalThis.fetch = realFetch; }
 });
 
