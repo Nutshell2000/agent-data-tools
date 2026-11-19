@@ -1,5 +1,5 @@
 {
-  "version": "1.296.0",
+  "version": "1.297.0",
   "tools": [
     {
       "name": "extract",
@@ -14739,7 +14739,7 @@
     },
     {
       "name": "audit_website",
-      "description": "Full website audit of one URL from a single load in a real browser: WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link), page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link) on one URL from a single load in a real browser, plus page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

@@ -65,3 +65,21 @@ test('document and page readers recommend the next reading/parsing job, not unre
   const door = relatedTools('/pdf/extract').map((e) => e.path);
   assert.ok(!door.includes('/pdf/text'), door.join(','));
 });
+
+test('short speech 402 steps buyers up to the heavier paid voice jobs', async () => {
+  const { relatedTools, relatedList, relatedLinkHeader } = await load();
+  const paths = relatedTools('/ai/speech').map((e) => e.path);
+  assert.deepEqual(paths, ['/text-to-speech', '/text-to-speech/captions', '/voice/agent']);
+  const list = relatedList('https://api.test', '/ai/speech');
+  assert.deepEqual(list.map((r) => r.price), ['$0.08', '$0.08', '$0.05']);
+  assert.ok(list.every((r) => Number(r.price.slice(1)) > 0.01), 'each next voice job costs more than /ai/speech');
+  assert.deepEqual(relatedTools('/ai/tts').map((e) => e.path), paths, 'the /ai/tts door inherits /ai/speech step-up');
+  assert.match(relatedLinkHeader('https://api.test', '/ai/speech'), /<https:\/\/api\.test\/text-to-speech>; rel="related"/);
+  // Every heavier voice tool keeps its next step inside the paid voice family, never back to cheap text tools.
+  const family = ['/text-to-speech', '/text-to-speech/captions', '/voice/agent', '/dub'];
+  for (const path of family) {
+    const next = relatedTools(path).map((e) => e.path);
+    assert.equal(next.length, 3, `${path}: ${next.join(',')}`);
+    assert.ok(next.every((n) => family.includes(n) && n !== path), `${path}: ${next.join(',')}`);
+  }
+});
