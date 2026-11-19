@@ -12,10 +12,14 @@ const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
 const STOP = new Set("a an and are as at be by can do does for from get give how i in is it me my of on or please show tell that the this to use want what when where which who why with you your api apis call tool tools find need no thing things something anything nothing such catalog stuff".split(" "));
 
 // Words agents use for a task, mapped onto the words our tool names use.
-const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall: "memory", save: "memory", store: "memory", forget: "memory", sanctioned: "sanctions", ofac: "sanctions", scrape: "extract", crawl: "extract", markdown: "extract", llm: "chat", gpt: "chat", completion: "chat", temperature: "weather", currency: "fx", exchange: "fx", eur: "fx", usd: "fx", whois: "domain", rug: "honeypot", ether: "eth", ethereum: "eth", bitcoin: "btc", // expanded synonym set for better tool discovery
+// 19 Nov 2026: `iban`, `llm` and `block` used to be forced onto invoice/chat/sanctions here, which sent "validate iban"
+// to the $0.05 /invoice/check, "llm pricing" to /ai/chat and "block explorer" to /sanctions/check. Those words now keep
+// their own token and are routed by the JOBS phrases below. `vat` keeps its invoice hint because "vat number" is covered
+// by a JOBS phrase; "validate vat" is too.
+const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall: "memory", save: "memory", store: "memory", forget: "memory", sanctioned: "sanctions", ofac: "sanctions", scrape: "extract", crawl: "extract", markdown: "extract", gpt: "chat", completion: "chat", temperature: "weather", currency: "fx", exchange: "fx", eur: "fx", usd: "fx", whois: "domain", rug: "honeypot", ether: "eth", ethereum: "eth", bitcoin: "btc", // expanded synonym set for better tool discovery
   price: "token", quote: "token", value: "token", balance: "wallet", portfolio: "wallet", holdings: "wallet",
   fee: "gas", fees: "gas", gwei: "gas", gasprice: "gas",
-  vat: "invoice", tax: "invoice", iban: "invoice", billing: "invoice",
+  vat: "invoice", tax: "invoice", billing: "invoice",
   company: "domain", firm: "domain", business: "domain", organization: "domain", organisation: "domain",
   email: "mail", mail: "email", mailbox: "email",
   phone: "contact", contact: "phone", tel: "phone", telephone: "phone",
@@ -27,7 +31,7 @@ const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall:
   stock: "equity", equity: "stock", share: "stock", shares: "stock",
   search: "find", find: "search", lookup: "search", query: "search",
   audit: "check", verify: "check", validate: "check", test: "check",
-  block: "sanctions", blocked: "sanctions", screen: "sanctions", screening: "sanctions",
+  blocked: "sanctions", screen: "sanctions", screening: "sanctions",
   phishing: "risk", malicious: "risk", scam: "risk", fraud: "risk", suspicious: "risk",
   hash: "crypto", encrypt: "crypto", decrypt: "crypto", sign: "crypto", signature: "crypto",
   json: "data", csv: "data", xml: "data", yaml: "data", parse: "data",
@@ -92,7 +96,6 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "arxiv": "/arxiv/search", "arxiv search": "/arxiv/search", "preprint": "/arxiv/search", "preprints": "/arxiv/search",
   "url to markdown": "/extract", "page to markdown": "/extract", "html to markdown": "/extract",
   "javascript page": "/extract/rendered", "rendered page": "/extract/rendered", "spa page": "/extract/rendered", "js rendered": "/extract/rendered", "dynamic page": "/extract/rendered", "client side rendered": "/extract/rendered",  "wikipedia summary": "/wikipedia", "wiki summary": "/wikipedia", "trending crypto": "/crypto/trending", "trending coins": "/crypto/trending", "crypto ohlcv": "/hyperliquid/candles", "crypto candles": "/hyperliquid/candles",
-  "random fortune": "/fortune", "fortune cookie": "/fortune", "daily fortune": "/fortune",
   "macro economic data": "/econ/snapshot", "economic indicators": "/econ/snapshot", "country economic data": "/econ/snapshot", "gdp inflation unemployment population": "/econ/snapshot",
   "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",
   "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
@@ -125,7 +128,12 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
   "contract call": "/base/call", "eth call": "/base/call", "read contract": "/base/call",
-  "vat number": "/vat/validate", "vat validation": "/vat/validate", "lei": "/lei/lookup",
+  "vat number": "/vat/validate", "vat validation": "/vat/validate", "validate vat": "/vat/validate", "lei": "/lei/lookup",
+  // 19 Nov 2026: four jobs that "validate iban", "llm pricing" and "block explorer" used to route to the wrong (and
+  // sometimes pricier) tool. Whole-word phrases win over the lexical score on all three finder surfaces.
+  "iban": "/validate/iban", "validate iban": "/validate/iban", "iban check": "/validate/iban", "iban validator": "/validate/iban",
+  "llm pricing": "/llm/prices", "model prices": "/llm/prices", "model pricing": "/llm/prices", "llm prices": "/llm/prices",
+  "block explorer": "/base/block", "block height": "/base/block", "blockchain explorer": "/base/block",
   "invoice check": "/invoice/check", "check invoice": "/invoice/check", "invoice validation": "/invoice/check", "invoice fraud": "/invoice/check", "invoice parser": "/document/extract",
   "my ip": "/ip/geolocate", "ip geolocation": "/ip/geolocate", "ip location": "/ip/geolocate", "ip lookup": "/ip/lookup", "ip whois": "/ip/lookup",
   "national debt": "/econ/national-debt", "usdc yield": "/defi/usdc-yield", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
