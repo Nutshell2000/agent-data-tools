@@ -209,6 +209,21 @@ test('OCR: an image and a scanned PDF are read through the reader it is given; w
   await assert.rejects(D.readDocument(scan, 'text', 50_000), (e) => e.status === 422 && /no text layer/.test(e.message), 'without a reader a scan fails as before');
 });
 
+test('a large URL stays within the default cap but an explicit maxBytes=20 reads it', async () => {
+  const D = await load('src/routes/document.ts');
+  const tool = D.DOCUMENT.find((e) => e.endpoint.path === '/document/text');
+  const realFetch = globalThis.fetch;
+  const url = 'https://public.example/large.docx';
+  const respond = () => new Response(tinyPdf(), { status: 200, headers: { 'content-type': 'application/pdf', 'content-length': String(12 * 1024 * 1024) } });
+  globalThis.fetch = async () => respond();
+  try {
+    await assert.rejects(tool.run({}, (n) => (n === 'url' ? url : undefined)), (e) => e.status === 422 && /10 MB limit/.test(e.message));
+    const ok = await tool.run({}, (n) => ({ url, maxBytes: '20' })[n]);
+    assert.match(ok.text, /Invoice 2026-001/);
+    assert.equal(ok.url, url);
+  } finally { globalThis.fetch = realFetch; }
+});
+
 test('fields with no URL read the published sample and say so', async () => {
   const D = await load('src/routes/document.ts');
   const tool = D.DOCUMENT.find((e) => e.endpoint.path === '/document/extract');
