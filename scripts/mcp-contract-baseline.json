@@ -1,5 +1,5 @@
 {
-  "version": "1.293.0",
+  "version": "1.293.1",
   "tools": [
     {
       "name": "extract",
@@ -14739,7 +14739,7 @@
     },
     {
       "name": "audit_website",
-      "description": "Full website audit of one URL from a single load in a real browser: WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link), page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "WCAG 2.1 A/AA accessibility audit of one URL from one browser load: axe-core violations by rule, impact and element with fix links, page speed (FCP, LCP, layout shift) and weight, on-page SEO on the rendered page, security headers with a grade. One score, top issues, and a fix link per violation. Use for a client report, an EAA check, or before launch. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16512,7 +16512,7 @@
     },
     {
       "name": "recommend",
-      "description": "Describe a task in plain words and get the best-matching paid API calls for it from a catalog of 600+ tools (web search and page reading, LLM chat, token prices and EVM chain reads, sanctions and company checks, weather, finance and utilities): each pick with the exact call URL, required inputs, price, MCP tool name and whether it is in the free calls. Use when an agent needs to find which API to call before paying for one. Example: need=current gas price on Base. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Describe a task in plain words and compare up to five paid APIs for it across the whole Coinbase Bazaar: each pick with the exact URL to call, method, price in USD, networks, 30-day payers and calls, last paid date and the evidence behind the order. Our own listings are marked, never boosted. No matching tool means no charge. Use when an agent must choose which API to call before paying one. Example: need=check whether a Base token is a honeypot. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16525,7 +16525,7 @@
         "properties": {
           "need": {
             "type": "string",
-            "description": "The task in plain words, up to 300 characters"
+            "description": "The task in plain words, 3 to 300 characters"
           },
           "count": {
             "description": "How many picks, 1 to 5 (default 3)",
@@ -16534,13 +16534,21 @@
               "number",
               "boolean"
             ]
+          },
+          "maxPrice": {
+            "type": "number",
+            "description": "Only listings at or under this price in USD"
+          },
+          "networks": {
+            "type": "string",
+            "description": "Comma-separated networks: base, polygon, arbitrum, solana"
           }
         },
         "required": [
           "need"
         ]
       },
-      "price": "$0.002"
+      "price": "$0.01"
     },
     {
       "name": "sec_8k",
