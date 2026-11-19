@@ -30,7 +30,9 @@ test('OpenAI speech body: input, voice, format and length decide the tool', asyn
   assert.deepEqual(lib.toSpeechRequest({ input: 'Hi', response_format: 'pcm' }).format, { name: 'pcm', sampleRate: 24000 });
   assert.match(lib.toSpeechRequest({ input: 'Hi', response_format: 'aac' }).error, /aac/);
   assert.equal(lib.toSpeechRequest({ input: 'Hi', response_format: 'MP3' }).tool, '/ai/speech');
-  assert.match(lib.toSpeechRequest({ input: 'Hi', speed: 1.5 }).error, /speed/);
+  // 19 Nov 2026: OpenAI SDKs send speed for pacing; accepting and ignoring it keeps a legitimate paid call alive.
+  assert.equal(lib.toSpeechRequest({ input: 'Hi', speed: 1.5 }).speedIgnored, true);
+  assert.equal(lib.toSpeechRequest({ input: 'Hi', speed: 1 }).speedIgnored, undefined);
   assert.equal(lib.toSpeechRequest({ input: 'Hi', speed: 1 }).tool, '/ai/speech');
   // A voice object ({ id }) and a language are read; an unknown language is refused.
   assert.equal(lib.toSpeechRequest({ input: 'Hola', voice: { id: 'Aquila' }, language: 'es-ES' }).voice, 'aquila');
