@@ -187,12 +187,13 @@ function productCard(p: Product, cardReady: boolean): string {
 }
 
 /** The FAQ: plain questions first, the developer ones last. Every answer restates what the docs, the privacy page or the tool descriptions already say. */
-function faqItems(brand: string, languages: string): [q: string, a: string][] {
+function faqItems(brand: string, languages: string, browserVoices: number, apiVoices: number): [q: string, a: string][] {
   return [
     ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no limit. You only pay if you build ${brand} into your own app or website.`],
     ["Do I need to sign up?", `No. Type your text or drop your file and press the button. There is nothing to fill in.`],
     ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it starts in seconds.`],
     ["Which languages does it understand?", `${languages} Subtitles come back as SRT or VTT files you can add to any video.`],
+    ["How many voices are there?", `${browserVoices} voices in the free browser tools and ${apiVoices} through the API. Both are our own voices; nothing is uploaded to make either one speak.`],
     ["Can I use it on my phone?", `Yes. Open this page on your phone, or install the free ${brand} app from glyphcall.com/app. It works on Windows, Mac, Linux, Android and iPhone, and keeps working offline.`],
     ["What happens when an API call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
     ["Can I cancel a plan?", `Any time, from the plan portal, with the e-mail address you paid with. Unused credits stay on your key and one-off packs never expire.`],
@@ -265,7 +266,9 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 </table></div><p class="small">Each column is what that amount buys if you spend it all on that one API. <a href="${esc(PLAN_PORTAL_URL)}">Cancel a plan at any time</a>. Details: <a href="/credits">pricing</a>.</p></div></details>`
     : `<p><a href="/credits">Plans and packs</a></p>`;
 
-  const faq = faqItems(brand, languages);
+  const ttsTagline = PRODUCTS.find((p) => p.slug === "text-to-speech-api")?.tagline ?? "";
+  const apiVoices = Number(/(\d+) natural voices/.exec(ttsTagline)?.[1] ?? CONSOLE_VOICES.length);
+  const faq = faqItems(brand, languages, CONSOLE_VOICES.length, apiVoices);
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
@@ -311,7 +314,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 </div></section>
 
 <section class="stats" aria-label="Why people like it"><div class="wrap"><ul class="trust">
-<li>${icon("check")}Free, no limits</li><li>${icon("user")}No account needed</li><li>${icon("lock")}Your files stay on your device</li><li>${icon("download")}Download MP3, WAV or subtitles</li><li>${icon("speaker")}${voices} natural voices</li>
+<li>${icon("check")}Free, no limits</li><li>${icon("user")}No account needed</li><li>${icon("lock")}Your files stay on your device</li><li>${icon("download")}Download MP3, WAV or subtitles</li><li>${icon("speaker")}${voices} free browser voices</li>
 </ul></div></section>
 
 <section class="sec center" id="make"><div class="wrap">
@@ -334,7 +337,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <section class="sec center" id="pricing"><div class="wrap">
 <h2>Free for everyone</h2>
 <p class="sub">Everything you make on this page and in the app is free. You only pay if you build ${esc(brand)} into your own app or website.</p>
-<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>
+<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>
 ${pricing}
 </div></section>
 

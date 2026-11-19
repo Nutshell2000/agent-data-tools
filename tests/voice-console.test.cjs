@@ -39,6 +39,25 @@ test("the front page opens on the console, with text already in it and a voice c
   assert.match(html, /<details class="menu">/, "a menu on phones");
 });
 
+test("the hero offers use-case scripts that fill the text box", () => {
+  const html = landingPage("Glyphcall", "https://x.test", true);
+  const hero = html.slice(html.indexOf('<section class="hero"'), html.indexOf('<section class="stats"'));
+  for (const label of ["Narration", "Advertisement", "Podcast", "Character"]) assert.match(hero, new RegExp(`data-preset="\\d+">${label}</button>`), label);
+  assert.match(hero, /aria-label="Try a sample script"/);
+  assert.match(html, /querySelectorAll\("\[data-preset\]"\)/, "the buttons are wired to the text box");
+  assert.equal(scripts(html), 1, "no second inline script");
+});
+
+test("the FAQ states the browser and API voice counts from the catalog", () => {
+  const html = landingPage("Glyphcall", "https://x.test", true);
+  const q = "How many voices are there?";
+  assert.ok(html.includes(q), "the voice-count question is answered");
+  const answer = html.slice(html.indexOf(q), html.indexOf(q) + 400);
+  assert.ok(answer.includes(`${VC.CONSOLE_VOICES.length} voices in the free browser tools`));
+  assert.match(answer, new RegExp(`and \\d+ through the API`));
+  assert.match(html, /free browser voices/);
+});
+
 test("the two voice product pages carry the console where they had no try", () => {
   for (const [slug, tab] of [["speech-to-text-api", "stt"], ["text-to-speech-api", "tts"]]) {
     const p = PRODUCTS.find((x) => x.slug === slug);
