@@ -411,8 +411,11 @@ app.use(async (c, next) => {
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
   // A free voice test or trial key (lib/voice-keys.ts) never reaches the credit ledger: it runs only what a voice front admitted.
   if (endpoint && creditKey && voiceKeyKind(creditKey)) return (await admitTrialUpload(c, creditKey)) ?? chargeVoiceKey(c, creditKey, next);
+  // A client that explicitly carries a payment must not be hijacked by a stale adt_ key still in the headers: chargeCredits
+  // would refuse the key before the payment branches below ever run, losing a valid paid call.
+  const carriesPayment = Boolean(c.req.header("payment-signature") || c.req.header("x-payment") || /payment/i.test(c.req.header("authorization") ?? ""));
   // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
-  if (endpoint && creditKey) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
+  if (endpoint && creditKey && !carriesPayment) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
