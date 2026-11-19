@@ -9,7 +9,7 @@ if (!rawPrivateKey || !/^0x[0-9a-fA-F]{64}$/.test(rawPrivateKey)) {
 }
 const account = privateKeyToAccount(rawPrivateKey as `0x${string}`);
 const serviceOrigin = "https://agent-data-tools.revmesh2074.workers.dev";
-const expectedPayTo = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+const expectedPayTo = "0x6293ded2684f1a76e26becef87c137d691fbf800";
 const baseUsdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const maxUsdcAtomic = 2000n; // $0.002 USDC, the current /btc-fees price
 
