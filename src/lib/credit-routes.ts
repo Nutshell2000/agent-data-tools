@@ -103,8 +103,8 @@ const AGENT_JOBS = [
   { path: "/sanctions/check", job: "OFAC sanctions screening" },
 ];
 
-function page(title: string, body: string, indexable = false) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}<style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}a.buy{display:inline-block;margin:.25rem .5rem .25rem 0;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;text-decoration:none;color:inherit}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}code,pre{background:#262626}a.buy{border-color:#eee}}</style></head><body>${body}</body></html>`;
+function page(title: string, body: string, indexable = false, description = `${title}: one API key for all tools, no account, failed calls free.`) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${indexable ? "" : `<meta name="robots" content="noindex">`}<style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}a{color:#0645ad}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}a.buy{display:inline-block;margin:.25rem .5rem .25rem 0;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;text-decoration:none;color:inherit}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#8ecbff}code,pre{background:#262626}a.buy{border-color:#eee}}</style></head><body><main>${body}</main></body></html>`;
 }
 
 export const credits = new Hono<{ Bindings: Env }>();
