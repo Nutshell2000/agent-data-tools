@@ -68,9 +68,9 @@ const from = (list: Entry[], path: string): Entry => {
 const core = (path: string, price: string, params: Entry["endpoint"]["params"], outputExample: Record<string, unknown>, run: Entry["run"]): Entry =>
   ({ endpoint: { path, price, summary: "", description: "", tags: [], params, outputExample }, run });
 
-function door(path: string, summary: string, description: string, tags: string[], src: Entry, run: Entry["run"] = src.run, params = src.endpoint.params, example = src.endpoint.outputExample, price = src.endpoint.price): Entry {
+function door(path: string, summary: string, description: string, tags: string[], src: Entry, run: Entry["run"] = src.run, params = src.endpoint.params, example = src.endpoint.outputExample): Entry {
   ENTRY_OF[path] = src.endpoint.path;
-  return entry(path, summary, description, tags, params, example, run, price);
+  return entry(path, summary, description, tags, params, example, run, src.endpoint.price);
 }
 
 /** /page/markdown: the page reader with Markdown as the format when the caller names none. */
@@ -531,7 +531,7 @@ export const ENTRY_PATHS: Entry[] = [
   // ~460 times each on 16-17 Nov; /pack/url-safety appeared under neither phrase. Its first door.
   door("/url/safety-check", "URL safety check: is this link safe",
     "URL safety check: is this link safe to open or pay? Two phishing blocklists (Phishing.Database, MetaMask) on every host the link passes through, each redirect hop and the final URL, the destination domain's age and trust flags, HTTPS and security headers, and named risk signals (new domain, bare IP, punycode look-alike, user@host trick), with an overall risk of low, medium or high. Use to vet links in emails, chats or scraped pages.",
-    ["url-safety-check", "is-this-link-safe", "link-checker", "phishing-check", "scam-url", "security"], from(PACKS_RESEARCH, "/pack/url-safety"), undefined, undefined, undefined, "$0.01"),
+    ["url-safety-check", "is-this-link-safe", "link-checker", "phishing-check", "scam-url", "security"], from(PACKS_RESEARCH, "/pack/url-safety")),
 
   door("/exif", "EXIF data: camera, date and GPS",
     "EXIF data of a photo from its URL: camera make and model, lens, date taken, exposure, aperture, ISO, focal length, orientation, software and the GPS position (latitude, longitude, altitude) when it was recorded, with the image format, width and height. JPEG EXIF; PNG, GIF and WebP give size only. Up to 15 MB. Use to check where and when a photo was taken or to verify an upload.",
