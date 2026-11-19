@@ -45,6 +45,8 @@ for (const host of HOSTS) for (const p of PATHS) {
     assert.equal(bare.status, 402, `${p} quotes`);
     const tpl = T.toTemplate(bare.status, bare.headers, bareText);
     assert.ok(tpl.mpp.length >= 1, "template keeps the MPP route terms");
+    // A blank scope minted challenges for no route: Challenge.meta() is undefined on a deserialized challenge (19 Nov).
+    for (const t of tpl.mpp) assert.ok(t.scope.length > 0 && t.request && t.intent, `${p}: ${t.method} terms carry the route scope`);
     for (const q of QUERIES) {
       const url = host + p + q;
       const core = await ask(url);

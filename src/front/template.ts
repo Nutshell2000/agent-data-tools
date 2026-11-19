@@ -11,8 +11,7 @@
  * (origin + path + "?" + URLSearchParams(query) + "&trial=1", or "?trial=1" with no query), the only per-request
  * fields of a quote. tests/quote-front-template.test.cjs compares the result with the real core, byte for byte.
  */
-import { Challenge } from "mppx";
-import type { MppTerms } from "./challenges";
+import { termsOf, type MppTerms } from "./challenges";
 
 export interface QuoteTemplate {
   v: 1;
@@ -41,9 +40,9 @@ export function toTemplate(status: number, headers: Headers, bodyText: string): 
   const pr = headers.get("payment-required");
   const mpp: MppTerms[] = [];
   for (const raw of [...headers.entries()].filter(([n]) => n.toLowerCase() === "www-authenticate").flatMap(([, v]) => splitChallenges(v))) {
-    const ch = Challenge.deserialize(raw) as unknown as { method: string; intent: string; request: Record<string, unknown>; description?: string };
-    const meta = (Challenge.meta(ch as never) ?? {}) as Record<string, string>;
-    mpp.push({ method: ch.method as MppTerms["method"], intent: ch.intent, request: ch.request, ...(ch.description ? { description: ch.description } : {}), scope: meta._mppx_scope ?? "" });
+    const terms = termsOf(raw);
+    if (!terms) throw new Error("not a tempo/evm challenge with a scope");
+    mpp.push(terms);
   }
   return { v: 1, status, headers: kept, paymentRequired: pr ? JSON.parse(b64decode(pr)) : null, body: JSON.parse(bodyText), mpp };
 }

@@ -32,6 +32,22 @@ function randomNonce(): string {
   return "0x" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * The route terms of one serialized challenge, or undefined when it is not a tempo/evm challenge with a scope.
+ * A deserialized challenge keeps its meta only as `opaque` (base64url JSON); Challenge.meta() reads it on some mppx
+ * builds and returns undefined on others, so both are tried (a missing scope would mint challenges for the wrong route).
+ */
+export function termsOf(raw: string): MppTerms | undefined {
+  const ch = Challenge.deserialize(raw) as unknown as { method: string; intent: string; request: Record<string, unknown>; description?: string; opaque?: string };
+  if (ch.method !== "tempo" && ch.method !== "evm") return undefined;
+  let meta = (Challenge.meta(ch as never) ?? undefined) as Record<string, string> | undefined;
+  if (!meta && ch.opaque) {
+    try { meta = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(ch.opaque.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (ch.opaque.length % 4)) % 4)), (c) => c.charCodeAt(0)))); } catch { meta = undefined; }
+  }
+  if (!meta?._mppx_scope) return undefined;
+  return { method: ch.method, intent: ch.intent, request: ch.request, ...(ch.description ? { description: ch.description } : {}), scope: meta._mppx_scope };
+}
+
 /** A fresh, serialized WWW-Authenticate challenge for these terms on this realm. */
 export function mintChallenge(terms: MppTerms, realm: string, secretHex: string, now = Date.now()): string {
   const challenge = Challenge.from({
