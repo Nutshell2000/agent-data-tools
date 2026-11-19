@@ -90,6 +90,17 @@ export const ECON: Entry[] = [
     { country: SWE, population: { indicator: "Population, total", latest: { year: 2025, value: 10596620 }, values: [{ year: 2025, value: 10596620 }] },
       populationGrowth: { indicator: "Population growth (annual %)", latest: { year: 2025, value: 0.25 }, values: [{ year: 2025, value: 0.25 }] },
       urbanShare: { indicator: "Urban population (% of total population)", latest: { year: 2025, value: 89.0 }, values: [{ year: 2025, value: 89.0 }] }, source: SOURCE }),
+  // 19 Nov 2026: a router seller earns $0.10 a call on the job phrase "macro economic data" and we are absent from it.
+  // One call composes the four indicators a country brief needs, from the same committed snapshot; no new fetch.
+  econTool("/econ/snapshot", "Macro economic data: GDP, inflation, unemployment and population by country",
+    "Macro economic data for any country in one call: GDP in current US dollars, consumer-price inflation %, unemployment % of the labour force and total population, each with 1-10 years of history, newest first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers quickly; the snapshot date is in the answer. Use for country briefs, market sizing and economic indicators.",
+    ["macro-economic-data", "economic-indicators", "world-bank", "gdp", "inflation", "population", "data"],
+    { gdp: "gdpUsd", inflation: "inflationPct", unemployment: "unemploymentPct", population: "population" },
+    { country: SWE,
+      gdp: { indicator: "GDP (current US$)", latest: { year: 2025, value: 668998664082.08 }, values: [{ year: 2025, value: 668998664082.08 }] },
+      inflation: { indicator: "Inflation, consumer prices (annual %)", latest: { year: 2025, value: 0.68 }, values: [{ year: 2025, value: 0.68 }] },
+      unemployment: { indicator: "Unemployment, total (% of total labor force) (modeled ILO estimate)", latest: { year: 2025, value: 8.69 }, values: [{ year: 2025, value: 8.69 }] },
+      population: { indicator: "Population, total", latest: { year: 2025, value: 10596620 }, values: [{ year: 2025, value: 10596620 }] }, source: SOURCE }),
   econTool("/econ/unemployment", "Unemployment rate by country: total and youth, % of labour force (World Bank)",
     "Unemployment rate of any country from World Bank data (ILO modelled estimates): total unemployment and youth unemployment (ages 15-24) as % of the labour force, for the last 1-10 years with the newest year first. Country by ISO code (SE, SWE) or English name. Read from a committed World Bank Open Data snapshot (CC BY 4.0), so every call answers at once; the snapshot date is in the answer. Use for labour-market and macro questions.",
     ["unemployment", "labour", "economy", "world-bank", "macro", "data"],
