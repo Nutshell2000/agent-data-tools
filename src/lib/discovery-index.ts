@@ -55,7 +55,7 @@ const SALES_FIRST = [
 ];
 /** The paths of SALES_FIRST, for short lists that feature a few of them (lib/first-call.ts). */
 export const salesFirstPaths = (): readonly string[] => SALES_FIRST;
-const SALES_LAST = /^\/(coin|dice|magic-8-ball|yes-no|echo|ping)$|^\/random\//;
+const SALES_LAST = /^\/(coin|dice|magic-8-ball|fortune|yes-no|echo|ping)$|^\/random\//;
 export function salesOrdered<T extends { path: string }>(list: readonly T[]): T[] {
   const rank = (path: string) => {
     const first = SALES_FIRST.indexOf(path);

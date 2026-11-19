@@ -126,6 +126,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   "/lei/lookup": ["lei-lookup", "legal-entity-identifier", "gleif"],
   "/vat/validate": ["vat-validation", "vat-number", "vies"],
   "/domain/availability": ["domain-availability", "domain-search", "domain-name"],
+  "/fortune": ["random-fortune", "fortune-cookie", "daily-fortune"],
   "/econ/snapshot": ["macro-economic-data", "economic-indicators", "world-bank-data"],
   "/macro/data": ["world-bank-data", "macro", "statistics"],
   "/swap/quote": ["swap-quote", "dex-aggregator", "best-route"],
