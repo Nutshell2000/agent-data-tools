@@ -83,3 +83,17 @@ test('short speech 402 steps buyers up to the heavier paid voice jobs', async ()
     assert.ok(next.every((n) => family.includes(n) && n !== path), `${path}: ${next.join(',')}`);
   }
 });
+
+test('transcription 402s step buyers up to the heavier paid jobs, never back to cheap chat', async () => {
+  const { relatedTools, relatedList, relatedLinkHeader } = await load();
+  const family = ['/transcribe/long', '/transcribe/summary', '/transcribe/speakers', '/subtitles/translate'];
+  assert.deepEqual(relatedTools('/transcribe').map((e) => e.path), family.slice(0, 3));
+  for (const path of ['/transcribe', ...family]) {
+    const next = relatedTools(path).map((e) => e.path);
+    assert.equal(next.length, 3, `${path}: ${next.join(',')}`);
+    assert.ok(next.every((n) => family.includes(n) && n !== path), `${path}: ${next.join(',')}`);
+    const list = relatedList('https://api.test', path);
+    assert.ok(list.every((r) => Number(r.price.slice(1)) > 0.01), `${path}: ${list.map((r) => r.price).join(',')}`);
+  }
+  assert.match(relatedLinkHeader('https://api.test', '/transcribe'), /<https:\/\/api\.test\/transcribe\/long>; rel="related"/);
+});

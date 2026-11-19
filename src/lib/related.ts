@@ -43,6 +43,15 @@ const RELATED_OVERRIDE: Readonly<Record<string, readonly string[]>> = Object.fre
   "/text-to-speech/captions": ["/text-to-speech", "/dub", "/voice/agent"],
   "/voice/agent": ["/dub", "/text-to-speech", "/text-to-speech/captions"],
   "/dub": ["/voice/agent", "/text-to-speech", "/text-to-speech/captions"],
+  // 20 Nov 2026, transcription family: /transcribe ($0.01) and its heavier siblings also pointed at /ai/chat
+  // ($0.002) at the quote moment — a cheaper text job offered to a buyer who asked to transcribe. Same step-up as
+  // the voice family above: every tool here is CAPACITY_LIMITED and priced above /transcribe, so each link is a
+  // guaranteed paid job, never a freebie.
+  "/transcribe": ["/transcribe/long", "/transcribe/summary", "/transcribe/speakers"],
+  "/transcribe/long": ["/transcribe/summary", "/transcribe/speakers", "/subtitles/translate"],
+  "/transcribe/summary": ["/transcribe/long", "/transcribe/speakers", "/subtitles/translate"],
+  "/transcribe/speakers": ["/transcribe/long", "/transcribe/summary", "/subtitles/translate"],
+  "/subtitles/translate": ["/transcribe/long", "/transcribe/summary", "/transcribe/speakers"],
 });
 
 /**
