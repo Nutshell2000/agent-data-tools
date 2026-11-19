@@ -21,6 +21,9 @@ const UNISWAP: Record<string, { factory: Address; weth: Address }> = {
   eth: { factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984", weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
   arb: { factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984", weth: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1" },
   op: { factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984", weth: "0x4200000000000000000000000000000000000006" },
+  // 19 Nov 2026: Polygon is a top-5 EVM chain and a measured token-price demand; the factory is the same deterministic
+  // Uniswap v3 deployment already used for Polygon in chain-more.ts, and WETH is Polygon's wrapped ether (lib/tickers).
+  polygon: { factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984", weth: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" },
 };
 const SLUGS = Object.keys(UNISWAP) as [string, ...string[]];
 
@@ -112,7 +115,7 @@ const PRICE_TOOLS: Entry[] = [
       // value to fill in (an empty example is "none to offer", like the section input of /extract); its sample is in words.
       symbol: { type: "string", description: "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)", example: "ETH" },
       address: { type: "string", description: "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006", example: "" },
-      chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
+      chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: SLUGS, example: "base" },
     },
     {
       chain: "Base", chainId: 8453,
@@ -161,7 +164,7 @@ const PRICE_TOOLS: Entry[] = [
     ["price", "token", "batch", "crypto", "market-data", "uniswap", "defi"], {
       symbols: { type: "string", description: "Comma-separated tickers such as ETH,BTC,AERO (with or instead of addresses; 1-20 tokens in all; an HTTP call with no input at all answers for BTC and ETH)", example: "ETH,BTC,AERO" },
       addresses: { type: "string", description: "Comma-separated 0x ERC-20 token addresses (with or instead of symbols; 1-20 tokens in all)", example: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf,0x4200000000000000000000000000000000000006" },
-      chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
+      chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: SLUGS, example: "base" },
     },
     {
       chain: "Base", chainId: 8453, ethUsd: 3850.12, block: 37000000, networks: [{ chain: "Base", chainId: 8453, block: 37000000 }],
@@ -218,7 +221,7 @@ const PRICE_TOOLS: Entry[] = [
     "USD value of a wallet on Base, Ethereum, Arbitrum or Optimism: native ETH plus major tokens (USDC and WETH everywhere, the common Base tokens on Base) and up to 20 tokens you add, each priced from its deepest Uniswap v3 pool, read live from the chain. Returns holdings, total and anything that could not be priced. Not a full token inventory. Use to check what a wallet is worth before trading, lending or paying.",
     ["wallet", "portfolio", "balance", "price", "crypto", "defi"], {
       address: { type: "string", description: "0x wallet address", required: true, example: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" },
-      chain: { type: "string", description: "Network: base (default), eth, arb or op", enum: SLUGS, example: "base" },
+      chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: SLUGS, example: "base" },
       tokens: { type: "string", description: "Optional extra comma-separated 0x token addresses (up to 20)", example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },
     },
     {

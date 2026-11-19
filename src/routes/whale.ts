@@ -2,7 +2,7 @@
 // nothing of ours was in it. Read straight from each network's public nodes (eth_getLogs on the USDC/USDT contracts),
 // so the data is our own: no explorer or labelling service. Mints and burns are marked; addresses are not labelled.
 import { formatUnits } from "viem";
-import { entry, num, opt, type Entry } from "../family";
+import { allowedValue, entry, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { recentBlockSeconds } from "../lib/block-time";
 import { tokenAddress } from "../lib/tickers";
@@ -25,8 +25,11 @@ const PACE: Record<string, { secs: number; window: number; max: number }> = {
 const CHAIN_NAMES: Record<string, string> = { ethereum: "eth", eth: "eth", mainnet: "eth", base: "base", arbitrum: "arb", arb: "arb", "arbitrum one": "arb", optimism: "op", op: "op", polygon: "polygon", matic: "polygon", pol: "polygon", "polygon pos": "polygon" };
 
 export function chainSlug(raw: string | undefined): string {
-  const key = (raw ?? "ethereum").trim().toLowerCase();
-  const slug = Object.hasOwn(CHAIN_NAMES, key) ? CHAIN_NAMES[key] : null;
+  // Accept the same spellings every other chain family accepts (names, numeric ids 1/8453/42161/10/137, and CAIP-2
+  // eip155:) so an agent that used chain=1 on /price/token is not refused on the whale/token/pool siblings.
+  const key = (raw ?? "ethereum").trim().toLowerCase().replace(/^eip155:/i, "");
+  const slug = (Object.hasOwn(CHAIN_NAMES, key) ? CHAIN_NAMES[key] : null)
+    ?? allowedValue(key, ["eth", "base", "arb", "op", "polygon"]);
   if (!slug) throw new HttpError(400, "chain must be ethereum, base, arbitrum, optimism or polygon");
   return slug;
 }
