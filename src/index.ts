@@ -99,7 +99,7 @@ import { frontKeyPrice } from "./lib/voice-billing";
 import { ELEVEN_STT_PATH, ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH, OPENAI_TRANSCRIPTIONS_PATH, admitTrialUpload, elevenLabsSpeech, transcribeFront } from "./lib/voice-fronts";
 import { ELEVEN_TTS_TIMESTAMPS_PATH, elevenSpeechWithTimestamps } from "./lib/eleven-timestamps";
 import { ELEVEN_LIST_HEADERS, ELEVEN_SUBSCRIPTION_PATH, ELEVEN_USER_PATH, ELEVEN_VOICES_PATHS, ELEVEN_VOICE_PATH, elevenModels, elevenSubscriptionRoute, elevenUserRoute, elevenVoiceRoute, elevenVoicesRoute, wantsElevenShape } from "./lib/eleven-account";
-import { ANTHROPIC_MESSAGES_PATH, anthropicMessages } from "./lib/anthropic-messages";
+import { ANTHROPIC_MESSAGES_PATH, ANTHROPIC_COUNT_TOKENS_PATH, anthropicMessages, anthropicModels, countTokens } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
 import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
 import { SEARCH_API_PATHS, searchApi, type SearchApiPath } from "./lib/search-api";
@@ -591,7 +591,7 @@ app.all("/mcp/k/:key/:bundle", (c) => handleMcp(c, c.req.param("bundle"), c.req.
 // inputs in the query (directories that index every route as GET send agents that way). GET /v1/models is free.
 app.on(["GET", "HEAD", "POST"], OPENAI_CHAT_PATH, (c) => openAiChatCompletions(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 // The chat models, then the audio models and names the voice fronts take (lib/openai-voices.ts `audioModels`). Always 200, with or without a key.
-app.get(OPENAI_MODELS_PATH, (c) => { if (wantsElevenShape((n) => c.req.header(n))) return c.json(elevenModels(), 200, { ...ELEVEN_LIST_HEADERS, Vary: "xi-api-key" }); const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
+app.get(OPENAI_MODELS_PATH, (c) => { if (wantsElevenShape((n) => c.req.header(n))) return c.json(elevenModels(), 200, { ...ELEVEN_LIST_HEADERS, Vary: "xi-api-key" }); if (c.req.header("anthropic-version")) return c.json(anthropicModels(), 200, { "Cache-Control": "public, max-age=3600", Vary: "anthropic-version" }); const list = openAiModels(); const audio = audioModels(origin(c.req.url), voiceTestKeysOn(c.env)); return c.json({ ...list, data: [...list.data, ...audio.data], audio: audio.about }, 200, { "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" }); });
 app.on(["GET", "HEAD", "POST"], OPENAI_RESPONSES_PATH, (c) => openAiResponses(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_EMBEDDINGS_PATH, (c) => openAiEmbeddings(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], OPENAI_IMAGES_PATH, (c) => openAiImages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
@@ -615,6 +615,13 @@ for (const path of [ELEVEN_TTS_PATH, ELEVEN_TTS_STREAM_PATH]) app.on(["GET", "HE
 app.on(["GET", "HEAD", "POST"], ELEVEN_STT_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "eleven"));
 app.on(["GET", "HEAD", "POST"], OPENAI_TRANSCRIPTIONS_PATH, (c) => transcribeFront(c, (req) => app.fetch(req, c.env, c.executionCtx), "openai"));
 app.post(ANTHROPIC_MESSAGES_PATH, (c) => anthropicMessages(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+// Anthropic SDKs call this during setup; a free local estimate keeps the paid /v1/messages call reachable.
+app.on(["GET", "HEAD", "POST"], ANTHROPIC_COUNT_TOKENS_PATH, async (c) => {
+  const body = c.req.method === "GET"
+    ? { messages: [{ role: "user", content: c.req.query("prompt") ?? "" }] }
+    : await c.req.json().catch(() => ({}));
+  return c.json(countTokens(body));
+});
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GET", "HEAD", "POST"], path, (c) => searchApi(c, path, (req) => app.fetch(req, c.env, c.executionCtx)));
