@@ -14,7 +14,7 @@
 import { Hono, type Context } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
-import { FREE_KEY_CALLS, hashCreditKey, newCreditKey, utcMonth } from "./credits";
+import { FREE_KEY_CALLS, hashCreditKey, newCreditKey, planLinks, topUpLinks, utcMonth } from "./credits";
 import { callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
 import { markStage } from "./funnel";
@@ -167,9 +167,16 @@ freeKeys.get("/keys/free/confirm", async (c) => {
   }
   const origin = new URL(c.req.url).origin;
   if (!issued.key) return fail(400, "This address already has a key, and it was replaced since it was first shown. Use your current key; its allowance is at /credits/balance.");
-  const result = { apiKey: issued.key, callsEachMonth: issued.perMonth, what: WHAT, mcpUrl: `${origin}/mcp/k/${issued.key}`, balance: `${origin}/credits/balance`, addCredits: `${origin}/credits` };
+  // 19 Nov 2026: the page promises credits are "added to this same key", but plain /credits links issue a NEW key on
+  // claim. Build the pack/plan links with this key's topup reference so Stripe's client_reference_id routes the grant
+  // back to the same key — the same mechanism the claim page and insufficient-credit errors already use.
+  const freeKeyHash = await hashCreditKey(issued.key);
+  const packs = topUpLinks(freeKeyHash).map((l) => `<a class="buy" href="${esc(l.buy)}">${esc(l.price)}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
+  const plans = planLinks(freeKeyHash).map((l) => `<a class="buy" href="${esc(l.buy)}">${esc(l.price)}: ${l.creditsEachMonth.toLocaleString("en-US")} credits each month</a>`).join("");
+  const upgradeLinks = `${packs}${plans ? `<br>${plans}` : ""}`;
+  const result = { apiKey: issued.key, callsEachMonth: issued.perMonth, what: WHAT, mcpUrl: `${origin}/mcp/k/${issued.key}`, balance: `${origin}/credits/balance`, addCredits: `${origin}/credits`, topUp: packs ? topUpLinks(freeKeyHash) : undefined, plans: plans ? planLinks(freeKeyHash) : undefined };
   if (!html) return c.json(result);
   return c.html(page("Your free API key", `<h1>Your free API key</h1><pre>${esc(issued.key)}</pre><p><strong>Save it now.</strong> Opening this link again within ${FREE_KEY_LINK_HOURS} hours shows the same key; after that, keep your own copy.</p><p>${esc(WHAT)}</p>
 <h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" "${esc(origin)}/pdf/text?url=https://bitcoin.org/bitcoin.pdf&amp;pages=1"</pre><p>Send a file instead of a link:</p><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" -H "Content-Type: application/pdf" --data-binary @invoice.pdf "${esc(origin)}/pdf/text"</pre>
-<p>Calls left this month: <code>${esc(origin)}/credits/balance</code> with the same header. More calls or the tools a free key does not cover: <a href="/credits">credits from $1 or a monthly plan</a>, added to this same key.</p>`));
+<p>Calls left this month: <code>${esc(origin)}/credits/balance</code> with the same header. More calls or the tools a free key does not cover — these are added to <strong>this same key</strong>, so your apps keep working:</p><p>${upgradeLinks}</p><p><a href="/credits">See all options and prices</a>.</p>`));
 });

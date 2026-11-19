@@ -29,6 +29,9 @@ test("the front page opens on the console, with text already in it and a voice c
   assert.match(hero, /id="hero-vc"/);
   assert.match(hero, /<textarea id="hero-vc-text"[^>]*>Welcome!/);
   assert.match(hero, /on your own phone or computer/, "the console also works on a phone");
+  // 19 Nov 2026: the textarea is capped at 200,000 characters — the copy must not promise "no limit".
+  assert.match(html, /characters \(up to 200,000\)/, "the runtime counter states the real cap");
+  assert.doesNotMatch(hero, /no limit|No credits or limits/i, "no false no-limit claim in the visible copy");
   assert.match(hero, /data-voice="af_heart" aria-pressed="true"/);
   assert.equal((hero.match(/aria-pressed="true"/g) ?? []).length, 1, "one voice preselected");
   assert.match(hero, /&#9654; Play/);

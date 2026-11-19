@@ -478,8 +478,8 @@ ${consoleHtml}
 <h3>Node.js</h3>
 <pre><code>${esc(s.node)}</code></pre>
 ${p.upload ? `<h3>Send a file instead of a URL</h3>
-<pre><code>${esc(`curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@report.pdf" -F "pages=5" \\\n  "${origin}${e.path}"`)}</code></pre>
-<p class="small">Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB. The file is read in memory for this one request and not stored.</p>` : ""}
+<pre><code>${esc(p.tool === "/transcribe" ? `curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@recording.mp3" \\\n  "${origin}${e.path}"` : `curl -H "Authorization: Bearer $API_KEY" \\\n  -F "file=@report.pdf" -F "pages=5" \\\n  "${origin}${e.path}"`)}</code></pre>
+<p class="small">${p.tool === "/transcribe" ? `Or the raw audio as the body: <code>--data-binary @recording.mp3 -H "Content-Type: audio/mpeg"</code>. MP3 or WAV up to 5 MB (longer files use /transcribe/long).` : `Or the raw file as the body: <code>--data-binary @report.pdf -H "Content-Type: application/pdf"</code>. Up to 10 MB.`} The file is read in memory for this one request and not stored.</p>` : ""}
 ${p.batch ? batchSection(e, origin, keyPrice) : ""}
 <h2>The answer</h2>
 <pre><code>${esc(shown)}</code></pre>

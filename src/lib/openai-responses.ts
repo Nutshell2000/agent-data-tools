@@ -59,6 +59,30 @@ export function toResponsesAnswer(query: ChatQuery, result: { model?: string; re
   };
 }
 
+/**
+ * 19 Nov 2026: an OpenAI Agents SDK asks /v1/responses with `stream: true` and expects semantic SSE events
+ * (`response.created`, `response.output_text.delta`, `response.completed`). Before this, the JSON answer was returned
+ * with the wrong content type and the client failed to parse it. The tool answers in one piece, so the text is one
+ * delta; the event shapes and names follow the official Responses streaming guide.
+ */
+export function toResponsesStream(answer: ReturnType<typeof toResponsesAnswer>): string {
+  const ev = (type: string, data: Record<string, unknown>) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
+  const item = answer.output[0];
+  const itemId = item.id;
+  const text = answer.output_text;
+  const part = { type: "output_text", text, annotations: [] };
+  return [
+    ev("response.created", { response: { ...answer, status: "in_progress", output: [], output_text: "" } }),
+    ev("response.output_item.added", { output_index: 0, item: { ...item, content: [] } }),
+    ev("response.content_part.added", { item_id: itemId, output_index: 0, content_index: 0, part: { ...part, text: "" } }),
+    ev("response.output_text.delta", { item_id: itemId, output_index: 0, content_index: 0, delta: text }),
+    ev("response.output_text.done", { item_id: itemId, output_index: 0, content_index: 0, text }),
+    ev("response.content_part.done", { item_id: itemId, output_index: 0, content_index: 0, part }),
+    ev("response.output_item.done", { output_index: 0, item }),
+    ev("response.completed", { response: answer }),
+  ].join("");
+}
+
 /** The Responses body a GET query stands for (`input=`, optional instructions, model, max_output_tokens, temperature), or null. */
 export function responsesBodyFromQuery(params: Record<string, string>): Record<string, unknown> | null {
   const input = params.input ?? params.prompt ?? params.q;
@@ -78,7 +102,13 @@ export async function openAiResponses(c: C, forward: Forward): Promise<Response>
   const body = await requestBody(c, responsesBodyFromQuery);
   const done = await completeChat(c, forward, toChatBody(body));
   if (!done.ok) return done.response;
-  const out = c.json(toResponsesAnswer(done.query, done.result, done.requestedModel), 200);
+  const answer = toResponsesAnswer(done.query, done.result, done.requestedModel);
+  if (body && typeof body === "object" && (body as { stream?: unknown }).stream === true) {
+    const sse = new Response(toResponsesStream(answer), { status: 200, headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store" } });
+    for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = done.answer.headers.get(name); if (v) sse.headers.set(name, v); }
+    return sse;
+  }
+  const out = c.json(answer, 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = done.answer.headers.get(name); if (v) out.headers.set(name, v); }
   out.headers.set("Cache-Control", "no-store");
   return out;
@@ -124,7 +154,7 @@ export function openAiResponsesOpenApiPath(origin: string, prices: { small: stri
                   instructions: { type: "string", description: "Optional system prompt" },
                   max_output_tokens: { type: "integer", minimum: 1, maximum: 1024 },
                   temperature: { type: "number", minimum: 0, maximum: 1.5 },
-                  stream: { type: "boolean", description: "Must be false or absent" },
+                  stream: { type: "boolean", description: "true answers Responses semantic server-sent events ending with response.completed" },
                 },
               },
               example: { model: CHAT_MODEL, instructions: "You are a concise assistant.", input: "Explain HTTP status code 402 in one sentence.", max_output_tokens: 200 },
