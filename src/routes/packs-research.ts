@@ -141,7 +141,7 @@ export const PACKS_RESEARCH: Entry[] = [
 
   // 31 Oct 2026: the shopper that bought our /news pays $0.04 a call elsewhere for "Market & Brand Sentiment"; the name carries that phrase.
   entry("/pack/news-sentiment", "Brand sentiment, news sentiment: headlines with sentiment scores",
-    "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief.",
+    "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use when an agent needs a market mood check, brand monitoring or a news brief.",
     ["news-sentiment", "sentiment-analysis", "news", "pack", "crypto-news", "market-sentiment"], {
       q: { type: "string", description: "News topic, at most 400 characters", required: true, example: "bitcoin" },
       count: { type: "integer", description: "Number of articles (1-10, default 5)", example: 5 },
@@ -187,7 +187,7 @@ export const PACKS_RESEARCH: Entry[] = [
     }, "$0.002"),
 
   entry("/pack/url-safety", "URL safety check, scam signals: domain age, redirects and HTTPS",
-    "Check a link before an agent opens or pays it: two phishing blocklists (Phishing.Database, MetaMask) on every host it passes through, where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use to vet links in emails, chats and scraped pages, or a payee's website.",
+    "Check a link before an agent opens or pays it: two phishing blocklists on every host it passes through, where it really leads (redirect hops and final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use when an agent must vet a link from an email, chat or scraped page, or a payee's website.",
     ["url-safety", "scam-check", "phishing-check", "link-checker", "pack", "security"], {
       url: { type: "string", description: "The link to check (http or https)", required: true, example: "http://github.com" },
     },

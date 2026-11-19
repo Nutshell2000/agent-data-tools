@@ -402,7 +402,7 @@ export const AI_TEXT: Entry[] = [
       const [head, ...rest] = reply.split(/\n\s*POINTS:\s*/i);
       return { summary: head.replace(/^\s*SUMMARY:\s*/i, "").trim(), keyPoints: rest.join("\n").split("\n").map((l) => l.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean), model: MODELS.text };
     }),
-  ai("/ai/sentiment", "Sentiment analysis of text", "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies.",
+  ai("/ai/sentiment", "Sentiment analysis of text", "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use when an agent needs to triage reviews, support messages, social posts or replies by tone.",
     ["sentiment", "nlp", "classification"], { text: { type: "string", description: "English text, up to 4,000 characters", required: true, example: "The checkout was fast and support answered within minutes." } },
     { label: "POSITIVE", score: 0.9987, scores: { POSITIVE: 0.9987, NEGATIVE: 0.0013 }, model: AI_MODELS.sentiment },
     async (env, q) => {

@@ -312,7 +312,7 @@ export const CORE_ENDPOINTS = [
     price: "$0.01",
     summary: "Describe image, ask about it",
     description:
-      "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB; a web page URL is read through its preview image (og:image). Use for alt text, OCR-style reading of screenshots, chart reading and content checks.",
+      "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB; a web page URL is read through its preview image (og:image). Use when an agent needs alt text, OCR-style reading of a screenshot, chart reading or a content check.",
     tags: ["vision", "image", "ocr", "caption", "ai"],
     params: {
       url: { type: "string", description: "Absolute http(s) URL of a PNG, JPEG, WebP or GIF image (max 3 MB), or of a web page whose preview image should be described", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png" },

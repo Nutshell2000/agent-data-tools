@@ -1,8 +1,15 @@
 {
-  "name": "agent-data-tools",
-  "description": "600+ pay-per-call data and AI tools for agents.",
-  "owner": { "name": "SpellzCode" },
+  "name": "spellzcode-agent-data-tools",
+  "description": "SpellzCode's pay-per-call tool catalog for AI agents: web and document reading, search, LLM chat, crypto prices, chain reads, company and sanctions checks. 25 free calls, then card credits or USDC.",
+  "owner": {
+    "name": "SpellzCode",
+    "url": "https://glyphcall.com/about"
+  },
   "plugins": [
-    { "name": "agent-data-tools", "source": "./claude-plugin", "description": "600+ pay-per-call data and AI tools for agents." }
+    {
+      "name": "agent-data-tools",
+      "source": "./claude-plugin",
+      "description": "Remote MCP server exposing the Agent Data Tools catalog (compact discovery: find_tool, tool_details, call_tool). 25 free calls, then USDC via x402 or prepaid credits."
+    }
   ]
 }

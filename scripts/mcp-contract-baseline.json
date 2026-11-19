@@ -1,5 +1,5 @@
 {
-  "version": "1.259.0",
+  "version": "1.262.0",
   "tools": [
     {
       "name": "extract",
@@ -887,7 +887,7 @@
     },
     {
       "name": "describe",
-      "description": "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB; a web page URL is read through its preview image (og:image). Use for alt text, OCR-style reading of screenshots, chart reading and content checks. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Vision model for an image at a public URL: get a detailed description including any visible text, or pass a question to ask something specific about the image. Accepts PNG, JPEG, WebP and GIF up to 3 MB; a web page URL is read through its preview image (og:image). Use when an agent needs alt text, OCR-style reading of a screenshot, chart reading or a content check. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16093,7 +16093,7 @@
     },
     {
       "name": "pack_news_sentiment",
-      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use for a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Brand sentiment from the news on a topic in one call: the latest headlines from the Brave News index (title, URL, publisher, age), each with a positive or negative score from a DistilBERT model, and the balance across them. Up to 10 articles from the past day, week or month. Not a market signal. Results are for the caller's immediate use only (Brave API terms). Use when an agent needs a market mood check, brand monitoring or a news brief. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -16151,7 +16151,7 @@
     },
     {
       "name": "pack_url_safety",
-      "description": "Check a link before an agent opens or pays it: two phishing blocklists (Phishing.Database, MetaMask) on every host it passes through, where it really leads (each redirect hop, the final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use to vet links in emails, chats and scraped pages, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Check a link before an agent opens or pays it: two phishing blocklists on every host it passes through, where it really leads (redirect hops and final URL), the destination domain's age, registrar and trust flags, HTTPS and security headers, and named risk signals (days-old domain, bare IP host, punycode look-alike, user@host trick). Use when an agent must vet a link from an email, chat or scraped page, or a payee's website. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -17048,7 +17048,7 @@
     },
     {
       "name": "wikipedia",
-      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet. Example: title=Stockholm. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use when an agent needs to ground an answer in a quick, citable fact sheet. Example: title=Stockholm. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21929,7 +21929,7 @@
     },
     {
       "name": "ai_sentiment",
-      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use to triage reviews, support messages, social posts and replies. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Positive or negative sentiment of English text with a confidence score, from a DistilBERT model fine-tuned on SST-2. Use when an agent needs to triage reviews, support messages, social posts or replies by tone. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

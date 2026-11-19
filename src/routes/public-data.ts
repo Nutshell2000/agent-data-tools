@@ -159,7 +159,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { country, countryName: countryName(country) ?? country, year, count: world.length, holidays: world, note: "From Nager.Date (date.nager.at). Holidays with nationwide false apply only in some regions.", source: "Nager.Date" };
     }),
 
-  entry("/wikipedia", "Wikipedia article summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",
+  entry("/wikipedia", "Wikipedia article summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use when an agent needs to ground an answer in a quick, citable fact sheet.",
     ["wikipedia", "knowledge", ...P], { title: { type: "string", description: "Article title", required: true, example: "Stockholm" }, lang: { type: "string", description: "Language code (default en)", example: "en" } },
     { title: "Stockholm", description: "Capital of Sweden", extract: "Stockholm is the capital and most populous city of Sweden…", url: "https://en.wikipedia.org/wiki/Stockholm", thumbnail: "https://upload.wikimedia.org/…", licence: "CC BY-SA 4.0", attribution: "Text from the Wikipedia article \"Stockholm\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {

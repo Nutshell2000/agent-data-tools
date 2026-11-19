@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.259.0";
+export const MCP_SERVER_VERSION = "1.262.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -94,10 +94,7 @@ export function agentCard(origin: string, networks: readonly string[] = ["eip155
     version: MCP_SERVER_VERSION,
     documentationUrl: `${origin}/llms.txt`,
     iconUrl: serviceIconUrl(site, SERVICE_ICON_URL),
-    // A2A v1.0 reads supportedInterfaces[0] to pick a transport; without it a 1.0 client cannot use this card.
-    // The endpoint exists: POST /a2a answers SendMessage by finding the paid calls for a job and returning their terms.
-    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extendedAgentCard: false },
-    supportedInterfaces: [{ url: `${origin}/a2a`, protocolBinding: "JSONRPC", protocolVersion: "1.0" }],
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false },
     defaultInputModes: ["text/plain", "application/json"],
     defaultOutputModes: ["application/json"],
     securitySchemes: {
@@ -105,7 +102,7 @@ export function agentCard(origin: string, networks: readonly string[] = ["eip155
       apiKey: { type: "apiKey", in: "header", name: "Authorization", description: `Prepaid card credits from ${origin}/credits: "Bearer adt_…" (or api_key=adt_… in the URL).` },
     },
     payment: { protocol: "x402", asset: "USDC", networks, freeCalls: FREE_CALLS_PER_CALLER, credits: `${origin}/credits` },
-    interfaces: { openapi: `${origin}/openapi.json`, mcp: `${origin}/mcp`, llms: `${origin}/llms.txt`, discovery: `${origin}/discovery/resources`, evidence: `${origin}/.well-known/seller-evidence.json` },
+    interfaces: { openapi: `${origin}/openapi.json`, mcp: `${origin}/mcp`, llms: `${origin}/llms.txt`, discovery: `${origin}/discovery/resources` },
     skills: lead.map((e) => ({ id: mcpName(e.path), name: bazaarName(e.summary), description: e.description, tags: e.tags.slice(0, 5), price: e.price, examples: [`${origin}${e.path}?${exampleQuery(e)}`], inputModes: ["application/json"], outputModes: ["application/json"] })),
   };
 }
@@ -258,8 +255,6 @@ const CATEGORY_RULES: [string, (path: string) => boolean][] = [
 export const CATEGORY_ORDER = [...CATEGORY_RULES.map(([name]) => name), "Utilities"];
 /** Paths placed by name, read before the rules above (10 Nov 2026): a new tool or door adds a line here instead of growing a rule's pattern. */
 const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
-  // 1.259.0: the /macro/data door sits with the econ tools it runs, not in Utilities.
-  "/macro/data": "Everyday data",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
@@ -487,7 +482,6 @@ ${rows}
 <li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code>. Smaller servers, one per section: ${Object.keys(MCP_BUNDLES).map((slug) => `<code>/mcp/${slug}</code>`).join(", ")}</li>
 <li><a href="/openapi.json">OpenAPI 3.1 description</a></li>
 <li><a href="/status">Reliability: success rate and last success per tool over 7 days</a></li>
-<li><a href="/.well-known/seller-evidence.json">Signed seller evidence: 30-day paid calls and reliability, verifiable by the published Ed25519 key</a></li>
 <li><a href="/llms.txt">llms.txt</a></li>
 <li><a href="/.well-known/x402">x402 resource list</a></li>${EXTRA_LINKS.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}
 </ul>
@@ -764,7 +758,6 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpListed(mcpBundleTools(slug)!).length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
-    `- [Signed seller evidence, 30-day paid calls and reliability](${origin}/.well-known/seller-evidence.json)`,
     `- [Service card](${origin}/service-card.json)`,
     `- [x402 resource list](${origin}/.well-known/x402)`,
     ...EXTRA_LINKS.map((l) => `- [${l.label}](${origin}${l.href})`),
