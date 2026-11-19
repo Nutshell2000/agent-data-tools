@@ -247,5 +247,5 @@ export const PACKS_RESEARCH: Entry[] = [
         security: { https: final ? final.protocol === "https:" : input.protocol === "https:", score: h?.score ?? null, grade: h?.grade ?? null },
         failed: redirects ? failed : { ...failed, redirects: "the link could not be followed" },
       };
-    }, "$0.01"),
+    }, "$0.02"),
 ];
