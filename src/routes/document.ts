@@ -45,7 +45,7 @@ export const FIELD_PRESETS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 type Format = "text" | "markdown";
-export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf" | "image";
+export type DocumentType = "docx" | "xlsx" | "pptx" | "pdf" | "image" | "text";
 
 /** OCR (14 Nov 2026): the largest page image the vision model is given, and how many pages of a scan are read. */
 const OCR_IMAGE_BYTES = 3 * 1024 * 1024;
@@ -337,10 +337,22 @@ async function pptxText(entries: Map<string, ZipEntry>, format: Format, read: (n
   return { text: parts.join("\n\n"), slides: numbers.length, cut: numbers.length > MAX_SLIDES };
 }
 
+/** Plain UTF-8 text (txt, md, csv, json, log) is a document too; binary files and web pages are not. */
+function plainText(bytes: Uint8Array): string | null {
+  if (!bytes.length || bytes.includes(0)) return null;
+  let decoded: string;
+  try { decoded = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes); } catch { return null; }
+  const head = decoded.trimStart().slice(0, 200).toLowerCase();
+  if (head.startsWith("<!doctype html") || head.startsWith("<html") || head.startsWith("<?xml")) return null;
+  const controls = [...decoded].filter((c) => c.charCodeAt(0) < 32 && c !== "\n" && c !== "\r" && c !== "\t").length;
+  return controls / decoded.length < 0.01 ? decoded : null;
+}
+
 /** What kind of file the bytes are, read from the bytes and never from a name or a content type. */
 export function documentType(bytes: Uint8Array, entries: Map<string, ZipEntry> | null): DocumentType | null {
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "pdf";
   if (imageType(bytes)) return "image";
+  if (!entries && plainText(bytes) !== null) return "text";
   if (!entries) return null;
   if (entries.has("word/document.xml")) return "docx";
   if (entries.has("xl/workbook.xml")) return "xlsx";
@@ -355,7 +367,7 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
     const old = bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0;
     throw new HttpError(415, old
       ? "this is an old binary Office file (.doc, .xls or .ppt); save it as .docx, .xlsx or .pptx and send that (nothing was charged)"
-      : "the file is not a Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF or image (PNG, JPEG, WebP) file (nothing was charged)");
+      : "the file is not a Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, image (PNG, JPEG, WebP) or plain UTF-8 text file (nothing was charged)");
   }
   let budget = TOTAL_LIMIT;
   const read = async (name: string) => {
@@ -401,6 +413,11 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
     text = sheet.text;
     extra = { sheets: sheet.sheets, note: "Cells hold the values the file stores: a formula's last calculated result. Dates and times are given in ISO form (2026-11-14, 2026-11-14T09:30:00, 09:30:00)." };
     cut = sheet.cut;
+  } else if (type === "text") {
+    const decoded = plainText(bytes)!;
+    text = decoded.slice(0, maxChars);
+    cut = decoded.length > maxChars;
+    extra = { note: "Plain UTF-8 text: read as-is, with no layout or markup conversion. Use /extract for a web page." };
   } else {
     const deck = await pptxText(entries!, format, read);
     text = deck.text;
@@ -416,7 +433,7 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
 
 export const DOCUMENT: Entry[] = [
   entry("/document/text", "Document to text: Word, Excel, PowerPoint, PDF",
-    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
+    "Convert a document to text or Markdown: Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, plain UTF-8 text (.txt/.md/.csv/.json), and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
     ["docx-to-text", "word-to-markdown", "ocr", "xlsx-to-json", "document", "pptx", "office", "rag"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
       format: { type: "string", description: "markdown (default: headings, lists and tables kept) or text", enum: ["markdown", "text"], example: "markdown" },
