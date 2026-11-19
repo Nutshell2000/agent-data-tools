@@ -708,8 +708,9 @@ function contractEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("call"), `Eth call, ${short} contract call`.length <= 32 ? `Eth call, ${short} contract call` : `Eth call, contract call, ${short}`.length <= 32 ? `Eth call, contract call, ${short}` : `Eth call, ${short}`,
-      `Read-only contract call on ${c.name} (eth_call) at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
-      tags("eth-call", "contract", "read", "chain-data"), {
+      `eth_call: read-only contract call on ${c.name} at the latest block, without a transaction or gas: send ABI-encoded calldata, or a function signature such as balanceOf(address) with args and the call is encoded and its result decoded for you. Use to read any view function that has no dedicated tool (the example reads USDC totalSupply). Calldata up to 8 KB; a call that reverts is 422 with the reason, uncharged.`,
+      // 19 Nov 2026: routers search the underscore token "eth_call"; hyphenated "eth-call" never matched the job.
+      tags("eth_call", "eth-call", "contract", "read", "chain-data"), {
         to: { type: "string", description: "0x contract address to call", required: true, example: USDC[c.slug] },
         data: { type: "string", description: "0x ABI-encoded calldata (4-byte selector plus arguments), or a function signature: totalSupply(), balanceOf(address), or with its result types, balanceOf(address) returns (uint256)", required: true, example: "0x18160ddd" },
         args: { type: "string", description: "Arguments for a function signature in data: comma separated, or a JSON array for arrays and tuples", example: EX_ADDR },

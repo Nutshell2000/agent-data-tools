@@ -42,6 +42,20 @@ test('a web page is read through its og:image and the answer names the image', a
   assert.deepEqual(calls, ['https://site.example/post/1', 'https://site.example/media/cover.png']);
 });
 
+test('a broken og:image falls through to the page content image instead of refusing a paid call', async () => {
+  const { describeImage } = await load();
+  const body = '<!doctype html><html><head><title>Shop</title><meta property="og:image" content="/broken-preview"></head><body><img src="/products/dice.jpg" alt="Dice"></body></html>';
+  route((u) => {
+    if (u.includes('/item')) return new Response(body, { status: 200, headers: { 'content-type': 'text/html' } });
+    if (u.includes('/broken-preview')) return new Response('<!doctype html><html><body>not an image</body></html>', { status: 200, headers: { 'content-type': 'text/html' } });
+    return PNG();
+  });
+  const out = await describeImage(env, 'https://shop.example/item/9');
+  assert.equal(out.imageUrl, 'https://shop.example/products/dice.jpg');
+  assert.match(out.note, /first content image/);
+  assert.deepEqual(calls, ['https://shop.example/item/9', 'https://shop.example/broken-preview', 'https://shop.example/products/dice.jpg']);
+});
+
 test('twitter:image is used when there is no og:image', async () => {
   const { pagePreviewImage } = await load();
   const html = new TextEncoder().encode('<html><head><meta name="twitter:image" content="https://cdn.example/c.jpg"></head></html>');
