@@ -21,7 +21,7 @@ const load = async (entry, name) => {
   const mod = new Module(name, null); mod.filename = path.resolve(name); mod.paths = Module._nodeModulePaths(process.cwd()); mod._compile(out.outputFiles[0].text, mod.filename); return mod.exports;
 };
 
-const coreOptions = (script) => ({ name: "core", modules: true, script, compatibilityDate: "2026-09-01", compatibilityFlags: ["nodejs_compat"],
+const coreOptions = (script) => ({ name: "core", modules: true, script, serviceBindings: { FRONT_SECRETS: { name: "front", entrypoint: "Secrets" } }, compatibilityDate: "2026-09-01", compatibilityFlags: ["nodejs_compat"],
   durableObjects: { METRICS: { className: "Metrics", useSQLite: true } }, kvNamespaces: ["TRIALS"],
   bindings: { PAY_TO: recipient, NETWORK: "eip155:8453", PAYWALL: "on", TRIALS_ENABLED: "on", MPP_EVM: "on", MPP_SECRET_KEY: SECRET, QUOTE_CACHE: "off",
     FACILITATOR_URL: "https://fixture.invalid", BASE_RPC_URL: "https://fixture.invalid", PUBLIC_SITE_ORIGIN: "https://glyphcall.com", PUBLIC_BRAND: "Glyphcall", STRIPE_READ_KEY: "rk_test_fixture" },
@@ -32,7 +32,7 @@ const start = async (frontBindings = {}) => {
   await mf?.dispose();
   mf = new Miniflare(convertV4MiniflareOptions({ workers: [
     { name: "front", modules: true, script: frontScript, compatibilityDate: "2026-09-01", compatibilityFlags: ["nodejs_compat"], kvNamespaces: ["QUOTES"],
-      serviceBindings: { CORE: "core" }, bindings: { MPP_SECRET_KEY: SECRET, ...frontBindings } },
+      serviceBindings: { CORE: "core" }, bindings: { MPP_SECRET_KEY: SECRET, REVENUE_TOKEN: "front-held-revenue-token", PAY_TO: "0x000000000000000000000000000000000000dead", ...frontBindings } },
     coreOptions(coreScript),
   ] }));
 };
@@ -40,7 +40,7 @@ const start = async (frontBindings = {}) => {
 before(async () => {
   mppx = await load(require.resolve("mppx"), "mppx-core-front-test.js");
   F = await load(require.resolve("../src/front/challenges.ts"), "front-challenges-worker-test.js");
-  const fb = await esbuild.build({ entryPoints: ["src/front/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, logLevel: "silent", minify: true });
+  const fb = await esbuild.build({ entryPoints: ["src/front/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, logLevel: "silent", minify: true, external: ["cloudflare:workers"] });
   frontScript = fb.outputFiles[0].text;
   const b = await esbuild.build({ entryPoints: ["src/index.ts"], bundle: true, format: "esm", platform: "browser", write: false, logLevel: "silent", external: ["cloudflare:workers", "node:*"], alias: { "ajv/dist/2020.js": path.resolve("src/lib/ajv-unavailable.ts") }, plugins: [{ name: "fixture-facilitator", setup(p) {
     p.onResolve({ filter: /^url$/ }, () => ({ path: "node:url", external: true }));
@@ -178,4 +178,16 @@ test("a new core release retires every stored quote; FRONT=off passes everything
   await start({ FRONT: "off" });
   for (let i = 0; i < 4; i++) { const x = await ask(p); await x.text(); assert.equal(x.headers.get("x-quote-front"), null, "FRONT=off: the core answers"); }
   await start();
+});
+
+test("the core gets the secrets the front holds, and its own settings win", async () => {
+  const withToken = await ask(O + "/revenue", { ...JSON_CLIENT, authorization: "Bearer front-held-revenue-token" });
+  const body = await withToken.json();
+  assert.equal(withToken.status, 200);
+  assert.ok("cardCredits" in body, "REVENUE_TOKEN held only by the front unlocks the private figures in the core");
+  const without = await (await ask(O + "/revenue")).json();
+  assert.ok(!("cardCredits" in without), "and nothing without it");
+  const quote = await ask(O + "/weather?city=Paris", JSON_CLIENT); await quote.text();
+  const pr = JSON.parse(Buffer.from(quote.headers.get("payment-required"), "base64").toString());
+  assert.equal(pr.accepts[0].payTo.toLowerCase(), recipient, "the core's own PAY_TO is never replaced by a front value");
 });
