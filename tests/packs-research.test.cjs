@@ -34,6 +34,12 @@ test('url safety still answers from local signals when every upstream lookup fai
   assert.ok(out.failed.redirects, JSON.stringify(out.failed));
   assert.ok(out.failed.blocklist, JSON.stringify(out.failed));
   assert.ok(out.failed.headers, JSON.stringify(out.failed));
+  // Additive verdict/coverage fields describe what actually answered. The domain report resolves a non-resolving
+  // host as low-trust, so the honest verdict is "caution" with a coverage map; risk stays in its existing enum.
+  assert.ok(['block', 'caution', 'clear', 'unverified'].includes(out.verdict), out.verdict);
+  assert.equal(typeof out.coverage.blocklist, 'boolean');
+  assert.equal(typeof out.coverage.domain, 'boolean');
+  assert.ok(['low', 'medium', 'high'].includes(out.risk), 'the existing risk enum is unchanged');
 });
 
 test('research packs: names within 32 characters, descriptions within 450, one cent, inputs checked before any request', async () => {

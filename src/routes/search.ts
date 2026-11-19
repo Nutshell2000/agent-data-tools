@@ -378,6 +378,10 @@ export const SEARCH: Entry[] = [
         .filter((r) => r.url && r.title)
         .slice(0, count)
         .map((r) => ({ title: stripTags(r.title!), url: r.url!, snippet: stripTags(r.description ?? ""), source: r.meta_url?.hostname ?? new URL(r.url!).hostname, age: r.age ?? null }));
+      // 19 Nov 2026: a zero-result news search is not a paid-worthy answer. The sibling /pack/news-sentiment has
+      // guarded this exact case since 1.149.0 ("no recent news ... nothing was charged"); /news itself did not, so
+      // a nonsense topic returned a charged 200 with count:0 and results:[]. 404 maps to 422 NOT_FOUND, uncharged.
+      if (!results.length) throw new HttpError(404, `no news articles found for "${query.slice(0, 120)}"; nothing was charged`);
       return { query, provider: "Brave News", count: results.length, results, terms: TERMS };
     }, MERCATOR_TEST_PRICE),
 ];
