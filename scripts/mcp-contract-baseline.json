@@ -1,5 +1,5 @@
 {
-  "version": "1.294.0",
+  "version": "1.296.0",
   "tools": [
     {
       "name": "extract",
@@ -19733,7 +19733,7 @@
     },
     {
       "name": "weather_current",
-      "description": "Current weather for any city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the weather now or today's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Current weather by city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the current weather by city, the weather now, or today's forecast for travel, events, logistics or a daily brief. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21206,6 +21206,239 @@
         ]
       },
       "price": "$0.01"
+    },
+    {
+      "name": "exa_search",
+      "description": "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Use for an Exa search, a neural web search or a drop-in Exa-compatible search endpoint. No account or API key; failed calls are never charged. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search query, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Number of results (1-20, default 10)"
+          },
+          "includeDomains": {
+            "type": "string",
+            "description": "Only results from these domains: comma list or JSON array, up to 20 (example.com, github.com/org)"
+          },
+          "excludeDomains": {
+            "type": "string",
+            "description": "Never results from these domains: comma list or JSON array"
+          },
+          "startPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or after this date (ISO 8601, e.g. 2025-01-01)"
+          },
+          "endPublishedDate": {
+            "type": "string",
+            "description": "Only pages published on or before this date (ISO 8601)"
+          },
+          "category": {
+            "type": "string",
+            "description": "news, research paper, github, pdf, tweet, linkedin profile, company, personal site or financial report"
+          },
+          "includeText": {
+            "type": "string",
+            "description": "A phrase the results must contain (up to 5 words)"
+          },
+          "excludeText": {
+            "type": "string",
+            "description": "A phrase the results must not contain"
+          },
+          "country": {
+            "type": "string",
+            "description": "Localize results for this country: 2-letter code (SE, DE, FR, GB, US…)"
+          },
+          "textChars": {
+            "type": "integer",
+            "minimum": 500,
+            "maximum": 20000,
+            "description": "Return the live page text of the top results, this many characters each (500-20000, or true for 3000; default none)"
+          },
+          "highlights": {
+            "description": "true: the passages of each page that best match the query, with scores",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "numSentences": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Sentences per highlight (1-10, default 3)"
+          },
+          "highlightsPerUrl": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Highlights per result (1-5, default 1)"
+          },
+          "summary": {
+            "description": "true: a 1-3 sentence AI summary of each of the top pages",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "summaryQuery": {
+            "type": "string",
+            "description": "What the summaries should focus on (default: the query)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "chat_completions",
+      "description": "Chat completions API for agents: send a prompt or an OpenAI messages array and get an answer from Llama 4 Scout in one paid call, with no account and no API key, at a fraction of a cent. OpenAI-compatible at /v1/chat/completions, with tools and JSON mode. Use for cheap chat completions, drafting, classification and reasoning steps inside an agent workflow. Example: prompt=Explain HTTP status code 402 in one sentence.. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "User prompt, up to 8,000 characters. With no input at all the default prompt is \"Explain HTTP status code 402 in one sentence.\""
+          },
+          "system": {
+            "type": "string",
+            "description": "Optional system prompt, up to 2,000 characters"
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024,
+            "description": "Maximum output tokens, 1-1024 (default 400)"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "0-1.5 (default 0.6)"
+          },
+          "messages": {
+            "type": "string",
+            "description": "Optional OpenAI messages array as JSON (system, user, assistant with tool_calls, tool); replaces prompt and system. Together with tools, at most 20,000 characters"
+          },
+          "tools": {
+            "type": "string",
+            "description": "Optional OpenAI tools array as JSON (function calling, up to 32 functions); the answer then carries tool_calls"
+          },
+          "tool_choice": {
+            "type": "string",
+            "description": "Optional: auto, none, required, or a JSON object naming one function"
+          },
+          "response_format": {
+            "type": "string",
+            "description": "Optional OpenAI response_format as JSON: {\"type\":\"json_object\"} or a json_schema"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "token_price_api",
+      "description": "Token price API: live USD price of a crypto token by symbol (ETH, BTC, LINK), coin name, CoinGecko id or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read from the deepest Uniswap v3 pool with the pool, fee tier and a thin-liquidity flag. Use for a token price API call in a quote, a portfolio valuation or a trade check. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker such as ETH, BTC, USDC, AERO, ARB, OP or LINK. Send symbol or address, one of the two (ETH and BTC mean the wrapped tokens; an HTTP call with no input at all answers for BTC)"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x ERC-20 token contract address, sent instead of symbol (when both are sent, the address is priced). WETH on Base is 0x4200000000000000000000000000000000000006"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "web_read",
+      "description": "Web read API for agents: fetch a public web page URL and return the page's main content as clean text or Markdown, with headings, tables, links and code blocks kept, up to 100,000 characters. Static HTML, Markdown and text pages; bot walls and errors are never charged. Use when an agent asks to web read a page, article or documentation URL into its context or a RAG pipeline. Example: url=https://example.com. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to scrape"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": 500,
+            "maximum": 100000,
+            "description": "Maximum characters of body text to return (500-100000, default 20000)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text",
+              "markdown",
+              "both"
+            ],
+            "description": "Returned representation: text (default), markdown, or both"
+          },
+          "section": {
+            "type": "string",
+            "description": "Optional visible HTML ID within the main content, 1-500 characters; a leading # (a docs link's fragment) or a URL ending in #id is accepted, and so is a heading's visible text when exactly one heading matches; leave it out to read the whole page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.002"
     },
     {
       "name": "coin",
