@@ -1,5 +1,5 @@
 {
-  "version": "1.259.0",
+  "version": "1.260.0",
   "tools": [
     {
       "name": "extract",
@@ -16169,6 +16169,54 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "batch_phishing_check",
+      "description": "Bulk phishing check: send up to 100 links or domains in one call and one payment (JSON array, lines or commas). Each host is checked without being requested against two public phishing blocklists (Phishing.Database, MetaMask): block, warn (a one-letter look-alike) or not_listed, with the matched domain and source. Use to vet a whole list of links before an agent opens or pays them; each bad item gets its own row. Example: urls=https://github.com,metamask.io. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "Up to 100 links or domains: a JSON array, one per line, or comma separated; none is ever requested"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "batch_url_safety",
+      "description": "Bulk URL safety check: send up to 10 links in one call and one payment. Each link gets a compact /pack/url-safety answer: phishing blocklists on every host it passes through, where it really leads, domain age and trust, HTTPS, security headers, named risk signals and an overall low/medium/high risk. Use to vet a list of links from emails, chats or scraped pages in one paid call; a link that cannot be checked gets its own row. Example: urls=https://github.com,https://example.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "Up to 10 http or https links: a JSON array, one per line, or comma separated"
+          }
+        },
+        "required": [
+          "urls"
         ]
       },
       "price": "$0.01"
