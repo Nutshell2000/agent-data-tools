@@ -216,7 +216,9 @@ function registerCompactTools(
         const tools = found.picks.map((p) => byName.get(p.mcpTool)).filter((e): e is Endpoint => Boolean(e)).slice(0, count ?? 5)
           .map((e) => ({ ...priced(e), does: e.description.slice(0, 280), requiredInputs: Object.entries(e.params).filter(([, p]) => p.required).map(([name]) => name), exampleArguments: exampleInput(e) }));
         if (!tools.length) return compactText({ error: `no tool here matches ${JSON.stringify(need.slice(0, 80))}. Nothing was charged.`, catalog: `${origin}/tools` }, true);
-        return compactText({ need, tools, next: `${details} for every input of one tool, or call_tool with its name and arguments` });
+        // 19 Nov 2026: recommend() computes howToPay but the finder dropped it, so an agent had to spend a turn on a
+        // 402 before learning how to fund the call. Carry it here; the result is free-form text, so no schema change.
+        return compactText({ need, tools, pay: found.howToPay, next: `${details} for every input of one tool, or call_tool with its name and arguments` });
       } catch (err) {
         if (!(err instanceof HttpError)) throw err;
         return compactText({ error: err.message.replace("; nothing was charged", "").replace(/ The full catalog is at \S+$/, ""), note: "Nothing was charged.", catalog: `${origin}/tools` }, true);
@@ -242,6 +244,8 @@ function registerCompactTools(
         // A long example answer is cut: enough to see the fields, not enough to fill the context.
         exampleAnswer: example.length > 1_500 ? `${example.slice(0, 1_500)}…` : e.outputExample,
         charged: "Only a successful call is charged; a failed call costs nothing.",
+        // The same funding path an agent otherwise sees only after a refused call.
+        pay: paymentHint(origin, e.price),
       });
     },
   );
