@@ -23,6 +23,13 @@ before(async () => {
 const A = "0x6293ded2684F1A76E26bEcef87c137D691Fbf800";
 const OLD = "0x2074c40346aE2A90e0e4a391BcEe6f16bF5277f5";
 const EVIL = "0x000000000000000000000000000000000000dEaD";
+
+test("every chain the seller-record tool accepts has a log-capable RPC", async () => {
+  const { LOG_RPCS } = await load(require.resolve("../src/lib/rpc.ts"));
+  for (const slug of T.CHAIN_SLUGS) {
+    assert.ok(LOG_RPCS[slug]?.length >= 2, `${slug} must have log RPC fallbacks`);
+  }
+});
 const listing = (payTo) => ({ payTo, lastSettledAt: "2026-11-11T00:00:00Z", payers30d: 3, calls30d: 9 });
 const none = { found: false, payTo: [] };
 
