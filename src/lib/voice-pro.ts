@@ -3,7 +3,7 @@
 // VOICE_PRO_URL), so billing, renewals and cancelling are the plan's. This file holds what is voice-specific: the landing page
 // at /transcribe-pro and the "how to use your key for transcription" part of /credits/claim when the checkout came from Voice Pro.
 // Hours are always computed from the live price of /transcribe/long, never written by hand.
-import { PLAN_PORTAL_URL, VOICE_HOURS_PACK_CREDITS, VOICE_HOURS_PACK_URL, VOICE_PRO_CREDITS, VOICE_PRO_URL, VOICE_TOOLS_URL } from "./credits";
+import { PLAN_PORTAL_URL, VOICE_HOURS_PACK_CREDITS, VOICE_HOURS_PACK_URL, VOICE_PRO_CENTS, VOICE_PRO_CREDITS, VOICE_PRO_URL, VOICE_TOOLS_URL } from "./credits";
 
 export const VOICE_PRO_PATH = "/transcribe-pro";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -48,8 +48,9 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices) {
 export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyphcall") {
   const hours = voiceProHours(prices.long);
   const hoursPack = Math.floor(VOICE_HOURS_PACK_CREDITS / creditsAt(prices.long));
-  const title = `${brand} Transcribe Pro: about ${hours} hours of transcription a month for $9`;
-  const description = `Transcribe audio and video to text with SRT and VTT subtitles in 90+ languages. $9 a month adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits: about ${hours} hours of audio. No account, cancel any time.`;
+  const price = `$${VOICE_PRO_CENTS / 100}`;
+  const title = `${brand} Transcribe Pro: about ${hours} hours of transcription a month for ${price}`;
+  const description = `Transcribe audio and video to text with SRT and VTT subtitles in 90+ languages. ${price} a month adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits: about ${hours} hours of audio. No account, cancel any time.`;
   const faq: Array<[string, string]> = [
     ["How many hours do I get?", `About ${hours}. Each month adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits, and a recording of up to 60 minutes costs ${esc(prices.long)} (${creditsAt(prices.long)} credits). Short clips cost ${esc(prices.short)} each. Unused credits stay on your key.`],
     ["Which files work?", "MP3 or WAV up to 25 MB and 60 minutes in one call; OGG, M4A, MP4 and other common formats up to 5 MB. A public link to the file works too."],
@@ -58,14 +59,14 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
     ["Can I cancel?", "Yes, any time, in Stripe's customer portal with the e-mail you paid with. Credits already added stay."],
     ["What else can the credits pay for?", `Summaries of a recording (${esc(prices.summary)}), text to speech, and every other tool in the catalog.`],
   ];
-  const ld = { "@context": "https://schema.org", "@type": "Product", name: `${brand} Transcribe Pro`, description, offers: { "@type": "Offer", price: "9.00", priceCurrency: "USD", url: VOICE_PRO_URL } };
+  const ld = { "@context": "https://schema.org", "@type": "Product", name: `${brand} Transcribe Pro`, description, offers: { "@type": "Offer", price: (VOICE_PRO_CENTS / 100).toFixed(2), priceCurrency: "USD", url: VOICE_PRO_URL } };
   const faqLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a.replace(/<[^>]+>/g, "") } })) };
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(description)}"><link rel="canonical" href="${esc(origin)}${VOICE_PRO_PATH}">
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script><script type="application/ld+json">${JSON.stringify(faqLd).replace(/</g, "\\u003c")}</script>
 <style>body{font:16px/1.55 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.7rem;line-height:1.25}a.buy{display:inline-block;margin:.5rem 0;padding:.7rem 1.2rem;border-radius:8px;background:#1b1b1b;color:#fff;text-decoration:none;font-weight:600}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}.small{color:#555;font-size:.9rem}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a.buy{background:#eee;color:#151515}code,pre{background:#262626}.small{color:#aaa}}</style></head><body>
 <h1>${esc(brand)} Transcribe Pro</h1>
-<p><strong>About ${hours} hours of transcription a month for $9.</strong> Audio and video to text, with SRT and VTT subtitles and word timings, in more than 90 languages.</p>
-<p><a class="buy" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: $9 a month</a></p>
+<p><strong>About ${hours} hours of transcription a month for ${price}.</strong> Audio and video to text, with SRT and VTT subtitles and word timings, in more than 90 languages.</p>
+<p><a class="buy" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a></p>
 <p>Just one file? <a href="${esc(VOICE_HOURS_PACK_URL)}">${hoursPack} hours for $1</a>, paid once, no subscription.</p>
 <p class="small">Card payment through Stripe. No account. Cancel any time. Failed transcriptions are never charged.</p>
 <h2>What you get</h2><ul>
