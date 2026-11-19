@@ -35,6 +35,7 @@ test("the front page leads with the products and their plans, under the brand", 
   assert.match(html, /<link rel="canonical" href="https:\/\/x\.test\/">/);
   assert.match(html, /href="\/docs"/);
   assert.match(html, /href="\/agents"/);
+  assert.match(html, /Long recording\? <a href="\/transcribe-pro">Transcribe Pro<\/a>/, "the long-recording upsell links to the paid plan, not the free browser tool");
   const above = html.slice(0, html.indexOf("<h2>For AI agents</h2>"));
   assert.doesNotMatch(above, /x402|MPP|USDC|Tempo|wallet/i, "no payment protocol before the agents section");
   assert.doesNotMatch(html, /Agent Data Tools/, "the brand is the only name on the page");

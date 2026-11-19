@@ -70,7 +70,9 @@ test('recommend: the reranker reorders the candidates; its failure falls back to
 test('finder: a job named as buyers name it gets its tool first, and every job points at a tool we sell', async () => {
   const { recommend, JOBS, jobTool } = await load();
   // 10 Nov 2026 (base-bots/buyer-next.mjs): these jobs, bought elsewhere by our paying wallets, landed on the wrong tool.
-  const first = { 'text to speech': '/ai/speech', 'tts elevenlabs': '/ai/speech', 'speech to text': '/transcribe', 'audit bundle': '/audit/website', 'website audit': '/audit/website', 'exa search': '/search', 'brave search': '/search', 'hunter email verifier': '/email', 'token preflight': '/token/verdict', 'chain erc20 balance': '/base/token-balance', 'what is my ip': '/ip/geolocate', 'narrate this article': '/text-to-speech', 'read contract balance': '/base/call' };
+  const first = { 'text to speech': '/ai/speech', 'tts elevenlabs': '/ai/speech', 'speech to text': '/transcribe', 'audit bundle': '/audit/website', 'website audit': '/audit/website', 'exa search': '/search', 'brave search': '/search', 'hunter email verifier': '/email', 'token preflight': '/token/verdict', 'chain erc20 balance': '/base/token-balance', 'what is my ip': '/ip/geolocate', 'narrate this article': '/text-to-speech', 'read contract balance': '/base/call',
+    // 19 Nov 2026: these used to misroute to a wrong, sometimes pricier tool through forced synonyms.
+    'iban': '/validate/iban', 'validate iban': '/validate/iban', 'iban check': '/validate/iban', 'validate vat': '/vat/validate', 'llm pricing': '/llm/prices', 'model prices': '/llm/prices', 'block explorer': '/base/block', 'block height': '/base/block' };
   for (const [need, tool] of Object.entries(first)) {
     const r = await recommend({}, need, 3, null);
     assert.equal(r.picks[0].tool, tool, `${need}: ${r.picks.map((p) => p.tool).join(' ')}`);

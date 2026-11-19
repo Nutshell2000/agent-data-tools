@@ -39,6 +39,8 @@ test("every product names live tools and guides, and has its own path", () => {
     assert.ok(!slugs.has(p.slug)); slugs.add(p.slug);
     assert.ok(isHumanPage(`/${p.slug}`), `${p.slug} is counted as a page people read`);
     assert.ok(p.limits.length > 0, `${p.slug} states what it does not do`);
+    // 19 Nov 2026: the free browser tools are linked at the canonical host, never the old Pages preview domain.
+    for (const [url] of p.more ?? []) if (/voice|transcribe|speech/i.test(url)) assert.ok(!url.includes("pages.dev"), `${p.slug}: ${url}`);
   }
   assert.equal(isHumanPage("/revenue"), false);
   assert.equal(isHumanPage("/pdf/text"), false);
