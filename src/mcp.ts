@@ -63,10 +63,11 @@ export function toContent(value: unknown) {
 async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Args) {
   try {
     const path: EndpointPath = e.path;
-    // The HTTP path reads inputs through normalizedInput, which resolves the aliases agents use (ids, query, u, ...).
-    // MCP used its raw argument object, so those aliases silently vanished here: accept them on every server.
+    // Pass the RAW input: TOOLS[path] already applies declaredInputFor + normalizedInput internally. Normalizing here
+    // too resolved aliases before the declared-input guard ran, so a tool that declares both `name` and `address` got
+    // both set from one argument (and message/url aliases lost their special handling) on a paid MCP call.
     const sent = (name: string) => (args[name] === undefined ? undefined : String(args[name]));
-    const result = pickFields(await TOOLS[path](env, normalizedInput(sent)), args.only === undefined ? undefined : String(args.only));
+    const result = pickFields(await TOOLS[path](env, sent), args.only === undefined ? undefined : String(args.only));
     const { imageBase64: _image, audioBase64: _audio, pdfBase64: _pdf, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
@@ -280,7 +281,10 @@ function registerCompactTools(
       if (!compactPricePermits(price, named)) {
         return compactText({ error: `${toolName(e)} was not run: it costs ${price} per successful call, more than the ${COMPACT_PRICE_CEILING} this server spends on one call unless the call names a higher price. Nothing was charged.`, price, next: `to run it, repeat the same call (same name and arguments) and add max_price: "${price}"` }, true);
       }
-      return trackedFor(e)(parsed.data as Args, extra);
+      // Validate with the alias-copied object, but run with the ORIGINAL arguments: TOOLS[path] applies the single
+      // normalizedInput, whose special handling (urls → first URL, OpenAI messages → prompt/system) must not be
+      // bypassed by the raw alias copy above.
+      return trackedFor(e)((given ?? {}) as Args, extra);
     }) as never,
   );
   return registered;
@@ -493,3 +497,6 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
     return new Response(body, { status, headers: res.headers });
   }
 }
+
+
+
