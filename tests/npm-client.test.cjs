@@ -61,3 +61,20 @@ test('npm client: catalog from OpenAPI, names resolve to paths, OpenAI definitio
   assert.deepEqual(def.function.parameters.required, ['city']);
   assert.equal(def.function.parameters.properties.city.type, 'string');
 }));
+
+test('npm client buyer docs state the real 3-HTTP / 25-MCP free split, not a bare 25', async () => {
+  const { readFileSync } = require('node:fs');
+  const dir = 'clients/agent-data-tools/';
+  const files = ['package.json', 'README.md', 'cli.mjs', 'index.mjs'];
+  for (const file of files) {
+    const text = readFileSync(dir + file, 'utf8');
+    // The npm client adds trial=1 to keyless HTTP calls, and the live server gives only 3 such calls. A bare
+    // "25 free calls" promised a call the buyer never gets. Every buyer-facing string must now carry the split.
+    assert.ok(!/(?:25 free calls|25 successful calls per caller|gives 25 free calls|holds no payment or wallet code)/.test(text), `${file}: no bare 25-free claim`);
+  }
+  const pkg = JSON.parse(readFileSync(dir + 'package.json', 'utf8'));
+  assert.match(pkg.description, /3 free HTTP calls \(25 over MCP\)/);
+  const readme = readFileSync(dir + 'README.md', 'utf8');
+  assert.match(readme, /3 free calls over HTTP \(25 over MCP\)/);
+  assert.match(readme, /3 successful calls per caller over HTTP, 25 over MCP/);
+});
