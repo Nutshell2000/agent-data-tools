@@ -360,7 +360,8 @@ export function documentType(bytes: Uint8Array, entries: Map<string, ZipEntry> |
   return null;
 }
 
-export async function readDocument(bytes: Uint8Array, format: Format, maxChars: number, ocr?: Ocr) {
+/** The real reader; `readDocument` below keeps an unexpected parser error from ever becoming a public 500. */
+async function readDocumentInner(bytes: Uint8Array, format: Format, maxChars: number, ocr?: Ocr) {
   const entries = isZip(bytes) ? zipEntries(bytes) : null;
   const type = documentType(bytes, entries);
   if (!type) {
@@ -429,6 +430,21 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
   const truncated = cut || text.length > maxChars;
   if (text.length > maxChars) text = text.slice(0, maxChars);
   return { type, format: type === "pdf" || type === "image" ? "text" as const : format, chars: text.length, truncated, ...extra, text };
+}
+
+/**
+ * A malformed upload must never become a public 500: the /status watch saw one on this tool in the week to
+ * 19 Nov 2026. Deliberate refusals (HttpError) keep their specific, actionable message; anything the parsers
+ * did not expect is reported as an uncharged 422 with a next step, and the original is logged for diagnosis.
+ */
+export async function readDocument(bytes: Uint8Array, format: Format, maxChars: number, ocr?: Ocr) {
+  try {
+    return await readDocumentInner(bytes, format, maxChars, ocr);
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    console.error("document: unexpected parse error", e instanceof Error ? e.message : String(e));
+    throw new HttpError(422, "the file could not be read as a document; try saving it again as .docx, .xlsx, .pptx or PDF, or add sample=1 for an example (nothing was charged)");
+  }
 }
 
 export const DOCUMENT: Entry[] = [
