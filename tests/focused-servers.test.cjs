@@ -76,6 +76,18 @@ test('an unknown bundle still answers 404 and names the focused servers', async 
   assert.match(body.error, /company-check/);
 });
 
+test('the MCP server card advertises the focused servers, including the voice server', async () => {
+  const card = await (await mf.dispatchFetch(`${O}/.well-known/mcp/server-card.json`)).json();
+  assert.ok(Array.isArray(card.focusedServers), 'the card lists focused servers');
+  const slugs = card.focusedServers.map((s) => new URL(s.endpoint).pathname);
+  for (const slug of ['documents', 'company-check', 'voice']) {
+    assert.ok(slugs.includes(`/mcp/${slug}`), `the card advertises /mcp/${slug}`);
+  }
+  const voice = card.focusedServers.find((s) => new URL(s.endpoint).pathname === '/mcp/voice');
+  assert.match(voice.title, /speech|voice/i, 'the voice server is named for its job');
+  assert.ok(voice.tools >= 10, 'and shows a real tool count');
+});
+
 test('the registry manifest builder writes the focused and compact entries', () => {
   const src = readFileSync('scripts/build-registry-manifests.mjs', 'utf8');
   assert.match(src, /FOCUSED_SERVERS/);
