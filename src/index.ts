@@ -525,7 +525,8 @@ app.use(async (c, next) => {
   }
   if (!(result instanceof Response)) return result;
   const usedFreeCalls = Boolean(activeTrace()?.stages.has("free_exhausted"));
-  answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && (httpFree(c.req.path) || pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"))) && !usedFreeCalls, endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY), usedFreeCalls);
+  const mppReady = tempoEnabled(c.env) || evmEnabled(c.env);
+  answer = await readable402(result, origin(c.req.url), Boolean(endpoint) && trialsEnabled(c.env) && (httpFree(c.req.path) || pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"))) && !usedFreeCalls, endpoint && wantsV1Body(c.req.query("x402"), c.env) ? v1Requirements(c.env, endpoint, c.req.url) : [], endpoint ? { endpoint, url: c.req.url } : undefined, Boolean(c.env.STRIPE_READ_KEY), usedFreeCalls, mppReady);
   if (quoteKey && answer.status === 402 && !freePaused) {
     const copy = answer.clone();
     c.executionCtx.waitUntil(writeQuote(quoteKey, copy));
