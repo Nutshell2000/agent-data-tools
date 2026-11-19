@@ -202,6 +202,19 @@ test('/demo is a static walkthrough page that points at the recording and the fr
   assert.doesNotMatch(html, /<script/i);
 });
 
+test('the A2A v1.0 endpoint answers SendMessage for free through the worker', async () => {
+  const res = await mf.dispatchFetch('https://api.test/a2a', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'SendMessage', params: { message: { role: 'ROLE_USER', parts: [{ text: 'current gas price on Base', mediaType: 'text/plain' }] } } }),
+  });
+  assert.equal(res.status, 200);
+  const out = await res.json();
+  assert.equal(out.result.status.state, 'TASK_STATE_COMPLETED');
+  assert.match(out.result.artifacts[0].parts[0].text, /api\.test\/base-gas/);
+  const card = await (await mf.dispatchFetch('https://api.test/.well-known/agent-card.json')).json();
+  assert.equal(card.supportedInterfaces[0].url, 'https://api.test/a2a');
+});
+
 test('signed seller evidence is served as public JSON at both well-known spellings', async () => {
   for (const path of ['/.well-known/seller-evidence.json', '/.well-known/seller-evidence']) {
     const res = await mf.dispatchFetch(`https://api.test${path}`);
