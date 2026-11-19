@@ -174,7 +174,10 @@ freeKeys.get("/keys/free/confirm", async (c) => {
   const packs = topUpLinks(freeKeyHash).map((l) => `<a class="buy" href="${esc(l.buy)}">${esc(l.price)}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
   const plans = planLinks(freeKeyHash).map((l) => `<a class="buy" href="${esc(l.buy)}">${esc(l.price)}: ${l.creditsEachMonth.toLocaleString("en-US")} credits each month</a>`).join("");
   const upgradeLinks = `${packs}${plans ? `<br>${plans}` : ""}`;
-  const result = { apiKey: issued.key, callsEachMonth: issued.perMonth, what: WHAT, mcpUrl: `${origin}/mcp/k/${issued.key}`, balance: `${origin}/credits/balance`, addCredits: `${origin}/credits`, topUp: packs ? topUpLinks(freeKeyHash) : undefined, plans: plans ? planLinks(freeKeyHash) : undefined };
+  const upgrades = topUpLinks(freeKeyHash);
+  // A machine client reading addCredits must land on the cheapest same-key pack, not the generic page that issues a
+  // second key; the page text already promises credits are added to this key (19 Nov 2026).
+  const result = { apiKey: issued.key, callsEachMonth: issued.perMonth, what: WHAT, mcpUrl: `${origin}/mcp/k/${issued.key}`, balance: `${origin}/credits/balance`, addCredits: upgrades[0]?.buy ?? `${origin}/credits`, topUp: upgrades.length ? upgrades : undefined, plans: plans ? planLinks(freeKeyHash) : undefined };
   if (!html) return c.json(result);
   return c.html(page("Your free API key", `<h1>Your free API key</h1><pre>${esc(issued.key)}</pre><p><strong>Save it now.</strong> Opening this link again within ${FREE_KEY_LINK_HOURS} hours shows the same key; after that, keep your own copy.</p><p>${esc(WHAT)}</p>
 <h2>Use it</h2><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" "${esc(origin)}/pdf/text?url=https://bitcoin.org/bitcoin.pdf&amp;pages=1"</pre><p>Send a file instead of a link:</p><pre>curl -H "Authorization: Bearer ${esc(issued.key)}" -H "Content-Type: application/pdf" --data-binary @invoice.pdf "${esc(origin)}/pdf/text"</pre>
