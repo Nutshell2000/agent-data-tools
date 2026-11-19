@@ -70,7 +70,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 711);
+  // 1.259.0: the macro snapshot tool and its door add two families.
+  assert.equal(families.length, 713);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -98,7 +99,8 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,737);
+  // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
+  assert.equal(ENDPOINTS.length,739);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -289,6 +291,16 @@ test("economic indicators answer from the World Bank snapshot without network ac
   assert.ok(two.gdp.latest.value > 3e12 && two.gdp.latest.year >= 2023);
   await assert.rejects(gdp.run({}, (n) => ({ country: "Atlantis" })[n]), (e) => e.status === 404);
   await assert.rejects(gdp.run({}, (n) => ({ country: "SE", years: "11" })[n]), (e) => e.status === 400);
+  // 1.259.0: the macro snapshot composes the four indicators a country brief needs in one paid call.
+  const snap = econ.ECON.find((f) => f.endpoint.path === "/econ/snapshot");
+  assert.ok(snap, "macro snapshot tool exists");
+  const brief = await snap.run({}, (n) => ({ country: "Sweden", years: "3" })[n]);
+  for (const key of ["gdp", "inflation", "unemployment", "population"]) {
+    assert.ok(brief[key]?.latest && brief[key].values.length <= 3, key);
+  }
+  assert.match(brief.source, /World Bank Open Data/);
+  const { ENTRY_OF } = await loadTypeScript(require.resolve("../src/routes/entry-paths.ts"));
+  assert.equal(ENTRY_OF["/macro/data"], "/econ/snapshot");
 });
 
 test("news search maps Brave news results, validates freshness and shares the search daily cap", async () => {
