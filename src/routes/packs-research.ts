@@ -194,6 +194,9 @@ export const PACKS_RESEARCH: Entry[] = [
     { pack: "url-safety", url: "http://github.com/", finalUrl: "https://github.com/", risk: "low", signals: [], blocklist: { listed: false, hosts: [{ host: "github.com", listed: false, matchedOn: null, sources: [], lookalikeOf: null }], listDate: "2026-11-18" }, redirects: { count: 1, hosts: ["github.com"], hops: [{ url: "http://github.com/", status: 301 }] }, domain: { domain: "github.com", trust: "high", ageDays: 6600, registrar: "MarkMonitor Inc." }, security: { https: true, score: 80, grade: "B" }, failed: {} },
     async (env, q) => {
       const input = parseTarget(need(q, "url", 2000));
+      // 19 Nov 2026: the starting host's blocklist lookup does not depend on the redirects, so it runs while they are followed.
+      const startHost = input.hostname.replace(/^www\./, "");
+      const early = new Map<string, Promise<{ host: string; v: PhishingVerdict } | null>>([[startHost, blocklist(env, startHost).then((v) => ({ host: startHost, v }), () => null)]]);
       const redirects = await call(env, "/url/redirects", { url: input.href }).catch(() => null) as { finalUrl: string; redirects: number; hops: { url: string; status: number }[] } | null;
       const final = redirects?.finalUrl ? new URL(redirects.finalUrl) : null;
       const host = (final ?? input).hostname.replace(/^www\./, "");
@@ -217,7 +220,7 @@ export const PACKS_RESEARCH: Entry[] = [
       }
       // Every host the link passes through, looked up in both phishing lists (at most 6; a failure is listed, never fatal).
       const listHosts = [...new Set([input.hostname, ...hosts, host].map((h) => h.replace(/^www\./, "")))].slice(0, 6);
-      const listed = await Promise.all(listHosts.map((h) => blocklist(env, h).then((v) => ({ host: h, v }), () => null)));
+      const listed = await Promise.all(listHosts.map((h) => early.get(h) ?? blocklist(env, h).then((v) => ({ host: h, v }), () => null)));
       const seen = listed.filter((x): x is { host: string; v: PhishingVerdict } => x !== null);
       const hits = seen.filter((x) => x.v.listed), lookalike = seen.find((x) => !x.v.listed && x.v.lookalikeOf);
       for (const x of hits) signals.unshift({ level: "high", code: "phishing_blocklist", message: `${x.v.matchedOn} is on ${x.v.sources.join(" and ")}.` });
