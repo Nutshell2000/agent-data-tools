@@ -269,7 +269,10 @@ export const TRUST: Entry[] = [
       const chainInput = q("chain")?.trim() ? pick(q, "chain", CHAIN_SLUGS) : undefined;
       const days = num(q, "days", { min: 1, max: 7, fallback: 1, integer: true });
       const { payTo, slug, url } = await payeeOf(env, q, chainInput);
-      const cl = slug === "base" || slug === "polygon" ? logsClient(env, chainOf(slug)) : client(env, chainOf(slug));
+      // 20 Nov 2026: this tool scans USDC Transfer logs, so it needs the log-capable RPC on every chain. LOG_RPCS
+      // covers all five CHAIN_SLUGS; using the plain EDGE client on eth/arb/op made a paid scan 502 when that node
+      // could not serve eth_getLogs (one such refusal in 7 days). Same free endpoints, just the right node order.
+      const cl = logsClient(env, chainOf(slug));
       const latest = await rpc(() => cl.getBlockNumber());
       // The window starts at the block of that moment, read from real headers (Base's block time changed on ~5 Nov 2026).
       const head = { block: latest, ts: Number((await rpc(() => cl.getBlock({ blockNumber: latest }))).timestamp) };
@@ -358,4 +361,4 @@ export const TRUST: Entry[] = [
     }),
 ];
 
-export const __test = { payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW };
+export const __test = { payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW, CHAIN_SLUGS };
