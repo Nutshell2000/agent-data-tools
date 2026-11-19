@@ -36,6 +36,11 @@ test("the front page leads with the products and their plans, under the brand", 
   assert.match(html, /href="\/docs"/);
   assert.match(html, /href="\/agents"/);
   assert.match(html, /Long recording\? <a href="\/transcribe-pro">Transcribe Pro<\/a>/, "the long-recording upsell links to the paid plan, not the free browser tool");
+  // 19 Nov 2026: the page no longer tells a consumer with a long recording that there is nothing to pay for.
+  assert.match(html, /want a long recording transcribed on our servers with Transcribe Pro/, "the FAQ names the paid server-side option");
+  assert.match(html, /want a long recording done on our servers with <a href="\/transcribe-pro">Transcribe Pro<\/a>/, "the pricing section links the paid option");
+  assert.match(html, /<a href="\/transcribe-pro">Transcribe Pro<\/a> handles any length/, "a line near the tiles points at the paid long-recording product");
+  assert.match(html, /<a href="\/transcribe-pro">Transcribe Pro<\/a> · <a href="\/agents">/, "the footer links the paid product");
   const above = html.slice(0, html.indexOf("<h2>For AI agents</h2>"));
   assert.doesNotMatch(above, /x402|MPP|USDC|Tempo|wallet/i, "no payment protocol before the agents section");
   assert.doesNotMatch(html, /Agent Data Tools/, "the brand is the only name on the page");
