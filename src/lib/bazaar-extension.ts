@@ -54,7 +54,7 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/pack/kyb-eu", // 1.197.0: q, vat or lei
   "/voice/agent", // 1.204.0: text, or audio by url or upload
   "/payee/check", // payee records: domain, url or address
-  "/price/token", "/token/price", "/price/crypto", "/price/tokens",
+  "/price/token", "/token/price", "/price/crypto", "/price/tokens", "/token-price-api",
   "/audit/contract", "/contract/audit",
   "/se/company",
   "/no/company",
@@ -82,7 +82,7 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
  * a router that reads `required` alone plans `{}`, and must still get an answer (tests/buyer-inputs.test.cjs).
  */
 export const EITHER_INPUT: Readonly<Record<string, readonly string[]>> = {
-  "/price/token": ["symbol", "address"], "/token/price": ["symbol", "address"], "/price/crypto": ["symbol", "address"],
+  "/price/token": ["symbol", "address"], "/token/price": ["symbol", "address"], "/price/crypto": ["symbol", "address"], "/token-price-api": ["symbol", "address"],
 };
 const eitherInput = (e: Endpoint) => (Object.hasOwn(EITHER_INPUT, e.path) ? { anyOf: EITHER_INPUT[e.path].map((name) => ({ required: [name] })) } : {});
 export const requiredInputs = (e: Endpoint) => {
