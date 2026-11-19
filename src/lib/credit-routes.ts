@@ -309,7 +309,9 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
     throw err;
   }
   if (c.res.status >= 400) {
-    remaining = await store.refundCredits(keyHash, micros);
+    // A storage failure here must not turn a failed tool call (already refunded in spirit) into a 500; the caller
+    // keeps the credits and we log for reconciliation either way.
+    remaining = await store.refundCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: refund failed; reconcile", keyHash.slice(0, 12), e); return remaining; });
     c.res.headers.set("X-Credits-Charged", "0");
   } else {
     c.res.headers.set("X-Credits-Charged", String(creditsFromMicros(micros)));
@@ -334,7 +336,9 @@ export async function useFreeCall(env: Env, ip: string | undefined, onUnavailabl
   if (taken === undefined) { onUnavailable?.(); return null; }
   const { left, caller } = taken;
   if (left === null) markStage("free_exhausted");
-  return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
+  // The refund must never reject: a KV write failure during a refund must not turn the caller's failed call into a
+  // 500, and every caller of refund() should be able to await it without its own catch.
+  return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day).catch((e: unknown) => console.error("free call: refund failed; reconcile", e)) };
 }
 
 /**
@@ -349,7 +353,7 @@ export async function useDailyCall(env: Env, caller: string, perCaller: number, 
   const left = await store.takeDailyCall(hash, day, perCaller, total).catch((err: unknown) => { console.error(`daily calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
   if (left === undefined) { onUnavailable?.(); return null; }
   if (left === null) markStage("free_exhausted");
-  return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day) };
+  return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day).catch((e: unknown) => console.error("daily call: refund failed; reconcile", e)) };
 }
 
 /** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */

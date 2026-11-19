@@ -67,7 +67,7 @@ import { freeKeys, freeKeysOn } from "./lib/free-keys";
 import { httpFree } from "./lib/capacity";
 import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
-import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
+import { pdfTryFor, pdfTryOn, pdfTryRequests, refundPdfTry, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
 import { isFileRef, FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
@@ -451,8 +451,16 @@ app.use(async (c, next) => {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
     }
     if (free) {
-      await next();
-      if (c.res.status >= 400) await free.refund();
+      // A tool that throws (a "not found" 404, an upstream 502) never reaches the status check below, so without
+      // this catch the caller loses a free call — and a scarce capped PDF slot — for a call that delivered nothing.
+      try {
+        await next();
+      } catch (err) {
+        await free.refund().catch(() => {});
+        if (pdfTry && pdfTryRequests.has(c.req.raw)) await refundPdfTry(c.env, isFileRef(c.req.query(FILE_INPUT))).catch(() => {});
+        throw err;
+      }
+      if (c.res.status >= 400) await free.refund().catch(() => {});
       else markStage("free_call");
       c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
       // Free calls are for people and agents trying a tool, not for search crawlers indexing the result.
