@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.254.0";
+export const MCP_SERVER_VERSION = "1.255.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -94,7 +94,10 @@ export function agentCard(origin: string, networks: readonly string[] = ["eip155
     version: MCP_SERVER_VERSION,
     documentationUrl: `${origin}/llms.txt`,
     iconUrl: serviceIconUrl(site, SERVICE_ICON_URL),
-    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false },
+    // A2A v1.0 reads supportedInterfaces[0] to pick a transport; without it a 1.0 client cannot use this card.
+    // The endpoint exists: POST /a2a answers SendMessage by finding the paid calls for a job and returning their terms.
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extendedAgentCard: false },
+    supportedInterfaces: [{ url: `${origin}/a2a`, protocolBinding: "JSONRPC", protocolVersion: "1.0" }],
     defaultInputModes: ["text/plain", "application/json"],
     defaultOutputModes: ["application/json"],
     securitySchemes: {
