@@ -1,5 +1,5 @@
 {
-  "version": "1.246.0",
+  "version": "1.250.0",
   "tools": [
     {
       "name": "extract",
@@ -11958,7 +11958,7 @@
     },
     {
       "name": "document_text",
-      "description": "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow. Example: url=https://calibre-ebook.com/downloads/demos/demo.docx. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Convert a document to text or Markdown: Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, plain UTF-8 text (.txt/.md/.csv/.json), and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow. Example: url=https://calibre-ebook.com/downloads/demos/demo.docx. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
