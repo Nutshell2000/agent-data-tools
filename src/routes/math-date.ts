@@ -174,6 +174,7 @@ export const MATH_DATE: Entry[] = [
     { count: 8, sum: 180, mean: 22.5, median: 19.5, mode: [15], min: 12, max: 45, range: 33, variance: 101.25, stdDev: 10.0623058987, sampleVariance: 115.7142857143, sampleStdDev: 10.757057484, q1: 15, q3: 25.5, iqr: 10.5, p90: 34.5, p95: 39.75, p99: 43.95 },
     (_e, q) => {
       const parts = need(q, "values", 200_000).split(/[\s,;]+/).filter(Boolean);
+      if (parts.length === 0) throw new HttpError(400, "give at least one number in values");
       if (parts.length > 10_000) throw new HttpError(400, "at most 10,000 numbers");
       const values = parts.map((p) => { const v = Number(p); if (!Number.isFinite(v)) throw new HttpError(400, `not a number: ${p.slice(0, 30)}`); return v; });
       return stats(values);

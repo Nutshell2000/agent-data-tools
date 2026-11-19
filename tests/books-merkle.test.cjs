@@ -267,6 +267,26 @@ test('DeFi yields filter, sort and history summaries', async () => {
   }
 });
 
+test('DeFi TVL: a chain key that appears only past protocol 400 still resolves case-insensitively', async () => {
+  const realFetch = globalThis.fetch;
+  // A chain present only deep in the protocol list used to miss the first-400 key set, so a case-insensitive
+  // chain=zorpa fell back to the raw input and filtered every row out.
+  const protocols = Array.from({ length: 420 }, (_, i) => ({ name: `P${i}`, slug: `p${i}`, category: 'Lending', tvl: 1e6 + i, chainTvls: { Ethereum: 1e6 } }));
+  protocols[410].chainTvls = { Zorpa: 5e7 };
+  globalThis.fetch = async (input) => {
+    const url = new URL(typeof input === 'string' ? input : input.url);
+    if (url.pathname === '/protocols') return Response.json(protocols);
+    return new Response('?', { status: 404 });
+  };
+  try {
+    const { DEFI_TVL } = await load('src/routes/defi-tvl.ts');
+    const out = await DEFI_TVL[0].run({}, (n) => ({ chain: 'zorpa' })[n]);
+    assert.equal(out.chain, 'Zorpa');
+    assert.equal(out.protocols.length, 1);
+    assert.equal(out.protocols[0].slug, 'p410');
+  } finally { globalThis.fetch = realFetch; }
+});
+
 test('DeFi TVL: one protocol, rankings by category and chain, change rankings without dust, chain TVL', async () => {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {

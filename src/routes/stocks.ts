@@ -83,7 +83,9 @@ export async function stockQuote(raw: string) {
   // chart window: with this 5-day chart it is the close of five sessions ago, and until 10 Nov 2026 the tool reported
   // that five-day move as the day's change (AAPL: +5.0% shown, -0.62% true). With a single bar it is the true previous close.
   const closes = (quoted.indicators?.quote?.[0]?.close ?? []).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-  const price = num(m.regularMarketPrice), prev = closes.length >= 2 ? closes[closes.length - 2] : num(m.chartPreviousClose) ?? num(m.previousClose);
+  // Yahoo's meta.previousClose is the authoritative close before the current session. Prefer it: on a non-trading
+  // day or before the open the last daily bar is an older session, so the second-to-last bar can be two sessions back.
+  const price = num(m.regularMarketPrice), prev = num(m.previousClose) ?? (closes.length >= 2 ? closes[closes.length - 2] : num(m.chartPreviousClose));
   const change = price !== null && prev !== null ? price - prev : null;
   return {
     symbol: String(m.symbol ?? symbol), name: (m.longName ?? m.shortName ?? null) as string | null, exchange: (m.fullExchangeName ?? m.exchangeName ?? null) as string | null,
