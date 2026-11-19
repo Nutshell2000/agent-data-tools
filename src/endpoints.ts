@@ -766,10 +766,10 @@ export const CORE_ENDPOINTS = [
   {
     path: "/base-gas",
     price: "$0.002",
-    summary: "Base gas price and fee estimate",
+    summary: "Current gas price on Base: what a transaction costs in USD",
     description:
-      "Live gas prices on Base (chain 8453) read from the latest block: base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee in ETH for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
-    tags: ["base", "gas", "fees", "ethereum", "onchain"],
+      "Current gas price on Base and what a transaction costs in USD right now: live base fee and priority fee in gwei, suggested maxFeePerGas and maxPriorityFeePerGas in wei for an EIP-1559 transaction, how full the latest block is, and the estimated execution fee for an ETH transfer and an ERC-20 transfer. Use before sending a transaction on Base or to decide whether to wait for lower fees.",
+    tags: ["base-gas-price", "transaction-cost", "base", "gas", "fees"],
     params: {},
     outputExample: {
       chain: "base",
@@ -844,10 +844,10 @@ export const CORE_ENDPOINTS = [
   {
     path: "/ens",
     price: "$0.01",
-    summary: "ENS name resolver, reverse ENS: ENS name to address and address to ENS name",
+    summary: "ENS resolve, ENS lookup: ENS name to address and address to ENS name",
     description:
-      "Resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
-    tags: ["ens", "ethereum", "identity", "address", "resolve"],
+      "ENS resolve and ENS lookup: resolve an Ethereum Name Service name such as vitalik.eth to its wallet address and avatar, or look up the primary ENS name of an address (reverse resolution). Read live from Ethereum mainnet. Use to turn a human-readable name into a payable address, or to show a readable name for a counterparty address.",
+    tags: ["ens-resolve", "ens-lookup", "ens", "ethereum", "identity"],
     params: {
       name: { type: "string", description: "An ENS name such as vitalik.eth, or an address (0x...) for reverse lookup", required: true, example: "vitalik.eth" },
     },
