@@ -205,6 +205,10 @@ test('/credits page for people: packs with calls per pack, app setup, free previ
   assert.match(html, /\/check\/counterparty\?sample=1/);
   assert.match(html, /3 calls from a browser or plain HTTP, 25 through an AI app/);
   assert.doesNotMatch(html, /noindex/);
+  assert.match(html, /<main>.*One API key/s, 'the page has a main landmark');
+  assert.match(html, /<meta name="description" content="API credits by card/);
+  assert.match(html, /a\{color:#0645ad\}/, 'links have a contrasting colour in light mode');
+  assert.match(html, /a\{color:#8ecbff\}/, 'links have a contrasting colour in dark mode');
 });
 
 test('/credits/claim waits for the Stripe key instead of issuing anything', async () => {

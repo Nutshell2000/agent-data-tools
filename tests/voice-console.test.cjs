@@ -48,6 +48,14 @@ test("the hero offers use-case scripts that fill the text box", () => {
   assert.equal(scripts(html), 1, "no second inline script");
 });
 
+test("the footer headings and agent links pass the accessibility rules", () => {
+  const html = landingPage("Glyphcall", "https://x.test", true);
+  const footer = html.slice(html.indexOf("<footer>"));
+  assert.ok(!/<h4>/.test(footer), "no h4 without an h3 in the footer");
+  assert.match(footer, /<h3>[^<]+ APIs<\/h3>/);
+  assert.match(html, /\.agents p a\{[^}]*text-decoration:underline/);
+});
+
 test("the FAQ states the browser and API voice counts from the catalog", () => {
   const html = landingPage("Glyphcall", "https://x.test", true);
   const q = "How many voices are there?";
