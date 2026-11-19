@@ -49,7 +49,11 @@ const sessionFetch = (session, status = 200) => async (url, init) => {
 };
 
 test('the plans are the two the owner approved, and none is offered until its Stripe link and the cancel page exist', () => {
-  assert.deepEqual(credits.CREDIT_PLANS.map((p) => [p.usdCents, p.credits]), [[900, 15000], [1900, 40000]]);
+  // 19 Nov 2026: the $3 entry plan (half of ElevenLabs' $6 Starter) leads; the $9 plan stays for Transcribe Pro / existing
+  // subscriber verification but is hidden from the buy pages (url=""). WEB_PLANS shows only $3 and $19.
+  assert.deepEqual(credits.CREDIT_PLANS.map((p) => [p.usdCents, p.credits]), [[300, 15000], [900, 15000], [1900, 40000]]);
+  assert.deepEqual(credits.WEB_PLANS.map((p) => p.usdCents), [300, 1900]);
+  assert.equal(credits.CREDIT_PLANS.find((p) => p.usdCents === 300).url, 'https://buy.stripe.com/bJe28r01q5p6t1A7UtbII0c');
   // Each plan gives more credits per dollar than the pack nearest in price, or nobody would choose it.
   for (const plan of credits.CREDIT_PLANS) {
     for (const pack of credits.CREDIT_PACKS) assert.ok(plan.credits / plan.usdCents > pack.credits / pack.usdCents, `$${plan.usdCents / 100} plan against the $${pack.usdCents / 100} pack`);

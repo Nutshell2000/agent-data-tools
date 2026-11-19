@@ -98,7 +98,14 @@ export async function hashCreditKey(key: string): Promise<string> {
 // off like the packs, metadata adt_credits 15000 and 40000, redirect to /credits/claim. The portal link is the account's
 // default portal configuration: cancel at the end of the period on, switching plans and changing quantity off.
 export const CREDIT_PLANS = [
-  { usdCents: 900, credits: 15_000, url: "https://buy.stripe.com/4gMbJ19Cq8XBbFU5MNbII07" },
+  // 19 Nov 2026: the owner set the entry plan to $3/mo — half of ElevenLabs' $6 Starter — to win price-sensitive
+  // buyers. Stripe product prod_VeuQR9E5ya8nw3, price price_1Udac6DhGrPcm8Sc8CZIcA9n, payment link
+  // plink_1Udb2iDhGrPcm8ScTZNb5yyH with metadata adt_credits=15000 and success URL /credits/claim, created in her
+  // Chrome. First in the array so it is the lead plan shown as "from $3 a month" on every product page and the homepage.
+  { usdCents: 300, credits: 15_000, url: "https://buy.stripe.com/bJe28r01q5p6t1A7UtbII0c" },
+  // Kept for verifyCheckout: Transcribe Pro and existing $9 subscribers pay $9, which must still grant a key. url=""
+  // hides it from the buy pages (WEB_PLANS filters on url) without breaking that verification path.
+  { usdCents: 900, credits: 15_000, url: "" },
   { usdCents: 1_900, credits: 40_000, url: "https://buy.stripe.com/fZu7sLdSG0r5dO22ABbII08" },
 ] as const;
 export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28r15U4Hl9xMfnnbII00";
@@ -110,8 +117,14 @@ export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28
  * `verifyCheckout` grants them unchanged. A duplicate "Voice Pro" link made the same morning (plink_1UbyB8…) was
  * deactivated before any checkout: keep one product under one name.
  */
-export const VOICE_PRO_URL: string = "https://buy.stripe.com/3cI7sLdSGddRcJYb77bII09";
+// 19 Nov 2026: owner dropped Transcribe Pro to $3/mo (half of ElevenLabs' $6 Starter). New product price/link created
+// in her Stripe: plink_1UdbbODhGrPcm8ScM06VQ2Yr on prod_VdEGz7ftudKRRG, metadata adt_credits=15000, success URL
+// /credits/claim?for=voice&session_id={CHECKOUT_SESSION_ID}, tax off. The old $9 link is kept live for existing
+// subscribers; verifyCheckout still matches it via the hidden $9 plan in CREDIT_PLANS.
+export const VOICE_PRO_URL: string = "https://buy.stripe.com/00v3cvkyGg3bFUS5MNbI0e";
 export const VOICE_PRO_CREDITS = 15_000;
+/** Price of the Transcribe Pro plan in cents; the landing page and its JSON-LD derive their copy from this. */
+export const VOICE_PRO_CENTS = 300;
 /** The $1 pack sold for transcription (1,000 credits). */
 export const VOICE_HOURS_PACK_URL: string = "https://buy.stripe.com/9B6aEX5ma5LpcJYgrrbII0a";
 export const VOICE_HOURS_PACK_CREDITS = 1_000;
