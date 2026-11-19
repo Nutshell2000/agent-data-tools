@@ -78,6 +78,7 @@ import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
 import { paycheckDeclaration } from "./lib/payout-wallets";
 import { sellerEvidence } from "./lib/seller-evidence";
+import { handleA2a } from "./routes/a2a";
 import { CLAIM_COOLDOWN_MIN, DECLARATION_PATH, KEYS_PATH, attest, ISSUER, ownDeclaration, payeeDeps, payeeDomain, publicKeys, readRecord, registry, storeRecord, verifyPayee } from "./routes/payee";
 import { payeeLandingPage, payeeRecordPage } from "./lib/payee-pages";
 import { takeDailyBudget } from "./lib/daily-cap";
@@ -1028,6 +1029,8 @@ app.get("/find", async (c) => {
   }
 });
 
+// A2A v1.0: SendMessage finds the paid calls for a job and returns their terms. Free, like /find.
+app.post("/a2a", (c) => handleA2a(c.req.raw, c.env, origin(c.req.url)));
 // A guessed URL gets the closest tools and every catalog instead of a dead end.
 app.notFound((c) => {
   const o = origin(c.req.url);
