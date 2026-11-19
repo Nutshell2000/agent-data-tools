@@ -227,9 +227,17 @@ export const PACKS_RESEARCH: Entry[] = [
       let risk = hits.length || high ? "high" : (localRisk === "low" && (lookalike || medium) ? "medium" : localRisk);
       if (d?.trust === "low" && risk === "low") { signals.push({ level: "medium", code: "domain_low_trust", message: d.summary }); risk = "medium"; }
       if (!seen.length) failed.blocklist = "the phishing lists could not be read";
+      // 19 Nov 2026: an address-level-only answer (every upstream lookup failed) still has risk:"low" from the local
+      // signal scan — that reads as "safe" when nothing was actually verified. Add an explicit, machine-readable
+      // verdict and which sources answered. Purely additive: the existing risk enum and every field keep their
+      // meaning, so agents parsing the old answer are unaffected; agents that read verdict get the honest signal.
+      const coverage = { blocklist: seen.length > 0, redirects: !!redirects, domain: !!d, headers: !!h };
+      const covered = coverage.blocklist || coverage.redirects || coverage.domain || coverage.headers;
+      const verdict = hits.length ? "block" : (lookalike || medium || d?.trust === "low") ? "caution" : covered ? "clear" : "unverified";
+      const note = covered ? undefined : "Only the link's own address could be judged; the phishing lists, redirect check, domain register and security headers did not answer. Treat this as unverified, not safe.";
       return {
         pack: "url-safety", url: input.href, finalUrl: final?.href ?? null,
-        risk, signals,
+        risk, verdict, coverage, ...(note ? { note } : {}), signals,
         blocklist: seen.length ? { listed: hits.length > 0, hosts: seen.map((x) => ({ host: x.host, listed: x.v.listed, matchedOn: x.v.matchedOn, sources: x.v.sources, lookalikeOf: x.v.lookalikeOf })), listDate: seen[0].v.listDate } : null,
         redirects: redirects ? { count: redirects.redirects, hosts, hops: redirects.hops.map((x) => ({ url: x.url, status: x.status })) } : null,
         domain: d ? { domain: d.domain, trust: d.trust, ageDays: d.facts.ageDays, registrar: d.facts.registrar, flags: d.flags.map((f) => f.code) } : null,
