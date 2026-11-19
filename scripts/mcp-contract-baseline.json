@@ -1,5 +1,5 @@
 {
-  "version": "1.266.0",
+  "version": "1.268.0",
   "tools": [
     {
       "name": "extract",
@@ -10999,9 +10999,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -11034,9 +11035,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -11065,9 +11067,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           },
           "tokens": {
             "type": "string",
@@ -18821,9 +18824,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -19642,9 +19646,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
