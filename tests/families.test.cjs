@@ -73,7 +73,10 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   // 1.259.0: the macro snapshot tool and its door add two families.
   // 1.263.0: the /fortune tool adds one family to the 715 from concurrent main.
   // 1.268.0 (19 Nov 2026): four Mercator-ranking doors (/exa/search, /chat/completions, /token-price-api, /web/read).
-  assert.equal(families.length, 720);
+  // 1.298.0 (19 Nov 2026): /csv/preflight adds one family to the 720 from concurrent main.
+  // 1.299.0 (19 Nov 2026): /stock/brief adds one more.
+  // 1.301.0 (19 Nov 2026): /stock/screen adds one more.
+  assert.equal(families.length, 723);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -102,7 +105,7 @@ test("paused family tools remain implemented but cannot be advertised or directl
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
   // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
-  assert.equal(ENDPOINTS.length,744);
+  assert.equal(ENDPOINTS.length,747);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));

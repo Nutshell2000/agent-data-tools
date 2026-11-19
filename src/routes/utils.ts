@@ -108,6 +108,42 @@ const csvCell = (v: unknown) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+/** CSV preflight: parse + report problems. Keeps only non-blank rows, tracks line numbers. */
+function preflightCsv(text: string) {
+  const first = text.split(/\r?\n/, 1)[0] ?? "";
+  const d = [",", ";", "\t", "|"].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+  const rows: string[][] = [], lineNumbers: number[] = [], emptyRows: number[] = [];
+  let row: string[] = [], field = "", quoted = false, line = 1;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"' && field === "") quoted = true;
+    else if (ch === d) { row.push(field); field = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); field = "";
+      if (row.some((v) => v.trim() !== "")) { rows.push(row); lineNumbers.push(line); }
+      else if (i < text.length - 1) emptyRows.push(line);
+      row = []; line++;
+    } else field += ch;
+  }
+  row.push(field);
+  if (row.some((v) => v.trim() !== "")) { rows.push(row); lineNumbers.push(line); }
+  else if (text.trim() === "") { rows.push(row); lineNumbers.push(line); }
+  return { rows, lineNumbers, delimiter: d, unterminatedQuote: quoted, emptyRows };
+}
+
+function csvColumnType(samples: string[]): string {
+  const kinds = samples.map((v) => v.trim() === "" ? "empty" : /^-?\d+$/.test(v.trim()) ? "integer" : !isNaN(Number(v.trim())) ? "number" : /^(true|false)$/i.test(v.trim()) ? "boolean" : "string");
+  const nonEmpty = kinds.filter((k) => k !== "empty");
+  if (nonEmpty.length === 0) return "empty";
+  const distinct = [...new Set(nonEmpty)];
+  return distinct.length === 1 ? nonEmpty[0] : "mixed";
+}
+
 // ---------- Encoding / hashing ----------
 const b64encode = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 function b64decode(s: string) {
@@ -574,6 +610,52 @@ export const UTILS: Entry[] = [
   entry("/csv/to-json", "CSV to JSON", "Convert CSV (comma, semicolon, tab or pipe; delimiter detected automatically; quoted fields supported) to a JSON array of objects using the first row as keys. Numbers stay as text unless numbers=true. Use to load spreadsheet exports into an agent.",
     ["csv", "json", ...U], { text: T("name,age\nAda,36", "The CSV text, first row is the header"), numbers: { type: "string", description: "true to turn numeric cells into numbers", example: "true" } }, { rows: [{ name: "Ada", age: "36" }], count: 1, columns: ["name", "age"] },
     (_e, q) => { const rows = parseCsv(need(q, "text", MAX)); if (rows.length < 1) throw new HttpError(422, "no rows found"); const [h, ...body] = rows; const asNum = flag(q, "numbers"); return { rows: body.map((r) => Object.fromEntries(h.map((k, i) => { const v = r[i] ?? ""; return [k, asNum && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : v]; }))), count: body.length, columns: h }; }),
+  entry("/csv/preflight", "CSV preflight, validate CSV", "Check CSV text before importing: returns a verdict (ok), problems with line numbers (empty or missing header, no data rows, ragged rows with field counts, duplicate headers, mixed column types, unterminated quotes, mojibake), the detected delimiter and a per-column type report. Use before ingesting a CSV export.",
+    ["csv", "data", ...U], { text: T("name,age\nAda,36\nBob,41", "The CSV text to validate (first row is the header)") },
+    { ok: true, delimiter: ",", rowCount: 2, raggedRowCount: 0, blankLines: 0, header: ["name", "age"], columnTypes: { name: "string", age: "integer" }, problems: [] },
+    (_e, q) => {
+      const raw = need(q, "text", MAX).replace(/^\uFEFF/, "");
+      const { rows, lineNumbers, delimiter, unterminatedQuote, emptyRows } = preflightCsv(raw);
+      const problems: { line: number; message: string }[] = [];
+      const header = rows[0]?.map((h) => h.trim().replace(/\s+/g, " ")) ?? [];
+      const body = rows.slice(1);
+      if (header.length === 0) problems.push({ line: 1, message: "no header row found (text is empty or all blank)" });
+      else if (header.every((h) => h === "")) problems.push({ line: lineNumbers[0] ?? 1, message: "header row is empty: no column names found" });
+      if (header.filter((h) => h === "").length > 0) problems.push({ line: 1, message: "header has empty column names" });
+      const seen = new Set<string>();
+      for (const h of header) if (h !== "") { if (seen.has(h)) problems.push({ line: 1, message: `duplicate header "${h}"` }); seen.add(h); }
+      const ragged: { line: number; fields: number; headerFields: number }[] = [];
+      const colTypes: Record<string, string> = {};
+      const colSamples: string[][] = Array.from({ length: header.length }, () => []);
+      body.forEach((row, i) => {
+        const line = lineNumbers[i + 1] ?? i + 2;
+        if (header.length > 0 && row.length !== header.length) ragged.push({ line, fields: row.length, headerFields: header.length });
+        header.forEach((h, ci) => { if (ci < row.length && h) colSamples[ci].push(row[ci]); });
+      });
+      header.forEach((h, ci) => { if (h) colTypes[h] = csvColumnType(colSamples[ci]); });
+      const MAXP = 12;
+      for (const r of ragged.slice(0, MAXP)) problems.push({ line: r.line, message: `row has ${r.fields} fields, header has ${r.headerFields}` });
+      if (ragged.length > MAXP) problems.push({ line: ragged[MAXP].line, message: `+${ragged.length - MAXP} more ragged rows` });
+      for (const [h, t] of Object.entries(colTypes)) if (t === "mixed") problems.push({ line: 1, message: `column "${h}" has mixed types` });
+      if (rows.length === 0 && header.length === 0) problems.push({ line: 1, message: "no data at all" });
+      else if (body.length === 0) problems.push({ line: 1, message: "no data rows after the header" });
+      for (const b of emptyRows.slice(0, 3)) problems.push({ line: b, message: "blank line (ignored by parsers)" });
+      if (unterminatedQuote) problems.push({ line: lineNumbers[lineNumbers.length - 1] ?? 1, message: "a quoted field is not closed before the end of the text" });
+      const enc: string[] = [];
+      if (raw.includes("\uFFFD")) enc.push("text contains replacement characters - likely mojibake or binary data");
+      if (raw.includes("\u0000")) enc.push("text contains NUL bytes - likely binary, not CSV text");
+      for (const m of enc.slice(0, 5)) problems.push({ line: 1, message: m });
+      return {
+        ok: problems.length === 0,
+        delimiter,
+        rowCount: body.length,
+        raggedRowCount: ragged.length,
+        blankLines: emptyRows.length,
+        header,
+        columnTypes: colTypes,
+        problems,
+      };
+    }),
   entry("/base64/encode", "Base64 encode", "Encode UTF-8 text as standard base64, and also return the URL-safe variant. Use for data URLs, headers and basic auth strings.",
     ["base64", "encoding", ...U], { text: T("hello world", "The text to encode") }, { base64: "aGVsbG8gd29ybGQ=", base64url: "aGVsbG8gd29ybGQ" },
     (_e, q) => { const b = b64encode(need(q, "text", MAX)); return { base64: b, base64url: b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") }; }),

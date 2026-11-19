@@ -174,7 +174,7 @@ export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.f
   // Third pass, 25 Oct 2026: the 28 tools that carried fewer than 5 tags (the Bazaar matches the first 5), with the phrase
   // the demand probe found buyers searching (business/agentic/base-bots/demand-probe.mjs; we sat #2-#13 or absent).
   "/json/validate": ["json-validator", "validate-json"], "/json/format": ["json-formatter", "pretty-print"], "/json/minify": ["json-minifier", "minify-json"],
-  "/json/to-csv": ["json-to-csv", "csv-export"], "/csv/to-json": ["csv-to-json", "csv-parser"],
+  "/json/to-csv": ["json-to-csv", "csv-export"], "/csv/to-json": ["csv-to-json", "csv-parser"], "/csv/preflight": ["csv-preflight", "csv-validation", "preflight-csv", "csv-quality"],
   "/base64/encode": ["base64-encode", "base64-encoder"], "/base64/decode": ["base64-decode", "base64-decoder"],
   "/url/encode": ["url-encode", "url-encoder"], "/url/decode": ["url-decode", "url-decoder"], "/url/parse": ["url-parser", "parse-url"],
   "/number/roman": ["roman-numerals", "roman-numeral-converter"], "/validate/luhn": ["luhn-check", "credit-card-validation"],
