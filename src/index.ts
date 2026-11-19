@@ -68,7 +68,7 @@ import { freeKeys, freeKeysOn } from "./lib/free-keys";
 import { httpFree } from "./lib/capacity";
 import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
-import { pdfTryFor, pdfTryOn, pdfTryRequests, takePdfTry } from "./lib/pdf-try";
+import { pdfTryFor, pdfTryOn, pdfTryRequests, refundPdfTry, takePdfTry } from "./lib/pdf-try";
 import { PDF_TRY_INPUT, PDF_TRY_PAGES } from "./routes/pdf";
 import { isFileRef, FILE_INPUT, FILE_INPUT_PATHS, FILE_REF_INPUT, holdFile, releaseFile, sentFile } from "./lib/file-input";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
@@ -415,8 +415,11 @@ app.use(async (c, next) => {
   const creditKey = endpoint && c.req.method === "GET" ? apiKeyFrom((name) => c.req.header(name), (name) => c.req.query(name)) : undefined;
   // A free voice test or trial key (lib/voice-keys.ts) never reaches the credit ledger: it runs only what a voice front admitted.
   if (endpoint && creditKey && voiceKeyKind(creditKey)) return (await admitTrialUpload(c, creditKey)) ?? chargeVoiceKey(c, creditKey, next);
+  // A client that explicitly carries a payment must not be hijacked by a stale adt_ key still in the headers: chargeCredits
+  // would refuse the key before the payment branches below ever run, losing a valid paid call.
+  const carriesPayment = Boolean(c.req.header("payment-signature") || c.req.header("x-payment") || /payment/i.test(c.req.header("authorization") ?? ""));
   // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
-  if (endpoint && creditKey) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
+  if (endpoint && creditKey && !carriesPayment) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
@@ -443,7 +446,7 @@ app.use(async (c, next) => {
   // The capped PDF try (lib/pdf-try.ts): off unless PDF_TRY=on; a browser only, inside the day's total.
   const pdfTry = Boolean(endpoint) && trialable && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature") && pdfTryFor(c.env, c.req.path, c.req.header("accept"), c.req.header("user-agent"));
   if (endpoint && trialable && (httpFree(c.req.path) || pdfTry) && c.req.method === "GET" && c.req.query("trial") === "1" && !c.req.header("payment-signature")) {
-    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER);
+    let free = await useFreeCall(c.env, c.req.header("cf-connecting-ip"), () => { freePaused = true; }, FREE_HTTP_CALLS_PER_CALLER, undefined, "http");
     // A PDF try also needs room in the day's total; it is taken only once the visitor's own free call is in hand, so a
     // visitor who is out of tries cannot use up the total for everyone else.
     if (free && pdfTry) {
@@ -455,8 +458,16 @@ app.use(async (c, next) => {
       return c.html(browserTrialPausedPage(endpoint, c.req.url), 503, { "Retry-After": String(hoursToUtcMidnight() * 3600), "Cache-Control": "no-store" });
     }
     if (free) {
-      await next();
-      if (c.res.status >= 400) await free.refund();
+      // A tool that throws (a "not found" 404, an upstream 502) never reaches the status check below, so without
+      // this catch the caller loses a free call — and a scarce capped PDF slot — for a call that delivered nothing.
+      try {
+        await next();
+      } catch (err) {
+        await free.refund().catch(() => {});
+        if (pdfTry && pdfTryRequests.has(c.req.raw)) await refundPdfTry(c.env, isFileRef(c.req.query(FILE_INPUT))).catch(() => {});
+        throw err;
+      }
+      if (c.res.status >= 400) await free.refund().catch(() => {});
       else markStage("free_call");
       c.res.headers.set("X-Free-Trial-Remaining", String(c.res.status >= 400 ? free.left + 1 : free.left));
       // Free calls are for people and agents trying a tool, not for search crawlers indexing the result.
@@ -516,7 +527,9 @@ app.use(async (c, next) => {
   // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.
   if (response.status === 402 && c.req.header("payment-signature")) {
     const trace = activeTrace();
-    if (!trace?.stages.has("verification_failed") && !trace?.stages.has("facilitator_unavailable")) {
+    // A verified payment whose settlement failed is answered 402 too; it is already counted as settlement_failed,
+    // so marking it refused_* as well overstates refusals (16 Nov payments diagnosis: 11 payments, 45 → 34).
+    if (!trace?.stages.has("verification_failed") && !trace?.stages.has("facilitator_unavailable") && !trace?.stages.has("settlement_failed") && !trace?.stages.has("verified")) {
       const reason = decodedChallengeError(response.headers.get("payment-required"));
       const stage = /network|chain|unsupported/i.test(reason) ? "refused_network" : /amount|price|value/i.test(reason) ? "refused_amount" : "refused_format";
       markStage(stage);

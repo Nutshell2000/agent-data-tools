@@ -186,7 +186,7 @@ export const WEB_CHECKS: Entry[] = [
         throw e;
       }
       const res = w.response;
-      if (!res) { const last = w.hops.at(-1); return { url, up: false, status: last?.status ?? null, responseMs: Date.now() - t0, finalUrl: w.final, redirects: w.hops.length, contentType: null, server: null, bytes: null, contains: want ? { text: want, found: false } : null, checkedAt, reason: (w as { error?: string }).error ?? "redirect loop" }; }
+      if (!res) { const last = w.hops.at(-1); return { url, up: false, status: last?.status ?? null, responseMs: Date.now() - t0, finalUrl: w.final, redirects: Math.max(0, w.hops.length - 1), contentType: null, server: null, bytes: null, contains: want ? { text: want, found: false } : null, checkedAt, reason: (w as { error?: string }).error ?? "redirect loop" }; }
       const body = await readCapped(res, 500_000);
       const ms = Date.now() - t0;
       return {
@@ -234,7 +234,10 @@ export const WEB_CHECKS: Entry[] = [
       const tally = new Map<string, number>();
       for (const r of answered) tally.set(key(r), (tally.get(key(r)) ?? 0) + 1);
       const best = [...tally].sort((a, b) => b[1] - a[1])[0][0];
-      return { name, type, propagated: tally.size === 1, agreeing: tally.get(best)!, answered: answered.length, majority: answered.find((r) => key(r) === best)!.answers, resolvers: rows };
+      // "propagated" means every resolver agrees. If some timed out, a single answer is not consensus — charging
+      // for a true verdict there would tell a buyer the record has propagated when it was never cross-checked.
+      const propagated = answered.length === RESOLVERS.length && tally.size === 1;
+      return { name, type, propagated, agreeing: tally.get(best)!, answered: answered.length, majority: answered.find((r) => key(r) === best)!.answers, resolvers: rows };
     }, "$0.03"), // price test 5 Nov-19 Nov 2026 (owner): the market leader charges $0.03
 
   entry("/seo/audit", "SEO audit, on-page: title, meta, headings, links and issues",

@@ -1,5 +1,5 @@
 import { isBrowser } from "./browser-402";
-import { takeDailyBudget } from "./daily-cap";
+import { refundDailyBudget, takeDailyBudget } from "./daily-cap";
 import type { Env } from "./env";
 
 /**
@@ -32,6 +32,12 @@ export async function takePdfTry(env: Env, upload = false): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Give back a capped PDF try when the tool failed, so a bad URL does not consume a scarce shared slot. */
+export async function refundPdfTry(env: Env, upload = false): Promise<void> {
+  if (upload) await refundDailyBudget(env, "pdftry-upload");
+  else await refundDailyBudget(env, "pdftry");
 }
 
 /** Requests the route let through as a capped try; the tool route reads this to set the reserved input. */

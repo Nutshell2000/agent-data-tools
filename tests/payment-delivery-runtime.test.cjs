@@ -213,7 +213,7 @@ test('card credits: a paid checkout issues one key that pays HTTP and MCP calls;
  assert.equal(quote.isError,true);assert.ok(JSON.parse(quote.content[0].text).accepts.length>0);
  assert.match(quote.content.at(-1).text,/^PAYMENT NEEDED \(\$0\.002 .*https:\/\/api\.test\/credits/);
  // Card payments are ready here, so the assistant gets the $5 Stripe checkout as one link to show its user.
- assert.match(quote.content.at(-1).text,/pay \$1 by card in one step at https:\/\/buy\.stripe\.com\/fZufZhdSGgq3bFU5MNbII06 \(Stripe; 1,000 credits, about 500 calls at \$0\.002; the key is shown right after payment/);assert.match(quote.content.at(-1).text,/connect to https:\/\/api\.test\/mcp\/account instead/);
+ assert.match(quote.content.at(-1).text,/pay \$1 by card in one step at https:\/\/buy\.stripe\.com\/fZufZhdSGgq3bFU5MNbII06 \(Stripe; 1,000 credits, about 500 calls at \$0\.002(?: with a key)?; the key is shown right after payment/);assert.match(quote.content.at(-1).text,/connect to https:\/\/api\.test\/mcp\/account instead/);
  const viaUrl=new Client({name:'credits-url-fixture',version:'1'});
  try{await viaUrl.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp/k/'+first.apiKey),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));const r=await viaUrl.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.notEqual(r.isError,true);}finally{await viaUrl.close();}
  assert.equal((await mf.dispatchFetch('https://api.test/mcp/k/not-a-key',{method:'POST'})).status,401);
@@ -235,10 +235,10 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
   assert.match(client.getInstructions(),/25 free successful calls.*\/credits/);
   const r=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
-  // One counter per caller while MCP_FREE_SESSIONS is off (the default): the HTTP trial call above used one.
-  assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(23 of 25/);
+  // HTTP and MCP free calls are counted separately, so the HTTP trial above did not use any of this MCP allowance.
+  assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(24 of 25/);
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
-  const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(22 of 25/);
+  const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(23 of 25/);
  }finally{await client.close();}
  // Over HTTP a caller has 3 free calls (10 Nov 2026; MCP keeps 25). A caller who has used all 3 gets the 402 and is counted as free_exhausted, the moment they are asked to pay.
  const other={'cf-connecting-ip':'198.51.100.8'};

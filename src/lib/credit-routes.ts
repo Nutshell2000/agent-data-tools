@@ -313,7 +313,9 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
     throw err;
   }
   if (c.res.status >= 400) {
-    remaining = await store.refundCredits(keyHash, micros);
+    // A storage failure here must not turn a failed tool call (already refunded in spirit) into a 500; the caller
+    // keeps the credits and we log for reconciliation either way.
+    remaining = await store.refundCredits(keyHash, micros).catch((e: unknown) => { console.error("credits: refund failed; reconcile", keyHash.slice(0, 12), e); return remaining; });
     c.res.headers.set("X-Credits-Charged", "0");
   } else {
     c.res.headers.set("X-Credits-Charged", String(creditsFromMicros(micros)));
@@ -324,10 +326,12 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
 }
 
 /** One free call for this caller, or null. The returned refund gives it back when the tool fails. */
-export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER, session?: string) {
+export async function useFreeCall(env: Env, ip: string | undefined, onUnavailable?: () => void, limit: number = FREE_CALLS_PER_CALLER, session?: string, surface?: string) {
   const store = ledger(env);
   if (!store || !trialsEnabled(env)) return null;
-  const address = await callerHash(ip ?? "unknown");
+  // HTTP (3 calls) and MCP (25) must not share one counter: a shared-IP MCP user spending 25 used to lock out every
+  // HTTP trial=1 caller at that address (25 >= 3), and an HTTP trial user got only 22 MCP calls. Namespace the hash.
+  const address = (surface ? `${surface}:` : "") + await callerHash(ip ?? "unknown");
   const day = utcDay();
   // If the allowance cannot be counted (storage over its daily write limit), the caller gets the payment
   // request like any unpaid call instead of a 500, and onUnavailable lets the caller say why.
@@ -338,7 +342,9 @@ export async function useFreeCall(env: Env, ip: string | undefined, onUnavailabl
   if (taken === undefined) { onUnavailable?.(); return null; }
   const { left, caller } = taken;
   if (left === null) markStage("free_exhausted");
-  return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day) };
+  // The refund must never reject: a KV write failure during a refund must not turn the caller's failed call into a
+  // 500, and every caller of refund() should be able to await it without its own catch.
+  return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day).catch((e: unknown) => console.error("free call: refund failed; reconcile", e)) };
 }
 
 /**
@@ -353,7 +359,7 @@ export async function useDailyCall(env: Env, caller: string, perCaller: number, 
   const left = await store.takeDailyCall(hash, day, perCaller, total).catch((err: unknown) => { console.error(`daily calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
   if (left === undefined) { onUnavailable?.(); return null; }
   if (left === null) markStage("free_exhausted");
-  return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day) };
+  return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day).catch((e: unknown) => console.error("daily call: refund failed; reconcile", e)) };
 }
 
 /** MCP initialize instructions: how calls are paid, so the model can plan and tell its user what to do. */
@@ -375,7 +381,7 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
       : `You are signed in without credits: ${FREE_CALLS_PER_CALLER} free successful calls are included (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. After that, tools need credits, which the user can get at ${origin}/credits before reconnecting and signing in with the key.`)
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
-    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. They are counted per connection when your client keeps the session id this server sends at initialize, otherwise per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
+    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. Where the server issues a session id at initialize, keeping it counts calls per connection; otherwise calls are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
       + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo) it can pay it, or prepay once: GET ${origin}/credits/usdc/5 with x402 returns a key worth 5,000 credits for later calls. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
   // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
   if (focus) return `Agent Data Tools, ${toolCount} pay-per-call tools for ${focus.kinds}. ${focus.prices ?? "Most cost $0.01 per successful call."} ${pay} Every tool's result shape is in its output schema. ${focus.pick}`;
@@ -393,13 +399,15 @@ const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; Op
   .replace("; text to speech → ai_speech (up to 2,000 characters: text_to_speech)", "").replace("; an image from a prompt → image", "").replace("; current information from the web → search, news", "").replace(/ Smaller servers per section:.*$/, "");
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
-export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
+export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false, keyPerCall = price) {
   // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
   // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
+  // A key may pay LESS than the public price (many tools cost 1 credit with a key): quote the pack's value at the
+  // price the key actually pays, or an agent understates a $1 pack by up to 10x to the human who must approve it.
   const [starter] = WEB_PACKS;
   const card = cardReady
-    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
-    : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, price)} calls at ${price}) ${keyPlacement(origin, signedIn)}`;
+    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, keyPerCall)} calls at ${keyPerCall} with a key; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
+    : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, keyPerCall)} calls at ${keyPerCall} with a key) ${keyPlacement(origin, signedIn)}`;
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
     + `${card}, and retry. A client with an x402 or MPP wallet can instead settle each call directly, or prepay a key in one paid HTTP request at ${origin}/credits/buy/1 (no checkout page) and retry with that key. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may

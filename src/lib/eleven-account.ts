@@ -13,6 +13,7 @@ import { SPEECH_VOICES } from "../routes/ai-text";
 import { elevenVoice } from "./voice-fronts";
 import { SPEECH_INPUT_LIMIT, withXiKey } from "./openai-speech";
 import { SPEECH_CREDITS_PER_100 } from "./voice-billing";
+import { VOICE_TEST_CALLS, VOICE_TEST_SPEECH_CHARS } from "./voice-keys";
 import { apiKeyFrom } from "./credits";
 
 type C = Context<{ Bindings: Env }>;
@@ -109,10 +110,13 @@ export async function elevenSubscription(c: C, forward: Forward): Promise<{ sub:
   if (!answer.ok || !body) return c.json({ detail: { status: "service_unavailable", message: "The key's balance cannot be read right now; try again shortly. Speech requests still work." } }, 503);
   const credits = typeof body.balanceCredits === "number" ? body.balanceCredits : null;
   const remaining = credits === null ? null : Math.floor((credits / SPEECH_CREDITS_PER_100) * 100);
+  // A free test key has no credit balance, but apps (Home Assistant, SillyTavern, n8n) read this on setup and refuse
+  // to enable speech when character_limit is 0. Report its real free allowance so the first call is ever attempted.
+  const freeCharacters = VOICE_TEST_CALLS * VOICE_TEST_SPEECH_CHARS;
   const sub = {
     tier: credits === null ? "free_test" : "pay_as_you_go",
     character_count: 0,
-    character_limit: remaining ?? 0,
+    character_limit: remaining ?? freeCharacters,
     can_extend_character_limit: false,
     allowed_to_extend_character_limit: false,
     next_character_count_reset_unix: null,
@@ -124,7 +128,9 @@ export async function elevenSubscription(c: C, forward: Forward): Promise<{ sub:
     status: "active",
     billing_period: "prepaid",
     glyphcall: {
-      note: "Prepaid credits: no monthly reset, no automatic top-ups, unused credits never expire. character_limit is what the key's balance buys at the key rate.",
+      note: credits === null
+        ? `Free voice test key: ${VOICE_TEST_CALLS} successful calls, up to ${VOICE_TEST_SPEECH_CHARS} characters each, for 24 hours. character_limit is that allowance; get a prepaid key at ${origin}/credits for more.`
+        : "Prepaid credits: no monthly reset, no automatic top-ups, unused credits never expire. character_limit is what the key's balance buys at the key rate.",
       balance: credits === null ? body : { credits },
       topUp: `${origin}/credits`,
     },

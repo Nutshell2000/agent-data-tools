@@ -55,7 +55,11 @@ test('maps OpenAI messages onto the /ai/chat query', () => {
   assert.ok(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }, { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'f', arguments: '{}' } }] }, { role: 'tool', tool_call_id: 'c1', content: '{}' }] }).query.native);
   assert.ok(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], response_format: { type: 'json_object' } }).query.native);
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], response_format: { type: 'text' } }).query.native, undefined);
-  assert.match(lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }], tools }).error, /served by/);
+  // 19 Nov 2026: a named large model + tools no longer 400s; it runs the native path with a substitution note.
+  const substituted = lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }], tools }).query;
+  assert.ok(substituted.native, 'tools are served on the default native path');
+  assert.equal(substituted.modelSubstituted, 'deepseek-r1');
+  assert.equal(substituted.model, undefined, 'no large-model query param on the native path');
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }], stream: true }).query.prompt, 'x', 'stream: true is accepted (answered as server-sent events)');
   const long = lib.toChatQuery({ messages: [{ role: 'user', content: 'a'.repeat(9000) }] });
   assert.equal(long.query.prompt.length, 8000);

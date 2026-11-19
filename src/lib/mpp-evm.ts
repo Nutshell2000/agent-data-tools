@@ -190,17 +190,23 @@ export async function payEvm(c: C, endpoint: Endpoint, header: string, next: Nex
     markStage("verification_failed");
     return refusal(c, endpoint, "payment invalid: this authorization was already used; request a new challenge");
   }
+  // The claim is taken before verification so a replay cannot slip through, but nothing has been charged yet: a
+  // verification refusal or a transient facilitator outage must release it, or an honest retry is refused as "used".
+  const claimKey = `evm:${network}:${authorization.nonce.toLowerCase()}`;
+  const release = () => { if (c.env.METRICS) void c.env.METRICS.get(c.env.METRICS.idFromName("global")).mppDelete(claimKey).catch(() => {}); };
   // The facilitator checks the signature against the token domain and the payer's balance before any work is done.
   const { requirements, payload } = facilitatorPayment(c.env, authorization, authorization.value);
   try {
     const verified = await buildFacilitator(c.env).verify(payload as never, requirements as never);
     if (!verified.isValid) {
+      release();
       markStage("verification_failed");
       console.warn(`mpp evm verification_failed ${endpoint.path}: ${verified.invalidReason ?? "rejected by the facilitator"}`);
       return refusal(c, endpoint, `payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`);
     }
   } catch (e) {
     const message = String((e as Error)?.message ?? e);
+    release();
     if ((e as Error)?.name === "VerifyError" || /^invalid_|insufficient_funds/.test(message)) {
       markStage("verification_failed");
       console.warn(`mpp evm verification_failed ${endpoint.path}: ${message.slice(0, 160)}`);

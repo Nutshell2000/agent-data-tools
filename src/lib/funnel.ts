@@ -120,7 +120,12 @@ export const isCatalogFile = (path: string) => ["/llms.txt", "/openapi.json", "/
 /** Successful reads of published buying resources; no identity or cross-request tracking. */
 export function isDiscoveryVisit(method: string, path: string, status: number): boolean {
   if (method !== "GET" || status < 200 || status >= 300) return false;
-  if (["/skills/index.json","/skills/spellzcode-x402-reader/SKILL.md"].includes(path)) return true;
+  // Every SKILL.md we actually serve (src/index.ts): the primary catalog skill and the reader skill, at both the
+  // repository path and the .well-known/agent-skills path, plus both index files. These are the files an agent reads
+  // before installing; omitting the primary skill hid the main discovery funnel from /revenue and /metrics.
+  if (["/skills/index.json", "/.well-known/agent-skills/index.json",
+    "/skills/agent-data-tools/SKILL.md", "/.well-known/agent-skills/agent-data-tools/SKILL.md",
+    "/skills/spellzcode-x402-reader/SKILL.md", "/.well-known/agent-skills/spellzcode-x402-reader/SKILL.md"].includes(path)) return true;
   if (["/", "/llms.txt", "/openapi.json", "/.well-known/x402", "/.well-known/x402.json", "/discovery/resources", "/.well-known/api-catalog", "/.well-known/mcp/server-card.json", "/examples/extract/", "/examples/extract/manifest.json", "/examples/sitemap/", "/examples/sitemap/manifest.json", "/examples/sitemap/result.json", "/examples/sitemap/source.xml", "/examples/sitemap/index.xml"].includes(path)) return true;
   if (/^\/guides\/(web-reading|bitcoin-fees|dependency-audit|sitemap|local-mcp)(\.md)?$/.test(path)) return true;
   if (/^\/clients\/reader\/\d+\.\d+\.\d+\/(reader-client\.mjs(?:\.sha256)?|reader-mcp\.mjs(?:\.sha256)?|SHA256SUMS)$/.test(path)) return true;

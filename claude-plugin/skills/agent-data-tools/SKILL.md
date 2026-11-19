@@ -1,6 +1,6 @@
 ---
 name: agent-data-tools
-description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes, FX, weather, time, company and domain lookups, and 600+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 25 free calls, then card credits or USDC (x402)."
+description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes, FX, weather, time, company and domain lookups, and 600+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (25 over MCP), then card credits or USDC (x402)."
 metadata:
   homepage: "https://agent-data-tools.revmesh2074.workers.dev"
 ---
