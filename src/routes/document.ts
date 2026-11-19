@@ -416,12 +416,12 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
 
 export const DOCUMENT: Entry[] = [
   entry("/document/text", "Document to text: Word, Excel, PowerPoint, PDF",
-    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default, 20 MB with maxBytes=20; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
+    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
     ["docx-to-text", "word-to-markdown", "ocr", "xlsx-to-json", "document", "pptx", "office", "rag"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
       format: { type: "string", description: "markdown (default: headings, lists and tables kept) or text", enum: ["markdown", "text"], example: "markdown" },
       maxChars: { type: "integer", description: "Maximum characters of text returned (1000-200000, default 50000)", example: 1000 },
-      maxBytes: { type: "integer", description: "Maximum file size in MB for a URL read (10 default, up to 20 for large scans and decks); the default stays small because the whole file is held in memory", example: 20 },
+      maxBytes: { type: "integer", description: "Maximum file size in MB for a URL read (10 default, up to 20). If omitted, a file over 10 MB is retried once at 20 MB; an explicit value is respected", example: 20 },
     },
     {
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
@@ -437,9 +437,23 @@ export const DOCUMENT: Entry[] = [
         if (!bytes) throw new HttpError(400, "send the file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON); a file reference cannot be used in a GET");
         return { url: null, source: "upload", bytes: bytes.byteLength, ...(await readDocument(bytes, format, maxChars, visionOcr(env))) };
       }
+      const requestedMB = q("maxBytes");
       const maxMB = num(q, "maxBytes", { min: 10, max: 20, fallback: 10, integer: true });
-      const file = await fetchFile(q("url"), /^/, maxMB * 1024 * 1024, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
-      return { url: file.url, ...(await readDocument(file.bytes, format, maxChars, visionOcr(env))) };
+      let raised = false;
+      let file;
+      try {
+        file = await fetchFile(q("url"), /^/, maxMB * 1024 * 1024, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
+      } catch (e) {
+        // 19 Nov 2026: /status still showed large URLs refused at the 10 MB default. When the caller did not choose a
+        // cap, try once more at the bounded 20 MB ceiling; the first fetch checks Content-Length and stops before
+        // downloading the body. An explicit maxBytes is respected, and a file over 20 MB still fails uncharged.
+        if (requestedMB === undefined && e instanceof HttpError && e.status === 422 && /larger than/.test(e.message)) {
+          file = await fetchFile(q("url"), /^/, DOCUMENT_MAX_BYTES_OPTIONAL, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
+          raised = true;
+        } else throw e;
+      }
+      return { url: file.url, ...(await readDocument(file.bytes, format, maxChars, visionOcr(env))),
+        ...(raised ? { note: "The file was over the 10 MB default, so it was read once at the 20 MB ceiling. Send maxBytes to choose a cap." } : {}) };
       // $0.005, the PDF tool's price (the owner delegated prices on 14 Nov 2026: "you decide prices").
     }, "$0.005"),
 
