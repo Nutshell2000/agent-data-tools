@@ -173,6 +173,20 @@ function scannedPdf(jpeg) {
 }
 const fakeJpeg = (size, fill = 7) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(size - 6, fill), Buffer.from([0xff, 0xd9])]);
 
+test('plain UTF-8 text, CSV and JSON are documents; HTML and binary files still refuse', async () => {
+  const D = await load('src/routes/document.ts');
+  const enc = new TextEncoder();
+  const csv = enc.encode('invoice,total\nA-1,1250\n');
+  assert.equal(D.documentType(csv, null), 'text');
+  const out = await D.readDocument(csv, 'markdown', 50_000);
+  assert.match(out.text, /invoice,total/);
+  assert.equal(out.type, 'text');
+  assert.match(out.note, /Plain UTF-8 text/);
+  assert.equal(D.documentType(enc.encode('{"a":1}'), null), 'text');
+  assert.equal(D.documentType(enc.encode('<!doctype html><html><body>x</body></html>'), null), null);
+  await assert.rejects(D.readDocument(enc.encode('<!doctype html><html><body>x</body></html>'), 'markdown', 50_000), (e) => e.status === 415);
+});
+
 test('OCR: an image and a scanned PDF are read through the reader it is given; without one they are refused', async () => {
   const page = fakeJpeg(40_000);
   const scan = scannedPdf(page);
