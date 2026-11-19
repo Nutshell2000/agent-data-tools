@@ -7,11 +7,12 @@
 // Why (25 Oct 2026): BlockRun's Anthropic-compatible messages endpoint sold 2,266 calls in 30 days at $0.011.
 import type { Context } from "hono";
 import type { Env } from "./env";
-import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openApiGetVariant, toOpenAiResponse } from "./openai-chat";
+import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openAiModels, openApiGetVariant, toOpenAiResponse } from "./openai-chat";
 import { CHAT_MODEL } from "../routes/ai-text";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
 
 export const ANTHROPIC_MESSAGES_PATH = "/v1/messages";
+export const ANTHROPIC_COUNT_TOKENS_PATH = "/v1/messages/count_tokens";
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 type Block = { type?: string; text?: string; id?: string; name?: string; input?: unknown; tool_use_id?: string; content?: unknown };
@@ -19,6 +20,34 @@ type Block = { type?: string; text?: string; id?: string; name?: string; input?:
 const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const textOfBlocks = (content: unknown): string => typeof content === "string" ? content
   : Array.isArray(content) ? content.map((b) => (b && typeof b === "object" && (b as Block).type === "text" ? String((b as Block).text ?? "") : "")).join("\n").trim() : "";
+
+/**
+ * Anthropic-shaped GET /v1/models (19 Nov 2026). An Anthropic SDK sends `anthropic-version` and expects its own model
+ * object; our OpenAI list made setup fail before any paid /v1/messages call. Derived from the same catalog as that
+ * list, so it names only models we actually serve — no Claude model is claimed. Free to read, like the OpenAI list.
+ */
+export function anthropicModels() {
+  const data = openAiModels().data.map((m) => ({
+    type: "model",
+    id: m.id,
+    display_name: (m as { alias?: string }).alias ?? m.id,
+    created_at: new Date((m as { created: number }).created * 1000).toISOString(),
+    description: "Open model served here; send its id as the Messages model. No Claude model is served.",
+  }));
+  return { data, has_more: false, first_id: data[0]?.id ?? null, last_id: data[data.length - 1]?.id ?? null };
+}
+
+/**
+ * POST /v1/messages/count_tokens: a free local estimate so an SDK's token-budget check does not 404 before the paid
+ * message. Anthropic counts exactly on their service; we say plainly in `note` that this is an estimate (SDKs ignore
+ * extra fields). No model call and no charge.
+ */
+export function countTokens(body: unknown) {
+  const b = body && typeof body === "object" ? body as { messages?: unknown; system?: unknown } : {};
+  const text = JSON.stringify({ system: b.system ?? "", messages: b.messages ?? [] });
+  return { input_tokens: Math.max(1, Math.ceil(text.length / 4)),
+    note: "Local estimate (about four characters per token); the paid /v1/messages call meters real usage." };
+}
 
 /** A Messages body as the equivalent chat-completions body (OpenAI messages, tools, tool_choice), or null. */
 export function toChatBody(body: unknown): Record<string, unknown> | null {

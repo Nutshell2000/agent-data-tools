@@ -51,3 +51,21 @@ test('a chat completion becomes a Messages answer and a Messages event stream', 
   assert.equal(plain.stop_reason, 'end_turn');
   assert.deepEqual(plain.content, [{ type: 'text', text: 'Hi' }]);
 });
+
+test('Anthropic SDK setup surfaces are served: an Anthropic model list and a local token estimate', async () => {
+  const { anthropicModels, countTokens, ANTHROPIC_COUNT_TOKENS_PATH } = await load();
+  const models = anthropicModels();
+  assert.equal(models.has_more, false, 'Anthropic envelope');
+  assert.ok(Array.isArray(models.data) && models.data.length > 0);
+  assert.equal(models.first_id, models.data[0].id);
+  assert.equal(models.last_id, models.data[models.data.length - 1].id);
+  for (const m of models.data) {
+    assert.equal(m.type, 'model');
+    assert.ok(m.id && m.display_name && m.created_at, `${m.id}: a full model object`);
+    assert.ok(!/claude/i.test(m.id), `${m.id}: no Claude model is claimed`);
+  }
+  const c = countTokens({ model: 'llama-4-scout', messages: [{ role: 'user', content: 'Hello world, this is a test.' }] });
+  assert.ok(c.input_tokens > 0 && Number.isInteger(c.input_tokens));
+  assert.match(c.note, /estimate/i, 'the token count is stated to be local, not Anthropic-exact');
+  assert.equal(ANTHROPIC_COUNT_TOKENS_PATH, '/v1/messages/count_tokens');
+});
