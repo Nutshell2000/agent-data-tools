@@ -18,6 +18,9 @@
     { "pattern": "mcp.glyphcall.com", "custom_domain": true },
     // 17 Nov 2026 (owner: LexGlyph needs its own address): the root of this host is the LexGlyph page.
     { "pattern": "lex.glyphcall.com", "custom_domain": true },
+    // 19 Nov 2026 (1.260.0, owner: "prep TTS release"): text-to-speech only (src/lib/tts-host.ts), so routers that group
+    // listings by host see one service named for text to speech instead of "Web, crypto and security data".
+    { "pattern": "tts.glyphcall.com", "custom_domain": true },
     { "pattern": "tools.funwords.eu", "custom_domain": true }
   ],
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
