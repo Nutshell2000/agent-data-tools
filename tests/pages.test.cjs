@@ -13,8 +13,14 @@ const safe = async () => ({ flagged: false, categories: [] });
 
 test('the indexing test host keeps workers.dev on and does not serve hosted pages', () => {
   const fs = require('node:fs');
-  const config = fs.readFileSync(require.resolve('../wrangler.jsonc'), 'utf8');
+  // Since the quote-front cut-over (19 Nov 2026) the Worker named agent-data-tools is the front: workers.dev and every
+  // custom domain are in wrangler.front.jsonc, and the core (wrangler.jsonc) has no public address of its own.
+  const config = fs.readFileSync(require.resolve('../wrangler.front.jsonc'), 'utf8');
+  assert.match(config, /"name": "agent-data-tools",/);
   assert.match(config, /"workers_dev": true/, 'adding routes without this switches workers.dev off');
+  const core = fs.readFileSync(require.resolve('../wrangler.jsonc'), 'utf8');
+  assert.match(core, /"name": "agent-data-tools-core",/);
+  assert.doesNotMatch(core, /"custom_domain": true/, 'the routes stay attached to the front');
   assert.match(config, /"pattern": "tools\.funwords\.eu", "custom_domain": true/);
   assert.match(config, /"pattern": "glyphcall\.com", "custom_domain": true/);
   assert.match(config, /"pattern": "www\.glyphcall\.com", "custom_domain": true/);
