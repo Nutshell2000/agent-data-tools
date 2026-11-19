@@ -246,7 +246,33 @@ const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "fro
  */
 export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/btc-fees": "Web, crypto and security data",
+  // 19 Nov 2026: names led by the phrase buyers search (bazaar-demand-map.mjs, mercator-rank.mjs).
+  // All are <=32 characters; price, behaviour and site copy are unchanged.
+  "/fx": "FX rate and currency exchange",
+  "/extract": "Extract web content, Markdown",
+  "/scrape": "Scrape a web page to Markdown",
+  "/document/text": "Document to text, OCR",
+  "/token/verdict": "Token verdict, rug check",
+  "/token-report": "Is this token safe, token risk",
+  "/pack/token-analysis": "Token analysis, due diligence",
 });
+/**
+ * The words that lead the indexed description for the paths whose name we changed in 2026-11.
+ * `serviceName` is only a label: the buyer router shows one provider name for every endpoint and
+ * ranks on the description head, which listingDescription used to build from the un-overridden
+ * summary. Without this map a name-only edit reaches the Bazaar but not that router.
+ * /btc-fees is deliberately absent: its service-wide brand must not lead a task description.
+ */
+const DESCRIPTION_HEAD_OF: Readonly<Record<string, string>> = Object.freeze({
+  "/fx": "FX rate and currency exchange",
+  "/extract": "Extract web content, Markdown",
+  "/scrape": "Scrape a web page to Markdown",
+  "/document/text": "Document to text, OCR",
+  "/token/verdict": "Token verdict, rug check",
+  "/token-report": "Is this token safe, token risk",
+  "/pack/token-analysis": "Token analysis, due diligence",
+});
+
 /** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
 export function listingNameFor(e: { path: string; summary: string }): string {
   return Object.hasOwn(LISTING_NAME_OF, e.path) ? LISTING_NAME_OF[e.path] : listingName(e.summary);
@@ -271,7 +297,13 @@ export function listingName(summary: string): string {
  * already start with it, so the searched phrase is in the first words (inside a tier of equal payers the Bazaar orders
  * by text relevance; a description starting with the query phrase won 56% of 206 tied pairs on 22 Oct 2026).
  */
-export function listingDescription(e: { summary: string; description: string }): string {
-  const name = listingName(e.summary);
+export function listingDescriptionHead(e: { path?: string; summary: string }): string {
+  return e.path && Object.hasOwn(DESCRIPTION_HEAD_OF, e.path)
+    ? DESCRIPTION_HEAD_OF[e.path]
+    : listingName(e.summary);
+}
+
+export function listingDescription(e: { path?: string; summary: string; description: string }): string {
+  const name = listingDescriptionHead(e);
   return e.description.toLowerCase().startsWith(name.toLowerCase()) ? e.description : `${name}. ${e.description}`;
 }

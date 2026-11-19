@@ -67,12 +67,12 @@ test('listing tags keep the specific ones within the Bazaar limit of 5', async (
   }
   assert.deepEqual(listingTags(['sanctions', 'ofac', 'compliance', 'kyc', 'aml'], '/sanctions/check'), ['sanctions-check', 'ofac-screening', 'aml-check', 'sanctions', 'ofac']);
   // Listing descriptions open with the listing name (the searched phrase), once.
-  const { listingDescription, listingName } = await load('src/lib/bazaar-extension.ts');
+  const { listingDescription, listingName, listingDescriptionHead } = await load('src/lib/bazaar-extension.ts');
   for (const e of ENDPOINTS) {
-    const d = listingDescription(e), name = listingName(e.summary);
+    const d = listingDescription(e), name = listingDescriptionHead(e), natural = listingName(e.summary);
     assert.ok(d.toLowerCase().startsWith(name.toLowerCase()), e.path);
     assert.ok(d.endsWith(e.description), e.path);
-    assert.ok(d.length <= e.description.length + name.length + 2, e.path);
+    assert.ok(d.length <= e.description.length + Math.max(name.length, natural.length) + 2, e.path);
   }
   assert.equal(listingDescription({ summary: 'Unit conversion', description: 'Convert between units.' }), 'Unit conversion. Convert between units.');
   assert.equal(listingDescription({ summary: 'JSON repair', description: 'JSON repair for model output.' }), 'JSON repair for model output.');
