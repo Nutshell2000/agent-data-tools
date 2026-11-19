@@ -245,8 +245,9 @@ function registerCompactTools(
         // A long example answer is cut: enough to see the fields, not enough to fill the context.
         exampleAnswer: example.length > 1_500 ? `${example.slice(0, 1_500)}…` : e.outputExample,
         charged: "Only a successful call is charged; a failed call costs nothing.",
-        // The same funding path an agent otherwise sees only after a refused call.
-        pay: paymentHint(origin, e.price),
+        // The same funding path an agent otherwise sees only after a refused call. Pass the same card-ready flag and
+        // key price as the refused-call hint, or this first-touch hint routes to /credits and understates a pack 10x.
+        pay: paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), priceFor(e)),
       });
     },
   );

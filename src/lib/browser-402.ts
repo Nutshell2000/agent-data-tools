@@ -4,6 +4,7 @@
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
 import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
+import { WEB_PACKS } from "./credits";
 import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { COMPANY_FOOTER } from "./legal";
@@ -55,7 +56,7 @@ ${freeCalls ? TRY_FORM_CSS : ""}
 <p>${esc(endpoint.description)}</p>
 <div class="actions">
 ${freeCalls ? `<a class="btn primary" rel="nofollow" href="${esc(withParam(trialBase(endpoint, url), "trial"))}">Run it free (${FREE_HTTP_CALLS_PER_CALLER} free calls)</a>` : ""}
-<a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card (from $1)</a>
+${WEB_PACKS[0] ? `<a class="btn${freeCalls ? "" : " primary"}" href="${esc(WEB_PACKS[0].url)}">Buy credits by card (from $${WEB_PACKS[0].usdCents / 100})</a>` : `<a class="btn${freeCalls ? "" : " primary"}" href="/credits">Buy credits by card</a>`}
 <a class="btn" href="${esc(withParam(url, "sample"))}">See an example result</a>
 </div>
 ${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
