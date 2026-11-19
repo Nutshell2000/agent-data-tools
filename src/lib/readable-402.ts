@@ -16,9 +16,12 @@ import { keyPriceLine } from "./key-prices";
  */
 function cardHint(origin: string, cardReady: boolean, price = "$0.01") {
   const [starter] = WEB_PACKS;
-  return cardReady
+  const card = cardReady
     ? `No wallet? Pay $${starter.usdCents / 100} by card in one step at ${starter.url} (${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits), then send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`
     : `No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`;
+  // 19 Nov 2026: the MCP payment hint already tells wallet clients about the checkout-free credit pack; put the same
+  // route in the HTTP 402 body, which is what an agent sees when it calls a tool directly.
+  return `${card} An agent with an MPP client can buy a credit pack without a checkout page: GET ${origin}/credits/buy/1 answers 402 with payment terms and returns a key on settlement.`;
 }
 
 /** The keyless route, as data: the request that was just refused (or the tool's published example when it carried no input) with trial=1. */
