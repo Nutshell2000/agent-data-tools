@@ -73,6 +73,11 @@ test('find_tool answers a job in plain words with names, prices and inputs, and 
     assert.deepEqual(found.tools[0].requiredInputs, ['url']);
     assert.equal(found.tools[0].price, '$0.005');
     assert.equal(found.tools[0].priceWithKey, '$0.002');
+    // 19 Nov 2026: the funding path is carried from recommend() instead of being dropped, so an agent can act before a 402.
+    assert.match(found.pay, /x402/);
+    assert.match(found.pay, /credits/);
+    const details = jsonOf(await call(client, 'tool_details', { name: 'pdf_text' }));
+    assert.match(details.pay, /PAYMENT NEEDED|credits/);
     assert.ok(found.tools.length >= 2 && found.tools.length <= 5);
     found = jsonOf(await call(client, 'find_tool', { need: 'sha256 hash of a text', count: 1 }));
     assert.equal(found.tools.length, 1);
