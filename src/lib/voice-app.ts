@@ -11,6 +11,7 @@
 // model runtime so the app opens offline, while the model files themselves are cached by the Transformers.js runtime
 // in the browser's Cache Storage after the first use).
 import { CONSOLE_VOICES, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
+import { webApplicationScript } from "./app-jsonld";
 
 export const APP_PATH = "/app";
 export const APP_VERSION = "1";
@@ -70,6 +71,7 @@ export function appPage(brand: string, origin: string): string {
   const description = `Install ${brand} Voice on Windows, Mac, Linux, Android or iPhone. ${voiceCount} natural voices and speech to text that run on your own device: no account, no limits, works offline.`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
+${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, description, brand, offers: [] })}
 <link rel="canonical" href="${esc(origin)}${APP_PATH}"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07070c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${esc(brand)}">
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${APP_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png">
