@@ -76,9 +76,9 @@ export async function rerank(run: (model: string, input: unknown) => Promise<unk
 }
 
 export const RETRIEVAL: Entry[] = [
-  entry("/contents", "Get contents, web contents: clean text of up to five pages in one call",
-    "Read one to five public web pages in one call and get each one's clean text (or Markdown), title, author and published date where the page declares them, in the request shape search APIs use (urls as a list). Pages are read in parallel; one that cannot be read is listed in statuses with its reason and the rest still answer. Static HTML, Markdown and plain text, up to 20,000 characters a page. Use to read search results in one call.",
-    ["get-contents", "web-contents", "page-contents", "web-scraping", "read-url"], {
+  entry("/contents", "Web read, get contents: clean text of up to five pages in one call",
+    "Web read: read one to five public web pages in one call and get each one's clean text (or Markdown), title, author and published date where the page declares them, in the request shape search APIs use (urls as a list). Pages are read in parallel; one that cannot be read is listed in statuses with its reason and the rest still answer. Static HTML, Markdown and plain text, up to 20,000 characters a page. Use to read search results in one call.",
+    ["web-read", "get-contents", "web-contents", "page-contents", "web-scraping"], {
       urls: { type: "string", description: "One to five page URLs: comma-separated, one per line, or a JSON array", required: true, example: "https://example.com,https://www.iana.org/help/example-domains" },
       maxChars: { type: "string", description: "Characters per page, 500 to 20000 (default 4000)", example: "3000" },
       format: { type: "string", description: "text (default) or markdown", example: "text" },

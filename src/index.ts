@@ -101,7 +101,7 @@ import { ELEVEN_TTS_TIMESTAMPS_PATH, elevenSpeechWithTimestamps } from "./lib/el
 import { ELEVEN_LIST_HEADERS, ELEVEN_SUBSCRIPTION_PATH, ELEVEN_USER_PATH, ELEVEN_VOICES_PATHS, ELEVEN_VOICE_PATH, elevenModels, elevenSubscriptionRoute, elevenUserRoute, elevenVoiceRoute, elevenVoicesRoute, wantsElevenShape } from "./lib/eleven-account";
 import { ANTHROPIC_MESSAGES_PATH, ANTHROPIC_COUNT_TOKENS_PATH, anthropicMessages, anthropicModels, countTokens } from "./lib/anthropic-messages";
 import { OPENAI_MODERATIONS_PATH, openAiModerations } from "./lib/openai-moderations";
-import { COHERE_RERANK_PATH, cohereRerank } from "./lib/cohere-rerank";
+import { COHERE_RERANK_PATH, COHERE_RERANK_V2_PATH, cohereRerank } from "./lib/cohere-rerank";
 import { SEARCH_API_PATHS, searchApi, type SearchApiPath } from "./lib/search-api";
 import { OPENAI_RESPONSES_PATH, openAiResponses } from "./lib/openai-responses";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
@@ -624,6 +624,8 @@ app.on(["GET", "HEAD", "POST"], ANTHROPIC_COUNT_TOKENS_PATH, async (c) => {
 });
 app.on(["GET", "HEAD", "POST"], OPENAI_MODERATIONS_PATH, (c) => openAiModerations(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 app.on(["GET", "HEAD", "POST"], COHERE_RERANK_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
+// Cohere v2 is the default SDK generation; the same front answers /v2/rerank in the v2 envelope.
+app.on(["GET", "HEAD", "POST"], COHERE_RERANK_V2_PATH, (c) => cohereRerank(c, (req) => app.fetch(req, c.env, c.executionCtx)));
 for (const path of Object.keys(SEARCH_API_PATHS) as SearchApiPath[]) app.on(["GET", "HEAD", "POST"], path, (c) => searchApi(c, path, (req) => app.fetch(req, c.env, c.executionCtx)));
 
 app.route("/", credits);
