@@ -46,6 +46,18 @@ test("every product names live tools and guides, and has its own path", () => {
   assert.equal(isHumanPage("/pdf/text"), false);
 });
 
+test('the speech-to-text page shows an audio upload example, never the PDF one', () => {
+  // 19 Nov 2026: the shared `upload` block was written for /pdf/text and leaked a report.pdf/pages=5/application/pdf
+  // example onto the audio endpoint. A buyer copying it got an immediate 422.
+  const stt = PRODUCTS.find((p) => p.tool === "/transcribe");
+  const html = productPage(stt, "https://x.test", false, () => undefined, undefined, true, "Glyphcall");
+  assert.match(html, /file=@recording\.mp3/, 'an audio example is shown');
+  assert.doesNotMatch(html, /report\.pdf|pages=5|application\/pdf|Up to 10 MB/, 'no PDF-only example or size on the audio page');
+  // The PDF product keeps its own example.
+  const pdfHtml = productPage(PRODUCTS.find((p) => p.tool === "/pdf/text"), "https://x.test", true, () => undefined);
+  assert.match(pdfHtml, /report\.pdf/);
+});
+
 test("PDF to text is the first product and its plan counts come from the key price", () => {
   const pdf = PRODUCTS[0];
   assert.equal(pdf.slug, "pdf-to-text-api");

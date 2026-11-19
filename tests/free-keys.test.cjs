@@ -206,6 +206,14 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   const shown = await (await get(on, link)).json();
   assert.match(shown.apiKey, /^adt_/);
   assert.equal(shown.callsEachMonth, 100);
+  // 19 Nov 2026: buying credits from the confirm page must top up THIS key, not issue a new one. The pack/plan links
+  // carry client_reference_id=topup_<hash of this key>, the same mechanism the claim page uses.
+  const hash = await credits.hashCreditKey(shown.apiKey);
+  assert.ok(Array.isArray(shown.topUp) && shown.topUp.length > 0, 'the response carries key-aware pack links');
+  for (const l of shown.topUp) assert.ok(l.buy.includes(`client_reference_id=topup_${hash}`), `${l.buy}: tops up this key`);
+  for (const l of shown.plans ?? []) assert.ok(l.buy.includes(`client_reference_id=topup_${hash}`), `${l.buy}: plan tops up this key`);
+  const confirmHtml = await (await get(on, link, 'text/html')).text();
+  assert.ok(confirmHtml.includes(`client_reference_id=topup_${hash}`), 'the HTML confirm page links top up this key, promise kept');
   assert.equal((await (await get(on, link)).json()).apiKey, shown.apiKey, 'the link shows the same key again');
   // The same mailbox written another way gets the same key, not a second one.
   await post(on, 'ada@example.com');
