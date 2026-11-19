@@ -131,6 +131,9 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // 10 Nov 2026 probe: a wrong name here did not refuse, it silently answered for the default (4h candles for a 1d request,
   // every earthquake for a magnitude-5 request), which is worse than a refusal.
   interval: ["timeframe", "period", "tf", "resolution", "granularity"], minMagnitude: ["min_magnitude", "magnitude", "minmag", "min_mag", "mag"],
+  // 19 Nov 2026: candle buyers send limit/count/n, but /hyperliquid/candles and friends read `bars`. Without this a
+  // paid call silently answered with the 50-bar default instead of the 200 requested — worse than a refusal.
+  bars: ["limit", "count", "n"],
   currency: ["vs", "fiat", "vs_currency", "vs_currencies", "quote"],
   // 11 Nov 2026: the contract-call tools take a function signature in data; agents name it in several ways.
   data: ["calldata", "input", "function", "signature", "method", "sig", "abi"], args: ["arguments", "params", "parameters"],
@@ -303,6 +306,9 @@ export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Reco
   // 18 Nov 2026: /status showed 41 buyer errors in 7 days, mostly an empty HTTP call refusing with "missing required
   // query parameter: url". Answer the published sample invoice with the documented default field set instead.
   "/document/extract": { input: { url: "https://raw.githubusercontent.com/invoice-x/invoice2data/master/tests/compare/coolblue1.pdf", fields: "invoice" }, note: "No input was sent, so this extracts the usual invoice fields from the public sample PDF shown in the input example. Send url=... and fields=... for your own document." },
+  // 19 Nov 2026: /pdf/text is the most-searched document job; an empty paid call (vAPI "Pay and call", Mercator `{}`)
+  // used to 400 on a required url. Answer the published sample PDF with a note instead, like its sibling readers.
+  "/pdf/text": { input: { url: "https://bitcoin.org/bitcoin.pdf" }, note: "No input was sent, so this reads the public sample PDF shown in the input example (the Bitcoin white paper). Send url=... for your own PDF." },
 };
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);

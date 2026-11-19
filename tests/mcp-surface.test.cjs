@@ -146,6 +146,17 @@ test('compact call_tool keeps input aliases so MCP agents can send the names HTT
   }, { path: '/mcp/compact', ip: '203.0.113.31' });
 });
 
+test('compact call_tool applies alias special handling, not a raw copy (urls → first URL, messages → prompt)', async () => {
+  await withClient(async (client) => {
+    // The `urls` alias must resolve to the FIRST URL as on HTTP, not a comma-joined malformed url.
+    const urls = await client.callTool({ name: 'call_tool', arguments: { name: 'url_parse', arguments: { urls: 'https://example.com/a,https://example.com/b' } } });
+    assert.notEqual(urls.isError, true, JSON.stringify(urls));
+    const declared = await client.callTool({ name: 'call_tool', arguments: { name: 'url_parse', arguments: { url: 'https://example.com/a' } } });
+    // Both should parse the exact same first URL; a raw alias copy leaves ",https://..." in the path.
+    assert.equal(urls.structuredContent.path, declared.structuredContent.path);
+  }, { path: '/mcp/compact', ip: '203.0.113.33' });
+});
+
 test('ordinary MCP servers also accept the HTTP input aliases', async () => {
   await withClient(async (client) => {
     const aliased = await client.callTool({ name: 'hash', arguments: { input: 'hello' } });

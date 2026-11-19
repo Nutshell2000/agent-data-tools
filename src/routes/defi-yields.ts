@@ -54,6 +54,8 @@ export function poolView(p: Pool) {
 
 /** Case-insensitive match on a name list ("ethereum,base" or one word). */
 const anyOf = (raw: string | undefined) => (raw ? raw.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean) : []);
+/** Our chain slugs -> DefiLlama's display names ("Ethereum", "Arbitrum"…), which the pools API returns. */
+const LLAMA_CHAIN: Readonly<Record<string, string>> = { eth: "ethereum", ethereum: "ethereum", "1": "ethereum", arb: "arbitrum", arbitrum: "arbitrum", "42161": "arbitrum", op: "optimism", optimism: "optimism", "10": "optimism", polygon: "polygon", matic: "polygon", "137": "polygon", base: "base", "8453": "base" };
 
 export function filterPools(all: Pool[], o: { chains: string[]; projects: string[]; symbol?: string; stable: boolean; noIl: boolean; single: boolean; minTvl: number; minApy: number; maxApy: number; includeOutliers: boolean }) {
   return all.filter((p) =>
@@ -93,7 +95,7 @@ export const DEFI_YIELDS: Entry[] = [
       if (!Object.hasOwn(key, sort)) throw new HttpError(400, "sort must be apy, tvl or apyMean30d");
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });
       const rows = filterPools(await pools(), {
-        chains: anyOf(opt(q, "chain", 200)), projects: anyOf(opt(q, "project", 200)), symbol: opt(q, "symbol", 40)?.toLowerCase(),
+        chains: anyOf(opt(q, "chain", 200)).map((c) => LLAMA_CHAIN[c] ?? c), projects: anyOf(opt(q, "project", 200)), symbol: opt(q, "symbol", 40)?.toLowerCase(),
         stable: flag(q, "stablecoin"), noIl: flag(q, "noIl"), single: flag(q, "single"),
         minTvl: num(q, "minTvl", { min: 0, max: 1e13, fallback: 1_000_000 }), minApy: num(q, "minApy", { min: -100, max: 1e6, fallback: 0 }),
         maxApy: num(q, "maxApy", { min: 0, max: 1e7, fallback: 1_000 }), includeOutliers: false,

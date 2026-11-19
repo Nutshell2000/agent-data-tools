@@ -63,10 +63,11 @@ export function toContent(value: unknown) {
 async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Args) {
   try {
     const path: EndpointPath = e.path;
-    // The HTTP path reads inputs through normalizedInput, which resolves the aliases agents use (ids, query, u, ...).
-    // MCP used its raw argument object, so those aliases silently vanished here: accept them on every server.
+    // Pass the RAW input: TOOLS[path] already applies declaredInputFor + normalizedInput internally. Normalizing here
+    // too resolved aliases before the declared-input guard ran, so a tool that declares both `name` and `address` got
+    // both set from one argument (and message/url aliases lost their special handling) on a paid MCP call.
     const sent = (name: string) => (args[name] === undefined ? undefined : String(args[name]));
-    const result = pickFields(await TOOLS[path](env, normalizedInput(sent)), args.only === undefined ? undefined : String(args.only));
+    const result = pickFields(await TOOLS[path](env, sent), args.only === undefined ? undefined : String(args.only));
     const { imageBase64: _image, audioBase64: _audio, pdfBase64: _pdf, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
@@ -204,7 +205,7 @@ function registerCompactTools(
 
   registered.find_tool = mcp.tool(
     "find_tool",
-    `Find which of this service's ${total} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to ten tools, best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
+    `Find which of this service's ${total} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to five tools by default (pass count for more, up to ten), best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
     {
       need: z.string().min(2).max(300).describe("The job in plain words, for example: current weather in Paris"),
       count: z.number().int().min(1).max(10).optional().describe("How many tools to return, 1-10 (default 5)"),
@@ -284,7 +285,10 @@ function registerCompactTools(
       if (!compactPricePermits(price, named)) {
         return compactText({ error: `${toolName(e)} was not run: it costs ${price} per successful call, more than the ${COMPACT_PRICE_CEILING} this server spends on one call unless the call names a higher price. Nothing was charged.`, price, next: `to run it, repeat the same call (same name and arguments) and add max_price: "${price}"` }, true);
       }
-      return trackedFor(e)(parsed.data as Args, extra);
+      // Validate with the alias-copied object, but run with the ORIGINAL arguments: TOOLS[path] applies the single
+      // normalizedInput, whose special handling (urls → first URL, OpenAI messages → prompt/system) must not be
+      // bypassed by the raw alias copy above.
+      return trackedFor(e)((given ?? {}) as Args, extra);
     }) as never,
   );
   return registered;
@@ -422,7 +426,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
         let freePaused = false;
         const free = directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
-          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id) : null;
+          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id, "mcp") : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
         if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
@@ -440,7 +444,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY))}` }]
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price))}` }]
           : free && !result.isError && !directory ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         const requestMeta = directory ? {} : { requestId: trace?.requestId };
         if ("outputSchema" in e && response.isError && response.structuredContent) {
@@ -497,3 +501,6 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
     return new Response(body, { status, headers: res.headers });
   }
 }
+
+
+

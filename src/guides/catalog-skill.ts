@@ -5,7 +5,7 @@
 // /.well-known/agent-skills/, and tests/catalog-skill.test.cjs keeps skills/agent-data-tools/SKILL.md in the repository
 // identical to it (rebuild with `node scripts/build-catalog-skill.mjs`) and checks that every path it names is a live tool.
 export const CATALOG_SKILL_NAME = "agent-data-tools";
-export const CATALOG_SKILL_DESCRIPTION = "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes, FX, weather, time, company and domain lookups, and 600+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 25 free calls, then card credits or USDC (x402).";
+export const CATALOG_SKILL_DESCRIPTION = "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes, FX, weather, time, company and domain lookups, and 600+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (25 over MCP), then card credits or USDC (x402).";
 
 /** Job, path and inputs: the calls an agent most often needs. Every path here must be a live tool (the test checks). */
 export const CATALOG_SKILL_JOBS: readonly (readonly [string, string, string])[] = [
