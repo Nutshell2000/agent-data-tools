@@ -79,13 +79,13 @@ export function appPage(brand: string, origin: string): string {
 <h1>Your voice studio, on your own device.</h1>
 <p class="lede">Text to speech in ${voiceCount} voices and transcription of any recording, free and unlimited. Nothing is uploaded and there is no account.</p>
 <div class="offline" id="offline" role="status">You are offline. The app still works once its voice and listening models have been fetched on this device.</div>
-${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts" })}
+${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts", upsellTts: `Want this in your own app? Our <a href="/text-to-speech-api">text to speech API</a> speaks your text on our servers.`, upsellStt: `Need transcription in your app? See the <a href="/speech-to-text-api">speech to text API</a>.` })}
 <div class="card" id="how"><h2>Install it like any app</h2>
 <ul><li><strong>Windows, Mac, Linux (Chrome, Edge, Brave):</strong> press <em>Install app</em> above, or the install icon in the address bar. It gets its own window and a desktop or Start menu icon.</li>
 <li><strong>Android:</strong> open this page in Chrome, menu, <em>Install app</em>.</li>
 <li><strong>iPhone and iPad:</strong> in Safari press Share, then <em>Add to Home Screen</em>.</li></ul>
 <p>It is a web app, so there is no installer file to trust and nothing for antivirus to flag. Updates arrive on their own, and you can remove it from your system's app list at any time. The first time you press Play the voice model (about 90 MB) is saved on your device; after that it works with no connection.</p></div>
-<div class="card"><h2>Building it into your own app?</h2><p>The same voices and transcription run on our servers through an API at a price per hour. <a href="/text-to-speech-api">Text to speech API</a> &middot; <a href="/speech-to-text-api">Speech to text API</a> &middot; <a href="/docs">Docs</a></p></div>
+<div class="card"><h2>Building it into your own app?</h2><p>Voice generation and transcription run on our servers through an API, priced per call with a key. <a href="/text-to-speech-api">Text to speech API</a> &middot; <a href="/speech-to-text-api">Speech to text API</a> &middot; <a href="/docs">Docs</a></p></div>
 </main>
 <footer><a href="/">${esc(brand)}</a> &middot; <a href="/docs">Docs</a> &middot; <a href="/credits">Pricing</a></footer>
 ${voiceConsoleScript()}
