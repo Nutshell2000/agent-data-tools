@@ -160,7 +160,8 @@ test('the listing: findable by the job, one more tool in the documents section, 
   assert.ok(tool.tags.length >= 5);
   assert.equal(categoryOf('/document/text'), 'Web, documents and search');
   assert.equal(CAPACITY_LIMITED.has('/document/text'), false);
-  assert.equal(FILE_INPUT_PATHS['/document/text'], D.DOCUMENT_MAX_BYTES);
+  // 1.256.0: uploads get the same bounded 20 MB ceiling the URL retry already uses.
+  assert.equal(FILE_INPUT_PATHS['/document/text'], D.DOCUMENT_MAX_BYTES_OPTIONAL);
   assert.deepEqual(exampleParams(tool).map(([name]) => name), ['url']);
   assert.equal(tool.outputExample.url, tool.params.url.example);
 });

@@ -40,3 +40,24 @@ test('related tools: three others, same category first, best sellers first, neve
   assert.equal(list.length, 3);
   for (const r of list) { assert.match(r.url, /^https:\/\/api\.test\//); assert.match(r.price, /^\$\d/); assert.ok(r.name.length <= 32); }
 });
+
+test('document and page readers recommend the next reading/parsing job, not unrelated sellers', async () => {
+  const { relatedTools, relatedList } = await load();
+  const expected = {
+    '/pdf/text': ['/document/text', '/document/extract', '/extract'],
+    '/pdf/extract': ['/document/text', '/document/extract', '/extract'],
+    '/document/text': ['/document/extract', '/pdf/text', '/invoice/check'],
+    '/extract': ['/extract/rendered', '/url/meta', '/pdf/text'],
+    '/invoice/check': ['/document/extract', '/document/text', '/pack/contact-verify'],
+    '/feed': ['/news', '/summarize', '/extract'],
+  };
+  for (const [path, want] of Object.entries(expected)) {
+    assert.deepEqual(relatedTools(path).map((e) => e.path), want, path);
+    const list = relatedList('https://api.test', path);
+    assert.equal(list.length, 3);
+    assert.ok(!list.some((r) => r.url.includes('payee') || r.url.includes('counterparty')), `${path}: ${list.map((r) => r.url).join(',')}`);
+  }
+  // Entry paths that run these tools get the same sensible set, without the tool they already run.
+  const door = relatedTools('/pdf/extract').map((e) => e.path);
+  assert.ok(!door.includes('/pdf/text'), door.join(','));
+});
