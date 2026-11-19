@@ -3,7 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 const result = await build({ entryPoints: ["src/guides/tool-buying.ts"], bundle: true, platform: "node", format: "esm", write: false });
 const guides = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}`);
 const origin = "https://agent-data-tools.revmesh2074.workers.dev";
-const recipient = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+// The published guides and example clients must always name the production payTo. The staging address was hardcoded
+// here until 19 Nov 2026, so regenerating docs quietly rewrote the recipient to the test wallet.
+const recipient = process.env.PAY_TO ?? "0x6293ded2684f1a76e26becef87c137d691fbf800";
 await mkdir("docs", { recursive: true }); await mkdir("examples", { recursive: true });
 for (const kind of ["web-reading", "bitcoin-fees"]) {
   const guide = guides.toolBuyingGuide(kind, origin, recipient);

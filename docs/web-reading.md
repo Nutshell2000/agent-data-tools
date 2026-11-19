@@ -2,7 +2,7 @@
 
 $0.002 native USDC on Base per successful call. No API account or subscription. Bring an existing funded x402 wallet.
 
-Browse all 32 tools and prices: https://agent-data-tools.revmesh2074.workers.dev/#tools . This guide focuses on the page reader.
+Browse all 665 tools and prices: https://agent-data-tools.revmesh2074.workers.dev/#tools . This guide focuses on the page reader.
 
 ## Inspect real results, then use the CLI
 
@@ -10,7 +10,7 @@ Portable buyer skill: https://agent-data-tools.revmesh2074.workers.dev/skills/sp
 
 For an existing MCP agent, use the bundled local adapter: https://agent-data-tools.revmesh2074.workers.dev/guides/local-mcp . Quotes-only by default; explicitly enabled purchases use per-call and session caps. No TypeScript client required.
 
-Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for reader demonstrations from owned sample documents. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Arbitrary live URLs remain paid; free live trials are disabled.
+Open https://agent-data-tools.revmesh2074.workers.dev/examples/extract/ for reader demonstrations from owned sample documents. Source, output, generation time and hashes are available. These build-time demonstrations are not production purchases or receipts. Live URLs use one of the caller's free calls (add trial=1 over HTTP; automatic over MCP) or a paid call.
 
 Download https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.6/reader-client.mjs and https://agent-data-tools.revmesh2074.workers.dev/clients/reader/1.7.6/reader-client.mjs.sha256 into the same folder. Requires Node 20.19+ after verification. No npm installation.
 
@@ -159,9 +159,8 @@ Expect HTTP 402 and a base64-encoded PAYMENT-REQUIRED header. This does not run 
   "codeBlocks": [],
   "contentSelection": "main",
   "warnings": [],
-  "format": "both",
+  "format": "text",
   "text": "A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
-  "markdown": "# A short release note\n\nVersion 1.1.1 preserves literal code whitespace and nested list structure.\n\nThe price remains $0.002 per successful extraction. This is an owned sample, not a purchase receipt.",
   "textLength": 198,
   "truncated": false,
   "contentHash": "sha256:6cd3137dc4735c9ab317c764c78b47712dc9ca8eabe435dd0db9142bdaacbe2c",
