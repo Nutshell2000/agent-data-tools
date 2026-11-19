@@ -39,6 +39,7 @@ test('every paid tool publishes an input schema; tools without inputs of their o
   }
   // Plus the gas price of each extra network (1.82.0), which takes no inputs either.
   const extraGas = ['avax', 'gnosis', 'linea', 'zksync', 'scroll', 'mantle', 'celo', 'sonic', 'unichain', 'hyperevm', 'bera', 'ink', 'sei'].map((s) => `/${s}/gas`);
-  assert.deepEqual(noInput.sort(), ['/arb/gas', '/base-gas', '/bitcoin/fees', '/btc-fees', '/crypto/trending', '/eth/gas', '/fx/symbols', '/gas/price', '/iss', '/market/trending', '/network', '/op/gas', '/pack/gas-tracker', '/ping', '/polygon/gas', '/yes-no', ...extraGas].sort());
+  // 1.260.0: /fortune takes no input (it returns a random fortune), so it joins this list.
+  assert.deepEqual(noInput.sort(), ['/arb/gas', '/base-gas', '/bitcoin/fees', '/btc-fees', '/crypto/trending', '/eth/gas', '/fortune', '/fx/symbols', '/gas/price', '/iss', '/market/trending', '/network', '/op/gas', '/pack/gas-tracker', '/ping', '/polygon/gas', '/yes-no', ...extraGas].sort());
   assert.deepEqual(endpoints.exampleParams(endpoints.ENDPOINTS.find((e) => e.path === '/btc-fees')), [], 'the Bazaar-listed /btc-fees example stays input-free');
 });

@@ -68,7 +68,7 @@ test('without a limit the first page holds every tool, best sellers first and to
   assert.deepEqual(paths.slice(0, 3), ['/ai/chat', '/ai/chat-large', '/ai/embed']);
   assert.ok(paths.indexOf('/check/payee') < 15 && paths.indexOf('/check/counterparty') < 15, 'payee checks right after the media tools');
   assert.ok(paths.indexOf('/hyperliquid/market') < 35 && paths.indexOf('/sec/filings') < 35, 'demanded data tools near the top');
-  const firstToy = paths.findIndex((p) => /^\/(coin|dice|random\/|magic-8-ball|yes-no|echo|ping)/.test(p));
+  const firstToy = paths.findIndex((p) => /^\/(coin|dice|random\/|magic-8-ball|fortune|yes-no|echo|ping)/.test(p));
   assert.ok(firstToy > paths.length - 15, `toys at the end (first at ${firstToy})`);
   assert.equal(new Set(paths).size, paths.length, 'no tool twice');
 });
