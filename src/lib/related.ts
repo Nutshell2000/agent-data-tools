@@ -12,6 +12,26 @@ import { ENTRY_OF } from "../routes/entry-paths";
 const cache = new Map<string, Endpoint[]>();
 
 /**
+ * 1.256.0: the category-first rule called payee screening a "next tool" for /extract, and web search for the PDF
+ * readers. Those three links appear in every unpaid 402 body (41k quotes on /pdf/text alone in 30 days), so a wrong
+ * set is wasted distribution. These are the jobs an agent reading a document or a page actually does next. Paths
+ * that are not in the catalog are skipped, and the current tool is never offered to itself.
+ */
+const RELATED_OVERRIDE: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  "/pdf/text": ["/document/text", "/document/extract", "/extract", "/pdf/extract"],
+  "/pdf/extract": ["/pdf/text", "/document/text", "/document/extract", "/extract"],
+  "/document/text": ["/document/extract", "/pdf/text", "/invoice/check", "/extract"],
+  "/document/extract": ["/document/text", "/invoice/check", "/pdf/text", "/extract"],
+  "/extract": ["/extract/rendered", "/url/meta", "/pdf/text", "/document/text"],
+  "/extract/rendered": ["/extract", "/screenshot", "/url/meta", "/summarize"],
+  "/scrape": ["/extract", "/extract/rendered", "/url/meta", "/document/text"],
+  "/invoice/check": ["/document/extract", "/document/text", "/pack/contact-verify", "/pdf/text"],
+  "/feed": ["/news", "/summarize", "/extract", "/news/search"],
+  "/summarize": ["/extract", "/feed", "/news", "/pdf/text"],
+  "/screenshot": ["/extract/rendered", "/url/meta", "/extract", "/scrape"],
+});
+
+/**
  * The pack that runs a tool among others, for the tool's first related link (25 Oct 2026). A pack runs four to six tools
  * in one paid call, at or near the price of one of them (prices differ per pack since the 6 Nov acquisition prices).
  * Paths missing from the catalog are skipped, so the map may name tools that are paused.
@@ -63,6 +83,15 @@ export function relatedTools(path: string, max = 3): Endpoint[] {
   if (!related) {
     const category = categoryOf(path);
     const pack = packOf(path);
+    const override = RELATED_OVERRIDE[canonicalOf(path)] ?? RELATED_OVERRIDE[path];
+    if (override) {
+      const self = canonicalOf(path);
+      related = override.map((p) => ENDPOINTS.find((e) => e.path === p))
+        .filter((e): e is Endpoint => !!e && e.path !== path && e.path !== self && e.path !== pack?.path && !Object.hasOwn(ENTRY_OF, e.path))
+        .slice(0, max);
+      cache.set(path, related);
+      return related;
+    }
     // Never the same purchase under another name (10 Nov 2026): /weather/forecast, the door new wallets arrive through,
     // offered its own canonical /weather as a "next" tool. Entry paths are left out of every list, and so is the tool
     // this path itself runs, so each of the three links is a different job.

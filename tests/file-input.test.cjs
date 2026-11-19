@@ -85,6 +85,20 @@ test('the file is found however it was sent, and a body without one is left alon
   assert.equal((await F.sentFile(post({ 'content-type': 'application/json' }, JSON.stringify({ file: pdf.toString('base64') })), 100)).kind, 'too-large');
 });
 
+test('upload caps match the 20 MB bounded URL retry for the two document readers', async () => {
+  const MB = 1024 * 1024;
+  assert.equal(F.FILE_INPUT_PATHS['/pdf/text'], 20 * MB);
+  assert.equal(F.FILE_INPUT_PATHS['/document/text'], 20 * MB);
+  // Tools whose URL path has no retry keep the 10 MB ceiling.
+  assert.equal(F.FILE_INPUT_PATHS['/pdf/extract'], 10 * MB);
+  assert.equal(F.FILE_INPUT_PATHS['/document/extract'], 10 * MB);
+  assert.equal(F.FILE_INPUT_PATHS['/invoice/check'], 10 * MB);
+  // The upload gate accepts an 11 MB body for /pdf/text but still refuses 21 MB.
+  const eleven = async () => F.sentFile(new Request('https://api.test/pdf/text', { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: new Uint8Array(11 * MB) }), F.FILE_INPUT_PATHS['/pdf/text']);
+  // A 11 MB allocation is cheap here; the Content-Length gate alone decides both cases.
+  assert.equal((await eleven()).kind, 'file');
+});
+
 test('the PDF tool reads a held file without fetching anything, and refuses a reference nobody holds', async () => {
   // One bundle, so the tool and this test share the module that holds the file.
   const b = await build({ stdin: { contents: `export * as P from './src/routes/pdf.ts'; export * as F from './src/lib/file-input.ts';`, resolveDir: process.cwd(), loader: 'ts' }, bundle: true, format: 'cjs', platform: 'node', write: false, logLevel: 'silent', external: ['@cloudflare/puppeteer', 'cloudflare:workers'] });
