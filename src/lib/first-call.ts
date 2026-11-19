@@ -104,6 +104,7 @@ export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
     "## More",
     "",
     `- Everything, with every tool's inputs and an example: ${origin}/llms-full.txt`,
+    `- Signed seller evidence (30-day paid calls and reliability, verifiable with our published key): ${origin}/.well-known/seller-evidence.json`,
     `- OpenAPI 3.1: ${origin}/openapi.json`,
     `- Tools by category, for people: ${origin}/tools`,
     `- Docs (keys, errors, sending a file): ${origin}/docs`,
