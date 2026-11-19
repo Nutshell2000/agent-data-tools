@@ -33,6 +33,16 @@ const RELATED_OVERRIDE: Readonly<Record<string, readonly string[]>> = Object.fre
   // screener is the trust of the domain/merchant behind the link — the same check buyers name "safety merchant".
   // Put that canonical tool first (entry doors are filtered out, so name /domain-report, not /merchant/trust).
   "/pack/url-safety": ["/domain-report", "/check/counterparty", "/check/payee", "/pack/vendor-check"],
+  // 20 Nov 2026: /ai/speech is the short-form voice door (~18k quotes, 10 paid settlements at $0.01). Its 402
+  // pointed at /ai/chat ($0.002) and /ai/embed ($0.01) — cheaper text jobs, never the heavier voice work the buyer
+  // wants. Every tool below is CAPACITY_LIMITED (paid from the first call) and priced 5-10x /ai/speech, so this is a
+  // larger paid job, not a freebie. The heavy voice tools pointed back at cheap chat too, so keep the whole family
+  // in the paid lane at the quote moment — exactly the /pack/url-safety -> /domain-report step-up from 19 Nov.
+  "/ai/speech": ["/text-to-speech", "/text-to-speech/captions", "/voice/agent"],
+  "/text-to-speech": ["/text-to-speech/captions", "/dub", "/voice/agent"],
+  "/text-to-speech/captions": ["/text-to-speech", "/dub", "/voice/agent"],
+  "/voice/agent": ["/dub", "/text-to-speech", "/text-to-speech/captions"],
+  "/dub": ["/voice/agent", "/text-to-speech", "/text-to-speech/captions"],
 });
 
 /**
