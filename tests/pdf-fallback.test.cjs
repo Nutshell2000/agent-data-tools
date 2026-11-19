@@ -29,6 +29,19 @@ test('a readable PDF comes from the origin and the archive is never asked', asyn
   assert.equal(calls.length, 1);
 });
 
+test('a 10-20 MB PDF is retried once at the bounded ceiling; over 20 MB still fails', async () => {
+  const { loadPdf } = await load();
+  const big = (mb) => new Response(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]), { status: 200, headers: { 'content-type': 'application/pdf', 'content-length': String(mb * 1024 * 1024) } });
+  route(() => big(12));
+  const f = await loadPdf('https://site.example/large.pdf');
+  assert.equal(f.source, 'origin');
+  assert.equal(calls.length, 2, 'the first cap check reads Content-Length only');
+  assert.match(f.note, /over the 10 MB default.*20 MB ceiling/);
+  route(() => big(25));
+  await assert.rejects(loadPdf('https://site.example/huge.pdf'), (e) => e.status === 422 && /20 MB limit/.test(e.message));
+  assert.equal(calls.length, 2);
+});
+
 test('a 403 from the site falls back to the dated archive copy', async () => {
   const { loadPdf } = await load();
   route((u) => u.startsWith('https://web.archive.org/web/2id_/') ? archive302() : u.includes('20261106144110id_') ? PDF() : new Response('no', { status: 403 }));
