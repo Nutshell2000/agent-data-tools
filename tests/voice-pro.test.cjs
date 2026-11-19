@@ -11,7 +11,7 @@ let lib;
 const O = 'https://api.test';
 const SESSION = 'cs_live_' + 'a'.repeat(40);
 const stripeSession = {
-  id: SESSION, status: 'complete', payment_status: 'paid', mode: 'subscription', currency: 'usd', amount_total: 900,
+  id: SESSION, status: 'complete', payment_status: 'paid', mode: 'subscription', currency: 'usd', amount_total: 300,
   metadata: { adt_credits: '15000', plan: 'voice-pro' }, client_reference_id: null, subscription: 'sub_' + 'b'.repeat(24), invoice: 'in_' + 'c'.repeat(24),
 };
 before(async () => {
@@ -36,8 +36,8 @@ before(async () => {
 });
 after(async () => { await mf?.dispose(); });
 
-test('the Transcribe Pro checkout matches the $9 plan, so verifyCheckout grants it', () => {
-  const plan = lib.CREDIT_PLANS.find((p) => p.usdCents === 900);
+test('the Transcribe Pro $3 checkout matches the $3 plan, so verifyCheckout grants it', () => {
+  const plan = lib.CREDIT_PLANS.find((p) => p.usdCents === 300);
   assert.equal(plan.credits, lib.VOICE_PRO_CREDITS);
   assert.match(lib.VOICE_PRO_URL, /^https:\/\/buy\.stripe\.com\//);
 });
