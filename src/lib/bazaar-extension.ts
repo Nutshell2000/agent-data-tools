@@ -246,10 +246,39 @@ const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "fro
  */
 export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/btc-fees": "Web, crypto and security data",
+  // 1.295.0, 19 Nov 2026: exact task phrases buyers search (mercator-rank.mjs / bazaar-demand-map.mjs). Each <=32 chars.
+  "/extract": "Extract web content, Markdown",
+  "/scrape": "Scrape a web page to Markdown",
+  "/document/text": "Document to text, OCR",
+  "/token/verdict": "Token verdict, rug check",
+  "/token-report": "Is this token safe, token risk",
+  "/pack/token-analysis": "Token analysis, due diligence",
+});
+/**
+ * Paths whose listing description must open with the override name, not the summary's lead phrase (19 Nov 2026).
+ * `listingDescription()` used `listingName(summary)`, so a `LISTING_NAME_OF` override reached the Bazaar card but not
+ * the router's description-head ranking (a description starting with the query phrase won 56% of tied pairs). These
+ * phrases must lead the description too. /btc-fees is deliberately excluded: its override is a service-wide brand
+ * that must never displace "Bitcoin fee rates" at the head of a task description.
+ */
+export const DESCRIPTION_HEAD_OF: Readonly<Record<string, string>> = Object.freeze({
+  "/extract": LISTING_NAME_OF["/extract"],
+  "/scrape": LISTING_NAME_OF["/scrape"],
+  "/document/text": LISTING_NAME_OF["/document/text"],
+  "/token/verdict": LISTING_NAME_OF["/token/verdict"],
+  "/token-report": LISTING_NAME_OF["/token-report"],
+  "/pack/token-analysis": LISTING_NAME_OF["/pack/token-analysis"],
 });
 /** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
 export function listingNameFor(e: { path: string; summary: string }): string {
   return Object.hasOwn(LISTING_NAME_OF, e.path) ? LISTING_NAME_OF[e.path] : listingName(e.summary);
+}
+/**
+ * The phrase that opens a listing's description: the description-head override when present, else `listingName(summary)`.
+ * /btc-fees keeps its natural "Bitcoin fee rates" head even though its `serviceName` is the service-wide brand.
+ */
+export function listingDescriptionHead(e: { path: string; summary: string }): string {
+  return Object.hasOwn(DESCRIPTION_HEAD_OF, e.path) ? DESCRIPTION_HEAD_OF[e.path] : listingName(e.summary);
 }
 
 export function listingName(summary: string): string {
@@ -271,7 +300,7 @@ export function listingName(summary: string): string {
  * already start with it, so the searched phrase is in the first words (inside a tier of equal payers the Bazaar orders
  * by text relevance; a description starting with the query phrase won 56% of 206 tied pairs on 22 Oct 2026).
  */
-export function listingDescription(e: { summary: string; description: string }): string {
-  const name = listingName(e.summary);
+export function listingDescription(e: { path: string; summary: string; description: string }): string {
+  const name = listingDescriptionHead(e);
   return e.description.toLowerCase().startsWith(name.toLowerCase()) ? e.description : `${name}. ${e.description}`;
 }
