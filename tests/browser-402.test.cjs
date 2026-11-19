@@ -202,6 +202,20 @@ test('/demo is a static walkthrough page that points at the recording and the fr
   assert.doesNotMatch(html, /<script/i);
 });
 
+test('signed seller evidence is served as public JSON at both well-known spellings', async () => {
+  for (const path of ['/.well-known/seller-evidence.json', '/.well-known/seller-evidence']) {
+    const res = await mf.dispatchFetch(`https://api.test${path}`);
+    assert.equal(res.status, 200, path);
+    assert.match(res.headers.get('cache-control') ?? '', /public/);
+    const e = await res.json();
+    assert.equal(e.payload.type, 'agent-data-tools.seller-evidence.v1');
+    assert.equal(e.payload.iss, 'https://api.test');
+    assert.equal(typeof e.payload.delivery.paidCalls, 'number');
+    assert.match(e.canonical, /^\{"delivery":/);
+    assert.equal(e.alg, 'EdDSA');
+  }
+});
+
 test('free-trial links are nofollow, robots.txt disallows them and trial answers are noindex', async () => {
   const page = await (await mf.dispatchFetch('https://api.test/tools/weather')).text();
   assert.match(page, /<a class="btn primary" rel="nofollow" href="\/weather\?[^"]*trial=1"/);

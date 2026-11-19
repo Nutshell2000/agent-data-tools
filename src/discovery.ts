@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.250.0";
+export const MCP_SERVER_VERSION = "1.253.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -482,6 +482,7 @@ ${rows}
 <li>MCP server (streamable HTTP): <code>${esc(origin)}/mcp</code>. Smaller servers, one per section: ${Object.keys(MCP_BUNDLES).map((slug) => `<code>/mcp/${slug}</code>`).join(", ")}</li>
 <li><a href="/openapi.json">OpenAPI 3.1 description</a></li>
 <li><a href="/status">Reliability: success rate and last success per tool over 7 days</a></li>
+<li><a href="/.well-known/seller-evidence.json">Signed seller evidence: 30-day paid calls and reliability, verifiable by the published Ed25519 key</a></li>
 <li><a href="/llms.txt">llms.txt</a></li>
 <li><a href="/.well-known/x402">x402 resource list</a></li>${EXTRA_LINKS.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join("")}
 </ul>
@@ -758,6 +759,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `- Smaller MCP servers, one per section: ${Object.entries(MCP_BUNDLES).map(([slug, title]) => `${origin}/mcp/${slug} (${title}, ${mcpListed(mcpBundleTools(slug)!).length} tools)`).join("; ")}`,
     `- [OpenAPI 3.1](${origin}/openapi.json)`,
     `- [Reliability per tool, last 7 days](${origin}/status)`,
+    `- [Signed seller evidence, 30-day paid calls and reliability](${origin}/.well-known/seller-evidence.json)`,
     `- [Service card](${origin}/service-card.json)`,
     `- [x402 resource list](${origin}/.well-known/x402)`,
     ...EXTRA_LINKS.map((l) => `- [${l.label}](${origin}${l.href})`),

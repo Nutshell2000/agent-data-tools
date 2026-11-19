@@ -77,6 +77,7 @@ import { usdcCreditOpenApiPaths } from "./lib/usdc-credits";
 import { recommend } from "./routes/recommend";
 import { CALLER_IP_INPUT } from "./routes/geo-ip";
 import { paycheckDeclaration } from "./lib/payout-wallets";
+import { sellerEvidence } from "./lib/seller-evidence";
 import { CLAIM_COOLDOWN_MIN, DECLARATION_PATH, KEYS_PATH, attest, ISSUER, ownDeclaration, payeeDeps, payeeDomain, publicKeys, readRecord, registry, storeRecord, verifyPayee } from "./routes/payee";
 import { payeeLandingPage, payeeRecordPage } from "./lib/payee-pages";
 import { takeDailyBudget } from "./lib/daily-cap";
@@ -899,6 +900,21 @@ app.get("/revenue", (c) => fromMetrics(async () => {
   const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
   return c.json({ ...x402, cardCredits });
 }));
+// Signed seller evidence (1.251.0): verifiable, self-published proof of paid delivery and reliability.
+// Aggregates facts already public at /revenue and /status and signs them with the payee key published at
+// /.well-known/agent-payee-keys.json. No new claim, no spend, no account, no change to prices or routing.
+for (const path of ["/.well-known/seller-evidence.json", "/.well-known/seller-evidence"]) {
+  app.get(path, (c) => fromMetrics(async () => {
+    if (!c.env.METRICS) return c.json({ error: "metrics storage unavailable" }, 503);
+    const global = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+    await sendBatchNow(global);
+    const [revenue, reliability] = await Promise.all([
+      global.revenueSummary(),
+      global.status(ENDPOINTS.map((e) => e.path)),
+    ]);
+    return c.json(await sellerEvidence(c.env, origin(c.req.url), revenue, reliability), 200, { "Cache-Control": "public, max-age=1800" });
+  }));
+}
 // The resource manifest, also at the ".json" spelling some crawlers (gold-402 entries, agent kits) look for.
 for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
   app.get(path, (c) => c.json({ version: 1, resources: salesOrdered(ENDPOINTS).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
