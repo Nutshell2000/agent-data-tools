@@ -34,6 +34,7 @@ import { Hono, type Context, type Next } from "hono";
 import type { Env } from "./env";
 import { VOICE_PRO_URL, hashCreditKey } from "./credits";
 import { FREE_CALLS_PER_DAY, callerHash, utcDay } from "./free-calls";
+import { prefersHtml } from "./negotiate";
 
 type C = Context<{ Bindings: Env }>;
 
@@ -162,28 +163,50 @@ const testKeyInfo = (origin: string) => ({
   more: paidOptions(origin),
 });
 
+/**
+ * 19 Nov 2026: a human page for the free voice test key. The JSON endpoint below already issues a 25-call, no-card key
+ * for an OpenAI/ElevenLabs SDK, but it was only reachable from error messages; a developer had no way to find it before
+ * paying. This page uses the existing, switch-gated key — it creates no new allowance and changes no free-call policy.
+ */
+const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
+
+function testKeyPage(title: string, body: string, indexable = false) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}<style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}pre{background:#f2f2f2;padding:.75rem;border-radius:6px;overflow-wrap:anywhere}a{color:#0645ad}button{font:inherit;font-weight:700;padding:.6rem 1rem;border-radius:8px;cursor:pointer}@media(prefers-color-scheme:dark){body{background:#151515;color:#eee}pre{background:#262626}a{color:#8ecbff}}</style></head><body><main>${body}</main></body></html>`;
+}
+
 voiceKeys.get(VOICE_TEST_PATH, (c) => {
   const origin = new URL(c.req.url).origin;
   if (!voiceTestKeysOn(c.env)) return c.json({ error: `Free voice test keys are not offered right now. ${paidSentence(origin)}`, code: "not_offered", more: paidOptions(origin) }, 404);
+  if (prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) {
+    return c.html(testKeyPage(`Free voice API test key: ${VOICE_TEST_CALLS} calls, no card`,
+      `<h1>Try the voice API with no card</h1><p>${VOICE_TEST_CALLS} successful calls for ${VOICE_TEST_KEY_HOURS} hours, up to ${VOICE_TEST_SPEECH_CHARS} characters of speech or ${VOICE_TEST_AUDIO_SECONDS} seconds of transcription each. One key per network address per day, no e-mail.</p>
+<p>Use it as the API key of an OpenAI SDK with base URL <code>${esc(origin)}/v1</code>, or an ElevenLabs SDK with base URL <code>${esc(origin)}</code>. It works on <code>/v1/audio/speech</code>, <code>/v1/audio/transcriptions</code>, <code>/v1/text-to-speech/{voice_id}</code> and <code>/v1/speech-to-text</code>.</p>
+<form method="post" action="${VOICE_TEST_PATH}"><button type="submit">Get a free test key</button></form>
+<p>${esc(testKeyInfo(origin).privacy)} When you need more, <a href="/credits">buy a prepaid key from $1</a> or <a href="/transcribe-pro">Transcribe Pro</a>.</p>`));
+  }
   return c.json({ freeVoiceTestKey: true, how: `POST ${origin}${VOICE_TEST_PATH} (no body, no e-mail) answers with the key. Use it as the API key of an OpenAI SDK whose base URL is ${origin}/v1.`, ...testKeyInfo(origin) });
 });
 
 voiceKeys.post(VOICE_TEST_PATH, async (c) => {
   c.header("Cache-Control", "no-store");
   const origin = new URL(c.req.url).origin;
-  if (!voiceTestKeysOn(c.env)) return c.json({ error: `Free voice test keys are not offered right now. ${paidSentence(origin)}`, code: "not_offered", more: paidOptions(origin) }, 404);
+  const html = prefersHtml(c.req.header("accept"), c.req.header("user-agent"));
+  const errPage = (message: string) => html ? c.html(testKeyPage("Your free test key", `<h1>No key this time</h1><p>${message}</p><p><a href="${VOICE_TEST_PATH}">Back</a> · <a href="/credits">Buy a key from $1</a></p>`)) : null;
+  if (!voiceTestKeysOn(c.env)) return errPage(`Free voice test keys are not offered right now. ${paidSentence(origin)}`) ?? c.json({ error: `Free voice test keys are not offered right now. ${paidSentence(origin)}`, code: "not_offered", more: paidOptions(origin) }, 404);
   const issued = await issueVoiceKey(c.env, "test", c.req.header("cf-connecting-ip")).catch((e: unknown) => { console.error("voice test key: not issued", e); return null; });
-  if (!issued) return c.json({ error: `A test key cannot be issued right now; try again in a few minutes. ${paidSentence(origin)}`, code: "unavailable", more: paidOptions(origin) }, 503, { "Retry-After": "300" });
+  if (!issued) return errPage(`A test key cannot be issued right now; try again in a few minutes.`) ?? c.json({ error: `A test key cannot be issued right now; try again in a few minutes. ${paidSentence(origin)}`, code: "unavailable", more: paidOptions(origin) }, 503, { "Retry-After": "300" });
   if (!issued.ok) {
     const message = issued.why === "caller"
-      ? `This network address already got a free voice test key today (UTC); it works for ${VOICE_TEST_KEY_HOURS} hours and ${VOICE_TEST_CALLS} calls. ${paidSentence(origin)}`
-      : `Today's free voice test keys are all given out; new ones start at 00:00 UTC. ${paidSentence(origin)}`;
-    return c.json({ error: message, code: issued.why === "caller" ? "one_key_per_day" : "daily_keys_used_up", ...testKeyInfo(origin) }, 429);
+      ? `This network address already got a free voice test key today (UTC); it works for ${VOICE_TEST_KEY_HOURS} hours and ${VOICE_TEST_CALLS} calls.`
+      : `Today's free voice test keys are all given out; new ones start at 00:00 UTC.`;
+    return errPage(message) ?? c.json({ error: `${message} ${paidSentence(origin)}`, code: issued.why === "caller" ? "one_key_per_day" : "daily_keys_used_up", ...testKeyInfo(origin) }, 429);
   }
+  const example = `curl ${origin}/v1/audio/speech -H "Authorization: Bearer ${issued.key}" -H "Content-Type: application/json" -d '{"model":"tts-1","input":"Hello from the new endpoint.","voice":"nova"}' --output hello.mp3`;
+  if (html) return c.html(testKeyPage("Your free voice test key", `<h1>Your free test key</h1><p>${VOICE_TEST_CALLS} successful calls, valid ${VOICE_TEST_KEY_HOURS} hours. Save it:</p><pre>${issued.key}</pre><p>OpenAI SDK: base URL <code>${origin}/v1</code>, api_key this key. ElevenLabs SDK: base URL <code>${origin}</code>, xi-api-key this key.</p><pre>${example}</pre><p>${issued.expires ? `Expires ${issued.expires}. ` : ""}<a href="/credits">Need more? Buy a prepaid key from $1</a> · <a href="/transcribe-pro">Transcribe Pro</a></p>`));
   return c.json({
     apiKey: issued.key, expires: issued.expires,
     use: `Send it as Authorization: Bearer ${issued.key} (an OpenAI SDK: base_url ${origin}/v1, api_key the key; an ElevenLabs SDK: base URL ${origin}, the key as xi-api-key).`,
-    example: `curl ${origin}/v1/audio/speech -H "Authorization: Bearer ${issued.key}" -H "Content-Type: application/json" -d '{"model":"tts-1","input":"Hello from the new endpoint.","voice":"nova"}' --output hello.mp3`,
+    example,
     ...testKeyInfo(origin),
   });
 });

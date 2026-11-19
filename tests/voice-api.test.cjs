@@ -544,3 +544,26 @@ test('both free key routes are off unless their switch is on, and neither writes
   const page = await (await legal.legal.request('https://api.test/privacy')).text();
   assert.match(page, /Free voice test keys and the free transcription trial\..*one-way hash of your network address.*up to two days/);
 });
+
+test('GET /keys/voice-test is a human page for a browser; POST answers with the key in HTML', async () => {
+  const shown = await mf.dispatchFetch(`${O}/keys/voice-test`, { headers: { accept: 'text/html' } });
+  assert.equal(shown.status, 200);
+  const html = await shown.text();
+  assert.match(html, /<title>Free voice API test key/);
+  assert.match(html, /Get a free test key/);
+  assert.match(html, /href="\/credits"/);
+  assert.match(html, /<meta name="robots" content="noindex">/);
+  // JSON clients still get the machine-readable answer.
+  const json = await (await mf.dispatchFetch(`${O}/keys/voice-test`, { headers: { accept: 'application/json' } })).json();
+  assert.equal(json.freeVoiceTestKey, true);
+
+  // A browser POST gets an HTML answer (key issued, or the daily-cap refusal — both are pages, never raw JSON).
+  const issued = await mf.dispatchFetch(`${O}/keys/voice-test`, {
+    method: 'POST', headers: { accept: 'text/html', 'cf-connecting-ip': '198.51.100.222' },
+  });
+  assert.ok([200, 429].includes(issued.status));
+  const body = await issued.text();
+  assert.match(body, /<title>Your free test key<\/title>/);
+  assert.match(body, /<h1>(Your free test key|No key this time)<\/h1>/);
+  assert.match(body, /href="\/credits"/);
+});
