@@ -44,9 +44,16 @@ test("the tools named one by one keep their key price, below their public price"
     assert.ok(price, `${path} is a live tool`);
     assert.ok(Number(withKey.slice(1)) < Number(price.slice(1)), `${path}: a key price must be below the public price`);
     assert.equal(keys.keyPrice(path, price), withKey);
-    assert.match(keys.keyPriceLine(path, price, "https://api.test"), /\$1 pays for 500 calls.*https:\/\/api\.test\/credits/);
+    // Calls per dollar follows the key price: $0.002 -> 500, $0.008 -> 125.
+    const perDollar = Math.floor(1000 / Math.round(Number(withKey.slice(1)) * 1000)).toLocaleString("en-US");
+    assert.match(keys.keyPriceLine(path, price, "https://api.test"), new RegExp(`\\$1 pays for ${perDollar} calls.*https://api\\.test/credits`));
   }
   assert.equal(priceOf("/pdf/text"), "$0.005");
+  // Earners added 18 Nov keep a key price below public. Weather is excluded: outside data cannot cost one credit.
+  for (const path of ["/pack/url-safety", "/hyperliquid/indicators", "/news", "/pack/news-sentiment", "/pack/web-research"]) {
+    assert.ok(Number(KEY_PRICES[path].slice(1)) < Number(priceOf(path).slice(1)), `${path}: below public`);
+  }
+  assert.equal(keys.keyPrice("/weather/forecast", priceOf("/weather/forecast")), priceOf("/weather/forecast"));
 });
 
 test("an entry path pays what its tool pays", () => {
