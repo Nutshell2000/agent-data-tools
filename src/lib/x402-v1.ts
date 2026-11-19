@@ -78,7 +78,7 @@ export const v1Body =(accepts: RequirementsV1[], error: string, hint?: string) =
 
 let facilitator: ReturnType<typeof buildFacilitator> | undefined;
 
-interface PayloadV1 { x402Version: 1; scheme: string; network: string; payload: { signature?: string; authorization?: { from?: string; to?: string; value?: string; nonce?: string } } }
+interface PayloadV1 { x402Version: 1; scheme: string; network: string; payload: { signature?: string; authorization?: { from?: string; to?: string; value?: string; nonce?: string; validBefore?: string } } }
 
 /**
  * Handles a request that carries an x402 v1 X-PAYMENT header: verify, run the tool, settle only on
