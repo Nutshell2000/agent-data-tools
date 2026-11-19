@@ -135,6 +135,12 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   // website URL is not a PDF and fails there); "summarize a long article" by `article→news` to /news. Both are paid
   // jobs with a direct tool, and both were lost at the free finder.
   "extract text from a website": "/extract", "text from a website": "/extract", "read a web page": "/extract", "summarize a long article": "/summarize", "summarize this article": "/summarize", "summarize a web page": "/summarize",
+  // 19 Nov deep audit: five whole-word phrases still routed to a wrong (sometimes 6x pricier or 415-failing) paid tool
+  // on all three finder surfaces (/find, MCP find_tool, /recommend fallback). Fix once here for all of them.
+  "read a pdf": "/pdf/text", "read a pdf file": "/pdf/text", "read pdf": "/pdf/text", "extract text from pdf": "/pdf/text",
+  "full text of this webpage": "/extract", "full text of this page": "/extract", "webpage text": "/extract", "web page text": "/extract", "page text": "/extract",
+  "look up a company": "/company", "look up company information": "/company", "company information": "/company", "company details": "/company",
+  "domain owner": "/whois/lookup", "who owns this domain": "/whois/lookup", "domain whois": "/whois/lookup", "registrar lookup": "/whois/lookup",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "share price": "/stock/quote", "shares price": "/stock/quote", "equity price": "/stock/quote", "price of a stock": "/stock/quote", "price of a share": "/stock/quote", "company share price": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
