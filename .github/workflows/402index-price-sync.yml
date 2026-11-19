@@ -1,0 +1,42 @@
+name: Sync 402Index listing prices
+
+# 402Index re-probes our routes and stores the 402 amount in atomic units as if it were dollars
+# (e.g. /weather/forecast: stored $2000 vs live $0.002). A router that reads that price drops the tool
+# or sends the wrong amount. This re-applies scripts/update-402index-prices.mjs, which PATCHes the
+# verified-domain token. Runs every 6 hours, on demand, and after any push to main.
+# SAFE WITHOUT THE SECRET: every step no-ops and the job passes when 402INDEX_TOKEN is unset, so adding
+# this workflow cannot break CI. The owner only has to add the secret; no code change is needed then.
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TOKEN: ${{ secrets.402INDEX_TOKEN }}
+    steps:
+      - name: Check secret present
+        id: gate
+        run: |
+          if [ -n "$TOKEN" ]; then echo "has_token=true" >> "$GITHUB_OUTPUT"; else echo "402INDEX_TOKEN not set - skipping price sync (no-op)"; fi
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.has_token == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.has_token == 'true'
+        with:
+          node-version: 22
+
+      - name: Write verified-domain token (never printed)
+        if: steps.gate.outputs.has_token == 'true'
+        run: printf '%s' "$TOKEN" > .402index-token
+
+      - name: PATCH stale prices and descriptions
+        if: steps.gate.outputs.has_token == 'true'
+        run: node scripts/update-402index-prices.mjs
