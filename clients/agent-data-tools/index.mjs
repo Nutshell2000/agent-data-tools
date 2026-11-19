@@ -19,7 +19,7 @@ export class AgentDataTools {
    * @param {string} [options.apiKey] Prepaid card-credit key (adt_…) from /credits; default: the ADT_API_KEY environment variable.
    * @param {typeof fetch} [options.fetch] A fetch that pays HTTP 402 itself, such as @x402/fetch's wrapper around your wallet.
    * @param {string} [options.origin] Service origin.
-   * Without a key or a paying fetch, calls use the free trial (25 successful calls per caller; AI media, rendering and search tools excluded).
+   * Without a key or a paying fetch, calls use the free trial (3 successful calls per caller over HTTP, 25 over MCP; AI media, rendering and search tools excluded).
    */
   constructor({ apiKey, fetch: paying, origin = ORIGIN } = {}) {
     this.apiKey = apiKey ?? globalThis.process?.env?.ADT_API_KEY;
