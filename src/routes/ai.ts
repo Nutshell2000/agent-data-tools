@@ -186,12 +186,26 @@ export async function describeImage(env: Env, rawUrl: string | undefined, questi
   let fromPage: string | null = null;
   let mainImage = false;
   if (!type) {
-    let preview = pagePreviewImage(file.bytes, file.finalUrl);
-    if (!preview) { preview = pageMainImage(file.bytes, file.finalUrl); mainImage = Boolean(preview); }
-    if (!preview) throw new HttpError(415, "url must point to a PNG, JPEG, WebP or GIF image, or to a web page that names a preview image (og:image) or shows one; send the image's own URL (nothing was charged)");
+    // 19 Nov 2026: a page's og:image can point at HTML (a lazy wrapper, a redirect to the article). A paid /describe
+    // then died with 415 even when the page also showed a real content image. Try the declared preview first, then
+    // the page's own images; a bad candidate is skipped, not fatal. Both fetches keep the existing type and size caps.
+    const candidates = [
+      { url: pagePreviewImage(file.bytes, file.finalUrl), main: false },
+      { url: pageMainImage(file.bytes, file.finalUrl), main: true },
+    ];
     fromPage = file.url;
-    file = await fetchFile(preview, IMAGE_TYPES, 3 * MB, "a PNG, JPEG, WebP or GIF image");
-    type = sniffImage(file.bytes);
+    for (const candidate of candidates) {
+      if (!candidate.url) continue;
+      try {
+        const found = await fetchFile(candidate.url, IMAGE_TYPES, 3 * MB, "a PNG, JPEG, WebP or GIF image");
+        const foundType = sniffImage(found.bytes);
+        if (!foundType) continue;
+        file = found;
+        type = foundType;
+        mainImage = candidate.main;
+        break;
+      } catch { /* this candidate is not an image; the next one may be */ }
+    }
     if (!type) throw new HttpError(415, "the page's preview image is not a PNG, JPEG, WebP or GIF; send the image's own URL (nothing was charged)");
   }
   const question = questionParam?.trim().slice(0, 300) || "Describe this image in detail, including any text visible in it.";
