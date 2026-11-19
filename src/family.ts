@@ -52,7 +52,7 @@ export function opt(q: Input, name: string, max = 10_000): string | undefined {
 /** A yes/no input: true, 1, yes or on, in any case. */
 export const flag = (q: Input, name: string) => /^(true|1|yes|on)$/i.test(q(name)?.trim() ?? "");
 
-const CLAMPED_INPUTS: ReadonlySet<string> = new Set(["maxChars", "limit", "count", "pages", "blocks", "hours", "days", "top"]);
+const CLAMPED_INPUTS: ReadonlySet<string> = new Set(["maxChars", "limit", "count", "pages", "blocks", "hours", "days", "top", "maxBytes"]);
 /** Number input with range checks; `fallback` makes it optional. */
 export function num(q: Input, name: string, { min = -Infinity, max = Infinity, fallback, integer = false }: { min?: number; max?: number; fallback?: number; integer?: boolean } = {}): number {
   const raw = q(name);
