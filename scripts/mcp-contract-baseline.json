@@ -1,5 +1,5 @@
 {
-  "version": "1.302.2",
+  "version": "1.303.2",
   "tools": [
     {
       "name": "extract",
@@ -18833,6 +18833,85 @@
       "price": "$0.002"
     },
     {
+      "name": "erc20_balance",
+      "description": "ERC20 balance of any wallet on Ethereum: read a token's balanceOf for USDC, USDT, WETH or any ERC-20 contract, returned as raw amount, decimals, symbol and human-readable balance. Use to check token or stablecoin holdings before a transfer, trade or airdrop. Live from the token contract; a non-ERC-20 address returns an uncharged error. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "token_balance",
+      "description": "Token balance on Base for any wallet and ERC-20 (USDC, USDT, WETH or a contract address): raw amount, decimals, symbol and human-readable balance read live from the token contract. Use to check a Base wallet's token holdings before a swap or transfer. Invalid contracts return an uncharged 422. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "block_number",
+      "description": "Block number on Ethereum: the latest block number (or any block by decimal or hex number) with hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use as a freshness read for settlement, indexing and trading agents, or to timestamp a transaction. A future block returns an uncharged error. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
       "name": "token_price",
       "description": "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -20799,7 +20878,7 @@
     },
     {
       "name": "url_safety_check",
-      "description": "URL safety check: is this link safe to open or pay? Two phishing blocklists (Phishing.Database, MetaMask) on every host the link passes through, each redirect hop and the final URL, the destination domain's age and trust flags, HTTPS and security headers, and named risk signals (new domain, bare IP, punycode look-alike, user@host trick), with an overall risk of low, medium or high. Use to vet links in emails, chats or scraped pages. Example: url=http://github.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "URL safety check: is this link safe to open or pay? Two phishing blocklists (Phishing.Database, MetaMask) on every host the link passes through, each redirect hop and the final URL, the destination domain's age and trust flags, HTTPS and security headers, and named risk signals (new domain, bare IP, punycode look-alike, user@host trick), with an overall risk of low, medium or high. Use to vet links in emails, chats or scraped pages. Example: url=http://github.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -20819,7 +20898,7 @@
           "url"
         ]
       },
-      "price": "$0.01"
+      "price": "$0.02"
     },
     {
       "name": "exif",

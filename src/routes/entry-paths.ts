@@ -213,6 +213,25 @@ export const ENTRY_PATHS: Entry[] = [
     "Wallet balance lookup for any EVM address: the native coin (ETH, POL) and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live from each network, with the USDC total. Use to check what a wallet holds before a payment, bridge or airdrop, or to confirm that funds arrived.",
     ["wallet-balance", "balance-lookup", "usdc-balance", "evm", "multichain", "onchain-data"], from(CHAIN_READS, "/wallet/balances")),
 
+  // 1.303.0, 19 Nov 2026: task-worded doors for the chain-read jobs that top the paying Agent402 router but where our
+  // canonical slugs (eth_token_balance, eth_block, ...) do not match the buyer's words. Agent402 scores slug 20/26 points
+  // and re-crawls /.well-known/x402 every 30 min, so these slugs put us in its dispatch set for erc20 balance (4,502
+  // matches), token balance (22,154) and block number (12,811) without any spend. Verified: where our slug matches we
+  // already score 26 and rank #1 (wallet portfolio). Same canonical tool, inputs, output and price.
+  door("/erc20/balance", "ERC20 balance: check a wallet's token holdings on Ethereum",
+    "ERC20 balance of any wallet on Ethereum: read a token's balanceOf for USDC, USDT, WETH or any ERC-20 contract, returned as raw amount, decimals, symbol and human-readable balance. Use to check token or stablecoin holdings before a transfer, trade or airdrop. Live from the token contract; a non-ERC-20 address returns an uncharged error.",
+    ["erc20-balance", "token-balance", "wallet-balance", "erc20", "onchain-data"], from(CHAIN_READS, "/eth/token-balance")),
+
+  door("/token/balance", "Token balance on Base: any ERC-20 wallet holdings",
+    "Token balance on Base for any wallet and ERC-20 (USDC, USDT, WETH or a contract address): raw amount, decimals, symbol and human-readable balance read live from the token contract. Use to check a Base wallet's token holdings before a swap or transfer. Invalid contracts return an uncharged 422.",
+    ["token-balance", "erc20-balance", "base-balance", "erc20", "onchain-data"], from(CHAIN_READS, "/base/token-balance")),
+
+  door("/block/number", "Block number: current chain tip on Ethereum",
+    "Block number on Ethereum: the latest block number (or any block by decimal or hex number) with hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use as a freshness read for settlement, indexing and trading agents, or to timestamp a transaction. A future block returns an uncharged error.",
+    ["block-number", "latest-block", "ethereum-block", "chain-data", "onchain-data"],
+    // /eth/block is in ACQUISITION_PATHS and the live catalog prices it at $0.002, not CHAIN_READS' $0.01.
+    ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(CHAIN_READS, "/eth/block"))),
+
   door("/token/price", "Token price lookup, USD: live crypto price by symbol or contract address",
     "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check.",
     ["token-price", "crypto-price", "price-lookup", "uniswap", "defi", "market-data"], from(PRICES, "/price/token")),

@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.302.2";
+export const MCP_SERVER_VERSION = "1.303.2";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
@@ -266,6 +266,8 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // Mercator (19 Nov 2026): the new ranking doors keep their canonical's section.
   "/exa/search": "Web, documents and search", "/web/read": "Web, documents and search",
   "/chat/completions": "AI", "/token-price-api": "Prices and DeFi",
+  // 1.303.0 (19 Nov 2026): Agent402 task-worded doors keep their canonical chain-read section.
+  "/erc20/balance": "Chain data", "/token/balance": "Chain data", "/block/number": "Chain data",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
