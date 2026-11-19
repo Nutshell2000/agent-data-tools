@@ -468,7 +468,7 @@ export const ENTRY_PATHS: Entry[] = [
   // door works: it had 19 distinct payers three days later, more than any older listing of ours.
   door("/web/fetch", "Web fetch: get a URL as clean text",
     "Web fetch for agents: fetch any public URL and get the page's main content as clean text or Markdown (headings, links, tables and code blocks kept), up to 100,000 characters; static HTML, Markdown and text pages. Bot walls, empty pages and errors are never charged. Use to read a web page, article or documentation URL into an LLM's context or a RAG pipeline.",
-    ["web-fetch", "fetch-url", "url-fetch", "read-url", "http-fetch", "web-page"], CORE_EXTRACT),
+    ["fetch", "web-fetch", "fetch-url", "url-fetch", "read-url", "http-fetch"], CORE_EXTRACT),
 
   door("/email/auth", "Email auth check: SPF, DKIM, DMARC",
     "Email authentication check for a domain: the SPF record and its all-policy, DKIM keys at the common selectors, the DMARC record and policy, plus MX, MTA-STS, TLS-RPT and BIMI, with a 0-100 score, a grade and a list of fixes. Public DNS only; no mail is sent. Use to verify a sender domain's SPF, DKIM and DMARC setup, to debug mail landing in spam, or to vet a domain before trusting its mail.",

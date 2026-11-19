@@ -39,6 +39,10 @@ test('related tools: three others, same category first, best sellers first, neve
   const list = relatedList('https://api.test', '/btc-fees');
   assert.equal(list.length, 3);
   for (const r of list) { assert.match(r.url, /^https:\/\/api\.test\//); assert.match(r.price, /^\$\d/); assert.ok(r.name.length <= 32); }
+  // 19 Nov 2026: the URL-safety pack (our top paid call) points at the domain/merchant trust job first.
+  const safety = relatedTools('/pack/url-safety').map((e) => e.path);
+  assert.equal(safety[0], '/domain-report', `URL-safety next job: ${safety.join(',')}`);
+  assert.ok(!Object.hasOwn(ENTRY_OF, safety[0]), 'the next job is a canonical tool, not an entry door');
 });
 
 test('document and page readers recommend the next reading/parsing job, not unrelated sellers', async () => {
