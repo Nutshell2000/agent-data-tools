@@ -88,7 +88,9 @@ export const DEFI_TVL: Entry[] = [
       }
       const category = opt(q, "category", 60)?.toLowerCase();
       const chainIn = opt(q, "chain", 60);
-      const chain = chainIn ? Object.keys(Object.assign({}, ...all.slice(0, 400).map((p) => p.chainTvls ?? {}))).find((k) => isChainKey(k) && k.toLowerCase() === chainIn.toLowerCase()) ?? chainIn : undefined;
+      // Build the canonical chain-key set from ALL protocols, not just the first 400: a real chain that appears only
+      // in protocols deeper in the list was matched as the raw input, then filtered out as a false 404 / empty ranking.
+      const chain = chainIn ? Object.keys(Object.assign({}, ...all.map((p) => p.chainTvls ?? {}))).find((k) => isChainKey(k) && k.toLowerCase() === chainIn.toLowerCase()) ?? chainIn : undefined;
       const sort = (opt(q, "sort", 20) ?? "tvl").toLowerCase();
       if (!["tvl", "change_1d", "change_7d"].includes(sort)) throw new HttpError(400, "sort must be tvl, change_1d or change_7d");
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });
@@ -128,3 +130,4 @@ export const DEFI_TVL: Entry[] = [
       return { totalTvlUsd: Math.round(total), count: Math.min(limit, ranked.length), chains: ranked.slice(0, limit), source: SOURCE };
     }),
 ];
+

@@ -35,7 +35,7 @@ const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall:
   phishing: "risk", malicious: "risk", scam: "risk", fraud: "risk", suspicious: "risk",
   hash: "crypto", encrypt: "crypto", decrypt: "crypto", sign: "crypto", signature: "crypto",
   json: "data", csv: "data", xml: "data", yaml: "data", parse: "data",
-  date: "time", time: "date", timestamp: "time", datetime: "time", schedule: "time", cron: "time",
+  timestamp: "time", datetime: "time", schedule: "time", cron: "time",
   number: "math", calculate: "math", compute: "math", calc: "math",
   ip: "network", network: "ip", dns: "domain",
   nft: "token", collection: "nft", metadata: "nft",
@@ -53,8 +53,9 @@ const stem = (w: string) => (w.length > 5 ? w.replace(/(ing|ed|es|s)$/, "") : w.
 export const tokens = (s: string) => {
   const words = s.toLowerCase().replace(/[^a-z0-9$.\s-]/g, " ").split(/[\s-]+/).map((w) => w.replace(/^\.+|\.+$/g, "")).filter((w) => w.length > 1 && !STOP.has(w));
   const out = new Set(words.flatMap((w) => (Object.hasOwn(SYNONYMS, w) ? [stem(w), SYNONYMS[w]] : [stem(w)])));
-  // "price of ETH" asks for a token price, not a gas price, unless gas or fees are named.
-  if (out.has("price") && !["gas", "fee", "fees"].some((w) => out.has(w))) { out.add("token"); out.add("crypto"); }
+  // "price of ETH" asks for a token price, not a gas price, unless gas or fees are named. A stock/share/equity
+  // price is NOT crypto: "share price of Apple" otherwise routed to the token price tool first.
+  if (out.has("price") && !["gas", "fee", "fees", "stock", "share", "shares", "equity"].some((w) => out.has(w))) { out.add("token"); out.add("crypto"); }
   return [...out];
 };
 
@@ -82,7 +83,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "long text to speech": "/text-to-speech", "narrate": "/text-to-speech", "narration": "/text-to-speech",
   "speech to text": "/transcribe", "transcribe": "/transcribe", "transcription": "/transcribe", "audio to text": "/transcribe",
   // 1.192.0 (Glyphcall Voice): the long, cheap and summary voice tools by the jobs buyers name.
-  "podcast transcription": "/transcribe/long", "transcribe podcast": "/transcribe/long", "transcribe meeting": "/transcribe/long", "long audio": "/transcribe/long", "transcribe interview": "/transcribe/long", "subtitles": "/transcribe/long", "srt": "/transcribe/long", "generate subtitles": "/transcribe/long", "elevenlabs speech to text": "/transcribe/long", "scribe": "/transcribe/long",
+  "podcast transcription": "/transcribe/long", "transcribe podcast": "/transcribe/long", "transcribe a podcast": "/transcribe/long", "transcribe meeting": "/transcribe/long", "long audio": "/transcribe/long", "transcribe interview": "/transcribe/long", "subtitles": "/transcribe/long", "srt": "/transcribe/long", "generate subtitles": "/transcribe/long", "elevenlabs speech to text": "/transcribe/long", "scribe": "/transcribe/long",
   "meeting notes": "/transcribe/summary", "meeting summary": "/transcribe/summary", "summarize audio": "/transcribe/summary", "summarize recording": "/transcribe/summary", "voice note": "/transcribe/summary", "voicemail": "/transcribe/summary", "call summary": "/transcribe/summary", "action items": "/transcribe/summary",
   "speaker diarization": "/transcribe/speakers", "speaker labels": "/transcribe/speakers", "who said what": "/transcribe/speakers", "diarization": "/transcribe/speakers", "interview transcript": "/transcribe/speakers", "redact transcript": "/transcribe/speakers", "translate subtitles": "/subtitles/translate", "subtitle translation": "/subtitles/translate", "translate srt": "/subtitles/translate", "translate captions": "/subtitles/translate", "dub video": "/dub", "dub audio": "/dub", "dubbing": "/dub", "voice over translation": "/dub", "translate voice": "/dub", "voice agent": "/voice/agent", "voice bot": "/voice/agent", "voice assistant": "/voice/agent", "conversational ai": "/voice/agent", "talk to ai": "/voice/agent", "podcast generator": "/dialogue", "multi speaker": "/dialogue", "dialogue audio": "/dialogue", "conversation audio": "/dialogue", "tts with subtitles": "/text-to-speech/captions", "voiceover with captions": "/text-to-speech/captions", "speech with subtitles": "/text-to-speech/captions",
   "cheap text to speech": "/text-to-speech/lite", "cheap tts": "/text-to-speech/lite",
@@ -95,7 +96,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
   // 10 Nov 2026 (base-bots/mercator-jobs.mjs, bazaar-word-demand.mjs): jobs sold elsewhere under a path that names them.
   "cve lookup": "/cve", "cve": "/cve", "vulnerability lookup": "/cve", "known exploited": "/cve", "kev": "/cve", "epss": "/cve", "cvss score": "/cve",
-  "timezone convert": "/time", "time zone converter": "/time", "current time": "/time", "what time is it": "/time",
+  "timezone convert": "/time", "time zone converter": "/time", "current time": "/time", "what time is it": "/time", "time in": "/time", "what time": "/time",
   "perp funding": "/hyperliquid/market", "funding rate": "/hyperliquid/market", "open interest": "/hyperliquid/market",
   "income statement": "/sec/financials", "balance sheet": "/sec/financials", "cash flow statement": "/sec/financials", "financial statements": "/sec/financials", "company financials": "/sec/financials", "stock fundamentals": "/sec/financials", "fundamentals": "/sec/financials", "company facts": "/sec/financials", "earnings per share": "/sec/financials",
   "arxiv": "/arxiv/search", "arxiv search": "/arxiv/search", "preprint": "/arxiv/search", "preprints": "/arxiv/search",
@@ -106,23 +107,23 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "keyword ideas": "/keywords/ideas", "keyword research": "/keywords/ideas", "keyword overview": "/keywords/ideas",
   "email verifier": "/email", "verify email": "/email", "email verification": "/email", "email validation": "/email",
   "lead verification": "/pack/contact-verify", "contact verification": "/pack/contact-verify", "verify contact": "/pack/contact-verify", "lead qualification": "/pack/contact-verify", "verify lead": "/pack/contact-verify",
-  "vendor check": "/pack/vendor-check", "supplier due diligence": "/pack/vendor-check", "vendor due diligence": "/pack/vendor-check", "vendor screening": "/pack/vendor-check", "supplier check": "/pack/vendor-check",
-  "email auth": "/pack/email-deliverability", "spf": "/pack/email-deliverability", "dmarc": "/pack/email-deliverability", "dkim": "/pack/email-deliverability",
+  "vendor check": "/pack/vendor-check", "supplier due diligence": "/pack/vendor-check", "vendor due diligence": "/pack/vendor-check", "vendor screening": "/pack/vendor-check", "supplier check": "/pack/vendor-check", "verify supplier": "/pack/vendor-check", "supplier verification": "/pack/vendor-check", "check supplier": "/pack/vendor-check", "vet supplier": "/pack/vendor-check", "verify vendor": "/pack/vendor-check", "swedish supplier": "/se/company", "supplier in sweden": "/se/company", "norwegian supplier": "/no/company", "supplier in norway": "/no/company", "finnish supplier": "/fi/company", "supplier in finland": "/fi/company", "french supplier": "/fr/company", "supplier in france": "/fr/company",
+  "email auth": "/pack/email-deliverability", "spf": "/pack/email-deliverability", "dmarc": "/pack/email-deliverability", "dkim": "/pack/email-deliverability", "ssl certificate check": "/http/security-headers", "tls check": "/http/security-headers", "security headers": "/http/security-headers", "smtp settings": "/email",
   "fear and greed": "/crypto/fear-greed", "fear greed": "/crypto/fear-greed",
   "token price": "/price/token", "crypto price": "/price/token", "coin price": "/price/token",
   "who bought": "/token/buyers", "who sold": "/token/buyers", "token flow": "/token/flow", "net flow": "/token/flow", "flow intelligence": "/token/flow", "token flows": "/pack/token-flows",
   "daily brief": "/pack/daily-brief", "market brief": "/pack/daily-brief", "morning brief": "/pack/daily-brief", "gas oracle": "/pack/gas-tracker", "gas tracker": "/pack/gas-tracker", "multichain gas": "/pack/gas-tracker",
-  "erc20 balance": "/base/token-balance", "token balance": "/base/token-balance", "wallet balance": "/wallet/balances", "wallet portfolio": "/wallet/portfolio",
+  "erc20 balance": "/base/token-balance", "token balance": "/base/token-balance", "wallet balance": "/wallet/balances", "wallet token balances": "/wallet/balances", "wallet portfolio": "/wallet/portfolio",
   "weather forecast": "/weather", "current weather": "/weather",
   "phishing check": "/phishing/check", "phishing domain": "/phishing/check", "phishing blocklist": "/phishing/check", "url safety": "/pack/url-safety", "is this link safe": "/pack/url-safety", "scam url": "/pack/url-safety", "merchant trust": "/domain-report", "is this site legit": "/domain-report",
   "screenshot": "/screenshot", "status check": "/url/uptime", "uptime": "/url/uptime", "is it down": "/url/uptime",
   "image generation": "/image", "generate image": "/image", "image gen": "/image",
-  "chat completion": "/ai/chat", "chat completions": "/ai/chat", "llm": "/ai/chat",
+  "chat completion": "/ai/chat", "chat completions": "/ai/chat", "chat with an ai": "/ai/chat", "chat with ai": "/ai/chat", "llm": "/ai/chat",
   "rug check": "/token/verdict", "honeypot": "/token/verdict", "token preflight": "/token/verdict", "token verdict": "/token/verdict",
   "wallet screen": "/sanctions/check", "sanctions check": "/sanctions/check", "ofac": "/sanctions/check",
   "company lookup": "/company", "company enrich": "/pack/domain-intel", "company enrichment": "/pack/domain-intel",
   // 12 Nov 2026: the national registers, by the names buyers use for them and their company numbers.
-  "swedish company": "/se/company", "organisationsnummer": "/se/company", "bolagsverket": "/se/company", "sweden company": "/se/company",
+  "swedish company": "/se/company", "organisationsnummer": "/se/company", "bolagsverket": "/se/company", "sweden company": "/se/company", "registration number sweden": "/se/company", "registration number norway": "/no/company", "registration number finland": "/fi/company", "registration number france": "/fr/company",
   "norwegian company": "/no/company", "organisasjonsnummer": "/no/company", "brreg": "/no/company", "norway company": "/no/company",
   "finnish company": "/fi/company", "ytunnus": "/fi/company", "y tunnus": "/fi/company", "finland company": "/fi/company",
   "czech company": "/cz/company", "czechia company": "/cz/company", "ico number": "/cz/company", "ares register": "/cz/company",
@@ -134,7 +135,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   // jobs with a direct tool, and both were lost at the free finder.
   "extract text from a website": "/extract", "text from a website": "/extract", "read a web page": "/extract", "summarize a long article": "/summarize", "summarize this article": "/summarize", "summarize a web page": "/summarize",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
-  "stock price": "/stock/quote", "stock quote": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
+  "stock price": "/stock/quote", "stock quote": "/stock/quote", "share price": "/stock/quote", "shares price": "/stock/quote", "equity price": "/stock/quote", "price of a stock": "/stock/quote", "price of a share": "/stock/quote", "company share price": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
   "contract call": "/base/call", "eth call": "/base/call", "read contract": "/base/call",
   "vat number": "/vat/validate", "vat validation": "/vat/validate", "validate vat": "/vat/validate", "lei": "/lei/lookup",
@@ -145,7 +146,7 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "block explorer": "/base/block", "block height": "/base/block", "blockchain explorer": "/base/block",
   "invoice check": "/invoice/check", "check invoice": "/invoice/check", "invoice validation": "/invoice/check", "invoice fraud": "/invoice/check", "invoice parser": "/document/extract",
   "my ip": "/ip/geolocate", "ip geolocation": "/ip/geolocate", "ip location": "/ip/geolocate", "ip lookup": "/ip/lookup", "ip whois": "/ip/lookup",
-  "national debt": "/econ/national-debt", "usdc yield": "/defi/usdc-yield", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
+  "national debt": "/econ/national-debt", "usdc yield": "/defi/yields", "defi yields": "/defi/yields", "tvl": "/defi/tvl",
   // Business packs (16 Nov 2026, routes/packs-business.ts).
   "should i pay": "/pack/counterparty-full", "should my agent pay": "/pack/counterparty-full", "safe to pay": "/pack/counterparty-full", "pay this counterparty": "/pack/counterparty-full", "full counterparty check": "/pack/counterparty-full", "counterparty due diligence": "/pack/counterparty-full", "seller due diligence": "/pack/counterparty-full", "vet a seller": "/pack/counterparty-full",
   "e invoice check": "/pack/einvoice-check", "einvoice check": "/pack/einvoice-check", "check e invoice": "/pack/einvoice-check", "e invoice usable": "/pack/einvoice-check", "xrechnung check": "/pack/einvoice-check", "check xrechnung": "/pack/einvoice-check", "zugferd check": "/pack/einvoice-check", "check zugferd": "/pack/einvoice-check",

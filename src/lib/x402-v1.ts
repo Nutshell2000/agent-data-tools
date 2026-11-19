@@ -78,7 +78,7 @@ export const v1Body =(accepts: RequirementsV1[], error: string, hint?: string) =
 
 let facilitator: ReturnType<typeof buildFacilitator> | undefined;
 
-interface PayloadV1 { x402Version: 1; scheme: string; network: string; payload: { signature?: string; authorization?: { from?: string; to?: string; value?: string; nonce?: string } } }
+interface PayloadV1 { x402Version: 1; scheme: string; network: string; payload: { signature?: string; authorization?: { from?: string; to?: string; value?: string; nonce?: string; validBefore?: string } } }
 
 /**
  * Handles a request that carries an x402 v1 X-PAYMENT header: verify, run the tool, settle only on
@@ -139,6 +139,18 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
     return c.json(v1Body(accepts, verified.invalidReason ?? "invalid_payment", `payment invalid: ${verified.invalidReason ?? "rejected by the facilitator"}`), 402);
   }
   markStage("verified");
+  // Claim the nonce before running the tool: verify does not reject a reused authorization, so without this a replay
+  // runs the tool a second time and only fails at settle, giving a free extra result. MPP paths already claim here.
+  if (auth.nonce && c.env.METRICS) {
+    const expires = Math.min(Number(auth.validBefore) * 1000, Date.now() + 600_000);
+    const claimKey = `x402v1:${network}:${auth.nonce.toLowerCase()}`;
+    const claimed = await c.env.METRICS.get(c.env.METRICS.idFromName("global")).mppClaim(claimKey, expires).catch(() => null);
+    if (claimed === null) return c.json(v1Body(accepts, "payment verification is temporarily unavailable; you were not charged"), 503);
+    if (!claimed) {
+      markStage("verification_failed");
+      return c.json(v1Body(accepts, "invalid_payment", "payment invalid: this authorization was already used; request a new payment"));
+    }
+  }
   await next();
   if (c.res.status >= 400) return; // failed calls are never settled, so never charged
   let settled;

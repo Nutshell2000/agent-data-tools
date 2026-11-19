@@ -17,3 +17,11 @@ export async function takeDailyBudget(env: Env, kind: string, capSetting: string
   if (used >= cap) throw new HttpError(503, `today's ${what} capacity is used up; try again after 00:00 UTC`, "DAILY_CAPACITY");
   await env.TRIALS.put(key, String(used + 1), { expirationTtl: 172_800 });
 }
+
+/** Give back a daily slot when the tool failed, so a failed free try does not burn a scarce shared allowance. */
+export async function refundDailyBudget(env: Env, kind: string): Promise<void> {
+  if (!env.TRIALS) return;
+  const key = `cap:${kind}:${new Date().toISOString().slice(0, 10)}`;
+  const used = Number(await env.TRIALS.get(key)) || 0;
+  if (used > 0) await env.TRIALS.put(key, String(used - 1), { expirationTtl: 172_800 });
+}

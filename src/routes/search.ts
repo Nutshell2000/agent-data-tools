@@ -375,7 +375,8 @@ export const SEARCH: Entry[] = [
       const body = (await res.json().catch(() => null)) as { results?: (BraveResult & { meta_url?: { hostname?: string } })[] } | null;
       if (!body) throw new HttpError(503, "the news provider sent an unreadable answer");
       const results = (body.results ?? [])
-        .filter((r) => r.url && r.title)
+        // A Brave result with a relative or absent URL must not crash the whole paid call in new URL() below.
+        .filter((r) => r.url && r.title && /^https?:\/\//i.test(r.url))
         .slice(0, count)
         .map((r) => ({ title: stripTags(r.title!), url: r.url!, snippet: stripTags(r.description ?? ""), source: r.meta_url?.hostname ?? new URL(r.url!).hostname, age: r.age ?? null }));
       // 19 Nov 2026: a zero-result news search is not a paid-worthy answer. The sibling /pack/news-sentiment has
