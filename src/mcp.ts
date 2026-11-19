@@ -204,7 +204,7 @@ function registerCompactTools(
 
   registered.find_tool = mcp.tool(
     "find_tool",
-    `Find which of this service's ${total} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to ten tools, best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
+    `Find which of this service's ${total} tools does a job. Say the job in plain words ("current weather in Paris", "text of a PDF", "is this wallet sanctioned") and get up to five tools by default (pass count for more, up to ten), best match first, each with its name for call_tool, what it does, its price and its required inputs. Free; call it before call_tool whenever you do not already know the tool's name.`,
     {
       need: z.string().min(2).max(300).describe("The job in plain words, for example: current weather in Paris"),
       count: z.number().int().min(1).max(10).optional().describe("How many tools to return, 1-10 (default 5)"),
@@ -436,7 +436,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY))}` }]
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price))}` }]
           : free && !result.isError && !directory ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         const requestMeta = directory ? {} : { requestId: trace?.requestId };
         if ("outputSchema" in e && response.isError && response.structuredContent) {

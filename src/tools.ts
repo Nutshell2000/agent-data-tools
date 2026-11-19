@@ -303,6 +303,9 @@ export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Reco
   // 18 Nov 2026: /status showed 41 buyer errors in 7 days, mostly an empty HTTP call refusing with "missing required
   // query parameter: url". Answer the published sample invoice with the documented default field set instead.
   "/document/extract": { input: { url: "https://raw.githubusercontent.com/invoice-x/invoice2data/master/tests/compare/coolblue1.pdf", fields: "invoice" }, note: "No input was sent, so this extracts the usual invoice fields from the public sample PDF shown in the input example. Send url=... and fields=... for your own document." },
+  // 19 Nov 2026: /pdf/text is the most-searched document job; an empty paid call (vAPI "Pay and call", Mercator `{}`)
+  // used to 400 on a required url. Answer the published sample PDF with a note instead, like its sibling readers.
+  "/pdf/text": { input: { url: "https://bitcoin.org/bitcoin.pdf" }, note: "No input was sent, so this reads the public sample PDF shown in the input example (the Bitcoin white paper). Send url=... for your own PDF." },
 };
 
 const RAW_INPUT_PATHS = new Set(["/evm/checksum"]);

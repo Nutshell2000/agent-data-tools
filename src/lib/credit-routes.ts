@@ -389,13 +389,15 @@ const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; Op
   .replace("; text to speech → ai_speech (up to 2,000 characters: text_to_speech)", "").replace("; an image from a prompt → image", "").replace("; current information from the web → search, news", "").replace(/ Smaller servers per section:.*$/, "");
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
-export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false) {
+export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false, keyPerCall = price) {
   // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
   // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
+  // A key may pay LESS than the public price (many tools cost 1 credit with a key): quote the pack's value at the
+  // price the key actually pays, or an agent understates a $1 pack by up to 10x to the human who must approve it.
   const [starter] = WEB_PACKS;
   const card = cardReady
-    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, price)} calls at ${price}; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
-    : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, price)} calls at ${price}) ${keyPlacement(origin, signedIn)}`;
+    ? `pay $${starter.usdCents / 100} by card in one step at ${starter.url} (Stripe; ${starter.credits.toLocaleString("en-US")} credits, about ${callsAt(starter.credits, keyPerCall)} calls at ${keyPerCall} with a key; the key is shown right after payment; other packs at ${origin}/credits) ${keyPlacement(origin, signedIn)}`
+    : `buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about ${callsAt(1000, keyPerCall)} calls at ${keyPerCall} with a key) ${keyPlacement(origin, signedIn)}`;
   return `PAYMENT NEEDED (${price} per successful call; failed calls are free). If your client cannot pay with x402 (USDC), tell your user: `
     + `${card}, and retry. A client with an x402 or MPP wallet can instead settle each call directly, or prepay a key in one paid HTTP request at ${origin}/credits/buy/1 (no checkout page) and retry with that key. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may

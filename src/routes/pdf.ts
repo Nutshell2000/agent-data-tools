@@ -144,7 +144,7 @@ export const PDF: Entry[] = [
     "Extract the text of a public PDF (up to 10 MB) from its URL, page by page, with title, author and page count. Choose the first page, how many pages (up to 200) and maxChars. arXiv abstract links work. If a site blocks our fetch, the Internet Archive's dated copy is read and the answer says so. Scanned, encrypted and non-PDF files fail uncharged. Use to read papers, invoices, reports and manuals into an agent.",
     ["pdf", "documents", "text", "extract", "rag"], {
       // The example must load from Cloudflare's network: w3.org's dummy PDF answers Workers with 403.
-      url: { type: "string", description: "Absolute public http(s) URL of the PDF", required: true, example: "https://bitcoin.org/bitcoin.pdf" },
+      url: { type: "string", description: "Absolute public http(s) URL of the PDF. With no input at all this reads the published sample (the Bitcoin white paper); send url for your own PDF.", required: true, example: "https://bitcoin.org/bitcoin.pdf" },
       firstPage: { type: "integer", description: "First page to read (default 1)", example: 1 },
       pages: { type: "integer", description: "How many pages to read (1-200, default 20)", example: 1 },
       maxChars: { type: "integer", description: "Maximum characters of text returned across all pages (1000-200000, default 50000)", example: 1000 },

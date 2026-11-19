@@ -46,7 +46,7 @@ function payByCard(origin: string, cardReady: boolean) {
 /** v1 terms in the 402 body only when the caller asks (x402=1) or the switch QUOTE_BODY=v1 is set; see readable402. */
 export const wantsV1Body = (param: string | undefined, env: { QUOTE_BODY?: string }) => param?.trim() === "1" || env.QUOTE_BODY === "v1";
 
-export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }, cardReady = false): Promise<Response> {
+export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }, cardReady = false, exhausted = false): Promise<Response> {
   const header = res.headers.get("payment-required");
   // A person in a browser gets the library's developer page; show them the tool and the ways to use it instead.
   if (res.status === 402 && header && page && (res.headers.get("content-type") ?? "").includes("text/html")) {
@@ -64,7 +64,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   } catch {
     return res;
   }
-  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."} ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
+  const hint = `${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}${exhausted ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls on this address; retry this same request with payment (x402/MPP) or add a prepaid key as Authorization: Bearer adt_ or &api_key=adt_ — nothing was charged for this quote. ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."} ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // The body mirrors the v2 header (1.117.0, 10 Nov 2026). Until then it was a v1 PaymentRequired on every tool, and
   // vAPI Call's listing check read that as "header and body declare different x402 versions" and found no input
   // description, because the Bazaar extension only exists in v2 terms; seven of nine sellers its monitor calls healthy
