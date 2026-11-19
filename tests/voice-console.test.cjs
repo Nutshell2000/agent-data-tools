@@ -28,6 +28,7 @@ test("the front page opens on the console, with text already in it and a voice c
   const hero = html.slice(html.indexOf('<section class="hero"'), html.indexOf('<section class="stats"'));
   assert.match(hero, /id="hero-vc"/);
   assert.match(hero, /<textarea id="hero-vc-text"[^>]*>Welcome!/);
+  assert.match(hero, /on your own phone or computer/, "the console also works on a phone");
   assert.match(hero, /data-voice="af_heart" aria-pressed="true"/);
   assert.equal((hero.match(/aria-pressed="true"/g) ?? []).length, 1, "one voice preselected");
   assert.match(hero, /&#9654; Play/);
@@ -73,6 +74,7 @@ test("the two voice product pages carry the console where they had no try", () =
     assert.match(html, /<div id="try"><h2>Try it free, right here<\/h2>/, slug);
     assert.match(html, new RegExp(`data-first="${tab}"`), slug);
     assert.match(html, /<a class="btn primary" href="#try">Try it free, no account<\/a>/, slug);
+    assert.match(html, /The paid API (speaks your text|transcribes) in one call — see the request below or <a href="#pricing">plans<\/a>\./, slug);
     assert.equal(scripts(html), 1, slug);
   }
   const pdf = productPage(PRODUCTS.find((x) => x.slug === "pdf-to-text-api"), "https://x.test", true, () => undefined);
