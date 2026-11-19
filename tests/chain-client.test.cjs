@@ -15,7 +15,7 @@ const now='2026-10-18T00:00:00.000Z';
 const receipt={success:true,network:'eip155:8453',transaction:'0x'+'4'.repeat(64),payer:address};
 const encode=v=>Buffer.from(JSON.stringify(v)).toString('base64');
 const inputs={tx:['--hash',txHash],wallet:['--address',address],gas:[],allowance:['--token','0x833589fcd6edb6e08f4c7c32d4f71b54bda02913','--owner',address,'--spender',spender]};
-const caps={tx:'0.003',wallet:'0.005',gas:'0.002',allowance:'0.002'};
+const caps={tx:'0.003',wallet:'0.01',gas:'0.002',allowance:'0.002'};
 const args=(op,buy=true)=>[buy?'buy':'quote',op,...inputs[op],...(buy?['--max-usdc',caps[op]]:[])];
 function result(op){
  if(op==='tx')return{chain:'base',hash:txHash,status:'success',from:address,to:spender,contractCreated:null,valueEth:'0',nonce:1,methodId:null,blockNumber:1,blockTime:now,confirmations:2,gasUsed:21000,gasPriceGwei:'0.01',executionFeeEth:'0.00000021',logCount:0,checkedAt:now};
@@ -52,7 +52,7 @@ test('input and per-operation caps reject before any network access',async()=>{
  for(const a of invalid){const r=await core.runChain(a,{fetcher:()=>assert.fail('invalid arguments must not fetch')});assert.equal(r.ok,false);assert.equal(r.paymentStatus,'not_signed');}
 });
 test('payment pins, exact resource query and each lower user cap reject before signing',async()=>{
- for(const terms of [{payTo:spender},{network:'eip155:1'},{asset:address},{scheme:'upto'},{amount:'5001'},{amount:'0'},{amount:'NaN'},{amount:'9'.repeat(5000)},{maxTimeoutSeconds:0},{extra:{assetTransferMethod:'permit2'}},{extra:{name:'Other Coin'}},{extra:{version:'1'}}]){const f=fixture('wallet',{terms});const v=await core.runChain(args('wallet'),f.deps);assert.equal(v.error,'payment_terms_rejected');assert.equal(f.counts().keyReads,0);assert.equal(f.counts().signs,0);}
+ for(const terms of [{payTo:spender},{network:'eip155:1'},{asset:address},{scheme:'upto'},{amount:'10001'},{amount:'0'},{amount:'NaN'},{amount:'9'.repeat(5000)},{maxTimeoutSeconds:0},{extra:{assetTransferMethod:'permit2'}},{extra:{name:'Other Coin'}},{extra:{version:'1'}}]){const f=fixture('wallet',{terms});const v=await core.runChain(args('wallet'),f.deps);assert.equal(v.error,'payment_terms_rejected');assert.equal(f.counts().keyReads,0);assert.equal(f.counts().signs,0);}
  for(const resource of [core.ORIGIN+'/base-tx',core.ORIGIN+'/wallet?address='+spender,'https://other.example/wallet?address='+address]){const f=fixture('wallet',{resource});const v=await core.runChain(args('wallet'),f.deps);assert.equal(v.error,'unexpected_payment_resource');assert.equal(f.counts().signs,0);}
  for(const op of Object.keys(inputs)){const f=fixture(op);const v=await core.runChain(['buy',op,...inputs[op],'--max-usdc','0.001'],f.deps);assert.equal(v.error,'payment_terms_rejected');assert.equal(f.counts().signs,0);}
 });

@@ -7,12 +7,12 @@ import packageInfo from "./package.json" with { type: "json" };
 
 export const VERSION = packageInfo.version;
 export const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
-export const RECIPIENT = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+export const RECIPIENT = "0x6293ded2684f1a76e26becef87c137d691fbf800";
 export const ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 const NETWORK = "eip155:8453";
 export const OPERATIONS = Object.freeze({
   tx: { path: "/base-tx", maxAtomic: 3000n, inputs: ["hash"] },
-  wallet: { path: "/wallet", maxAtomic: 5000n, inputs: ["address"] },
+  wallet: { path: "/wallet", maxAtomic: 10000n, inputs: ["address"] },
   gas: { path: "/base-gas", maxAtomic: 2000n, inputs: [] },
   allowance: { path: "/base-allowance", maxAtomic: 2000n, inputs: ["token", "owner", "spender"] },
 });
@@ -159,7 +159,7 @@ export async function runChain(args, { fetcher = globalThis.fetch, getKey = () =
     ...(signed && !value.ok ? { guidance: "Stop and reconcile using the request ID, UTC time and available receipt. Do not start a fresh purchase to recover this outcome. Receipts are server-reported, not independent chain proof." } : {}) });
   try {
     const o = parseChainArgs(args);
-    if (o.command === "help") return finish({ ok: true, paymentStatus: "not_signed", help: "Node >=20.19. quote|buy tx --hash <0xhash>; wallet --address <0xaddress>; gas; allowance --token <0xaddress> --owner <0xaddress> --spender <0xaddress>. Every buy also requires --max-usdc: tx <=0.003, wallet <=0.005, gas/allowance <=0.002. Quotes never read keys or pay. Buy uses existing local X402_PRIVATE_KEY and authorizes at most once. No automatic retries or polling; caps apply per invocation, not per session/month. Checks never send transactions, approvals or transfers other than the explicit x402 tool payment." });
+    if (o.command === "help") return finish({ ok: true, paymentStatus: "not_signed", help: "Node >=20.19. quote|buy tx --hash <0xhash>; wallet --address <0xaddress>; gas; allowance --token <0xaddress> --owner <0xaddress> --spender <0xaddress>. Every buy also requires --max-usdc: tx <=0.003, wallet <=0.01, gas/allowance <=0.002. Quotes never read keys or pay. Buy uses existing local X402_PRIVATE_KEY and authorizes at most once. No automatic retries or polling; caps apply per invocation, not per session/month. Checks never send transactions, approvals or transfers other than the explicit x402 tool payment." });
     const request = headers => ({ method: "GET", redirect: "error", signal: AbortSignal.timeout(signed ? 60000 : 20000), headers: { Accept: "application/json", "X402-Source": "chain_cli_100", ...headers } });
     const response = await fetcher(o.url, request({})); requestId = requestIdFrom(response);
     if (response.status !== 402) { await response.body?.cancel(); return finish({ ok: false, error: "expected_unpaid_402_quote", httpStatus: response.status, paymentStatus: "not_signed", requestId }); }
