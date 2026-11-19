@@ -153,7 +153,7 @@ export function marketStatus(code: string, now: number) {
 
 export const MARKET_HOURS: Entry[] = [
   entry("/market/is-open", "Is the stock market open right now: NYSE, Nasdaq, LSE",
-    "Is the stock market open right now? For the NYSE and Nasdaq (default) or the London Stock Exchange: open or closed, the session (regular, pre-market, after-hours) and why (weekend, holiday by name, early close), today's open and close, the next open and close in UTC and minutes until the next change. From each exchange's published hours, holidays and early closes, daylight saving included; `at` asks about another moment.",
+    "Is the stock market open right now? For the NYSE and Nasdaq (default) or the London Stock Exchange: open or closed, the session (regular, pre-market, after-hours) and why (weekend, holiday by name, early close), today's open and close, the next open and close in UTC and minutes until the next change. Computed from published hours, holidays and early closes; `at` asks about another moment. Use before trading, scheduling orders or alerts.",
     ["market-hours", "stock-market-open", "market-status", "trading-hours", "nyse-hours", "stocks", "finance"],
     {
       exchange: { type: "string", description: "NYSE (default), NASDAQ or LSE; also accepts US, UK, London", example: "NYSE" },
