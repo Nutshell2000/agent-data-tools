@@ -29,6 +29,10 @@ const RELATED_OVERRIDE: Readonly<Record<string, readonly string[]>> = Object.fre
   "/feed": ["/news", "/summarize", "/extract", "/news/search"],
   "/summarize": ["/extract", "/feed", "/news", "/pdf/text"],
   "/screenshot": ["/extract/rendered", "/url/meta", "/extract", "/scrape"],
+  // 19 Nov 2026: /pack/url-safety is our leading paid call (about 695 settled calls a day). The next job for a URL
+  // screener is the trust of the domain/merchant behind the link — the same check buyers name "safety merchant".
+  // Put that canonical tool first (entry doors are filtered out, so name /domain-report, not /merchant/trust).
+  "/pack/url-safety": ["/domain-report", "/check/counterparty", "/check/payee", "/pack/vendor-check"],
 });
 
 /**

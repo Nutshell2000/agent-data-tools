@@ -6,6 +6,11 @@ import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
 
 export const COHERE_RERANK_PATH = "/v1/rerank";
+// Cohere v2 is the default SDK generation (ClientV2 / cohere.v2.rerank) and calls POST /v2/rerank. Its request body is
+// the same rerank shape; only the response envelope differs. Until 19 Nov 2026 this path 404'd, so a Cohere v2 RAG app
+// could not be pointed at us with a base-URL change. It is a thin alias over the same paid /ai/rerank tool — no new
+// price, model or account.
+export const COHERE_RERANK_V2_PATH = "/v2/rerank";
 export const RERANK_TOOL_PATH = "/ai/rerank";
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -44,7 +49,16 @@ export function toCohereRerank(result: { results?: { index: number; relevance_sc
   };
 }
 
-/** Handles /v1/rerank (POST body, or GET query) by forwarding the equivalent /ai/rerank GET through the middleware. */
+/** Cohere v2 response: results carry index/score only (no document object), and meta bills input tokens. */
+export function toCohereRerankV2(result: { results?: { index: number; relevance_score: number }[] }, inputTokens: number) {
+  return {
+    results: (result.results ?? []).map((r) => ({ index: r.index, relevance_score: r.relevance_score })),
+    id: crypto.randomUUID(),
+    meta: { api_version: { version: "2" }, billed_units: { input_tokens: Math.max(1, Math.round(inputTokens)) } },
+  };
+}
+
+/** Handles /v1/rerank and /v2/rerank (POST body, or GET query) by forwarding the equivalent /ai/rerank GET through the middleware. */
 export async function cohereRerank(c: C, forward: Forward): Promise<Response> {
   const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
   const mapped = toRerankQuery(await requestBody(c, rerankBodyFromQuery));
@@ -64,7 +78,11 @@ export async function cohereRerank(c: C, forward: Forward): Promise<Response> {
   if (answer.status === 402) return asFrontQuote(answer, outer, FRONT_DESCRIPTIONS[outer.pathname] ?? "", RERANK_TOOL_PATH);
   if (answer.status !== 200) return answer;
   const result = (await answer.json().catch(() => ({}))) as { results?: { index: number; relevance_score: number; document?: string }[] };
-  const out = c.json(toCohereRerank(result, q.returnDocuments), 200);
+  const isV2 = outer.pathname === COHERE_RERANK_V2_PATH;
+  const payload = isV2
+    ? toCohereRerankV2(result, (q.query.length + q.documents.reduce((n, d) => n + d.length, 0)) / 4)
+    : toCohereRerank(result, q.returnDocuments);
+  const out = c.json(payload, 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   out.headers.set("Cache-Control", "no-store");
   return out;

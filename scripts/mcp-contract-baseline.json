@@ -1,5 +1,5 @@
 {
-  "version": "1.269.0",
+  "version": "1.270.0",
   "tools": [
     {
       "name": "extract",
@@ -16275,7 +16275,7 @@
     },
     {
       "name": "contents",
-      "description": "Read one to five public web pages in one call and get each one's clean text (or Markdown), title, author and published date where the page declares them, in the request shape search APIs use (urls as a list). Pages are read in parallel; one that cannot be read is listed in statuses with its reason and the rest still answer. Static HTML, Markdown and plain text, up to 20,000 characters a page. Use to read search results in one call. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Web read: read one to five public web pages in one call and get each one's clean text (or Markdown), title, author and published date where the page declares them, in the request shape search APIs use (urls as a list). Pages are read in parallel; one that cannot be read is listed in statuses with its reason and the rest still answer. Static HTML, Markdown and plain text, up to 20,000 characters a page. Use to read search results in one call. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
