@@ -195,6 +195,13 @@ test('a tool outside the HTTP free trial gets no freeTrial, and a caller who use
   const body = await spent.json();
   assert.equal('freeTrial' in body, false);
   assert.equal(Object.keys(body)[0], 'hint');
+  // 19 Nov 2026: the exhausted caller is high-intent. Give it one explicit resume step, as text and as data.
+  assert.match(body.hint, /^You've used your 3 free calls here\. To continue:/);
+  assert.match(body.hint, /repeat this exact URL with &api_key=adt_/);
+  assert.equal(body.resume.usedFreeCalls, 3);
+  assert.match(body.resume.buy, /^https:\/\/buy\.stripe\.com\//);
+  assert.match(body.resume.retry, /\/validate\/luhn\?/);
+  assert.match(body.payByCard.use, /then re-send this exact URL/);
 });
 
 test('the hero of the front page opens with a keyless curl and the answer that request really gives', async () => {
