@@ -1,30 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "agent-data-tools",
+  // Quote front cut-over (19 Nov 2026, owner: "Yes, cut over"): this full app runs as "agent-data-tools-core". The
+  // name "agent-data-tools", its workers.dev address, every custom domain below and every production secret belong
+  // to the small front Worker (wrangler.front.jsonc, src/front/index.ts), which answers repeated unpaid quotes and
+  // passes everything else here over a service binding. Deploy this file with the guard (it names the core); deploy
+  // the front with `npx wrangler deploy -c wrangler.front.jsonc` only when src/front changes.
+  "name": "agent-data-tools-core",
   "main": "src/index.ts",
   "build": { "command": "npm run build:reader" },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
-  // workers_dev must stay on: without it a deploy that has routes switches the workers.dev address off.
-  "workers_dev": true,
-  // glyphcall.com is the product's own domain (owner bought it 14 Nov 2026; zone on this account since 15 Nov).
-  // tools.funwords.eu (the free indexing test of 31 Oct) stays attached so its human pages can answer 301 to
-  // glyphcall.com (RETIRED_PUBLIC_HOSTS below); its API answers keep working.
-  "routes": [
-    { "pattern": "glyphcall.com", "custom_domain": true },
-    { "pattern": "www.glyphcall.com", "custom_domain": true },
-    // 16 Nov 2026 (sales plan item 12): brand hosts for API and MCP clients; workers.dev stays the paid origin in listings.
-    { "pattern": "api.glyphcall.com", "custom_domain": true },
-    { "pattern": "mcp.glyphcall.com", "custom_domain": true },
-    // 17 Nov 2026 (owner: LexGlyph needs its own address): the root of this host is the LexGlyph page.
-    { "pattern": "lex.glyphcall.com", "custom_domain": true },
-    // 19 Nov 2026 (1.260.0, owner: "prep TTS release"): text-to-speech only (src/lib/tts-host.ts), so routers that group
-    // listings by host see one service named for text to speech instead of "Web, crypto and security data".
-    { "pattern": "tts.glyphcall.com", "custom_domain": true },
-    // 19 Nov 2026: web reading only (src/lib/tts-host.ts CATEGORY_HOSTS), its own Mercator service for page-reading jobs.
-    { "pattern": "web.glyphcall.com", "custom_domain": true },
-    { "pattern": "tools.funwords.eu", "custom_domain": true }
-  ],
+  // Reached only through the front: no public address of its own, no routes (they stay attached to the front).
+  // The routes the front serves: glyphcall.com, www/api/mcp/lex/tts/web.glyphcall.com and tools.funwords.eu.
+  "workers_dev": false,
   // Workers forbid runtime code generation, so Ajv's compiler can never succeed here; this stand-in
   // fails at once instead of spending ~300 ms of CPU per cold start (see src/lib/ajv-unavailable.ts).
   "alias": { "ajv/dist/2020.js": "./src/lib/ajv-unavailable.ts" },
@@ -48,9 +36,12 @@
   "vectorize": [{ "binding": "LAW_VECTORS", "index_name": "eu-law-v2" }, { "binding": "SE_VECTORS", "index_name": "se-law" }],
   // Request counters per paid path (see src/metrics.ts).
   // The Worker cannot fetch its own workers.dev URL, so /x402/check reaches this service through itself.
-  "services": [{ "binding": "SELF", "service": "agent-data-tools" }],
+  // FRONT_SECRETS: the production secrets live with the front's name; src/lib/front-secrets.ts reads them once per isolate.
+  "services": [{ "binding": "SELF", "service": "agent-data-tools-core" }, { "binding": "FRONT_SECRETS", "service": "agent-data-tools", "entrypoint": "Secrets" }],
   "durable_objects": { "bindings": [{ "name": "METRICS", "class_name": "Metrics" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Metrics"] }],
+  // The ledger, counters and replay state moved here from the single Worker "agent-data-tools" at the cut-over
+  // (rehearsed 19 Nov there and back with every row). Never add new_sqlite_classes for Metrics again.
+  "migrations": [{ "tag": "v1", "transferred_classes": [{ "from": "Metrics", "from_script": "agent-data-tools", "to": "Metrics" }] }],
   // Cookieless measurement (src/lib/beacon.ts): page beacons (/e), MCP client names and AI-crawler reads are written to
   // Workers Analytics Engine, one non-blocking data point each: no Durable Object or KV write per request. Cloudflare
   // creates the dataset at the first write after a deploy with this binding; read it with the SQL API
