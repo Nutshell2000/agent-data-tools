@@ -96,3 +96,33 @@ test("other hosts answer exactly as before", async () => {
   assert.equal(quoteOf(a).resource.url, API + "/ai/speech");
   await a.arrayBuffer();
 });
+
+const WEB = "https://web.glyphcall.com";
+
+test("web.glyphcall.com quotes the web-reading tools under its own host, at the same price as the API host", async () => {
+  for (const path of ["/page/markdown", "/scrape", "/extract", "/pdf/text", "/audit/website"]) {
+    const [a, b] = await Promise.all([ask(WEB + path), ask(API + path)]);
+    assert.equal(a.status, 402, path);
+    assert.equal(quoteOf(a).resource.url, WEB + path, `${path}: a settlement here lists the web host`);
+    assert.deepEqual(quoteOf(a).accepts.map((x) => x.amount), quoteOf(b).accepts.map((x) => x.amount), path);
+    await a.arrayBuffer(); await b.arrayBuffer();
+  }
+});
+
+test("web.glyphcall.com refuses speech, weather and, deliberately, URL safety (no second URL-safety vendor)", async () => {
+  for (const path of ["/ai/speech", "/weather", "/pack/url-safety", "/url/safety-check", "/phishing/check", "/merchant/trust", "/mcp"]) {
+    const r = await ask(WEB + path);
+    assert.equal(r.status, 404, path);
+    assert.equal(r.headers.get("payment-required"), null, path);
+    assert.equal((await r.json()).code, "NOT_ON_THIS_HOST", path);
+  }
+});
+
+test("each category host's root describes only its own tools, and the TTS host still refuses web tools", async () => {
+  const w = await (await ask(WEB + "/")).json();
+  assert.equal(w.service, "Web page to Markdown");
+  assert.ok(w.tools.every((t) => t.startsWith(WEB + "/")) && w.tools.includes(WEB + "/page/markdown"));
+  const r = await ask(TTS + "/page/markdown");
+  assert.equal(r.status, 404); await r.arrayBuffer();
+  assert.equal(H.categoryHostAnswer("https://api.glyphcall.com/page/markdown"), null);
+});
