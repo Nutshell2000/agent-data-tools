@@ -23,15 +23,22 @@ export const MELO_RATE = 16_000;
 export const MELO_PART_MAX = 200;
 /** Chinese and Japanese end sentences with full-width marks and no space: a line break makes them cut points. */
 export const meloSentences = (t: string) => t.replace(/([。！？])/g, "$1\n");
-/** Every language our speech tools speak: Aura-2 (en, es) and MeloTTS (the rest). */
-export const SPEECH_LANGS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
+/** Every language our speech tools speak: Aura-2 (en, es). fr, zh, ja and ko were MeloTTS's, retired with it (below). */
+export const SPEECH_LANGS = ["en", "es"] as const;
 export type SpeechLang = (typeof SPEECH_LANGS)[number];
-const LANG_NAMES: Readonly<Record<string, SpeechLang>> = { english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
-/** A language code or English name as one of `SPEECH_LANGS`, else undefined. */
+/** Languages MeloTTS served before Workers AI retired it (owner: "MeloTTS is retired by Cloudflare on 20 Nov 2026"). Callers must refuse a retired language with `retiredSpeechLang`, not treat it as Aura-2. */
+export const RETIRED_SPEECH_LANGS: ReadonlySet<string> = new Set(["fr", "zh", "ja", "ko"]);
+const LANG_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
+/** A language code or English name as one of `SPEECH_LANGS`, else undefined. A name in `RETIRED_SPEECH_LANGS` is still undefined (so callers see a language that was never served), but `retiredSpeechLang` names it. */
 export function speechLangOf(raw: string | undefined): SpeechLang | undefined {
   const t = (raw ?? "").trim().toLowerCase();
   const code = Object.hasOwn(LANG_NAMES, t) ? LANG_NAMES[t] : t;
   return (SPEECH_LANGS as readonly string[]).includes(code) ? (code as SpeechLang) : undefined;
+}
+/** The retired language a raw name or code stands for (normalized through LANG_NAMES), or undefined. */
+export function retiredSpeechLang(raw: string | undefined): string | undefined {
+  const code = Object.hasOwn(LANG_NAMES, (raw ?? "").trim().toLowerCase()) ? LANG_NAMES[(raw ?? "").trim().toLowerCase()] : (raw ?? "").trim().toLowerCase();
+  return RETIRED_SPEECH_LANGS.has(code) ? code : undefined;
 }
 
 /** The 16-bit mono samples and rate of a PCM WAV (the first channel when there are more). */

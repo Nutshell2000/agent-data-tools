@@ -13,7 +13,7 @@ import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
 import { tidyTranslation } from "../lib/translation-tidy";
-import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, meloSentences, meloSpeech } from "../lib/melo";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, meloSentences, meloSpeech, retiredSpeechLang } from "../lib/melo";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles } from "./ai";
@@ -152,13 +152,15 @@ export const DUB_PRICE = "$0.10";
 export const DUB_MAX_SECONDS = 10 * 60;
 export const DUB_MAX_CHARS = 2_500;
 export const DUB_OTHER_MAX_BYTES = 2 * MB;
-/** Languages the new voice speaks: Aura-2 (en, es, MP3) and MeloTTS (fr, zh, ja, ko, WAV; src/lib/melo.ts). */
-export const DUB_TARGETS = ["en", "es", "fr", "zh", "ja", "ko"] as const;
-const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish", fr: "French", zh: "Chinese (Mandarin, simplified characters)", ja: "Japanese", ko: "Korean" };
+/** Languages the new voice speaks: Aura-2 (en, es). fr, zh, ja and ko were MeloTTS's, retired (src/lib/melo.ts). */
+export const DUB_TARGETS = ["en", "es"] as const;
+const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish" };
 const DUB_TARGET_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", español: "es", french: "fr", français: "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
-/** The target language as a code, from a code or an English name; anything else is a 400 naming the six. */
+/** The target language as a code, from a code or an English name. A retired language is a 422 saying so; anything else is a 400 naming en and es. */
 export function dubTarget(raw: string | undefined): (typeof DUB_TARGETS)[number] {
   const t = (raw ?? "").trim().toLowerCase();
+  const retired = retiredSpeechLang(t);
+  if (retired) throw new HttpError(422, `${retired} speech is retired (MeloTTS is off at Workers AI, 20 Nov 2026); use en or es, nothing was charged`);
   const code = Object.hasOwn(DUB_TARGET_NAMES, t) ? DUB_TARGET_NAMES[t] : t;
   if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `to must be one of ${DUB_TARGETS.join(", ")}: the languages the voices speak (nothing was charged)`);
   return code as (typeof DUB_TARGETS)[number];
@@ -214,14 +216,14 @@ export function spokenReply(text: string, max = VOICE_AGENT_REPLY_MAX): string {
 }
 export const VOICE_PLUS: Entry[] = [
   entry(VOICE_AGENT_PATH, "Voice agent: spoken question in, spoken answer out, with memory",
-    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English, Spanish, French, Chinese, Japanese or Korean and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
+    "One turn of a voice assistant: send the user's voice note (or text), your instructions and the earlier turns; get back what was heard, a short reply, the reply spoken in English or Spanish and the updated history to send next time. Speech up to 2 minutes (MP3/WAV, or 1 MB of other formats); replies up to 600 characters. Use for voice bots in Telegram or WhatsApp, phone menus, kiosks and hands-free helpers.",
     ["voice-agent", "voice-assistant", "conversational-ai", "speech-to-text", "text-to-speech", "voice-bot", "audio"], {
       text: { type: "string", description: "The user's turn as text (or send audio with url or a POSTed file)", example: "What time do you open on Saturday?" },
       url: { type: "string", description: "Absolute http(s) URL of the user's spoken turn (MP3/WAV up to 2 minutes, other formats up to 1 MB); or POST the file; or send text instead", example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
       instructions: { type: "string", description: "Who the assistant is and what it knows (up to 2,000 characters)", example: "You answer for a bakery. Open Monday to Saturday 7 to 17, closed Sunday." },
       history: { type: "string", description: "Earlier turns as a JSON array of {role, content}, as returned in history by the last call", example: "[]" },
-      lang: { type: "string", description: "Reply language and voice: en, es (Aura-2 MP3), fr, zh, ja or ko (MeloTTS WAV); default en", example: "en", enum: [...DUB_TARGETS] },
-      voice: { type: "string", description: "Aura-2 voice for an en or es reply (default luna for en, aquila for es); fr, zh, ja and ko have one voice each", example: "luna" },
+      lang: { type: "string", description: "Reply language and voice: en or es (Aura-2 MP3); fr, zh, ja and ko are retired, so a request for them is a 422 (MeloTTS was removed from Workers AI, 20 Nov 2026); default en", example: "en", enum: [...DUB_TARGETS] },
+      voice: { type: "string", description: "Aura-2 voice for an en or es reply (default luna for en, aquila for es)", example: "luna" },
     },
     { heard: "What time do you open on Saturday?", reply: "On Saturday we are open from seven in the morning until five in the afternoon.", contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 61440, voice: "luna", lang: "en", history: [{ role: "user", content: "What time do you open on Saturday?" }, { role: "assistant", content: "On Saturday we are open from seven in the morning until five in the afternoon." }], model: CHAT_MODEL, speechModel: "@cf/deepgram/aura-2-en" },
     async (env: Env, q: Input) => {
@@ -258,12 +260,12 @@ export const VOICE_PLUS: Entry[] = [
       const next = [...history, { role: "user" as const, content: heard }, { role: "assistant" as const, content: reply }].slice(-VOICE_AGENT_HISTORY_TURNS);
       return { heard, ...(fromAudio ? {} : { heardFrom: "text" }), reply, contentType: melo ? "audio/wav" : "audio/mpeg", audioBase64, audioBytes: base64Bytes(audioBase64), voice, lang, history: next, model: CHAT_MODEL, speechModel: model };
     }, VOICE_AGENT_PRICE),  entry(DUB_PATH, "Dubbing, dub audio: translated voice track in 6 languages, plus subtitles",
-    "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters) or French, Chinese, Japanese or Korean (MeloTTS WAV, up to 1,200 characters). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos.",
+    "Dub a clip: speech in any of 90+ languages is transcribed, translated and spoken again, with translated SRT on the original timings. New voice in English or Spanish (Aura-2 MP3, pick a voice, up to 2,500 characters); fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). MP3/WAV up to 10 minutes or other formats up to 2 MB, by URL or upload. Keeps the order, not exact timing. Use for course clips and product videos.",
     ["dubbing", "dub-audio", "voice-over", "translation", "text-to-speech", "subtitles", "audio"], {
       url: { type: "string", description: "Absolute http(s) URL of the recording (MP3/WAV up to 10 minutes; M4A, OGG or WebM up to 2 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)", required: true, example: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3" },
-      to: { type: "string", description: "Language of the new voice: en, es, fr, zh, ja or ko", required: true, example: "es", enum: [...DUB_TARGETS] },
+      to: { type: "string", description: "Language of the new voice: en or es (Aura-2; fr, zh, ja and ko are retired with MeloTTS, 20 Nov 2026)", required: true, example: "es", enum: [...DUB_TARGETS] },
       from: { type: "string", description: "Spoken language of the recording (default: detected)", example: "en" },
-      voice: { type: "string", description: "Aura-2 voice for an en or es track (default luna for en, aquila for es); fr, zh, ja and ko have one voice each", example: "aquila" },
+      voice: { type: "string", description: "Aura-2 voice for the new track (default luna for en, aquila for es)", example: "aquila" },
     },
     { url: "https://upload.wikimedia.org/wikipedia/commons/7/77/Tofino_pronunciation.mp3", from: "en", to: "es", durationSeconds: 1, contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 9216, voice: "aquila", characters: 7, text: "Tofino.", subtitles: "1\n00:00:00,000 --> 00:00:01,000\nTofino.\n", model: "@cf/deepgram/aura-2-es" },
     async (env: Env, q: Input) => {

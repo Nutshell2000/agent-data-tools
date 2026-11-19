@@ -9,7 +9,7 @@ import { MODELS, runAi } from "../lib/ai";
 import { messagesAsArray } from "../lib/chat-messages";
 import { DOCUMENT_RULES, fieldHints } from "../lib/extract-hints";
 import { HttpError, type Env } from "../lib/env";
-import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, SPEECH_LANGS, isMeloLang, meloSentences, meloSpeech, speechLangOf } from "../lib/melo";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, SPEECH_LANGS, isMeloLang, meloSentences, meloSpeech, retiredSpeechLang, speechLangOf } from "../lib/melo";
 
 export const AI_PRICE = "$0.01";
 const T = ["ai", "llm", "text"];
@@ -32,14 +32,17 @@ export const SPEECH_VOICES = {
   en: ["amalthea", "andromeda", "apollo", "arcas", "aries", "asteria", "athena", "atlas", "aurora", "callista", "cora", "cordelia", "delia", "draco", "electra", "harmonia", "helena", "hera", "hermes", "hyperion", "iris", "janus", "juno", "jupiter", "luna", "mars", "minerva", "neptune", "odysseus", "ophelia", "orion", "orpheus", "pandora", "phoebe", "pluto", "saturn", "thalia", "theia", "vesta", "zeus"],
   es: ["sirio", "nestor", "carina", "celeste", "alvaro", "diana", "aquila", "selena", "estrella", "javier"],
 } as const satisfies Record<string, readonly string[]>;
-const SPEECH_LANG_HELP = "Language: en or es (Aura-2 MP3, many voices), fr, zh, ja or ko (MeloTTS WAV, one voice each); default en";
+const SPEECH_LANG_HELP = "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en";
 /**
- * The MeloTTS language a speech request asks for (fr, zh, ja, ko; English names too), or undefined for Aura-2's en and es.
- * A language neither model speaks is a 400 naming all six (16 Nov 2026: before, only en and es existed).
+ * The MeloTTS language a speech request asks for, or undefined for Aura-2's en and es. fr/zh/ja/ko are now refused with a
+ * 422 that names the supported languages (20 Nov 2026, MeloTTS retirement), not silently served as Aura-2 English.
+ * A language the tools never spoke is a 400 naming them (16 Nov 2026: before, only en and es existed).
  */
 function meloLang(q: Input): "fr" | "zh" | "ja" | "ko" | undefined {
   const raw = q("lang");
   if (!raw?.trim()) return undefined;
+  const retired = retiredSpeechLang(raw);
+  if (retired) throw new HttpError(422, `${retired} speech is retired (MeloTTS is off at Workers AI, 20 Nov 2026); use en or es, nothing was charged`);
   const lang = speechLangOf(raw);
   if (!lang) throw new HttpError(400, `lang must be one of ${SPEECH_LANGS.join(", ")} (nothing was charged)`);
   return isMeloLang(lang) ? (lang as "fr" | "zh" | "ja" | "ko") : undefined;
@@ -518,9 +521,9 @@ export const AI_TEXT: Entry[] = [
   // the call a 502 and nothing is charged. Aura-2 costs $0.030 per 1,000 characters, so a full call costs $0.06.
   // The name is the bare phrase: Zero.xyz writes a tool's record once, from its first crawl, and retrieves by name similarity
   // (a two-phrase name misses the short search), and the Bazaar matches the phrase a name starts with.
-  entry("/text-to-speech", "Text to speech: long text, up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or up to 1,200 characters as one WAV in French, Chinese, Japanese or Korean with MeloTTS. Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
+  entry("/text-to-speech", "Text to speech: long text, up to 2,000 characters as one MP3, natural voices", "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, ; fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less.",
     ["text-to-speech", "tts", "tts-api", "voice-generation", "narration", "audio", ...T], {
-      text: { type: "string", description: "Text to speak, up to 2,000 characters (1,200 in fr, zh, ja and ko)", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
+      text: { type: "string", description: "Text to speak, up to 2,000 characters", required: true, example: "Your order has shipped. It leaves our warehouse today and should reach you within three working days. You can follow the parcel with the link in your confirmation e-mail." },
       lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
       voice: { type: "string", description: `Voice name. English: ${SPEECH_VOICES.en.join(", ")}. Spanish: ${SPEECH_VOICES.es.join(", ")}. Default: luna (en), aquila (es)`, example: "luna" },
       format: { type: "string", description: FORMAT_HELP, example: "mp3", enum: ["mp3", "wav", "pcm", "ulaw", "alaw", "opus", "flac"] },

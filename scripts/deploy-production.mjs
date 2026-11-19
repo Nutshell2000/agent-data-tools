@@ -5,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const execute = promisify(execFile);
-const worker = 'agent-data-tools';
+// The full app runs as agent-data-tools-core since the quote-front cut-over (19 Nov 2026); agent-data-tools is the front.
+const worker = 'agent-data-tools-core';
 const wrangler = resolve(root, 'node_modules/wrangler/bin/wrangler.js');
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 

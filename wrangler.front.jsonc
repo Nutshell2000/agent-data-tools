@@ -1,0 +1,33 @@
+{
+  // Quote front (19 Nov 2026, owner: "Yes, build it", then "Yes, cut over"). Runbook and rollback:
+  // C:\MoneyWallet\business\agentic\quote-front-plan-2026-11-19.md. It keeps every production secret (they stay
+  // with this name) and hands them to the core through the Secrets entrypoint.
+  //
+  // The front takes the Worker name "agent-data-tools", so the workers.dev address and every custom domain the
+  // listings use stay where they are; the full app is renamed "agent-data-tools-core" (wrangler.jsonc gets
+  // name, SELF, FRONT_SECRETS and a transferred_classes migration for Metrics).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agent-data-tools",
+  "main": "src/front/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  // The same routes as wrangler.jsonc today: they stay attached to this script name through the rename.
+  "routes": [
+    { "pattern": "glyphcall.com", "custom_domain": true },
+    { "pattern": "www.glyphcall.com", "custom_domain": true },
+    { "pattern": "api.glyphcall.com", "custom_domain": true },
+    { "pattern": "mcp.glyphcall.com", "custom_domain": true },
+    { "pattern": "lex.glyphcall.com", "custom_domain": true },
+    { "pattern": "tts.glyphcall.com", "custom_domain": true },
+    { "pattern": "web.glyphcall.com", "custom_domain": true },
+    { "pattern": "tools.funwords.eu", "custom_domain": true }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 0.01 },
+  "services": [{ "binding": "CORE", "service": "agent-data-tools-core" }],
+  // Stored quotes and the current core release (q:release). Created 19 Nov 2026 as agent-data-tools-quotes.
+  "kv_namespaces": [{ "binding": "QUOTES", "id": "4d4418c049814a55b4f8604b532ccc28" }],
+  // MPP challenges are signed from the same secret as the core (MPP_SECRET_KEY, else CDP_API_KEY_SECRET), both held here.
+  // "off" passes every request to the core: the first rollback step (a config deploy, no code change).
+  "vars": { "FRONT": "on" }
+}

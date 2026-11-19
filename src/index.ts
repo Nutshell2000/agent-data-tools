@@ -35,6 +35,7 @@ import { TOOL_COUNT } from "./endpoints";
 import { asV2Header, payV1, v1Requirements } from "./lib/x402-v1";
 import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
+import { withFrontSecrets } from "./lib/front-secrets";
 import { toolErrorAnswer } from "./lib/tool-errors";
 import { resourceServer } from "./lib/payments";
 import { auditGuideHtml, auditGuideMarkdown } from "./guides/dependency-audit";
@@ -129,13 +130,19 @@ app.use(
 );
 
 // HSTS on every response: the Worker is HTTPS-only, and MCP directories score this header.
+// X-Quote-Release (19 Nov 2026): the quote fingerprint (release plus payment settings) on every answer, so the quote
+// front (src/front/index.ts) retires its stored quotes as soon as it sees a new core. A hash, nothing secret.
+let releaseStamp: { env: unknown; value: string } | undefined;
 app.use(async (c, next) => {
   await next();
+  if (releaseStamp?.env !== c.env) releaseStamp = { env: c.env, value: quoteFingerprint(c.env, MCP_SERVER_VERSION) };
   try {
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("X-Quote-Release", releaseStamp.value);
   } catch {
     c.res = new Response(c.res.body, c.res); // immutable headers (e.g. asset responses): copy first
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("X-Quote-Release", releaseStamp.value);
   }
 });
 
@@ -1093,5 +1100,18 @@ app.onError((err, c) => {
   return c.json({ error: "internal error" }, 500);
 });
 
-export default app;
+// Behind the quote front the production secrets live with the front's Worker name: fill them in first
+// (lib/front-secrets.ts). Without the FRONT_SECRETS binding this is app.fetch unchanged.
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    let full: Env;
+    try {
+      full = await withFrontSecrets(env);
+    } catch (e) {
+      console.error("front secrets unavailable", e);
+      return new Response(JSON.stringify({ error: "the service is starting; nothing was charged, retry in a few seconds", code: "STARTING" }), { status: 503, headers: { "content-type": "application/json", "retry-after": "2", "cache-control": "no-store" } });
+    }
+    return app.fetch(request, full, ctx);
+  },
+};
 export { Metrics };
