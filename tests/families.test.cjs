@@ -317,6 +317,22 @@ test("news search maps Brave news results, validates freshness and shares the se
   }
 });
 
+test("news search with no results is an uncharged 404, not a paid empty answer", async () => {
+  const { SEARCH } = await loadTypeScript(require.resolve("../src/routes/search.ts"));
+  const run = SEARCH.find((f) => f.endpoint.path === "/news").run;
+  const store = new Map();
+  const kv = { get: async (k) => store.get(k) ?? null, put: async (k, v) => { store.set(k, v); } };
+  const q = (params) => (name) => params[name];
+  const realFetch = global.fetch;
+  global.fetch = async () => new Response(JSON.stringify({ results: [] }));
+  try {
+    const env = { TRIALS: kv, SEARCH_API_KEY: "k", SEARCH_DAILY_CAP: "5" };
+    await assert.rejects(run(env, q({ q: "zzzzqqqnonexistentzzzq" })), (e) => e.status === 404 && /nothing was charged/.test(e.message));
+  } finally {
+    global.fetch = realFetch;
+  }
+});
+
 test("web search maps Brave results, stays within the daily cap and fails uncharged without a key", async () => {
   const { SEARCH } = await loadTypeScript(require.resolve("../src/routes/search.ts"));
   const run = SEARCH[0].run;
