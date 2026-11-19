@@ -162,11 +162,11 @@ th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vert
 tr:last-child td{border-bottom:0}tr.us td{background:linear-gradient(90deg,rgba(139,92,246,.16),rgba(34,211,238,.06));font-weight:650;color:var(--fg)}
 .bar{height:8px;border-radius:8px;background:#26263a;min-width:60px}.bar span{display:block;height:100%;border-radius:8px;background:#4b4b6a}tr.us .bar span{background:var(--grad)}
 .faq{max-width:820px;margin:0 auto}
-.agents{margin-top:56px;padding:24px;border-radius:18px;border:1px dashed #33334d;background:rgba(255,255,255,.015);text-align:left}.agents h2{font-size:1.3rem;margin:0 0 6px}.agents p{color:var(--muted);margin:0;font-size:.95rem}
+.agents{margin-top:56px;padding:24px;border-radius:18px;border:1px dashed #33334d;background:rgba(255,255,255,.015);text-align:left}.agents h2{font-size:1.3rem;margin:0 0 6px}.agents p{color:var(--muted);margin:0;font-size:.95rem}.agents p a{color:var(--fg);text-decoration:underline}
 .final{margin:110px 0 0;padding:80px 16px;text-align:center;border-top:1px solid var(--line);background:radial-gradient(700px 320px at 50% 0,rgba(139,92,246,.26),transparent 70%)}
 .final h2{margin:0 auto 12px;max-width:18ch}.final p{color:var(--muted);margin:0 auto 28px;max-width:40ch;font-size:1.15rem}.final .ctas{justify-content:center}
 footer{border-top:1px solid var(--line);padding:40px 0 56px;color:var(--dim);font-size:.9rem}
-footer .cols{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:24px;margin-bottom:26px}footer h4{color:var(--fg);margin:0 0 10px;font-size:.92rem}
+footer .cols{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:24px;margin-bottom:26px}footer h3,footer h4{color:var(--fg);margin:0 0 10px;font-size:.92rem}
 footer ul{list-style:none;padding:0;margin:0}footer li{padding:3px 0}footer a{color:var(--muted)}
 .menu{display:none;position:relative}.menu summary{list-style:none;cursor:pointer;padding:9px 14px;border:1px solid var(--line);border-radius:999px;font-weight:650;font-size:.92rem;background:none}.menu summary::-webkit-details-marker{display:none}.menu summary::after{content:""}
 .menu{border:0;background:none;margin:0}.menu div{position:absolute;right:0;top:48px;display:grid;min-width:230px;padding:8px;border-radius:16px;border:1px solid var(--line);background:#0d0d16;box-shadow:0 20px 50px rgba(0,0,0,.5)}.menu div a{color:var(--fg);padding:11px 12px;border-radius:10px}.menu div a:hover{background:rgba(255,255,255,.06);text-decoration:none}
@@ -371,7 +371,7 @@ ${pricing}
 </main>${voiceConsoleScript()}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
-${SHELVES.map((s) => `<div><h4>${esc(s.kicker)} APIs</h4><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
+${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
 </div>
 <p class="legal"><a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
 </div></footer></body></html>`;
