@@ -56,23 +56,30 @@ test('Norway: bankruptcy reads as status, VAT number only when VAT-registered, p
   });
 });
 
-test('Norway register: one retry on 429/503, but 404, 410 and a long Retry-After are not retried', async () => {
+test('Norway register: up to two retries on 429/503, but 404, 410 and a long Retry-After are not retried', async () => {
   const unit = (suffix = '') => ({ organisasjonsnummer: '935567645', navn: `TEST KAFE${suffix} AS`, organisasjonsform: { kode: 'AS' } });
 
-  // A transient 429 is retried once with a fresh timeout; the answer comes from the second call.
+  // A transient 429 is retried with a fresh timeout; two busy answers still allow a third successful call.
   let n = 0;
-  await withFetch(() => ++n === 1 ? new Response('slow', { status: 429 }) : json(unit()), async (calls) => {
+  await withFetch(() => ++n <= 2 ? new Response('slow', { status: 429 }) : json(unit()), async (calls) => {
     const k = await N.noLookup('935567645');
-    assert.equal(n, 2, 'one retry on 429');
-    assert.equal(calls.length, 2);
+    assert.equal(n, 3, 'two retries on 429');
+    assert.equal(calls.length, 3);
     assert.equal(k.name, 'TEST KAFE AS');
   });
 
-  // A 503 is retried too.
+  // A 503 is retried the same way.
   n = 0;
-  await withFetch(() => ++n === 1 ? new Response('busy', { status: 503 }) : json(unit()), async () => {
+  await withFetch(() => ++n <= 2 ? new Response('busy', { status: 503 }) : json(unit()), async () => {
     assert.equal((await N.noLookup('935567645')).name, 'TEST KAFE AS');
-    assert.equal(n, 2, 'one retry on 503');
+    assert.equal(n, 3, 'two retries on 503');
+  });
+
+  // A register that stays busy three times still fails uncharged, without a fourth call.
+  n = 0;
+  await withFetch(() => { n++; return new Response('busy', { status: 503 }); }, async () => {
+    await assert.rejects(N.noLookup('935567645'), (e) => e.status === 502 && /register answered HTTP 503/.test(e.message));
+    assert.equal(n, 3, 'no fourth call');
   });
 
   // A source asking to wait longer than 2 s is respected: no retry, uncharged 502.

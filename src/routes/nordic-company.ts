@@ -117,24 +117,23 @@ export function noCompanyView(u: BrregUnit) {
 
 async function brreg<T>(url: string): Promise<{ status: number; body: T | null }> {
   const headers = { accept: "application/json", "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
-  let res: Response;
-  try {
-    res = await fetch(url, { headers, signal: AbortSignal.timeout(8_000) });
-    // 18 Nov 2026: this was the only Nordic register without a retry. Workers share egress IPs, so a 429/503 on the
-    // first call is usually transient; getJson() and the other registers already retry once. A fresh timeout is used
-    // for the second attempt. A source that asks to wait longer than 2 s is respected: no retry, fall through to 502.
-    // 404 (no unit) and 410 (deleted unit with its record) are handled below and are never retried.
-    if (res.status === 429 || res.status === 503) {
+  let res: Response | undefined;
+  // 19 Nov 2026: one retry was still not enough on the shared Workers egress IP (/status: 1 error in 7 calls). A
+  // 429/503 is now asked up to three times total, each with a fresh timeout. A source that asks to wait longer than
+  // 2 s is respected: no further retry, fall through to 502. 404 and 410 are final and never retried.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      res = await fetch(url, { headers, signal: AbortSignal.timeout(8_000) });
+      if (res.status !== 429 && res.status !== 503) break;
       const wait = retryDelayMs(res);
       await res.body?.cancel().catch(() => {});
-      if (wait !== null) {
-        await new Promise((r) => setTimeout(r, wait));
-        res = await fetch(url, { headers, signal: AbortSignal.timeout(8_000) });
-      }
+      if (wait === null || attempt === 2) break;
+      await new Promise((r) => setTimeout(r, wait));
+    } catch {
+      throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");
     }
-  } catch {
-    throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");
   }
+  if (!res) throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");
   if (res.status === 404) return { status: 404, body: null };
   // A deleted unit answers 410 Gone with its record (slettedato).
   if (!res.ok && res.status !== 410) throw new HttpError(502, `the Norwegian register answered HTTP ${res.status}; try again, nothing was charged`);
