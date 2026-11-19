@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.291.0";
+export const MCP_SERVER_VERSION = "1.292.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.6";
 
@@ -65,6 +65,9 @@ export function mcpServerCard(origin: string, networks: readonly string[] = ["ba
     toolCount: TOOL_COUNT,
     fullList: { endpoint: `${origin}/mcp/all` },
     bundles: Object.entries(MCP_BUNDLES).map(([slug, title]) => ({ title, endpoint: `${origin}/mcp/${slug}`, tools: mcpListed(mcpBundleTools(slug)!).length })),
+    // 19 Nov 2026: the focused task servers (documents, company-check, voice) existed at /mcp/<slug> but were not named
+    // on any discovery surface — agents reading the card could not find the voice server built to sell voice calls.
+    focusedServers: Object.entries(FOCUSED_SERVERS).map(([slug, s]) => ({ title: s.title, endpoint: `${origin}/mcp/${slug}`, registry: s.registry, tools: s.paths.length })),
     capabilities: { tools: { listChanged: false } },
     // /mcp needs no sign-in; /mcp/account is the same tools behind OAuth for app directories.
     authentication: { required: false, optional: { type: "oauth2", endpoint: `${origin}/mcp/account`, metadata: `${origin}/.well-known/oauth-authorization-server` } },
@@ -699,6 +702,7 @@ export function llmsTxt(origin: string, trialsEnabled: boolean, payTo: string) {
     `No USDC wallet? Pay by card instead: buy prepaid credits at ${origin}/credits ($1 = 1,000 credits, $5 = 5,000, $20 = 22,000, $100 = 125,000; 1 credit = $0.001, the same prices as x402). You get an API key; send it as \`Authorization: Bearer adt_…\` or \`X-API-Key\` on any tool call or on the MCP server, or as \`api_key=adt_…\` in the tool URL when your client can only fetch a URL, and no x402 payment is needed. Failed calls are refunded. Balance: ${origin}/credits/balance. A key that travels in URLs can end up in logs; rotate it at POST ${origin}/credits/rotate if it was shared.`,
     "",
     `Which tool for a job: GET ${origin}/find?need=<the job in plain words> is free and answers with the exact calls, inputs and prices from this catalog. ${usdcPrepayLine(origin)} To add credits to a key later, send it as X-API-Key on the same request.`,
+    `Small task-focused MCP servers for agents that want a short tool list: ${Object.entries(FOCUSED_SERVERS).map(([slug, s]) => `${s.title}: ${origin}/mcp/${slug}`).join("; ")}.`,
     "",
     `Agent skill for the whole catalog (which path for which job, how to pay): ${origin}/skills/agent-data-tools/SKILL.md; discovery index ${origin}/.well-known/agent-skills/index.json; install with "npx skills add Nutshell2000/agent-data-tools".`,
     "",
