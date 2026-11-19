@@ -16,6 +16,8 @@ import { MODELS, runAi } from "../lib/ai";
 import type { Env } from "../lib/env";
 
 export const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+/** Caller-opted ceiling for /document/text only: large scans and decks, still bounded well under the Worker limit. */
+export const DOCUMENT_MAX_BYTES_OPTIONAL = 20 * 1024 * 1024;
 /** The most one XML part may expand to, and all parts of one file together. */
 const PART_LIMIT = 40 * 1024 * 1024;
 const TOTAL_LIMIT = 80 * 1024 * 1024;
@@ -414,11 +416,12 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
 
 export const DOCUMENT: Entry[] = [
   entry("/document/text", "Document to text: Word, Excel, PowerPoint, PDF",
-    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scanned PDFs or images (PNG, JPEG, WebP) by OCR. Give a public file's URL, or send the file in a POST body (10 MB; images 3 MB). Old .doc/.xls/.ppt and password-protected files fail uncharged. Use to read attachments, scans and spreadsheets into an agent, RAG or a workflow.",
+    "Convert a document to text or Markdown: Word (.docx) with headings, lists and tables, Excel (.xlsx) sheet by sheet, PowerPoint (.pptx) slide by slide, a PDF's text, and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default, 20 MB with maxBytes=20; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
     ["docx-to-text", "word-to-markdown", "ocr", "xlsx-to-json", "document", "pptx", "office", "rag"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
       format: { type: "string", description: "markdown (default: headings, lists and tables kept) or text", enum: ["markdown", "text"], example: "markdown" },
       maxChars: { type: "integer", description: "Maximum characters of text returned (1000-200000, default 50000)", example: 1000 },
+      maxBytes: { type: "integer", description: "Maximum file size in MB for a URL read (10 default, up to 20 for large scans and decks); the default stays small because the whole file is held in memory", example: 20 },
     },
     {
       url: "https://calibre-ebook.com/downloads/demos/demo.docx",
@@ -434,7 +437,8 @@ export const DOCUMENT: Entry[] = [
         if (!bytes) throw new HttpError(400, "send the file in a POST body (raw bytes, a multipart `file` part, or base64 in JSON); a file reference cannot be used in a GET");
         return { url: null, source: "upload", bytes: bytes.byteLength, ...(await readDocument(bytes, format, maxChars, visionOcr(env))) };
       }
-      const file = await fetchFile(q("url"), /^/, DOCUMENT_MAX_BYTES, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
+      const maxMB = num(q, "maxBytes", { min: 10, max: 20, fallback: 10, integer: true });
+      const file = await fetchFile(q("url"), /^/, maxMB * 1024 * 1024, "a document", { cacheSeconds: 600, budgetMs: 20_000 });
       return { url: file.url, ...(await readDocument(file.bytes, format, maxChars, visionOcr(env))) };
       // $0.005, the PDF tool's price (the owner delegated prices on 14 Nov 2026: "you decide prices").
     }, "$0.005"),
