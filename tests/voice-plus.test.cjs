@@ -152,10 +152,11 @@ test('/dub transcribes, translates each segment, speaks Spanish with Aura-2 and 
   assert.deepEqual(calls.filter((c) => c.includes('m2m100')).length, 2);
 });
 
-test('/dub refuses a voice language it cannot speak and an unknown voice, before any model call', async () => {
+test('/dub refuses a retired voice language, an unknown language and a bad voice, before any model call', async () => {
   const e = env(async () => { throw new Error('model must not run'); });
   const ref = await m.holdFile(ogg(5000));
-  await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'sv' })), /to must be one of en, es, fr, zh, ja, ko/);
+  await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'fr' })), (err) => err.status === 422 && /en or es/.test(err.message));
+  await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'sv' })), (err) => err.status === 400 && /to must be one of en, es/.test(err.message));
   await assert.rejects(tool('/dub').run(e, q({ [m.FILE_REF_INPUT]: ref, to: 'es', voice: 'luna' })), /voice must be one of the es voices/);
 });
 
@@ -199,7 +200,8 @@ test('/voice/agent hears a voice note through Whisper before answering', async (
 test('/voice/agent refuses bad input before any model call', async () => {
   const e = env(async () => { throw new Error('model must not run'); });
   await assert.rejects(tool('/voice/agent').run(e, q({})), /send the user's turn/);
-  await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', lang: 'sv' })), /must be one of en, es, fr, zh, ja, ko/);
+  await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', lang: 'sv' })), (err) => err.status === 400 && /to must be one of en, es/.test(err.message));
+  await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', lang: 'fr' })), (err) => err.status === 422 && /en or es/.test(err.message));
   await assert.rejects(tool('/voice/agent').run(e, q({ text: 'hi', history: '{nope' })), /history must be a JSON array/);
 });
 
