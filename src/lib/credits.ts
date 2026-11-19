@@ -383,7 +383,20 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
 // These are the tools named one by one. lib/key-prices.ts adds the one-credit price of the tools that only compute and is
 // where every caller reads a key price (`keyPrice`, `keyPriceFor`, `keyPriceLine`): it needs the catalog, which this
 // file must not import (the catalog reaches this file through lib/env.ts and metrics.ts).
-export const KEY_PRICES: Readonly<Record<string, string>> = { "/pdf/text": "$0.002", "/pdf/extract": "$0.002" };
+// 18 Nov 2026, owner approved: the same offer on the endpoints that actually earn, so a web buyer has a reason to
+// prepay for the jobs it uses rather than only for PDF reading. Routers and wallets keep paying the public price.
+// A key call settles nothing (no per-call CDP fee), so a lower price still leaves margin. Weather stays at its public
+// price: it reads outside data, which the one-credit ($0.001) floor rule forbids, and $0.001 is the only step below
+// its $0.002 public price.
+export const KEY_PRICES: Readonly<Record<string, string>> = {
+  "/pdf/text": "$0.002",
+  "/pdf/extract": "$0.002",
+  "/pack/url-safety": "$0.008",
+  "/hyperliquid/indicators": "$0.008",
+  "/news": "$0.008",
+  "/pack/news-sentiment": "$0.008",
+  "/pack/web-research": "$0.008",
+};
 
 /** Calls a free key may make each calendar month (UTC). The owner, 14 Nov 2026: "Yes, 100 a month". */
 export const FREE_KEY_CALLS = 100;
