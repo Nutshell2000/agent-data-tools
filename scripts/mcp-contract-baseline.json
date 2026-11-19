@@ -1,5 +1,5 @@
 {
-  "version": "1.297.0",
+  "version": "1.299.0",
   "tools": [
     {
       "name": "extract",
@@ -21609,7 +21609,7 @@
     },
     {
       "name": "magic_8_ball",
-      "description": "Ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random. For fun only. Use for games and chat bots. Example: question=Will it ship today?. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Fortune teller: ask a yes-or-no question and get one of the 20 classic Magic 8-Ball answers, chosen at random (Signs point to yes, Very doubtful, and so on). A light fortune-telling novelty for games and chat bots, not a prediction. Use when you want a playful fortune or an 8-ball answer. Example: question=Will it ship today?. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

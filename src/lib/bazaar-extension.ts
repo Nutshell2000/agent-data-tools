@@ -253,6 +253,8 @@ export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/token/verdict": "Token verdict, rug check",
   "/token-report": "Is this token safe, token risk",
   "/pack/token-analysis": "Token analysis, due diligence",
+  // Fortune is a $84/day job; our /magic-8-ball is in Mercator's catalog and ranks #3 for "fortune" at 0.385 vs #1's 0.398.
+  "/magic-8-ball": "Fortune teller, magic 8-ball",
 });
 /**
  * Paths whose listing description must open with the override name, not the summary's lead phrase (19 Nov 2026).
@@ -268,6 +270,7 @@ export const DESCRIPTION_HEAD_OF: Readonly<Record<string, string>> = Object.free
   "/token/verdict": LISTING_NAME_OF["/token/verdict"],
   "/token-report": LISTING_NAME_OF["/token-report"],
   "/pack/token-analysis": LISTING_NAME_OF["/pack/token-analysis"],
+  "/magic-8-ball": LISTING_NAME_OF["/magic-8-ball"],
 });
 /** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
 export function listingNameFor(e: { path: string; summary: string }): string {
