@@ -144,7 +144,7 @@ test("a credential built on a front challenge passes the core's challenge check;
   const hit = await ask(p); await hit.text();
   const evm = challenges(hit).find((c) => c.method === "evm");
   assert.ok(evm, "the front offers an evm challenge");
-  const payload = { type: "authorization", signature: "0x" + "11".repeat(65), from: "0x" + "22".repeat(20), to: recipient, value: "10000", validAfter: "0", validBefore: String(Math.floor(Date.now() / 1000) + 300), nonce: "0x" + "33".repeat(32) };
+  const payload = { type: "authorization", signature: "0x" + "11".repeat(65), from: "0x" + "22".repeat(20), to: recipient, value: "20000", validAfter: "0", validBefore: String(Math.floor(Date.now() / 1000) + 300), nonce: "0x" + "33".repeat(32) };
   const types = await load(path.resolve("node_modules/mppx/dist/evm/Types.js"), "mppx-evm-types-test.js");
   const send = async (challenge) => {
     const r = await ask(p, { ...JSON_CLIENT, authorization: mppx.Credential.serialize(mppx.Credential.from({ challenge, payload: { ...payload, nonce: types.challengeHash(challenge) } })) });
