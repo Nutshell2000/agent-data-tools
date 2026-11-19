@@ -6,6 +6,7 @@ import { HttpError } from "../lib/env";
 import { countryCode } from "../lib/country-code";
 import { COUNTRIES, holidaysFor } from "./holidays";
 import { holidayMap } from "./holidays-world";
+import { MARKET_HOURS } from "./market-hours";
 
 const U = ["utility", "data"];
 
@@ -200,4 +201,6 @@ export const MATH_DATE: Entry[] = [
       const sign = westernSign(m, day);
       return { date: ymd(t), western: { sign, element: ELEMENT[sign] }, chinese: { animal: ANIMALS[(((y - 4) % 12) + 12) % 12], element: ELEMENTS5[Math.floor((((y - 4) % 10) + 10) % 10 / 2)], year: y, nearNewYear: m === 1 || (m === 2 && day <= 20) } };
     }),
+  // 19 Nov 2026: is the stock market open (src/routes/market-hours.ts), local like the date tools above.
+  ...MARKET_HOURS,
 ];

@@ -296,7 +296,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
   "/arxiv/search": "Web, documents and search", "/page/markdown": "Web, documents and search",
   "/cve/lookup": "Company, compliance and checks", "/github/user": "Company, compliance and checks", "/wiki/summary": "Web, documents and search",
-  "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi",
+  "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi", "/market/is-open": "Prices and DeFi", "/rss/parse": "Web, documents and search",
   "/sec/financials": "Company, compliance and checks", "/stock/fundamentals": "Company, compliance and checks", "/income-statement": "Company, compliance and checks",
   "/einvoice/create": "Company, compliance and checks", "/einvoice/validate": "Company, compliance and checks", "/einvoice/to-json": "Company, compliance and checks",
 });
