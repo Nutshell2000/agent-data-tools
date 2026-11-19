@@ -28,7 +28,7 @@ type C = Context<{ Bindings: Env }>;
 
 /** OpenAI fields /ai/chat (Llama 4 Scout) takes as they are: the agent-loop request (tools, tool turns, JSON mode). */
 export interface NativeChat { messages: unknown[]; tools?: unknown[]; tool_choice?: unknown; response_format?: unknown }
-export interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS; tool?: string; native?: NativeChat }
+export interface ChatQuery { prompt: string; system?: string; maxTokens?: number; temperature?: number; model?: keyof typeof LARGE_CHAT_MODELS; tool?: string; native?: NativeChat; modelSubstituted?: string }
 
 /** True when the request needs the model's own message handling: tools, tool-result turns, tool calls or JSON mode. */
 export function needsNative(b: Record<string, unknown>): boolean {
@@ -71,9 +71,11 @@ export function toChatQuery(body: unknown): { query: ChatQuery } | { error: stri
   if (!Array.isArray(b.messages) || b.messages.length === 0) return { error: "messages must be a non-empty array of { role, content }" };
   if (needsNative(b)) {
     const picked = toolFor(b.model);
-    if (picked.path !== CHAT_TOOL_PATH) return { error: `tools, tool messages and response_format are served by ${CHAT_MODEL} (the default model); omit model or use llama-4-scout` };
+    // A named large model combined with tools/tool messages/JSON mode used to 400 here, losing a ready-to-pay call.
+    // The native path only runs on the default model, so serve it there and tell the client via X-Model-Substituted.
+    const substituted = picked.path !== CHAT_TOOL_PATH && b.model !== undefined ? String(b.model) : undefined;
     const last = [...b.messages].reverse().find((m) => m && typeof m === "object" && textOf((m as { content?: unknown }).content));
-    const query: ChatQuery = { prompt: textOf((last as { content?: unknown } | undefined)?.content) || "Continue.", native: { messages: b.messages, ...(Array.isArray(b.tools) && b.tools.length ? { tools: b.tools } : {}), ...(b.tool_choice !== undefined ? { tool_choice: b.tool_choice } : {}), ...(b.response_format ? { response_format: b.response_format } : {}) } };
+    const query: ChatQuery = { prompt: textOf((last as { content?: unknown } | undefined)?.content) || "Continue.", native: { messages: b.messages, ...(Array.isArray(b.tools) && b.tools.length ? { tools: b.tools } : {}), ...(b.tool_choice !== undefined ? { tool_choice: b.tool_choice } : {}), ...(b.response_format ? { response_format: b.response_format } : {}) }, ...(substituted ? { modelSubstituted: substituted } : {}) };
     const maxTokens = Number(b.max_completion_tokens ?? b.max_tokens);
     if (Number.isFinite(maxTokens) && maxTokens > 0) query.maxTokens = Math.min(1024, Math.floor(maxTokens));
     const temperature = Number(b.temperature);
@@ -198,6 +200,7 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
     ? new Response(toOpenAiStream(completion, b.stream_options?.include_usage === true), { status: 200, headers: { "content-type": "text/event-stream; charset=utf-8" } })
     : c.json(completion, 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = done.answer.headers.get(name); if (v) out.headers.set(name, v); }
+  if (done.query.modelSubstituted) out.headers.set("X-Model-Substituted", `tools, tool messages and response_format run on the default ${CHAT_MODEL}; requested model ${done.query.modelSubstituted} was served by the native path`);
   out.headers.set("Cache-Control", "no-store");
   return out;
 }

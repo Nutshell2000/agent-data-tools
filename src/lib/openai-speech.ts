@@ -36,7 +36,7 @@ const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", 
 /** What a key was charged and has left (set by the paywall on the tool's answer), shown on the front's answer too. */
 export const KEY_RESPONSE_HEADERS = ["x-credits-charged", "x-credits-remaining", "x-credits-low", "x-free-calls-left", "x-review-calls-left", "x-test-calls-left", "x-trial-files-left", "x-trial-minutes", "x-key-limits"];
 
-export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string; format?: SpeechFormat; pronunciations?: string }
+export interface SpeechRequest { text: string; voice?: string; lang?: string; tool: string; format?: SpeechFormat; pronunciations?: string; speedIgnored?: boolean }
 
 /** ElevenLabs SDKs send the API key as `xi-api-key`: an adt_ prepaid key sent that way is read as X-API-Key. */
 export function withXiKey(headers: Headers): Headers {
@@ -58,13 +58,15 @@ export function toSpeechRequest(body: unknown): SpeechRequest | { error: string 
   if ("error" in format) return { error: format.error };
   const say = pronunciationsParam(b.pronunciations);
   if ("error" in say) return { error: say.error };
-  if (b.speed !== undefined && Number(b.speed) !== 1) return { error: "speed must be 1 (other speeds are not supported)" };
+  // OpenAI SDKs commonly send `speed` for pacing. We cannot change speaking rate, but refusing a paid call over a
+  // parameter we can safely ignore loses the buyer; accept it and note the substitution in the response header.
+  const speedIgnored = b.speed !== undefined && Number(b.speed) !== 1;
   // OpenAI voices may be sent as a name or as { id }; anything else is left to the tool's default voice.
   const voice = typeof b.voice === "string" ? b.voice.trim().toLowerCase() : b.voice && typeof b.voice === "object" && typeof (b.voice as { id?: unknown }).id === "string" ? String((b.voice as { id: string }).id).trim().toLowerCase() : "";
   const langRaw = typeof b.lang === "string" ? b.lang : typeof b.language === "string" ? b.language : "";
   const lang = langRaw.trim().toLowerCase().slice(0, 2);
   if (lang && lang !== "en" && lang !== "es") return { error: "language must be en or es" };
-  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), ...(format.name !== "mp3" ? { format } : {}), ...(say.value ? { pronunciations: say.value } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
+  return { text, ...(voice ? { voice } : {}), ...(lang ? { lang } : {}), ...(format.name !== "mp3" ? { format } : {}), ...(say.value ? { pronunciations: say.value } : {}), ...(speedIgnored ? { speedIgnored: true } : {}), tool: text.length > SPEECH_SHORT_LIMIT ? SPEECH_LONG_TOOL_PATH : SPEECH_TOOL_PATH };
 }
 
 /** The audio body a GET query stands for (`input=` or `text=`), or null when it names no text. */
@@ -131,6 +133,7 @@ export async function speakThrough(c: C, forward: Forward, request: SpeechReques
   for (const name of [...PASSTHROUGH_RESPONSE_HEADERS, ...KEY_RESPONSE_HEADERS]) { const v = answer.headers.get(name); if (v) out.headers.set(name, v); }
   if (result.voice) out.headers.set("x-voice", result.voice);
   out.headers.set("x-tool", request.tool);
+  if (request.speedIgnored) out.headers.set("x-note", "speed was requested but speaking rate is fixed; the audio was produced at normal speed");
   return out;
 }
 
@@ -160,7 +163,7 @@ export function openAiSpeechOpenApiPath(origin: string, prices: { short: string;
       post: {
         operationId: "audio_speech",
         summary: "OpenAI-compatible text to speech (Deepgram Aura-2, MP3 file)",
-        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. ${keyPriced} OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format may be mp3 (default), opus, flac, wav or pcm (raw 16-bit, 24 kHz, as OpenAI sends it); opus and flac up to 450 characters; speed must be 1; model is accepted and ignored. An optional pronunciations object ({"Nginx":"engine x"}) says how to read names and terms. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
+        description: `OpenAI audio speech request shape: send input and a voice, get the MP3 file back as the response body. ${priced}; the 402 quote for a request states its price. ${keyPriced} OpenAI voice names (alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer…) are mapped to Aura-2 voices; Aura-2 voice names work too. English by default, Spanish with language=es. response_format may be mp3 (default), opus, flac, wav or pcm (raw 16-bit, 24 kHz, as OpenAI sends it); opus and flac up to 450 characters; speed and model are accepted and ignored (speaking rate is fixed; X-Note says so when speed was sent). An optional pronunciations object ({"Nginx":"engine x"}) says how to read names and terms. Point an OpenAI SDK at ${origin}/v1 with an x402 or MPP fetch wrapper, or an adt_ prepaid key as apiKey. Failed calls are never charged.`,
         tags: ["ai", "text-to-speech", "tts", "audio", "openai"],
         "x-payment-info": paymentInfo,
         requestBody: {
