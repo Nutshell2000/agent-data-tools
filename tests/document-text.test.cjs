@@ -174,6 +174,20 @@ function scannedPdf(jpeg) {
 }
 const fakeJpeg = (size, fill = 7) => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(size - 6, fill), Buffer.from([0xff, 0xd9])]);
 
+test('an unexpected parser error becomes an uncharged 422, never a public 500', async () => {
+  const D = await load('src/routes/document.ts');
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  await assert.rejects(
+    D.readDocument(png, 'markdown', 50_000, async () => { throw new Error('model exploded'); }),
+    (e) => e.status === 422 && /could not be read as a document/.test(e.message) && /nothing was charged/.test(e.message),
+  );
+  // A deliberate refusal keeps its own specific message.
+  await assert.rejects(
+    D.readDocument(new TextEncoder().encode('<html><body>not a file</body></html>'), 'markdown', 50_000),
+    (e) => e.status === 415 && /not a Word/.test(e.message),
+  );
+});
+
 test('plain UTF-8 text, CSV and JSON are documents; HTML and binary files still refuse', async () => {
   const D = await load('src/routes/document.ts');
   const enc = new TextEncoder();

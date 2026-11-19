@@ -46,7 +46,7 @@ export async function zipRead(bytes: Uint8Array, entry: ZipEntry, limit: number)
   if (start + entry.compressedSize > bytes.length) throw new HttpError(422, "the file's ZIP data is cut short");
   const raw = bytes.subarray(start, start + entry.compressedSize);
   if (entry.method === 0) {
-    if (raw.length > limit) throw new HttpError(422, "a part of the file is larger than this tool reads");
+    if (raw.length > limit) throw new HttpError(422, "a part of the file is larger than this tool reads; send a smaller document or split it (nothing was charged)");
     return raw;
   }
   if (entry.method !== 8) throw new HttpError(422, "the file uses a compression method that is not supported");
@@ -59,7 +59,7 @@ export async function zipRead(bytes: Uint8Array, entry: ZipEntry, limit: number)
       const { done, value } = await reader.read();
       if (done) break;
       total += value.length;
-      if (total > limit) { await reader.cancel().catch(() => {}); throw new HttpError(422, "a part of the file is larger than this tool reads"); }
+      if (total > limit) { await reader.cancel().catch(() => {}); throw new HttpError(422, "a part of the file is larger than this tool reads; send a smaller document or split it (nothing was charged)"); }
       chunks.push(value);
     }
   } catch (e) {
