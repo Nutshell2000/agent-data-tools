@@ -7,6 +7,8 @@ import { TARGET_UNAVAILABLE, fetchFile, parseTarget } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+/** Bounded one-time retry ceiling for large PDFs at a public URL (19 Nov 2026 /status size refusals). */
+const MAX_BYTES_RETRY = 20 * 1024 * 1024;
 const MAX_PAGES = 200;
 
 const tidy = (s: string) => s.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -89,9 +91,20 @@ const fallbackWorthy = (e: unknown) =>
 export async function loadPdf(rawUrl: string | undefined) {
   const url = pdfUrl(rawUrl);
   let first: unknown;
+  let raised = false;
   try {
-    const file = await fetchFile(url, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
-    if (isPdf(file.bytes)) return { url: file.url, bytes: file.bytes, source: "origin" as const, snapshot: null };
+    let file;
+    try {
+      file = await fetchFile(url, /^/, MAX_BYTES, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
+    } catch (e) {
+      // 19 Nov 2026: a few live PDFs are 10-20 MB. The first cap check reads only Content-Length, so retry once at
+      // the bounded ceiling before trying the archive. Files over 20 MB still fail uncharged with the larger limit.
+      if (e instanceof HttpError && e.status === 422 && /larger than/.test(e.message)) {
+        file = await fetchFile(url, /^/, MAX_BYTES_RETRY, "a PDF", { cacheSeconds: 600, budgetMs: 20_000 });
+        raised = true;
+      } else throw e;
+    }
+    if (isPdf(file.bytes)) return { url: file.url, bytes: file.bytes, source: "origin" as const, snapshot: null, note: raised ? "The PDF was over the 10 MB default, so it was read once at the 20 MB ceiling." : undefined };
     first = new HttpError(415, "url returned a web page, not a PDF file; read web pages with extract (nothing was charged)");
   } catch (e) {
     if (!fallbackWorthy(e)) throw e;
@@ -164,6 +177,7 @@ export const PDF: Entry[] = [
         ...(await readPdf(file.bytes, firstPage, want, maxChars)),
         ...(freeTry ? { freeTry: `this free try reads at most ${PDF_TRY_PAGES} pages and ${PDF_TRY_CHARS} characters; a paid call reads up to ${MAX_PAGES} pages` } : {}),
         ...(file.source === "origin" ? {} : { source: file.source, snapshot: file.snapshot, note: `the site refused our fetch, so this is the Internet Archive's copy${file.snapshot ? ` from ${file.snapshot}` : ""}; it may differ from the live file` }),
+        ...(file.note && file.source === "origin" ? { note: file.note } : {}),
       };
       // $0.005 for a wallet paying per call; a prepaid key pays less (KEY_PRICES in lib/credits.ts, the owner, 10 Nov 2026).
   }, "$0.005"),
