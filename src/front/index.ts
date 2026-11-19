@@ -15,6 +15,7 @@
  * which the front learns from the core's answers and keeps in KV (`q:release`). A deploy of the core therefore retires
  * every stored quote as soon as any request reaches the new core.
  */
+import { WorkerEntrypoint } from "cloudflare:workers";
 import { challengeSecretHex, mintChallenge, termsOf, type MppMethod, type MppTerms } from "./challenges";
 import { splitChallenges } from "./template";
 
@@ -191,4 +192,18 @@ async function askedBefore(href: string): Promise<boolean> {
     // The mark is an optimization only.
   }
   return false;
+}
+
+/**
+ * The production secrets for the core (lib/front-secrets.ts in the core). Cloudflare keeps secrets with a Worker's name,
+ * and this Worker keeps the name "agent-data-tools" through the cut-over, so it holds them. A named entrypoint is
+ * reachable only through a service binding in this account (the core's FRONT_SECRETS); no HTTP request reaches it.
+ * Returns every string setting of this Worker except its own switch FRONT: secrets added later travel too.
+ */
+export class Secrets extends WorkerEntrypoint<FrontEnv> {
+  read(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [name, value] of Object.entries(this.env as unknown as Record<string, unknown>)) if (typeof value === "string" && name !== "FRONT") out[name] = value;
+    return out;
+  }
 }
