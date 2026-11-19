@@ -43,7 +43,9 @@ export function priceRows(list: OrModel[]) {
 export const LLM_PRICES: Entry[] = [
   entry("/llm/prices", "LLM pricing, compare AI model API prices",
     "Compare the API prices of about 450 LLMs from OpenAI, Anthropic, Google, Meta, Mistral, DeepSeek, Qwen and others: USD per million input and output tokens, context length, max output, modalities, and the cost of your call when you give token counts. Filter by name, provider, price cap, context or image input; sort by input, output or blended price. Source: OpenRouter's public model list. Use to pick the cheapest model that fits a job.",
-    ["llm-pricing", "model-prices", "ai-model-comparison", "token-prices", "llm", "openrouter"], {
+    // 19 Nov 2026: a router job called "price claims" pays about $1.13/day. This tool checks claimed model prices
+    // against OpenRouter's current list, so name that phrase in the listing the routers read.
+    ["llm-pricing", "price-claims", "model-prices", "ai-model-comparison", "token-prices", "llm", "openrouter"], {
       q: { type: "string", description: "Words in the model id or name, e.g. gpt, claude, llama 70b", example: "llama" },
       provider: { type: "string", description: "Only this provider: openai, anthropic, google, meta-llama, mistralai, deepseek, qwen…", example: "meta-llama" },
       maxInputPrice: { type: "number", description: "Only models at or under this USD per million input tokens", example: 1 },
