@@ -53,6 +53,7 @@ import { WEB_CHECKS } from "./web-checks";
 import { WHALE } from "./whale";
 import { PACKS_RESEARCH } from "./packs-research";
 import { ECON } from "./econ";
+import { FEEDS } from "./feeds";
 
 /** The canonical tool each entry path runs (read by tests, the handover notes and the Zero registration check). */
 export const ENTRY_OF: Record<string, string> = {};
@@ -382,6 +383,11 @@ export const ENTRY_PATHS: Entry[] = [
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
 
+  // 19 Nov 2026: a Mercator job paid another seller $39.80 for 398 calls at $0.10 in 7 days, searched as "Parse RSS/Atom
+  // feeds into structured JSON"; we were absent from that search although /feed does exactly that.
+  door("/rss/parse", "Parse RSS feed to JSON: RSS and Atom",
+    "Parse an RSS or Atom feed into structured JSON: give a feed URL, or a page whose head links its feed, and get the feed title and its newest items with title, link, ISO 8601 date, plain-text summary, author and id. RSS 2.0, RSS 1.0 and Atom, up to 50 items; a page that is not a feed is refused uncharged. Use to follow news, blogs, release notes or podcasts in an agent.",
+    ["rss-parser", "rss-to-json", "parse-rss", "atom-feed", "feed-parser", "rss"], from(FEEDS, "/feed")),
   // Round 8 (10 Nov 2026): five more jobs sold elsewhere under a path that names them. Evidence the same day: Mercator's
   // router sent "page to Markdown" listings about 520 calls in 30 days (/md 210, /proxy/web-scrape 258) and for that search
   // ranked our /markdown/to-html, not /extract; Zero's intent "web page to markdown" has 55 searches; the Bazaar's
