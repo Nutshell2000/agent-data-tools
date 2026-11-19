@@ -1,5 +1,5 @@
 {
-  "version": "1.302.0",
+  "version": "1.302.1",
   "tools": [
     {
       "name": "extract",
@@ -11422,7 +11422,7 @@
     },
     {
       "name": "stock_screen",
-      "description": "Daily stock screen in one call: choose gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; get up to 25 rows with price, day change, volume versus its 3-month average, market cap, P/E, EPS, dividend yield, 52-week position, distance from the 50/200-day averages, analyst rating and next earnings. Descriptive, delayed data; not investment advice. Example: screen=day-gainers. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Daily stock screen in one call: gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; up to 25 rows with price, day change, volume vs 3-month average, market cap, P/E, EPS, dividend, 52-week position, distance from 50/200-day averages, analyst rating and next earnings. Use to find stocks matching a screen. Delayed data; not investment advice. Example: screen=day-gainers. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

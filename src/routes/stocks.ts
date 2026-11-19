@@ -359,7 +359,7 @@ export const STOCKS: Entry[] = [
     },
     (_env, q) => stockBrief(need(q, "symbol", 100))),
   entry("/stock/screen", "Daily stock screen: gainers, losers, most active",
-    "Daily stock screen in one call: choose gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; get up to 25 rows with price, day change, volume versus its 3-month average, market cap, P/E, EPS, dividend yield, 52-week position, distance from the 50/200-day averages, analyst rating and next earnings. Descriptive, delayed data; not investment advice.",
+    "Daily stock screen in one call: gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; up to 25 rows with price, day change, volume vs 3-month average, market cap, P/E, EPS, dividend, 52-week position, distance from 50/200-day averages, analyst rating and next earnings. Use to find stocks matching a screen. Delayed data; not investment advice.",
     ["stock-screener", "daily-stock-screen", "stock-picks", "stock-gainers", "stocks", "equities", "market-data"],
     {
       screen: { type: "string", description: `One of: ${Object.keys(SCREENS).join(", ")} (default day-gainers)`, example: "day-gainers" },
