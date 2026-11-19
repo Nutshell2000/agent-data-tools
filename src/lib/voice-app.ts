@@ -79,7 +79,7 @@ export function appPage(brand: string, origin: string): string {
 <h1>Your voice studio, on your own device.</h1>
 <p class="lede">Text to speech in ${voiceCount} voices and transcription of any recording, free and unlimited. Nothing is uploaded and there is no account.</p>
 <div class="offline" id="offline" role="status">You are offline. The app still works once its voice and listening models have been fetched on this device.</div>
-${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts" })}
+${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts", upsellTts: `Want this in your own app? The same voices run through our <a href="/text-to-speech-api">text to speech API</a>.`, upsellStt: `Need transcription in your app? See the <a href="/speech-to-text-api">speech to text API</a>.` })}
 <div class="card" id="how"><h2>Install it like any app</h2>
 <ul><li><strong>Windows, Mac, Linux (Chrome, Edge, Brave):</strong> press <em>Install app</em> above, or the install icon in the address bar. It gets its own window and a desktop or Start menu icon.</li>
 <li><strong>Android:</strong> open this page in Chrome, menu, <em>Install app</em>.</li>

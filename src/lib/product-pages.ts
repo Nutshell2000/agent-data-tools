@@ -445,7 +445,7 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
   // The voice tools are outside the HTTP trial (they cost per call), so these two pages had no free try at all while
   // the front page promised one. They get the free in-browser console instead (lib/voice-console.ts).
   const voiceTry = VOICE_CONSOLE_FIRST[p.tool];
-  const consoleHtml = voiceTry ? `<div id="try"><h2>Try it free, right here</h2><p class="small">Runs in your browser with open models, so it is free and unlimited and nothing is uploaded. The API below does the same job on our servers for your app.</p>${voiceConsole({ id: "try-vc", first: voiceTry, voiceSite: VOICE_SITE, className: "vc-light" })}</div>` : "";
+  const consoleHtml = voiceTry ? `<div id="try"><h2>Try it free, right here</h2><p class="small">Runs in your browser with open models, so it is free and unlimited and nothing is uploaded. The API below does the same job on our servers for your app.</p>${voiceConsole({ id: "try-vc", first: voiceTry, voiceSite: VOICE_SITE, className: "vc-light", upsellTts: `Want this in your own app? The same voice is one paid API call — see the request below or <a href="#pricing">plans</a>.`, upsellStt: `Need transcription at scale? The same listening runs as one paid API call — see the request below or <a href="#pricing">plans</a>.` })}</div>` : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
