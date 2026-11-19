@@ -71,7 +71,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
   // 1.259.0: the macro snapshot tool and its door add two families.
-  assert.equal(families.length, 715);
+  // 1.263.0: the /fortune tool adds one family to the 715 from concurrent main.
+  assert.equal(families.length, 716);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -100,7 +101,7 @@ test("paused family tools remain implemented but cannot be advertised or directl
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
   // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
-  assert.equal(ENDPOINTS.length,741);
+  assert.equal(ENDPOINTS.length,742);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
