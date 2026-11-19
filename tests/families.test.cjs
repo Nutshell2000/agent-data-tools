@@ -70,7 +70,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
   }
   // Last, so a new tool's price or metadata problem is reported before the count pin the release train updates.
-  assert.equal(families.length, 711);
+  assert.equal(families.length, 713);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -98,7 +98,7 @@ test("JSON repair leaves valid input unchanged and only corrects syntax outside 
 test("paused family tools remain implemented but cannot be advertised or directly executed", async () => {
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
-  assert.equal(ENDPOINTS.length,737);
+  assert.equal(ENDPOINTS.length,739);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
@@ -748,3 +748,5 @@ test("x402 seller audit verdict: a sanctioned payTo blocks; missing terms, non-U
   assert.equal(audit.endpoint.price, "$0.01");
   await assert.rejects(audit.run({}, (n) => (n === "url" ? "http://127.0.0.1/" : undefined)), (e) => e.status === 400);
 });
+
+
