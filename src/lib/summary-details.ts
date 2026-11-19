@@ -36,6 +36,7 @@ export const SUMMARY_DETAILS: Readonly<Record<string, string>> = {
   "/json/minify": "remove whitespace from JSON to make it compact",
   "/json/to-csv": "convert a JSON array of objects into CSV",
   "/csv/to-json": "convert CSV text into a JSON array of objects",
+  "/csv/preflight": "check CSV text before importing: problems, delimiter, row and column types",
   "/base64/encode": "encode text as base64 and URL-safe base64",
   "/base64/decode": "decode base64 or URL-safe base64 back to text",
   "/url/encode": "percent-encode text for use in a URL",

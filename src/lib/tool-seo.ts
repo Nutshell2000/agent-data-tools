@@ -550,6 +550,11 @@ export const TOOL_SEO: Record<string, ToolSeo> = {
     uses: ["Load spreadsheet exports into an agent", "Convert comma, semicolon, tab or pipe delimited CSV with quoted fields", "Turn numeric cells into numbers with numbers=true"],
     faq: [["Do I have to name the delimiter?", "No, it is detected automatically; the first row becomes the keys."], ["Are numbers converted?", "They stay as text unless numbers=true."]],
   },
+  "/csv/preflight": {
+    title: "CSV preflight API: validate a CSV before ingest",
+    uses: ["Check a CSV export for problems before importing it", "Catch ragged rows, missing or duplicate headers and mixed column types", "Get the detected delimiter and per-column types (integer/number/boolean/string/mixed/empty) with line numbers"],
+    faq: [["Is a blank line a problem?", "It is reported but ignored by parsers; a truly broken CSV gives ok=false."], ["Do quotes inside fields need escaping?", "Yes, as double quotes; the preflight catches unterminated quotes."]],
+  },
   "/json/to-csv": {
     title: "JSON to CSV API: convert a JSON array of objects to CSV",
     uses: ["Export API results to a spreadsheet", "Build a header row from all keys across the objects"],

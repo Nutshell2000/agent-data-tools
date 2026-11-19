@@ -1,5 +1,5 @@
 {
-  "version": "1.297.1",
+  "version": "1.302.0",
   "tools": [
     {
       "name": "extract",
@@ -11397,6 +11397,57 @@
       "price": "$0.01"
     },
     {
+      "name": "stock_brief",
+      "description": "One-call stock research brief for any ticker or company: the quote plus one-year performance (1w, 1m, 3m, 6m, 1y), annualized volatility, maximum drawdown, 20/50/200-day moving averages, RSI(14), volume trend, 52-week range position and a rules-based bullish/neutral/bearish signal with the reasons and risk flags behind it. Deterministic, from one year of daily closes; no model call. Use to brief an agent or user on a stock before a decision. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker (AAPL, ^GSPC, BTC-USD) or a company name"
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stock_screen",
+      "description": "Daily stock screen in one call: choose gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; get up to 25 rows with price, day change, volume versus its 3-month average, market cap, P/E, EPS, dividend yield, 52-week position, distance from the 50/200-day averages, analyst rating and next earnings. Descriptive, delayed data; not investment advice. Example: screen=day-gainers. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "screen": {
+            "type": "string",
+            "description": "One of: day-gainers, day-losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted, aggressive-small-caps (default day-gainers)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "description": "Rows to return (1-25, default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "commodity_price",
       "description": "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief. Example: commodity=gold. Price $0.001/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -12747,6 +12798,30 @@
               "number",
               "boolean"
             ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "csv_preflight",
+      "description": "Check CSV text before importing: returns a verdict (ok), problems with line numbers (empty or missing header, no data rows, ragged rows with field counts, duplicate headers, mixed column types, unterminated quotes, mojibake), the detected delimiter and a per-column type report. Use before ingesting a CSV export. Example: text=name,age\nAda,36\nBob,41. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The CSV text to validate (first row is the header)"
           }
         },
         "required": [
