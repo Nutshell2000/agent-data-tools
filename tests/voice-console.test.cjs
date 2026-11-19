@@ -28,6 +28,7 @@ test("the front page opens on the console, with text already in it and a voice c
   const hero = html.slice(html.indexOf('<section class="hero"'), html.indexOf('<section class="stats"'));
   assert.match(hero, /id="hero-vc"/);
   assert.match(hero, /<textarea id="hero-vc-text"[^>]*>Welcome!/);
+  assert.match(hero, /on your own phone or computer/, "the console also works on a phone");
   assert.match(hero, /data-voice="af_heart" aria-pressed="true"/);
   assert.equal((hero.match(/aria-pressed="true"/g) ?? []).length, 1, "one voice preselected");
   assert.match(hero, /&#9654; Play/);
