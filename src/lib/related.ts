@@ -29,6 +29,9 @@ const RELATED_OVERRIDE: Readonly<Record<string, readonly string[]>> = Object.fre
   "/feed": ["/news", "/summarize", "/extract", "/news/search"],
   "/summarize": ["/extract", "/feed", "/news", "/pdf/text"],
   "/screenshot": ["/extract/rendered", "/url/meta", "/extract", "/scrape"],
+  "/transcribe": ["/transcribe/long", "/transcribe/summary", "/transcribe/speakers"],
+  "/stock/quote": ["/stock/history", "/sec/financials"],
+  "/describe": ["/image", "/extract"],
 });
 
 /**
@@ -69,19 +72,6 @@ const PACK_OF: Readonly<Record<string, string>> = Object.freeze(Object.fromEntri
   ["/pack/einvoice-check", ["/einvoice/validate", "/einvoice/to-json"]],
 ] as const).flatMap(([pack, tools]) => tools.map((t) => [t, pack]))));
 
-/**
- * Explicit next-purchase links for flagship tools whose generic category/salesOrdered fallback offers a cheaper or
- * irrelevant tool: voice buyers get the long/summary/diarization upsells, document extractors get the invoice check,
- * stock quotes get history and fundamentals, image describers get generation, PDF readers get the reader.
- */
-const RELATED_FOR: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  "/transcribe": ["/transcribe/long", "/transcribe/summary", "/transcribe/speakers"],
-  "/document/extract": ["/invoice/check", "/pdf/text"],
-  "/stock/quote": ["/stock/history", "/sec/financials"],
-  "/describe": ["/image", "/extract"],
-  "/pdf/text": ["/extract", "/document/extract", "/summarize"],
-});
-
 /** The tool a path runs: an entry path's canonical tool, or the path itself. */
 const canonicalOf = (path: string): string => (Object.hasOwn(ENTRY_OF, path) ? ENTRY_OF[path] : path);
 
@@ -109,12 +99,6 @@ export function relatedTools(path: string, max = 3): Endpoint[] {
     // offered its own canonical /weather as a "next" tool. Entry paths are left out of every list, and so is the tool
     // this path itself runs, so each of the three links is a different job.
     const self = canonicalOf(path);
-    const override = RELATED_FOR[self];
-    if (override) {
-      related = override.map((p) => ENDPOINTS.find((e) => e.path === p)).filter((e): e is Endpoint => Boolean(e)).slice(0, max);
-      cache.set(path, related);
-      return related;
-    }
     const others = salesOrdered(ENDPOINTS).filter((e) => e.path !== path && e.path !== self && e.path !== pack?.path && !Object.hasOwn(ENTRY_OF, e.path));
     related = [...(pack ? [pack] : []), ...others.filter((e) => categoryOf(e.path) === category), ...others.filter((e) => categoryOf(e.path) !== category)].slice(0, max);
     cache.set(path, related);
