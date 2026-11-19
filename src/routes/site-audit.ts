@@ -155,8 +155,8 @@ export async function websiteAudit(env: Env, rawUrl: string) {
 }
 
 export const SITE_AUDIT: Entry[] = [
-  entry("/audit/website", "Website audit: accessibility (WCAG), SEO, security headers and page speed",
-    "Full website audit of one URL from a single load in a real browser: WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link), page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors.",
+  entry("/audit/website", "WCAG accessibility audit: axe-core WCAG 2.1 A/AA, SEO, security headers and page speed",
+    "WCAG 2.1 A/AA accessibility violations with axe-core (rule, impact, elements, fix link) on one URL from a single load in a real browser, plus page speed (first byte, FCP, LCP, layout shift) and page weight by type, on-page SEO on the rendered page, and HTTP security headers with a grade. One overall score and the top issues. Use for a site or client report, before a launch, or to compare competitors.",
     ["website-audit", "accessibility", "wcag", "seo-audit", "page-speed", "security-headers", "web"],
     { url: { type: "string", description: "Absolute http(s) URL of the page to audit", required: true, example: "https://www.wikipedia.org/" } },
     {
