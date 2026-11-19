@@ -189,7 +189,7 @@ function productCard(p: Product, cardReady: boolean): string {
 /** The FAQ: plain questions first, the developer ones last. Every answer restates what the docs, the privacy page or the tool descriptions already say. */
 function faqItems(brand: string, languages: string, browserVoices: number, apiVoices: number): [q: string, a: string][] {
   return [
-    ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no limit. You only pay if you build ${brand} into your own app or website.`],
+    ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no limit. You only pay if you want a long recording transcribed on our servers with Transcribe Pro, or if you build ${brand} into your own app or website.`],
     ["Do I need to sign up?", `No. Type your text or drop your file and press the button. There is nothing to fill in.`],
     ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it starts in seconds.`],
     ["Which languages does it understand?", `${languages} Subtitles come back as SRT or VTT files you can add to any video.`],
@@ -323,6 +323,8 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <div class="tiles">${tiles.map(([ic, t, line, href, go]) => `<a class="tile" href="${esc(href)}"><span class="free">Free</span><span class="badge">${icon(ic)}</span><h3>${esc(t)}</h3><p>${esc(line)}</p><span class="go">${esc(go)} &rarr;</span></a>`).join("")}</div>
 </div></section>
 
+<section class="sec center"><div class="wrap"><p class="sub">Long recording, or want it done on our servers instead of your device? <a href="/transcribe-pro">Transcribe Pro</a> handles any length with subtitles.</p></div></section>
+
 <section class="sec center" id="how"><div class="wrap">
 <h2>As easy as 1, 2, 3</h2>
 <p class="sub">No learning curve. If you can type, you can use ${esc(brand)}.</p>
@@ -336,7 +338,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 
 <section class="sec center" id="pricing"><div class="wrap">
 <h2>Free for everyone</h2>
-<p class="sub">Everything you make on this page and in the app is free. You only pay if you build ${esc(brand)} into your own app or website.</p>
+<p class="sub">Everything you make on this page and in the app is free, on your own device. You only pay if you want a long recording done on our servers with <a href="/transcribe-pro">Transcribe Pro</a>, or if you build ${esc(brand)} into your own app or website.</p>
 <div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>
 ${pricing}
 </div></section>
@@ -373,6 +375,6 @@ ${pricing}
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
 ${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
 </div>
-<p class="legal"><a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
+<p class="legal"><a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/transcribe-pro">Transcribe Pro</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
 </div></footer></body></html>`;
 }
