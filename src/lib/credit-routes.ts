@@ -113,12 +113,13 @@ credits.get("/credits", (c) => {
   const origin = new URL(c.req.url).origin;
   const info = creditsInfo(origin, mppEnabled(c.env), Boolean(c.env.STRIPE_READ_KEY));
   if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) return c.json(info);
-  // Calls per pack at the most common price, so a buyer sees what the money gets.
-  const calls = (credits: number) => Math.floor(credits / 10).toLocaleString("en-US");
-  const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls at $0.01</small></a>`).join("");
+  // A key pays the lower key price on most tools (lib/key-prices.ts), so one credit buys up to one call there, not
+  // one call per $0.01. Quote the honest range: ~100 calls on a $0.01 tool, up to ~credits on a $0.001 tool.
+  const calls = (credits: number) => `${callsAt(credits, "$0.01")}–${callsAt(credits, "$0.001")}`;
+  const packs = info.packs.map((p) => `<a class="buy" href="${esc(p.buy)}">${p.price}: ${p.credits.toLocaleString("en-US")} credits<br><small>about ${calls(p.credits)} calls depending on the tool</small></a>`).join("");
   const previews = [...CARD_JOBS, ...AGENT_JOBS].map(({ path, job }) => `<li><a href="${path}?sample=1">${esc(job)}</a> <code>${path}</code></li>`).join("");
   const dollarBuys = CARD_JOBS.map(({ job, credits: cost, unit }) => `<li><strong>${Math.floor(1000 / cost).toLocaleString("en-US")} ${esc(unit)}</strong>: ${esc(job)}</li>`).join("");
-  const planLinksHtml = info.cardReady ? planLinks().map((p) => `<a class="buy" href="${esc(p.buy)}">${esc(p.price)}: ${p.creditsEachMonth.toLocaleString("en-US")} credits each month<br><small>about ${calls(p.creditsEachMonth)} calls at $0.01</small></a>`).join("") : "";
+  const planLinksHtml = info.cardReady ? planLinks().map((p) => `<a class="buy" href="${esc(p.buy)}">${esc(p.price)}: ${p.creditsEachMonth.toLocaleString("en-US")} credits each month<br><small>about ${calls(p.creditsEachMonth)} calls depending on the tool</small></a>`).join("") : "";
   const plansHtml = planLinksHtml ? `<h2>Monthly plan</h2><p>${esc(PLAN_TERMS)}</p><p>${planLinksHtml}</p><p><a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel a plan</a> at any time; Stripe asks for the e-mail you paid with.</p>` : "";
   return c.html(page("API credits by card: $1, no subscription", `<h1>One API key: a monthly plan, or pay once from $1. No account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try most tools free first, with no card: ${FREE_HTTP_CALLS_PER_CALLER} calls from a browser or plain HTTP, ${FREE_CALLS_PER_CALLER} through an AI app (MCP). ${freeKeysOn(c.env) ? `Or <a href="/keys/free">get a free API key</a>: ${FREE_KEY_CALLS} calls a month, by e-mail. ` : ""}${esc(info.what)}</p>${plansHtml}${plansHtml ? "<h2>Or pay once</h2>" : ""}<p>${packs}</p>
 <h2>Use it in your AI app</h2><ul>
