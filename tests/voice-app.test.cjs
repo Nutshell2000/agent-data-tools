@@ -32,6 +32,17 @@ test("the app page holds the console, links the manifest and registers the worke
   assert.doesNotMatch(html, /The same voices|price per hour|x402|MPP|USDC|Tempo|wallet/i, "no misleading or payment-protocol words on a human page");
 });
 
+test("the app page publishes WebApplication structured data so search engines can list the free app", () => {
+  const html = A.appPage("Glyphcall", "https://x.test");
+  assert.match(html, /<script type="application\/ld\+json" data-ld="app">/);
+  const ld = JSON.parse(/<script type="application\/ld\+json" data-ld="app">([\s\S]*?)<\/script>/.exec(html)[1]);
+  assert.equal(ld["@type"], "WebApplication");
+  assert.equal(ld.name, "Glyphcall Voice");
+  assert.equal(ld.url, "https://x.test/app");
+  assert.match(ld.description, /Install Glyphcall Voice on Windows|natural voices and speech to text/i);
+  assert.ok(!ld.aggregateRating && !ld.review, "no unverified rating or review is published");
+});
+
 test("the manifest is installable: name, standalone, start inside the scope, a 512 px icon", () => {
   const m = A.appManifest("Glyphcall");
   assert.equal(m.display, "standalone");
