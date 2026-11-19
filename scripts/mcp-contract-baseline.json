@@ -1,5 +1,5 @@
 {
-  "version": "1.265.0",
+  "version": "1.266.0",
   "tools": [
     {
       "name": "extract",
@@ -20739,7 +20739,7 @@
     },
     {
       "name": "merchant_trust",
-      "description": "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee. Example: name=cloudflare.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Merchant safety for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee. Example: name=cloudflare.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

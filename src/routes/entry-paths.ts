@@ -523,9 +523,12 @@ export const ENTRY_PATHS: Entry[] = [
 
   // 1.222.0 (18 Nov 2026): the same batch agent paid ShopperPulse's "Know Your Merchant trust score" 463 times ($0.02); the
   // trust verdict of /domain-report answers that job, under a name no merchant-trust search found. Its first door.
-  door("/merchant/trust", "Merchant trust score: is this shop legit",
-    "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee.",
-    ["merchant-trust", "know-your-merchant", "is-this-site-legit", "vendor-check", "trust-score", "domain"], CORE_DOMAIN_REPORT),
+  // 19 Nov 2026: "merchant safety" is the exact phrase the proven multi-vendor shopper pays another seller $0.02 a call
+  // for (about 1,270 calls in 35 days). Our door said "merchant trust score" only, so the phrase was absent from the
+  // listing the routers read. Keep the trust-score words in the body for the existing phrase.
+  door("/merchant/trust", "Merchant safety: is this shop legit, trust score",
+    "Merchant safety for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee.",
+    ["merchant-safety", "merchant-trust", "know-your-merchant", "is-this-site-legit", "vendor-check", "trust-score", "domain"], CORE_DOMAIN_REPORT),
 
   // 1.222.0 (18 Nov 2026): Mercator's "url safety check" and "is this link safe" lists hold the providers an agent paid
   // ~460 times each on 16-17 Nov; /pack/url-safety appeared under neither phrase. Its first door.

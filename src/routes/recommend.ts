@@ -92,6 +92,8 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "arxiv": "/arxiv/search", "arxiv search": "/arxiv/search", "preprint": "/arxiv/search", "preprints": "/arxiv/search",
   "url to markdown": "/extract", "page to markdown": "/extract", "html to markdown": "/extract",
   "javascript page": "/extract/rendered", "rendered page": "/extract/rendered", "spa page": "/extract/rendered", "js rendered": "/extract/rendered", "dynamic page": "/extract/rendered", "client side rendered": "/extract/rendered",  "wikipedia summary": "/wikipedia", "wiki summary": "/wikipedia", "trending crypto": "/crypto/trending", "trending coins": "/crypto/trending", "crypto ohlcv": "/hyperliquid/candles", "crypto candles": "/hyperliquid/candles",
+  "price claims": "/llm/prices", "model price comparison": "/llm/prices",
+  "merchant safety": "/merchant/trust", "shop safety": "/merchant/trust",
   "random fortune": "/fortune", "fortune cookie": "/fortune", "daily fortune": "/fortune",
   "macro economic data": "/econ/snapshot", "economic indicators": "/econ/snapshot", "country economic data": "/econ/snapshot", "gdp inflation unemployment population": "/econ/snapshot",
   "web search": "/search", "search the web": "/search", "google search": "/search", "serp": "/search", "brave search": "/search", "exa search": "/search",

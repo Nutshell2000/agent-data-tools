@@ -34,6 +34,8 @@ test('recommend: the phrase as written decides between tools that share its word
   assert.equal(await first('text to speech'), '/ai/speech');
   assert.equal(await first('speech to text'), '/transcribe');
   assert.equal(await first('Text-to-Speech'), '/ai/speech');
+  // 19 Nov 2026: the proven shopper's "merchant safety" job must find the door whose listing now carries that phrase.
+  assert.equal(await first('merchant safety'), '/domain-report', 'the door resolves to its canonical tool');
   // Entry paths are not recommended themselves; the phrase each was named for finds its canonical tool.
   for (const [need, tool] of Object.entries({ 'usdc yield': '/defi/yields', 'current weather': '/weather', 'web fetch': '/extract', 'crypto news': '/news', 'email verification': '/email', 'fear and greed': '/crypto/fear-greed', 'national debt': '/econ/national-debt', 'pdf to text': '/pdf/text', 'website audit': '/audit/website' })) {
     assert.equal(await first(need), tool, need);
