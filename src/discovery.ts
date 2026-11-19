@@ -18,9 +18,9 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.293.1";
+export const MCP_SERVER_VERSION = "1.295.1";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
-export const READER_VERSION = "1.7.6";
+export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
 export const exampleQuery = (e: Endpoint) =>
