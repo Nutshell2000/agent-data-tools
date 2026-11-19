@@ -83,6 +83,9 @@ const GUIDE_FILES = {
 export function sourcesFor(page, site) {
   if (page === "/") return ["src/lib/home-page.ts", "src/lib/product-pages.ts"];
   if (page === "/docs") return ["src/lib/site-pages.ts"];
+  // 20 Nov 2026: the installable voice app and the transcription plan page were added to the sitemap (SEO batch).
+  if (page === "/app") return ["src/lib/voice-app.ts", "src/lib/voice-console.ts", "src/lib/app-jsonld.ts"];
+  if (page === "/transcribe-pro") return ["src/lib/voice-pro.ts"];
   if (site.productPaths.has(page)) return ["src/lib/product-pages.ts"];
   if (page === "/lexglyph") return ["src/lib/lexglyph-page.ts", "src/lib/lexglyph-i18n.ts"];
   if (page === "/vat-number-check" || page.startsWith("/vat-number-check/")) return ["src/lib/vat-pages.ts"];
