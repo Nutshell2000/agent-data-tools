@@ -144,8 +144,8 @@ test('MCP bundles serve one catalog section each and quote like /mcp', async () 
     }
     const all = Object.values(counts).flat();
     // Entry paths (second names) are not listed since 16 Nov 2026, so the sections together list TOOL_COUNT tools.
-    assert.equal(all.length, 668, 'every tool is in exactly one bundle');
-    assert.equal(new Set(all).size, 668);
+    assert.equal(all.length, 666, 'every tool is in exactly one bundle');
+    assert.equal(new Set(all).size, 666);
     const unknown = await f.mf.dispatchFetch('https://api.test/mcp/nope', { method: 'POST' });
     assert.equal(unknown.status, 404); await unknown.body?.cancel();
   } finally { await f.mf.dispose(); }
