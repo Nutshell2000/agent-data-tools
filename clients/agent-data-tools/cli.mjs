@@ -68,7 +68,7 @@ const HELP = `Usage:
                                          failed pages are reported and not charged
   agent-data-tools <tool> key=value ...  call a tool by name or /path; prints its JSON
 
-25 free calls without any setup. A prepaid key is read from --key, then AGENT_DATA_TOOLS_KEY,
+3 free calls over HTTP (25 over MCP) without any setup. A prepaid key is read from --key, then AGENT_DATA_TOOLS_KEY,
 then ~/.agent-data-tools/config.json, then ADT_API_KEY.
 
 Wallet mode for \`mcp\` (no account, no key): set AGENT_DATA_TOOLS_WALLET_KEY to the private key of a wallet holding
@@ -84,7 +84,7 @@ function menu() {
 
 Add --print to see the change without writing, and --key adt_... to connect with a prepaid key.
 The client gets three tools that reach the whole catalog; add --full for every tool as its own definition.
-Without a key the server gives 25 free calls. Keys: agent-data-tools credits`;
+Without a key the server gives 3 free calls over HTTP (25 over MCP). Keys: agent-data-tools credits`;
 }
 
 function desktopConfigPath() {
@@ -152,7 +152,7 @@ async function keyCommand(value) {
     return;
   }
   const { key, source } = resolveKey();
-  if (!key) { console.log(`No key is set. The server gives 25 free calls without one. Get a key: ${NAME} credits`); return; }
+  if (!key) { console.log(`No key is set. The server gives 3 free calls over HTTP (25 over MCP) without one. Get a key: ${NAME} credits`); return; }
   console.log(`A key is set (ends in ${tail(key)}), from ${source}.`);
   try {
     const res = await fetch(`${origin()}/credits/balance`, { headers: { accept: "application/json", "x-api-key": key } });
