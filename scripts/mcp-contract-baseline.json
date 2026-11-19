@@ -10999,9 +10999,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -11034,9 +11035,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -11065,9 +11067,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           },
           "tokens": {
             "type": "string",
@@ -11929,7 +11932,7 @@
         "properties": {
           "url": {
             "type": "string",
-            "description": "Absolute public http(s) URL of the PDF"
+            "description": "Absolute public http(s) URL of the PDF. With no input at all this reads the published sample (the Bitcoin white paper); send url for your own PDF."
           },
           "firstPage": {
             "type": "integer",
@@ -18773,9 +18776,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -19594,9 +19598,10 @@
               "base",
               "eth",
               "arb",
-              "op"
+              "op",
+              "polygon"
             ],
-            "description": "Network: base (default), eth, arb or op"
+            "description": "Network: base (default), eth, arb, op or polygon"
           }
         }
       },
@@ -20015,7 +20020,7 @@
         "properties": {
           "url": {
             "type": "string",
-            "description": "Absolute public http(s) URL of the PDF"
+            "description": "Absolute public http(s) URL of the PDF. With no input at all this reads the published sample (the Bitcoin white paper); send url for your own PDF."
           },
           "firstPage": {
             "type": "integer",
