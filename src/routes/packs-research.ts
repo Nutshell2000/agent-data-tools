@@ -12,6 +12,11 @@ import { call, runSections } from "./packs";
 import { MERCATOR_TEST_PRICE, SEARCH } from "./search";
 import { PHISHING_SOURCES, phishingLookup, type PhishingVerdict } from "../lib/phishing-list";
 
+// Owner decision, 19 Nov 2026: the pinned fan-out job pays rival URL-safety sellers 4-25x our $0.01 and our own
+// 5-19 Nov test raised 7 tools without losing volume. $0.02 is +$11.56/30d at today's volume. Requires the usual
+// Bazaar re-settle so Mercator's stored quote matches the live 402.
+export const URL_SAFETY_PRICE = "$0.02";
+
 /** The host of a link or a bare domain, as sent ("https://a.example/x", "a.example", "a.example/path"). */
 export function hostOf(raw: string): string {
   const s = raw.trim();
@@ -247,5 +252,5 @@ export const PACKS_RESEARCH: Entry[] = [
         security: { https: final ? final.protocol === "https:" : input.protocol === "https:", score: h?.score ?? null, grade: h?.grade ?? null },
         failed: redirects ? failed : { ...failed, redirects: "the link could not be followed" },
       };
-    }, "$0.01"),
+    }, URL_SAFETY_PRICE),
 ];

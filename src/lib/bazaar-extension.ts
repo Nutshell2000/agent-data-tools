@@ -255,6 +255,17 @@ export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/pack/token-analysis": "Token analysis, due diligence",
   // Fortune is a $84/day job; our /magic-8-ball is in Mercator's catalog and ranks #3 for "fortune" at 0.385 vs #1's 0.398.
   "/magic-8-ball": "Fortune teller, magic 8-ball",
+  // 1.303.0, 19 Nov 2026: the remaining evidence-backed phrase gaps (local data-mining + router-substitution).
+  // Each <=32 chars and a literal description of what the tool returns; no engine or data claim is added.
+  "/company": "Company enrichment, profile",
+  "/news": "News, latest headlines",
+  "/base-gas": "Gas price, live EVM gas fees",
+  "/ai/embed": "Embeddings, text embeddings",
+  "/check/payee": "Address and wallet screening",
+  "/sanctions/check": "Sanctions screening, OFAC",
+  "/sitemap": "Sitemap, list site URLs",
+  "/domain/whois": "WHOIS, domain RDAP lookup",
+  "/ip/geolocate": "IP geolocation, IPv4 & IPv6",
 });
 /**
  * Paths whose listing description must open with the override name, not the summary's lead phrase (19 Nov 2026).
@@ -271,6 +282,15 @@ export const DESCRIPTION_HEAD_OF: Readonly<Record<string, string>> = Object.free
   "/token-report": LISTING_NAME_OF["/token-report"],
   "/pack/token-analysis": LISTING_NAME_OF["/pack/token-analysis"],
   "/magic-8-ball": LISTING_NAME_OF["/magic-8-ball"],
+  "/company": LISTING_NAME_OF["/company"],
+  "/news": LISTING_NAME_OF["/news"],
+  "/base-gas": LISTING_NAME_OF["/base-gas"],
+  "/ai/embed": LISTING_NAME_OF["/ai/embed"],
+  "/check/payee": LISTING_NAME_OF["/check/payee"],
+  "/sanctions/check": LISTING_NAME_OF["/sanctions/check"],
+  "/sitemap": LISTING_NAME_OF["/sitemap"],
+  "/domain/whois": LISTING_NAME_OF["/domain/whois"],
+  "/ip/geolocate": LISTING_NAME_OF["/ip/geolocate"],
 });
 /** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
 export function listingNameFor(e: { path: string; summary: string }): string {
