@@ -231,7 +231,7 @@ Proof 'proof-mpp-evm' @("$StagingOrigin/btc-fees", '--mpp-evm')
 $liveVersion = (Invoke-RestMethod "$Origin/.well-known/mcp/server-card.json" -TimeoutSec 60).serverInfo.version
 if ($liveVersion -eq $Version) { Write-Host "production already runs $Version" -ForegroundColor DarkGray }
 else {
-  $list = (npx wrangler deployments list --name agent-data-tools 2>&1 | Out-String)
+  $list = (npx wrangler deployments list --name agent-data-tools-core 2>&1 | Out-String)
   $uuid = ([regex]::Matches($list, '\(100%\)\s+([0-9a-f-]{36})') | Select-Object -Last 1).Groups[1].Value
   if (-not $uuid) { throw "could not read the live deployment uuid" }
   # The guard reads GitHub's run list, which can lag the CI wait above by a minute; give it three tries.
