@@ -291,6 +291,7 @@ const USD_NOTE = "No input was sent, so these are the exchange rates for 1 USD, 
 export const EMPTY_CALL_DEFAULTS: Readonly<Record<string, { input: Readonly<Record<string, string>>; note: string }>> = {
   "/price/token": { input: { symbol: "BTC" }, note: BTC_NOTE },
   "/token/price": { input: { symbol: "BTC" }, note: BTC_NOTE },
+  "/token-price-api": { input: { symbol: "BTC" }, note: BTC_NOTE },
   "/price/crypto": { input: { symbol: "BTC" }, note: BTC_NOTE },
   // 1.114.0: the same rule for the two other price-like tools whose reference is not in doubt. After the full Bazaar
   // re-settle of 10 Nov vAPI Call showed 46 of our 56 tracked searches (22 before), /fx among its cheapest listings.

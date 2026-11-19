@@ -48,7 +48,9 @@ test("every entry path names a task, runs a canonical tool at that tool's live p
     // /extract has three since 10 Nov 2026: scrape, fetch and Markdown are three searches, and routers match the path words.
     // /llm/prices has four since 14 Nov 2026: one per provider (GPT, Claude, Grok, MiniMax), because Mercator buys pricing
     // by provider path (modelprices.xyz /grok-pricing, /minimax-pricing) and each is a different search.
-    const limit = canonical === "/extract" ? 3 : canonical === "/llm/prices" ? 4 : 2;
+    // 1.268.0 (19 Nov 2026): /web/read is a fourth search for /extract (web read), and /exa/search a third for
+    // /search (Exa search), both measured from the Mercator public ranking API.
+    const limit = canonical === "/extract" ? 4 : canonical === "/llm/prices" ? 4 : canonical === "/search" || canonical === "/price/token" ? 3 : 2;
     assert.ok(names.length <= limit, `${canonical} has ${names.length} doors`);
     assert.equal(new Set(names).size, names.length, `${canonical} doors share a name`);
   }

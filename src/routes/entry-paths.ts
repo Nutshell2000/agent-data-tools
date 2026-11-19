@@ -340,7 +340,7 @@ export const ENTRY_PATHS: Entry[] = [
   // behind it, and our /weather was #7. Agent402's router scores the URL slug most and its winner is /weather/current, so the
   // door moved here from /weather/today (9 Nov, never listed on the Bazaar); index.ts redirects the old path.
   door("/weather/current", "Current weather: any city, right now",
-    "Current weather for any city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the weather now or today's forecast for travel, events, logistics or a daily brief.",
+    "Current weather by city or coordinates: temperature, conditions, rain, wind, humidity and pressure right now, plus an hourly forecast up to 48 hours ahead (MET Norway data). Give a city such as London or lat and lon. Use when an agent needs the current weather by city, the weather now, or today's forecast for travel, events, logistics or a daily brief.",
     ["current-weather", "weather", "weather-now", "temperature", "forecast", "city-weather"], CORE_WEATHER),
   door("/ofac/check", "OFAC sanctions check: wallet or name",
     "OFAC sanctions check: screen a crypto wallet address (EVM, Bitcoin, Tron and more) or a person or company name against the OFAC SDN list and get a verdict (block, review, pass) with every match, SDN id and program. A screening aid, not legal advice. Use before paying or accepting funds, or when onboarding a counterparty.",
@@ -607,4 +607,24 @@ export const ENTRY_PATHS: Entry[] = [
   door("/macro/data", "Economic indicators by country: GDP, inflation, unemployment and population",
     "Macro economic data for any country in one call: GDP, consumer-price inflation, unemployment and population from a committed World Bank Open Data snapshot, with up to 10 years of history. Country by ISO code or English name. Use for country briefs, market sizing and economic indicators.",
     ["macro-economic-data", "economic-indicators", "world-bank", "country-data", "economy"], from(ECON, "/econ/snapshot")),
+
+  // 19 Nov 2026 (Mercator router, measured from its public /v1/services/search API): our /search had no listing at
+  // all for "exa search", /ai/chat was #7 for "chat completions", /price/token #4 for "token price" and /contents
+  // #15 for "web read". Each new URL gets a first crawl and inherits its canonical's price, inputs, output and
+  // category; the canonical listings are untouched. Prices are unchanged.
+  door("/exa/search", "Exa search API, web search: results with contents",
+    "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Use for an Exa search, a neural web search or a drop-in Exa-compatible search endpoint. No account or API key; failed calls are never charged.",
+    ["exa-search", "exa-compatible-search", "web-search-api", "neural-search", "search-with-contents"], from(SEARCH, "/search")),
+
+  door("/chat/completions", "Chat completions API: cheap OpenAI-compatible LLM",
+    "Chat completions API for agents: send a prompt or an OpenAI messages array and get an answer from Llama 4 Scout in one paid call, with no account and no API key, at a fraction of a cent. OpenAI-compatible at /v1/chat/completions, with tools and JSON mode. Use for cheap chat completions, drafting, classification and reasoning steps inside an agent workflow.",
+    ["chat-completions", "cheap-llm", "openai-compatible", "llm-chat-api", "chat-api"], from(AI_TEXT, "/ai/chat")),
+
+  door("/token-price-api", "Token price API: crypto price by symbol or address",
+    "Token price API: live USD price of a crypto token by symbol (ETH, BTC, LINK), coin name, CoinGecko id or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read from the deepest Uniswap v3 pool with the pool, fee tier and a thin-liquidity flag. Use for a token price API call in a quote, a portfolio valuation or a trade check.",
+    ["token-price", "token-price-api", "crypto-price-api", "dex-price", "coin-price"], from(PRICES, "/price/token")),
+
+  door("/web/read", "Web read API: read web pages as clean text",
+    "Web read API for agents: fetch a public web page URL and return the page's main content as clean text or Markdown, with headings, tables, links and code blocks kept, up to 100,000 characters. Static HTML, Markdown and text pages; bot walls and errors are never charged. Use when an agent asks to web read a page, article or documentation URL into its context or a RAG pipeline.",
+    ["web-read", "web-read-api", "read-webpage", "url-to-text", "page-reader"], CORE_EXTRACT),
 ];
