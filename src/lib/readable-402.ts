@@ -46,7 +46,7 @@ function payByCard(origin: string, cardReady: boolean) {
 /** v1 terms in the 402 body only when the caller asks (x402=1) or the switch QUOTE_BODY=v1 is set; see readable402. */
 export const wantsV1Body = (param: string | undefined, env: { QUOTE_BODY?: string }) => param?.trim() === "1" || env.QUOTE_BODY === "v1";
 
-export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }, cardReady = false, freeExhausted = false): Promise<Response> {
+export async function readable402(res: Response, origin: string, freeCalls = false, v1Accepts: RequirementsV1[] = [], page?: { endpoint: Endpoint; url: string }, cardReady = false, freeExhausted = false, mppReady = false): Promise<Response> {
   const header = res.headers.get("payment-required");
   // A person in a browser gets the library's developer page; show them the tool and the ways to use it instead.
   if (res.status === 402 && header && page && (res.headers.get("content-type") ?? "").includes("text/html")) {
@@ -72,7 +72,9 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
     ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls here. To continue: GET ${starter.url} ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits), then repeat this exact URL with &api_key=adt_… — the same key works on every tool. `
     : "";
   // MPP is offered in the body for buying a pack (cardHint); say how to settle THIS call too. Docs already teach it.
-  const mppCall = res.headers.get("www-authenticate")
+  // The WWW-Authenticate header is appended by the MPP middleware AFTER this function, so read it from the flag
+  // the caller computed from tempoEnabled/evmEnabled rather than from the response (19 Nov: header check never fired).
+  const mppCall = mppReady
     ? "MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
     : "";
   const hint = `${resume}${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${mppCall} ${cardHint(origin, cardReady, page?.endpoint.price)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
