@@ -169,7 +169,17 @@ const pinned176 = {"reader-client.mjs":"2b7bd55dad89fcfb3072e0bf0c8194c4c8bc37c0
 for(const [file,expected] of Object.entries(pinned176)) {
  const from=new URL("../clients/releases/1.7.6/"+file,import.meta.url),to=new URL("../public/clients/reader/1.7.6/"+file,import.meta.url);
  const bytes=await readFile(from);if(hash(bytes)!==expected)throw Error("Immutable 1.7.6 artifact changed");
- await copyFile(from,to);
+ // The public dir is gitignored, so on a clean checkout only the current version's clientDir exists. Earlier releases
+ // must create their own dir before copying (19 Nov 2026 CI: copyFile ENOENT once the current version moved to 1.7.7).
+ await mkdir(new URL("../public/clients/reader/1.7.6/",import.meta.url),{recursive:true});await copyFile(from,to);
+}
+// 1.7.7 corrects the pinned payTo in the standalone reader (the 1.7.6 constant was the retired wallet, so every
+// quote/buy was refused with payment_terms_rejected). 1.7.6 stays immutable above; this pins the new download.
+const pinned177 = {"reader-client.mjs":"2a88197c111b633bef0af3171bb91bbf13566c89219ac10bad179e4f55fda140","reader-mcp.mjs":"c7225c2ab3a138efcd5140d99d6b66ac4117720547357a1c69ba26646980c15b","command-builder.js":"a039cc07f2c52920685614be4e5d0051c357b7fef7e686e60352987e66ebdc91","SHA256SUMS":"464d911589759dd827d5b273475960ab36777dd0ad2fdb3b220e125f2b1decdf","reader-client.mjs.sha256":"9bc389165e33a3c2a62e0d892b175a149778bab7cb7f2e1ced7e652308a89e36","reader-mcp.mjs.sha256":"cb13ca861d5f01753883dd5930c68efd2c12825717d158a860f3889b6e739058"};
+for(const [file,expected] of Object.entries(pinned177)) {
+  const from=new URL("../clients/releases/1.7.7/"+file,import.meta.url),to=new URL("../public/clients/reader/1.7.7/"+file,import.meta.url);
+  const bytes=await readFile(from);if(hash(bytes)!==expected)throw Error("Immutable 1.7.7 artifact changed");
+  await copyFile(from,to);
 }
 const compiled = await build({
   stdin: {contents: 'export {extract} from "./src/routes/extract"; export {ENDPOINTS} from "./src/endpoints";', resolveDir: process.cwd(), sourcefile: "reader-samples-build.ts"},

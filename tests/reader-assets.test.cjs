@@ -62,7 +62,7 @@ const call = (url, method = "GET", accept = "application/json") =>
   });
 test("owned cached examples match their sources, hashes and declared truncation", async () => {
   const manifest = await (await call("/examples/extract/manifest.json")).json();
-  assert.equal(manifest.toolVersion, "1.7.6");
+  assert.equal(manifest.toolVersion, "1.7.7");
   assert.equal(manifest.samples.length, 3);
   assert.equal(manifest.demonstration, true);
   const markdownSource=await(await call(new URL(manifest.markdownExample.sourceUrl).pathname)).text();
@@ -141,10 +141,10 @@ test("static routes cannot expose arbitrary assets or private seller-kit files",
   }
 });
 test("standalone client checksum matches and the bundle runs outside the repository", async () => {
-  const binary = "public/clients/reader/1.7.6/reader-client.mjs";
+  const binary = "public/clients/reader/1.7.7/reader-client.mjs";
   const bytes = await fs.readFile(binary);
   const checksum = (
-    await fs.readFile("public/clients/reader/1.7.6/SHA256SUMS", "utf8")
+    await fs.readFile("public/clients/reader/1.7.7/SHA256SUMS", "utf8")
   ).split(/\s+/)[0];
   assert.equal(createHash("sha256").update(bytes).digest("hex"), checksum);
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "reader-client-check-"));
@@ -177,10 +177,10 @@ test("old immutable download remains exact and current artifacts match every che
   }
   const old = await (await call("/clients/reader/1.1.1/reader-client.mjs")).arrayBuffer();
   assert.equal(createHash("sha256").update(Buffer.from(old)).digest("hex"), "706472f78bc384af2a13e348d82a195c55d161a93816aa10c477c205e357a395");
-  const checksums = await (await call("/clients/reader/1.7.6/SHA256SUMS")).text();
+  const checksums = await (await call("/clients/reader/1.7.7/SHA256SUMS")).text();
   for (const line of checksums.trim().split("\n")) {
     const [hash, file] = line.trim().split(/\s+/);
-    const response = await call(`/clients/reader/1.7.6/${file}`);
+    const response = await call(`/clients/reader/1.7.7/${file}`);
     assert.equal(response.status, 200);
     assert.equal(createHash("sha256").update(Buffer.from(await response.arrayBuffer())).digest("hex"), hash);
   }
@@ -192,17 +192,17 @@ test('cached late-section proof matches its manifest and scope without claiming 
 });
 test('single-file checksum routes are explicit public assets and linked by the buying guides',async()=>{
  for(const file of ['reader-client.mjs','reader-mcp.mjs']){
- const r=await call('/clients/reader/1.7.6/'+file+'.sha256');assert.equal(r.status,200);const checksum=await r.text();assert.match(checksum,new RegExp('^[a-f0-9]{64}  '+file.replaceAll('.','\\.')+'\\n$'));
+ const r=await call('/clients/reader/1.7.7/'+file+'.sha256');assert.equal(r.status,200);const checksum=await r.text();assert.match(checksum,new RegExp('^[a-f0-9]{64}  '+file.replaceAll('.','\\.')+'\\n$'));
  }
  for(const route of ['/','/guides/web-reading','/guides/local-mcp','/guides/sitemap']){const html=await(await call(route,'GET','text/html')).text();assert.ok(html.includes('.mjs.sha256'),route);assert.ok(html.includes('Get-FileHash'),route);}
- assert.equal((await call('/clients/reader/1.7.6/anything.sha256')).status,404);
+ assert.equal((await call('/clients/reader/1.7.7/anything.sha256')).status,404);
 });
 test('buyer skill GET/HEAD is free, byte-consistent and discoverable without exposing arbitrary skills files',async()=>{
  const route='/skills/spellzcode-x402-reader/SKILL.md';
  const response=await call(route);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/markdown/);assert.equal(response.headers.has('PAYMENT-REQUIRED'),false);
  assert.equal(await response.text(),(await fs.readFile('skills/spellzcode-x402-reader/SKILL.md','utf8')).replaceAll('https://agent-data-tools.revmesh2074.workers.dev','https://api.test'));
  const head=await call(route,'HEAD');assert.equal(head.status,200);assert.equal(await head.text(),'');
- const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.7.6');
+ const index=await(await call('/skills/index.json')).json();assert.equal(index.skill,'https://api.test'+route);assert.equal(index.clientVersion,'1.7.7');
  // The full service card moved from "/" to /service-card.json and the long llms.txt to /llms-full.txt (lib/first-call.ts); the short ones link them.
  const card=await(await call('/service-card.json')).json();assert.equal(card.docs.buyerSkill,'https://api.test'+route);assert.equal((await(await call('/')).json()).links.serviceCard,'https://api.test/service-card.json');assert.ok((await(await call('/llms.txt')).text()).includes('https://api.test/llms-full.txt'));
  for(const p of ['/','/guides/web-reading','/llms-full.txt']){const text=await(await call(p,'GET','text/html')).text();assert.ok(text.includes(route),p);}
@@ -216,8 +216,8 @@ test('local MCP guide and downloadable adapter are available without paid work',
   assert.ok(html.includes('quotes') || html.includes('Quotes'));
   for(const phrase of ['--enable-buy','--session-max-usdc','restart','reader_quote','reader_buy','structuredContent'])assert.ok(html.includes(phrase),phrase);
   const md=await(await call('/guides/local-mcp.md')).text();
-  assert.ok(md.includes('/clients/reader/1.7.6/reader-mcp.mjs'));
-  assert.equal((await call('/clients/reader/1.7.6/reader-mcp.mjs')).status,200);
+  assert.ok(md.includes('/clients/reader/1.7.7/reader-mcp.mjs'));
+  assert.equal((await call('/clients/reader/1.7.7/reader-mcp.mjs')).status,200);
   assert.equal((await call('/clients/reader/1.2.0/reader-mcp.mjs')).status,404);
   for(const route of ['/','/guides/web-reading','/llms-full.txt'])assert.ok((await(await call(route,'GET','text/html')).text()).includes('/guides/local-mcp'),route);
 });
@@ -234,7 +234,7 @@ test("homepage and guide show actual cached technical output before advanced mat
     const html = await response.text();
     assert.ok(html.includes(escaped));
     assert.match(html, /View a real result.*Inspect a free quote.*Buy one page/);
-    assert.match(html, /type="module" src="\/clients\/reader\/1.7.6\/command-builder.js"/);
+    assert.match(html, /type="module" src="\/clients\/reader\/1.7.7\/command-builder.js"/);
     assert.doesNotMatch(html, /<form|type="password"|href="\/store"/);
     assert.ok(html.indexOf('id="reader-builder"') < html.indexOf(path === "/" ? "Tools and prices" : "Buy one result over HTTP"));
   }
@@ -242,7 +242,7 @@ test("homepage and guide show actual cached technical output before advanced mat
 
 
 test("sitemap cached output matches source and both older published client versions remain available",async()=>{
-  const manifest=await(await call('/examples/sitemap/manifest.json')).json();assert.equal(manifest.toolVersion,'1.7.6');assert.equal(manifest.demonstration,true);
+  const manifest=await(await call('/examples/sitemap/manifest.json')).json();assert.equal(manifest.toolVersion,'1.7.7');assert.equal(manifest.demonstration,true);
   const source=await(await call('/examples/sitemap/source.xml')).text();assert.equal(createHash('sha256').update(source).digest('hex'),manifest.sourceSha256);
   const output=await(await call('/examples/sitemap/result.json')).text();assert.equal(createHash('sha256').update(output).digest('hex'),manifest.resultSha256);
   const v=JSON.parse(output);assert.equal(v.demonstration,true);assert.equal(v.result.kind,'urlset');assert.equal(v.result.entries.length,2);assert.equal(v.result.nextOffset,2);assert.ok(!('receipt' in v));
@@ -270,4 +270,14 @@ test('all prior 1.7.x release downloads remain byte-exact after the reader corre
 test("catalog-only releases retain all published reader 1.7.6 download bytes",async()=>{
  const pins={"reader-client.mjs": "2b7bd55dad89fcfb3072e0bf0c8194c4c8bc37c0902c9da17f1b3ed90317064d", "reader-mcp.mjs": "38e4bcfbeab11362d31bc2c6044674780397c394866f9e51baeb474bfdfb6c23", "command-builder.js": "5909385fb9455fb2ed16b9ee4580a534e7541ec668a3e650c8131ae08f53a446", "SHA256SUMS": "963de4ad133f4884d8444501848be1784b40886f7bce5ff9514fbc57d489ec3f", "reader-client.mjs.sha256": "b291f405edec017f9f59b5ad4f8f6b3945f7ec2d46e53715496077f83d84ccdd", "reader-mcp.mjs.sha256": "7c8edc9df23f0bbc5caea6d08d610cbf32733845162c7283a4fd4cbdb9475620"};
  for(const[file,digest]of Object.entries(pins)){const response=await call("/clients/reader/1.7.6/"+file);assert.equal(response.status,200);assert.equal(createHash("sha256").update(Buffer.from(await response.arrayBuffer())).digest("hex"),digest,file);}
+});
+
+test("reader 1.7.7 fixes the retired payTo in both standalone downloads",async()=>{
+ const pins={"reader-client.mjs": "2a88197c111b633bef0af3171bb91bbf13566c89219ac10bad179e4f55fda140", "reader-mcp.mjs": "c7225c2ab3a138efcd5140d99d6b66ac4117720547357a1c69ba26646980c15b", "command-builder.js": "a039cc07f2c52920685614be4e5d0051c357b7fef7e686e60352987e66ebdc91", "SHA256SUMS": "464d911589759dd827d5b273475960ab36777dd0ad2fdb3b220e125f2b1decdf", "reader-client.mjs.sha256": "9bc389165e33a3c2a62e0d892b175a149778bab7cb7f2e1ced7e652308a89e36", "reader-mcp.mjs.sha256": "cb13ca861d5f01753883dd5930c68efd2c12825717d158a860f3889b6e739058"};
+ for(const[file,digest]of Object.entries(pins)){const response=await call("/clients/reader/1.7.7/"+file);assert.equal(response.status,200);assert.equal(createHash("sha256").update(Buffer.from(await response.arrayBuffer())).digest("hex"),digest,file);}
+ for(const file of ['reader-client.mjs','reader-mcp.mjs']){
+  const text=await (await call('/clients/reader/1.7.7/'+file)).text();
+  assert.ok(text.includes('0x6293ded2684f1a76e26becef87c137d691fbf800'),file+' pins the live payTo');
+  assert.ok(!text.includes('0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5'),file+' drops the retired payTo');
+ }
 });

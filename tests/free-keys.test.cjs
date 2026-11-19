@@ -211,6 +211,7 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   const hash = await credits.hashCreditKey(shown.apiKey);
   assert.ok(Array.isArray(shown.topUp) && shown.topUp.length > 0, 'the response carries key-aware pack links');
   for (const l of shown.topUp) assert.ok(l.buy.includes(`client_reference_id=topup_${hash}`), `${l.buy}: tops up this key`);
+  assert.equal(shown.addCredits, shown.topUp[0].buy, 'the machine-readable upgrade link tops up this key, not a generic page');
   for (const l of shown.plans ?? []) assert.ok(l.buy.includes(`client_reference_id=topup_${hash}`), `${l.buy}: plan tops up this key`);
   const confirmHtml = await (await get(on, link, 'text/html')).text();
   assert.ok(confirmHtml.includes(`client_reference_id=topup_${hash}`), 'the HTML confirm page links top up this key, promise kept');
