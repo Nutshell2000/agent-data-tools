@@ -1,5 +1,5 @@
 {
-  "version": "1.303.1",
+  "version": "1.304.1",
   "tools": [
     {
       "name": "extract",
@@ -18908,6 +18908,270 @@
             "description": "Block number, or 'latest' (default)"
           }
         }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "full_website_audit",
+      "description": "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers, SEO metadata and uptime, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to audit"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "website_audit",
+      "description": "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_to_speech_api",
+      "description": "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 300 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm",
+              "ulaw",
+              "alaw",
+              "opus",
+              "flac"
+            ],
+            "description": "Audio format: mp3 (default), wav, pcm (raw 16-bit little-endian mono), ulaw or alaw (8 kHz telephony, e.g. Twilio), opus (Ogg) or flac. opus and flac only for text spoken in one part (up to 450 characters)"
+          },
+          "sample_rate": {
+            "description": "Sample rate in Hz for wav and pcm (8000, 16000, 24000 default, 32000, 48000) or ulaw/alaw (8000 default, 16000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "pronunciations": {
+            "type": "string",
+            "description": "How to say words: JSON {\"Nginx\":\"engine x\",\"GIF\":\"jif\"} or Nginx=engine x, GIF=jif (up to 50, whole words, any case)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "sentiment_analysis",
+      "description": "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "English text, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "web_extraction",
+      "description": "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "One to five page URLs: comma-separated, one per line, or a JSON array"
+          },
+          "maxChars": {
+            "description": "Characters per page, 500 to 20000 (default 4000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "text (default) or markdown"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "image_generation",
+      "description": "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402. Example: prompt=a lighthouse on a cliff at sunset, watercolor. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "What the image should show (3-800 characters)"
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8,
+            "description": "Diffusion steps, 1-8 (default 4)"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "ip_geolocation",
+      "description": "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "keyword_research",
+      "description": "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call. Example: seed=crm software. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "string",
+            "description": "Seed keyword or topic, 2-80 characters"
+          },
+          "deep": {
+            "description": "true to add the Google long tail (seed + each letter, question words); about 30 more lookups",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "engines": {
+            "type": "string",
+            "description": "Optional comma list: google, bing, youtube, amazon, duckduckgo (default all)"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code (default en)"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country code (default us); Amazon suggestions come from that country's store where one exists"
+          }
+        },
+        "required": [
+          "seed"
+        ]
       },
       "price": "$0.002"
     },
