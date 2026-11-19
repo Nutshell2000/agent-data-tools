@@ -72,7 +72,11 @@ test('finder: a job named as buyers name it gets its tool first, and every job p
   // 10 Nov 2026 (base-bots/buyer-next.mjs): these jobs, bought elsewhere by our paying wallets, landed on the wrong tool.
   const first = { 'text to speech': '/ai/speech', 'tts elevenlabs': '/ai/speech', 'speech to text': '/transcribe', 'audit bundle': '/audit/website', 'website audit': '/audit/website', 'exa search': '/search', 'brave search': '/search', 'hunter email verifier': '/email', 'token preflight': '/token/verdict', 'chain erc20 balance': '/base/token-balance', 'what is my ip': '/ip/geolocate', 'narrate this article': '/text-to-speech', 'read contract balance': '/base/call',
     // 19 Nov 2026: these used to misroute to a wrong, sometimes pricier tool through forced synonyms.
-    'iban': '/validate/iban', 'validate iban': '/validate/iban', 'iban check': '/validate/iban', 'validate vat': '/vat/validate', 'llm pricing': '/llm/prices', 'model prices': '/llm/prices', 'block explorer': '/base/block', 'block height': '/base/block' };
+    'iban': '/validate/iban', 'validate iban': '/validate/iban', 'iban check': '/validate/iban', 'validate vat': '/vat/validate', 'llm pricing': '/llm/prices', 'model prices': '/llm/prices', 'block explorer': '/base/block', 'block height': '/base/block',
+    // 19 Nov 2026: plain-language TTS requests were hijacked by generic synonyms (article->news, text->document,
+    // read->extract), sending them to /page/publish, /document/text or /transcribe (the wrong direction) instead of a
+    // paid speech tool. These are voice-call sales lost at the free finder.
+    'turn my article into an mp3 so I can put it on my site': '/ai/speech', 'make an mp3 from text': '/ai/speech', 'read this article aloud as audio': '/ai/speech', 'text to audio for my video': '/ai/speech' };
   for (const [need, tool] of Object.entries(first)) {
     const r = await recommend({}, need, 3, null);
     assert.equal(r.picks[0].tool, tool, `${need}: ${r.picks.map((p) => p.tool).join(' ')}`);
