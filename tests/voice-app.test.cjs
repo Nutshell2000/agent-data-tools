@@ -26,7 +26,10 @@ test("the app page holds the console, links the manifest and registers the worke
   assert.match(html, /serviceWorker\.register\("\/sw\.js",\{scope:"\/app"\}\)/);
   assert.match(html, /beforeinstallprompt/);
   assert.match(html, /Add to Home Screen/);
-  assert.doesNotMatch(html, /x402|MPP|USDC|Tempo|wallet/i, "no payment protocol words on a human page");
+  assert.match(html, /Want this in your own app\? Our <a href="\/text-to-speech-api">text to speech API<\/a> speaks your text on our servers\./, "the console points a delighted visitor at the paid TTS API");
+  assert.match(html, /Need transcription in your app\? See the <a href="\/speech-to-text-api">speech to text API<\/a>/, "the STT tab points at the paid STT API");
+  assert.match(html, /Voice generation and transcription run on our servers through an API, priced per call with a key\./, "the developer card states what the API actually is");
+  assert.doesNotMatch(html, /The same voices|price per hour|x402|MPP|USDC|Tempo|wallet/i, "no misleading or payment-protocol words on a human page");
 });
 
 test("the manifest is installable: name, standalone, start inside the scope, a 512 px icon", () => {
