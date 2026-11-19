@@ -37,6 +37,19 @@ function resolveKey(flag) {
   return { key: undefined, source: undefined };
 }
 
+/**
+ * With no prepaid key and a wallet key in the environment, return the paying fetch for direct/read calls. Wallet mode
+ * used to be MCP-only (cli.mjs mcp), so `read` and direct tool calls silently fell back to the 3-call free trial and
+ * stopped after a few URLs. The key is read from the environment only and never appears in arguments or output.
+ */
+async function payingFetchFromEnv(key) {
+  if (key || !process.env.AGENT_DATA_TOOLS_WALLET_KEY) return undefined;
+  const { walletPayer, payingFetch, limitsFromEnv } = await import("./wallet-pay.mjs");
+  const payer = await walletPayer({ key: process.env.AGENT_DATA_TOOLS_WALLET_KEY.trim(), ...limitsFromEnv() });
+  process.stderr.write(`wallet mode: paying per call from ${payer.address} (USDC on Base)\n`);
+  return payingFetch(payer);
+}
+
 /** Split `--key <value>`, `--key=<value>`, `--print` and `--full` from the other arguments. */
 function parseArgs(args) {
   const rest = [];
@@ -71,7 +84,7 @@ const HELP = `Usage:
 3 free calls over HTTP (25 over MCP) without any setup. A prepaid key is read from --key, then AGENT_DATA_TOOLS_KEY,
 then ~/.agent-data-tools/config.json, then ADT_API_KEY.
 
-Wallet mode for \`mcp\` (no account, no key): set AGENT_DATA_TOOLS_WALLET_KEY to the private key of a wallet holding
+Wallet mode for \`mcp\`, \`read\` and direct tool calls (no account, no key): set AGENT_DATA_TOOLS_WALLET_KEY to the private key of a wallet holding
 USDC on Base. After the free calls each call is paid over x402 at its listed price, at most $0.10 a call and $1 a day
 unless AGENT_DATA_TOOLS_MAX_USD and AGENT_DATA_TOOLS_DAILY_USD say otherwise. Failed calls are not charged.`;
 
@@ -188,7 +201,8 @@ async function readCommand(args) {
   const urls = [...new Set(source.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^https?:\/\//i.test(l)))];
   if (!urls.length) throw new ToolError("no http(s) URLs found (one per line)", 400, null);
   const { key } = resolveKey(globalThis.__adtKeyFlag);
-  const adt = new AgentDataTools({ apiKey: key, origin: origin() });
+  const paying = await payingFetchFromEnv(key);
+  const adt = new AgentDataTools({ apiKey: key, fetch: paying, origin: origin() });
   let next = 0, ok = 0, stopped = null;
   const started = Date.now();
   const worker = async () => {
@@ -251,7 +265,9 @@ try {
     globalThis.__adtKeyFlag = key;
     await readCommand(readArgs);
   } else {
-    const adt = new AgentDataTools({ apiKey: resolveKey().key, origin: origin() });
+    const { key } = resolveKey();
+    const paying = await payingFetchFromEnv(key);
+    const adt = new AgentDataTools({ apiKey: key, fetch: paying, origin: origin() });
     if (command === "list") {
       for (const t of await adt.tools({ search: rest.join(" ") })) console.log(`${t.name.padEnd(30)} ${t.price.padEnd(8)} ${t.summary}`);
     } else {
