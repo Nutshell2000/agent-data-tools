@@ -46,6 +46,20 @@ test('Cohere-style rerank body and answer', async () => {
   assert.deepEqual(lib.toCohereRerank({ results: [{ index: 0, relevance_score: 0.5, document: 'x' }] }, false).results, [{ index: 0, relevance_score: 0.5 }]);
 });
 
+test('Cohere v2 (default SDK) rerank uses the v2 response envelope', async () => {
+  const lib = await load('src/lib/cohere-rerank.ts');
+  assert.equal(lib.COHERE_RERANK_V2_PATH, '/v2/rerank');
+  const out = lib.toCohereRerankV2({ results: [{ index: 2, relevance_score: 0.9, document: 'Paris' }] }, 192);
+  // v2 results carry only index and score; the document object is a v1 field.
+  assert.deepEqual(out.results, [{ index: 2, relevance_score: 0.9 }]);
+  assert.equal(out.meta.api_version.version, '2');
+  assert.equal(out.meta.billed_units.input_tokens, 192);
+  assert.ok(out.id);
+  // The v2 request body has the same fields as v1 (model is accepted and ignored).
+  const q = lib.toRerankQuery({ model: 'rerank-v5.0-pro', query: 'capital', documents: ['a', 'b'], top_n: 1 });
+  assert.deepEqual(q, { query: 'capital', documents: ['a', 'b'], topN: 1, returnDocuments: false });
+});
+
 test('retrieval tools: names within 32 characters, descriptions within 450, one cent or less', async () => {
   const { RETRIEVAL } = await load('src/routes/retrieval.ts');
   assert.deepEqual(RETRIEVAL.map((e) => e.endpoint.path), ['/contents', '/ai/rerank']);
