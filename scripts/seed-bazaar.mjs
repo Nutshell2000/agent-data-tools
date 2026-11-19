@@ -47,6 +47,11 @@ const sets = option("--set", "").split(",").map((s) => s.trim()).filter(Boolean)
 const budgetUsd = option("--budget", "") === "" ? undefined : Number(option("--budget", ""));
 if (budgetUsd !== undefined && (!Number.isFinite(budgetUsd) || budgetUsd <= 0)) throw new Error("--budget must be a positive number of USD");
 const only = option("--only", "").split(",").map((s) => s.trim()).filter(Boolean);
+// --host https://tts.glyphcall.com (1.260.0): read the catalog from ORIGIN as always, but pay each example on that host, so
+// the Bazaar lists the tool under it (a settlement lists the URL it was paid on). Only our own glyphcall.com hosts.
+const PAY_HOST = option("--host", "");
+if (PAY_HOST && !/^https:\/\/[a-z0-9-]+\.glyphcall\.com$/.test(PAY_HOST)) throw new Error("--host must be https://<name>.glyphcall.com (one of our own hosts)");
+const onHost = (url) => (PAY_HOST ? PAY_HOST + url.slice(new URL(url).origin.length) : url);
 const maxTotalUsd = Number(option("--max-total", "1.00"));
 if (!Number.isFinite(maxTotalUsd) || maxTotalUsd <= 0 || maxTotalUsd > 5) throw new Error("--max-total must be between 0 and 5 USD");
 
@@ -132,19 +137,21 @@ if (only.length) {
 
 // 3. What the Bazaar already lists for our payout address, so each tool is seeded at most once.
 const listed = new Set();
+const listedOnHost = new Set(); // origin + path, for --host
 for (let offset = 0, total = Infinity; offset < total; offset += 500) {
   const res = await get(`${DISCOVERY}?limit=500&offset=${offset}`);
   if (!res.ok) { console.warn(`Bazaar listing read failed (HTTP ${res.status}); continuing without the skip list`); break; }
   const body = await res.json();
   total = body.pagination?.total ?? 0;
-  for (const it of body.items ?? []) if (String(it.accepts?.[0]?.payTo ?? "").toLowerCase() === payTo) { try { listed.add(new URL(it.resource).pathname); } catch { /* ignore */ } }
+  for (const it of body.items ?? []) if (String(it.accepts?.[0]?.payTo ?? "").toLowerCase() === payTo) { try { const u = new URL(it.resource); listed.add(u.pathname); listedOnHost.add(u.origin + u.pathname); } catch { /* ignore */ } }
   if (!body.items?.length) break;
 }
 
 // 4. Verify each tool's live terms before anything is signed: our address, Base USDC, the catalog price.
 const plan = [];
-for (const [path, e] of selected) {
-  if (listed.has(path) && !flag("--force")) { plan.push({ path, skip: "already in the Bazaar" }); continue; }
+for (const [path, chosen] of selected) {
+  const e = PAY_HOST ? { ...chosen, example: onHost(chosen.example) } : chosen;
+  if ((PAY_HOST ? listedOnHost.has(PAY_HOST + path) : listed.has(path)) && !flag("--force")) { plan.push({ path, skip: `already in the Bazaar${PAY_HOST ? ` on ${PAY_HOST}` : ""}` }); continue; }
   const quote = e.init
     ? await fetch(e.example, { ...e.init, headers: { ...e.init.headers, accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(30_000) })
     : await get(e.example, { accept: "application/json" });
