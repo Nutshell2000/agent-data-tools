@@ -9,7 +9,7 @@ import { HttpError, type Env } from "../lib/env";
 import { RERANK_MODEL } from "./retrieval";
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
-const STOP = new Set("a an and are as at be by can do does for from get give how i in is it me my of on or please show tell that the this to use want what when where which who why with you your api apis call tool tools find need".split(" "));
+const STOP = new Set("a an and are as at be by can do does for from get give how i in is it me my of on or please show tell that the this to use want what when where which who why with you your api apis call tool tools find need no thing things something anything nothing such catalog stuff".split(" "));
 
 // Words agents use for a task, mapped onto the words our tool names use.
 const SYNONYMS: Readonly<Record<string, string>> = { remember: "memory", recall: "memory", save: "memory", store: "memory", forget: "memory", sanctioned: "sanctions", ofac: "sanctions", scrape: "extract", crawl: "extract", markdown: "extract", llm: "chat", gpt: "chat", completion: "chat", temperature: "weather", currency: "fx", exchange: "fx", eur: "fx", usd: "fx", whois: "domain", rug: "honeypot", ether: "eth", ethereum: "eth", bitcoin: "btc", // expanded synonym set for better tool discovery
@@ -147,7 +147,10 @@ export function jobTool(needText: string): string | undefined {
  */
 export function lexicalScore(query: string[], d: Doc, written = "") {
   if (!query.length) return 0;
-  const has = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${w.replace(/[.$]/g, "\\$&")}`).test(text);
+  // A trailing boundary matters: without it the token "no" prefix-matched every "nonce" tool, so a nonsense request
+  // came back with paid nonce calls (19 Nov 2026, found through the A2A endpoint's no-match test). Keep the common
+  // inflections so light stems still match ("sanction" -> "sanctions", "fee" -> "fees") without matching "nonce".
+  const has = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${w.replace(/[.$]/g, "\\$&")}(ing|ed|es|s)?([^a-z0-9]|$)`).test(text);
   const name = asWritten(d.name), tags = `${d.tags.join(" ").toLowerCase().replace(/-/g, " ")} ${d.also ?? ""}`, summary = d.summary.toLowerCase(), desc = d.description.toLowerCase();
   let s = 0;
   for (const w of query) s += has(name, w) ? 4 : has(tags, w) ? 3 : has(summary, w) ? 2 : has(desc, w) ? 1 : 0;

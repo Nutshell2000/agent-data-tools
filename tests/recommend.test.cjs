@@ -57,6 +57,14 @@ test('recommend: the reranker reorders the candidates; its failure falls back to
   assert.deepEqual(c.picks.map((p) => p.tool), a.picks.map((p) => p.tool));
   await assert.rejects(recommend({}, 'the of and', 3, null), (e) => e.status === 400);
   await assert.rejects(recommend({}, 'zzqx vvbn', 3, null), (e) => e.status === 404);
+  // 1.257.0: a short token must not prefix-match a longer word ("no" -> "nonce"), and filler words are not jobs.
+  await assert.rejects(recommend({}, 'qqqzxx no such thing in this catalog', 3, null), (e) => e.status === 404);
+  const nonce = await recommend({}, 'nonce of an account', 3, null);
+  assert.ok(nonce.picks.some((p) => p.tool.includes('/nonce')), nonce.picks.map((p) => p.tool).join(' '));
+  for (const [need, tool] of Object.entries({ 'fees on base': '/base-gas', 'is a wallet sanctioned': '/sanctions/check', 'usdc balance': '/wallet/balances' })) {
+    const r = await recommend({}, need, 3, null);
+    assert.ok(r.picks.some((p) => p.tool === tool), `${need}: ${r.picks.map((p) => p.tool).join(' ')}`);
+  }
 });
 
 test('finder: a job named as buyers name it gets its tool first, and every job points at a tool we sell', async () => {
