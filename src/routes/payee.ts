@@ -287,6 +287,17 @@ export async function publicKeys(env: Pick<Env, "PAYEE_SIGNING_KEY">) {
   return { keys: jwk ? [{ kty: "OKP", crv: "Ed25519", x: jwk.x, kid: await keyId(jwk.x), use: "sig", alg: "EdDSA" }] : [], format: "Attestation signature = Ed25519 over the UTF-8 bytes of the attestation's canonical text (sorted-key JSON of payload)." };
 }
 
+/** Sign any JSON payload with the same key as payee attestations, for verifiable self-published facts. */
+export async function signPayload(payload: unknown, env: Pick<Env, "PAYEE_SIGNING_KEY">, issuer: string) {
+  const canonical = canonicalJson(payload);
+  const jwk = signingJwk(env);
+  if (!jwk) return { canonical, alg: "EdDSA", kid: null as string | null, signature: null as string | null, keys: `${issuer}${KEYS_PATH}`, note: "Not signed: the signing key is not configured on this deployment." };
+  // workerd refuses the "alg": "Ed25519" that Node's exportKey adds (it wants EdDSA or none).
+  const key = await crypto.subtle.importKey("jwk", { kty: "OKP", crv: "Ed25519", x: jwk.x, d: jwk.d } as JsonWebKey, { name: "Ed25519" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(canonical));
+  return { canonical, alg: "EdDSA", kid: await keyId(jwk.x), signature: b64url(sig), keys: `${issuer}${KEYS_PATH}`, note: "Verify Ed25519 over the UTF-8 bytes of canonical, with the key named by kid. It attests the facts at iat only." };
+}
+
 export async function attest(record: PayeeRecord, env: Pick<Env, "PAYEE_SIGNING_KEY">, issuer: string) {
   const payload = {
     v: 1, iss: issuer, sub: record.domain, status: record.status,
