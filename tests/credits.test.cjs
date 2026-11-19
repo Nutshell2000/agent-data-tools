@@ -296,6 +296,13 @@ test('new-key claim page offers top-up links for that same key', async () => {
     const html = await (await app({ METRICS: metricsFor(s), STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits/claim?session_id=cs_live_NewKey000001', { accept: 'text/html' })).text();
     const key = /<pre>(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(html)[1];
     assert.ok(html.includes(`client_reference_id=topup_${await credits.hashCreditKey(key)}`));
+    // 19 Nov 2026: the claim page builds a working command from the visitor's own console text, with no injection.
+    assert.match(html, /<pre id="reuse">/, 'the claim page has a reuse slot');
+    assert.match(html, /localStorage\.getItem\("gc-vc-text"\)/, 'it reads the text the free console stored');
+    assert.match(html, /\/v1\/audio\/speech -H \\"Authorization: Bearer adt_/, 'the command uses the issued key with JS-escaped quotes');
+    assert.match(html, /JSON\.stringify\(JSON\.stringify\(/, 'the text is JSON-escaped, not interpolated into HTML');
+    const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
+    assert.doesNotThrow(() => new Function(script), 'the inline command is valid JavaScript (quotes escaped)');
   } finally { globalThis.fetch = realFetch; }
 });
 
