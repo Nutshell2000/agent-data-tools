@@ -234,6 +234,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
   let scopedPermalinkOmitted = false;
   let section: { id: string; title: string | null; kind: "heading" | "container"; headingLevel: number | null } | null = null;
   let matchedByHeading = false;
+  let matchedByHeadingWord = false;
   let genericSection = false;
   if (sectionId !== undefined) {
     const primary: Node[] = [];
@@ -259,6 +260,21 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
         match = selected;
         genericSection = true;
       }
+      else if (headingKey(requested).trim().split(/\s+/).filter(Boolean).length === 1 && headingKey(requested).trim().length >= 3) {
+        // A single distinctive word from a heading ("pricing" for "Pricing & plans") names one section when no
+        // exact id or whole heading matched. More than one heading containing it stays an uncharged ambiguity.
+        const word = headingKey(requested).trim();
+        const byWord = primary.filter(n => /^h[1-6]$/.test(n.tag) && headingKey(raw(n)).includes(word));
+        if (byWord.length === 1) { match = byWord[0]; matchedByHeadingWord = true; }
+        else if (byWord.length > 1) {
+          const ids = byWord.map(n => n.attrs.id).filter((id): id is string => Boolean(id)).slice(0, 10);
+          throw new HttpError(422, `Section word "${word}" matches ${byWord.length} headings in the visible primary content${ids.length ? `; send one of their IDs instead: ${ids.join(", ")}` : ""}; nothing was charged.`, "EXTRACTION_SECTION_AMBIGUOUS", { sections: sectionIndex(primary) });
+        }
+        else {
+          const sections = sectionIndex(primary);
+          throw new HttpError(422, sectionNotFound(requested, sections), "EXTRACTION_SECTION_NOT_FOUND", { sections });
+        }
+      }
       else {
         const sections = sectionIndex(primary);
         throw new HttpError(422, sectionNotFound(requested, sections), "EXTRACTION_SECTION_NOT_FOUND", { sections });
@@ -270,7 +286,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       if (ancestor === selected) break;
     }
     // A heading matched by its visible text reports the id it resolved to; an exact id reports what was sent.
-    const sectionLabel = matchedByHeading ? match.attrs.id ?? requested : requested;
+    const sectionLabel = (matchedByHeading || matchedByHeadingWord) ? match.attrs.id ?? requested : requested;
     if (/^h[1-6]$/.test(match.tag)) {
       const level = +match.tag[1];
       let active = false, stopped = false;
@@ -323,6 +339,7 @@ export function pageContent(html: string, base: string, maxChars: number, sectio
       .trim();
   const warnings = new Set<string>(baseWarnings);
   if (matchedByHeading) warnings.add("section_matched_by_heading");
+  if (matchedByHeadingWord) warnings.add("section_matched_by_heading_word");
   if (genericSection) warnings.add("section_generic_ignored");
   if(scopedPermalinkOmitted) warnings.add("permalink_controls_omitted");
   const normalizeNotation = (n: Node, value: string, markdown = false, literal = false): string => {

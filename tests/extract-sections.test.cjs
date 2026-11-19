@@ -14,7 +14,8 @@ const pages={
  empty:'<main><div id="empty"></div><p>Outside</p></main>',
  odd:'<main><h2 id="a&amp;&quot;日">Odd ID</h2><p>ODD_BODY</p><h2>Next</h2><p>EXCLUDE_NEXT</p></main>',
  deep:'<main>'+'<div>'.repeat(140)+'<h2 id="deep">Deep</h2>'+'</div>'.repeat(140)+'</main>',
- headtext:'<main><h1>Guide</h1><h2 id="install">Install</h2><p>FIRST_INSTALL</p><h2 id="usage">Usage</h2><p>USAGE_BODY</p><h2 id="later">Install</h2><p>SECOND_INSTALL</p></main>'
+ headtext:'<main><h1>Guide</h1><h2 id="install">Install</h2><p>FIRST_INSTALL</p><h2 id="usage">Usage</h2><p>USAGE_BODY</p><h2 id="later">Install</h2><p>SECOND_INSTALL</p></main>',
+  wordy:'<main><h2 id="setup-one">Quick setup guide</h2><p>FIRST_SETUP</p><h2 id="setup-two">Advanced setup steps</h2><p>SECOND_SETUP</p></main>'
 };
 before(async()=>{
  const schemaBundle=await build({entryPoints:['src/lib/extract-contract.ts'],bundle:true,write:false,platform:'node',format:'cjs'});const mod={exports:{}};new Function('require','module','exports',schemaBundle.outputFiles[0].text)(require,mod,mod.exports);const Ajv=require('ajv/dist/2020').default;validateOutput=new Ajv({strict:false}).compile(mod.exports.EXTRACT_OUTPUT_SCHEMA);
@@ -34,6 +35,16 @@ test('a generic section name reads the primary content with a warning instead of
   assert.match(v.text,/Introduction/);
   assert.doesNotMatch(v.text,/EXCLUDE/);
   assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+});
+
+test('a single distinctive word matches one heading; a word shared by two stays an uncharged ambiguity',async()=>{
+  const v=await result('long','retry');
+  assert.ok(v.warnings.includes('section_matched_by_heading_word'));
+  assert.equal(v.section.id,'retry-policy');
+  assert.match(v.text,/Stop after three attempts/);
+  assert.equal(validateOutput(v),true,JSON.stringify(validateOutput.errors));
+  const r=await call('wordy','setup'); assert.equal(r.status,422);
+  const e=await r.json(); assert.equal(e.code,'EXTRACTION_SECTION_AMBIGUOUS'); assert.match(e.error,/matches 2 headings/);
 });
 
 test('late heading selection returns relevant instructions, nested code and tables within the same cap',async()=>{
@@ -77,7 +88,7 @@ test('a heading sent by its visible text resolves when that text is unique',asyn
  const ambiguous=await call('headtext','Install');assert.equal(ambiguous.status,422);const body=await ambiguous.json();
  assert.equal(body.code,'EXTRACTION_SECTION_AMBIGUOUS');assert.match(body.error,/2 headings/);assert.match(body.error,/install/);assert.match(body.error,/later/);
  const unique=await result('headtext','usage');assert.equal(unique.section.id,'usage');assert.match(unique.text,/USAGE_BODY/);
- assert.equal((await call('long','Retry')).status,422,'partial heading text is not a match');
+  const word=await result('long','Retry');assert.equal(word.section.id,'retry-policy');assert.ok(word.warnings.includes('section_matched_by_heading_word'),'a unique heading word now matches');
 });
 test('a missing section lists the ids the page offers so the next call can succeed',async()=>{
  const r=await call('long','#not-here');assert.equal(r.status,422);
