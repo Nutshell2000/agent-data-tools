@@ -272,7 +272,7 @@ export const VOICE_PLUS: Entry[] = [
       const to = dubTarget(q("to"));
       const melo = isMeloLang(to);
       const fromGiven = langCode(q, "from", false);
-      // French, Chinese, Japanese and Korean are spoken by MeloTTS (one voice each, WAV); English and Spanish by Aura-2.
+      // French, Chinese, Japanese and Korean were retired with MeloTTS (20 Nov 2026) and are refused with 400; English and Spanish by Aura-2.
       const { voice, model } = melo ? { voice: "default", model: MELO_MODEL } : speechVoice((k) => (k === "lang" ? to : q(k)));
       const { bytes, url } = await audioInput(q);
       const measured = measuredSeconds(bytes);
