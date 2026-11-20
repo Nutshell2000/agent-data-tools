@@ -273,6 +273,9 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/text-to-speech-generate": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
   // 1.309.0 (20 Nov 2026): the crypto/coin research doors keep their canonical pack section.
   "/crypto/research": "Prices and DeFi", "/coin/research": "Prices and DeFi",
+  // 1.306.0 (20 Nov 2026): market/DEX/whale/orderbook doors keep their canonical section.
+  "/market/data": "Prices and DeFi", "/dex/pools": "Prices and DeFi", "/orderbook-live": "Prices and DeFi",
+  "/whale/alert": "Chain data",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
