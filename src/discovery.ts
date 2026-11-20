@@ -18,8 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.306.2";
-/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.311.1";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -272,6 +271,8 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/full-website-audit": "Web, documents and search", "/web/extraction": "Web, documents and search",
   "/website/audit": "Company, compliance and checks",
   "/text-to-speech-generate": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
+  // 1.309.0 (20 Nov 2026): the crypto/coin research doors keep their canonical pack section.
+  "/crypto/research": "Prices and DeFi", "/coin/research": "Prices and DeFi",
   // 1.306.0 (20 Nov 2026): market/DEX/whale/orderbook doors keep their canonical section.
   "/market/data": "Prices and DeFi", "/dex/pools": "Prices and DeFi", "/orderbook-live": "Prices and DeFi",
   "/whale/alert": "Chain data",
@@ -305,7 +306,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/time/now": "Everyday data", "/timezone/convert": "Everyday data",
   "/arxiv/search": "Web, documents and search", "/page/markdown": "Web, documents and search",
   "/cve/lookup": "Company, compliance and checks", "/github/user": "Company, compliance and checks", "/wiki/summary": "Web, documents and search",
-  "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi",
+  "/market/trending": "Prices and DeFi", "/market/ohlcv": "Prices and DeFi", "/commodity/price": "Prices and DeFi", "/market/is-open": "Prices and DeFi", "/rss/parse": "Web, documents and search",
   "/sec/financials": "Company, compliance and checks", "/stock/fundamentals": "Company, compliance and checks", "/income-statement": "Company, compliance and checks",
   "/einvoice/create": "Company, compliance and checks", "/einvoice/validate": "Company, compliance and checks", "/einvoice/to-json": "Company, compliance and checks",
 });
@@ -397,7 +398,7 @@ export function mcpInstallLinks(origin: string) {
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
     claudeCode: `claude mcp add --transport http agent-data-tools ${url}`,
     claudeAi: `${origin}/mcp/account`,
-    // The npm client (clients/agent-data-tools, 1.3.0): writes the client's MCP configuration, or runs a local stdio bridge.
+    // The npm client (clients/agent-data-tools, 1.4.1): writes the client's MCP configuration, or runs a local stdio bridge.
     npx: "npx -y agent-data-tools setup",
   };
 }

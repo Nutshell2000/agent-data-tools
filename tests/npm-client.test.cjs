@@ -78,3 +78,13 @@ test('npm client buyer docs state the real 3-HTTP / 25-MCP free split, not a bar
   assert.match(readme, /3 free calls over HTTP \(25 over MCP\)/);
   assert.match(readme, /3 successful calls per caller over HTTP, 25 over MCP/);
 });
+
+test('MCP registry advertises the npm client version this repo builds', () => {
+  const { readFileSync } = require('node:fs');
+  const npmVersion = JSON.parse(readFileSync('clients/agent-data-tools/package.json', 'utf8')).version;
+  const registry = JSON.parse(readFileSync('server.json', 'utf8'));
+  const npmPackage = registry.packages.find((p) => p.registryType === 'npm' && p.identifier === 'agent-data-tools');
+  assert.ok(npmPackage, 'server.json declares the npm package');
+  assert.equal(npmPackage.version, npmVersion, 'the registry pointer must match the built client version');
+  assert.equal(npmVersion, '1.4.1', 'the published npm client version');
+});
