@@ -67,7 +67,7 @@ export const ONE_OF_INPUT_PATHS: ReadonlySet<string> = new Set([
   "/sec/filings", "/sec/edgar", "/sec/8k", "/sec/insider", "/sec/13f", "/sec/financials", "/stock/fundamentals", "/income-statement", "/polymarket/orderbook", "/polymarket/price-history",
   "/number/roman", "/book/search", "/text/keyword-density", "/gov/clinical-trials", "/airport/lookup", "/lei/lookup",
   // Without ip these answer for the caller's own address over HTTP; a listing names the example's ip so a router plans a real lookup.
-  "/ip/lookup", "/ip/geolocate",
+  "/ip/lookup", "/ip/geolocate", "/ip/geolocation", // 1.304.1: door to /ip/geolocate, one of ip or @caller-ip
   // An e-invoice arrives as a url, as xml text or as an uploaded file; the listing names the example's url.
   "/einvoice/validate", "/einvoice/to-json",
   // Business packs (16 Nov 2026): url, address or domain; an e-invoice by url, xml text or upload.
