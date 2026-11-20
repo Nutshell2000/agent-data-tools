@@ -1,5 +1,5 @@
 {
-  "version": "1.307.0",
+  "version": "1.305.2",
   "tools": [
     {
       "name": "extract",
@@ -14980,31 +14980,6 @@
       "price": "$0.01"
     },
     {
-      "name": "market_is_open",
-      "description": "Is the stock market open right now? For the NYSE and Nasdaq (default) or the London Stock Exchange: open or closed, the session (regular, pre-market, after-hours) and why (weekend, holiday by name, early close), today's open and close, the next open and close in UTC and minutes until the next change. Computed from published hours, holidays and early closes; `at` asks about another moment. Use before trading, scheduling orders or alerts. Example: exchange=NYSE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "exchange": {
-            "type": "string",
-            "description": "NYSE (default), NASDAQ or LSE; also accepts US, UK, London"
-          },
-          "at": {
-            "type": "string",
-            "description": "Moment to ask about, ISO 8601 (default: now)"
-          }
-        }
-      },
-      "price": "$0.01"
-    },
-    {
       "name": "barcode",
       "description": "Generate a barcode as an SVG image: Code 128 for any printable ASCII text (switching to the compact numeric set for runs of digits, with the mod-103 check symbol), or EAN-13 for 12 or 13 digits (the check digit is computed or verified). Set bar width and height and whether to print the text below. Returns the SVG and a data URL ready for an <img> tag. Use for shipping labels, product codes, tickets or inventory; for QR codes use qr. Example: text=AGENT-12345. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -18985,7 +18960,7 @@
       "price": "$0.01"
     },
     {
-      "name": "text_to_speech_api",
+      "name": "text_to_speech_generate",
       "description": "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
@@ -20523,36 +20498,6 @@
         "required": [
           "tokenA",
           "tokenB"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "rss_parse",
-      "description": "Parse an RSS or Atom feed into structured JSON: give a feed URL, or a page whose head links its feed, and get the feed title and its newest items with title, link, ISO 8601 date, plain-text summary, author and id. RSS 2.0, RSS 1.0 and Atom, up to 50 items; a page that is not a feed is refused uncharged. Use to follow news, blogs, release notes or podcasts in an agent. Example: url=https://hnrss.org/frontpage. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed"
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 50,
-            "description": "Items to return (1-50, default 20)"
-          }
-        },
-        "required": [
-          "url"
         ]
       },
       "price": "$0.01"

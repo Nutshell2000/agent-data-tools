@@ -271,7 +271,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // 1.304.0 (20 Nov 2026): big-paying-job doors keep their canonical section.
   "/full-website-audit": "Web, documents and search", "/web/extraction": "Web, documents and search",
   "/website/audit": "Company, compliance and checks",
-  "/text-to-speech-api": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
+  "/text-to-speech-generate": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
@@ -791,6 +791,6 @@ export const robotsTxt = (origin: string) =>
 import { lastmodTag } from "./lib/page-lastmod";
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/docs", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/docs", "/app", "/transcribe-pro", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`).join("")}</urlset>`;
 }
