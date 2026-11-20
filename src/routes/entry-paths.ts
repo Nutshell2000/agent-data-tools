@@ -17,6 +17,7 @@ import { generateImage, transcribe } from "./ai";
 import { FILE_REF_INPUT } from "../lib/file-input";
 import { AI_TEXT } from "./ai-text";
 import { SITE_AUDIT } from "./site-audit";
+import { X402_CHECK } from "./x402-check";
 import { RETRIEVAL } from "./retrieval";
 import { GEO_IP } from "./geo-ip";
 import { KEYWORDS } from "./keywords";
@@ -290,6 +291,21 @@ export const ENTRY_PATHS: Entry[] = [
     "Orderbook for a Hyperliquid perp: live bids and asks with spread and depth, from the exchange's public feed. Use when an agent needs current market liquidity before a trade. No account, pay per call over x402.",
     ["orderbook", "order-book", "crypto-orderbook", "bids-asks", "liquidity", "market-data"],
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(HYPERLIQUID, "/hyperliquid/orderbook"))),
+
+  // 1.312.0, 20 Nov 2026: the #1 nohumans demand lane ("check an x402 endpoint before paying",
+  // 67 searches/25 buyer IPs) and its variants. Exact-phrase slugs score up to 65 in Agent402's router
+  // (81,836 matches for the main phrase); we were rank 23 or absent despite selling /x402/check.
+  door("/check-x402-endpoint-before-paying", "Check an x402 endpoint first: price, payee and terms",
+    "Check an x402 endpoint before you pay it: decode its 402 payment terms (USD price for native USDC, network, asset, recipient, scheme, timeout) without paying, plus a listing-quality score for the resource URL, atomic amount, facilitator minimum and output schema. Never signs. Use before buying from an unfamiliar x402 seller.",
+    ["x402-endpoint-check", "check-before-paying", "x402-payment-check", "vet-x402", "payments", "security"], from(X402_CHECK, "/x402/check")),
+
+  door("/vet-x402-seller", "Vet x402 seller before paying: terms, payTo, domain",
+    "Vet an x402 seller before you pay: decode its 402 terms (price, network, asset, payTo), score listing quality and check sanctions and domain evidence. Never signs. Use to audit a paid endpoint before sending funds.",
+    ["vet-x402-seller", "x402-seller-audit", "check-before-paying", "x402", "payments", "security"], from(X402_CHECK, "/check/x402-seller")),
+
+  door("/verify-x402-payment", "Verify an x402 payment path: decode and score",
+    "Verify an x402 payment path before paying: decode the endpoint's 402 requirements and score its listing quality, with network, asset, payTo and timeout. Never signs. Use to confirm a paid endpoint is safe to call.",
+    ["verify-x402-payment", "x402-preflight", "payment-check", "check-before-paying", "x402", "security"], from(X402_CHECK, "/x402/check")),
 
   door("/keyword/research", "Keyword research: SEO keyword ideas for a seed",
     "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call.",
