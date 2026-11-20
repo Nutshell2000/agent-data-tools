@@ -181,7 +181,9 @@ export async function webSearch(env: Env, o: WebSearchOptions, fetcher: typeof f
     .filter((h) => !exclude.some((d) => onDomain(h.url, d)))
     .filter((h) => !category?.path || category.path.test(new URL(h.url).pathname))
     .filter((h) => !excludeLower || !`${h.title} ${h.snippet}`.toLowerCase().includes(excludeLower))
-    .filter((h) => !h.publishedDate || ((!start || h.publishedDate.slice(0, 10) >= start) && (!end || h.publishedDate.slice(0, 10) <= end)))
+    // When the buyer sets a date range, an undated hit cannot satisfy it. Keeping it silently broke the promise
+    // ("only pages published on or after DATE") and was a wrong answer on a paid search (19 Nov deep audit).
+    .filter((h) => (!start && !end) || (h.publishedDate !== null && (!start || h.publishedDate.slice(0, 10) >= start) && (!end || h.publishedDate.slice(0, 10) <= end)))
     .slice(0, o.count);
   return { hits, upstreamQuery, provider: endpoint === "news" ? "Brave News" : "Brave Search" };
 }

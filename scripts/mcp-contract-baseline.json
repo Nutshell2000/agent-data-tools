@@ -1,5 +1,5 @@
 {
-  "version": "1.300.0",
+  "version": "1.305.1",
   "tools": [
     {
       "name": "extract",
@@ -11397,6 +11397,57 @@
       "price": "$0.01"
     },
     {
+      "name": "stock_brief",
+      "description": "One-call stock research brief for any ticker or company: the quote plus one-year performance (1w, 1m, 3m, 6m, 1y), annualized volatility, maximum drawdown, 20/50/200-day moving averages, RSI(14), volume trend, 52-week range position and a rules-based bullish/neutral/bearish signal with the reasons and risk flags behind it. Deterministic, from one year of daily closes; no model call. Use to brief an agent or user on a stock before a decision. Example: symbol=AAPL. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Ticker (AAPL, ^GSPC, BTC-USD) or a company name"
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "stock_screen",
+      "description": "Daily stock screen in one call: gainers, losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted or aggressive-small-caps; up to 25 rows with price, day change, volume vs 3-month average, market cap, P/E, EPS, dividend, 52-week position, distance from 50/200-day averages, analyst rating and next earnings. Use to find stocks matching a screen. Delayed data; not investment advice. Example: screen=day-gainers. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "screen": {
+            "type": "string",
+            "description": "One of: day-gainers, day-losers, most-active, small-cap-gainers, undervalued-growth, growth-technology, undervalued-large-caps, most-shorted, aggressive-small-caps (default day-gainers)"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "description": "Rows to return (1-25, default 10)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "commodity_price",
       "description": "Commodity price now for gold, silver, platinum, palladium, copper, crude oil (WTI and Brent), natural gas, gasoline, heating oil, corn, wheat, soybeans, coffee, sugar, cocoa or cotton: the front-month futures price with its unit, the day's change and percent, previous close, day range and 52-week range. XAU, oil and similar names work. Use to price a commodity in an agent, track inflation inputs, or add market context to a brief. Example: commodity=gold. Price $0.001/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -12747,6 +12798,30 @@
               "number",
               "boolean"
             ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "csv_preflight",
+      "description": "Check CSV text before importing: returns a verdict (ok), problems with line numbers (empty or missing header, no data rows, ragged rows with field counts, duplicate headers, mixed column types, unterminated quotes, mojibake), the detected delimiter and a per-column type report. Use before ingesting a CSV export. Example: text=name,age\nAda,36\nBob,41. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The CSV text to validate (first row is the header)"
           }
         },
         "required": [
@@ -14901,31 +14976,6 @@
         "required": [
           "date"
         ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "market_is_open",
-      "description": "Is the stock market open right now? For the NYSE and Nasdaq (default) or the London Stock Exchange: open or closed, the session (regular, pre-market, after-hours) and why (weekend, holiday by name, early close), today's open and close, the next open and close in UTC and minutes until the next change. Computed from published hours, holidays and early closes; `at` asks about another moment. Use before trading, scheduling orders or alerts. Example: exchange=NYSE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "exchange": {
-            "type": "string",
-            "description": "NYSE (default), NASDAQ or LSE; also accepts US, UK, London"
-          },
-          "at": {
-            "type": "string",
-            "description": "Moment to ask about, ISO 8601 (default: now)"
-          }
-        }
       },
       "price": "$0.01"
     },
@@ -18783,6 +18833,349 @@
       "price": "$0.002"
     },
     {
+      "name": "erc20_balance",
+      "description": "ERC20 balance of any wallet on Ethereum: read a token's balanceOf for USDC, USDT, WETH or any ERC-20 contract, returned as raw amount, decimals, symbol and human-readable balance. Use to check token or stablecoin holdings before a transfer, trade or airdrop. Live from the token contract; a non-ERC-20 address returns an uncharged error. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "token_balance",
+      "description": "Token balance on Base for any wallet and ERC-20 (USDC, USDT, WETH or a contract address): raw amount, decimals, symbol and human-readable balance read live from the token contract. Use to check a Base wallet's token holdings before a swap or transfer. Invalid contracts return an uncharged 422. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address"
+          },
+          "address": {
+            "type": "string",
+            "description": "0x wallet address"
+          }
+        },
+        "required": [
+          "token",
+          "address"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "block_number",
+      "description": "Block number on Ethereum: the latest block number (or any block by decimal or hex number) with hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use as a freshness read for settlement, indexing and trading agents, or to timestamp a transaction. A future block returns an uncharged error. Example: number=latest. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Block number, or 'latest' (default)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "full_website_audit",
+      "description": "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers, SEO metadata and uptime, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page to audit"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "website_audit",
+      "description": "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of the page"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "text_to_speech_api",
+      "description": "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to speak, up to 300 characters"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "description": "Language: en or es (Aura-2 MP3, many voices); fr, zh, ja and ko are retired (MeloTTS was removed from Workers AI, 20 Nov 2026); default en"
+          },
+          "voice": {
+            "type": "string",
+            "description": "Voice name. English: amalthea, andromeda, apollo, arcas, aries, asteria, athena, atlas, aurora, callista, cora, cordelia, delia, draco, electra, harmonia, helena, hera, hermes, hyperion, iris, janus, juno, jupiter, luna, mars, minerva, neptune, odysseus, ophelia, orion, orpheus, pandora, phoebe, pluto, saturn, thalia, theia, vesta, zeus. Spanish: sirio, nestor, carina, celeste, alvaro, diana, aquila, selena, estrella, javier. Default: luna (en), aquila (es)"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm",
+              "ulaw",
+              "alaw",
+              "opus",
+              "flac"
+            ],
+            "description": "Audio format: mp3 (default), wav, pcm (raw 16-bit little-endian mono), ulaw or alaw (8 kHz telephony, e.g. Twilio), opus (Ogg) or flac. opus and flac only for text spoken in one part (up to 450 characters)"
+          },
+          "sample_rate": {
+            "description": "Sample rate in Hz for wav and pcm (8000, 16000, 24000 default, 32000, 48000) or ulaw/alaw (8000 default, 16000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "pronunciations": {
+            "type": "string",
+            "description": "How to say words: JSON {\"Nginx\":\"engine x\",\"GIF\":\"jif\"} or Nginx=engine x, GIF=jif (up to 50, whole words, any case)"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "sentiment_analysis",
+      "description": "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "English text, up to 4,000 characters"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "web_extraction",
+      "description": "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "One to five page URLs: comma-separated, one per line, or a JSON array"
+          },
+          "maxChars": {
+            "description": "Characters per page, 500 to 20000 (default 4000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "text (default) or markdown"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "image_generation",
+      "description": "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402. Example: prompt=a lighthouse on a cliff at sunset, watercolor. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "What the image should show (3-800 characters)"
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8,
+            "description": "Diffusion steps, 1-8 (default 4)"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "price": "$0.03"
+    },
+    {
+      "name": "ip_geolocation",
+      "description": "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "Public IPv4 or IPv6 address (over HTTP, left out: the caller's own address)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "keyword_research",
+      "description": "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call. Example: seed=crm software. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "string",
+            "description": "Seed keyword or topic, 2-80 characters"
+          },
+          "deep": {
+            "description": "true to add the Google long tail (seed + each letter, question words); about 30 more lookups",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "engines": {
+            "type": "string",
+            "description": "Optional comma list: google, bing, youtube, amazon, duckduckgo (default all)"
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code (default en)"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country code (default us); Amazon suggestions come from that country's store where one exists"
+          }
+        },
+        "required": [
+          "seed"
+        ]
+      },
+      "price": "$0.002"
+    },
+    {
       "name": "token_price",
       "description": "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check. Example: symbol=ETH. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -20105,36 +20498,6 @@
         "required": [
           "tokenA",
           "tokenB"
-        ]
-      },
-      "price": "$0.01"
-    },
-    {
-      "name": "rss_parse",
-      "description": "Parse an RSS or Atom feed into structured JSON: give a feed URL, or a page whose head links its feed, and get the feed title and its newest items with title, link, ISO 8601 date, plain-text summary, author and id. RSS 2.0, RSS 1.0 and Atom, up to 50 items; a page that is not a feed is refused uncharged. Use to follow news, blogs, release notes or podcasts in an agent. Example: url=https://hnrss.org/frontpage. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed"
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 50,
-            "description": "Items to return (1-50, default 20)"
-          }
-        },
-        "required": [
-          "url"
         ]
       },
       "price": "$0.01"

@@ -16,6 +16,10 @@ import { EXTRACT_OUTPUT_EXAMPLE } from "../lib/extract-example";
 import { generateImage, transcribe } from "./ai";
 import { FILE_REF_INPUT } from "../lib/file-input";
 import { AI_TEXT } from "./ai-text";
+import { SITE_AUDIT } from "./site-audit";
+import { RETRIEVAL } from "./retrieval";
+import { GEO_IP } from "./geo-ip";
+import { KEYWORDS } from "./keywords";
 import { CHAIN_READS } from "./chain-reads";
 import { extract } from "./extract";
 import { PAGES } from "./pages";
@@ -213,6 +217,63 @@ export const ENTRY_PATHS: Entry[] = [
   door("/wallet/balance", "Wallet balance lookup, EVM: native coin and USDC balance on 5 networks in one call",
     "Wallet balance lookup for any EVM address: the native coin (ETH, POL) and USDC balances on Base, Ethereum, Arbitrum, Optimism and Polygon in one call, read live from each network, with the USDC total. Use to check what a wallet holds before a payment, bridge or airdrop, or to confirm that funds arrived.",
     ["wallet-balance", "balance-lookup", "usdc-balance", "evm", "multichain", "onchain-data"], from(CHAIN_READS, "/wallet/balances")),
+
+  // 1.303.0, 19 Nov 2026: task-worded doors for the chain-read jobs that top the paying Agent402 router but where our
+  // canonical slugs (eth_token_balance, eth_block, ...) do not match the buyer's words. Agent402 scores slug 20/26 points
+  // and re-crawls /.well-known/x402 every 30 min, so these slugs put us in its dispatch set for erc20 balance (4,502
+  // matches), token balance (22,154) and block number (12,811) without any spend. Verified: where our slug matches we
+  // already score 26 and rank #1 (wallet portfolio). Same canonical tool, inputs, output and price.
+  door("/erc20/balance", "ERC20 balance: check a wallet's token holdings on Ethereum",
+    "ERC20 balance of any wallet on Ethereum: read a token's balanceOf for USDC, USDT, WETH or any ERC-20 contract, returned as raw amount, decimals, symbol and human-readable balance. Use to check token or stablecoin holdings before a transfer, trade or airdrop. Live from the token contract; a non-ERC-20 address returns an uncharged error.",
+    ["erc20-balance", "token-balance", "wallet-balance", "erc20", "onchain-data"], from(CHAIN_READS, "/eth/token-balance")),
+
+  door("/token/balance", "Token balance on Base: any ERC-20 wallet holdings",
+    "Token balance on Base for any wallet and ERC-20 (USDC, USDT, WETH or a contract address): raw amount, decimals, symbol and human-readable balance read live from the token contract. Use to check a Base wallet's token holdings before a swap or transfer. Invalid contracts return an uncharged 422.",
+    ["token-balance", "erc20-balance", "base-balance", "erc20", "onchain-data"], from(CHAIN_READS, "/base/token-balance")),
+
+  door("/block/number", "Block number: current chain tip on Ethereum",
+    "Block number on Ethereum: the latest block number (or any block by decimal or hex number) with hash, timestamp, transaction count, gas used and limit, base fee in gwei and producer. Use as a freshness read for settlement, indexing and trading agents, or to timestamp a transaction. A future block returns an uncharged error.",
+    ["block-number", "latest-block", "ethereum-block", "chain-data", "onchain-data"],
+    // /eth/block is in ACQUISITION_PATHS and the live catalog prices it at $0.002, not CHAIN_READS' $0.01.
+    ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(CHAIN_READS, "/eth/block"))),
+
+  // 1.304.0, 20 Nov 2026: the big-paying router jobs. Agent402 only returns 5 results by default and its
+  // seeded payers are excluded from its "distinct payers" tiebreak, so we win on an exact-phrase slug and
+  // the lowest price. Each door below leads with the buyer's words and runs a canonical tool at its live
+  // price. Map to full report: reports/SMARTENING - reverse-engineered router wins - 20 Nov 2026.md.
+  door("/full-website-audit", "Full website audit: WCAG, speed, SEO in one call",
+    "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers, SEO metadata and uptime, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice.",
+    ["full-website-audit", "website-audit", "wcag", "accessibility", "seo", "page-speed"], from(SITE_AUDIT, "/audit/website")),
+
+  door("/website/audit", "Website audit: uptime, SEO, security in one call",
+    "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402.",
+    ["website-audit", "site-audit", "seo-audit", "security-headers", "uptime", "onpage"], from(PACKS, "/pack/website-audit")),
+
+  door("/text-to-speech-api", "Text to speech API: natural voices, MP3 audio",
+    "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402.",
+    ["text-to-speech", "tts-api", "tts", "speech-synthesis", "audio", "voice"], from(AI_TEXT, "/ai/speech")),
+
+  door("/sentiment/analysis", "Sentiment analysis of any text: positive, negative, neutral",
+    "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key.",
+    ["sentiment-analysis", "text-sentiment", "sentiment", "nlp", "opinion", "ai"], from(AI_TEXT, "/ai/sentiment")),
+
+  door("/web/extraction", "Web extraction: any page to clean Markdown and text",
+    "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
+    ["web-extraction", "web-scraping", "page-to-markdown", "extract", "contents", "markdown"], from(RETRIEVAL, "/contents")),
+
+  door("/image/generation", "Image generation: from a text prompt",
+    "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402.",
+    ["image-generation", "text-to-image", "ai-image", "flux", "generate-image", "media"], CORE_IMAGE),
+
+  door("/ip/geolocation", "IP geolocation lookup: city, region, country, coordinates",
+    "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key.",
+    ["ip-geolocation", "ip-lookup", "geoip", "ip-location", "asn", "network"], from(GEO_IP, "/ip/geolocate")),
+
+  door("/keyword/research", "Keyword research: SEO keyword ideas for a seed",
+    "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call.",
+    ["keyword-research", "seo-keywords", "keyword-ideas", "keywords", "seo", "content-planning"],
+    // /keywords/ideas is acquisition-repriced to $0.002 in the live catalog, not the KEYWORDS list's $0.01.
+    ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(KEYWORDS, "/keywords/ideas"))),
 
   door("/token/price", "Token price lookup, USD: live crypto price by symbol or contract address",
     "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check.",

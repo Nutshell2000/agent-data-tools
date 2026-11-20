@@ -82,9 +82,16 @@ test('real SDK signs all four capped offline fixtures without a chain transactio
  for(const op of Object.keys(inputs)){const f=fixture(op,{realSigning:true});const v=await core.runChain(args(op),f.deps);assert.equal(v.ok,true);assert.equal(f.counts().submissions,1);}
 });
 test('bundle is deterministic, standalone, machine-readable and uses a single-file checksum',async()=>{
- const bytes=await readFile(join(temp,'chain-client.mjs')),checksum=await readFile(join(temp,'chain-client.mjs.sha256'),'utf8');assert.equal(checksum,createHash('sha256').update(bytes).digest('hex')+'  chain-client.mjs\n');assert.equal(built.version,'1.0.0');
+ const bytes=await readFile(join(temp,'chain-client.mjs')),checksum=await readFile(join(temp,'chain-client.mjs.sha256'),'utf8');assert.equal(checksum,createHash('sha256').update(bytes).digest('hex')+'  chain-client.mjs\n');assert.equal(built.version,'1.0.1');
  const {buildChain}=await import(pathToFileURL(resolve('clients/chain/build.mjs')).href);const again=await buildChain(temp);assert.equal(again.sha256,built.sha256);
  const env={...process.env};delete env.X402_PRIVATE_KEY;
- const help=await promisify(execFile)(process.execPath,[join(temp,'chain-client.mjs'),'--help'],{cwd:temp,env});assert.equal(JSON.parse(help.stdout).clientVersion,'1.0.0');assert.equal(JSON.parse(help.stdout).paymentStatus,'not_signed');assert.equal(help.stderr,'');
+ const help=await promisify(execFile)(process.execPath,[join(temp,'chain-client.mjs'),'--help'],{cwd:temp,env});assert.equal(JSON.parse(help.stdout).clientVersion,'1.0.1');assert.equal(JSON.parse(help.stdout).paymentStatus,'not_signed');assert.equal(help.stderr,'');
  await assert.rejects(promisify(execFile)(process.execPath,[join(temp,'chain-client.mjs'),'buy','gas'],{cwd:temp,env}),e=>e.code===1&&JSON.parse(e.stdout).error==='explicit_bounded_cap_required'&&e.stderr==='');
+});
+
+test('the published chain client pins the live payTo, not the retired wallet', async () => {
+  assert.equal(core.RECIPIENT, '0x6293ded2684f1a76e26becef87c137d691fbf800');
+  assert.notEqual(core.RECIPIENT.toLowerCase(), '0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5');
+  const src = await readFile('clients/chain/core.mjs', 'utf8');
+  assert.ok(src.includes(core.RECIPIENT), 'the source constant is the live payTo');
 });

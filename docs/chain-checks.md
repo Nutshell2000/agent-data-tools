@@ -13,7 +13,7 @@ These are the existing service prices, not a bundle or subscription. Each separa
 
 ## Download and verify
 
-Download [chain-client.mjs](https://github.com/Nutshell2000/agent-data-tools/releases/download/chain-client-1.0.0/chain-client.mjs) and [chain-client.mjs.sha256](https://github.com/Nutshell2000/agent-data-tools/releases/download/chain-client-1.0.0/chain-client.mjs.sha256) into the same folder. Keep both filenames unchanged. [Release and tested source tag](https://github.com/Nutshell2000/agent-data-tools/releases/tag/chain-client-1.0.0) · [source and reproducible build](../clients/chain/README.md).
+Download [chain-client.mjs](https://github.com/Nutshell2000/agent-data-tools/releases/download/chain-client-1.0.1/chain-client.mjs) and [chain-client.mjs.sha256](https://github.com/Nutshell2000/agent-data-tools/releases/download/chain-client-1.0.1/chain-client.mjs.sha256) into the same folder. Keep both filenames unchanged. [Release and tested source tag](https://github.com/Nutshell2000/agent-data-tools/releases/tag/chain-client-1.0.1) · [source and reproducible build](../clients/chain/README.md).
 
 POSIX shell (Linux):
 
