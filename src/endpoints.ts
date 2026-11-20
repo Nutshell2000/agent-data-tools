@@ -935,6 +935,10 @@ export const PAUSED_FAMILY_TOOLS: Readonly<Record<string, string>> = Object.free
   // /solana/tx paused 27 Oct 2026: publicnode keeps under 3 days of transactions and the Foundation node rate-limits Cloudflare
   // (429), so any published example stops working within days and older signatures always answer 404.
   "/solana/tx": "Solana transaction lookups need an archive node this service does not have yet; it would only find transactions from the last 2-3 days.",
+  // 20 Nov 2026 (owner: "Yes, pause them"): Workers AI retired both models that day (410 "Model has been deprecated") and
+  // offers no replacement on this account. /v1/chat/completions serves requests naming them on a working model instead.
+  "/ai/model/qwen3-30b": "Qwen3 30B was retired by Workers AI on 20 Nov 2026. Use /ai/chat-large (Llama 3.3 70B or gpt-oss-120b) or /v1/chat/completions, which serves requests naming Qwen3 on Llama 3.3 70B.",
+  "/ai/model/deepseek-r1": "DeepSeek R1 distill was retired by Workers AI on 20 Nov 2026. Use /ai/chat-large with model=gpt-oss-120b (a reasoning model) or /v1/chat/completions, which serves requests naming DeepSeek R1 on gpt-oss-120b.",
   // Resold LinkedIn and X data (1.180.0, src/routes/resale.ts): paused until the resale hot wallet is funded and
   // RESALE_WALLET_KEY is set; then remove these three lines in one release.
   "/linkedin/profile": "LinkedIn profile lookups open once the provider account is funded.",
