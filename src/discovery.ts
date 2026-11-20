@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.315.3";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.318.2";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -280,6 +280,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/whale/alert": "Chain data",
   // 1.315.0 (20 Nov 2026): weather doors keep their canonical section (our top earner).
   "/weather-api": "Everyday data", "/live-weather": "Everyday data", "/48-hour-forecast": "Everyday data",
+  "/perpetual/funding/rates": "Prices and DeFi", // fix: 1.318.0 door was missing its section
   // 1.312.0 (20 Nov 2026): check-before-paying doors keep their canonical section.
   "/check-x402-endpoint-before-paying": "Company, compliance and checks", "/vet-x402-seller": "Company, compliance and checks",
   "/verify-x402-payment": "Company, compliance and checks",

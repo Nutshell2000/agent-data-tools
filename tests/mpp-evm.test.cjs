@@ -212,3 +212,26 @@ test('the facilitator rejecting the authorization (no funds) means a 402 with th
   assert.equal(facilitatorCalls.filter((c) => c.path.endsWith('/verify')).length, verifies, 'refused before the facilitator');
   assert.equal(settlements, settled);
 });
+
+test('a failed, uncharged call releases the claim so the same authorization can be retried', async () => {
+  const { Challenge } = await import('mppx');
+  const { evm } = await import('mppx/client');
+  const account = accounts.privateKeyToAccount(accounts.generatePrivateKey());
+  const method = evm.charge({ account, currencies: [evm.assets.base.USDC], networks: [8453] });
+  const credentialFor = async (url) => {
+    const quote = await mf.dispatchFetch(url);
+    await quote.arrayBuffer();
+    return method.createCredential({ challenge: Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers })).find((ch) => ch.method === "evm"), context: {} });
+  };
+  const cred = await credentialFor('https://api.test/time?zone=Not/AZone');
+  const bad = await mf.dispatchFetch('https://api.test/time?zone=Not/AZone', { headers: { authorization: cred } });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.headers.get("payment-receipt"), null, "nothing charged");
+  await bad.arrayBuffer();
+  const before = settlements;
+  const retry = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { headers: { authorization: cred } });
+  assert.equal(retry.status, 200, 'an uncharged authorization must still be usable');
+  assert.ok(retry.headers.get('payment-receipt'));
+  await retry.arrayBuffer();
+  assert.equal(settlements, before + 1, 'settled exactly once');
+});

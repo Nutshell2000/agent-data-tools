@@ -277,3 +277,14 @@ test('lead enrichment door carries the buyer phrase and runs the domain-intel pa
   assert.ok(d.endpoint.tags.includes('lead-enrichment'));
   assert.equal(doors.ENTRY_PATHS.filter((x) => doors.ENTRY_OF[x.endpoint.path] === '/pack/domain-intel').length, 2, 'at most two doors per tool');
 });
+
+test('perpetual funding rates door carries the exact buyer phrase at the canonical price', () => {
+  assert.equal(doors.ENTRY_OF['/perpetual/funding/rates'], '/hyperliquid/market');
+  const d = doors.ENTRY_PATHS.find((x) => x.endpoint.path === '/perpetual/funding/rates');
+  assert.ok(d, 'funding rates door exists');
+  const live = endpoints.ENDPOINTS.find((e) => e.path === '/perpetual/funding/rates');
+  assert.equal(live.price, '$0.002', 'shares the canonical acquisition price');
+  assert.equal(d.endpoint.path.replace(/^\//, '').replace(/\//g, '_'), 'perpetual_funding_rates', 'full-phrase router slug');
+  assert.match(d.endpoint.summary, /^Perpetual funding rates/, 'buyer-worded name');
+  assert.equal(doors.ENTRY_PATHS.filter((x) => doors.ENTRY_OF[x.endpoint.path] === '/hyperliquid/market').length, 2, 'at most two doors per tool');
+});

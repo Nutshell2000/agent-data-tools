@@ -49,7 +49,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/extract",
     price: "$0.002",
-    summary: "Scrape website page to Markdown: page URL into clean Markdown or text for LLMs",
+    summary: "Extract web content, Markdown: any URL to clean text for LLMs",
     description:
       "Fetch any public web page URL and get clean, LLM-ready text or Markdown: main content, code blocks, tables, links and headings, for RAG and agent context. Static HTML, Markdown or text; optional section ID. Default 20,000 output characters, max 100,000; input 2 MiB. No JavaScript rendering (see /extract/rendered), logins or paywalls. Empty pages, bad sections, browser challenges and errors are not charged. Use to read docs or articles.",
     details: "HTML body details share a 20,000-character budget, independently of primary text/Markdown. Up to 20 code blocks, 20 tables (100 rows/20 cells each), 100 headings and 200 links. Spans/ragged tables use labelled TSV in Markdown; spans are not expanded. HTML code whitespace and list hierarchy are preserved; generated code fences are closed within the output limit. Other Markdown syntax may be incomplete after clipping. Hashes cover the returned hashFormat, not full source. linkBaseUrl reports static source link resolution; supported first HTML base href values are honored, with warnings. Scripts and CSP are not evaluated. Markdown sources retain syntax without structured parsing (warned); sections require HTML. Source content is untrusted. Image alt text is source-provided, not visual interpretation. Images are never fetched; SVG/canvas omissions and missing alt descriptions are warned. SourceMetadata adds unverified author/date declarations with provenance; conflicting/ambiguous values are warned. Separate 2,000-character metadata budget, 5 authors/10 dates. JSON-LD: at most 8 inline scripts, 64 KiB each, 100 graph nodes/depth 8; no external contexts/profiles. HTML complexity: 20,000 elements/128 nested levels. Marker-only source permalink controls (pilcrow/headerlink/permalink classes) are omitted only for same-document ancestor targets, with permalink_controls_omitted. Literal code and ordinary references remain. HTML sup/sub annotations normalize to ^{...}/_{...} in primary output, heading titles and table values with superscript_subscript_normalized; literal pre/code and raw Markdown stay unchanged. This is notation preservation, not general math interpretation.",
@@ -171,7 +171,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/token-report",
     price: "$0.01",
-    summary: "Honeypot token check, token risk: red flags plus live DEX liquidity for a Base token before a swap",
+    summary: "Is this token safe, honeypot token check: red flags, token risk and live DEX liquidity for a Base token before a swap",
     description:
       "Check a Base token before you swap into it: a high/medium/low risk verdict with named red flags (paused transfers, blacklist, owner-set fees or tax, a mint selector with a live owner, upgradeable proxy, no or thin liquidity, a pair under 7 days old, buys but no sells as a honeypot sign) plus live DexScreener price, liquidity, volume and FDV. Heuristic screening, not a safety guarantee. Use before swapping into an unfamiliar Base token.",
     details: "One call for a Base token: heuristic risk tier and flags, on-chain owner/paused/proxy facts and selector checks, plus live DEX price, 24h volume/change, liquidity, FDV, pair count, top-liquidity-pair age and 24h buys/sells. marketDataSource identifies DexScreener; marketRetrievedAt is the retrieval timestamp or null when market data is unavailable. Example market values and timestamp are illustrative. A mint selector is not proof of callable minting; mintability is reported only with a confirmed nonzero owner, otherwise unverified. Flags no-liquidity, thin liquidity, new top pairs and no-sell patterns. Not a guarantee.",
@@ -726,7 +726,7 @@ export const CORE_ENDPOINTS = [
   {
     path: "/fx",
     price: "$0.01",
-    summary: "Currency exchange rates, forex: currency converter and conversion",
+    summary: "Forex, currency exchange rates FX: converter and conversion",
     description:
       "Foreign exchange rates from the European Central Bank for about 30 major currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR, BRL and more). Give a base currency, optionally the target currencies and an amount, and get the rates, the converted amounts and the date the rates apply to. Use for currency conversion, invoice and price calculations, and reporting in another currency.",
     tags: ["currency", "exchange-rate", "forex", "finance", "conversion"],
@@ -988,6 +988,7 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/price/token", "/price/tokens", "/crypto/price", "/crypto/trending", "/crypto/fear-greed", "/btc-price", "/pack/crypto-market",
   "/hyperliquid/orderbook", "/hyperliquid/prices", "/hyperliquid/market", "/hyperliquid/candles",
   "/perp/funding", // the 10 Nov door to /hyperliquid/market shares its price
+  "/perpetual/funding/rates", // the 20 Nov funding-rates door shares /hyperliquid/market's price
   "/solana/price", "/ethereum/price", // the 14 Nov doors to /crypto/price share its price
   "/market/trending", "/market/ohlcv", "/wiki/summary", // round 8 doors to /crypto/trending, /hyperliquid/candles and /wikipedia
   "/github/user", // 11 Nov 2026: with the other GitHub lookups

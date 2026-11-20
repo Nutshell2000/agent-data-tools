@@ -415,7 +415,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Generate an image from a text prompt with FLUX.1 schnell: send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds, with an optional steps setting (1-8) for more detail. Use for illustrations, thumbnails, mockups, avatars, product shots and social media images inside an agent workflow.",
     ["image-generation", "text-to-image", "generate-image", "ai-image", "flux", "art"], CORE_IMAGE),
 
-  door("/scrape", "Web scraping API: scrape any web page to clean text or Markdown",
+  door("/scrape", "Scrape a web page to Markdown: clean text or Markdown from any URL",
     "Web scraping API: fetch any public web page URL and get its main content as clean text or Markdown (headings, code blocks, tables and links kept), ready for an LLM, RAG or an agent's context; static HTML, Markdown or text pages, up to 100,000 characters. JavaScript-rendered pages: /extract/rendered. Empty pages, bot walls and errors are never charged. Use to read articles, docs and product pages at scale.",
     ["web-scraping", "scrape", "scraper", "web-page-to-markdown", "extract", "rag"], CORE_EXTRACT),
 
@@ -586,6 +586,13 @@ export const ENTRY_PATHS: Entry[] = [
   door("/perp/funding", "Perp funding rate: live, by coin",
     "Perp funding rate now for a coin (BTC, ETH, SOL, HYPE…): the hourly funding rate and its APR, premium, mark and oracle price, open interest in coins and USD, 24-hour volume and price change on Hyperliquid perpetual futures. Without a coin, the 20 most traded markets. Use to compare funding before opening a perp position, to find a basis or carry trade, or to feed a derivatives dashboard.",
     ["perp-funding", "funding-rate", "perpetuals", "open-interest", "hyperliquid", "derivatives"], from(HYPERLIQUID, "/hyperliquid/market")),
+  // 20 Nov 2026: "perpetual funding rates" is a phrase external payers buy (finder-answers 20 Nov: 18 payers /
+  // 42 calls across 5 rival listings, and Agent402 router rivals score 26-29 while we were absent). A full-phrase
+  // slug scores 39 and should take #1. Same tool, inputs, output and $0.002 price. Hyperliquid only — no
+  // multi-exchange claim.
+  door("/perpetual/funding/rates", "Perpetual funding rates: live by coin",
+    "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate, 8h-equivalent APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice.",
+    ["perpetual-funding", "funding-rates", "perps", "hyperliquid", "derivatives", "open-interest"], from(HYPERLIQUID, "/hyperliquid/market")),
 
   // Round 5 (10 Nov 2026): the tasks most open shoppers pay for that we already sell under another name. Counted in a
   // two-day sample of 50 wallets that each pay 8+ sellers: website technology detection 10 buyers, email auth 8, URL fetch
