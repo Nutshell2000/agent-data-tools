@@ -978,7 +978,7 @@ for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
       // Legacy v1 shape, unchanged: the exact URL list in the same order as /discovery/resources.
       resources: salesOrdered(ENDPOINTS).filter((e) => !only || only.has(e.path)).map((e) => url + e.path),
       // v2 shape: each resource with its accepts[] (scheme, network, amount, asset, payTo), description and tags.
-      resourcesV2: terms.items.map((i) => ({ resource: i.resource, type: i.type, x402Version: i.x402Version, accepts: i.accepts, metadata: i.metadata })),
+      resourcesV2: terms.items.map((i) => ({ resource: i.resource, type: i.type, x402Version: i.x402Version, accepts: i.accepts, lastUpdated: i.lastUpdated, description: i.description, mimeType: i.mimeType, serviceName: i.serviceName, tags: i.tags, extensions: i.extensions, metadata: i.metadata })),
       discovery: `${url}/discovery/resources`,
     });
   });
