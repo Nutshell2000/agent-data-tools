@@ -1023,12 +1023,13 @@ export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/comm
 // calls on 14 Nov; after the step at 15 UTC it sold 2 and none overnight, while the rival listing in vAPI search sat at
 // $0.002. The owner asked to "fix weather and pricing so we get outside payers"; prices are delegated (14 Nov).
 const priceAtomic = (p: string) => Math.round(Number(p.slice(1)) * 1_000_000);
-const floorPriced = (e: Endpoint): Endpoint => {
-  if (FINDER_TEST_PATHS.has(e.path)) return { ...e, price: FINDER_TEST_PRICE }; // a deliberate rank test, not a revenue path
-  if (LOSS_LEADERS.has(e.path)) return { ...e, price: ACQUISITION_PRICE }; // the breadth doors stay at $0.002
-  if (DOC_PINNED_PATHS.has(e.path)) return e; // published client caps still quote these at their current price
-  return priceAtomic(e.price) < priceAtomic(FLOOR_PRICE) ? { ...e, price: FLOOR_PRICE } : e;
-};
+// The $0.01 floor of PR #600 is NOT applied (owner, 20 Nov 2026: "No, keep $0.01"; the floor's 169 listings were never
+// re-settled either, so Mercator would have refused their payments). Prices are as before #600: acquisition-priced
+// paths at $0.002, every other tool at its own price. FLOOR_PRICE, LOSS_LEADERS and DOC_PINNED_PATHS stay defined for a
+// later, owner-approved floor that ships together with its re-settle.
+void priceAtomic; void LOSS_LEADERS; void DOC_PINNED_PATHS; void FLOOR_PRICE;
+const floorPriced = (e: Endpoint): Endpoint =>
+  FINDER_TEST_PATHS.has(e.path) ? { ...e, price: FINDER_TEST_PRICE } : ACQUISITION_PATHS.has(e.path) ? { ...e, price: ACQUISITION_PRICE } : e;
 export const ENDPOINTS: readonly Endpoint[] = [...CORE_ENDPOINTS, ...FAMILIES.map((f) => f.endpoint).filter(e => !Object.hasOwn(PAUSED_FAMILY_TOOLS, e.path))].map(floorPriced);
 /**
  * The one tool count (16 Nov 2026): the tools a caller can call, each counted once. That is every tool in ENDPOINTS
