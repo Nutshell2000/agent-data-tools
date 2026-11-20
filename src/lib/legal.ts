@@ -16,7 +16,7 @@ function page(title: string, body: string) {
 }
 
 /** One line for the footers of the other public pages (tool pages, guides, the browser 402 page). */
-export const COMPANY_FOOTER = `<a href="/about">A SpellzCode service</a> · <a href="/status">Reliability</a> · <a href="/changelog">Changelog</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>`;
+export const COMPANY_FOOTER = `<a href="/about">A SpellzCode service</a> · <a href="/status">Reliability</a> · <a href="/changelog">Changelog</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a>`;
 
 const mail = `<a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`;
 
