@@ -56,6 +56,7 @@ import { UTILS } from "./utils";
 import { WEB_CHECKS } from "./web-checks";
 import { WHALE } from "./whale";
 import { PACKS_RESEARCH } from "./packs-research";
+import { GEO_MORE } from "./geo-more";
 import { ECON } from "./econ";
 import { FEEDS } from "./feeds";
 
@@ -275,6 +276,13 @@ export const ENTRY_PATHS: Entry[] = [
     // /keywords/ideas is acquisition-repriced to $0.002 in the live catalog, not the KEYWORDS list's $0.01.
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(KEYWORDS, "/keywords/ideas"))),
 
+  door("/crypto/research", "Crypto research, coin research: one-call coin brief",
+    "Crypto research and coin research in one call: price, 24h change, volume and open interest for any Hyperliquid coin (BTC, ETH, SOL, HYPE and about 200 more), funding now and over 3 days, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use before a trade or to brief an agent on a coin. Not investment advice.",
+    ["crypto-research", "coin-research", "token-research", "coin-brief", "hyperliquid"], from(GEO_MORE, "/pack/coin-research")),
+
+  door("/coin/research", "Coin research: price, funding and signals for one coin",
+    "Coin research in one call: live price, volume, open interest and funding for any Hyperliquid coin, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use for a pre-trade coin brief or to research one token. Not investment advice.",
+    ["coin-research", "crypto-research", "coin-brief", "token-research", "defi"], from(GEO_MORE, "/pack/coin-research")),
   door("/token/price", "Token price lookup, USD: live crypto price by symbol or contract address",
     "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check.",
     ["token-price", "crypto-price", "price-lookup", "uniswap", "defi", "market-data"], from(PRICES, "/price/token")),
