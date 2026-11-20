@@ -85,6 +85,11 @@ test('/llms.txt is under 8 KB and leads with the keyless call, then paying, twel
   }
   assert.ok(text.includes(`${O}/mcp (`) && text.includes(`${O}/mcp/compact`));
   for (const link of ['/llms-full.txt', '/openapi.json', '/tools', '/docs']) assert.ok(text.slice(order[4]).includes(O + link), link);
+  // 20 Nov 2026: an LLM reading llms.txt must be able to discover the revenue product and plan pages.
+  const more = text.slice(order[4]);
+  for (const link of ['/transcribe-pro', '/guides', '/pdf-to-text-api']) assert.ok(more.includes(O + link), `${link} is surfaced in llms.txt`);
+  assert.match(more, /\$3\/month/, 'the $3 entry plan is named');
+  assert.ok(!more.includes('$9'), 'the retired $9 price is not advertised');
   assert.ok(text.slice(order[4]).includes('spellz111122@gmail.com'));
   assert.doesNotMatch(text, /\b\d{3,}\s+(pay-per-call\s+)?tools\b/, 'no tool count is stated');
 });
