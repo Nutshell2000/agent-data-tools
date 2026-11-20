@@ -7,6 +7,7 @@ import { entry, getJson, need, num, opt, type Entry } from "../family";
 import { listing, type BazaarItem } from "./x402-find";
 import { runAi } from "../lib/ai";
 import { HttpError, type Env } from "../lib/env";
+import { WEB_PACKS } from "../lib/credits";
 import { RERANK_MODEL } from "./retrieval";
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
@@ -135,6 +136,13 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   // website URL is not a PDF and fails there); "summarize a long article" by `article→news` to /news. Both are paid
   // jobs with a direct tool, and both were lost at the free finder.
   "extract text from a website": "/extract", "text from a website": "/extract", "read a web page": "/extract", "summarize a long article": "/summarize", "summarize this article": "/summarize", "summarize a web page": "/summarize",
+  // 20 Nov 2026 (live /find?need audit): plain-language PDF/document jobs were hijacked by the generic
+  // `document→pdf` synonym to /document/extract, which REQUIRES a `fields` argument a URL-only buyer does not
+  // have (400, uncharged); "full text of webpage" hit /pdf/text, which 415s on HTML. These phrases route to the
+  // tools that only need a URL, so a willing buyer actually gets a result and is charged for it.
+  "read a pdf": "/pdf/text", "read pdf": "/pdf/text", "read a pdf file": "/pdf/text", "extract text from pdf": "/pdf/text",
+  "read a document": "/document/text", "read document": "/document/text", "extract text from document": "/document/text",
+  "full text of webpage": "/extract", "full text of a webpage": "/extract", "full text of a web page": "/extract", "full text of page": "/extract",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "share price": "/stock/quote", "shares price": "/stock/quote", "equity price": "/stock/quote", "price of a stock": "/stock/quote", "price of a share": "/stock/quote", "company share price": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
@@ -239,7 +247,7 @@ export async function recommend(env: Env, needText: string, count: number, reran
   return {
     need: needText,
     picks,
-    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a prepaid key as Authorization: Bearer (by card at ${origin}/credits, or with USDC at ${origin}/credits/usdc/5). Failed calls are never charged; the first 3 calls per caller are free over HTTP on tools in the free calls (add trial=1).`,
+    howToPay: `GET the call URL: unpaid it answers 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana) and MPP; or send a prepaid key as Authorization: Bearer (by card in one step at ${WEB_PACKS[0].url} — Stripe, $${WEB_PACKS[0].usdCents / 100} for ${WEB_PACKS[0].credits.toLocaleString("en-US")} credits; other packs at ${origin}/credits — or with USDC at ${origin}/credits/usdc/5). Failed calls are never charged; the first 3 calls per caller are free over HTTP on tools in the free calls (add trial=1).`,
     mcp: `${origin}/mcp`,
     method,
   };
