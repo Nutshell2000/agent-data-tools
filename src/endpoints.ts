@@ -988,6 +988,7 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/price/token", "/price/tokens", "/crypto/price", "/crypto/trending", "/crypto/fear-greed", "/btc-price", "/pack/crypto-market",
   "/hyperliquid/orderbook", "/hyperliquid/prices", "/hyperliquid/market", "/hyperliquid/candles",
   "/perp/funding", // the 10 Nov door to /hyperliquid/market shares its price
+  "/perpetual/funding/rates", // the 20 Nov funding-rates door shares /hyperliquid/market's price
   "/solana/price", "/ethereum/price", // the 14 Nov doors to /crypto/price share its price
   "/market/trending", "/market/ohlcv", "/wiki/summary", // round 8 doors to /crypto/trending, /hyperliquid/candles and /wikipedia
   "/github/user", // 11 Nov 2026: with the other GitHub lookups
