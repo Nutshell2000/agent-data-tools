@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.319.1";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.320.0";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -275,6 +275,9 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/crypto/research": "Prices and DeFi", "/coin/research": "Prices and DeFi",
   // 1.312.0 (20 Nov 2026): the lead-enrichment door keeps the canonical company section.
   "/lead/enrichment": "Company, compliance and checks",
+  // 20 Nov 2026: round-13 exact-phrase doors keep their canonical sections.
+  "/speech/to-text": "AI", "/pdf/to-text": "Web, documents and search", "/web/scraping": "Web, documents and search",
+  "/news/sentiment": "Web, documents and search",
   // 1.306.0 (20 Nov 2026): market/DEX/whale/orderbook doors keep their canonical section.
   "/market/data": "Prices and DeFi", "/dex/pools": "Prices and DeFi", "/orderbook-live": "Prices and DeFi",
   "/whale/alert": "Chain data",
