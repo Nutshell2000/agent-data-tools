@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.312.2";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.314.1";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -273,6 +273,8 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   "/text-to-speech-generate": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
   // 1.309.0 (20 Nov 2026): the crypto/coin research doors keep their canonical pack section.
   "/crypto/research": "Prices and DeFi", "/coin/research": "Prices and DeFi",
+  // 1.312.0 (20 Nov 2026): the lead-enrichment door keeps the canonical company section.
+  "/lead/enrichment": "Company, compliance and checks",
   // 1.306.0 (20 Nov 2026): market/DEX/whale/orderbook doors keep their canonical section.
   "/market/data": "Prices and DeFi", "/dex/pools": "Prices and DeFi", "/orderbook-live": "Prices and DeFi",
   "/whale/alert": "Chain data",
@@ -798,6 +800,6 @@ export const robotsTxt = (origin: string) =>
 import { lastmodTag } from "./lib/page-lastmod";
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/docs", "/app", "/transcribe-pro", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
+  const paths = ["/", "/docs", "/credits", "/keys/free", "/app", "/transcribe-pro", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`).join("")}</urlset>`;
 }

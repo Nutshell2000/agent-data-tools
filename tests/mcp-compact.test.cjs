@@ -78,6 +78,10 @@ test('find_tool answers a job in plain words with names, prices and inputs, and 
     assert.match(found.pay, /credits/);
     const details = jsonOf(await call(client, 'tool_details', { name: 'pdf_text' }));
     assert.match(details.pay, /PAYMENT NEEDED|credits/);
+    // 20 Nov 2026: the first-touch card-pack hint must value a $1 pack at the KEY price, like the HTTP 402 hint.
+    // Using the public price understates the pack up to 10x to the human approving the purchase.
+    assert.match(details.pay, /about 500 calls at \$0\.002 with a key/, details.pay);
+    assert.doesNotMatch(details.pay, /about 200 calls at \$0\.005 with a key/, details.pay);
     assert.ok(found.tools.length >= 2 && found.tools.length <= 5);
     found = jsonOf(await call(client, 'find_tool', { need: 'sha256 hash of a text', count: 1 }));
     assert.equal(found.tools.length, 1);

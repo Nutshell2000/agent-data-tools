@@ -85,8 +85,12 @@ async function withinLimits(kv: KVNamespace, ip: string | undefined): Promise<bo
   return true;
 }
 
-function page(title: string, body: string, indexable = false) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}<meta name="referrer" content="no-referrer"><style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}input[type=email]{font:inherit;padding:.5rem;width:100%;max-width:22rem;box-sizing:border-box}button{font:inherit;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;background:none;color:inherit;cursor:pointer}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}code,pre{background:#262626}button{border-color:#eee}}</style></head><body>${body}</body></html>`;
+function page(title: string, body: string, indexable = false, seo?: { origin: string; path: string; description: string }) {
+  // 20 Nov 2026: /keys/free is indexable but had no canonical/og/description, unlike the other acquisition pages.
+  const seoTags = seo
+    ? `<meta name="description" content="${esc(seo.description)}"><link rel="canonical" href="${esc(seo.origin + seo.path)}"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(seo.description)}"><meta property="og:url" content="${esc(seo.origin + seo.path)}"><meta property="og:image" content="${esc(seo.origin)}/og-glyphcall.png"><meta name="twitter:card" content="summary_large_image">`
+    : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}${seoTags}<meta name="referrer" content="no-referrer"><style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}input[type=email]{font:inherit;padding:.5rem;width:100%;max-width:22rem;box-sizing:border-box}button{font:inherit;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;background:none;color:inherit;cursor:pointer}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}code,pre{background:#262626}button{border-color:#eee}}</style></head><body>${body}</body></html>`;
 }
 
 const WHAT = `${FREE_KEY_CALLS} successful calls each calendar month, for as long as you use it. Failed calls do not count. It covers the tools that read and compute (documents to text, fields out of a document, page text, company and VAT checks, DNS, prices, chain reads and the rest); web search, news, the larger AI models, speech, images, browser rendering and screenshots need credits.`;
@@ -105,7 +109,7 @@ freeKeys.get("/keys/free", (c) => {
   if (!on) return c.html(page("Free API key", `<h1>Free keys are not offered right now</h1><p>You can try most tools without a key, or <a href="/credits">buy credits from $1</a>.</p>`), 404);
   return c.html(page(`Free API key: ${FREE_KEY_CALLS} calls a month`, `<h1>A free API key: ${FREE_KEY_CALLS} calls a month</h1><p>${esc(WHAT)}</p>
 <form method="post" action="/keys/free"><p><label>Your e-mail address<br><input type="email" name="email" required autocomplete="email" placeholder="you@example.com"></label></p><p><label><input type="checkbox" name="updates" value="1"> ${esc(OPT_IN_LABEL)}</label></p><p><button type="submit">Send me the link</button></p></form>
-<p>${esc(PRIVACY)} <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p><p>Need more? <a href="/credits">Credits from $1, or a monthly plan</a>; they go on the same key.</p>`, true));
+<p>${esc(PRIVACY)} <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p><p>Need more? <a href="/credits">Credits from $1, or a monthly plan</a>; they go on the same key.</p>`, true, { origin, path: "/keys/free", description: `A free API key for ${FREE_KEY_CALLS} calls a month on every tool that does not use paid capacity. No card, no account: just your e-mail.` }));
 });
 
 freeKeys.post("/keys/free", async (c) => {
