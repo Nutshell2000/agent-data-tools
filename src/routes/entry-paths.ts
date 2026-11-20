@@ -292,6 +292,21 @@ export const ENTRY_PATHS: Entry[] = [
     ["orderbook", "order-book", "crypto-orderbook", "bids-asks", "liquidity", "market-data"],
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(HYPERLIQUID, "/hyperliquid/orderbook"))),
 
+  // 1.315.0, 20 Nov 2026: /weather is our top earner (215 calls/day) but absent from the highest-match
+  // router phrases — "weather api" (39k matches), "live weather" (40k), "48 hour forecast" (4.9k),
+  // "hourly forecast" (2.3k). Exact-phrase slugs score 26. /weather already has 2 doors; raised its cap to 5.
+  door("/weather-api", "Weather API: current conditions and forecast for any city",
+    "Weather API: current conditions and up to 48 hours of hourly forecast for any city or lat/lon, from MET Norway. Returns temperature, precipitation, wind and conditions with a freshness timestamp. Use to plan around the weather or add current conditions to an agent. $0.002 per call, no account, no API key.",
+    ["weather-api", "weather", "forecast", "current-weather", "hourly", "conditions"], CORE_WEATHER),
+
+  door("/live-weather", "Live weather: current conditions and forecast by city",
+    "Live weather for any city or coordinates: current conditions plus an hourly forecast, with temperature, wind and precipitation from MET Norway. Use to check what the weather is right now before an outdoor task or trip. $0.002 per call, no account, no API key.",
+    ["live-weather", "weather-now", "current-weather", "weather", "forecast", "conditions"], CORE_WEATHER),
+
+  door("/48-hour-forecast", "48 hour forecast: hourly weather for any city",
+    "48-hour hourly forecast for any city or lat/lon from MET Norway: temperature, precipitation, wind and conditions for every hour up to two days ahead. Use to plan the next two days hour by hour. $0.002 per call, no account, no API key.",
+    ["48-hour-forecast", "hourly-forecast", "weather-forecast", "forecast", "weather", "met-norway"], CORE_WEATHER),
+
   // 1.312.0, 20 Nov 2026: the #1 nohumans demand lane ("check an x402 endpoint before paying",
   // 67 searches/25 buyer IPs) and its variants. Exact-phrase slugs score up to 65 in Agent402's router
   // (81,836 matches for the main phrase); we were rank 23 or absent despite selling /x402/check.

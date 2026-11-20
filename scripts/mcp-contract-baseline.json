@@ -1,5 +1,5 @@
 {
-  "version": "1.314.2",
+  "version": "1.315.3",
   "tools": [
     {
       "name": "extract",
@@ -19305,6 +19305,111 @@
             "minimum": 1,
             "maximum": 20,
             "description": "Levels per side, 1-20 (default 10)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "weather_api",
+      "description": "Weather API: current conditions and up to 48 hours of hourly forecast for any city or lat/lon, from MET Norway. Returns temperature, precipitation, wind and conditions with a freshness timestamp. Use to plan around the weather or add current conditions to an agent. $0.002 per call, no account, no API key. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 48,
+            "description": "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "live_weather",
+      "description": "Live weather for any city or coordinates: current conditions plus an hourly forecast, with temperature, wind and precipitation from MET Norway. Use to check what the weather is right now before an outdoor task or trip. $0.002 per call, no account, no API key. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 48,
+            "description": "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)"
+          }
+        }
+      },
+      "price": "$0.002"
+    },
+    {
+      "name": "48_hour_forecast",
+      "description": "48-hour hourly forecast for any city or lat/lon from MET Norway: temperature, precipitation, wind and conditions for every hour up to two days ahead. Use to plan the next two days hour by hour. $0.002 per call, no account, no API key. Example: city=London. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City or place name, e.g. London or Tokyo (used when lat and lon are not given; with no place at all the answer is for London)"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude in decimal degrees, -90 to 90 (with lon, instead of city)"
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude in decimal degrees, -180 to 180 (with lat, instead of city)"
+          },
+          "hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 48,
+            "description": "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)"
           }
         }
       },
