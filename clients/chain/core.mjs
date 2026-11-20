@@ -7,7 +7,10 @@ import packageInfo from "./package.json" with { type: "json" };
 
 export const VERSION = packageInfo.version;
 export const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
-export const RECIPIENT = "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5";
+// 20 Nov 2026: the payTo moved to the live production wallet (wrangler.jsonc PAY_TO). The old 0x2074… value made
+// allowedRequirement() reject every live 402, so quote and buy in the published chain client failed with
+// payment_terms_rejected, exactly like the reader client before reader 1.7.7.
+export const RECIPIENT = "0x6293ded2684f1a76e26becef87c137d691fbf800";
 export const ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 const NETWORK = "eip155:8453";
 export const OPERATIONS = Object.freeze({
