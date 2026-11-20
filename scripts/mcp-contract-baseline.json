@@ -1,5 +1,5 @@
 {
-  "version": "1.318.2",
+  "version": "1.319.1",
   "tools": [
     {
       "name": "extract",
@@ -12606,6 +12606,49 @@
           "resource": {
             "type": "string",
             "description": "Optional: the URL or item the payment bought, written into the receipt"
+          }
+        },
+        "required": [
+          "hash"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "evidence_bundle",
+      "description": "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the listed resource's advertised price and whether it matched, plus explicit limits. Signed with our Ed25519 key. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Transaction hash of the payment (0x, 64 hex characters)"
+          },
+          "chain": {
+            "type": "string",
+            "enum": [
+              "base",
+              "eth",
+              "arb",
+              "op",
+              "polygon"
+            ],
+            "description": "Network: base (default), eth, arb, op or polygon"
+          },
+          "payTo": {
+            "type": "string",
+            "description": "Optional: the payee, when the transaction holds several USDC transfers"
+          },
+          "resource": {
+            "type": "string",
+            "description": "Optional: the URL the payment bought, checked against the catalog price"
           }
         },
         "required": [
