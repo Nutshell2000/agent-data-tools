@@ -131,7 +131,7 @@ export const PACKS: Entry[] = [
       };
     }, "$0.01"),
 
-  entry("/pack/token-analysis", "Token analysis, token security: price, supply, proxy and risk checks",
+  entry("/pack/token-analysis", "Token analysis, due diligence: price, supply, proxy and risk checks",
     "One call to analyse an ERC-20 token: name, symbol, decimals and supply, USD price from the deepest Uniswap v3 pool, whether it is an upgradeable proxy and who can upgrade it, and on Base the honeypot and contract risk checks (paused transfers, blacklist, owner fees, mint rights, liquidity). Give a ticker or 0x address and the network (base, eth, arb, op or polygon). Use before buying, listing or accepting an unknown token.",
     ["token-analysis", "token-research", "token-security", "erc20", "pack", "crypto"], {
       token: { type: "string", description: "Token: a ticker such as USDC or a 0x ERC-20 contract address", required: true, example: "0x4200000000000000000000000000000000000006" },
@@ -143,7 +143,7 @@ export const PACKS: Entry[] = [
   // AI verdict on a token (5 Nov 2026): AX1's q-verdict, "send a Base token, get an AI-written verdict", had 250 payers and
   // 58,906 calls a month at $0.02, the most-bought task we lacked. The rating comes from fixed rules over checked facts; the
   // model only writes the plain-language summary from the same facts, and a failed model call still answers.
-  entry("/token/verdict", "Rug check, token verdict",
+  entry("/token/verdict", "Token verdict, rug check",
     "Rug check with a plain-language AI verdict on an ERC-20 token: a rating (avoid, caution or no red flags) from fixed rules over checked facts (honeypot and contract risk flags, liquidity, upgradeable proxy, last hour's DEX buys and sells), the reasons, and a short AI summary of those facts. Base (default), Ethereum, Arbitrum, Optimism or Polygon; risk flags on Base only. Use before buying or accepting an unknown token. Not investment advice.",
     ["token-verdict", "ai-token-analysis", "token-security", "rug-check", "honeypot", "erc20", "ai"], {
       token: { type: "string", description: "Token: a ticker such as AERO or a 0x ERC-20 contract address", required: true, example: "0x940181a94A35A4569E4529A3CDfB74e38FD98631" },

@@ -448,7 +448,7 @@ export async function readDocument(bytes: Uint8Array, format: Format, maxChars: 
 }
 
 export const DOCUMENT: Entry[] = [
-  entry("/document/text", "Document to text: Word, Excel, PowerPoint, PDF",
+  entry("/document/text", "Document to text, OCR: Word, Excel, PowerPoint, PDF",
     "Convert a document to text or Markdown: Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, plain UTF-8 text (.txt/.md/.csv/.json), and scans or images (PNG, JPEG, WebP) by OCR. Give a public URL or POST the file (10 MB default; 10-20 MB URLs retry once at 20 MB; images 3 MB). Old formats and protected files fail uncharged. Use for attachments, scans and spreadsheets in an agent, RAG or workflow.",
     ["docx-to-text", "word-to-markdown", "ocr", "xlsx-to-json", "document", "pptx", "office", "rag"], {
       url: { type: "string", description: "Absolute public http(s) URL of the file (or send the file in a POST body instead)", required: true, example: "https://calibre-ebook.com/downloads/demos/demo.docx" },
