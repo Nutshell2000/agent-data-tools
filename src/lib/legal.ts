@@ -5,13 +5,14 @@ import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
 import { PLAN_PORTAL_URL, WEB_PLANS } from "./credits";
 import { FREE_KEY_LINK_HOURS } from "./free-keys";
+import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { CHANGELOG } from "../data/changelog.generated";
 
 const UPDATED = "26 October 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
 function page(title: string, body: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Agent Data Tools</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> is a SpellzCode service · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · <a href="/status">Status</a> · <a href="/changelog">Changelog</a></small></p></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Agent Data Tools</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> is a SpellzCode service · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a> · <a href="/support">Support</a> · <a href="/status">Status</a> · <a href="/changelog">Changelog</a></small></p></body></html>`;
 }
 
 /** One line for the footers of the other public pages (tool pages, guides, the browser 402 page). */
@@ -96,6 +97,47 @@ export const SUPPORT_HTML = page("Support", `<h1>Support</h1>
 </ul>
 <p>Buying and using tools: <a href="/credits">pay by card</a>, <a href="/llms.txt">llms.txt</a>, <a href="/openapi.json">OpenAPI</a>.</p>`);
 
+/** /contact: how to reach a person, and what to include so we can help. */
+export const CONTACT_HTML = page("Contact", `<h1>Contact</h1>
+<p>Agent Data Tools is a service of SpellzCode in Sweden. Write to ${mail}; we answer within one to two working days.</p>
+<h2>When you write</h2>
+<ul>
+<li><strong>A paid call failed:</strong> include the <code>X-Request-ID</code> header (or the MCP result's <code>requestId</code>), the tool and the approximate time in UTC. Failed calls are not charged.</li>
+<li><strong>Card credits or a refund:</strong> include the e-mail used at checkout or the first 8 characters of your key. Never send a full key, a payment signature or a card detail. See <a href="/refunds">refunds</a>.</li>
+<li><strong>Security report:</strong> put "security" in the subject; see <a href="/.well-known/security.txt">security.txt</a> and <a href="/about#security">About</a>.</li>
+<li><strong>Bugs and feature requests:</strong> <a href="https://github.com/Nutshell2000/agent-data-tools/issues">GitHub issues</a> are welcome, but public — never post keys there.</li>
+</ul>
+<p>Seller and payment details are on <a href="/about">About</a>; what we store is in <a href="/privacy">Privacy</a>.</p>`);
+
+/** /refunds: the card-credit rule already in the terms, stated plainly for a buyer. */
+export const REFUNDS_HTML = page("Refunds", `<h1>Refunds and credits</h1>
+<p>If a tool fails it is not charged; if you were charged for a call that did not deliver, write to ${mail} with the request ID and time (UTC) and we will put it right.</p>
+<h2>Card credits</h2>
+<ul>
+<li>1 credit = $0.001. Credits do not expire.</li>
+<li><strong>Unused credits</strong> can be refunded on request to ${mail}. Tell us the e-mail used at checkout or the first 8 characters of the key.</li>
+<li><strong>Used credits are not refundable</strong> — once a call has delivered its result, that credit is spent.</li>
+<li>A monthly plan can be cancelled any time at <a href="${esc(PLAN_PORTAL_URL)}">Stripe's customer page</a>; cancelling stops future payments and leaves credits you already have.</li>
+</ul>
+<h2>Crypto payments</h2>
+<p>On-chain x402 and MPP payments are final once settled, except where a call failed after payment — report that to ${mail} with the transaction reference. Network fees are not refundable.</p>
+<p>See <a href="/faq">FAQ</a>, <a href="/terms">Terms</a> or <a href="/contact">Contact</a>.</p>`);
+
+/** /faq: short answers a buyer asks before paying, using only facts already on the service. */
+export const FAQ_HTML = page("Frequently asked questions", `<h1>Frequently asked questions</h1>
+<h2>How do I pay?</h2>
+<p>Per call in USDC over x402 or MPP from a wallet, or with prepaid card credits from <a href="/credits">/credits</a>. A card key is sent as <code>Authorization: Bearer adt_…</code> or as <code>api_key=adt_…</code> in the URL.</p>
+<h2>Can I try it first?</h2>
+<p>Plain HTTP requests get ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller with <code>trial=1</code>; an MCP client gets 25. Failed calls do not count and are never charged.</p>
+<h2>What does a call cost?</h2>
+<p>Every tool lists its price in its description, OpenAPI entry and payment request. Most are $0.01 or less. Card credits are 1 credit = $0.001, so $1 buys 1,000 credits. See <a href="/llms.txt">llms.txt</a> or <a href="/openapi.json">OpenAPI</a>.</p>
+<h2>What if a call fails?</h2>
+<p>You are not charged. Seven-day per-tool success rates are public at <a href="/status">/status</a>. Include the request ID when you <a href="/contact">contact us</a>.</p>
+<h2>Can I get a refund?</h2>
+<p>Unused card credits are refundable on request; used credits and settled crypto payments are final. Details on <a href="/refunds">Refunds</a>.</p>
+<h2>Do you keep my data or card details?</h2>
+<p>Card details go straight to Stripe and never reach us. What we store, and how to ask for deletion, is in <a href="/privacy">Privacy</a>.</p>`);
+
 // Seller details. Registration details (legal form, organisation number, address) are added here only on the
 // owner's word once the registration is complete; until then this page says so and names no person.
 export const ABOUT_HTML = page("About", `<h1>About</h1>
@@ -142,6 +184,9 @@ export const legal = new Hono<{ Bindings: Env }>();
 legal.get("/privacy", (c) => c.html(PRIVACY_HTML));
 legal.get("/terms", (c) => c.html(TERMS_HTML));
 legal.get("/support", (c) => c.html(SUPPORT_HTML));
+legal.get("/contact", (c) => c.html(CONTACT_HTML));
+legal.get("/refunds", (c) => c.html(REFUNDS_HTML));
+legal.get("/faq", (c) => c.html(FAQ_HTML));
 legal.get("/about", (c) => c.html(ABOUT_HTML));
 legal.get("/changelog", (c) => c.html(CHANGELOG_HTML));
 legal.get("/.well-known/security.txt", (c) => c.text(securityTxt(new URL(c.req.url).origin), 200, { "Cache-Control": "public, max-age=86400" }));
