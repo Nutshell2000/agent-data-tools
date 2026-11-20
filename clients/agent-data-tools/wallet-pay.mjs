@@ -94,3 +94,42 @@ export async function walletPayer({ key, maxUsd, dailyUsd, chain = MAINNET }) {
     sign: (paymentRequired, offer) => client.createPaymentPayload({ ...paymentRequired, accepts: [offer] }),
   };
 }
+
+/**
+ * A `fetch` that pays an HTTP 402 from a wallet payer, for AgentDataTools' direct-call/read modes (the MCP proxy does
+ * its own signing in mcp-stdio.mjs). First request is unpaid; on a 402 it decodes PAYMENT-REQUIRED, passes the spend
+ * guard, signs the Base USDC offer and retries once with PAYMENT-SIGNATURE. A failed/unsettled try refunds the guard so
+ * a never-settled call does not consume the daily budget. Any failure returns the server's own 402 unchanged, so the
+ * caller still sees the quote and can decide. The key is only used by `payer.sign`, never logged or sent in clear.
+ */
+export function payingFetch(payer, baseFetch = globalThis.fetch) {
+  return async (url, init = {}) => {
+    const first = await baseFetch(url, init);
+    if (first.status !== 402) return first;
+    const text = await first.text();
+    const quote = first.headers.get("PAYMENT-REQUIRED");
+    const unpaid = () => new Response(text, { status: 402, headers: first.headers });
+    if (!quote || quote.length > 64000) return unpaid();
+    let required, encode;
+    try {
+      const http = await import("@x402/core/http");
+      required = http.decodePaymentRequiredHeader(quote);
+      encode = http.encodePaymentSignatureHeader;
+    } catch {
+      return unpaid();
+    }
+    let reserved;
+    try {
+      reserved = payer.guard.take(required);
+      const payment = await payer.sign(required, reserved.offer);
+      const headers = new Headers(init.headers ?? {});
+      headers.set("PAYMENT-SIGNATURE", encode(payment));
+      const paid = await baseFetch(url, { ...init, headers });
+      if (!paid.ok) payer.guard.refund(reserved.usd);
+      return paid;
+    } catch {
+      if (reserved) payer.guard.refund(reserved.usd);
+      return unpaid();
+    }
+  };
+}
