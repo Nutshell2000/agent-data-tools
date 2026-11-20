@@ -1,5 +1,5 @@
 {
-  "version": "1.305.1",
+  "version": "1.305.2",
   "tools": [
     {
       "name": "extract",
@@ -18960,7 +18960,7 @@
       "price": "$0.01"
     },
     {
-      "name": "text_to_speech_api",
+      "name": "text_to_speech_generate",
       "description": "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
