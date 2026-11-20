@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.307.0";
+export const MCP_SERVER_VERSION = "1.308.0";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
@@ -394,7 +394,7 @@ export function mcpInstallLinks(origin: string) {
     vscodeInsiders: `vscode-insiders:mcp/install?${vscodeConfig}`,
     claudeCode: `claude mcp add --transport http agent-data-tools ${url}`,
     claudeAi: `${origin}/mcp/account`,
-    // The npm client (clients/agent-data-tools, 1.3.0): writes the client's MCP configuration, or runs a local stdio bridge.
+    // The npm client (clients/agent-data-tools, 1.4.1): writes the client's MCP configuration, or runs a local stdio bridge.
     npx: "npx -y agent-data-tools setup",
   };
 }
