@@ -1,13 +1,13 @@
 ---
 name: agent-data-tools
-description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes, FX, weather, time, company and domain lookups, and 600+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (25 over MCP), then card credits or USDC (x402)."
+description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes and one-call research briefs and daily stock screens, CSV preflight, x402 endpoint checks, FX, weather, time, company and domain lookups, and 670+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (25 over MCP), then card credits or USDC (x402)."
 metadata:
   homepage: "https://agent-data-tools.revmesh2074.workers.dev"
 ---
 
 # Agent Data Tools
 
-More than 600 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 3 free successful calls over HTTP (25 through the MCP server), and after that a call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
+More than 670 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 3 free successful calls over HTTP (25 through the MCP server), and after that a call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
 
 ## How to use this service well (playbook)
 
@@ -61,8 +61,13 @@ The calls needed most often:
 | Is it safe to pay this address | `/check/counterparty` | `address=0x…` |
 | OFAC sanctions screening | `/sanctions/check` | `address=0x… or name=<name>` |
 | Stock quote | `/stock/quote` | `symbol=AAPL` |
+| One-call stock research brief (performance, risk, RSI, signal) | `/stock/brief` | `symbol=AAPL` |
+| Daily stock screen (gainers, losers, most active) | `/stock/screen` | `screen=day-gainers` |
+| Validate a CSV before import (delimiter, headers, types) | `/csv/preflight` | `text=a,b%0A1,2` |
+| Check an x402 endpoint before paying (terms, payee, quality) | `/check/x402-seller` | `url=https://example.com` |
 | Currency conversion | `/fx` | `from=EUR&to=USD&amount=100` |
 | Weather for a place | `/weather` | `city=London` |
+| Hourly weather forecast (up to 48h) | `/weather/forecast` | `city=London&hours=24` |
 | Current time in a zone | `/time` | `zone=Europe/Stockholm` |
 | Company lookup | `/company` | `name=<company>` |
 | Domain registration and DNS | `/domain` | `name=example.com` |

@@ -1,7 +1,7 @@
 {
   "name": "agent-data-tools",
   "version": "1.1.0",
-  "description": "600+ pay-per-call data and AI tools for agents: web search and page text, LLM chat, token prices, chain reads, sanctions checks, weather, FX and more. 25 free calls, then card credits or USDC.",
+  "description": "670+ pay-per-call data and AI tools for agents: web search and page text, LLM chat, token prices, chain reads, sanctions checks, weather, FX and more. 25 free calls, then card credits or USDC.",
   "author": { "name": "SpellzCode" },
   "homepage": "https://agent-data-tools.revmesh2074.workers.dev",
   "repository": "https://github.com/Nutshell2000/agent-data-tools",
