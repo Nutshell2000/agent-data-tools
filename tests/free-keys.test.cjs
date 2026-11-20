@@ -306,3 +306,16 @@ test('the privacy page says what the news box stores and how to be removed', asy
   assert.match(item, /an address whose link is never opened is not kept/);
   assert.match(item, /To be removed, write to <a href="mailto:spellz111122@gmail\.com">/);
 });
+
+test('/keys/free is indexable with canonical, og and a description (20 Nov 2026)', async () => {
+  const app = new Hono();
+  app.route('/', keys.freeKeys);
+  const env = { FREE_KEYS: 'on', FREE_KEY_FROM: 'keys@example.test', EMAIL: { send: async () => ({ messageId: 'm1' }) }, TRIALS: kv(), METRICS: metricsFor(storage()) };
+  const res = await app.fetch(new Request('https://api.test/keys/free', { headers: { accept: 'text/html,application/xhtml+xml' } }), env, { waitUntil() {} });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.doesNotMatch(html, /noindex/, 'the page is indexable');
+  assert.match(html, /<link rel="canonical" href="https:\/\/api\.test\/keys\/free"/);
+  assert.match(html, /<meta name="description" content="[^"]+"/);
+  for (const tag of ['og:type', 'og:title', 'og:description', 'og:url', 'og:image', 'twitter:card']) assert.ok(html.includes(tag + '"') || html.includes(tag + '="'), tag + ' present');
+});
