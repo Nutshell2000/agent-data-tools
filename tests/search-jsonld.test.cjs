@@ -161,9 +161,15 @@ test('served from the Worker\'s own host, the WebApplication data names the publ
   assert.equal(S.withPublicCanonical(other, 'https://w.test', SITE), other, 'only the marked block is rewritten');
 });
 
+// A product slug that is also a real catalog endpoint (e.g. /text-to-speech-api) is a 402 paid API door, not a
+// human HTML page, so it cannot be fetched as a 200 here. Skip those; the human page families are still all covered.
+const HUMAN_PRODUCT_SLUGS = () => {
+  const doors = new Set(D.ENDPOINTS.map((e) => e.path));
+  return P.PRODUCTS.map((p) => `/${p.slug}`).filter((path) => !doors.has(path));
+};
 const FAMILIES = () => [
   '/', '/docs', '/credits', '/tools', '/guides', '/about', '/transcribe-pro',
-  ...P.PRODUCTS.map((p) => `/${p.slug}`),
+  ...HUMAN_PRODUCT_SLUGS(),
   '/vat-number-check', '/vat-number-check/austria', '/company-register', '/company-register/sweden',
   '/tools/weather', '/tools/sanctions-check', '/tools/pdf-text', '/tools/time', '/tools/vat-validate',
   ...[...D.sitemapXml('').matchAll(/<loc>(\/guides\/[^<]*)<\/loc>/g)].map((m) => m[1]).filter((_, i) => i % 6 === 0),
@@ -194,8 +200,8 @@ test('on every page family: JSON-LD parses, FAQ data repeats only questions and 
     }
     if (ofType(blocks, 'WebApplication').length) withApp.push(path);
   }
-  assert.deepEqual(withApp.sort(), ['/', ...P.PRODUCTS.map((p) => `/${p.slug}`)].sort(), 'WebApplication data only on the front page and the product pages');
-  for (const path of ['/', ...P.PRODUCTS.map((p) => `/${p.slug}`), '/tools/weather', '/vat-number-check/austria', '/company-register/sweden', '/e-invoice/rules/br-01', '/de/e-rechnung/regeln/br-01', '/transcribe-pro']) assert.ok(withFaq.includes(path), `${path} shows questions and carries FAQ data`);
+  assert.deepEqual(withApp.sort(), ['/', ...HUMAN_PRODUCT_SLUGS()].sort(), 'WebApplication data only on the front page and the human product pages');
+  for (const path of ['/', ...HUMAN_PRODUCT_SLUGS(), '/tools/weather', '/vat-number-check/austria', '/company-register/sweden', '/e-invoice/rules/br-01', '/de/e-rechnung/regeln/br-01', '/transcribe-pro']) assert.ok(withFaq.includes(path), `${path} shows questions and carries FAQ data`);
   // Audited 16 Nov 2026: these pages have no question-and-answer section, so they carry no FAQ data.
   for (const path of ['/docs', '/credits', '/tools', '/guides', '/about']) assert.ok(!withFaq.includes(path), `${path} shows no questions and answers, so it carries no FAQ data`);
 });
