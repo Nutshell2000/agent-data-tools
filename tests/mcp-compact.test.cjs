@@ -71,7 +71,7 @@ test('find_tool answers a job in plain words with names, prices and inputs, and 
     let found = jsonOf(await call(client, 'find_tool', { need: 'extract the text of a PDF' }));
     assert.equal(found.tools[0].tool, 'pdf_text');
     assert.deepEqual(found.tools[0].requiredInputs, ['url']);
-    assert.equal(found.tools[0].price, '$0.005');
+    assert.equal(found.tools[0].price, '$0.01');
     assert.equal(found.tools[0].priceWithKey, '$0.002');
     // 19 Nov 2026: the funding path is carried from recommend() instead of being dropped, so an agent can act before a 402.
     assert.match(found.pay, /x402/);

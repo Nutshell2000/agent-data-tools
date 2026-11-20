@@ -30,8 +30,8 @@ test("every entry path names a task, runs a canonical tool at that tool's live p
     assert.ok(canonical && live[canonical], `${e.path} -> ${canonical} must be a live tool`);
     assert.notEqual(canonical, e.path);
     assert.ok(live[e.path], `${e.path} must be listed`);
-    // The two time doors cost $0.002 while /time stays $0.01 (owner, 11 Nov 2026: only the doors were put to her).
-    if (e.path === "/timezone/convert" || e.path === "/time/now") assert.equal(live[e.path].price, "$0.002", e.path);
+    // The two time doors carry /time's price (owner, 11 Nov 2026). The 19 Nov $0.01 floor lifted them from $0.002.
+    if (e.path === "/timezone/convert" || e.path === "/time/now") assert.equal(live[e.path].price, "$0.01", e.path);
     else assert.equal(live[e.path].price, live[canonical].price, `${e.path} price must equal ${canonical}'s`);
     assert.ok(e.summary.split(":")[0].length <= 32, e.summary);
     assert.match(e.description, /(^|\. )Use (when|to|for|before|as) /, e.path);
