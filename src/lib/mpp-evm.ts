@@ -226,6 +226,9 @@ export async function payEvm(c: C, endpoint: Endpoint, header: string, next: Nex
   try {
     receipt = await mppx.broadcastCredential(credential, options);
   } catch (e) {
+    // Settlement failed, so nothing was charged and this authorization was never submitted on-chain. Release the
+    // replay claim or an honest retry with the same still-valid authorization is refused as "already used" for ~10min.
+    release();
     markStage("settlement_failed");
     const message = String((e as Error)?.message ?? "settlement failed").slice(0, 200);
     console.warn(`mpp evm settlement_failed ${endpoint.path}: ${message.slice(0, 160)}`);
