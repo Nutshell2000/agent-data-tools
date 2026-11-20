@@ -25,7 +25,7 @@ for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summar
 for (const p of ["/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent"]) CAPACITY_LIMITED.add(p);
 CAPACITY_LIMITED.add("/audio/transcribe"); // 15 Nov 2026: the door to /transcribe
 // 1.304.0 (20 Nov 2026): big-paying-job doors to capacity-limited canonicals.
-for (const p of ["/full-website-audit", "/image/generation", "/text-to-speech-api"]) CAPACITY_LIMITED.add(p);
+for (const p of ["/full-website-audit", "/image/generation", "/text-to-speech-generate"]) CAPACITY_LIMITED.add(p);
 // Voice studio (1.206.0, routes/voice-studio.ts): Aura-2 for every line or caption, paid only (16 Nov 2026: they were
 // missing here, so the free calls and the local smoke run would have run them).
 for (const p of ["/dialogue", "/text-to-speech/captions"]) CAPACITY_LIMITED.add(p);

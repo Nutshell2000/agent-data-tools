@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.305.1";
+export const MCP_SERVER_VERSION = "1.305.2";
 /** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
@@ -271,7 +271,7 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // 1.304.0 (20 Nov 2026): big-paying-job doors keep their canonical section.
   "/full-website-audit": "Web, documents and search", "/web/extraction": "Web, documents and search",
   "/website/audit": "Company, compliance and checks",
-  "/text-to-speech-api": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
+  "/text-to-speech-generate": "AI", "/sentiment/analysis": "AI", "/image/generation": "AI",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",
