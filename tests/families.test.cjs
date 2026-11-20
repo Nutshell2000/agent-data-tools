@@ -78,7 +78,8 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   // 1.301.0 (19 Nov 2026): /stock/screen adds one more.
   // 1.303.0 (19 Nov 2026): three Agent402 task-worded doors add three more.
   // 1.304.0 (20 Nov 2026): eight big-paying-job doors add eight more.
-  assert.equal(families.length, 734);
+  // 19-20 Nov 2026: /market/is-open and the /rss/parse door.
+  assert.equal(families.length, 736);
 });
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
@@ -107,7 +108,8 @@ test("paused family tools remain implemented but cannot be advertised or directl
   const {ENDPOINTS,PAUSED_FAMILY_TOOLS}=await loadTypeScript(require.resolve('../src/endpoints.ts'));
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
   // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
-  assert.equal(ENDPOINTS.length,758);
+  // 19-20 Nov 2026: /market/is-open and the /rss/parse door.
+  assert.equal(ENDPOINTS.length,760);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
