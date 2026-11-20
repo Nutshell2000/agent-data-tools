@@ -14,9 +14,10 @@ async function loadTypeScript(entry) {
   return mod.exports;
 }
 
-let ENDPOINTS, PRODUCTS, productPage, productOffers, productPaths, PRODUCT_FOR_TOOL, taskGuide, keyPrice, CREDIT_PLANS, isHumanPage, sitemapXml;
+let ENDPOINTS, PRODUCTS, productPage, productOffers, productPaths, PRODUCT_FOR_TOOL, taskGuide, keyPrice, CREDIT_PLANS, isHumanPage, sitemapXml, ENTRY_OF;
 before(async () => {
   ({ ENDPOINTS } = await loadTypeScript(require.resolve("../src/endpoints.ts")));
+  ({ ENTRY_OF } = await loadTypeScript(require.resolve("../src/routes/entry-paths.ts")));
   ({ PRODUCTS, productPage, productOffers, productPaths, PRODUCT_FOR_TOOL } = await loadTypeScript(require.resolve("../src/lib/product-pages.ts")));
   ({ taskGuide } = await loadTypeScript(require.resolve("../src/guides/task-guides.ts")));
   ({ keyPrice } = await loadTypeScript(require.resolve("../src/lib/key-prices.ts")));
@@ -28,7 +29,9 @@ before(async () => {
 const title = (slug) => taskGuide(slug)?.phrase;
 
 test("every product names live tools and guides, and has its own path", () => {
-  const paths = new Set(ENDPOINTS.map((e) => e.path));
+  // A product slug may equal an ENTRY_OF door alias: e.g. /text-to-speech-api is both the human product page and a
+  // 402 entry path for the same tool. That is intentional (two faces of one API), not a collision with a distinct tool.
+  const paths = new Set(ENDPOINTS.map((e) => e.path).filter((path) => !Object.hasOwn(ENTRY_OF, path)));
   const slugs = new Set();
   for (const p of PRODUCTS) {
     assert.ok(paths.has(p.tool), `${p.slug}: ${p.tool}`);
