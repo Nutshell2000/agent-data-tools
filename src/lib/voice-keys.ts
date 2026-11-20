@@ -125,7 +125,15 @@ const newKey = (kind: VoiceKeyKind) => PREFIX[kind] + btoa(String.fromCharCode(.
 export const addressBucket = (ip: string | undefined): string => {
   const raw = (ip ?? "").trim().toLowerCase();
   if (!raw) return "unknown";
-  return raw.includes(":") ? raw.split(":").slice(0, 4).join(":") : raw;
+  if (!raw.includes(":")) return raw;
+  // Expand "::" before slicing: raw.split(":").slice(0,4) is misaligned when the shorthand compresses zeros inside
+  // the first four groups (e.g. 2601:646:100::1 -> "2601:646:100:"). Canonicalize to eight hextets first so both
+  // textual forms of one /64 bucket together and a short address is not mistaken for a whole /32.
+  const [head = "", tail = ""] = raw.split("::");
+  const h = head ? head.split(":").filter(Boolean) : [];
+  const t = tail ? tail.split(":").filter(Boolean) : [];
+  const groups = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return groups.slice(0, 4).join(":");
 };
 
 type Issued = { ok: true; key: string; expires: string } | { ok: false; why: "caller" | "day" };
