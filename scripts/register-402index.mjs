@@ -41,7 +41,7 @@ for (const [i, [path, item]] of todo.entries()) {
   if (!price) { console.log(`${path}: no price in OpenAPI, skipped`); continue; }
   const body = {
     url: `${ORIGIN}${path}${query.size ? `?${query}` : ""}`,
-    name: `SpellzCode — ${op.summary}`,
+    name: op.summary, // consistent seller identity across indexes; the brand report forbids "SpellzCode" in tool names
     protocol: "x402",
     description: op.description?.slice(0, 480),
     category: category(path),
