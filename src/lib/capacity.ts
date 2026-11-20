@@ -24,6 +24,8 @@ for (const p of ["/transcribe/long", "/text-to-speech/lite", "/transcribe/summar
 // Glyphcall Voice round 4 (1.204.0, routes/voice-plus.ts): Nova-3 diarization and M2M100 subtitle translation: paid only.
 for (const p of ["/transcribe/speakers", "/subtitles/translate", "/dub", "/voice/agent"]) CAPACITY_LIMITED.add(p);
 CAPACITY_LIMITED.add("/audio/transcribe"); // 15 Nov 2026: the door to /transcribe
+CAPACITY_LIMITED.add("/speech/to-text"); // 20 Nov 2026: round-13 door to /transcribe
+CAPACITY_LIMITED.add("/news/sentiment"); // 20 Nov 2026: round-13 door to /pack/news-sentiment
 // 1.304.0 (20 Nov 2026): big-paying-job doors to capacity-limited canonicals.
 for (const p of ["/full-website-audit", "/image/generation", "/text-to-speech-generate"]) CAPACITY_LIMITED.add(p);
 // Voice studio (1.206.0, routes/voice-studio.ts): Aura-2 for every line or caption, paid only (16 Nov 2026: they were
