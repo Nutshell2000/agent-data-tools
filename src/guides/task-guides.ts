@@ -148,7 +148,7 @@ export const TASK_GUIDES: readonly TaskGuide[] = [
   // 19 Nov 2026: "text to speech API" is the #1 commercial voice query and this guide was a 404 — a lost customer
   // acquisition page for the owner's voice-sales goal. Covers the short (300 char), long (2,000 char) and low-cost tools.
   { slug: "text-to-speech-api", phrase: "Text to speech API", tools: ["/text-to-speech", "/ai/speech", "/text-to-speech/lite"],
-    lead: "Send text and get one audio file back: a natural voice as an MP3 in English or Spanish, French, Chinese, Japanese and Korean too, or a low-cost English voice. One GET request, JSON with a URL to the audio, no account and failed calls free.",
+    lead: "Send text and get one audio file back: a natural voice as an MP3 in English or Spanish (retired MeloTTS languages fr, zh, ja and ko are refused), or a low-cost English voice. One GET request, JSON with a URL to the audio, no account and failed calls free.",
     uses: ["Add natural text to speech to an app without a model or a cloud vendor", "Read an article, notification or IVR prompt aloud", "Pick a shorter cheap voice or a longer natural voice by task"],
     faq: [["How long can the text be?", "Up to 300 characters with the short tool (ai/speech), 2,000 with text-to-speech, and a low-cost English voice with text-to-speech/lite."], ["Do I need an account?", "No. Free calls to start, then a paid key or per-call USDC; failed calls are never charged."], ["Can I use my OpenAI or ElevenLabs code?", "Yes. POST /v1/audio/speech (OpenAI shape) and /v1/text-to-speech/{voice_id} (ElevenLabs shape) work with a base-URL change."]] },
   { slug: "text-to-speech-api-python", secondary: true, phrase: "Text to speech API in Python", tools: ["/text-to-speech"],

@@ -47,7 +47,7 @@ function meloLang(q: Input): "fr" | "zh" | "ja" | "ko" | undefined {
   if (!lang) throw new HttpError(400, `lang must be one of ${SPEECH_LANGS.join(", ")} (nothing was charged)`);
   return isMeloLang(lang) ? (lang as "fr" | "zh" | "ja" | "ko") : undefined;
 }
-/** French, Chinese, Japanese and Korean come from MeloTTS as WAV only. */
+/** MeloTTS was retired on Workers AI (20 Nov 2026): fr, zh, ja and ko are refused with 400. */
 function meloFormatCheck(fmt: SpeechFormat) {
   if (fmt.name !== "mp3" && fmt.name !== "wav") throw new HttpError(400, "format applies to English and Spanish; fr, zh, ja and ko come as WAV (nothing was charged)");
 }/** One WAV in a MeloTTS language, in parts of up to 200 characters spoken in parallel. */
@@ -494,7 +494,7 @@ export const AI_TEXT: Entry[] = [
     ["extraction", "json", "structured-data"], { text: { type: "string", description: "Source text, up to 12,000 characters", required: true, example: "Invoice 1043 from Acme AB, due 2026-11-01, total 2 450 SEK incl. VAT." }, fields: { type: "string", description: "Comma-separated field names to extract (1-30)", required: true, example: "invoice_number,company,due_date,total,currency" } },
     { data: { invoice_number: "1043", company: "Acme AB", due_date: "2026-11-01", total: 2450, currency: "SEK" }, missing: [], model: MODELS.text },
     async (env, q) => extractFields(env, text(q), fieldNames(need(q, "fields", 1000)))),
-  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or WAV in French, Chinese, Japanese or Korean with MeloTTS (one voice each). Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
+  entry("/ai/speech", "Text to speech (TTS): natural voices, audio file", "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2. fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech.",
     ["tts", "text-to-speech", "voice", "audio", "voice-generation", ...T], {
       text: { type: "string", description: "Text to speak, up to 300 characters", required: true, example: "Your payment was received. Thank you!" },
       lang: { type: "string", description: SPEECH_LANG_HELP, example: "en", enum: [...SPEECH_LANGS] },
