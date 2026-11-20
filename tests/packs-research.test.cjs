@@ -50,7 +50,7 @@ test('research packs: names within 32 characters, descriptions within 450, one c
     assert.ok(e.endpoint.description.length <= 450, `${e.endpoint.path} ${e.endpoint.description.length}`);
     // $0.03 on two of them for a few hours on 11 Nov 2026 (1.130.0); back at $0.01 in 1.136.0 (Mercator's gateway did not pay the dearer quote).
     // /phishing/check (1.222.0) is a single KV lookup at the entry price.
-    assert.equal(e.endpoint.price, e.endpoint.path === '/phishing/check' ? '$0.002' : e.endpoint.path === '/pack/url-safety' ? '$0.02' : '$0.01', e.endpoint.path);
+    assert.equal(e.endpoint.price, e.endpoint.path === '/phishing/check' ? '$0.002' : '$0.01', e.endpoint.path);
     await assert.rejects(Promise.resolve().then(() => e.run({}, () => undefined)), (err) => err.status === 400, e.endpoint.path);
   }
   await assert.rejects(Promise.resolve().then(() => PACKS_RESEARCH[2].run({}, (n) => (n === 'url' ? 'http://127.0.0.1/' : undefined))), (err) => err.status === 400);
