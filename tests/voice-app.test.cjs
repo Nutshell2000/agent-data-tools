@@ -43,6 +43,18 @@ test("the app page publishes WebApplication structured data so search engines ca
   assert.ok(!ld.aggregateRating && !ld.review, "no unverified rating or review is published");
 });
 
+test("the app page shows a FAQPage matching its visible questions and declares a twitter card", () => {
+  const html = A.appPage("Glyphcall", "https://x.test");
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+  const faq = JSON.parse(/<script type="application\/ld\+json" data-ld="faq">([\s\S]*?)<\/script>/.exec(html)[1]);
+  assert.equal(faq["@type"], "FAQPage");
+  assert.ok(faq.mainEntity.length >= 3, "three questions");
+  for (const q of faq.mainEntity) {
+    assert.equal(q["@type"], "Question");
+    assert.ok(html.includes(q.name) && html.includes(q.acceptedAnswer.text), `visible: ${q.name}`);
+  }
+});
+
 test("the manifest is installable: name, standalone, start inside the scope, a 512 px icon", () => {
   const m = A.appManifest("Glyphcall");
   assert.equal(m.display, "standalone");

@@ -7,7 +7,8 @@
 // Every number and price here comes from the catalog or a constant; nothing is typed.
 import { ENDPOINTS, SERVICE_ID, SERVICE_NAME, SUPPORT_EMAIL, exampleParams, type Endpoint } from "../endpoints";
 import { httpFree } from "./capacity";
-import { CREDIT_PACKS, FREE_KEY_CALLS, USDC_PACKS, usdcPackPath } from "./credits";
+import { CREDIT_PACKS, CREDIT_PLANS, FREE_KEY_CALLS, USDC_PACKS, usdcPackPath } from "./credits";
+import { PRODUCTS } from "./product-pages";
 import { salesFirstPaths } from "./discovery-index";
 import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER, HTTP_FREE_EXCLUDED } from "./free-calls";
 import { NETWORK_NAMES, SOLANA_NETWORK } from "./networks";
@@ -108,6 +109,11 @@ export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
     `- OpenAPI 3.1: ${origin}/openapi.json`,
     `- Tools by category, for people: ${origin}/tools`,
     `- Docs (keys, errors, sending a file): ${origin}/docs`,
+    // 20 Nov 2026: an LLM reading llms.txt could not discover the focused product pages, the transcription plan or
+    // the guides — the exact high-intent pages we want recommended. Name them here; derive the price from the plan.
+    `- Monthly plan, one key for every tool: from $${CREDIT_PLANS[0].usdCents / 100}/month (${CREDIT_PLANS[0].credits.toLocaleString("en-US")} credits each month); transcription plan ${origin}/transcribe-pro ($${CREDIT_PLANS[0].usdCents / 100}/month).`,
+    `- Focused API pages: ${PRODUCTS.map((p) => `${p.name} ${origin}/${p.slug}`).join("; ")}`,
+    `- Guides by job: ${origin}/guides`,
     `- Support: ${SUPPORT_EMAIL}`,
   ];
   return lines.join("\n");
