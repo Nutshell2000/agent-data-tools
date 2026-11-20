@@ -106,7 +106,7 @@ test("an alias that is one of the tool's own inputs is never read as another inp
     assert.equal(T.normalizedInput(T.declaredInputFor(path, sent({ messages: one })))("prompt"), undefined, path);
   }
   // The prompt tools without one read it as the prompt.
-  for (const path of ["/ai/chat-large", "/llm/inference", "/ai/model/qwen3-30b"]) {
+  for (const path of ["/ai/chat-large", "/llm/inference", "/ai/model/mistral-small"]) {
     assert.ok(!declared.get(path).has("messages"));
     assert.equal(T.normalizedInput(T.declaredInputFor(path, sent({ messages: one })))("prompt"), "What is x402?", path);
   }
