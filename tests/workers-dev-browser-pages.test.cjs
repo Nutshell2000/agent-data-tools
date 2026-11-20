@@ -142,8 +142,13 @@ const UNCHANGED = [
 ];
 
 // Values that differ between any two answers of the same Worker (request ids, clocks) are blanked before comparing.
+// /tools/time shows a live answer (local time with an offset or none, unix seconds): two requests a second apart differ
+// there, which made this test flaky (CI 19 Nov 2026). Any date-time, clock time or unix second count is normalised.
 const steady = (text) => text
-  .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g, "<time>")
+  .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?/g, "<time>")
+  .replace(/\b\d{1,2}:\d{2}:\d{2}\b/g, "<clock>")
+  .replace(/"?(unixSeconds|unixMs|epoch)"?(\s*[:=]\s*|&quot;:)"?\d{9,13}"?/g, "$1:0")
+  .replace(/\b1[7-9]\d{8}\b/g, "<unix>")
   .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>")
   .replace(/"(uptimeSeconds|generatedAt|now|timestamp|unix|ms|startedAt)":\s*"?[\d.]+"?/g, '"$1":0');
 

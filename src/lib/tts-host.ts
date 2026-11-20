@@ -34,6 +34,20 @@ export const CATEGORY_HOSTS: Readonly<Record<string, CategoryHost>> = Object.fre
   },
 });
 
+/**
+ * Discovery documents a category host answers itself, filtered to its own tools and named for its task (19 Nov 2026).
+ * Why: Mercator refreshes its services daily from MPPScan and the x402 registries (Tempo, 19 Nov), and those register an
+ * ORIGIN by reading its discovery documents. Without its own documents a category host could not be registered, so it
+ * never became the separate, task-named service it exists for.
+ */
+export const CATEGORY_DISCOVERY_PATHS: ReadonlySet<string> = new Set(["/.well-known/x402", "/.well-known/x402.json", "/openapi.json", "/discovery/resources"]);
+
+/** The category host a request was made to, or undefined on every other host. */
+export function categoryHostOf(requestUrl: string): CategoryHost | undefined {
+  const name = new URL(requestUrl).hostname;
+  return Object.hasOwn(CATEGORY_HOSTS, name) ? CATEGORY_HOSTS[name] : undefined;
+}
+
 /** Where everything else lives. */
 export const CATEGORY_HOST_ELSEWHERE = "https://api.glyphcall.com";
 
@@ -45,7 +59,7 @@ export function categoryHostAnswer(requestUrl: string): Response | null {
   const url = new URL(requestUrl);
   const host = Object.hasOwn(CATEGORY_HOSTS, url.hostname) ? CATEGORY_HOSTS[url.hostname] : undefined;
   if (!host) return null;
-  if (host.paths.has(url.pathname)) return null;
+  if (host.paths.has(url.pathname) || CATEGORY_DISCOVERY_PATHS.has(url.pathname)) return null;
   const tools = [...host.paths].map((p) => `https://${url.hostname}${p}`);
   if (url.pathname === "/") {
     return Response.json({ service: host.service, about: host.about, tools, docs: host.docs, everythingElse: CATEGORY_HOST_ELSEWHERE },

@@ -27,7 +27,7 @@ import { einvoiceIndexPageDe, einvoiceRulePageDe, einvoiceRulesIndexPageDe } fro
 import { REGISTER_BASE, registerCountry, registerCountryPage, registerIndexPage } from "./lib/register-pages";
 import { liveAnswer } from "./lib/live-pages";
 import { movedBrowserPageUrl, movedPageUrl, serviceIconUrl, withPublicCanonical, withPublicSitemap } from "./lib/public-site";
-import { ttsHostAnswer } from "./lib/tts-host";
+import { categoryHostOf, ttsHostAnswer } from "./lib/tts-host";
 import { publicBrand, SERVICE_BRAND } from "./lib/public-brand";
 import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
@@ -706,8 +706,16 @@ app.get("/openapi.json", (c) => {
   let body = openApiDocs.get(key);
   if (!body) {
     const doc = openApi(origin(c.req.url), trialsEnabled(c.env), offers);
-    // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
-    body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...usdcCreditOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
+    // A category host (lib/tts-host.ts) describes only its own tools, under its task name, so MPPScan and the x402
+    // registries can register it as its own service (Mercator refreshes from them daily).
+    const host = categoryHostOf(c.req.url);
+    if (host) {
+      const paths = Object.fromEntries(Object.entries(doc.paths).filter(([p]) => host.paths.has(p)));
+      body = JSON.stringify({ ...doc, info: { ...doc.info, title: host.service, description: host.about }, paths });
+    } else {
+      // MPP credit packs are listed only while agent card payments are switched on, so a listed route always pays.
+      body = JSON.stringify({ ...doc, paths: { ...doc.paths, ...buyOpenApiPaths(), ...usdcCreditOpenApiPaths(), ...(mpp ? mppCreditOpenApiPaths() : {}) } });
+    }
     openApiDocs.set(key, body);
   }
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8" });
@@ -956,7 +964,10 @@ for (const path of ["/.well-known/seller-evidence.json", "/.well-known/seller-ev
 }
 // The resource manifest, also at the ".json" spelling some crawlers (gold-402 entries, agent kits) look for.
 for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
-  app.get(path, (c) => c.json({ version: 1, resources: salesOrdered(ENDPOINTS).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` }));
+  app.get(path, (c) => {
+    const host = categoryHostOf(c.req.url);
+    return c.json({ version: 1, resources: salesOrdered(ENDPOINTS).filter((e) => !host || host.paths.has(e.path)).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` });
+  });
 }
 // Bazaar-shaped discovery index of every tool (lib/discovery-index.ts): paged like the facilitator's own.
 // Crawlers ask for the same pages all day and the index only changes with a deploy or a payment setting, so each
@@ -968,7 +979,7 @@ app.get("/discovery/resources", (c) => {
   const key = `${origin(c.req.url)}|${limit}|${offset}|${quoteFingerprint(c.env, MCP_SERVER_VERSION)}`;
   let body = discoveryPages.get(key);
   if (!body) {
-    body = JSON.stringify(discoveryResources(c.env, origin(c.req.url), limit, offset));
+    body = JSON.stringify(discoveryResources(c.env, origin(c.req.url), limit, offset, categoryHostOf(c.req.url)?.paths));
     if (discoveryPages.size < 24) discoveryPages.set(key, body);
   }
   return c.body(body, 200, { "content-type": "application/json; charset=UTF-8", "Cache-Control": "public, max-age=300" });
