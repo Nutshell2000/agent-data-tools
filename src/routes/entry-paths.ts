@@ -270,6 +270,27 @@ export const ENTRY_PATHS: Entry[] = [
     "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key.",
     ["ip-geolocation", "ip-lookup", "geoip", "ip-location", "asn", "network"], from(GEO_IP, "/ip/geolocate")),
 
+  // 1.306.0, 20 Nov 2026: four more Agent402 high-match gaps where we already sell the tool but our slug
+  // did not match the buyer's phrase — market data (40,371 matches), dex pools (12,190), whale alert (5,932),
+  // orderbook (1,368). Exact-phrase slugs score 26 and we are the cheapest dispatchable result.
+  door("/market/data", "Market data: crypto prices, funding and sentiment in one call",
+    "Market data overview: crypto prices, funding rates, fear-and-greed sentiment and market signals in one call. Use when an agent needs a quick read of the current crypto market before a decision. No account, pay per call over x402.",
+    ["market-data", "crypto-market", "market-overview", "funding-rate", "sentiment", "market"],
+    ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(PACKS, "/pack/crypto-market"))),
+
+  door("/dex/pools", "DEX pools: trending token pairs and liquidity on Base",
+    "DEX pools: the trending token pairs on Base with liquidity and volume signals, from public on-chain data. Use to find active pools or tokens before a trade. Read-only, no API key, pay per call over x402.",
+    ["dex-pools", "liquidity-pools", "token-pairs", "uniswap", "base-dex", "defi"], from(CHAIN_MORE, "/dex/trending")),
+
+  door("/whale/alert", "Whale alert: large USDC and USDT transfers on 5 chains",
+    "Whale alert: the largest USDC and USDT transfers of the last minutes on Base, Ethereum, Arbitrum, Optimism and Polygon above a size you choose, with sender, receiver and amount. Use for flow monitoring or market-moving transfer alerts. Read-only, no API key.",
+    ["whale-alert", "whale-transfers", "large-transfers", "stablecoin", "onchain-data", "monitoring"], from(WHALE, "/whale/transfers")),
+
+  door("/orderbook-live", "Orderbook: live crypto bids, asks, spread and depth",
+    "Orderbook for a Hyperliquid perp: live bids and asks with spread and depth, from the exchange's public feed. Use when an agent needs current market liquidity before a trade. No account, pay per call over x402.",
+    ["orderbook", "order-book", "crypto-orderbook", "bids-asks", "liquidity", "market-data"],
+    ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(HYPERLIQUID, "/hyperliquid/orderbook"))),
+
   door("/keyword/research", "Keyword research: SEO keyword ideas for a seed",
     "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call.",
     ["keyword-research", "seo-keywords", "keyword-ideas", "keywords", "seo", "content-planning"],
