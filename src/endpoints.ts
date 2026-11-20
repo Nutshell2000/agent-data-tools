@@ -1006,6 +1006,7 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   // Entry paths (7 Nov 2026, src/routes/entry-paths.ts) share their canonical tool's live price.
   "/weather/forecast", "/fx/rates", "/geocode/address", "/token/price", "/crypto/fear-and-greed", "/wallet/balance",
   "/price/crypto", "/token-price-api", "/balance/wallet", "/weather/current", "/dns/records", "/sec/edgar",
+  "/weather-api", "/live-weather", "/48-hour-forecast", // 1.315.0 weather doors share /weather's acquisition price
   "/bitcoin/price", "/gas/price", "/market/sentiment",
   // 16 Nov 2026 (prices delegated; ladder plan after tracing the daily buyer 0x0fcb): the other jobs that scheduled buyer pays
   // separate sellers for each morning (stock history, keyword ideas, USDC yield, prediction-market odds) enter at the acquisition
