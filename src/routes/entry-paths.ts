@@ -571,6 +571,13 @@ export const ENTRY_PATHS: Entry[] = [
   door("/perp/funding", "Perp funding rate: live, by coin",
     "Perp funding rate now for a coin (BTC, ETH, SOL, HYPE…): the hourly funding rate and its APR, premium, mark and oracle price, open interest in coins and USD, 24-hour volume and price change on Hyperliquid perpetual futures. Without a coin, the 20 most traded markets. Use to compare funding before opening a perp position, to find a basis or carry trade, or to feed a derivatives dashboard.",
     ["perp-funding", "funding-rate", "perpetuals", "open-interest", "hyperliquid", "derivatives"], from(HYPERLIQUID, "/hyperliquid/market")),
+  // 20 Nov 2026: "perpetual funding rates" is a phrase external payers buy (finder-answers 20 Nov: 18 payers /
+  // 42 calls across 5 rival listings, and Agent402 router rivals score 26-29 while we were absent). A full-phrase
+  // slug scores 39 and should take #1. Same tool, inputs, output and $0.002 price. Hyperliquid only — no
+  // multi-exchange claim.
+  door("/perpetual/funding/rates", "Perpetual funding rates: live by coin",
+    "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate, 8h-equivalent APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice.",
+    ["perpetual-funding", "funding-rates", "perps", "hyperliquid", "derivatives", "open-interest"], from(HYPERLIQUID, "/hyperliquid/market")),
 
   // Round 5 (10 Nov 2026): the tasks most open shoppers pay for that we already sell under another name. Counted in a
   // two-day sample of 50 wallets that each pay 8+ sellers: website technology detection 10 buyers, email auth 8, URL fetch
