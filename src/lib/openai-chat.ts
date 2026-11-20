@@ -41,12 +41,18 @@ export function needsNative(b: Record<string, unknown>): boolean {
  * Which tool (and large-model name) an OpenAI `model` string selects: a model with its own listing (/ai/model/<slug>)
  * by its slug, Workers AI id or family name; then the two large models; everything else is /ai/chat (Llama 4 Scout).
  */
-export function toolFor(model: unknown): { path: string; model?: keyof typeof LARGE_CHAT_MODELS } {
+/** Model tools whose Workers AI model was retired on 20 Nov 2026 (paused in endpoints.ts). */
+const RETIRED_MODEL_SLUGS: ReadonlySet<string> = new Set(["qwen3-30b", "deepseek-r1"]);
+
+export function toolFor(model: unknown): { path: string; model?: keyof typeof LARGE_CHAT_MODELS; retired?: true } {
   const name = String(model ?? "").toLowerCase();
   const own = (slug: string) => ({ path: `/ai/model/${slug}` });
-  if (/deepseek|r1/.test(name)) return own("deepseek-r1");
+  // 20 Nov 2026: Workers AI retired DeepSeek R1 distill and Qwen3 30B (their /ai/model tools are paused). A request that
+  // names them is served by the nearest working model and told so in X-Model-Substituted, instead of failing:
+  // a reasoning model (gpt-oss-120b) for DeepSeek R1, the large Llama for Qwen. The answer's `model` names what ran.
+  if (/deepseek|r1/.test(name)) return { path: CHAT_LARGE_TOOL_PATH, model: "gpt-oss-120b", retired: true };
   if (/coder/.test(name)) return own("qwen-coder");
-  if (/qwen/.test(name)) return own("qwen3-30b");
+  if (/qwen/.test(name)) return { path: CHAT_LARGE_TOOL_PATH, model: "llama-3.3-70b", retired: true };
   if (/mistral/.test(name)) return own("mistral-small");
   if (/gpt-oss-?20b/.test(name)) return own("gpt-oss-20b");
   if (/gpt-oss|120b/.test(name)) return { path: CHAT_LARGE_TOOL_PATH, model: "gpt-oss-120b" };
@@ -109,6 +115,7 @@ export function toChatQuery(body: unknown): { query: ChatQuery } | { error: stri
   const picked = toolFor(b.model);
   if (picked.model) query.model = picked.model;
   if (picked.path.startsWith("/ai/model/")) query.tool = picked.path;
+  if (picked.retired) query.modelSubstituted = String(b.model);
   return { query };
 }
 
@@ -200,7 +207,9 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
     ? new Response(toOpenAiStream(completion, b.stream_options?.include_usage === true), { status: 200, headers: { "content-type": "text/event-stream; charset=utf-8" } })
     : c.json(completion, 200);
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) { const v = done.answer.headers.get(name); if (v) out.headers.set(name, v); }
-  if (done.query.modelSubstituted) out.headers.set("X-Model-Substituted", `tools, tool messages and response_format run on the default ${CHAT_MODEL}; requested model ${done.query.modelSubstituted} was served by the native path`);
+  if (done.query.modelSubstituted) out.headers.set("X-Model-Substituted", done.query.native
+    ? `tools, tool messages and response_format run on the default ${CHAT_MODEL}; requested model ${done.query.modelSubstituted} was served by the native path`
+    : `requested model ${done.query.modelSubstituted} was retired by Workers AI on 20 Nov 2026; served by ${done.query.model ?? "the default model"} (see the answer's model field)`);
   out.headers.set("Cache-Control", "no-store");
   return out;
 }
@@ -311,7 +320,8 @@ export function openAiModels() {
     data: [
       { id: CHAT_MODEL, object: "model", created, owned_by: "cloudflare-workers-ai", tool: CHAT_TOOL_PATH },
       ...Object.entries(LARGE_CHAT_MODELS).map(([alias, id]) => ({ id, object: "model", created, owned_by: "cloudflare-workers-ai", alias, tool: CHAT_LARGE_TOOL_PATH })),
-      ...MODEL_ENDPOINTS.filter((m) => m.slug !== "gpt-oss-120b").map((m) => ({ id: m.id, object: "model", created, owned_by: "cloudflare-workers-ai", alias: m.slug, tool: `/ai/model/${m.slug}`, price: m.price })),
+      // Retired by Workers AI on 20 Nov 2026 (their tools are paused): not offered as models any more.
+      ...MODEL_ENDPOINTS.filter((m) => m.slug !== "gpt-oss-120b" && !RETIRED_MODEL_SLUGS.has(m.slug)).map((m) => ({ id: m.id, object: "model", created, owned_by: "cloudflare-workers-ai", alias: m.slug, tool: `/ai/model/${m.slug}`, price: m.price })),
     ],
   };
 }
