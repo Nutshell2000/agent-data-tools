@@ -27,6 +27,22 @@ test('recommend: plain task words find the right tools with exact call URLs, wit
   assert.ok(!r.picks.some((p) => p.tool === '/recommend'), 'never recommends itself');
 });
 
+test('recommend: named inputs from the job replace canned example values (20 Nov conformance audit)', async () => {
+  const { recommend } = await load();
+  // An agent that follows the finder's call URL must not pay for the canned example that contradicts its job.
+  const es = (await recommend({}, 'translate text to Spanish', 3, null)).picks.find((p) => p.tool === '/ai/translate');
+  assert.ok(es && new URL(es.call.url).searchParams.get('to') === 'es', `to=es: ${es && es.call.url}`);
+  const tokyo = (await recommend({}, 'what is the time in Tokyo', 3, null)).picks.find((p) => p.tool === '/time');
+  assert.ok(tokyo && new URL(tokyo.call.url).searchParams.get('zone') === 'Asia/Tokyo', `zone: ${tokyo && tokyo.call.url}`);
+  const paris = (await recommend({}, 'weather in Paris tomorrow', 3, null)).picks.find((p) => p.tool === '/weather');
+  assert.ok(paris && new URL(paris.call.url).searchParams.get('city') === 'Paris', `city: ${paris && paris.call.url}`);
+  // Every pick is still explicitly an example, so an agent knows to substitute its own values.
+  for (const p of (await recommend({}, 'price of ETH', 3, null)).picks) {
+    assert.equal(p.call.exampleOnly, true);
+    assert.match(p.call.note, /replace them with your own inputs/);
+  }
+});
+
 test('recommend: the phrase as written decides between tools that share its words, and a door\'s phrase finds the tool it runs', async () => {
   const { recommend, lexicalScore, asWritten } = await load();
   // 1.110.0's free finder answered /transcribe for "text to speech": both tools hold both words once "to" is dropped.

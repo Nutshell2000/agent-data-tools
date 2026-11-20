@@ -68,6 +68,39 @@ type Doc = { path: string; name: string; tags: string[]; summary: string; descri
 export const asWritten = (s: string) => s.toLowerCase().replace(/[^a-z0-9$.]+/g, " ").trim();
 
 /**
+ * A few named arguments that are safe to lift from the buyer's plain-language job into the example call URL
+ * (20 Nov 2026 conformance audit). Without this, /find returned the canned example (to=sv for "translate to Spanish",
+ * zone=Stockholm for "time in Tokyo"), and an agent that followed its own call URL paid for the wrong result.
+ * Deliberately small and high-confidence: only languages with a code and well-known city->IANA zone/city names.
+ * Everything else keeps the example value and is marked exampleOnly above.
+ */
+const LANG_CODES: Readonly<Record<string, string>> = {
+  spanish: "es", english: "en", french: "fr", german: "de", italian: "it", portuguese: "pt",
+  chinese: "zh", japanese: "ja", korean: "ko", arabic: "ar", hindi: "hi", russian: "ru", swedish: "sv",
+  norwegian: "no", danish: "da", finnish: "fi", dutch: "nl", polish: "pl", turkish: "tr",
+};
+const CITY_META: Readonly<Record<string, { city: string; zone: string }>> = {
+  tokyo: { city: "Tokyo", zone: "Asia/Tokyo" }, london: { city: "London", zone: "Europe/London" },
+  paris: { city: "Paris", zone: "Europe/Paris" }, berlin: { city: "Berlin", zone: "Europe/Berlin" },
+  "new york": { city: "New York", zone: "America/New_York" }, "san francisco": { city: "San Francisco", zone: "America/Los_Angeles" },
+  sydney: { city: "Sydney", zone: "Australia/Sydney" }, mumbai: { city: "Mumbai", zone: "Asia/Kolkata" },
+  stockholm: { city: "Stockholm", zone: "Europe/Stockholm" }, oslo: { city: "Oslo", zone: "Europe/Oslo" },
+  helsinki: { city: "Helsinki", zone: "Europe/Helsinki" }, copenhagen: { city: "Copenhagen", zone: "Europe/Copenhagen" },
+};
+export function namedArgs(need: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const s = need.toLowerCase();
+  // "translate ... to Spanish" / "into French": the target language for /ai/translate's `to`.
+  const lang = /\b(?:to|into)\s+([a-z]+)/.exec(s)?.[1];
+  if (lang && Object.hasOwn(LANG_CODES, lang)) out.to = LANG_CODES[lang];
+  // "time/weather in <known city>" fills zone (for /time) and city (for /weather); both keys set, each tool uses its own.
+  for (const [name, meta] of Object.entries(CITY_META)) {
+    if (new RegExp(`\\bin\\s+${name}\\b`).test(s)) { out.zone = meta.zone; out.city = meta.city; break; }
+  }
+  return out;
+}
+
+/**
  * Jobs as buyers name them, each with the tool that does it (1.111.0, 11 Nov 2026). The names are what our paying
  * wallets bought from other sellers that week (base-bots/buyer-next.mjs); word and phrase scoring sent several to the
  * wrong tool: "audit bundle" to the package audit, "hunter email verifier" to the x402 finder, "token preflight" to the
@@ -229,16 +262,17 @@ export async function recommend(env: Env, needText: string, count: number, reran
       method = "lexical+rerank";
     }
   }
+  const named = namedArgs(needText);
   const picks = order.slice(0, count).map(({ d, s }) => {
     const params = example(d.path);
-    const query = new URLSearchParams(params.filter(([, p]) => p.example !== undefined && p.example !== "").map(([n, p]) => [n, String(p.example)])).toString();
+    const query = new URLSearchParams(params.filter(([, p]) => p.example !== undefined && p.example !== "").map(([n, p]) => [n, String(named[n] ?? p.example)])).toString();
     return {
       tool: d.path,
       name: d.name,
       what: d.summary,
       price: d.price,
       mcpTool: d.path.slice(1).replace(/[/-]/g, "_"),
-      call: { method: "GET", url: `${origin}${d.path}${query ? `?${query}` : ""}` },
+      call: { method: "GET", url: `${origin}${d.path}${query ? `?${query}` : ""}`, exampleOnly: true, note: "Values are examples — replace them with your own inputs before calling." },
       requiredInputs: params.filter(([, p]) => p.required).map(([n, p]) => ({ name: n, description: p.description })),
       inFreeCalls: free(d.path),
       score: Math.round(s * 1000) / 1000,

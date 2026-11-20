@@ -37,6 +37,12 @@ test('/discovery/resources lists every tool in the Bazaar item shape, with exact
   assert.match(time.lastUpdated, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(time.metadata.serviceName, 'Timezone, current time converter', 'per-tool name, not the shared brand');
   assert.ok(time.metadata.description.length > 20 && time.metadata.description.length <= 500);
+  // 20 Nov 2026 conformance: a Bazaar discovery client reads these at the top level and uses extensions.bazaar.info.input
+  // to construct the call, before it ever hits a 402. Nested-only metadata forced a fallback to /find.
+  assert.equal(time.serviceName, time.metadata.serviceName);
+  assert.equal(time.description, time.metadata.description);
+  assert.ok(time.tags && time.tags.length > 0, 'tags at top level');
+  assert.ok(time.extensions?.bazaar?.info?.input?.type, 'bazaar discovery extension at top level');
   assert.deepEqual(time.accepts.map((a) => a.network), ['eip155:8453', 'eip155:137', 'eip155:42161', 'eip155:143', 'eip155:480']);
   for (const a of time.accepts) {
     assert.equal(a.scheme, 'exact');
