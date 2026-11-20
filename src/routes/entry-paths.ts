@@ -249,7 +249,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402.",
     ["website-audit", "site-audit", "seo-audit", "security-headers", "uptime", "onpage"], from(PACKS, "/pack/website-audit")),
 
-  door("/text-to-speech-api", "Text to speech API: natural voices, MP3 audio",
+  door("/text-to-speech-generate", "Text to speech API: natural voices, MP3 audio",
     "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402.",
     ["text-to-speech", "tts-api", "tts", "speech-synthesis", "audio", "voice"], from(AI_TEXT, "/ai/speech")),
 

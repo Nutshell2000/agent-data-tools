@@ -288,7 +288,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
     ["phone", "The app", "Install it on your phone or computer. Works offline.", "/app", `Get the ${brand} app`],
   ];
 
-  const navLinks = `<a href="#try">Text to speech</a><a href="${VOICE_SITE}/transcribe">Transcribe</a><a href="${STUDIO_SITE}/audiobook">Audiobooks</a><a href="#pricing">Pricing</a><a href="#developers">Developers</a>`;
+  const navLinks = `<a href="#try">Text to speech</a><a href="${VOICE_SITE}/transcribe">Transcribe</a><a href="${STUDIO_SITE}/audiobook">Audiobooks</a><a href="/guides">Guides</a><a href="#pricing">Pricing</a><a href="#developers">Developers</a>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

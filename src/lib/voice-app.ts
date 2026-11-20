@@ -69,12 +69,19 @@ export function appPage(brand: string, origin: string): string {
   const voiceCount = CONSOLE_VOICES.length;
   const title = `${brand} Voice app: free text to speech and transcription, offline`;
   const description = `Install ${brand} Voice on Windows, Mac, Linux, Android or iPhone. ${voiceCount} natural voices and speech to text that run on your own device: no account, no limits, works offline.`;
+  // 20 Nov 2026: questions the page visibly answers, reused verbatim in the FAQPage JSON-LD above.
+  const APP_FAQ: [string, string][] = [
+    ["Can I install it on Windows, Mac, Android or iPhone?", "Yes: Windows, Mac and Linux in Chrome, Edge or Brave; on Android from the browser menu; on iPhone with Share, then Add to Home Screen."],
+    ["Is it free, and does it work offline?", "Yes. Text to speech and transcription run on your own device with no account and no limits, and work offline once the models are saved on your device."],
+    ["How do I use voice in my own app?", "Voice generation and transcription run on our servers through an API, priced per call with a key."],
+  ];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
 ${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, description, brand, offers: [] })}
 <link rel="canonical" href="${esc(origin)}${APP_PATH}"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07070c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${esc(brand)}">
-<meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${APP_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png">
+<meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${APP_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json" data-ld="faq">${JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: APP_FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c")}</script>
 <style>${STYLE}\n${VOICE_CONSOLE_CSS}</style></head><body>
 <header class="bar"><a class="brand" href="/"><img src="/logo.png" alt="" width="30" height="30">${esc(brand)} Voice</a><button type="button" class="btn primary" id="install" hidden>Install app</button></header>
 <main class="wrap">
@@ -88,6 +95,7 @@ ${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts", upsellTts: `
 <li><strong>iPhone and iPad:</strong> in Safari press Share, then <em>Add to Home Screen</em>.</li></ul>
 <p>It is a web app, so there is no installer file to trust and nothing for antivirus to flag. Updates arrive on their own, and you can remove it from your system's app list at any time. The first time you press Play the voice model (about 90 MB) is saved on your device; after that it works with no connection.</p></div>
 <div class="card"><h2>Building it into your own app?</h2><p>Voice generation and transcription run on our servers through an API, priced per call with a key. <a href="/text-to-speech-api">Text to speech API</a> &middot; <a href="/speech-to-text-api">Speech to text API</a> &middot; <a href="/docs">Docs</a></p></div>
+<div class="card"><h2>Questions</h2>${APP_FAQ.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}</div>
 </main>
 <footer><a href="/">${esc(brand)}</a> &middot; <a href="/docs">Docs</a> &middot; <a href="/credits">Pricing</a></footer>
 ${voiceConsoleScript()}
