@@ -76,7 +76,10 @@ test('finder: a job named as buyers name it gets its tool first, and every job p
     // 19 Nov 2026: plain-language TTS requests were hijacked by generic synonyms (article->news, text->document,
     // read->extract), sending them to /page/publish, /document/text or /transcribe (the wrong direction) instead of a
     // paid speech tool. These are voice-call sales lost at the free finder.
-    'turn my article into an mp3 so I can put it on my site': '/ai/speech', 'make an mp3 from text': '/ai/speech', 'read this article aloud as audio': '/ai/speech', 'text to audio for my video': '/ai/speech' };
+    'turn my article into an mp3 so I can put it on my site': '/ai/speech', 'make an mp3 from text': '/ai/speech', 'read this article aloud as audio': '/ai/speech', 'text to audio for my video': '/ai/speech',
+    // 20 Nov 2026: these used to land on /document/extract (needs an extra `fields` arg -> 400 uncharged) or
+    // /pdf/text (415 on HTML). They now reach the URL-only tool that actually returns a result.
+    'read a pdf': '/pdf/text', 'read a document': '/document/text', 'full text of webpage': '/extract' };
   for (const [need, tool] of Object.entries(first)) {
     const r = await recommend({}, need, 3, null);
     assert.equal(r.picks[0].tool, tool, `${need}: ${r.picks.map((p) => p.tool).join(' ')}`);
