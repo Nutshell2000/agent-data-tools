@@ -255,3 +255,14 @@ test("round 10 doors (14 Nov 2026): Solana and Ethereum price preset their coin 
     assert.ok(asked.some((u) => /SOL/i.test(u)), asked.join(" "));
   } finally { globalThis.fetch = realFetch; if (realCaches) globalThis.caches = realCaches; }
 });
+
+test('crypto and coin research doors match the buyer words Bazaar payers use', async () => {
+  assert.equal(doors.ENTRY_OF['/crypto/research'], '/pack/coin-research');
+  assert.equal(doors.ENTRY_OF['/coin/research'], '/pack/coin-research');
+  const rd = doors.ENTRY_PATHS.filter((d) => doors.ENTRY_OF[d.endpoint.path] === '/pack/coin-research');
+  assert.equal(rd.length, 2, 'at most two doors per tool');
+  assert.ok(rd.every((d) => d.endpoint.price === '$0.01'), 'doors keep the canonical price');
+  assert.ok(rd.some((d) => d.endpoint.path.replace(/^\//, '').replace('/', '_') === 'crypto_research'), 'exact crypto_research slug for the router');
+  assert.ok(rd.some((d) => /^Crypto research/.test(d.endpoint.summary)), 'buyer-worded name');
+  assert.ok(rd.some((d) => d.endpoint.path === '/coin/research'), 'coin research phrase');
+});
