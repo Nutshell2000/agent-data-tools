@@ -1,5 +1,5 @@
 {
-  "version": "1.319.1",
+  "version": "1.319.2",
   "tools": [
     {
       "name": "extract",
@@ -1561,6 +1561,54 @@
         }
       },
       "price": "$0.01"
+    },
+    {
+      "name": "answers_page_evidence",
+      "description": "One call for one public URL: fetch the page as clean text, read its HTTPS/security headers, and return a SHA-256 of the text with an Ed25519-signed receipt naming the URL, the result hash and the payment terms. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses. Example: url=https://example.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Public http(s) URL to capture"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.05"
+    },
+    {
+      "name": "answers_company_diligence",
+      "description": "One call for one company domain: site identity, tech stack, email security, hosting, DNS and registration age, plus an OFAC name screen. Use when an agent must vet a counterparty before dealing with it: a deterministic answer with a signed receipt and per-section failures. Public sources only; no private data. Example: domain=stripe.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Company domain such as stripe.com"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.05"
     },
     {
       "name": "base_balance",

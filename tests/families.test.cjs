@@ -64,7 +64,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
     // 15 Nov 2026: priced like the 8-payer "stablecoin charts by chain" listing its buyer pays (prices delegated).
     else if (e.path === "/stablecoin/charts") assert.equal(e.price, "$0.005", e.path);
     // Entry paths (src/routes/entry-paths.ts, 7 Nov 2026) carry their canonical tool's price: /sanctions/screen, /wallet/balance.
-    else assert.equal(e.price, e.path === "/ai/chat" || e.path === "/x402/find" || e.path === "/llm/chat" || e.path === "/scrape" || e.path === "/web/fetch" || e.path === "/web/read" || e.path === "/chat/completions" || e.path === "/bitcoin/fees" || e.path === "/block/number" || e.path === "/keyword/research" || e.path === "/market/data" || e.path === "/orderbook-live" ? "$0.002" : e.path === "/image/generate" || e.path === "/document/extract" || e.path === "/image/generation" ? "$0.03" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" || e.path === "/llm/inference" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/sanctions/check", "/sanctions/screen", "/ofac/check"].includes(e.path) ? "$0.009" : ["/pdf/text", "/pdf/extract", "/document/text", "/price/tokens", "/wallet/portfolio", "/wallet/balances", "/wallet/balance", "/balance/wallet"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
+    else assert.equal(e.price, e.path.startsWith("/answers/") ? "$0.05" : e.path === "/ai/chat" || e.path === "/x402/find" || e.path === "/llm/chat" || e.path === "/scrape" || e.path === "/web/fetch" || e.path === "/web/read" || e.path === "/chat/completions" || e.path === "/bitcoin/fees" || e.path === "/block/number" || e.path === "/keyword/research" || e.path === "/market/data" || e.path === "/orderbook-live" ? "$0.002" : e.path === "/image/generate" || e.path === "/document/extract" || e.path === "/image/generation" ? "$0.03" : e.path === "/search" || e.path === "/extract/rendered" || e.path === "/ai/chat-large" || e.path === "/llm/inference" ? "$0.01" : e.path === "/check/counterparty" ? "$0.01" : e.path === "/check/x402-seller" ? "$0.01" : e.path === "/check/payee" ? "$0.005" : ["/sanctions/check", "/sanctions/screen", "/ofac/check"].includes(e.path) ? "$0.009" : ["/pdf/text", "/pdf/extract", "/document/text", "/price/tokens", "/wallet/portfolio", "/wallet/balances", "/wallet/balance", "/balance/wallet"].includes(e.path) ? "$0.005" : e.path === "/company" || e.path === "/ai/speech" ? "$0.01" : e.path === "/x402/check" || e.path === "/feed" ? "$0.01" : e.path.startsWith("/ai/") || e.path === "/price/token" ? "$0.01" : "$0.01", e.path);
     assert.ok(e.description.length >= 40 && e.description.length <= 450, e.path);
     assert.match(e.path.slice(1).replace(/[/-]/g, "_"), /^[a-z0-9_]{1,64}$/, e.path);
     for (const [name, p] of Object.entries(e.params)) assert.notEqual(p.example, undefined, `${e.path} ${name}`);
@@ -84,7 +84,7 @@ test("family catalog: unique paths, floor price, bounded metadata and examples f
   // 1.315.0 (20 Nov 2026): three weather doors add three more (top earner, high-match gaps).
   // 1.318.1 (20 Nov 2026): three weather doors add three more.
   // 1.319.1 (20 Nov 2026): main added one more tool.
-  assert.equal(families.length, 752);});
+  assert.equal(families.length, 754);});
 
 test("every utility and fun endpoint runs on its own example input without network access", async () => {
   for (const f of [...utils.UTILS, ...fun.FUN]) {
@@ -113,7 +113,7 @@ test("paused family tools remain implemented but cannot be advertised or directl
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
   // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
   // 19-20 Nov 2026: /market/is-open and the /rss/parse door.
-  assert.equal(ENDPOINTS.length,774);
+  assert.equal(ENDPOINTS.length,776);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
