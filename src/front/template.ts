@@ -63,7 +63,10 @@ export function fromTemplate(tpl: QuoteTemplate, requestUrl: string): { status: 
     if (pr.resource) pr.resource.url = requestUrl;
     headers.push(["payment-required", b64encode(JSON.stringify(pr))]);
   }
-  const body = structuredClone(tpl.body) as { resource?: { url?: string }; freeTrial?: { url?: string } };
+  const body = structuredClone(tpl.body) as { resource?: { url?: string }; freeTrial?: { url?: string }; hint?: string };
+  // The card-key hint uses ? when the quoted URL has no query and & when it has one. A template captured from a
+  // bare URL must not keep ? when rebuilding a quote for a URL that already has parameters (and vice versa).
+  if (body.hint) body.hint = body.hint.replace(/[?&]api_key=adt_\u2026/g, `${url.search.length > 1 ? "&" : "?"}api_key=adt_\u2026`);
   if (body.resource) body.resource.url = requestUrl;
   // A bare URL keeps the template's trial link: the core fills it with the tool's example inputs (a bare trial would fail).
   if (body.freeTrial?.url && url.search.length > 1) body.freeTrial.url = trialUrl(url);
