@@ -321,18 +321,18 @@ export const PRODUCTS: readonly Product[] = [
   {
     slug: "text-to-speech-api",
     name: "Text to speech API",
-    tagline: "Send text, get one audio file back: 50 natural voices in English and Spanish, French, Chinese, Japanese and Korean too, or a low-cost English voice at $0.02 per 1,000 characters. ElevenLabs- and OpenAI-compatible.",
+    tagline: "Send text, get one audio file back: 50 natural voices in English and Spanish, or a low-cost English voice at $0.02 per 1,000 characters. French, Chinese, Japanese and Korean were retired with MeloTTS (20 Nov 2026). ElevenLabs- and OpenAI-compatible.",
     tool: "/text-to-speech",
     also: ["/text-to-speech/lite", "/ai/speech"],
     points: [
       "Up to 2,000 characters as one MP3 in a single call; longer text in several calls",
-      "Natural voices (Deepgram Aura-2): 40 English and 10 Spanish, pick by name; French, Chinese, Japanese and Korean with MeloTTS (one voice each, up to 1,200 characters)",
+      "Natural voices (Deepgram Aura-2): 40 English and 10 Spanish, pick by name. French, Chinese, Japanese and Korean are retired with MeloTTS (20 Nov 2026) and refused with 400.",
       "Low-cost English voices (Aura-1) with text-to-speech/lite: $0.04 for up to 2,000 characters",
       "Drop-in for existing code: POST /v1/text-to-speech/{voice_id} (ElevenLabs shape; premade voice IDs map to a similar voice) and POST /v1/audio/speech (OpenAI shape)",
     ],
     limits: [
-      "Six languages: English, Spanish, French, Chinese, Japanese and Korean; no German yet. The low-cost voices are English only.",
-      "MP3 in English and Spanish, WAV in the other four; no streaming in parts, no voice cloning.",
+      "Two languages: English and Spanish. French, Chinese, Japanese and Korean were retired with MeloTTS (20 Nov 2026); no German. The low-cost voices are English only.",
+      "MP3 in English and Spanish; no WAV in retired languages, no streaming in parts, no voice cloning.",
     ],
     unit: "requests",
     more: [[VOICE_SITE + "/text-to-speech", "Try it free in your browser: text to speech without an account, WAV or MP3 download"], ["/keys/voice-test", "Try the API free with no card: 25 test calls for an OpenAI or ElevenLabs SDK"]],

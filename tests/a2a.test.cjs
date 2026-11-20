@@ -71,3 +71,17 @@ test("the A2A card advertises a real v1.0 interface and keeps the v0.3 url", asy
   assert.equal(card.capabilities.extendedAgentCard, false);
   assert.equal(card.url, ORIGIN);
 });
+
+test("the A2A card does not promise speech languages the tool refuses", () => {
+  const card = discovery.agentCard(ORIGIN, ["eip155:8453"]);
+  const speech = card.skills.find((s) => s.id === "ai_speech");
+  assert.ok(speech, "ai_speech is advertised on the card");
+  // Tie the card copy to the live contract, not to a hard-coded sentence.
+  const api = discovery.openApi(ORIGIN);
+  const langs = api.paths["/ai/speech"].get.parameters.find((p) => p.name === "lang").schema.enum;
+  assert.deepEqual(langs, ["en", "es"]);
+  // Truthful "retired with MeloTTS" wording is allowed; only a positive offer of those languages is not.
+  assert.ok(!/WAV in French|MeloTTS \(one voice|in French, Chinese/i.test(speech.description), 'card must not offer retired speech languages');
+  assert.match(speech.description, /en or es/);
+  assert.match(speech.description, /retired/i);
+});
