@@ -10,6 +10,7 @@ const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 let mf, mfOff, accounts;
 const facilitatorCalls = []; // { path, body }
 let settlements = 0;
+let failSettle = false; // when true, /settle returns a failure so we can test claim release
 
 /** The x402 facilitator as the Worker sees it: supported kinds, verify and settle. */
 async function facilitator(r) {
@@ -24,6 +25,7 @@ async function facilitator(r) {
   }
   if (path.endsWith('/settle')) {
     settlements++;
+    if (failSettle) return Response.json({ success: false, error: 'transient_settlement_error' }, { status: 500 });
     return Response.json({ success: true, transaction: '0x' + settlements.toString(16).padStart(64, 'a'), network: body.paymentRequirements.network, payer: auth.from });
   }
   return new Response('unexpected facilitator path', { status: 599 });
@@ -211,6 +213,31 @@ test('the facilitator rejecting the authorization (no funds) means a 402 with th
   assert.match((await refused.json()).error, /challenge hash mismatch/);
   assert.equal(facilitatorCalls.filter((c) => c.path.endsWith('/verify')).length, verifies, 'refused before the facilitator');
   assert.equal(settlements, settled);
+});
+
+test('a transient settlement failure releases the claim so an honest retry is not refused as used', async () => {
+  const { Challenge } = await import('mppx');
+  const { evm } = await import('mppx/client');
+  const account = accounts.privateKeyToAccount(accounts.generatePrivateKey());
+  const method = evm.charge({ account, currencies: [evm.assets.base.USDC], networks: [8453] });
+  const credentialFor = async (url) => {
+    const quote = await mf.dispatchFetch(url);
+    await quote.arrayBuffer();
+    return method.createCredential({ challenge: Challenge.fromResponseList(new Response(null, { status: 402, headers: quote.headers })).find((ch) => ch.method === "evm"), context: {} });
+  };
+  const cred = await credentialFor('https://api.test/time?zone=Europe/Stockholm');
+  failSettle = true;
+  let failed;
+  try {
+    failed = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { headers: { authorization: cred } });
+    await failed.arrayBuffer();
+    assert.equal(failed.status, 402, 'settlement failure answers a 402');
+  } finally {
+    failSettle = false; // never leak the flag into later tests
+  }
+  const retry = await mf.dispatchFetch('https://api.test/time?zone=Europe/Stockholm', { headers: { authorization: cred } });
+  await retry.arrayBuffer();
+  assert.equal(retry.status, 200, 'the same authorization works after a transient settle failure (claim released)');
 });
 
 test('a failed, uncharged call releases the claim so the same authorization can be retried', async () => {
