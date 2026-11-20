@@ -60,6 +60,9 @@ test('/transcribe-pro shows the plan, the live hours and the checkout link', asy
   assert.doesNotMatch(html, /Voice Pro/, 'one product, one name');
   assert.ok(html.includes('rel="canonical"'));
   assert.doesNotMatch(html, /cheapest|unlimited/i, 'no claims we cannot back');
+  // 20 Nov 2026: the $3 revenue page had no social/og tags, unlike every product page.
+  for (const tag of ['og:type', 'og:title', 'og:description', 'og:url', 'og:image', 'twitter:card']) assert.ok(html.includes(`${tag}"`) || html.includes(`${tag}="`), `${tag} present`);
+  assert.match(html, /og:price:amount" content="3\.00"/, 'the og price matches the $3 plan');
 });
 
 test('a Transcribe Pro claim returns a key with voice instructions; a plain claim does not', async () => {

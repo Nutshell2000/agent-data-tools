@@ -207,6 +207,11 @@ test('/credits page for people: packs with calls per pack, app setup, free previ
   assert.doesNotMatch(html, /noindex/);
   assert.match(html, /<main>.*One API key/s, 'the page has a main landmark');
   assert.match(html, /<meta name="description" content="API credits by card/);
+  // 20 Nov 2026: /credits is indexable but had no canonical/og tags and a stale "no subscription" title.
+  assert.doesNotMatch(html, /no subscription/i, 'title reflects the $3 monthly plan');
+  assert.match(html, /\$3 a month/);
+  assert.match(html, /rel="canonical" href="https:\/\/[^"]*\/credits"/);
+  for (const tag of ['og:type', 'og:title', 'og:url', 'twitter:card']) assert.ok(html.includes(`${tag}"`), `${tag} present`);
   assert.match(html, /a\{color:#0645ad\}/, 'links have a contrasting colour in light mode');
   assert.match(html, /a\{color:#8ecbff\}/, 'links have a contrasting colour in dark mode');
 });
