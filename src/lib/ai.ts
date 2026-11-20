@@ -9,7 +9,9 @@ const DEFAULT_AI_DAILY_CAP = 1000;
 
 export const MODELS = {
   image: "@cf/black-forest-labs/flux-1-schnell",
-  text: "@cf/meta/llama-3.1-8b-instruct-fp8",
+  // 20 Nov 2026: Workers AI retired @cf/meta/llama-3.1-8b-instruct-fp8 that day (410 "Model has been deprecated"), so every
+  // paid summary, sentiment, keyword and rewrite call failed. Same Llama 3.1 8B, the "-fast" build (probed: 320 ms).
+  text: "@cf/meta/llama-3.1-8b-instruct-fast",
   vision: "@cf/meta/llama-4-scout-17b-16e-instruct",
   speech: "@cf/openai/whisper-large-v3-turbo",
 } as const;

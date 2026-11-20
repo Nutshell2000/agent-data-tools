@@ -1,5 +1,5 @@
 /**
- * MeloTTS on Workers AI (@cf/myshell-ai/melotts, MIT): the voices for French, Chinese, Japanese and Korean, which Aura-2
+ * MeloTTS on Workers AI (@cf/myshell-ai/melotts, MIT) was retired 20 Nov 2026: it used to supply French, Chinese, Japanese and Korean voices, which Aura-2
  * does not speak. Why: /status of 16 Nov 2026 showed paid /dub calls refused with "to must be en or es".
  *
  * Measured 16 Nov 2026 through the Workers AI REST API: `{ prompt, lang }` with lang one of en, es, fr, jp, kr, zh

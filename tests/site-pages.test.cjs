@@ -74,4 +74,7 @@ test("the new pages are counted and listed", () => {
   assert.ok(sm.includes("<loc>https://x.test/app</loc>"), "the free app is in the sitemap");
   assert.ok(sm.includes("<loc>https://x.test/transcribe-pro</loc>"), "Transcribe Pro is in the sitemap");
   assert.ok(sm.includes("<loc>https://x.test/guides</loc>"), "the guide hub is in the sitemap");
+  // 20 Nov 2026: the two indexable acquisition pages (card credits + free key) were absent from the sitemap.
+  assert.ok(sm.includes("<loc>https://x.test/credits</loc>"), "the pricing page is in the sitemap");
+  assert.ok(sm.includes("<loc>https://x.test/keys/free</loc>"), "the free-key page is in the sitemap");
 });

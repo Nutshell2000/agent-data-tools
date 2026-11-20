@@ -42,6 +42,15 @@ function freeTrialOffer(page: { endpoint: Endpoint; url: string }) {
   return { what: `No key, no wallet: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller on this and most other tools. Failed calls do not count.`, url: url.href };
 }
 
+/** The exact call the exhausted caller just made, but with trial/x402/sample removed and a key placeholder set —
+ *  so an agent can copy one URL and actually continue instead of re-issuing the same free call. */
+function retryUrlWithKey(url: string): string {
+  const u = new URL(url);
+  for (const control of ["trial", "x402", "sample"]) u.searchParams.delete(control);
+  u.searchParams.set("api_key", "adt_…");
+  return u.href;
+}
+
 /** The card route, as data: where credits are sold and the smallest pack (named only while card payments can issue keys). */
 function payByCard(origin: string, cardReady: boolean) {
   const [starter] = WEB_PACKS;
@@ -76,15 +85,25 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // 19 Nov 2026: a caller that just used its free calls is the highest-intent quote we get (about 28,600 such calls in
   // 30 days). It used to receive the same generic paragraph as a first-time crawler. Give it one explicit next step:
   // buy the smallest pack, then repeat the SAME URL with the key. No new URL — reuse the card pack already offered.
+  // 20 Nov 2026: `resume.retry` carried the original url still holding trial=1 and no key — an agent that followed it
+  // re-issued the same free call and dead-ended. Give an actionable retry WITH the key, and only advertise routes that
+  // can actually fulfil here (card path needs STRIPE_READ_KEY; MPP needs a Link agent wallet).
   const [starter] = WEB_PACKS;
+  const retryWithKey = page ? retryUrlWithKey(page.url) : null;
+  const cardStep = cardReady && starter
+    ? `open ${starter.url} in a browser ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits); Stripe returns you to ${origin}/credits/claim?session_id=… where your key is shown (no e-mail needed), then `
+    : "get a key at " + origin + "/credits (from $1, or $3 a month) and then ";
+  const mppStep = mppReady
+    ? ` An agent with an MPP client and a Link agent wallet can get a key without a browser: GET ${origin}/credits/buy/1, pay the 402, then use the key it returns.`
+    : "";
   const resume = freeExhausted && starter
-    ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls here. To continue: open ${starter.url} in a browser ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits); Stripe returns you to ${origin}/credits/claim?session_id=… where your key is shown (no e-mail needed), then repeat this exact URL with &api_key=adt_… — the same key works on every tool. An agent with an MPP client can get a key without a browser: GET ${origin}/credits/buy/1, pay the 402, then use the key it returns. `
+    ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls here. To continue: ${cardStep}${retryWithKey ? `repeat this exact URL with the key: ${retryWithKey}` : "add api_key=adt_… to this URL and re-send it"} — the same key works on every tool.${mppStep} `
     : "";
   // MPP is offered in the body for buying a pack (cardHint); say how to settle THIS call too. Docs already teach it.
   // The WWW-Authenticate header is appended by the MPP middleware AFTER this function, so read it from the flag
   // the caller computed from tempoEnabled/evmEnabled rather than from the response (19 Nov: header check never fired).
   const mppCall = mppReady
-    ? "MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
+    ? " MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
     : "";
   const hint = `${resume}${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${mppCall} ${cardHint(origin, cardReady, page?.endpoint.price, page ? keyPrice(page.endpoint.path, page.endpoint.price) : undefined, mppReady)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // The body mirrors the v2 header (1.117.0, 10 Nov 2026). Until then it was a v1 PaymentRequired on every tool, and
@@ -102,7 +121,15 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // are long. Key order only; the x402 fields below keep their names and values, and the header is untouched.
   const first = {
     hint,
-    ...(freeExhausted && starter ? { resume: { usedFreeCalls: FREE_HTTP_CALLS_PER_CALLER, buy: starter.url, cardBuy: starter.url, claim: `Stripe returns to ${origin}/credits/claim?session_id=… where the key is shown; no manual claim call`, mppBuy: `${origin}/credits/buy/1`, key: "api_key=adt_…", retry: page?.url ?? null } } : {}),
+    ...(freeExhausted && starter ? { resume: {
+      usedFreeCalls: FREE_HTTP_CALLS_PER_CALLER,
+      buy: starter.url,
+      ...(cardReady ? { cardBuy: starter.url, claim: `Stripe returns to ${origin}/credits/claim?session_id=… where the key is shown; no manual claim call` } : {}),
+      ...(mppReady ? { mppBuy: `${origin}/credits/buy/1`, mppNote: "requires an MPP client and a Link agent wallet" } : {}),
+      key: "api_key=adt_…",
+      retry: page?.url ?? null, // legacy: still holds trial=1, kept for compatibility
+      retryWithKey, // actionable: the same call with trial removed and the key placeholder set
+    } } : {}),
     freeTrial: freeCalls && page ? freeTrialOffer(page) : undefined,
     payByCard: payByCard(origin, cardReady),
     prepay,

@@ -1,5 +1,5 @@
 {
-  "version": "1.312.2",
+  "version": "1.314.1",
   "tools": [
     {
       "name": "extract",
@@ -19794,7 +19794,7 @@
     },
     {
       "name": "ai_tts",
-      "description": "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10), or as a WAV in French, Chinese, Japanese or Korean (MeloTTS). Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21333,6 +21333,30 @@
     {
       "name": "company_enrichment",
       "description": "Company enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server, DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Company domain such as stripe.com (or a URL; its host is used)"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "lead_enrichment",
+      "description": "Lead enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), hosting holder, DNS records and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only — company and domain signals, no personal or contact data. Use to enrich a sales lead, company record or vendor from its website domain. Example: domain=stripe.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -23169,7 +23193,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, or WAV in French, Chinese, Japanese or Korean with MeloTTS (one voice each). Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2. fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

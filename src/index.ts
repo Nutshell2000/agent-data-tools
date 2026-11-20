@@ -61,7 +61,7 @@ import { FAVICON_SVG, LOGO_PNG_BASE64 } from "./lib/logo";
 import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
 import { paymentOptions, priceOn } from "./lib/networks";
-import { discoveryResources, salesOrdered } from "./lib/discovery-index";
+import { DISCOVERY_PAGE_LIMIT, discoveryResources, salesOrdered } from "./lib/discovery-index";
 import { apiKeyFrom } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
@@ -966,7 +966,21 @@ for (const path of ["/.well-known/seller-evidence.json", "/.well-known/seller-ev
 for (const path of ["/.well-known/x402", "/.well-known/x402.json"]) {
   app.get(path, (c) => {
     const host = categoryHostOf(c.req.url);
-    return c.json({ version: 1, resources: salesOrdered(ENDPOINTS).filter((e) => !host || host.paths.has(e.path)).map((e) => origin(c.req.url) + e.path), discovery: `${origin(c.req.url)}/discovery/resources` });
+    const only = host?.paths;
+    const url = origin(c.req.url);
+    // 20 Nov 2026: llms.txt promises "every tool with its terms" here, but a v1 URL-only list forced a v2 client to
+    // issue one GET per tool to learn price/payTo. Serve the full v2 terms (same source as /discovery/resources) while
+    // keeping the v1 `resources` array and `version` field untouched — older crawlers and the parity test rely on both.
+    const terms = discoveryResources(c.env, url, DISCOVERY_PAGE_LIMIT, 0, only);
+    return c.json({
+      version: 1,
+      x402Version: 2,
+      // Legacy v1 shape, unchanged: the exact URL list in the same order as /discovery/resources.
+      resources: salesOrdered(ENDPOINTS).filter((e) => !only || only.has(e.path)).map((e) => url + e.path),
+      // v2 shape: each resource with its accepts[] (scheme, network, amount, asset, payTo), description and tags.
+      resourcesV2: terms.items.map((i) => ({ resource: i.resource, type: i.type, x402Version: i.x402Version, accepts: i.accepts, metadata: i.metadata })),
+      discovery: `${url}/discovery/resources`,
+    });
   });
 }
 // Bazaar-shaped discovery index of every tool (lib/discovery-index.ts): paged like the facilitator's own.

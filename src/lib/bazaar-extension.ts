@@ -266,6 +266,10 @@ export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/sitemap": "Sitemap, list site URLs",
   "/domain/whois": "WHOIS, domain RDAP lookup",
   "/ip/geolocate": "IP geolocation, IPv4 & IPv6",
+  // 1.314.0, 20 Nov 2026: "smart money" / whale flow is a $688/30d Bazaar job (3 listings, 6-17 payers each) where
+  // we rank #2 for "whale transfers" but are absent for "smart money". This is a raw large-transfer feed, so the
+  // name says what it returns and does not claim wallet labelling.
+  "/whale/transfers": "Whale transfers, smart money flow",
 });
 /**
  * Paths whose listing description must open with the override name, not the summary's lead phrase (19 Nov 2026).
@@ -291,6 +295,7 @@ export const DESCRIPTION_HEAD_OF: Readonly<Record<string, string>> = Object.free
   "/sitemap": LISTING_NAME_OF["/sitemap"],
   "/domain/whois": LISTING_NAME_OF["/domain/whois"],
   "/ip/geolocate": LISTING_NAME_OF["/ip/geolocate"],
+  "/whale/transfers": LISTING_NAME_OF["/whale/transfers"],
 });
 /** The `serviceName` a listing carries: the override above, else `listingName(summary)`. */
 export function listingNameFor(e: { path: string; summary: string }): string {
