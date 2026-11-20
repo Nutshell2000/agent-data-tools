@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.311.1";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.312.2";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -276,6 +276,9 @@ const CATEGORY_OF_PATH: Readonly<Record<string, string>> = Object.freeze({
   // 1.306.0 (20 Nov 2026): market/DEX/whale/orderbook doors keep their canonical section.
   "/market/data": "Prices and DeFi", "/dex/pools": "Prices and DeFi", "/orderbook-live": "Prices and DeFi",
   "/whale/alert": "Chain data",
+  // 1.312.0 (20 Nov 2026): check-before-paying doors keep their canonical section.
+  "/check-x402-endpoint-before-paying": "Company, compliance and checks", "/vet-x402-seller": "Company, compliance and checks",
+  "/verify-x402-payment": "Company, compliance and checks",
   // 1.180.0 (14 Nov 2026): at the top, away from lines other queued releases edit.
   "/transcribe/long": "AI", "/text-to-speech/lite": "AI", "/transcribe/summary": "AI", "/transcribe/speakers": "AI", "/subtitles/translate": "AI", "/dub": "AI", "/voice/agent": "AI", "/dialogue": "AI", "/text-to-speech/captions": "AI", "/audio/transcribe": "AI", // 1.192.0: they fell to Utilities
   "/invoice/check": "Company, compliance and checks",

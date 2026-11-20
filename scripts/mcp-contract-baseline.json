@@ -1,5 +1,5 @@
 {
-  "version": "1.311.1",
+  "version": "1.312.2",
   "tools": [
     {
       "name": "extract",
@@ -19309,6 +19309,78 @@
         }
       },
       "price": "$0.002"
+    },
+    {
+      "name": "check_x402_endpoint_before_paying",
+      "description": "Check an x402 endpoint before you pay it: decode its 402 payment terms (USD price for native USDC, network, asset, recipient, scheme, timeout) without paying, plus a listing-quality score for the resource URL, atomic amount, facilitator minimum and output schema. Never signs. Use before buying from an unfamiliar x402 seller. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "vet_x402_seller",
+      "description": "Vet an x402 seller before you pay: decode its 402 terms (price, network, asset, payTo), score listing quality and check sanctions and domain evidence. Never signs. Use to audit a paid endpoint before sending funds. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "verify_x402_payment",
+      "description": "Verify an x402 payment path before paying: decode the endpoint's 402 requirements and score its listing quality, with network, asset, payTo and timeout. Never signs. Use to confirm a paid endpoint is safe to call. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public https URL of the paid endpoint, with any query it needs"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
     },
     {
       "name": "keyword_research",
