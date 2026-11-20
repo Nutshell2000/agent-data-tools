@@ -156,7 +156,8 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/x402/check", ["x402"]],
     ["/package", ["package", "risk"]],
     ["/price/token", ["crypto", "token", "price"]],
-    ["/extract", ["scrape website", "page to markdown"]],
+    // 19 Nov buyer analysis (0x72c5 router): the paid phrase is "web content extraction", not "scrape website".
+    ["/extract", ["web content", "markdown"]],
     // 31 Oct 2026: "Chat completions" (equal payers) sat above "LLM chat completions" for "chat completions": the phrase first.
     ["/ai/chat", ["chat completions", "llm"]],
     ["/ai/embed", ["embeddings", "openai compatible"]],
@@ -165,7 +166,9 @@ test("listing names carry the words of the measured buyer intents", async () => 
     ["/domain", ["dns lookup", "whois lookup"]],
     ["/domain-report", ["domain lookup"]],
     ["/sec/filings", ["sec filings"]],
-    ["/token-report", ["honeypot token check"]],
+    // 19 Nov buyer analysis (0x72c5 router): the literal question "is this token safe" is the paid phrase;
+    // "honeypot token check" stays in the description/tags for the older measured intent.
+    ["/token-report", ["token safe"]],
     ["/extract/rendered", ["web page to markdown"]],
     ["/check/x402-seller", ["x402 audit"]],
     ["/price/token", ["crypto price", "token price"]],

@@ -400,7 +400,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Generate an image from a text prompt with FLUX.1 schnell: send a prompt, get a 1024x1024 JPEG back as base64 in a few seconds, with an optional steps setting (1-8) for more detail. Use for illustrations, thumbnails, mockups, avatars, product shots and social media images inside an agent workflow.",
     ["image-generation", "text-to-image", "generate-image", "ai-image", "flux", "art"], CORE_IMAGE),
 
-  door("/scrape", "Web scraping API: scrape any web page to clean text or Markdown",
+  door("/scrape", "Scrape a web page to Markdown: clean text or Markdown from any URL",
     "Web scraping API: fetch any public web page URL and get its main content as clean text or Markdown (headings, code blocks, tables and links kept), ready for an LLM, RAG or an agent's context; static HTML, Markdown or text pages, up to 100,000 characters. JavaScript-rendered pages: /extract/rendered. Empty pages, bot walls and errors are never charged. Use to read articles, docs and product pages at scale.",
     ["web-scraping", "scrape", "scraper", "web-page-to-markdown", "extract", "rag"], CORE_EXTRACT),
 
