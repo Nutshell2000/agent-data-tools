@@ -66,8 +66,9 @@ export function salesOrdered<T extends { path: string }>(list: readonly T[]): T[
 
 /** One page of the discovery index: every paid tool as a Bazaar-style resource item. Without a limit the page
  *  holds the whole catalog, so a crawler that reads only the first page still sees every tool. */
-export function discoveryResources(env: Env, origin: string, limit = DISCOVERY_PAGE_LIMIT, offset = 0) {
-  const items = salesOrdered(ENDPOINTS).map((e) => ({
+/** `only`: a category host's paths (lib/tts-host.ts); the index then lists just those tools. */
+export function discoveryResources(env: Env, origin: string, limit = DISCOVERY_PAGE_LIMIT, offset = 0, only?: ReadonlySet<string>) {
+  const items = salesOrdered(ENDPOINTS).filter((e) => !only || only.has(e.path)).map((e) => ({
     resource: origin + e.path,
     type: "http",
     x402Version: 2,

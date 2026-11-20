@@ -56,7 +56,9 @@ import { UTILS } from "./utils";
 import { WEB_CHECKS } from "./web-checks";
 import { WHALE } from "./whale";
 import { PACKS_RESEARCH } from "./packs-research";
+import { GEO_MORE } from "./geo-more";
 import { ECON } from "./econ";
+import { FEEDS } from "./feeds";
 
 /** The canonical tool each entry path runs (read by tests, the handover notes and the Zero registration check). */
 export const ENTRY_OF: Record<string, string> = {};
@@ -295,6 +297,13 @@ export const ENTRY_PATHS: Entry[] = [
     // /keywords/ideas is acquisition-repriced to $0.002 in the live catalog, not the KEYWORDS list's $0.01.
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(KEYWORDS, "/keywords/ideas"))),
 
+  door("/crypto/research", "Crypto research, coin research: one-call coin brief",
+    "Crypto research and coin research in one call: price, 24h change, volume and open interest for any Hyperliquid coin (BTC, ETH, SOL, HYPE and about 200 more), funding now and over 3 days, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use before a trade or to brief an agent on a coin. Not investment advice.",
+    ["crypto-research", "coin-research", "token-research", "coin-brief", "hyperliquid"], from(GEO_MORE, "/pack/coin-research")),
+
+  door("/coin/research", "Coin research: price, funding and signals for one coin",
+    "Coin research in one call: live price, volume, open interest and funding for any Hyperliquid coin, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use for a pre-trade coin brief or to research one token. Not investment advice.",
+    ["coin-research", "crypto-research", "coin-brief", "token-research", "defi"], from(GEO_MORE, "/pack/coin-research")),
   door("/token/price", "Token price lookup, USD: live crypto price by symbol or contract address",
     "Token price in USD for any crypto token by symbol (ETH, BTC, LINK, AERO, ARB, OP), coin name or ERC-20 address on Base, Ethereum, Arbitrum or Optimism, read live from the deepest Uniswap v3 pool, with the pool, fee tier, reserve and a thin-liquidity flag. Use to get a crypto price for a quote, a portfolio valuation or a trade check.",
     ["token-price", "crypto-price", "price-lookup", "uniswap", "defi", "market-data"], from(PRICES, "/price/token")),
@@ -464,6 +473,11 @@ export const ENTRY_PATHS: Entry[] = [
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
 
+  // 19 Nov 2026: a Mercator job paid another seller $39.80 for 398 calls at $0.10 in 7 days, searched as "Parse RSS/Atom
+  // feeds into structured JSON"; we were absent from that search although /feed does exactly that.
+  door("/rss/parse", "Parse RSS feed to JSON: RSS and Atom",
+    "Parse an RSS or Atom feed into structured JSON: give a feed URL, or a page whose head links its feed, and get the feed title and its newest items with title, link, ISO 8601 date, plain-text summary, author and id. RSS 2.0, RSS 1.0 and Atom, up to 50 items; a page that is not a feed is refused uncharged. Use to follow news, blogs, release notes or podcasts in an agent.",
+    ["rss-parser", "rss-to-json", "parse-rss", "atom-feed", "feed-parser", "rss"], from(FEEDS, "/feed")),
   // Round 8 (10 Nov 2026): five more jobs sold elsewhere under a path that names them. Evidence the same day: Mercator's
   // router sent "page to Markdown" listings about 520 calls in 30 days (/md 210, /proxy/web-scrape 258) and for that search
   // ranked our /markdown/to-html, not /extract; Zero's intent "web page to markdown" has 55 searches; the Bazaar's

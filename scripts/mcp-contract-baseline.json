@@ -1,5 +1,5 @@
 {
-  "version": "1.306.2",
+  "version": "1.311.1",
   "tools": [
     {
       "name": "extract",
@@ -14980,6 +14980,31 @@
       "price": "$0.01"
     },
     {
+      "name": "market_is_open",
+      "description": "Is the stock market open right now? For the NYSE and Nasdaq (default) or the London Stock Exchange: open or closed, the session (regular, pre-market, after-hours) and why (weekend, holiday by name, early close), today's open and close, the next open and close in UTC and minutes until the next change. Computed from published hours, holidays and early closes; `at` asks about another moment. Use before trading, scheduling orders or alerts. Example: exchange=NYSE. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "exchange": {
+            "type": "string",
+            "description": "NYSE (default), NASDAQ or LSE; also accepts US, UK, London"
+          },
+          "at": {
+            "type": "string",
+            "description": "Moment to ask about, ISO 8601 (default: now)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "barcode",
       "description": "Generate a barcode as an SVG image: Code 128 for any printable ASCII text (switching to the compact numeric set for runs of digits, with the mod-103 check symbol), or EAN-13 for 12 or 13 digits (the check digit is computed or verified). Set bar width and height and whether to print the text below. Returns the SVG and a data URL ready for an <img> tag. Use for shipping labels, product codes, tickets or inventory; for QR codes use qr. Example: text=AGENT-12345. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -18566,6 +18591,34 @@
       "price": "$0.01"
     },
     {
+      "name": "domain_availability_bulk",
+      "description": "Check up to 25 names across up to 4 TLDs (100 combinations) in one call: per-domain status (available, taken, likely available or unknown), registrar, creation and expiry from each registry's RDAP server, with DNS fallback. Use to scan a naming shortlist or brand portfolio in one request instead of dozens. Availability is not a price quote: premium and reserved names exist, and an unreachable registry reads unknown, never available. Example: names=acme,acmehq. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "names": {
+            "type": "string",
+            "description": "Comma-separated names or full domains, 1 to 25 (e.g. acme,acmehq)"
+          },
+          "tlds": {
+            "type": "string",
+            "description": "Comma-separated TLDs, 1 to 4 (default com,net,org,io)"
+          }
+        },
+        "required": [
+          "names"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "se_company",
       "description": "Swedish company by organisationsnummer (556703-7485 or SE556703748501) or name, from Bolagsverket and SCB: names, legal form, registration date, status, deregistration, bankruptcy, liquidation or reconstruction, VAT/F-tax/employer activity, SNI codes, business description, address. Weekly open data. Use to verify a Swedish customer or supplier before invoicing. Register facts only, not a credit report. Example: orgnr=556703-7485. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -19300,6 +19353,48 @@
         ]
       },
       "price": "$0.002"
+    },
+    {
+      "name": "crypto_research",
+      "description": "Crypto research and coin research in one call: price, 24h change, volume and open interest for any Hyperliquid coin (BTC, ETH, SOL, HYPE and about 200 more), funding now and over 3 days, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use before a trade or to brief an agent on a coin. Not investment advice. Example: coin=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          }
+        }
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "coin_research",
+      "description": "Coin research in one call: live price, volume, open interest and funding for any Hyperliquid coin, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use for a pre-trade coin brief or to research one token. Not investment advice. Example: coin=ETH. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "coin": {
+            "type": "string",
+            "description": "Coin symbol such as BTC, ETH, SOL or HYPE (default BTC)"
+          }
+        }
+      },
+      "price": "$0.01"
     },
     {
       "name": "token_price",
@@ -20624,6 +20719,36 @@
         "required": [
           "tokenA",
           "tokenB"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "rss_parse",
+      "description": "Parse an RSS or Atom feed into structured JSON: give a feed URL, or a page whose head links its feed, and get the feed title and its newest items with title, link, ISO 8601 date, plain-text summary, author and id. RSS 2.0, RSS 1.0 and Atom, up to 50 items; a page that is not a feed is refused uncharged. Use to follow news, blogs, release notes or podcasts in an agent. Example: url=https://hnrss.org/frontpage. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the feed, or of a web page whose head links to its feed"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Items to return (1-50, default 20)"
+          }
+        },
+        "required": [
+          "url"
         ]
       },
       "price": "$0.01"

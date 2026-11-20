@@ -66,7 +66,8 @@ test("the speech tools cost the same on the TTS host as on the API host", async 
 });
 
 test("every other path answers 404 on the TTS host and names where it lives; nothing else can be listed there", async () => {
-  for (const path of ["/weather", "/btc-fees", "/pack/url-safety", "/transcribe", "/mcp", "/openapi.json", "/.well-known/x402", "/discovery/resources", "/credits", "/tools/ai-speech", "/v1/chat/completions"]) {
+  // The discovery documents (/openapi.json, /.well-known/x402, /discovery/resources) are the host's own since 19 Nov: see the last test.
+  for (const path of ["/weather", "/btc-fees", "/pack/url-safety", "/transcribe", "/mcp", "/credits", "/tools/ai-speech", "/v1/chat/completions"]) {
     const r = await ask(TTS + path + "?city=London");
     assert.equal(r.status, 404, path);
     assert.equal(r.headers.get("payment-required"), null, `${path}: no payment terms`);
@@ -125,4 +126,28 @@ test("each category host's root describes only its own tools, and the TTS host s
   const r = await ask(TTS + "/page/markdown");
   assert.equal(r.status, 404); await r.arrayBuffer();
   assert.equal(H.categoryHostAnswer("https://api.glyphcall.com/page/markdown"), null);
+});
+
+// 19 Nov 2026: Mercator refreshes its services daily from MPPScan and the x402 registries, which register an origin by
+// reading its discovery documents. A category host therefore answers them itself, listing only its own tools under its
+// task name; the shared host still lists everything.
+test("a category host serves its own discovery documents: only its tools, under its task name", async () => {
+  for (const [hostName, host] of Object.entries(H.CATEGORY_HOSTS)) {
+    const O = `https://${hostName}`;
+    const x402 = await (await ask(`${O}/.well-known/x402`)).json();
+    assert.ok(x402.resources.length >= 1, `${hostName}: lists tools`);
+    for (const r of x402.resources) { assert.ok(r.startsWith(O), r); assert.ok(host.paths.has(new URL(r).pathname), r); }
+    const idx = await (await ask(`${O}/discovery/resources`)).json();
+    assert.equal(idx.items.length, x402.resources.length, `${hostName}: index and manifest agree`);
+    for (const i of idx.items) assert.ok(host.paths.has(new URL(i.resource).pathname), i.resource);
+    const oa = await (await ask(`${O}/openapi.json`)).json();
+    assert.equal(oa.info.title, host.service, `${hostName}: named for its task`);
+    const paths = Object.keys(oa.paths);
+    assert.ok(paths.length >= 1 && paths.every((p) => host.paths.has(p)), `${hostName}: openapi paths ${paths.join(",")}`);
+    assert.ok(paths.every((p) => Object.values(oa.paths[p]).some((op) => op["x-payment-info"])), `${hostName}: every path carries payment info`);
+  }
+  const all = await (await ask(`${W}/.well-known/x402`)).json();
+  assert.ok(all.resources.length > 500, "the shared host still lists the whole catalog");
+  const oaAll = await (await ask(`${W}/openapi.json`)).json();
+  assert.ok(Object.keys(oaAll.paths).length > 500 && !Object.values(H.CATEGORY_HOSTS).some((h) => oaAll.info.title === h.service));
 });
