@@ -311,6 +311,11 @@ test('POST /keys/voice-test: a free key for 25 short calls on the voice fronts, 
   // An IPv6 caller is one caller per /64.
   assert.equal(vk.addressBucket('2a01:4f8:c0c:1234::1'), vk.addressBucket('2a01:4f8:c0c:1234:ffff::9'));
   assert.notEqual(vk.addressBucket('2a01:4f8:c0c:1234::1'), vk.addressBucket('2a01:4f8:c0c:1235::1'));
+  // 20 Nov 2026: "::" compressed inside the first four groups used to misalign the /64 slice — two textual forms of
+  // one /64 got different buckets (key abuse) and a short address collapsed to a /32 (unrelated callers refused).
+  assert.equal(vk.addressBucket('2601:646:100::1'), vk.addressBucket('2601:646:100:0:0:0:0:1'), 'expanded and short form of one /64');
+  assert.equal(vk.addressBucket('2001:db8::1'), vk.addressBucket('2001:db8:0:0:0:0:0:1'), 'short /64 is not a /32');
+  assert.notEqual(vk.addressBucket('2001:db8:1::1'), vk.addressBucket('2001:db8:2::1'), 'distinct /64s stay distinct');
   const k = made.apiKey;
   // The key is described at /credits/balance and has no ledger account.
   const info = await balance(k);
