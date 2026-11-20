@@ -24,6 +24,7 @@ import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { blockAtTime, recentBlockSeconds } from "../lib/block-time";
 import { CHAINS, USDC, client, historyRead, logsClient, rpc } from "./chain-reads";
 import { analyze } from "./x402-check";
+import { signPayload } from "./payee";
 
 const SEARCH = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
@@ -215,6 +216,43 @@ const EX_PAY_TO = "0x6293ded2684F1A76E26bEcef87c137D691Fbf800";
 /** A settled x402 payment to us on Base (11 Nov 2026, Mercator's gateway 0x72c5 paying $0.01, block 56,118,430): the receipt example. */
 const EX_TX = "0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933";
 
+type Q = Parameters<Entry["run"]>[1];
+
+/** Shared by /x402/receipt and /evidence/bundle: resolve a settled USDC transfer from its tx hash. */
+export async function receiptFor(env: Env, q: Q) {
+      const hash = q("hash")?.trim() ?? "";
+      if (!isHash(hash)) throw new HttpError(400, "hash must be a 0x transaction hash (64 hex characters)");
+      const slug = pick(q, "chain", CHAIN_SLUGS, "base");
+      const wantPayee = q("payTo")?.trim();
+      if (wantPayee && !isAddress(wantPayee)) throw new HttpError(400, "payTo must be a 0x address");
+      const resource = opt(q, "resource", 500) ?? null;
+      const c = chainOf(slug);
+      const token = USDC[slug].toLowerCase();
+      const receipt = await historyRead(env, c, (cl) => cl.getTransactionReceipt({ hash: hash as `0x${string}` }));
+      const transfers = receipt.logs.filter((l) => l.address.toLowerCase() === token && l.topics[0] === TRANSFER && l.topics.length === 3);
+      const chosen = wantPayee ? transfers.find((l) => topicAddress(l.topics[2])!.toLowerCase() === wantPayee.toLowerCase()) : transfers[0];
+      if (!chosen) throw new HttpError(404, wantPayee ? "this transaction holds no USDC transfer to that payTo (nothing was charged)" : "this transaction holds no USDC transfer on this network (nothing was charged)");
+      const viaAuthorization = receipt.logs.some((l) => l.address.toLowerCase() === token && l.topics[0] === AUTHORIZATION_USED);
+      const [block, latest] = await Promise.all([rpc(() => client(env, c).getBlock({ blockNumber: receipt.blockNumber })), rpc(() => client(env, c).getBlockNumber())]);
+      const value = BigInt(chosen.data === "0x" ? 0 : chosen.data);
+      const core = {
+        chain: slug, chainId: c.chain.id, transactionHash: receipt.transactionHash, logIndex: chosen.logIndex ?? null, block: Number(receipt.blockNumber), paidAt: iso(block.timestamp),
+        status: receipt.status === "success" ? "confirmed" : "failed", payer: topicAddress(chosen.topics[1]), payee: topicAddress(chosen.topics[2]),
+        amount: formatUnits(value, 6), amountAtomic: value.toString(), asset: "USDC", assetAddress: getAddress(USDC[slug]),
+        method: viaAuthorization ? "eip3009-authorization" : "transfer", submittedBy: getAddress(receipt.from), resource,
+      };
+      const canonical = canonicalJson(core);
+      const sha256 = await sha256Hex(canonical);
+      return {
+        receiptId: `rcpt_${(await sha256Hex(`${slug}|${receipt.transactionHash.toLowerCase()}|${chosen.logIndex}`)).slice(0, 16)}`,
+        ...core,
+        confirmations: Number(latest - receipt.blockNumber),
+        explorerUrl: `${EXPLORER[slug]}${receipt.transactionHash}`,
+        sha256, canonical,
+        note: "Proof that USDC moved on chain; it says nothing about what was delivered. Keep the canonical text and its hash together.",
+      };
+}
+
 export const TRUST: Entry[] = [
   entry("/x402/payout-check", "Payout wallet check: has an x402 seller's payout wallet changed?",
     "Check whether an x402 seller's payout wallet changed before you pay it: compares the wallet its live 402 quote names with the wallet its Coinbase Bazaar listing last settled to and with the seller's own /.well-known/paycheck.json. An undeclared change is how a hijacked endpoint looks; a declared rotation passes. Pass or review with reasons, plus the listing's 30-day payers. Never pays or signs. Use before paying a seller you bought from before.",
@@ -326,39 +364,53 @@ export const TRUST: Entry[] = [
       sha256: "ebaf858615585e1ea5960d85d7002afb8c515edd1a2619555608dcb7c922499b", canonical: "{\"amount\":\"0.01\",\"amountAtomic\":\"10000\",\"asset\":\"USDC\",…}",
       note: "Proof that USDC moved on chain; it says nothing about what was delivered. Keep the canonical text and its hash together.",
     },
+    (env, q) => receiptFor(env, q)),
+
+  entry("/evidence/bundle", "Signed evidence bundle: receipt, listing match and seller facts",
+    "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the listed resource's advertised price and whether it matched, plus explicit limits. Signed with our Ed25519 key. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books.",
+    ["proof-of-payment", "seller-verification", "attestation", "receipt", "x402"], {
+      hash: { type: "string", description: "Transaction hash of the payment (0x, 64 hex characters)", required: true, example: "0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933" },
+      chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: CHAIN_SLUGS, example: "base" },
+      payTo: { type: "string", description: "Optional: the payee, when the transaction holds several USDC transfers", example: "0x6293ded2684f1a76e26becef87c137D691Fbf800" },
+      resource: { type: "string", description: "Optional: the URL the payment bought, checked against the catalog price", example: "https://agent-data-tools.revmesh2074.workers.dev/news" },
+    },
+    {
+      type: "agent-data-tools.evidence-bundle.v1", receipt: { receiptId: "rcpt_fbcd04404acc94e2", amount: "0.01", amountAtomic: "10000", chain: "base" },
+      listing: { url: "https://example.test/news", advertisedPrice: "$0.01", matchesReceipt: true, checkedAt: "2026-11-20T00:00:00Z" },
+      errors: [], limitations: ["Proof that USDC moved and the listing price matched; not proof of delivery.", "Self-published evidence, signed with our published key."],
+      canonical: "{}", alg: "EdDSA", kid: null, signature: null,
+    },
     async (env, q) => {
-      const hash = q("hash")?.trim() ?? "";
-      if (!isHash(hash)) throw new HttpError(400, "hash must be a 0x transaction hash (64 hex characters)");
-      const slug = pick(q, "chain", CHAIN_SLUGS, "base");
-      const wantPayee = q("payTo")?.trim();
-      if (wantPayee && !isAddress(wantPayee)) throw new HttpError(400, "payTo must be a 0x address");
-      const resource = opt(q, "resource", 500) ?? null;
-      const c = chainOf(slug);
-      const token = USDC[slug].toLowerCase();
-      const receipt = await historyRead(env, c, (cl) => cl.getTransactionReceipt({ hash: hash as `0x${string}` }));
-      const transfers = receipt.logs.filter((l) => l.address.toLowerCase() === token && l.topics[0] === TRANSFER && l.topics.length === 3);
-      const chosen = wantPayee ? transfers.find((l) => topicAddress(l.topics[2])!.toLowerCase() === wantPayee.toLowerCase()) : transfers[0];
-      if (!chosen) throw new HttpError(404, wantPayee ? "this transaction holds no USDC transfer to that payTo (nothing was charged)" : "this transaction holds no USDC transfer on this network (nothing was charged)");
-      const viaAuthorization = receipt.logs.some((l) => l.address.toLowerCase() === token && l.topics[0] === AUTHORIZATION_USED);
-      const [block, latest] = await Promise.all([rpc(() => client(env, c).getBlock({ blockNumber: receipt.blockNumber })), rpc(() => client(env, c).getBlockNumber())]);
-      const value = BigInt(chosen.data === "0x" ? 0 : chosen.data);
-      const core = {
-        chain: slug, chainId: c.chain.id, transactionHash: receipt.transactionHash, logIndex: chosen.logIndex ?? null, block: Number(receipt.blockNumber), paidAt: iso(block.timestamp),
-        status: receipt.status === "success" ? "confirmed" : "failed", payer: topicAddress(chosen.topics[1]), payee: topicAddress(chosen.topics[2]),
-        amount: formatUnits(value, 6), amountAtomic: value.toString(), asset: "USDC", assetAddress: getAddress(USDC[slug]),
-        method: viaAuthorization ? "eip3009-authorization" : "transfer", submittedBy: getAddress(receipt.from), resource,
+      const receipt = await receiptFor(env, q);
+      const resource = q("resource")?.trim() || receipt.resource;
+      const errors: string[] = [];
+      let listing = null;
+      if (resource) {
+        try {
+          const url = new URL(resource);
+          const data = await getJson<{ resources?: { resource?: string; accepts?: { amount?: string }[] }[] }>(
+            `https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?${new URLSearchParams({ query: url.pathname, limit: "20" })}`, { timeoutMs: 8_000 });
+          const hit = (data.resources ?? []).find((x) => x.resource && new URL(x.resource).pathname === url.pathname);
+          if (!hit) { errors.push("no Bazaar listing found for that resource"); }
+          else {
+            const atomic = hit.accepts?.[0]?.amount ?? null;
+            listing = { url: hit.resource, advertisedPrice: atomic ? String(Number(atomic) / 1e6) : null, matchesReceipt: atomic === receipt.amountAtomic, checkedAt: new Date().toISOString() };
+          }
+        } catch (e) { errors.push(`listing check failed: ${String(e).slice(0, 80)}`); }
+      } else errors.push("no resource supplied, so no listing price could be checked");
+      const origin = q("resource") ? new URL(q("resource")!).origin : "https://agent-data-tools.revmesh2074.workers.dev";
+      const payload = {
+        v: 1, type: "agent-data-tools.evidence-bundle.v1", iss: origin, iat: new Date().toISOString(),
+        receipt, listing, errors,
+        limitations: [
+          "Proof that USDC moved on chain and that the advertised price matched at check time; it does NOT prove what was delivered.",
+          "Self-published evidence signed with our Ed25519 key; verify with the key named by kid.",
+          "Self-payments and owned-wallet settlements are excluded from our revenue figures but a receipt cannot tell who owns the payer wallet.",
+        ],
       };
-      const canonical = canonicalJson(core);
-      const sha256 = await sha256Hex(canonical);
-      return {
-        receiptId: `rcpt_${(await sha256Hex(`${slug}|${receipt.transactionHash.toLowerCase()}|${chosen.logIndex}`)).slice(0, 16)}`,
-        ...core,
-        confirmations: Number(latest - receipt.blockNumber),
-        explorerUrl: `${EXPLORER[slug]}${receipt.transactionHash}`,
-        sha256, canonical,
-        note: "Proof that USDC moved on chain; it says nothing about what was delivered. Keep the canonical text and its hash together.",
-      };
-    }),
+      return { ...payload, ...await signPayload(payload, env, origin) };
+    },
+    "$0.01"),
 ];
 
 export const __test = { payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW, CHAIN_SLUGS };
