@@ -44,10 +44,15 @@ const SALES_FIRST = [
   // STT/TTS $36k, Venice and BlockRun inference, KORUS music); one-call utilities earn cents however many payers they have.
   // The tools in those categories therefore lead every list a crawler or MCP client reads.
   "/ai/chat", "/ai/chat-large", "/ai/embed", "/transcribe", "/ai/speech", "/image", "/describe", "/search", "/pack/web-research", "/news", "/ai/summarize-text", "/ai/translate", "/ai/extract-json",
-  "/check/payee", "/check/counterparty", "/ai/answer", "/ai/fact-check", "/text-to-speech", "/check/x402-seller", "/sanctions/check", "/pack/news-sentiment", "/pack/url-safety", "/token-report", "/token", "/wallet-audit", "/audit/contract", "/contract-risk",
+  "/check/payee", "/check/counterparty",
+  "/ai/answer", "/ai/fact-check", "/text-to-speech", "/check/x402-seller", "/sanctions/check", "/pack/news-sentiment", "/pack/url-safety", "/token-report", "/token", "/wallet-audit", "/audit/contract", "/contract-risk",
   "/liquidity-pool-audit", "/x402/check", "/price/token", "/price/tokens", "/wallet/portfolio", "/wallet/balances",
-  "/hyperliquid/market", "/sec/filings", "/contents", "/ai/rerank", "/memory/set", "/memory/get", "/whale/transfers", "/dex/new-pools", "/recommend", "/airport/status",
+  "/hyperliquid/market", "/sec/filings", "/contents",
+  // 1.320.0, 20 Nov 2026: new tools with measured router demand — lead discovery lists, after the demanded data tools.
+  "/stock/brief", "/stock/screen", "/csv/preflight", "/ai/rerank", "/memory/set", "/memory/get", "/whale/transfers", "/dex/new-pools", "/recommend", "/airport/status",
   // Packs (1.60.0): several tools in one paid call, cheaper than buying them one by one.
+  // 1.320.0 task doors with measured router demand (after the demanded data tools).
+  "/weather/forecast", "/weather-api", "/live-weather", "/48-hour-forecast", "/check-x402-endpoint-before-paying", "/vet-x402-seller", "/verify-x402-payment", "/market/data", "/dex/pools", "/whale/alert", "/orderbook-live",
   "/pack/token-analysis", "/pack/wallet-profile", "/pack/crypto-market", "/pack/daily-brief", "/pack/website-audit", "/pack/email-deliverability", "/pack/ip-intelligence", "/pack/hash-toolbox", "/pack/json-toolbox", "/pack/encoding-toolbox",
   "/pack/tx-explain", "/pack/nft-analysis", "/pack/text-analysis", "/pack/location-brief", "/pack/id-toolbox", "/pack/string-toolbox", "/pack/coin-research", "/pack/api-health", "/openapi/summary", "/mcp/inspect", "/text/language", "/image/metadata", "/url/favicon", "/useragent/parse", "/pack/evm-toolbox", "/pack/seo-toolkit", "/pack/gas-tracker", "/pack/domain-intel", "/pack/email-verify", "/pack/contact-verify", "/pack/vendor-check", "/tech/stack", "/btc-fees", "/btc-price", "/eth/balance", "/eth/gas",
   "/base-gas", "/extract", "/extract/rendered", "/email", "/company", "/domain", "/domain-report", "/weather",
