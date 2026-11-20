@@ -112,7 +112,7 @@ test('two quotes in a row carry identical payment terms, Base first, at the new 
   const terms = (q) => q.accepts.map(({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }) => ({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }));
   assert.deepEqual(terms(a), terms(b));
   assert.equal(a.accepts[0].network, 'eip155:8453');
-  assert.equal(a.accepts[0].amount, '10000');
+  assert.equal(a.accepts[0].amount, '5000');
   assert.deepEqual(a.resource, b.resource);
 });
 
