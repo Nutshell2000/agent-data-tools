@@ -127,7 +127,9 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
       ...(cardReady ? { cardBuy: starter.url, claim: `Stripe returns to ${origin}/credits/claim?session_id=… where the key is shown; no manual claim call` } : {}),
       ...(mppReady ? { mppBuy: `${origin}/credits/buy/1`, mppNote: "requires an MPP client and a Link agent wallet" } : {}),
       key: "api_key=adt_…",
-      retry: page?.url ?? null, // legacy: still holds trial=1, kept for compatibility
+      // 20 Nov 2026: the legacy retry field used to carry the trial=1 URL, sending an exhausted caller straight back
+      // into the same 402. Reuse the actionable key-bearing URL; keep the field name for compatibility.
+      retry: retryWithKey,
       retryWithKey, // actionable: the same call with trial removed and the key placeholder set
     } } : {}),
     freeTrial: freeCalls && page ? freeTrialOffer(page) : undefined,
