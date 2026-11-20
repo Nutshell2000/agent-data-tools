@@ -58,6 +58,7 @@ test("the public pages carry the company line; the product name and the agent ca
   for (const f of ["src/lib/tool-pages.ts", "src/guides/task-guides.ts", "src/lib/browser-402.ts"]) assert.ok(readFileSync(f, "utf8").includes("${COMPANY_FOOTER}</footer>"), f);
   assert.ok(L.COMPANY_FOOTER.includes('href="/about"') && L.COMPANY_FOOTER.includes("SpellzCode"));
   for (const page of [L.PRIVACY_HTML, L.TERMS_HTML, L.SUPPORT_HTML]) assert.ok(page.includes('href="/about"'));
+  for (const p of ["/about", "/terms", "/privacy", "/refunds", "/faq", "/contact"]) assert.ok(L.COMPANY_FOOTER.includes(`href="${p}"`), `COMPANY_FOOTER must link ${p}`);
   assert.match(readFileSync("src/endpoints.ts", "utf8"), /export const SERVICE_NAME = "Agent Data Tools";/);
   assert.match(readFileSync("src/discovery.ts", "utf8"), /provider: \{ organization: "SpellzCode", url: `\$\{origin\}\/about` \}/);
 });
