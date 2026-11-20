@@ -15,7 +15,7 @@ export const ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
 const NETWORK = "eip155:8453";
 export const OPERATIONS = Object.freeze({
   tx: { path: "/base-tx", maxAtomic: 3000n, inputs: ["hash"] },
-  wallet: { path: "/wallet", maxAtomic: 5000n, inputs: ["address"] },
+  wallet: { path: "/wallet", maxAtomic: 10000n, inputs: ["address"] },
   gas: { path: "/base-gas", maxAtomic: 2000n, inputs: [] },
   allowance: { path: "/base-allowance", maxAtomic: 2000n, inputs: ["token", "owner", "spender"] },
 });
