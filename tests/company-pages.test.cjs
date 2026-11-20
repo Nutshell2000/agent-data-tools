@@ -61,3 +61,13 @@ test("the public pages carry the company line; the product name and the agent ca
   assert.match(readFileSync("src/endpoints.ts", "utf8"), /export const SERVICE_NAME = "Agent Data Tools";/);
   assert.match(readFileSync("src/discovery.ts", "utf8"), /provider: \{ organization: "SpellzCode", url: `\$\{origin\}\/about` \}/);
 });
+
+test("buyer trust pages /contact, /refunds and /faq render with the real refund rule and free-call counts", async () => {
+  for (const [path, needle] of [["/contact", "mailto:"], ["/refunds", "Unused credits"], ["/faq", "trial=1"]]) {
+    const r = await get(path);
+    assert.equal(r.status, 200, path);
+    assert.match(await r.text(), new RegExp(needle), path);
+  }
+  assert.match(L.REFUNDS_HTML, /Used credits are not refundable/);
+  assert.ok(L.FAQ_HTML.includes("href=\"/refunds\""), "FAQ links the refund rule");
+});
