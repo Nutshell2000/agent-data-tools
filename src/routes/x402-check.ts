@@ -120,8 +120,8 @@ export const X402_CHECK: Entry[] = [
     },
     {
       url: "https://agent-data-tools.revmesh2074.workers.dev/btc-fees", verdict: "pass", reasons: [],
-      terms: { paywalled: true, x402Version: 2, score: 1, accepts: [{ network: "eip155:8453", payTo: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", priceUsd: 0.002, assetIsNativeUsdc: true }] },
-      payees: [{ payTo: "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5", network: "eip155:8453", sanctioned: false, sanctionMatches: [], accountType: "eoa-delegated", accountNonce: 1 }],
+      terms: { paywalled: true, x402Version: 2, score: 1, accepts: [{ network: "eip155:8453", payTo: "0x6293ded2684F1A76E26bEcef87c137D691Fbf800", priceUsd: 0.002, assetIsNativeUsdc: true }] },
+      payees: [{ payTo: "0x6293ded2684F1A76E26bEcef87c137D691Fbf800", network: "eip155:8453", sanctioned: false, sanctionMatches: [], accountType: "eoa-delegated", accountNonce: 1 }],
       domain: { name: "agent-data-tools.revmesh2074.workers.dev", trust: "medium", ageDays: 2812, registeredAt: "2019-02-08T20:36:47.904Z", flags: [{ level: "medium", code: "few_nameservers", message: "Fewer than two nameservers." }] },
       sanctionsListDate: "2026-10-17T20:15:00.000Z",
       limitations: [],
