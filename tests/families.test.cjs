@@ -109,7 +109,7 @@ test("paused family tools remain implemented but cannot be advertised or directl
   const {TOOLS}=await loadTypeScript(require.resolve('../src/tools.ts'));
   // 1.259.0: /econ/snapshot plus its /macro/data door take the catalog from 737 to 739 tools.
   // 19-20 Nov 2026: /market/is-open and the /rss/parse door.
-  assert.equal(ENDPOINTS.length,758);
+  assert.equal(ENDPOINTS.length,760);
   for(const path of Object.keys(PAUSED_FAMILY_TOOLS)){
     assert.ok(families.some(f=>f.endpoint.path===path));
     assert.ok(!ENDPOINTS.some(e=>e.path===path));
