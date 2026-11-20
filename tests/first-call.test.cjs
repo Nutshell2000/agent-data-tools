@@ -201,6 +201,14 @@ test('a tool outside the HTTP free trial gets no freeTrial, and a caller who use
   assert.equal(body.resume.usedFreeCalls, 3);
   assert.match(body.resume.buy, /^https:\/\/buy\.stripe\.com\//);
   assert.match(body.resume.retry, /\/validate\/luhn\?/);
+  // 20 Nov 2026: /credits/claim reads only session_id and 400s on an e-mail. The 402 must not advertise a
+  // step that can never work — point at Stripe's redirect (which carries the session id) or MPP's buy/1.
+  assert.doesNotMatch(body.hint, /credits\/claim with the e-mail/, 'no e-mail claim instruction');
+  assert.match(body.hint, /Stripe returns you to .*\/credits\/claim\?session_id=/, 'advertise the real redirect');
+  assert.match(body.hint, /\/credits\/buy\/1/, 'MPP agents get a browser-free key path');
+  assert.equal(body.resume.claimUrl, undefined, 'a bare claim URL 400s; never publish it as resumable');
+  assert.match(body.resume.claim, /session_id/);
+  assert.match(body.resume.mppBuy, /\/credits\/buy\/1$/);
   assert.match(body.payByCard.use, /then re-send this exact URL/);
 });
 
