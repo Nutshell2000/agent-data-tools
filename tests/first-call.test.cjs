@@ -212,18 +212,23 @@ test('a tool outside the HTTP free trial gets no freeTrial, and a caller who use
   assert.equal(Object.keys(body)[0], 'hint');
   // 19 Nov 2026: the exhausted caller is high-intent. Give it one explicit resume step, as text and as data.
   assert.match(body.hint, /^You've used your 3 free calls here\. To continue:/);
-  assert.match(body.hint, /repeat this exact URL with &api_key=adt_/);
+  assert.match(body.hint, /repeat this exact URL with the key:/);
   assert.equal(body.resume.usedFreeCalls, 3);
   assert.match(body.resume.buy, /^https:\/\/buy\.stripe\.com\//);
   assert.match(body.resume.retry, /\/validate\/luhn\?/);
-  // 20 Nov 2026: /credits/claim reads only session_id and 400s on an e-mail. The 402 must not advertise a
-  // step that can never work — point at Stripe's redirect (which carries the session id) or MPP's buy/1.
-  assert.doesNotMatch(body.hint, /credits\/claim with the e-mail/, 'no e-mail claim instruction');
-  assert.match(body.hint, /Stripe returns you to .*\/credits\/claim\?session_id=/, 'advertise the real redirect');
-  assert.match(body.hint, /\/credits\/buy\/1/, 'MPP agents get a browser-free key path');
+  // 20 Nov 2026: resume.retry still holds trial=1 and is a dead end; retryWithKey is the actionable URL.
+  assert.match(body.resume.retryWithKey, /\/validate\/luhn\?/);
+  assert.match(body.resume.retryWithKey, /api_key=adt_/);
+  assert.doesNotMatch(body.resume.retryWithKey, /trial=1/, 'the free-call flag is stripped');
+  const retryParams = new URL(body.resume.retryWithKey).searchParams;
+  assert.equal(retryParams.get('api_key'), 'adt_…');
+  assert.equal(retryParams.get('number'), '79927398713', 'the original tool input survives');
+  assert.match(body.hint, /\/credits\/claim\?session_id=/, 'advertise the real redirect');
   assert.equal(body.resume.claimUrl, undefined, 'a bare claim URL 400s; never publish it as resumable');
   assert.match(body.resume.claim, /session_id/);
-  assert.match(body.resume.mppBuy, /\/credits\/buy\/1$/);
+  // MPP is off in this fixture: the resume must NOT advertise /credits/buy/1 (it would 503 for this caller).
+  assert.equal(body.resume.mppBuy, undefined, 'MPP path hidden when MPP is unavailable');
+  assert.doesNotMatch(body.hint, /\/credits\/buy\/1/, 'no dead-ended MPP instruction');
   assert.match(body.payByCard.use, /then re-send this exact URL/);
 });
 
