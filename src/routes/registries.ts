@@ -239,4 +239,47 @@ export const REGISTRIES: Entry[] = [
       const results = await Promise.all(tlds.map((t) => domainStatus(`${label}.${t}`)));
       return { name: label, available: results.filter((r) => r.status === "available").map((r) => r.domain), results };
     }),
+
+  entry("/domain/availability/bulk", "Bulk domain availability, name search",
+    "Check up to 25 names across up to 4 TLDs (100 combinations) in one call: per-domain status (available, taken, likely available or unknown), registrar, creation and expiry from each registry's RDAP server, with DNS fallback. Use to scan a naming shortlist or brand portfolio in one request instead of dozens. Availability is not a price quote: premium and reserved names exist, and an unreachable registry reads unknown, never available.",
+    ["bulk-domain-availability", "domain-search", "domain-name", "rdap", "branding", "startup-name-check"], {
+      names: { type: "string", description: "Comma-separated names or full domains, 1 to 25 (e.g. acme,acmehq)", required: true, example: "acme,acmehq" },
+      tlds: { type: "string", description: "Comma-separated TLDs, 1 to 4 (default com,net,org,io)", example: "com,io,ai" },
+    },
+    {
+      names: ["acme", "acmehq"], checked: 2, available_count: 1,
+      results: [{ domain: "acmehq.io", name: "acmehq", tld: "io", status: "available", registrar: null, created: null, expires: null, method: "rdap" }],
+      errors: [], note: "Availability, not a registration quote; premium names exist.",
+    },
+    async (_env, q) => {
+      const raw = need(q, "names", 600).toLowerCase();
+      const names = [...new Set(raw.split(/[,\s]+/).map((x) => x.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")).filter(Boolean))];
+      if (!names.length || names.length > 25) throw new HttpError(400, "names must contain 1 to 25 domain labels");
+      for (const n of names) if (!/^(?!-)[a-z0-9-]{1,63}(?<!-)$/.test(n)) throw new HttpError(400, `"${n.slice(0, 20)}" is not a domain label`);
+      const given = opt(q, "tlds", 200)?.toLowerCase().split(/[,\s]+/).map((t) => t.replace(/^\./, "")).filter(Boolean);
+      const tlds = [...new Set(given?.length ? given : ["com", "net", "org", "io"])].slice(0, 4);
+      if (names.length * tlds.length > 100) throw new HttpError(400, "at most 100 name/TLD combinations");
+      for (const t of tlds) if (!/^[a-z0-9-]{2,30}(\.[a-z0-9-]{2,30})?$/.test(t)) throw new HttpError(400, `"${t.slice(0, 20)}" is not a TLD`);
+      const combos = names.flatMap((name) => tlds.map((tld) => ({ name, tld, domain: `${name}.${tld}` })));
+      const results: Record<string, unknown>[] = [];
+      const errors: string[] = [];
+      let at = 0;
+      const worker = async () => {
+        while (at < combos.length) {
+          const c = combos[at++];
+          try {
+            const r = await domainStatus(c.domain);
+            results.push({ domain: c.domain, name: c.name, tld: c.tld, status: r.status, registrar: r.registrar ?? null, created: r.created ?? null, expires: r.expires ?? null, method: r.method ?? null });
+          } catch (e) {
+            results.push({ domain: c.domain, name: c.name, tld: c.tld, status: "unknown", registrar: null, created: null, expires: null, method: null });
+            errors.push(`${c.domain}: ${String(e).slice(0, 80)}`);
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, combos.length) }, worker));
+      results.sort((a, b) => String(a.domain).localeCompare(String(b.domain)));
+      return { names, checked: results.length, available_count: results.filter((r) => r.status === "available").length, results, errors, note: "Availability, not a registration quote; premium names exist." };
+    },
+    "$0.01"),
+
 ];
