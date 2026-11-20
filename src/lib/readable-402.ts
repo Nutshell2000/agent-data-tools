@@ -84,7 +84,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // The WWW-Authenticate header is appended by the MPP middleware AFTER this function, so read it from the flag
   // the caller computed from tempoEnabled/evmEnabled rather than from the response (19 Nov: header check never fired).
   const mppCall = mppReady
-    ? "MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
+    ? " MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
     : "";
   const hint = `${resume}${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${mppCall} ${cardHint(origin, cardReady, page?.endpoint.price, page ? keyPrice(page.endpoint.path, page.endpoint.price) : undefined, mppReady)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // The body mirrors the v2 header (1.117.0, 10 Nov 2026). Until then it was a v1 PaymentRequired on every tool, and

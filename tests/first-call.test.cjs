@@ -157,6 +157,16 @@ test('a tool 402 opens with hint, freeTrial, payByCard, prepay; the x402 terms a
   assert.match(body.hint, /^Try it free: add trial=1/);
   assert.match(body.hint, /pay with X-PAYMENT\. No wallet\?/, 'a space after the full stop');
   assert.doesNotMatch(raw, /X-PAYMENT\.No wallet/);
+  // 20 Nov 2026: with MPP enabled the hint appended "MPP clients:…" right after "X-PAYMENT." with no space.
+  // Exercise that path directly (the miniflare fixture runs MPP off), so the production sentence is covered.
+  const { readable402 } = await load(require.resolve('../src/lib/readable-402.ts'));
+  const fresh = await get('/weather?city=Stockholm');
+  assert.equal(fresh.status, 402);
+  // readable402 only rewrites a bare "{}" body (it early-returns otherwise), so feed it one with the real header.
+  const bare402 = new Response('{}', { status: 402, headers: { 'content-type': 'application/json', 'payment-required': fresh.headers.get('payment-required') } });
+  const withMpp = await (await readable402(bare402, O, true, [], undefined, true, false, true)).json();
+  assert.match(withMpp.hint, /X-PAYMENT\. MPP clients:/, 'a space before MPP when the challenge is present');
+  assert.doesNotMatch(withMpp.hint, /X-PAYMENT\.MPP/);
   assert.equal(body.freeTrial.url, `${O}/weather?city=Stockholm&trial=1`);
   assert.ok(body.freeTrial.what.includes(`${free.FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller`));
   assert.equal(body.payByCard.credits, `${O}/credits`);
