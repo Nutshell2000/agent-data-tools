@@ -603,6 +603,14 @@ export const ENTRY_PATHS: Entry[] = [
   door("/company/enrichment", "Company enrichment: from a domain",
     "Company enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), who hosts the server, DNS records, and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only. Use for lead enrichment, company research, vendor checks or sales prospecting.",
     ["company-enrichment", "lead-enrichment", "company-research", "domain-enrichment", "firmographics", "sales-prospecting"], from(PACKS_INTEL, "/pack/domain-intel")),
+  // 20 Nov 2026: "lead enrichment" is a job other sellers are paid for — Linked Panda 2 payers / 865 calls at
+  // $0.05 on the Bazaar and strale 3 payers / 10,285 calls at $0.2916 on the Agent402 router — while
+  // /pack/domain-intel answers it at $0.01 with real settlements. /company/enrichment lacks the buyer phrase in
+  // its slug and name, so router dispatch for "lead enrichment" never reaches us. Same tool and price; no
+  // personal or contact data is claimed.
+  door("/lead/enrichment", "Lead enrichment: from a domain",
+    "Lead enrichment from a domain: the site's name, description and logo, its tech stack (CMS, frameworks, analytics, hosting), email provider and email security (SPF, DMARC), hosting holder, DNS records and the domain's registrar, age and expiry. Public DNS, RDAP and the home page only — company and domain signals, no personal or contact data. Use to enrich a sales lead, company record or vendor from its website domain.",
+    ["lead-enrichment", "company-enrichment", "company-research", "domain-enrichment", "sales-prospecting", "b2b"], from(PACKS_INTEL, "/pack/domain-intel")),
 
   door("/tx/decode", "Transaction decoder: what a tx did",
     "Transaction decoder for EVM chains: success or revert, sender and contract, ETH value, fee, the function called (decoded for common ERC-20, ERC-721, WETH, permit and multicall calls), and every token transfer, mint, burn and approval it emitted with amounts and symbols, plus one-line summaries. Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check what a payment or contract call really did before trusting or reporting it.",
