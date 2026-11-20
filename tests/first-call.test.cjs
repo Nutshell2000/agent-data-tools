@@ -272,3 +272,11 @@ test('"Get a free key" is in the nav of the pages for people only while free key
   // Without free calls the hero does not print a trial=1 request.
   assert.doesNotMatch(pages.landingPage('Glyphcall', 'https://x.test', true), /trial=1/);
 });
+
+test('the card-key instruction uses ? on bare URLs and & on URLs that already have a query', async () => {
+  const bare = await (await get('/time')).json();
+  assert.match(bare.hint, /\?api_key=adt_…/, 'bare URL gets a query separator');
+  assert.doesNotMatch(bare.hint, /&api_key=adt_…/, '& would make a path and 404');
+  const withQuery = await (await get('/weather?city=Stockholm')).json();
+  assert.match(withQuery.hint, /&api_key=adt_…/, 'a URL with a query keeps &');
+});
