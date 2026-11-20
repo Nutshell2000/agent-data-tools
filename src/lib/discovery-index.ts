@@ -1,4 +1,4 @@
-import { listingDescription, listingName, listingNameFor, searchTagged } from "./bazaar-extension";
+import { bazaarExtensionFor, listingDescription, listingName, listingNameFor, searchTagged } from "./bazaar-extension";
 // The x402 discovery index of this service at /discovery/resources, in the shape the facilitator-run Bazaar
 // (`GET /discovery/resources`) and the @x402/extensions bazaar client use, so crawlers that read sellers directly
 // (x402-discovery-index and the like) can index every tool without a first settled payment. Nothing here is a
@@ -79,6 +79,14 @@ export function discoveryResources(env: Env, origin: string, limit = DISCOVERY_P
     x402Version: 2,
     accepts: usdcRequirements(env, e.price),
     lastUpdated: LAST_UPDATED,
+    // 20 Nov 2026 conformance: the @x402/extensions DiscoveryResource type declares description/mimeType/
+    // serviceName/tags at the TOP level, not nested under metadata, and a Bazaar discovery client that wants to
+    // construct a call reads extensions.bazaar.info.input before any 402. Publish both (keep metadata for compatibility).
+    description: listingDescription(e),
+    mimeType: "application/json",
+    serviceName: listingNameFor(e),
+    tags: searchTagged(e.tags, e.path),
+    extensions: bazaarExtensionFor(e),
     metadata: { description: listingDescription(e), mimeType: "application/json", serviceName: listingNameFor(e), tags: searchTagged(e.tags, e.path), openapi: `${origin}/openapi.json` },
   }));
   const size = Math.min(Math.max(1, Math.floor(limit) || DISCOVERY_PAGE_LIMIT), DISCOVERY_PAGE_LIMIT);
