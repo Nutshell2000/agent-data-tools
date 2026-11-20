@@ -2,6 +2,8 @@ import { decode } from "light-bolt11-decoder";
 import { HttpError } from "../lib/env";
 
 const API = "https://mempool.space/api";
+// A public mempool.space instance with the same /api schema, for transient outages of the primary host.
+const API_FALLBACK = "https://mempool.emzy.de/api";
 const SATS = 100_000_000;
 const ADDRESS = /^(bc1[a-z0-9]{11,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/;
 
@@ -17,6 +19,13 @@ async function mempool<T>(path: string): Promise<T> {
     }
     if (res && res.status !== 429 && res.status < 500) break;
     if (attempt === 0) { await res?.body?.cancel().catch(() => {}); await new Promise((r) => setTimeout(r, 300)); }
+  }
+  // One bounded fallback when both primary tries failed transiently (network/timeout/429/5xx). 400/404 already
+  // short-circuited above, so a genuine "not found" never reaches a different host. The reported source stays API.
+  if (!res || res.status === 429 || res.status >= 500) {
+    await res?.body?.cancel().catch(() => {});
+    try { res = await fetch(API_FALLBACK + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": "AgentDataTools/1.0" } }); }
+    catch { res = undefined; }
   }
   if (!res) throw new HttpError(502, "the Bitcoin data source did not respond");
   if (res.status === 400 || res.status === 404) throw new HttpError(404, "not found on the Bitcoin network");

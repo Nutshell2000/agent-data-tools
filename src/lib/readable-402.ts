@@ -78,7 +78,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // buy the smallest pack, then repeat the SAME URL with the key. No new URL — reuse the card pack already offered.
   const [starter] = WEB_PACKS;
   const resume = freeExhausted && starter
-    ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls here. To continue: open ${starter.url} in a browser ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits), then GET ${origin}/credits/claim with the e-mail you paid with to see your key, and repeat this exact URL with &api_key=adt_… — the same key works on every tool. `
+    ? `You've used your ${FREE_HTTP_CALLS_PER_CALLER} free calls here. To continue: open ${starter.url} in a browser ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits); Stripe returns you to ${origin}/credits/claim?session_id=… where your key is shown (no e-mail needed), then repeat this exact URL with &api_key=adt_… — the same key works on every tool. An agent with an MPP client can get a key without a browser: GET ${origin}/credits/buy/1, pay the 402, then use the key it returns. `
     : "";
   // MPP is offered in the body for buying a pack (cardHint); say how to settle THIS call too. Docs already teach it.
   // The WWW-Authenticate header is appended by the MPP middleware AFTER this function, so read it from the flag
@@ -102,7 +102,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   // are long. Key order only; the x402 fields below keep their names and values, and the header is untouched.
   const first = {
     hint,
-    ...(freeExhausted && starter ? { resume: { usedFreeCalls: FREE_HTTP_CALLS_PER_CALLER, buy: starter.url, cardBuy: starter.url, claimUrl: `${origin}/credits/claim`, key: "api_key=adt_…", retry: page?.url ?? null } } : {}),
+    ...(freeExhausted && starter ? { resume: { usedFreeCalls: FREE_HTTP_CALLS_PER_CALLER, buy: starter.url, cardBuy: starter.url, claim: `Stripe returns to ${origin}/credits/claim?session_id=… where the key is shown; no manual claim call`, mppBuy: `${origin}/credits/buy/1`, key: "api_key=adt_…", retry: page?.url ?? null } } : {}),
     freeTrial: freeCalls && page ? freeTrialOffer(page) : undefined,
     payByCard: payByCard(origin, cardReady),
     prepay,
