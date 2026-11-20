@@ -88,10 +88,10 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   "meeting notes": "/transcribe/summary", "meeting summary": "/transcribe/summary", "summarize audio": "/transcribe/summary", "summarize recording": "/transcribe/summary", "voice note": "/transcribe/summary", "voicemail": "/transcribe/summary", "call summary": "/transcribe/summary", "action items": "/transcribe/summary",
   "speaker diarization": "/transcribe/speakers", "speaker labels": "/transcribe/speakers", "who said what": "/transcribe/speakers", "diarization": "/transcribe/speakers", "interview transcript": "/transcribe/speakers", "redact transcript": "/transcribe/speakers", "translate subtitles": "/subtitles/translate", "subtitle translation": "/subtitles/translate", "translate srt": "/subtitles/translate", "translate captions": "/subtitles/translate", "dub video": "/dub", "dub audio": "/dub", "dubbing": "/dub", "voice over translation": "/dub", "translate voice": "/dub", "voice agent": "/voice/agent", "voice bot": "/voice/agent", "voice assistant": "/voice/agent", "conversational ai": "/voice/agent", "talk to ai": "/voice/agent", "podcast generator": "/dialogue", "multi speaker": "/dialogue", "dialogue audio": "/dialogue", "conversation audio": "/dialogue", "tts with subtitles": "/text-to-speech/captions", "voiceover with captions": "/text-to-speech/captions", "speech with subtitles": "/text-to-speech/captions",
   "cheap text to speech": "/text-to-speech/lite", "cheap tts": "/text-to-speech/lite",
-  // 1.208.0: speech, dubbing and the voice agent in French, Chinese, Japanese and Korean (MeloTTS).
-  "french text to speech": "/ai/speech", "french tts": "/ai/speech", "chinese text to speech": "/ai/speech", "chinese tts": "/ai/speech", "mandarin tts": "/ai/speech",
-  "japanese text to speech": "/ai/speech", "japanese tts": "/ai/speech", "korean text to speech": "/ai/speech", "korean tts": "/ai/speech", "spanish text to speech": "/ai/speech",
-  "dub to french": "/dub", "dub to spanish": "/dub", "dub to japanese": "/dub", "dub to chinese": "/dub", "dub to korean": "/dub", "translate video to french": "/dub", "translate audio to spanish": "/dub",
+  // 20 Nov 2026: MeloTTS (fr/zh/ja/ko) was removed from Workers AI; those speech/dubbing phrases used to route to
+  // /ai/speech and /dub, which now refuse them with 422 (uncharged). Removed so the finder never sends a buyer to a
+  // call that fails. Spanish text to speech stays — es is a supported Aura-2 language.
+  "spanish text to speech": "/ai/speech", "spanish tts": "/ai/speech",
   "smart contract audit": "/audit/contract", "contract audit": "/audit/contract", "audit contract": "/audit/contract", "audit smart contract": "/audit/contract", "solidity audit": "/audit/contract", "audit solidity": "/audit/contract", "contract security review": "/audit/contract", "security audit": "/audit/contract", "code audit": "/audit/contract",
   "website audit": "/audit/website", "site audit": "/audit/website", "audit bundle": "/audit/website", "accessibility audit": "/audit/website", "page speed": "/audit/website", "lighthouse": "/audit/website",
   "seo audit": "/seo/audit", "package audit": "/package-audit", "dependency audit": "/package-audit",
@@ -135,12 +135,6 @@ export const JOBS: Readonly<Record<string, string>> = Object.freeze({
   // website URL is not a PDF and fails there); "summarize a long article" by `article→news` to /news. Both are paid
   // jobs with a direct tool, and both were lost at the free finder.
   "extract text from a website": "/extract", "text from a website": "/extract", "read a web page": "/extract", "summarize a long article": "/summarize", "summarize this article": "/summarize", "summarize a web page": "/summarize",
-  // 19 Nov deep audit: five whole-word phrases still routed to a wrong (sometimes 6x pricier or 415-failing) paid tool
-  // on all three finder surfaces (/find, MCP find_tool, /recommend fallback). Fix once here for all of them.
-  "read a pdf": "/pdf/text", "read a pdf file": "/pdf/text", "read pdf": "/pdf/text", "extract text from pdf": "/pdf/text",
-  "full text of this webpage": "/extract", "full text of this page": "/extract", "webpage text": "/extract", "web page text": "/extract", "page text": "/extract",
-  "look up a company": "/company", "look up company information": "/company", "company information": "/company", "company details": "/company",
-  "domain owner": "/whois/lookup", "who owns this domain": "/whois/lookup", "domain whois": "/whois/lookup", "registrar lookup": "/whois/lookup",
   "prediction markets": "/polymarket/markets", "polymarket": "/polymarket/markets",
   "stock price": "/stock/quote", "stock quote": "/stock/quote", "share price": "/stock/quote", "shares price": "/stock/quote", "equity price": "/stock/quote", "price of a stock": "/stock/quote", "price of a share": "/stock/quote", "company share price": "/stock/quote", "stock history": "/stock/history", "ohlcv": "/hyperliquid/candles",
   "github repo": "/github/repo", "github repository": "/github/repo",
