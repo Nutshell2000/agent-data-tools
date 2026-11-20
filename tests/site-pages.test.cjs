@@ -69,4 +69,9 @@ test("the new pages are counted and listed", () => {
   assert.ok(isHumanPage("/docs"));
   assert.ok(isHumanPage("/agents"));
   assert.ok(sitemapXml("https://x.test").includes("<loc>https://x.test/docs</loc>"));
+  // 19 Nov 2026: the two high-intent voice/commercial pages were built but invisible to sitemap-driven crawlers.
+  const sm = sitemapXml("https://x.test");
+  assert.ok(sm.includes("<loc>https://x.test/app</loc>"), "the free app is in the sitemap");
+  assert.ok(sm.includes("<loc>https://x.test/transcribe-pro</loc>"), "Transcribe Pro is in the sitemap");
+  assert.ok(sm.includes("<loc>https://x.test/guides</loc>"), "the guide hub is in the sitemap");
 });
