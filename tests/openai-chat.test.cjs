@@ -74,13 +74,14 @@ test('the model string picks the tool: large names go to /ai/chat-large, everyth
   assert.deepEqual(lib.toolFor('gpt-oss-120b'), { path: '/ai/chat-large', model: 'gpt-oss-120b' });
   // Models with their own listing (25 Oct 2026), by slug, Workers AI id or family name.
   assert.deepEqual(lib.toolFor('gpt-oss-20b'), { path: '/ai/model/gpt-oss-20b' });
-  assert.deepEqual(lib.toolFor('@cf/qwen/qwen3-30b-a3b-fp8'), { path: '/ai/model/qwen3-30b' });
+  // 20 Nov 2026: Qwen3 30B and DeepSeek R1 were retired by Workers AI; their names are served on working models, marked retired.
+  assert.deepEqual(lib.toolFor('@cf/qwen/qwen3-30b-a3b-fp8'), { path: '/ai/chat-large', model: 'llama-3.3-70b', retired: true });
   assert.deepEqual(lib.toolFor('qwen2.5-coder-32b'), { path: '/ai/model/qwen-coder' });
-  assert.deepEqual(lib.toolFor('deepseek-r1'), { path: '/ai/model/deepseek-r1' });
+  assert.deepEqual(lib.toolFor('deepseek-r1'), { path: '/ai/chat-large', model: 'gpt-oss-120b', retired: true });
   assert.deepEqual(lib.toolFor('mistral-small-3.1'), { path: '/ai/model/mistral-small' });
   assert.deepEqual(lib.toolFor('llama-4-scout'), { path: '/ai/chat' }, 'Llama 4 Scout is the /ai/chat model since 25 Oct 2026');
   assert.deepEqual(lib.toolFor('gpt-4.1-mini'), { path: '/ai/chat' });
-  assert.equal(lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }] }).query.tool, '/ai/model/deepseek-r1');
+  { const q = lib.toChatQuery({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'x' }] }).query; assert.equal(q.tool, undefined); assert.equal(q.model, 'gpt-oss-120b'); assert.equal(q.modelSubstituted, 'deepseek-r1'); }
   assert.equal(lib.toChatQuery({ model: 'llama-3.3-70b', messages: [{ role: 'user', content: 'x' }] }).query.model, 'llama-3.3-70b');
   assert.equal(lib.toChatQuery({ messages: [{ role: 'user', content: 'x' }] }).query.model, undefined);
 });
@@ -93,10 +94,10 @@ test('an unpaid POST for a large model is quoted at the /ai/chat-large price', a
   assert.equal(res.headers.get('x-tool'), '/ai/chat-large');
   const models = await (await mf.dispatchFetch('https://api.test/v1/models')).json();
   assert.deepEqual(models.data.map((m) => m.id).slice(0, 3), ['@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/openai/gpt-oss-120b']);
-  assert.ok(models.data.some((m) => m.id === '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b' && m.tool === '/ai/model/deepseek-r1'));
+  assert.ok(!models.data.some((m) => /deepseek|qwen3-30b/.test(m.id)), 'retired models are not listed');
   const deepseek = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: 'deepseek-r1', messages: [{ role: 'user', content: 'Hi' }] }) });
   assert.equal(deepseek.status, 402);
-  assert.equal(deepseek.headers.get('x-tool'), '/ai/model/deepseek-r1');
+  assert.equal(deepseek.headers.get('x-tool'), '/ai/chat-large');
   await deepseek.arrayBuffer();
 });
 
