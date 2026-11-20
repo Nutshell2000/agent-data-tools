@@ -157,6 +157,16 @@ test('a tool 402 opens with hint, freeTrial, payByCard, prepay; the x402 terms a
   assert.match(body.hint, /^Try it free: add trial=1/);
   assert.match(body.hint, /pay with X-PAYMENT\. No wallet\?/, 'a space after the full stop');
   assert.doesNotMatch(raw, /X-PAYMENT\.No wallet/);
+  // 20 Nov 2026: with MPP enabled the hint appended "MPP clients:…" right after "X-PAYMENT." with no space.
+  // Exercise that path directly (the miniflare fixture runs MPP off), so the production sentence is covered.
+  const { readable402 } = await load(require.resolve('../src/lib/readable-402.ts'));
+  const fresh = await get('/weather?city=Stockholm');
+  assert.equal(fresh.status, 402);
+  // readable402 only rewrites a bare "{}" body (it early-returns otherwise), so feed it one with the real header.
+  const bare402 = new Response('{}', { status: 402, headers: { 'content-type': 'application/json', 'payment-required': fresh.headers.get('payment-required') } });
+  const withMpp = await (await readable402(bare402, O, true, [], undefined, true, false, true)).json();
+  assert.match(withMpp.hint, /X-PAYMENT\. MPP clients:/, 'a space before MPP when the challenge is present');
+  assert.doesNotMatch(withMpp.hint, /X-PAYMENT\.MPP/);
   assert.equal(body.freeTrial.url, `${O}/weather?city=Stockholm&trial=1`);
   assert.ok(body.freeTrial.what.includes(`${free.FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller`));
   assert.equal(body.payByCard.credits, `${O}/credits`);
@@ -202,18 +212,23 @@ test('a tool outside the HTTP free trial gets no freeTrial, and a caller who use
   assert.equal(Object.keys(body)[0], 'hint');
   // 19 Nov 2026: the exhausted caller is high-intent. Give it one explicit resume step, as text and as data.
   assert.match(body.hint, /^You've used your 3 free calls here\. To continue:/);
-  assert.match(body.hint, /repeat this exact URL with &api_key=adt_/);
+  assert.match(body.hint, /repeat this exact URL with the key:/);
   assert.equal(body.resume.usedFreeCalls, 3);
   assert.match(body.resume.buy, /^https:\/\/buy\.stripe\.com\//);
   assert.match(body.resume.retry, /\/validate\/luhn\?/);
-  // 20 Nov 2026: /credits/claim reads only session_id and 400s on an e-mail. The 402 must not advertise a
-  // step that can never work — point at Stripe's redirect (which carries the session id) or MPP's buy/1.
-  assert.doesNotMatch(body.hint, /credits\/claim with the e-mail/, 'no e-mail claim instruction');
-  assert.match(body.hint, /Stripe returns you to .*\/credits\/claim\?session_id=/, 'advertise the real redirect');
-  assert.match(body.hint, /\/credits\/buy\/1/, 'MPP agents get a browser-free key path');
+  // 20 Nov 2026: resume.retry still holds trial=1 and is a dead end; retryWithKey is the actionable URL.
+  assert.match(body.resume.retryWithKey, /\/validate\/luhn\?/);
+  assert.match(body.resume.retryWithKey, /api_key=adt_/);
+  assert.doesNotMatch(body.resume.retryWithKey, /trial=1/, 'the free-call flag is stripped');
+  const retryParams = new URL(body.resume.retryWithKey).searchParams;
+  assert.equal(retryParams.get('api_key'), 'adt_…');
+  assert.equal(retryParams.get('number'), '79927398713', 'the original tool input survives');
+  assert.match(body.hint, /\/credits\/claim\?session_id=/, 'advertise the real redirect');
   assert.equal(body.resume.claimUrl, undefined, 'a bare claim URL 400s; never publish it as resumable');
   assert.match(body.resume.claim, /session_id/);
-  assert.match(body.resume.mppBuy, /\/credits\/buy\/1$/);
+  // MPP is off in this fixture: the resume must NOT advertise /credits/buy/1 (it would 503 for this caller).
+  assert.equal(body.resume.mppBuy, undefined, 'MPP path hidden when MPP is unavailable');
+  assert.doesNotMatch(body.hint, /\/credits\/buy\/1/, 'no dead-ended MPP instruction');
   assert.match(body.payByCard.use, /then re-send this exact URL/);
 });
 

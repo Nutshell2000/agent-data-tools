@@ -83,6 +83,9 @@ const GUIDE_FILES = {
 export function sourcesFor(page, site) {
   if (page === "/") return ["src/lib/home-page.ts", "src/lib/product-pages.ts"];
   if (page === "/docs") return ["src/lib/site-pages.ts"];
+  // 20 Nov 2026: the card-credits and free-key pages are indexable and in the sitemap; map them to their renderers.
+  if (page === "/credits") return ["src/lib/credit-routes.ts", "src/lib/credits.ts"];
+  if (page === "/keys/free") return ["src/lib/free-keys.ts"];
   // 20 Nov 2026: the installable voice app and the transcription plan page were added to the sitemap (SEO batch).
   if (page === "/app") return ["src/lib/voice-app.ts", "src/lib/voice-console.ts", "src/lib/app-jsonld.ts"];
   if (page === "/transcribe-pro") return ["src/lib/voice-pro.ts"];
