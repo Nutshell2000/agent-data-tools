@@ -87,6 +87,20 @@ test('paging and the manifest aliases', async () => {
   const plain = await (await mf.dispatchFetch('https://api.test/.well-known/x402')).json();
   assert.deepEqual(json, plain);
   assert.equal(json.discovery, 'https://api.test/discovery/resources');
+  // 20 Nov 2026: the manifest promised "every tool with its terms" but gave only URLs. A v2 client should get the
+  // full accepts[] here without issuing one GET per tool. The legacy v1 `resources`/`version` stay intact.
+  assert.equal(json.version, 1, 'still a v1 manifest for older crawlers');
+  assert.equal(json.x402Version, 2, 'also a v2 terms manifest');
+  assert.ok(Array.isArray(json.resourcesV2) && json.resourcesV2.length === json.resources.length);
+  assert.deepEqual(json.resourcesV2.map((r) => r.resource), json.resources, 'same order as the legacy list');
+  const one = json.resourcesV2.find((r) => r.resource === 'https://api.test/time');
+  assert.ok(one && Array.isArray(one.accepts) && one.accepts.length > 0);
+  for (const a of one.accepts) {
+    assert.equal(a.scheme, 'exact');
+    assert.equal(a.amount, '10000');
+    assert.ok(a.network && a.asset && a.payTo && a.maxTimeoutSeconds === 300);
+  }
+  assert.ok(one.metadata?.description && one.metadata?.serviceName);
 });
 
 test('listingName: every tool gets its own 32-character printable-ASCII serviceName, cut cleanly', async () => {
