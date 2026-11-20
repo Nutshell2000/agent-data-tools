@@ -68,7 +68,8 @@ test('without a limit the first page holds every tool, best sellers first and to
   assert.deepEqual(paths.slice(0, 3), ['/ai/chat', '/ai/chat-large', '/ai/embed']);
   assert.ok(paths.indexOf('/check/payee') < 15 && paths.indexOf('/check/counterparty') < 15, 'payee checks right after the media tools');
   assert.ok(paths.indexOf('/hyperliquid/market') < 35 && paths.indexOf('/sec/filings') < 35, 'demanded data tools near the top');
-  const firstToy = paths.findIndex((p) => /^\/(coin|dice|random\/|magic-8-ball|fortune|yes-no|echo|ping)/.test(p));
+  // Exact toy paths (20 Nov 2026: the /coin/research door matched a bare /coin prefix).
+  const firstToy = paths.findIndex((p) => /^\/(coin|dice|magic-8-ball|fortune|yes-no|echo|ping)$|^\/random\//.test(p));
   assert.ok(firstToy > paths.length - 15, `toys at the end (first at ${firstToy})`);
   assert.equal(new Set(paths).size, paths.length, 'no tool twice');
 });
@@ -112,7 +113,7 @@ test('two quotes in a row carry identical payment terms, Base first, at the new 
   const terms = (q) => q.accepts.map(({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }) => ({ scheme, network, asset, payTo, amount, maxTimeoutSeconds }));
   assert.deepEqual(terms(a), terms(b));
   assert.equal(a.accepts[0].network, 'eip155:8453');
-  assert.equal(a.accepts[0].amount, '10000');
+  assert.equal(a.accepts[0].amount, '5000');
   assert.deepEqual(a.resource, b.resource);
 });
 
