@@ -218,7 +218,10 @@ export async function payEvm(c: C, endpoint: Endpoint, header: string, next: Nex
   }
   markStage("verified");
   await next();
-  if (c.res.status >= 400) return; // failed calls are never settled, so never charged
+  // A failed call is never settled, so nothing was charged. Free the replay claim or an honest retry with the same
+  // still-valid authorization is refused as "already used" — a 402 loop that loses a willing payer. Safe: this
+  // authorization was never submitted to settle(), and EIP-3009 can only settle it once on-chain.
+  if (c.res.status >= 400) { release(); return; }
   let receipt;
   try {
     receipt = await mppx.broadcastCredential(credential, options);

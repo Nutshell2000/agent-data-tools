@@ -14,7 +14,7 @@ import { keyPrice, keyPriceLine } from "./key-prices";
  * The card route for callers without a wallet. While card payments can issue keys it is the first Stripe checkout as one
  * link (22 Oct: nobody reached /credits, and a page in between is one step too many for a person an agent is helping).
  */
-function cardHint(origin: string, cardReady: boolean, price = "$0.01", keyPerCall = price, mppReady = false) {
+function cardHint(origin: string, cardReady: boolean, price = "$0.01", keyPerCall = price, mppReady = false, keySep = "?") {
   const [starter] = WEB_PACKS;
   // A card key is charged at the key price, which is often below the public price; quoting the pack at the public
   // price understates what $1 buys (e.g. /pdf/text: 200 calls said vs 1,000 actual) to the buyer deciding whether to pay.
@@ -22,8 +22,8 @@ function cardHint(origin: string, cardReady: boolean, price = "$0.01", keyPerCal
     ? `about ${callsAt(starter.credits, price)} calls at ${price}`
     : `about ${callsAt(starter.credits, keyPerCall)} calls at ${keyPerCall} with a key (the public x402 price is ${price})`;
   const card = cardReady
-    ? `No wallet? Pay $${starter.usdCents / 100} by card in one step at ${starter.url} (${starter.credits.toLocaleString("en-US")} credits, ${valueLine}; the key is shown right after payment; other packs at ${origin}/credits), then send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`
-    : `No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add &api_key=adt_… to this URL.`;
+    ? `No wallet? Pay $${starter.usdCents / 100} by card in one step at ${starter.url} (${starter.credits.toLocaleString("en-US")} credits, ${valueLine}; the key is shown right after payment; other packs at ${origin}/credits), then send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add ${keySep}api_key=adt_… to this URL.`
+    : `No wallet? Pay by card: buy credits at ${origin}/credits and send the key as Authorization: Bearer adt_… or, if your client can only fetch a URL, add ${keySep}api_key=adt_… to this URL.`;
   // 19 Nov 2026: the MCP payment hint already tells wallet clients about the checkout-free credit pack; put the same
   // route in the HTTP 402 body, which is what an agent sees when it calls a tool directly. Only advertise it when the
   // MPP leg is actually configured — otherwise /credits/buy/1 answers 503 (a dead end for a headless buyer).
@@ -105,7 +105,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   const mppCall = mppReady
     ? " MPP clients: this 402 also carries WWW-Authenticate: Payment; answer it in Authorization: Payment to settle this call, then repeat the request. "
     : "";
-  const hint = `${resume}${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${mppCall} ${cardHint(origin, cardReady, page?.endpoint.price, page ? keyPrice(page.endpoint.path, page.endpoint.price) : undefined, mppReady)} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
+  const hint = `${resume}${freeCalls ? `Try it free: add trial=1 to this request (${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller). ` : ""}Paid x402 tool. x402 v2 clients: terms in the PAYMENT-REQUIRED header, pay with PAYMENT-SIGNATURE (for example @x402/fetch or AgentCash). ${v1Accepts.length ? "x402 v1 clients: terms in this body, pay with X-PAYMENT." : "The same terms are in this body. x402 v1 clients: add x402=1 to this request for v1 terms, then pay with X-PAYMENT."}${mppCall} ${cardHint(origin, cardReady, page?.endpoint.price, page ? keyPrice(page.endpoint.path, page.endpoint.price) : undefined, mppReady, page && new URL(page.url).search ? "&" : "?")} Free example output: add sample=1. Free docs: ${origin}/llms.txt`;
   // The body mirrors the v2 header (1.117.0, 10 Nov 2026). Until then it was a v1 PaymentRequired on every tool, and
   // vAPI Call's listing check read that as "header and body declare different x402 versions" and found no input
   // description, because the Bazaar extension only exists in v2 terms; seven of nine sellers its monitor calls healthy
