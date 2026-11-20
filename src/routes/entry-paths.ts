@@ -255,6 +255,10 @@ export const ENTRY_PATHS: Entry[] = [
     "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402.",
     ["text-to-speech", "tts-api", "tts", "speech-synthesis", "audio", "voice"], from(AI_TEXT, "/ai/speech")),
 
+  door("/news/sentiment", "News sentiment: headlines scored positive, negative, neutral",
+    "News sentiment for a company or topic: recent headlines with a sentiment score each. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402.",
+    ["news-sentiment", "headline-sentiment", "media-sentiment", "brand-sentiment", "news", "sentiment"], from(PACKS_RESEARCH, "/pack/news-sentiment")),
+
   door("/sentiment/analysis", "Sentiment analysis of any text: positive, negative, neutral",
     "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key.",
     ["sentiment-analysis", "text-sentiment", "sentiment", "nlp", "opinion", "ai"], from(AI_TEXT, "/ai/sentiment")),
@@ -262,6 +266,10 @@ export const ENTRY_PATHS: Entry[] = [
   door("/web/extraction", "Web extraction: any page to clean Markdown and text",
     "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
     ["web-extraction", "web-scraping", "page-to-markdown", "extract", "contents", "markdown"], from(RETRIEVAL, "/contents")),
+
+  door("/web/scraping", "Web scraping: any page to clean Markdown",
+    "Web scraping of any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
+    ["web-scraping", "scrape-webpage", "web-extraction", "page-to-markdown", "crawler", "markdown"], from(RETRIEVAL, "/contents")),
 
   door("/image/generation", "Image generation: from a text prompt",
     "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402.",
@@ -500,6 +508,10 @@ export const ENTRY_PATHS: Entry[] = [
     "Extract text from a PDF by URL: the text of each page of a public PDF file (up to 10 MB), with the page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context.",
     ["pdf-to-text", "extract-pdf-text", "pdf", "pdf-parser", "document", "rag"], from(PDF, "/pdf/text")),
 
+  door("/pdf/to-text", "PDF to text: extract text from a PDF URL",
+    "PDF to text: extract the text of each page of a public PDF by URL (up to 10 MB), with page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context.",
+    ["pdf-to-text", "pdf-extract", "extract-pdf", "pdf-parser", "document", "rag"], from(PDF, "/pdf/text")),
+
   door("/uniswap/liquidity", "Uniswap pool liquidity: reserves and price",
     "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool.",
     ["uniswap-pool", "pool-liquidity", "liquidity", "uniswap", "defi", "dex"], from(CHAIN_MORE, "/uniswap/pool")),
@@ -720,6 +732,12 @@ export const ENTRY_PATHS: Entry[] = [
   door("/audio/transcribe", "Transcribe audio: speech to text with Whisper",
     "Transcribe audio to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments and words. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meeting and podcast clips, call recordings and subtitles.",
     ["transcribe-audio", "speech-to-text", "audio-transcription", "whisper", "transcription", "audio"], CORE_TRANSCRIBE),
+
+  // Round 13 (20 Nov 2026): exact-phrase doors for high-demand router jobs where our tool scored on a partial slug or
+  // was absent. Exact slug scores 10/token on Agent402 (vs 4 partial); price breaks ties. Same handler/inputs/price.
+  door("/speech/to-text", "Speech to text: audio file URL to transcript",
+    "Speech to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meetings, podcast clips and call recordings.",
+    ["speech-to-text", "audio-to-text", "transcribe-speech", "whisper", "stt", "transcription"], CORE_TRANSCRIBE),
 
   // Round 10 (14 Nov 2026): one coin, named. The returning agent 0xe629 buys the listing that is first in the Bazaar
   // search for its job: ours for "describe image" and "bitcoin price", another seller's "Solana Token Price" 24 times in
