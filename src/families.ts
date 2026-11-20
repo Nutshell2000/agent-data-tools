@@ -1,5 +1,6 @@
 // All table-generated endpoint families, in catalog order.
 import { PRICE, type Entry } from "./family";
+import { ANSWERS } from "./routes/answers";
 import { EINVOICE } from "./routes/einvoice";
 import { AI_TEXT, BASICS } from "./routes/ai-text";
 import { CHAIN_READS } from "./routes/chain-reads";
@@ -91,7 +92,7 @@ import { CRYPTO_TRENDING } from "./routes/crypto-trending";
 import { TREASURY } from "./routes/treasury";
 import { ENTRY_PATHS } from "./routes/entry-paths";
 
-const CATALOG: Entry[] = [...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICES, ...FX_MORE, ...POLYMARKET, ...CRYPTO_TRENDING, ...STOCKS, ...GITHUB, ...CVE, ...ARXIV, ...SEARCH, ...KEYWORDS, ...PDF, ...DOCUMENT, ...INVOICE_CHECK, ...RESALE, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...X402_FIND, ...TRUST, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...BOOKS, ...GEO_IP, ...EVM_TOOLS, ...MERKLE, ...BIC, ...WEB_CHECKS, ...SITE_AUDIT, ...CONTRACT_AUDIT, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_DAILY, ...TOKEN_FLOWS, ...PACKS_LEAD, ...PACKS_RESEARCH, ...BATCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...SEC_FINANCIALS, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...TREASURY, ...HYPERLIQUID, ...HL_ACCOUNT, ...OPTIONS, ...LLM_PRICES, ...DEFI_YIELDS, ...DEFI_TVL, ...STABLECOIN_CHARTS, ...AIRPORT_TOOLS, ...LIFI, ...REGISTRIES, ...SE_COMPANY, ...NORDIC_COMPANY, ...FR_COMPANY, ...FEAR_GREED, ...ENTRY_PATHS, ...FUN, ...BASICS, ...AI_TEXT];
+const CATALOG: Entry[] = [...ANSWERS, ...CHAIN_READS, ...WALLET_HISTORY, ...SOLANA, ...PRICES, ...FX_MORE, ...POLYMARKET, ...CRYPTO_TRENDING, ...STOCKS, ...GITHUB, ...CVE, ...ARXIV, ...SEARCH, ...KEYWORDS, ...PDF, ...DOCUMENT, ...INVOICE_CHECK, ...RESALE, ...EXTRACT_RENDERED, ...FEEDS, ...COMPANY, ...SANCTIONS, ...CHECKS, ...COUNTERPARTY, ...X402_CHECK, ...X402_FIND, ...TRUST, ...AGENT_READINESS, ...UTILS, ...CALC, ...LOOKUPS, ...BOOKS, ...GEO_IP, ...EVM_TOOLS, ...MERKLE, ...BIC, ...WEB_CHECKS, ...SITE_AUDIT, ...CONTRACT_AUDIT, ...MATH_DATE, ...GENERATORS, ...PACKS, ...TOOLBOXES, ...PACKS_MORE, ...TOOLBOXES2, ...GEO_MORE, ...AGENT_INFRA, ...MEDIA_TEXT, ...PACKS_INTEL, ...PACKS_DAILY, ...TOKEN_FLOWS, ...PACKS_LEAD, ...PACKS_RESEARCH, ...BATCH, ...SAFETY, ...RETRIEVAL, ...PAGES, ...WHALE, ...MEMORY, ...RECOMMEND, ...GOV_MORE, ...SEC_FINANCIALS, ...CHAIN_MORE, ...PUBLIC_DATA, ...GOV_DATA, ...ECON, ...TREASURY, ...HYPERLIQUID, ...HL_ACCOUNT, ...OPTIONS, ...LLM_PRICES, ...DEFI_YIELDS, ...DEFI_TVL, ...STABLECOIN_CHARTS, ...AIRPORT_TOOLS, ...LIFI, ...REGISTRIES, ...SE_COMPANY, ...NORDIC_COMPANY, ...FR_COMPANY, ...FEAR_GREED, ...ENTRY_PATHS, ...FUN, ...BASICS, ...AI_TEXT];
 
 /**
  * Price test, part 2 (26 Oct to 2 Nov 2026, the owner's go-ahead): pure-computation tools (no outside data source, no
