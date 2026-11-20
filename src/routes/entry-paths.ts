@@ -351,7 +351,7 @@ export const ENTRY_PATHS: Entry[] = [
     ["exchange-rates", "currency-exchange-rates", "forex", "currency-conversion", "fx-rates", "finance"], CORE_FX),
 
   door("/ai/tts", "Text to speech API, TTS: natural voices, MP3 audio from text",
-    "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10), or as a WAV in French, Chinese, Japanese or Korean (MeloTTS). Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility.",
+    "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility.",
     ["text-to-speech", "tts", "tts-api", "voice", "speech-synthesis", "audio"], from(AI_TEXT, "/ai/speech")),
 
   door("/news/search", "News search API: current news articles on any topic as JSON",
