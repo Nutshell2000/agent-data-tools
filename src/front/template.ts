@@ -49,9 +49,12 @@ export function toTemplate(status: number, headers: Headers, bodyText: string): 
 
 /** The core's freeTrial.url for this request URL. */
 export function trialUrl(requestUrl: URL): string {
-  const params = new URLSearchParams(requestUrl.search);
-  const q = params.toString();
-  return `${requestUrl.origin}${requestUrl.pathname}?${q ? `${q}&` : ""}trial=1`;
+  // Mirror lib/readable-402.ts freeTrialOffer(): drop the controls the core drops so a rebuilt free URL never
+  // carries x402=1 or sample=1 (which would be refused or would not be a free trial).
+  const u = new URL(requestUrl.href);
+  for (const control of ["x402", "sample", "trial"]) u.searchParams.delete(control);
+  u.searchParams.set("trial", "1");
+  return u.href;
 }
 
 /** Status, headers (without MPP challenges) and body text for this request, rebuilt from the template. */
