@@ -266,3 +266,14 @@ test('crypto and coin research doors match the buyer words Bazaar payers use', a
   assert.ok(rd.some((d) => /^Crypto research/.test(d.endpoint.summary)), 'buyer-worded name');
   assert.ok(rd.some((d) => d.endpoint.path === '/coin/research'), 'coin research phrase');
 });
+
+test('lead enrichment door carries the buyer phrase and runs the domain-intel pack', () => {
+  assert.equal(doors.ENTRY_OF['/lead/enrichment'], '/pack/domain-intel');
+  const d = doors.ENTRY_PATHS.find((x) => x.endpoint.path === '/lead/enrichment');
+  assert.ok(d, 'lead enrichment door exists');
+  assert.equal(d.endpoint.price, '$0.01', 'keeps the canonical price');
+  assert.equal(d.endpoint.path.replace(/^\//, '').replace('/', '_'), 'lead_enrichment', 'exact router slug');
+  assert.match(d.endpoint.summary, /^Lead enrichment/, 'buyer-worded name');
+  assert.ok(d.endpoint.tags.includes('lead-enrichment'));
+  assert.equal(doors.ENTRY_PATHS.filter((x) => doors.ENTRY_OF[x.endpoint.path] === '/pack/domain-intel').length, 2, 'at most two doors per tool');
+});
