@@ -1,5 +1,5 @@
 {
-  "version": "1.319.2",
+  "version": "1.320.1",
   "tools": [
     {
       "name": "extract",
@@ -19165,6 +19165,40 @@
       "price": "$0.01"
     },
     {
+      "name": "news_sentiment",
+      "description": "News sentiment for a company or topic: recent headlines with a sentiment score each. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "News topic, at most 400 characters"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Number of articles (1-10, default 5)"
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Only articles from the past day, week or month (default: week)"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
       "name": "sentiment_analysis",
       "description": "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -19191,6 +19225,42 @@
     {
       "name": "web_extraction",
       "description": "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "string",
+            "description": "One to five page URLs: comma-separated, one per line, or a JSON array"
+          },
+          "maxChars": {
+            "description": "Characters per page, 500 to 20000 (default 4000)",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "text (default) or markdown"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "web_scraping",
+      "description": "Web scraping of any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -20959,6 +21029,48 @@
       "price": "$0.005"
     },
     {
+      "name": "pdf_to_text",
+      "description": "PDF to text: extract the text of each page of a public PDF by URL (up to 10 MB), with page count, title and author; scanned PDFs without a text layer fail uncharged. Use to read reports, papers, invoices and filings into an LLM, RAG or an agent's context. Example: url=https://bitcoin.org/bitcoin.pdf. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute public http(s) URL of the PDF. With no input at all this reads the published sample (the Bitcoin white paper); send url for your own PDF."
+          },
+          "firstPage": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000,
+            "description": "First page to read (default 1)"
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "How many pages to read (1-200, default 20)"
+          },
+          "maxChars": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 200000,
+            "description": "Maximum characters of text returned across all pages (1000-200000, default 50000)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.005"
+    },
+    {
       "name": "uniswap_liquidity",
       "description": "Uniswap pool liquidity for a token pair: every Uniswap v3 pool by fee tier with its in-range liquidity, both token balances held, price and current tick, deepest first, read live on Base, Ethereum, Arbitrum, Optimism or Polygon. Use to check a pool's depth before a swap or to price a token from its pool. Example: tokenA=WETH, tokenB=USDC. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
@@ -22036,6 +22148,46 @@
     {
       "name": "audio_transcribe",
       "description": "Transcribe audio to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments and words. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meeting and podcast clips, call recordings and subtitles. Example: url=https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL of an audio file (max 5 MB); or POST the file itself (raw body, multipart `file` part, or base64 in JSON)"
+          },
+          "subtitles": {
+            "type": "string",
+            "description": "srt or vtt: also return subtitle text"
+          },
+          "timestamps": {
+            "description": "true: also return timed segments and words",
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "description": "Spoken language code such as en, sv or de (default: detected)"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "price": "$0.01"
+    },
+    {
+      "name": "speech_to_text",
+      "description": "Speech to text: send an audio file URL (or POST the file) and get the transcript, detected language, duration and word count from Whisper large-v3-turbo; subtitles=srt or vtt adds subtitles, timestamps=true adds timed segments. MP3, WAV, M4A and OGG up to 5 MB, 90+ languages. Use for voice notes, meetings, podcast clips and call recordings. Example: url=https://commons.wikimedia.org/wiki/Special:FilePath/En-us-hello.ogg. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
