@@ -43,7 +43,10 @@ test("the front page leads with the products and their plans, under the brand", 
   const band = html.slice(html.indexOf('id="pro"'), html.indexOf('id="how"'));
   assert.match(band, /When your device is not enough/, "a band right after the free tiles sells the paid product");
   assert.match(band, /buy\.stripe\.com\/[A-Za-z0-9]+">Get Transcribe Pro: \$\d+ a month/, "the band's first button is the checkout");
-  assert.match(band, /transcribe#fast" data-ev="trial_click">Try Pro free on one file/, "and a free trial is one click away");
+  // 21 Nov 2026 (owner: free things must cost nothing): the free server trial runs Workers AI, so the band offers the $1
+  // one-off pack in its place, and no page links the trial.
+  assert.match(band, /data-ev="pack_click">\d+ hours for \$1, once</, "the band's second button is the $1 one-off pack");
+  assert.doesNotMatch(html, /data-ev="trial_click"/, "no link to the free server trial");
   const prices = html.slice(html.indexOf('id="pricing"'), html.indexOf('id="developers"'));
   // 21 Nov 2026 offer ladder: Free, one job paid once, the monthly plan; the larger plan is a line under the cards.
   for (const plan of ["Glyphcall Free", "One job", "Transcribe Pro"]) assert.ok(prices.includes(`<h3>${plan}</h3>`), `${plan} is a plan card`);
@@ -76,7 +79,7 @@ test("the front page sells the voice tools first and folds the developer catalog
   const agents = fold.indexOf("<h2>For AI agents</h2>");
   assert.ok(agents > 0 && agents < fold.indexOf('<section class="final"'), "the agent notes are inside the folded panel, not in the questions");
   assert.match(html, /closest\("details\.devmore"\)/, "a link to an anchor inside the panel opens it");
-  for (const ev of ["sticky_try", "sticky_pro", "trial_click"]) assert.ok(html.includes(`data-ev="${ev}"`), `${ev} is still counted`);
+  for (const ev of ["sticky_try", "sticky_pro", "pack_click"]) assert.ok(html.includes(`data-ev="${ev}"`), `${ev} is still counted`);
 });
 
 test("without card payments the front page links the pricing page instead of plans", () => {

@@ -80,7 +80,19 @@ const largerPlan = () => WEB_PLANS.find((p) => p.usdCents > VOICE_PRO_CENTS);
  * Every line states what the plan really does; the hours come from the live price of /transcribe/long and the plans
  * from lib/credits.ts, never typed by hand. `freeHref` is where "start free" leads (the console on the front page).
  */
-export function offerLadder(prices: VoicePrices, opts: { brand?: string; browserVoices: number; freeHref: string }): string {
+/**
+ * 21 Nov 2026 (owner: free things must cost us nothing): the free server trial (CREDITS_TRIAL) is being switched off,
+ * because every trial file runs Whisper on Workers AI. The pages no longer offer it: `trial` false (the default on the
+ * pages) shows the $1 one-off pack instead. `true` brings the trial link back if the trial is ever offered again.
+ */
+export function tryLink(prices: VoicePrices, trial: boolean | undefined, label = "Try Pro free on one file", cls = "") {
+  const c = cls ? ` class="${cls}"` : "";
+  return trial === false
+    ? `<a${c} href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">${hoursFor(VOICE_HOURS_PACK_CREDITS, prices.long)} hours for $1, once</a>`
+    : `<a${c} href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">${label}</a>`;
+}
+
+export function offerLadder(prices: VoicePrices, opts: { brand?: string; browserVoices: number; freeHref: string; trial?: boolean }): string {
   const brand = opts.brand ?? "Glyphcall";
   const price = `$${VOICE_PRO_CENTS / 100}`;
   const hours = voiceProHours(prices.long);
@@ -94,7 +106,7 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
 <a class="btn" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Get ${pack} hours for $1</a><p class="fine">Paid once by card. No account.</p></div>`;
   const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
 <ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>One key that also runs the studio voices and the APIs</li><li>Unused credits stay; cancel any time</li></ul>
-<a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account. <a href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try Pro free on one file</a> first.</p></div>`;
+<a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account.${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
   return `<div class="ladder">${free}${once}${pro}</div>
 <p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month for about ${hoursFor(more.credits, prices.long)} hours</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
 }
@@ -120,7 +132,7 @@ export function offerCompare(prices: VoicePrices, browserLanguages: number): str
 }
 
 /** The Transcribe Pro landing page, in the product site's own design (it was plain text until 21 Nov 2026). */
-export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyphcall") {
+export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyphcall", trial = false) {
   const hours = voiceProHours(prices.long);
   const hoursPack = hoursFor(VOICE_HOURS_PACK_CREDITS, prices.long);
   const price = `$${VOICE_PRO_CENTS / 100}`;
@@ -152,7 +164,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <span class="kicker">${esc(brand)} Transcribe Pro</span>
 <h1>Any recording, turned into text.<br><span class="gt">Done for you.</span></h1>
 <p class="lede"><strong>About ${hours} hours of transcription a month for ${price}.</strong> Audio and video to text on our servers, with SRT and VTT subtitles and word timings, in more than 90 languages.</p>
-<div class="ctas" style="justify-content:center"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><a class="btn" href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try Pro free on one file</a></div>
+<div class="ctas" style="justify-content:center"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a>${tryLink(prices, trial, "Try Pro free on one file", "btn")}</div>
 <p class="after">Just one file? <a href="${esc(VOICE_HOURS_PACK_URL)}">${hoursPack} hours for $1</a>, paid once, no subscription.</p>
 <p class="after">Card payment through Stripe. No account. Cancel any time. Failed transcriptions are never charged.</p>
 </div></section>
@@ -183,7 +195,7 @@ ${offerCompare(prices, CONSOLE_LANGUAGES.length)}
 <p class="small" style="margin-top:22px">For developers: the same key works from code with <code>/transcribe/long</code> and the OpenAI-compatible <code>/v1/audio/transcriptions</code>. <a href="/speech-to-text-api">Speech to text API</a> · <a href="/credits">all credit packs and plans</a> · <a href="${esc(PLAN_PORTAL_URL)}">manage or cancel a plan</a></p>
 </div></section>
 
-<section class="final"><h2>Drop a recording. <span class="gt">Get every word back.</span></h2><p>About ${hours} hours a month for ${price}. No account.</p><div class="ctas"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro</a><a class="btn" href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try it free on one file</a></div></section>
+<section class="final"><h2>Drop a recording. <span class="gt">Get every word back.</span></h2><p>About ${hours} hours a month for ${price}. No account.</p><div class="ctas"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro</a>${tryLink(prices, trial, "Try it free on one file", "btn")}</div></section>
 </main>
 <footer><div class="wrap"><p class="legal"><a href="/">Home</a> · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a></p></div></footer></body></html>`;
 }

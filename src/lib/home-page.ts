@@ -37,7 +37,7 @@ import { SPEECH_VOICES } from "../routes/ai-text";
 import { SPEECH_INPUT_LIMIT } from "./openai-speech";
 import { SPEECH_CREDITS_PER_100 } from "./voice-billing";
 import { VOICE_TEST_SPEECH_CHARS } from "./voice-keys";
-import { offerCompare, offerLadder, voicePrices, voiceProHours } from "./voice-pro";
+import { offerCompare, offerLadder, tryLink, voicePrices, voiceProHours } from "./voice-pro";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -117,7 +117,7 @@ const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=l
  * `opts.trial`: free calls are on, so the developer tabs open with a request that needs no key (lib/first-call.ts);
  * `opts.freeKey`: free keys by e-mail are offered (lib/free-keys.ts `freeKeysOn`), so the page links /keys/free.
  */
-export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean; voiceTry?: boolean } = {}): string {
+export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean; voiceTry?: boolean; creditsTrial?: boolean } = {}): string {
   const us = ourVoice();
   const hasLite = BY_PATH.has("/text-to-speech/lite");
   const longTool = BY_PATH.get("/transcribe/long");
@@ -225,7 +225,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <p class="lede">Free, right here in your browser. No sign-up, nothing to install.</p>
 <div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
 <p class="after">Rather use an app? <a href="/app">Install ${esc(brand)} Voice</a>, free on your phone or computer.</p>
-${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: Boolean(opts.voiceTry) }) : ""}</div>
+${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div>
 </div></section>
 
 <section class="stats" aria-label="Why people like it"><div class="wrap"><ul class="trust">
@@ -241,14 +241,14 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <section class="sec" id="pro"><div class="wrap"><div class="proband">
 <div><span class="kicker">Transcribe Pro</span><h2>When your device is not enough, <span class="gt">we do it for you.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}.</p>
-<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a><a class="btn" href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try Pro free on one file</a></div></div>
+<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div></div></section>
 
 <section class="sec center" id="pricing"><div class="wrap">
 <h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
 <p class="sub">Everything you make on this page and in the app is free, on your own device. Pay only when you want the work done for you.</p>
-${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try" }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
+${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try", trial: opts.creditsTrial }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
 ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
 </div></section>
 
