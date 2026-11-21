@@ -10,6 +10,7 @@ import type { Param } from "../endpoints";
 import { entry, flag, need, num, opt, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { parseTarget } from "../lib/fetch";
+import { switchedOff } from "../lib/switches";
 import { enrich, queryTerms, readPage, type ContentsOptions, type Hit } from "../lib/search-contents";
 import { chat } from "./ai-text";
 import { extract } from "./extract";
@@ -37,6 +38,7 @@ const TERMS = "Results are for the caller's immediate use: no storing or caching
 /** Counts one upstream request; KV is eventually consistent, so the cap is approximate. */
 async function takeSearchBudget(env: Env): Promise<void> {
   if (!env.TRIALS) throw new HttpError(503, "search is not configured on this deployment", "SEARCH_UNAVAILABLE");
+  if (await switchedOff(env, "search")) throw new HttpError(503, "search is paused by the operator right now; nothing was charged, try again later", "PAUSED_BY_OPERATOR");
   const cap = Number(env.SEARCH_DAILY_CAP) || DEFAULT_DAILY_CAP;
   const key = `search:${new Date().toISOString().slice(0, 10)}`;
   const used = Number(await env.TRIALS.get(key)) || 0;

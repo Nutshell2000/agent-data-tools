@@ -28,7 +28,37 @@ export interface FrontEnv {
   CDP_API_KEY_SECRET?: string;
   /** "off" passes every request to the core (the first rollback step: a config deploy, no code change). */
   FRONT?: string;
+  /** Flood guard (wrangler.front.jsonc `ratelimits`): requests per address and minute, counted per Cloudflare location. */
+  FLOOD?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
+
+/**
+ * Flood guard (21 Nov 2026, safety audit): nothing limited how fast one address could ask, and every request is billed.
+ * The limit is far above any caller measured so far (the busiest directory monitor sent about 86 requests a minute on
+ * average on 19 Nov), so a monitor's sweep of the whole catalogue and a router's paid burst pass. One address and
+ * Cloudflare location above it gets 429 with Retry-After until the minute ends; nothing reaches KV or the core.
+ * An IPv6 caller is counted as its /64. The guard never fails a request: with no binding, no address, or an error in
+ * the limiter, the request goes on as before.
+ */
+async function flooded(request: Request, env: FrontEnv): Promise<boolean> {
+  if (!env.FLOOD) return false;
+  const ip = (request.headers.get("cf-connecting-ip") ?? "").trim().toLowerCase();
+  if (!ip) return false;
+  let key = ip;
+  if (ip.includes(":")) {
+    const [head = "", tail = ""] = ip.split("::");
+    const h = head ? head.split(":").filter(Boolean) : [];
+    const t = tail ? tail.split(":").filter(Boolean) : [];
+    key = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t].slice(0, 4).join(":");
+  }
+  try {
+    return !(await env.FLOOD.limit({ key })).success;
+  } catch {
+    return false;
+  }
+}
+
+const TOO_MANY = JSON.stringify({ error: "too many requests from this network address in one minute; slow down and retry. Nothing was charged.", code: "RATE_LIMITED" });
 
 /** A quote as the core gave it, minus what belongs to one answer. */
 export interface StoredQuote { v: 1; release: string; status: number; headers: [string, string][]; body: string; mpp: MppTerms[] }
@@ -154,6 +184,7 @@ async function store(env: FrontEnv, href: string, response: Response, rel: strin
 
 export default {
   async fetch(request: Request, env: FrontEnv, ctx: ExecutionContext): Promise<Response> {
+    if (await flooded(request, env)) return new Response(TOO_MANY, { status: 429, headers: { "Content-Type": "application/json; charset=utf-8", "Retry-After": "60", "Cache-Control": "no-store" } });
     const url = env.FRONT === "off" || !rootSecret(env) ? undefined : quotable(request);
     if (url) {
       try {

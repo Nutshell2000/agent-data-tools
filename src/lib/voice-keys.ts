@@ -33,8 +33,9 @@
 import { Hono, type Context, type Next } from "hono";
 import type { Env } from "./env";
 import { VOICE_PRO_CENTS, VOICE_PRO_URL, hashCreditKey } from "./credits";
-import { FREE_CALLS_PER_DAY, callerHash, utcDay } from "./free-calls";
+import { FREE_CALLS_PER_DAY, addressBucket, callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
+import { switchedOff } from "./switches";
 
 type C = Context<{ Bindings: Env }>;
 
@@ -50,7 +51,7 @@ export const VOICE_TEST_AUDIO_SECONDS = 30;
 /** Test keys issued per UTC day over all callers, unless VOICE_TEST_KEYS_PER_DAY says otherwise. */
 export const VOICE_TEST_KEYS_PER_DAY = 100;
 /** Speech calls all test keys together make per UTC day: the cap that keeps the worst day at about $3. */
-export const VOICE_TEST_SPEECH_CALLS_PER_DAY = 1000;
+export const VOICE_TEST_SPEECH_CALLS_PER_DAY = 100;
 /** How long a test key works. */
 export const VOICE_TEST_KEY_HOURS = 24;
 
@@ -121,26 +122,15 @@ async function giveBackOfDay(kv: KVNamespace, name: string, amount: number): Pro
 
 const newKey = (kind: VoiceKeyKind) => PREFIX[kind] + btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-/** One caller per IPv4 address or per IPv6 /64 (a home or server usually holds a whole /64, so each address in it is the same caller). */
-export const addressBucket = (ip: string | undefined): string => {
-  const raw = (ip ?? "").trim().toLowerCase();
-  if (!raw) return "unknown";
-  if (!raw.includes(":")) return raw;
-  // Expand "::" before slicing: raw.split(":").slice(0,4) is misaligned when the shorthand compresses zeros inside
-  // the first four groups (e.g. 2601:646:100::1 -> "2601:646:100:"). Canonicalize to eight hextets first so both
-  // textual forms of one /64 bucket together and a short address is not mistaken for a whole /32.
-  const [head = "", tail = ""] = raw.split("::");
-  const h = head ? head.split(":").filter(Boolean) : [];
-  const t = tail ? tail.split(":").filter(Boolean) : [];
-  const groups = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
-  return groups.slice(0, 4).join(":");
-};
+export { addressBucket };
 
 type Issued = { ok: true; key: string; expires: string } | { ok: false; why: "caller" | "day" };
 
 /** Issues one key for this address, or says which limit stops it. Only a hash of the address is stored, for two days. */
 async function issueVoiceKey(env: Env, kind: VoiceKeyKind, ip: string | undefined): Promise<Issued> {
   const kv = env.TRIALS!;
+  // The operator's off-switch (lib/switches.ts): answered like a day whose keys are all given out.
+  if (await switchedOff(env, "voice-keys")) return { ok: false, why: "day" };
   const day = utcDay();
   const caller = await callerHash(addressBucket(ip));
   const perCaller = kind === "test" ? 1 : TRIAL_KEYS_PER_CALLER;
@@ -313,7 +303,7 @@ export async function chargeVoiceKey(c: C, key: string, next: Next) {
   if (!grant || grant.key !== key) return refuse(test ? `A free voice test key works only on POST ${origin}/v1/audio/speech and POST ${origin}/v1/audio/transcriptions, not on this path.` : `A free trial key transcribes one uploaded file with POST ${origin}/v1/audio/transcriptions, /transcribe/long or /transcribe; it does not work on this path or with a URL.`, test ? "test_key_scope" : "trial_key_scope");
   const kv = c.env.TRIALS;
   const store = c.env.METRICS?.get(c.env.METRICS.idFromName("credits"));
-  if (!kv || !store || !kindOn(c.env, kind)) return refuse("This key cannot be checked right now; try again in a few minutes.", "unavailable", 503);
+  if (!kv || !store || !kindOn(c.env, kind) || await switchedOff(c.env, "voice-keys")) return refuse("This key cannot be checked right now; try again in a few minutes.", "unavailable", 503);
   const limit = test ? VOICE_TEST_CALLS : 1;
   // The free-call counter under its own names: `free:caller:<counter>` (never reset) and `free:day:<name>` (2,000 a day).
   const dayName = `${test ? "voicetest" : "voicetrial"}:${utcDay()}`;

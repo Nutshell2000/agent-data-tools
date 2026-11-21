@@ -53,11 +53,12 @@
     "FREE_KEYS": "on",
     "FREE_KEY_FROM": "keys@tools.funwords.eu",
     // Free voice keys without e-mail (lib/voice-keys.ts, 16 Nov 2026). Anything but "on" switches a route off (404) and
-    // stops its keys at once. Worst case per UTC day if every limit is reached, from the model prices in that file:
-    // test keys about $3.50 (never above $6: 2,000 counted calls of at most $0.003), trial keys about $0.15.
-    // OFF in production until both are proven on staging (wrangler.staging.jsonc has them on): set to "on" to offer them.
+    // stops its keys at once. Both are ON here. Limits cut on 21 Nov 2026 (safety audit: the old limits allowed about
+    // $3.50 a day against a $10-a-month ceiling): 10 test keys and 100 speech calls a day, so the worst day is about
+    // $0.37 for test keys (100 speech calls x $0.003 + 250 calls x $0.00026) and about $0.05 for trial keys.
+    // To stop them without a release: the `voice-keys` off-switch (src/lib/switches.ts).
     "VOICE_TEST_KEYS": "on",
-    "VOICE_TEST_KEYS_PER_DAY": "100",
+    "VOICE_TEST_KEYS_PER_DAY": "10",
     "CREDITS_TRIAL": "on",
     "CREDITS_TRIAL_MINUTES": "60",
     // Address that receives every payment (USDC on Base).

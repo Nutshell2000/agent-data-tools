@@ -99,6 +99,8 @@ export interface Env {
    * send_email binding) and FREE_KEY_FROM (a sender on a domain onboarded there) are both set.
    */
   FREE_KEYS?: string;
+  /** "on" makes /robots.txt answer `Disallow: /` (staging: a test copy must not be indexed). */
+  NOINDEX?: string;
   /**
    * Free voice keys (lib/voice-keys.ts), each off unless "on": VOICE_TEST_KEYS offers POST /keys/voice-test (25 short calls
    * on the voice fronts; VOICE_TEST_KEYS_PER_DAY keys a day, default 100), CREDITS_TRIAL offers POST /credits/trial (one
