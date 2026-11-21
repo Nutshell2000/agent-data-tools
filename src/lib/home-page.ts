@@ -24,7 +24,7 @@
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
 import { CONSOLE_LANGUAGES, CONSOLE_VOICES, STUDIO_SITE, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
-import { PLAN_PORTAL_URL, VOICE_PRO_CENTS, VOICE_PRO_CREDITS, VOICE_PRO_URL } from "./credits";
+import { PLAN_PORTAL_URL, VOICE_BUNDLE_PLAN, VOICE_PRO_CENTS, VOICE_PRO_CREDITS, VOICE_PRO_URL, VOICE_STUDIO_PLAN, speechCharacters } from "./credits";
 import { firstCall } from "./first-call";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { COMPANY_FOOTER } from "./legal";
@@ -124,7 +124,8 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 // - a "Fair by design" block: the billing and privacy complaints people have about voice tools, answered as promises
 //   the code keeps (free retries, failed calls cost nothing, packs never expire, cancel from the portal, no account).
 // Still: no rival named, no speed claim, no AI label, every number computed.
-const REDESIGN_CSS = `.show{margin:6px auto 34px;max-width:900px}.show-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 22px}.btn.big{padding:16px 28px;font-size:1.05rem}
+const REDESIGN_CSS = `.vplans{margin:26px auto 0;max-width:820px;text-align:left}.vplans h3{text-align:center;margin:0 0 12px}.vplan-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.vplan{padding:22px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.vplan .p{font-size:2rem;font-weight:850;letter-spacing:-.03em}.vplan .p small{font-size:.95rem;color:var(--muted);font-weight:500}.vplan p{color:var(--muted);margin:6px 0 14px}.vplan .btn{width:100%}@media (max-width:720px){.vplan-row{grid-template-columns:1fr}}
+.show{margin:6px auto 34px;max-width:900px}.show-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 22px}.btn.big{padding:16px 28px;font-size:1.05rem}
 .vwall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.vcard{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s;min-height:56px}
 .vcard:hover{border-color:#cfc9bf;transform:translateY(-2px);box-shadow:0 10px 24px -16px rgba(22,22,29,.35)}.vcard .av{flex:none;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff 0,hsla(var(--h1),90%,70%,.95) 22%,transparent 60%),radial-gradient(circle at 70% 75%,hsla(var(--h2),85%,55%,.95) 0,transparent 65%),conic-gradient(from 0deg,hsl(var(--h1),80%,60%),hsl(var(--h2),80%,55%),hsl(var(--h1),80%,60%));box-shadow:inset 0 -6px 12px rgba(22,22,29,.18),0 4px 12px -4px hsla(var(--h2),70%,45%,.55)}.vcard.on .av{animation:orb 2.4s linear infinite}@keyframes orb{to{filter:hue-rotate(360deg)}}
 .vcard .vn{display:flex;flex-direction:column;line-height:1.2;min-width:0}.vcard .vn small{color:var(--muted);font-size:.8rem}.vcard .vw{margin-left:auto;display:flex;gap:2px;align-items:center;height:18px}.vcard .vw i{width:3px;height:30%;border-radius:2px;background:#cfc9bf}
@@ -167,6 +168,17 @@ try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){ctx=ctx||new (wi
 a.onended=stop;a.onerror=stop;a.play().catch(stop);
 const id=b.dataset.voicePick;if(id){const pick=document.querySelector('#hero-vc [data-voice="'+id+'"]');if(pick)pick.click();if(note)note.textContent=b.dataset.voiceName+" is ready below. Type your words and press Play."}}))})();</script>`;
 const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
+
+/** The two studio-voice plans, from the plan constants (Voice Pro, and Voice Pro plus Transcribe Pro on one balance). */
+function voicePlans(): string {
+  const usd = (c: number) => `$${c / 100}`;
+  const vp = speechCharacters(VOICE_STUDIO_PLAN.credits).toLocaleString("en-US");
+  const both = speechCharacters(VOICE_BUNDLE_PLAN.credits).toLocaleString("en-US");
+  return `<div class="vplans"><h3>Want studio voices too?</h3><div class="vplan-row">`
+    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small> / month</small></div><p>50 studio voices made on our servers: about ${vp} characters a month, on any device.</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">Pay by card: ${usd(VOICE_STUDIO_PLAN.usdCents)} a month</a></div>`
+    + `<div class="vplan"><b>Voice and Transcribe Pro</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small> / month</small></div><p>One balance for both: about ${both} characters of studio voices, or transcription, or any mix.</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">Pay by card: ${usd(VOICE_BUNDLE_PLAN.usdCents)} a month</a></div>`
+    + `</div><p class="small">Hours and characters you don't use carry over. Cancel any time.</p></div>`;
+}
 
 /**
  * The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts).
@@ -227,7 +239,7 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
   const highlight = ["speech-to-text-api", "pdf-to-text-api", "web-page-to-markdown-api", "company-check-api"].map((slug) => PRODUCTS.find((p) => p.slug === slug)).filter(Boolean) as Product[];
   const planCards = offers.map((o, i) => ({ o, i })).filter(({ o }) => o.monthly).map(({ o, i }, k, all) => {
     const price = o.label.replace(/ a month$/, "");
-    return `<div class="plan${k === all.length - 1 ? " best" : ""}">${k === all.length - 1 ? `<span class="ribbon">Best value</span>` : ""}<div class="p">${esc(price)}<small> / month</small></div><ul>${highlight.map((p) => `<li><b>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</b> ${esc(p.unit)}</li>`).join("")}<li>One key for every API, unused credits roll over</li></ul><a class="btn${k === all.length - 1 ? " primary" : ""}" href="${esc(o.url)}">Start for ${esc(price)}</a></div>`;
+    return `<div class="plan"><div class="p">${esc(price)}<small> / month</small></div><ul>${highlight.map((p) => `<li><b>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</b> ${esc(p.unit)}</li>`).join("")}<li>One key for every API, unused credits roll over</li></ul><a class="btn${k === all.length - 1 ? " primary" : ""}" href="${esc(o.url)}">Start for ${esc(price)}</a></div>`;
   }).join("");
   const packs = offers.filter((o) => !o.monthly);
   const pricing = offers.length ? `<div class="devhead"><h3>For your own app or website</h3><p>Plans add credits every month and unused credits stay.</p></div><div class="plans">${planCards}</div>
@@ -337,12 +349,13 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
 <p class="paywith"><b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account.</p></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
-</div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
+</div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_STUDIO_PLAN.url, planPrice: `$${VOICE_STUDIO_PLAN.usdCents / 100}`, planCharacters: speechCharacters(VOICE_STUDIO_PLAN.credits), maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
 
 <section class="sec center" id="pricing"><div class="wrap">
 <h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
 <p class="sub">Everything you make on this page and in the app is free, on your own device. Pay only when you want the work done for you.</p>
 ${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try", trial: opts.creditsTrial }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
+${cardReady ? voicePlans() : ""}
 ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
 </div></section>
 
