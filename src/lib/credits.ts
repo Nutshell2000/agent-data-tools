@@ -102,7 +102,7 @@ export const CREDIT_PLANS = [
   // buyers. Stripe product prod_VeuQR9E5ya8nw3, price price_1Udac6DhGrPcm8Sc8CZIcA9n, payment link
   // plink_1Udb2iDhGrPcm8ScTZNb5yyH with metadata adt_credits=15000 and success URL /credits/claim, created in her
   // Chrome. First in the array so it is the lead plan shown as "from $3 a month" on every product page and the homepage.
-  { usdCents: 300, credits: 15_000, url: "https://buy.stripe.com/bJe28r01q5p6t1A7UtbII0c" },
+  { usdCents: 300, credits: 15_000, url: "https://buy.stripe.com/bJe28r01Q5Lp6lA7UVbII0d" },
   // Kept for verifyCheckout: Transcribe Pro and existing $9 subscribers pay $9, which must still grant a key. url=""
   // hides it from the buy pages (WEB_PLANS filters on url) without breaking that verification path.
   { usdCents: 900, credits: 15_000, url: "" },
@@ -121,7 +121,7 @@ export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28
 // in her Stripe: plink_1UdbbODhGrPcm8ScM06VQ2Yr on prod_VdEGz7ftudKRRG, metadata adt_credits=15000, success URL
 // /credits/claim?for=voice&session_id={CHECKOUT_SESSION_ID}, tax off. The old $9 link is kept live for existing
 // subscribers; verifyCheckout still matches it via the hidden $9 plan in CREDIT_PLANS.
-export const VOICE_PRO_URL: string = "https://buy.stripe.com/00v3cvkyGg3bFUS5MNbI0e";
+export const VOICE_PRO_URL: string = "https://buy.stripe.com/00w3cvbKygq3bFU5MNbII0e";
 export const VOICE_PRO_CREDITS = 15_000;
 /** Price of the Transcribe Pro plan in cents; the landing page and its JSON-LD derive their copy from this. */
 export const VOICE_PRO_CENTS = 300;
