@@ -6,7 +6,7 @@ import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { sourceJson, sourceShape, textWithin, unreadableSource } from "../lib/source-json";
 
-export const SEC_UA = "AgentDataTools/1.0 (spellz111122@gmail.com)";
+export const SEC_UA = "AgentDataTools/1.0 (support@glyphcall.com)";
 
 /** GET from a government source with edge caching; failures and refusals are 502, never charged. */
 export async function govFetch(url: string, cacheTtl: number, accept: string): Promise<Response> {

@@ -90,7 +90,7 @@ test('/llms.txt is under 8 KB and leads with the keyless call, then paying, twel
   for (const link of ['/transcribe-pro', '/guides', '/pdf-to-text-api']) assert.ok(more.includes(O + link), `${link} is surfaced in llms.txt`);
   assert.match(more, /\$3\/month/, 'the $3 entry plan is named');
   assert.ok(!more.includes('$9'), 'the retired $9 price is not advertised');
-  assert.ok(text.slice(order[4]).includes('spellz111122@gmail.com'));
+  assert.ok(text.slice(order[4]).includes('support@glyphcall.com'));
   assert.doesNotMatch(text, /\b\d{3,}\s+(pay-per-call\s+)?tools\b/, 'no tool count is stated');
 });
 

@@ -22,7 +22,7 @@ One API key, from $3 a month or pay as you go, paid by card. Each page has the r
    - **Card:** buy prepaid credits at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits) ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001) and send the key as `Authorization: Bearer adt_…` (or `X-API-Key`) on HTTP calls or in your MCP client's connection headers.
    - **Crypto:** any x402 client pays per call in USDC on Base, Polygon, Arbitrum or Solana; MPP clients pay on Tempo or Base.
 
-Failed calls are never charged. Free previews of every tool's output: add `sample=1`. Machine-readable catalog: [/openapi.json](https://agent-data-tools.revmesh2074.workers.dev/openapi.json), [/llms.txt](https://agent-data-tools.revmesh2074.workers.dev/llms.txt). Support: spellz111122@gmail.com.
+Failed calls are never charged. Free previews of every tool's output: add `sample=1`. Machine-readable catalog: [/openapi.json](https://agent-data-tools.revmesh2074.workers.dev/openapi.json), [/llms.txt](https://agent-data-tools.revmesh2074.workers.dev/llms.txt). Support: support@glyphcall.com.
 
 ## Details and buyer clients
 

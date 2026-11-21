@@ -306,7 +306,7 @@ test('the privacy page says what the news box stores and how to be removed', asy
   assert.match(item, /If you tick it and then open the link[^.]*we store that address with the time you agreed/);
   assert.match(item, /If you do not tick it nothing is stored/);
   assert.match(item, /an address whose link is never opened is not kept/);
-  assert.match(item, /To be removed, write to <a href="mailto:spellz111122@gmail\.com">/);
+  assert.match(item, /To be removed, write to <a href="mailto:support@glyphcall\.com">/);
 });
 
 test('/keys/free is indexable with canonical, og and a description (20 Nov 2026)', async () => {

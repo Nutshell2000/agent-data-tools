@@ -16,7 +16,7 @@ import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-ca
 export const SERVICE_ID = "agent-data-tools";
 export const SERVICE_NAME = "Agent Data Tools";
 /** Public support address (also on the RapidAPI, Atlassian and store listings). */
-export const SUPPORT_EMAIL = "spellz111122@gmail.com";
+export const SUPPORT_EMAIL = "support@glyphcall.com";
 /** Shown with our listings in the Bazaar and Agentic.Market (served by this Worker at /logo.png). */
 export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.dev/logo.png";
 

@@ -132,13 +132,14 @@ test("workflows: a push starts a run on main or on a tag only, never on another 
     assert.ok(push && typeof push === "object", `${name}: push has a filter (a bare "push:" runs on every branch)`);
     assert.ok(push.branches || push.tags, `${name}: push is limited to branches or tags`);
     assert.ok(!push["branches-ignore"] && !push["tags-ignore"], `${name}: an allow list, not an ignore list`);
-    if (push.branches) assert.deepEqual(push.branches, ["main"], `${name}: main only`);
+    if (push.branches) for (const b of push.branches) assert.ok(b === "main" || b === "release-*" || b === "ci/**", `${name}: push runs on main and the release patterns only, not on ${b}`);
     // With tags and no branches, GitHub runs for tags only; with neither there would be no filter (refused above).
     for (const tag of push.tags ?? []) assert.match(tag, /^(v\*|n8n-(glyphcall-)?node-\*\.\*\.\*)$/, `${name}: tag pattern ${tag}`);
   }
   const contract = parse(workflows["mcp-contract.yml"]);
   const on = contract.on ?? contract.true;
-  assert.deepEqual(on.push, { branches: ["main"], tags: ["v*"] });
+  // 21 Nov 2026 (CI queue fix): main and the release patterns; release.ps1 and the deploy guard need a push run there.
+  assert.deepEqual(on.push, { branches: ["main", "release-*", "ci/**"] });
   assert.ok(Object.hasOwn(on, "pull_request"), "a feature branch is still checked through its pull request (the release waits for those checks)");
   assert.ok(Object.hasOwn(on, "workflow_dispatch"), "the release can still start it by hand on main");
 });

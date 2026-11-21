@@ -22,7 +22,7 @@ export const INDICATORS = {
 const get = async (url) => {
   for (let attempt = 1; ; attempt++) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(60_000), headers: { "user-agent": "AgentDataTools/1.0 (spellz111122@gmail.com)" } });
+      const res = await fetch(url, { signal: AbortSignal.timeout(60_000), headers: { "user-agent": "AgentDataTools/1.0 (support@glyphcall.com)" } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (e) {

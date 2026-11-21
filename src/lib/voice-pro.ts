@@ -63,7 +63,7 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices, c
   return `<h2>Use it for ${usdCents === VOICE_STUDIO_PLAN.usdCents ? "studio voices" : speech ? "voices and transcription" : "transcription"}</h2>
 <p>Your plan adds ${credits.toLocaleString("en-US")} credits each month: ${esc(voiceAllowance(usdCents, credits, prices))}.</p>${speech ? `
 <p><b>Studio voices:</b> open <a href="${esc(origin)}/#try">the voice console</a>, paste the key above under the studio voices and press Play. From code: <code>POST ${esc(origin)}/v1/audio/speech</code> with the key as the Bearer token.</p>` : ""}
-<ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice Transcribe</a>, paste the key above under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>. Your files are then transcribed on our servers in seconds, with SRT or VTT subtitles.</li>
+<ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice Transcribe</a>, paste the key above under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>. Your files are then transcribed on our servers, with SRT or VTT subtitles.</li>
 <li><b>From code:</b> <pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/transcribe/long?url=https://example.com/episode.mp3&amp;subtitles=srt"</pre></li>
 <li><b>With the OpenAI SDK:</b> set the base URL to <code>${esc(origin)}/v1</code> and the API key to your key; <code>audio.transcriptions.create</code> works as before.</li></ol>`;
 }
