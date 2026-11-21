@@ -110,7 +110,7 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 @media (max-width:720px){.hero{padding:14px 0 18px}.hero h1{font-size:1.85rem;line-height:1.08;margin-bottom:8px}.hero .lede{font-size:1rem;margin:0 auto 14px}
 .hero .vc textarea{min-height:0;height:5.4em}.hero .vc-pane{padding:12px}.hero .vc-meta{margin:4px 2px 8px}
 .hero .vc-presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.hero .vc-presets::-webkit-scrollbar{display:none}.hero .vc-presets button{flex:none}}`;
-const OPEN_FOLDED_TARGET = `<script>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
+const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
 
 /**
  * The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts).
