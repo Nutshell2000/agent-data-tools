@@ -5,7 +5,7 @@ import { VOICE_CONSOLE_CSS } from "./voice-console";
 
 export const LOGO = `<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="gc-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#0f766e"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#gc-logo)"/><g fill="#ffffff"><rect x="7" y="13" width="3" height="6" rx="1.5"/><rect x="12" y="9" width="3" height="14" rx="1.5"/><rect x="17" y="5" width="3" height="22" rx="1.5"/><rect x="22" y="11" width="3" height="10" rx="1.5"/></g></svg>`;
 
-export const STYLE = `:root{color-scheme:light;--bg:#fbfaf7;--bg2:#f3f1ec;--card:#ffffff;--card2:#f7f6f3;--line:#e7e3dc;--fg:#16161d;--muted:#55555f;--dim:#75757f;--v:#4f46e5;--c:#0f766e;--g:#0f8a5f;--grad:linear-gradient(100deg,#4f46e5 0%,#0f766e 100%)}
+export const STYLE = `:root{color-scheme:light;--bg:#fbfaf7;--bg2:#f3f1ec;--card:#ffffff;--card2:#f7f6f3;--line:#e7e3dc;--fg:#16161d;--muted:#55555f;--dim:#6b6b75;--v:#4f46e5;--c:#0f766e;--g:#0b7a54;--grad:linear-gradient(100deg,#4f46e5 0%,#0f766e 100%)}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:var(--c);text-decoration:none}a:hover{text-decoration:underline}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 :focus-visible{outline:2px solid var(--c);outline-offset:2px}

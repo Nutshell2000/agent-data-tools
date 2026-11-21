@@ -124,7 +124,7 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 // - a "Fair by design" block: the billing and privacy complaints people have about voice tools, answered as promises
 //   the code keeps (free retries, failed calls cost nothing, packs never expire, cancel from the portal, no account).
 // Still: no rival named, no speed claim, no AI label, every number computed.
-const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#ffffff;--vc-ok:#0f8a5f;--vc-err:#b42318}
+const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#ffffff;--vc-ok:#0b7a54;--vc-err:#b42318}
 .hero .vc{box-shadow:0 30px 70px -30px rgba(22,22,29,.22),0 0 0 1px rgba(22,22,29,.03)}
 .annc{position:relative;z-index:21;background:linear-gradient(90deg,rgba(79,70,229,0.099),rgba(15,118,110,0.099));border-bottom:1px solid rgba(22,22,29,0.049);font-size:.9rem;text-align:center;padding:8px 16px;color:var(--fg)}
 .annc a{color:var(--fg);font-weight:650}.annc .short{display:none}.annc b{color:#ffffff;background:var(--grad);border-radius:999px;padding:1px 8px;margin-right:8px;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
