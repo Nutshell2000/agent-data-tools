@@ -45,7 +45,11 @@ test("the front page leads with the products and their plans, under the brand", 
   assert.match(band, /buy\.stripe\.com\/[A-Za-z0-9]+">Get Transcribe Pro: \$\d+ a month/, "the band's first button is the checkout");
   assert.match(band, /transcribe#fast" data-ev="trial_click">Try Pro free on one file/, "and a free trial is one click away");
   const prices = html.slice(html.indexOf('id="pricing"'), html.indexOf('id="developers"'));
-  for (const plan of ["Glyphcall Free", "Transcribe Pro", "Transcribe Pro Plus"]) assert.ok(prices.includes(`<h3>${plan}</h3>`), `${plan} is a plan card`);
+  // 21 Nov 2026 offer ladder: Free, one job paid once, the monthly plan; the larger plan is a line under the cards.
+  for (const plan of ["Glyphcall Free", "One job", "Transcribe Pro"]) assert.ok(prices.includes(`<h3>${plan}</h3>`), `${plan} is a plan card`);
+  assert.ok(!prices.includes("<h3>Transcribe Pro Plus</h3>"), "the larger plan is no longer a card of its own");
+  assert.match(prices, /data-ev="pack_click">Get \d+ hours for \$1</, "the one-job card buys the $1 pack");
+  assert.match(prices, /\$19 a month for about \d+ hours/, "the larger plan is still offered under the cards");
   assert.match(prices, /About \d+ hours<\/b> of transcription a month/, "the plan says what it buys in hours");
   assert.match(prices, /Compare Free and Transcribe Pro/, "Free and Pro side by side");
   assert.ok(!prices.includes("7,500 PDFs"), "developer credit tables are not in the consumer pricing");

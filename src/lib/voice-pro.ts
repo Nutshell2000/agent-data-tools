@@ -74,11 +74,11 @@ const hoursFor = (credits: number, longPrice: string) => Math.floor(credits / cr
 const largerPlan = () => WEB_PLANS.find((p) => p.usdCents > VOICE_PRO_CENTS);
 
 /**
- * The three steps people can choose between, as cards (21 Nov 2026). Before this the front page said "free" six times
- * and showed the paid plans as developer credit tables, so nothing told a visitor what paying adds: in the ten days to
- * 21 Nov the site issued one free key and sold nothing. Every line states what the plan really does; the hours come
- * from the live price of /transcribe/long and the plans from lib/credits.ts, never typed by hand.
- * `freeHref` is where "start free" leads (the console on the front page).
+ * The steps people choose between, as cards (21 Nov 2026): Free on your device, one job paid once, and the monthly
+ * plan. One ladder with these three names on every page: the same $3 key had been sold under several names, and a
+ * visitor could not tell them apart. The larger monthly plan is one line under the cards, without a name of its own.
+ * Every line states what the plan really does; the hours come from the live price of /transcribe/long and the plans
+ * from lib/credits.ts, never typed by hand. `freeHref` is where "start free" leads (the console on the front page).
  */
 export function offerLadder(prices: VoicePrices, opts: { brand?: string; browserVoices: number; freeHref: string }): string {
   const brand = opts.brand ?? "Glyphcall";
@@ -89,15 +89,18 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
   const free = `<div class="tier"><h3>${esc(brand)} Free</h3><p class="for">Everything you make on your own device.</p><div class="p">$0<small> forever</small></div>
 <ul><li>Text to speech: <b>${opts.browserVoices} voices</b> here, 41 in 7 languages in the free voice tools</li><li>Transcripts and subtitles</li><li>Every download: MP3, WAV, SRT, VTT</li><li>No account, no limit, nothing uploaded</li></ul>
 <a class="btn" href="${esc(opts.freeHref)}" data-ev="free_start">Start free</a></div>`;
-  const pro = `<div class="tier hot"><span class="tag">Most popular</span><h3>Transcribe Pro</h3><p class="for">Long recordings, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
-<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Up to <b>60 minutes</b> per recording, in <b>90+ languages</b></li><li>Subtitles as SRT or VTT, with word timings</li><li>Works the same on a slow phone or laptop</li><li>One key that also runs the APIs</li><li>Unused credits stay; cancel any time</li></ul>
+  const once = `<div class="tier"><h3>One job</h3><p class="for">A long recording, done for you once. No subscription.</p><div class="p">$1<small> once</small></div>
+<ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles as SRT or VTT, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
+<a class="btn" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Get ${pack} hours for $1</a><p class="fine">Paid once by card. No account.</p></div>`;
+  const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
+<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>One key that also runs the studio voices and the APIs</li><li>Unused credits stay; cancel any time</li></ul>
 <a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account. <a href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try Pro free on one file</a> first.</p></div>`;
-  const plus = more ? `<div class="tier"><h3>Transcribe Pro Plus</h3><p class="for">Hours of audio every day: channels, studios and teams.</p><div class="p">$${more.usdCents / 100}<small> / month</small></div>
-<ul><li><b>About ${hoursFor(more.credits, prices.long)} hours</b> of transcription a month</li><li>Everything in Transcribe Pro</li><li>${more.credits.toLocaleString("en-US")} credits a month for any API: speech, documents, search</li><li>Unused credits stay; cancel any time</li></ul>
-<a class="btn" href="${esc(more.url)}">Get Pro Plus: $${more.usdCents / 100} a month</a></div>` : "";
-  return `<div class="ladder">${free}${pro}${plus}</div>
-<p class="packs" style="justify-content:center"><span>Just one job?</span><a href="${esc(VOICE_HOURS_PACK_URL)}">${pack} hours of transcription for $1, paid once</a><a href="/credits">Building an app? API pricing</a></p>`;
+  return `<div class="ladder">${free}${once}${pro}</div>
+<p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month for about ${hoursFor(more.credits, prices.long)} hours</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
 }
+
+/** How long a recording may be, said once and the same on every page (checked against the browser tool's code, 21 Nov 2026). */
+export const LIMITS_SENTENCE = "In the browser tool: any length, it is compressed and sent in parts for you. From code: one call reads up to 60 minutes or 25 MB, whichever comes first.";
 
 /** Free beside Transcribe Pro, row by row. Each cell is something the code or the tools' descriptions state. */
 export function offerCompare(prices: VoicePrices, browserLanguages: number): string {
@@ -105,7 +108,7 @@ export function offerCompare(prices: VoicePrices, browserLanguages: number): str
   const rows: [string, string, string][] = [
     ["Where the work is done", "On your own device", "On our servers"],
     ["Speed", "Depends on your device", "Does not depend on your device"],
-    ["Longest recording", "What your device can handle", "60 minutes per file; the browser tool sends longer ones in parts"],
+    ["Longest recording", "What your device can handle", LIMITS_SENTENCE],
     ["Speech-to-text model", "Whisper base; large-v3-turbo on browsers with a graphics card", "Whisper large-v3-turbo on every device"],
     ["Languages", `${browserLanguages} to choose from`, "More than 90, detected by itself or chosen by you"],
     ["Subtitles", "SRT and VTT", "SRT and VTT, with word timings"],
