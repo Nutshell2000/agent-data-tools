@@ -144,6 +144,7 @@ const REDESIGN_CSS = `.annc{position:relative;z-index:21;background:linear-gradi
 .fair{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-top:8px}
 .fair div{padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.fair b{display:flex;gap:10px;align-items:center;font-size:1.1rem;color:var(--fg);margin-bottom:6px}.fair b .ico{color:var(--g);width:22px;height:22px;flex:none}.fair span{color:var(--muted);font-size:.97rem}
 .steps.compact li{padding:22px}
+.paywith{margin:12px 0 0;color:var(--dim);font-size:.9rem}
 @media (max-width:860px){.trow{grid-template-columns:1fr;padding:20px}.trow:nth-child(even) .tcopy{order:0}.fair{grid-template-columns:1fr}.mock{min-height:0}}
 @media (max-width:720px){.promise,.prow,.annc,.trow:not(:first-child) .mock{display:none}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
 
@@ -308,7 +309,8 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <section class="sec" id="pro"><div class="wrap"><div class="proband">
 <div><span class="kicker">Transcribe Pro</span><h2>When your device is not enough, <span class="gt">we do it for you.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}.</p>
-<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div></div>
+<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
+<p class="paywith">Pay by card, PayPal, Apple Pay or Google Pay. No account: your key appears right after payment.</p></div></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div></div></section>
 
