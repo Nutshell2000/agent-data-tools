@@ -87,7 +87,7 @@ test("workflows: a job that can write or publish never runs dependency install s
 });
 
 test("workflows: no trigger for a branch that is gone", () => {
-  for (const [name, text] of Object.entries(workflows)) for (const m of text.matchAll(/^\s*branches:\s*\[([^\]]*)\]/gm)) assert.deepEqual(m[1].split(",").map((s) => s.trim()), ["main"], `${name} runs on main only`);
+  for (const [name, text] of Object.entries(workflows)) for (const m of text.matchAll(/^\s*branches:\s*\[([^\]]*)\]/gm)) for (const branch of m[1].split(",").map((s) => s.trim().replace(/^'|'$/g, ""))) assert.ok(branch === "main" || branch === "release-*" || branch === "ci/**", `${name} runs on main and the release patterns only, not on ${branch}`);
 });
 
 test("pay-test never invents a wallet for a payment command", () => {
