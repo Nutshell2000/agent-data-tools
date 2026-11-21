@@ -247,7 +247,7 @@ test('top-up links keep their reference and the claim still reads it; a campaign
   const claim = await get('/credits/claim?session_id=cs_live_Measurement0002&utm_source=google', page);
   assert.equal(claim.status, 200);
   const claimed = await claim.text();
-  const key = /<pre>(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(claimed)[1];
+  const key = /<pre id="gc-key">(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(claimed)[1];
   const keyHash = crypto.createHash('sha256').update(key).digest('hex');
   const refs = [...claimed.matchAll(/href="https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+\?client_reference_id=([^"&]+)"/g)].map((m) => m[1]);
   assert.ok(refs.length >= 3);

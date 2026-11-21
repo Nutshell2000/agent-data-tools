@@ -148,7 +148,7 @@ test("the service summary, page title and guidance take prices and free-call num
   assert.equal(m.USUAL_PRICE, Object.entries(count).sort((a, b) => b[1] - a[1])[0][0]);
   assert.equal(m.ORDINARY_PRICE, m.USUAL_PRICE);
   assert.ok(m.SERVICE_SUMMARY.includes(`from ${m.LOWEST_PRICE} a call, most at ${m.USUAL_PRICE}.`), m.SERVICE_SUMMARY.slice(0, 160));
-  assert.ok(m.SERVICE_SUMMARY.includes(`(${m.FREE_CALLS_PER_CALLER} over MCP, ${m.FREE_HTTP_CALLS_PER_CALLER} over HTTP)`));
+  assert.ok(m.SERVICE_SUMMARY.includes(`(${m.FREE_CALLS_PER_CALLER} over MCP, ${m.FREE_HTTP_CALLS_PER_CALLER} over HTTP`));
   assert.ok(m.PAGE_TITLE.endsWith(`${m.TOOL_COUNT} tools, ${m.FREE_CALLS_PER_CALLER} free calls over MCP, then from ${m.LOWEST_PRICE}`), m.PAGE_TITLE);
   const origin = "https://example.test";
   const home = m.homePage(origin, "0x0000000000000000000000000000000000000001");
@@ -162,7 +162,7 @@ test("the service summary, page title and guidance take prices and free-call num
     // A free-call number in a sentence is one of the two limits free-calls.ts enforces.
     for (const match of doc.matchAll(/\b(?:first )?(\d+) (?:free )?successful calls/g)) assert.ok([m.FREE_CALLS_PER_CALLER, m.FREE_HTTP_CALLS_PER_CALLER].includes(Number(match[1])), `${name}: ${match[0]}`);
   }
-  assert.ok(home.includes(`The first ${m.FREE_CALLS_PER_CALLER} successful calls are free`));
+  assert.match(home, new RegExp(`The first ${m.FREE_CALLS_PER_CALLER} successful calls on [^<]{5,120} are free`));
 });
 
 test("the payment networks named in service-wide sentences are the networks the deployment accepts", () => {

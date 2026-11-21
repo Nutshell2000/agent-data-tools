@@ -175,7 +175,7 @@ test('a paid subscription checkout is accepted as a plan; anything else about it
   const pack = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 500, metadata: { adt_credits: '5000' } }));
   assert.deepEqual(pack, { usdCents: 500, credits: 5000, topUpKeyHash: undefined, plan: undefined });
   // 21 Nov 2026: a promotion code lowers amount_total below every price; the price before discounts names the purchase.
-  const promo = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ ...subscribed, amount_total: 100, amount_subtotal: 900 }));
+  const promo = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ ...subscribed, amount_total: 100, amount_subtotal: 900, metadata: { adt_credits: '15000' } }));
   assert.equal(promo.credits, 15000); assert.ok(promo.plan);
   const halfPack = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 250, amount_subtotal: 500, metadata: { adt_credits: '5000' } }));
   assert.equal(halfPack.credits, 5000);

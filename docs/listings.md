@@ -15,7 +15,7 @@ Pay-per-call data tools for AI agents: prices, sanctions, web and PDF reading
 
 ## Short description (under 160 characters)
 
-Token prices, OFAC sanctions checks, chain reads, web/PDF reading and LLM calls for AI agents. 10 free calls on lookup and compute tools, then x402, MPP or card credits per call.
+Token prices, OFAC checks, chain reads, web/PDF reading and LLM calls for AI agents. 10 free lookup calls, then x402, MPP or card credits.
 
 ## Long description (under 500 characters)
 

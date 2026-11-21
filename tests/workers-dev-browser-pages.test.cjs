@@ -220,7 +220,7 @@ test("a PAID tool request on the workers.dev host is not redirected: prepaid key
   const claim = await ask(moved, `${W}/credits/claim?session_id=cs_test_PaidOnWorkersDev01`);
   assert.equal(claim.status, 200, "the checkout return is answered on workers.dev, with its query");
   assert.equal(claim.headers.get("location"), null);
-  const key = /<pre>(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(await claim.text())[1];
+  const key = /<pre id="gc-key">(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(await claim.text())[1];
   const before = await (await ask(moved, `${W}/credits/balance`, { headers: { ...BROWSER, authorization: `Bearer ${key}` } })).json();
   for (const headers of [{ ...BROWSER, authorization: `Bearer ${key}` }, { ...BROWSER, "x-api-key": key }]) {
     const paid = await ask(moved, `${W}/uuid?count=2`, { headers });

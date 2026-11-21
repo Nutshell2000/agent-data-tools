@@ -30,7 +30,7 @@ test("builds a priced contract with required, numeric, and enum parameter schema
       {
         name: "lookup",
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-        description: "Look up a value. Price $0.005/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+        description: "Look up a value. Price $0.005/call via x402 USDC or a card key (/credits), first 10 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
         inputSchema: {
           $schema: "http://json-schema.org/draft-07/schema#",
           type: "object",
