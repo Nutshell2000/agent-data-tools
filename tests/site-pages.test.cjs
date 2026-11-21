@@ -57,6 +57,24 @@ test("the front page leads with the products and their plans, under the brand", 
   assert.doesNotMatch(html, /Agent Data Tools/, "the brand is the only name on the page");
 });
 
+test("the front page sells the voice tools first and folds the developer catalogue", () => {
+  // 21 Nov 2026 layout pass: consumer sections (free tools, Pro, plans, questions) come before the developer block,
+  // and the long API catalogue, credit plans and agent notes sit in one closed panel inside it.
+  const html = landingPage("Glyphcall", "https://x.test", true);
+  const at = (id) => html.indexOf(`id="${id}"`);
+  const order = ["try", "make", "pro", "pricing", "how", "faq", "developers"].map(at);
+  assert.ok(order.every((v) => v > 0), "every section is on the page");
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "sections run: try, make, pro, pricing, how, faq, developers");
+  const dev = html.slice(at("developers"));
+  const fold = dev.slice(dev.indexOf('<details class="devmore"'));
+  assert.ok(dev.includes('<details class="devmore" id="apis">'), "the catalogue is folded");
+  for (const id of ["api-pricing", "products"]) assert.ok(fold.includes(`id="${id}"`), `${id} is inside the folded panel`);
+  const agents = fold.indexOf("<h2>For AI agents</h2>");
+  assert.ok(agents > 0 && agents < fold.indexOf('<section class="final"'), "the agent notes are inside the folded panel, not in the questions");
+  assert.match(html, /closest\("details\.devmore"\)/, "a link to an anchor inside the panel opens it");
+  for (const ev of ["sticky_try", "sticky_pro", "trial_click"]) assert.ok(html.includes(`data-ev="${ev}"`), `${ev} is still counted`);
+});
+
 test("without card payments the front page links the pricing page instead of plans", () => {
   const html = landingPage("Glyphcall", "https://x.test", false);
   assert.doesNotMatch(html, /buy\.stripe\.com/);

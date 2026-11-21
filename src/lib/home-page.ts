@@ -99,6 +99,19 @@ function faqItems(brand: string, languages: string, browserVoices: number, apiVo
   ];
 }
 
+// 21 Nov 2026 (front-page layout pass): on a phone the Play button sat under the sticky bar (y≈790 of 812) and the
+// developer block was 37% of the page. The hero is tighter on phones, the sample-script chips scroll in one row, the
+// keyboard hint is hidden on touch screens, and the long API catalogue folds into one panel (opened by a link into it).
+const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
+.devmore>summary{cursor:pointer;padding:16px 20px;font-weight:700;color:var(--fg);list-style:none}
+.devmore>summary::-webkit-details-marker{display:none}.devmore>summary::after{content:" +";color:var(--c)}.devmore[open]>summary::after{content:" \\2212"}
+.devmore>:not(summary){padding:0 20px}.devmore>:last-child{padding-bottom:20px}
+@media (hover:none) and (pointer:coarse){.vc-meta span:last-child{display:none}}
+@media (max-width:720px){.hero{padding:14px 0 18px}.hero h1{font-size:1.85rem;line-height:1.08;margin-bottom:8px}.hero .lede{font-size:1rem;margin:0 auto 14px}
+.hero .vc textarea{min-height:0;height:5.4em}.hero .vc-pane{padding:12px}.hero .vc-meta{margin:4px 2px 8px}
+.hero .vc-presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.hero .vc-presets::-webkit-scrollbar{display:none}.hero .vc-presets button{flex:none}}`;
+const OPEN_FOLDED_TARGET = `<script>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
+
 /**
  * The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts).
  * `opts.trial`: free calls are on, so the developer tabs open with a request that needs no key (lib/first-call.ts);
@@ -202,7 +215,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
-<style>${STYLE}${OFFER_CSS}${STUDIO_VOICES_CSS}</style></head><body class="has-stickbar">
+<style>${STYLE}${OFFER_CSS}${STUDIO_VOICES_CSS}${HOME_LAYOUT_CSS}</style></head><body class="has-stickbar">
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${navLinks}</nav>
 <div class="nav-cta"><a class="btn sm" href="/transcribe-pro">Get Pro</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
@@ -229,8 +242,15 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <div><span class="kicker">Transcribe Pro</span><h2>When your device is not enough, <span class="gt">we do it for you.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}.</p>
 <div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a><a class="btn" href="${VOICE_SITE}/transcribe#fast" data-ev="trial_click">Try Pro free on one file</a></div></div>
-<ul><li><b>Long recordings</b><span>Up to 60 minutes per file, and longer ones are sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
+<ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div></div></section>
+
+<section class="sec center" id="pricing"><div class="wrap">
+<h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
+<p class="sub">Everything you make on this page and in the app is free, on your own device. Pay only when you want the work done for you.</p>
+${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try" }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
+${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
+</div></section>
 
 <section class="sec center" id="how"><div class="wrap">
 <h2>As easy as 1, 2, 3</h2>
@@ -243,11 +263,9 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <div class="ctas" style="justify-content:center;margin-top:30px"><a class="btn primary" href="#try">Start now, it&rsquo;s free</a></div>
 </div></section>
 
-<section class="sec center" id="pricing"><div class="wrap">
-<h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
-<p class="sub">Everything you make on this page and in the app is free, on your own device. Pay only when you want the work done for you.</p>
-${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try" }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
-${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
+<section class="sec" id="faq"><div class="wrap">
+<div class="center"><h2>Questions</h2></div>
+<div class="faq" style="margin-top:28px">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join("")}</div>
 </div></section>
 
 <section class="sec" id="developers"><div class="wrap"><div class="devbox">
@@ -263,22 +281,18 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 <div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
 <div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div></div>
 <div class="nums">${stats.map(([n, l, s]) => `<div class="num"><div class="n gt">${esc(n)}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("")}</div>
+<details class="devmore" id="apis"><summary>See every API, with prices and what each plan buys</summary>
 <div class="devpricing" id="api-pricing">${pricing}</div>
 <div id="products">${shelves}</div>
-</div></div></section>
-
-<section class="sec" id="faq"><div class="wrap">
-<div class="center"><h2>Questions</h2></div>
-<div class="faq" style="margin-top:28px">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join("")}
-
 <div class="agents">
 <h2>For AI agents</h2>
 <p>The same APIs, and the rest of a catalogue of ${TOOL_COUNT} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free) and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
 </div>
+</details>
 </div></div></section>
 
 <section class="final"><h2>Give it a try. <span class="gt">It takes ten seconds.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
-</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="/transcribe-pro" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}
+</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="/transcribe-pro" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
 ${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
