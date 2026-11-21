@@ -303,6 +303,12 @@ test('x402 v1: v1 terms in the 402 body on request (x402=1) beside the v2 header
  await paid.arrayBuffer();
  const failed=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa02')}});
  assert.ok(failed.status>=400&&failed.status!==402);assert.equal(failed.headers.has('x-payment-response'),false);await failed.arrayBuffer();
+ // 1.325.0: a settled authorization sent again is refused with 402 (it answered 200 with an error body), and an
+ // authorization whose call failed is free to be sent again (its claim used to block the retry for ten minutes).
+ const replayed=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa01')}});
+ assert.equal(replayed.status,402);assert.match((await replayed.json()).hint,/already used/);
+ const retried=await mf.dispatchFetch('https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail',{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa02')}});
+ assert.ok(retried.status>=400&&retried.status!==402,'the retry reaches the tool again instead of being refused as already used');await retried.arrayBuffer();
  const wrong=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'aa03','1')}});
  assert.equal(wrong.status,402);assert.match((await wrong.json()).error,/at least 2000/);
  const invalid=await mf.dispatchFetch(url,{headers:{'X-PAYMENT':v1('7'.repeat(60)+'eeee')}});
@@ -342,6 +348,34 @@ test('a v2 payment sent in X-PAYMENT is paid through the v2 path, once, with the
  assert.equal(sum(after,'http:/extract:refused_format'),sum(before,'http:/extract:refused_format'),'no format refusal');
  assert.equal(sum(after,'http:/extract:settled'),sum(before,'http:/extract:settled')+1,'counted once');
  assert.equal(sum(after,'http:/extract:completed'),sum(before,'http:/extract:completed')+1,'counted once');
+});
+test('a v2 payment whose accepted terms are ours in substance but not in spelling is paid; a different amount is still refused',async()=>{
+ // 1.325.0 (src/lib/accepted-terms.ts): the library compares `accepted` with our terms field by field, as typed.
+ const before=await revenue();
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const q=await mf.dispatchFetch(url);assert.equal(q.status,402);await q.arrayBuffer();
+ const ours=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
+ // 1.325.0: a tool address with a trailing slash, capitals or a doubled slash is the tool, not a 404; other paths are untouched.
+ for(const p of ['/extract/','/EXTRACT','//extract','/extract.json']){const r=await mf.dispatchFetch('https://api.test'+p+'?url=https%3A%2F%2Fpublic.example%2Farticle');assert.equal(r.status,402,p);assert.ok(r.headers.get('PAYMENT-REQUIRED'),p);await r.arrayBuffer();}
+ {const r=await mf.dispatchFetch('https://api.test/no-such-tool/',{headers:{accept:'application/json'}});assert.equal(r.status,404);await r.arrayBuffer();}
+ const send=(accepted,nonce)=>mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(accepted,nonce))).toString('base64')}});
+ // Lower-case addresses, another timeout, a number for the amount and two v1-style fields: the same terms.
+ const loose={...ours,payTo:ours.payTo.toLowerCase(),asset:ours.asset.toLowerCase(),amount:Number(ours.amount),maxTimeoutSeconds:60,resource:url,description:'page text'};
+ const paid=await send(loose,'6'.repeat(60)+'dd01');
+ assert.equal(paid.status,200,await paid.clone().text());
+ assert.ok(paid.headers.get('PAYMENT-RESPONSE'));
+ assert.match((await paid.json()).text,/Useful result/);
+ // A v1 network name and no timeout at all.
+ const v1ish={scheme:'exact',network:'base',amount:ours.amount,asset:ours.asset,payTo:ours.payTo,extra:ours.extra};
+ const paid2=await send(v1ish,'6'.repeat(60)+'dd02');
+ assert.equal(paid2.status,200,await paid2.clone().text());await paid2.arrayBuffer();
+ // Another amount, recipient or network is never aligned.
+ for(const [bad,nonce] of [[{...ours,amount:String(Number(ours.amount)-1)},'cc03'],[{...ours,amount:String(Number(ours.amount)*2)},'cc04'],[{...ours,payTo:'0x000000000000000000000000000000000000dEaD'},'cc05'],[{...ours,network:'eip155:1'},'cc06']]){
+  const r=await send(bad,'6'.repeat(60)+nonce);
+  assert.equal(r.status,402,JSON.stringify(bad));await r.arrayBuffer();
+ }
+ await new Promise(r=>setTimeout(r,200));
+ const after=await revenue();assert.equal(after.settlements,before.settlements+2);
 });
 test('a payment whose envelope lacks x402Version is still paid: v2 in PAYMENT-SIGNATURE or X-PAYMENT, and the flat v1 shape in X-PAYMENT',async()=>{
  const before=await revenue();
