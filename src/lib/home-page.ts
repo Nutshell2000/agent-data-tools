@@ -94,7 +94,7 @@ function faqItems(brand: string, languages: string, browserVoices: number, apiVo
   return [
     ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no limit. You only pay if you want a long recording transcribed on our servers with Transcribe Pro, or if you build ${brand} into your own app or website.`],
     ["Do I need to sign up?", `No. Type your text or drop your file and press the button. There is nothing to fill in.`],
-    ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it starts in seconds.`],
+    ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it is ready on that device.`],
     ["Which languages does it understand?", `${languages} Subtitles come back as SRT or VTT files you can add to any video.`],
     ["How many voices are there?", `${browserVoices} voices in the free browser tools and ${apiVoices} through the API. Both are our own voices; nothing is uploaded to make either one speak.`],
     ["Can I use it on my phone?", `Yes. Open this page on your phone, or install the free ${brand} app from glyphcall.com/app. It works on Windows, Mac, Linux, Android and iPhone, and keeps working offline.`],
@@ -144,9 +144,9 @@ const REDESIGN_CSS = `.annc{position:relative;z-index:21;background:linear-gradi
 .fair{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-top:8px}
 .fair div{padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.fair b{display:flex;gap:10px;align-items:center;font-size:1.1rem;color:var(--fg);margin-bottom:6px}.fair b .ico{color:var(--g);width:22px;height:22px;flex:none}.fair span{color:var(--muted);font-size:.97rem}
 .steps.compact li{padding:22px}
-.paywith{margin:12px 0 0;color:var(--dim);font-size:.9rem}
+.svwrap{margin-top:18px}.paywith{margin:12px 0 0;color:var(--dim);font-size:.9rem}
 @media (max-width:860px){.trow{grid-template-columns:1fr;padding:20px}.trow:nth-child(even) .tcopy{order:0}.fair{grid-template-columns:1fr}.mock{min-height:0}}
-@media (max-width:720px){.promise,.prow,.annc,.trow:not(:first-child) .mock{display:none}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
+@media (max-width:720px){main{display:flex;flex-direction:column}main>*{order:2}main>.hero{order:0}main>#pro,main>#pricing{order:1}.promise,.prow,.annc,.trow .mock,.tcopy p,.tcopy .kicker{display:none}.tour{gap:10px}.trow{padding:16px 18px;border-radius:18px}.tcopy h3{font-size:1.15rem;margin:4px 0 10px}.tcopy .free{margin-left:0}.tcopy .btn{padding:10px 16px;font-size:.92rem}#make .sub{margin-bottom:18px}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
 
 const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
 
@@ -293,7 +293,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
 <ul class="promise"><li>${icon("download")}Free MP3 and WAV downloads</li><li>${icon("redo")}Redo one sentence, keep the rest</li><li>${icon("check")}Unlimited previews and retries</li></ul>
 <p class="after">Rather use an app? <a href="/app">Install ${esc(brand)} Voice</a>, free on your phone or computer.</p>
-${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div>
+</div>
 </div></section>
 
 <section class="stats" aria-label="Why people like it"><div class="wrap"><ul class="trust">
@@ -312,7 +312,7 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
 <p class="paywith">Pay by card, Apple Pay, Google Pay or Link. No account: your key appears right after payment.</p></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
-</div></div></section>
+</div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
 
 <section class="sec center" id="pricing"><div class="wrap">
 <h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
@@ -366,7 +366,7 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 </details>
 </div></div></section>
 
-<section class="final"><h2>Give it a try. <span class="gt">It takes ten seconds.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
+<section class="final"><h2>Give it a try. <span class="gt">Type, play, download.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
 </main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="/transcribe-pro" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
