@@ -87,7 +87,7 @@ test('a Transcribe Pro claim returns a key with voice instructions; a plain clai
   assert.ok(body.monthlyPlan, 'granted as a monthly plan');
   assert.ok(body.voicePro && body.voicePro.hoursEachMonth > 0);
   const html = await (await mf.dispatchFetch(`${O}/credits/claim?session_id=${SESSION}&for=voice`, { headers: { accept: 'text/html', 'user-agent': 'Mozilla/5.0 Chrome/130' } })).text();
-  assert.match(html, /Welcome to Transcribe Pro/);
+  assert.match(html, /You(&#39;|')re in\. Transcribe Pro is on\./);
   // 21 Nov 2026: the voice page has no "Fast mode"; the key goes into its Pro section, on the transcribe page itself.
   assert.match(html, /Already have an access key\?/);
   assert.match(html, /voice\.glyphcall\.com\/transcribe#fast/);
