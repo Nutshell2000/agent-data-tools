@@ -103,17 +103,17 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
 <ul><li>Text to speech: <b>${opts.browserVoices} voices</b> here, 41 in 7 languages in the free voice tools</li><li>Transcripts and subtitles</li><li>Every download: MP3, WAV, SRT, VTT</li><li>No account, no limit, nothing uploaded</li></ul>
 <a class="btn" href="${esc(opts.freeHref)}" data-ev="free_start">Start free</a></div>`;
   const once = `<div class="tier"><h3>One job</h3><p class="for">A long recording, done for you once. No subscription.</p><div class="p">$1<small> once</small></div>
-<ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles as SRT or VTT, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
+<ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles for YouTube and video apps, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
 <a class="btn primary" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Pay by card: $1 once</a><p class="fine">Pay by card (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account.</p></div>`;
   const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
-<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Hours you don't use carry over to next month. Cancel any time.</li></ul>
+<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Also unlocks the 50 studio voices</li><li>Hours you don't use carry over. Cancel any time.</li></ul>
 <a class="btn primary" href="${esc(VOICE_PRO_URL)}">Pay by card: ${price} a month</a><p class="fine">Pay by card (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account. ${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
   return `<div class="ladder">${free}${once}${pro}</div>
-<p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month: also includes developer access</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
+<p class="packs" style="justify-content:center">${more ? `<span>Building an app?</span><a href="/credits">$${more.usdCents / 100} a month for developers</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
 }
 
 /** How long a recording may be, said once and the same on every page (checked against the browser tool's code, 21 Nov 2026). */
-export const LIMITS_SENTENCE = "In the browser tool: any length, it is compressed and sent in parts for you. From code: one call reads up to 60 minutes or 25 MB, whichever comes first.";
+export const LIMITS_SENTENCE = "Any length. We split long files for you.";
 
 /** Free beside Transcribe Pro, row by row. Each cell is something the code or the tools' descriptions state. */
 export function offerCompare(prices: VoicePrices, browserLanguages: number): string {
