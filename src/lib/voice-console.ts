@@ -156,46 +156,67 @@ export const VOICE_CONSOLE_CSS = `.vc{--vc-card:#11111c;--vc-card2:#0b0b13;--vc-
 .vc kbd{font:inherit;font-size:.75rem;border:1px solid var(--vc-line);border-bottom-width:2px;border-radius:5px;padding:0 5px}
 @media (max-width:520px){.vc-speed{margin-left:0;width:100%}.vc-go{flex:1}}`;
 
+/** Every visible word of the console markup, so a page in another language can pass its own (lib/i18n). English is the default. */
+export interface ConsoleLabels {
+  tabs: string; tts: string; stt: string; textLabel: string; playKeys: string; longHtml: (max: string, studio: string) => string; presets: string; voice: string;
+  moreVoices: (n: number, langs: number) => string; chipTitle: (accent: string, gender: string) => string; play: string; size: string; stop: string; speed: string; gpu: string;
+  pron: string; pronHint: string; ttsStatus: string; fixOne: string; wav: string; mp3: string; drop: string; dropNote: string; record: string; spokenLanguage: string;
+  sttStatus: string; transcript: string; copy: string; srt: string; foot: readonly string[]; noscriptHtml: (voiceSite: string) => string;
+}
+export const CONSOLE_LABELS_EN: ConsoleLabels = {
+  tabs: "Free voice tools", tts: "Text to speech", stt: "Speech to text", textLabel: "Text to speak", playKeys: "<kbd>Ctrl</kbd> + <kbd>Enter</kbd> to play",
+  longHtml: (max, studio) => `Longer than ${max} characters? <a href="${studio}/audiobook">Make an audiobook in Studio</a>.`, presets: "Try a sample script", voice: "Voice",
+  moreVoices: (n, langs) => `${n} more voices, ${langs} languages`, chipTitle: (accent, gender) => `${accent} ${gender}. Click to hear a sample.`,
+  play: "&#9654; Play", size: "about 90 MB, once", stop: "&#9632; Stop", speed: "Speed", gpu: "Graphics card mode (uses your GPU; a one-time 330 MB download instead of 90 MB)",
+  pron: "Pronunciations", pronHint: "One per line: word = how to say it (whole words). Saved on this device.",
+  ttsStatus: "First play fetches the voice once (about 90 MB); after that it is saved on this device.", fixOne: "Fix one sentence without redoing the rest", wav: "Download WAV", mp3: "Download MP3",
+  drop: "Drop a recording here, or click to choose one", dropNote: "MP3, M4A, WAV, OGG, WebM or a video. It stays on your computer.", record: "&#9679; Record from the microphone",
+  spokenLanguage: "Spoken language", sttStatus: "The first time, your browser fetches the listening model once; after that it starts straight away.", transcript: "Transcript", copy: "Copy text", srt: "SRT subtitles",
+  foot: ["No account", "No credits or sign-up", "Nothing uploaded", "Free downloads"],
+  noscriptHtml: (site) => `This console needs JavaScript. The same tools: <a href="${esc(site)}/text-to-speech">text to speech</a> and <a href="${esc(site)}/transcribe">transcription</a>.`,
+};
+
 /**
  * The console's markup. `id` prefixes every element id so the page can hold it once; `upsell` is a short line under
  * the results that names the paid way to do the same job at scale (HTML, already escaped by the caller).
  */
-export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSite: string; upsellTts?: string; upsellStt?: string; className?: string; persist?: boolean }): string {
+export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSite: string; upsellTts?: string; upsellStt?: string; className?: string; persist?: boolean; labels?: ConsoleLabels; language?: string; languageNames?: Readonly<Record<string, string>> }): string {
+  const L = opts.labels ?? CONSOLE_LABELS_EN;
   const id = opts.id ?? "vc";
   const first = opts.first ?? "tts";
   const v = (s: string) => `${id}-${s}`;
   const short = (x: ConsoleVoice) => CONSOLE_VOICE_LANGS.find((l) => l.lang === x.lang)!.short;
-  const chip = (x: ConsoleVoice) => `<button type="button" data-voice="${esc(x.id)}"${x.lang.startsWith("en") ? "" : ` lang="${esc(x.lang)}"`} aria-pressed="${x === CONSOLE_VOICES[0]}" title="${esc(`${x.accent} ${x.gender}. Click to hear a sample.`)}">${esc(x.name)}<small>${esc(short(x))} ${esc(x.gender === "female" ? "F" : "M")}</small></button>`;
+  const chip = (x: ConsoleVoice) => `<button type="button" data-voice="${esc(x.id)}"${x.lang.startsWith("en") ? "" : ` lang="${esc(x.lang)}"`} aria-pressed="${x === CONSOLE_VOICES[0]}" title="${esc(L.chipTitle(x.accent, x.gender))}">${esc(x.name)}<small>${esc(short(x))} ${esc(x.gender === "female" ? "F" : "M")}</small></button>`;
   const rest = CONSOLE_VOICES.slice(CONSOLE_VOICES_SHOWN);
   const groups = CONSOLE_VOICE_LANGS.map((g) => [g, rest.filter((x) => x.lang === g.lang)] as const).filter(([, list]) => list.length)
     .map(([g, list]) => `<p class="vc-lang">${esc(g.label)}</p><div class="vc-voices">${list.map(chip).join("")}</div>`).join("");
   const voices = CONSOLE_VOICES.slice(0, CONSOLE_VOICES_SHOWN).map(chip).join("")
-    + `<details class="vc-more"><summary>${rest.length} more voices, ${CONSOLE_VOICE_LANGS.length} languages</summary>${groups}</details>`;
-  const langs = CONSOLE_LANGUAGES.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("");
+    + `<details class="vc-more"><summary>${esc(L.moreVoices(rest.length, CONSOLE_VOICE_LANGS.length))}</summary>${groups}</details>`;
+  const langs = CONSOLE_LANGUAGES.map(([value, label]) => `<option value="${esc(value)}"${value === opts.language ? " selected" : ""}>${esc(opts.languageNames?.[value] ?? label)}</option>`).join("");
   return `<div class="vc${opts.className ? ` ${esc(opts.className)}` : ""}" id="${esc(id)}" data-first="${first}"${opts.persist ? ' data-persist="1"' : ""}>
-<div class="vc-tabs" role="tablist" aria-label="Free voice tools"><button type="button" role="tab" id="${v("t-tts")}" aria-controls="${v("tts")}" aria-selected="${first === "tts"}">Text to speech</button><button type="button" role="tab" id="${v("t-stt")}" aria-controls="${v("stt")}" aria-selected="${first === "stt"}">Speech to text</button></div>
+<div class="vc-tabs" role="tablist" aria-label="${esc(L.tabs)}"><button type="button" role="tab" id="${v("t-tts")}" aria-controls="${v("tts")}" aria-selected="${first === "tts"}">${esc(L.tts)}</button><button type="button" role="tab" id="${v("t-stt")}" aria-controls="${v("stt")}" aria-selected="${first === "stt"}">${esc(L.stt)}</button></div>
 <div class="vc-pane" id="${v("tts")}" role="tabpanel" aria-labelledby="${v("t-tts")}"${first === "tts" ? "" : " hidden"}>
-<label class="sr" for="${v("text")}" style="position:absolute;left:-9999px">Text to speak</label>
+<label class="sr" for="${v("text")}" style="position:absolute;left:-9999px">${esc(L.textLabel)}</label>
 <textarea id="${v("text")}" spellcheck="true" maxlength="${CONSOLE_MAX_CHARS}">${esc(CONSOLE_SAMPLE)}</textarea>
-<div class="vc-meta"><span id="${v("count")}"></span><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to play</span></div>
-<p class="vc-long">Longer than ${CONSOLE_MAX_CHARS.toLocaleString("en-US")} characters? <a href="${STUDIO_SITE}/audiobook">Make an audiobook in Studio</a>.</p>
-<div class="vc-presets" role="group" aria-label="Try a sample script">${CONSOLE_PRESETS.map((p, i) => `<button type="button" data-preset="${i}">${esc(p.label)}</button>`).join("")}</div>
-<div class="vc-voices" role="group" aria-label="Voice">${voices}</div>
-<div class="vc-row"><button type="button" class="vc-go" id="${v("speak")}">&#9654; Play</button><span class="vc-size" id="${v("size")}">about 90 MB, once</span><button type="button" class="vc-sec" id="${v("stop")}" hidden>&#9632; Stop</button>
-<label class="vc-speed">Speed <input type="range" id="${v("speed")}" min="0.6" max="1.6" step="0.1" value="1"><span id="${v("speedv")}">1.0x</span></label></div>
-<label class="vc-gpu" id="${v("gpuw")}"><input type="checkbox" id="${v("gpu")}"> Graphics card mode (uses your GPU; a one-time 330 MB download instead of 90 MB)</label>
-<details class="vc-fix vc-pron"><summary>Pronunciations</summary><label class="vc-hint" for="${v("pron")}">One per line: word = how to say it (whole words). Saved on this device.</label><textarea id="${v("pron")}" rows="3" spellcheck="false" placeholder="Glyphcall = glif call"></textarea></details>
-<progress id="${v("tbar")}" max="1" hidden aria-label="Speech progress"></progress><p class="vc-status" id="${v("tstatus")}" role="status" aria-live="polite">First play fetches the voice once (about 90 MB); after that it is saved on this device.</p><p class="vc-status vc-pct" id="${v("tpct")}" aria-live="off"></p>
-<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><details class="vc-fix"><summary>Fix one sentence without redoing the rest</summary><ol id="${v("sents")}"></ol></details><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-speech.wav" href="#">Download WAV</a><button type="button" class="vc-sec" id="${v("mp3")}">Download MP3</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
+<div class="vc-meta"><span id="${v("count")}"></span><span>${L.playKeys}</span></div>
+<p class="vc-long">${L.longHtml(CONSOLE_MAX_CHARS.toLocaleString("en-US"), STUDIO_SITE)}</p>
+<div class="vc-presets" role="group" aria-label="${esc(L.presets)}">${CONSOLE_PRESETS.map((p, i) => `<button type="button" data-preset="${i}">${esc(p.label)}</button>`).join("")}</div>
+<div class="vc-voices" role="group" aria-label="${esc(L.voice)}">${voices}</div>
+<div class="vc-row"><button type="button" class="vc-go" id="${v("speak")}">${L.play}</button><span class="vc-size" id="${v("size")}">${esc(L.size)}</span><button type="button" class="vc-sec" id="${v("stop")}" hidden>${L.stop}</button>
+<label class="vc-speed">${esc(L.speed)} <input type="range" id="${v("speed")}" min="0.6" max="1.6" step="0.1" value="1"><span id="${v("speedv")}">1.0x</span></label></div>
+<label class="vc-gpu" id="${v("gpuw")}"><input type="checkbox" id="${v("gpu")}"> ${esc(L.gpu)}</label>
+<details class="vc-fix vc-pron"><summary>${esc(L.pron)}</summary><label class="vc-hint" for="${v("pron")}">${esc(L.pronHint)}</label><textarea id="${v("pron")}" rows="3" spellcheck="false" placeholder="Glyphcall = glif call"></textarea></details>
+<progress id="${v("tbar")}" max="1" hidden aria-label="Speech progress"></progress><p class="vc-status" id="${v("tstatus")}" role="status" aria-live="polite">${esc(L.ttsStatus)}</p><p class="vc-status vc-pct" id="${v("tpct")}" aria-live="off"></p>
+<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><details class="vc-fix"><summary>${esc(L.fixOne)}</summary><ol id="${v("sents")}"></ol></details><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-speech.wav" href="#">${esc(L.wav)}</a><button type="button" class="vc-sec" id="${v("mp3")}">${esc(L.mp3)}</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
 </div>
 <div class="vc-pane" id="${v("stt")}" role="tabpanel" aria-labelledby="${v("t-stt")}"${first === "stt" ? "" : " hidden"}>
-<label class="vc-drop" id="${v("drop")}"><input type="file" id="${v("file")}" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.webm,.mp4,.mov,.flac,.aac"><b>Drop a recording here, or click to choose one</b><span>MP3, M4A, WAV, OGG, WebM or a video. It stays on your computer.</span></label>
-<div class="vc-opts"><button type="button" class="vc-sec vc-rec" id="${v("rec")}">&#9679; Record from the microphone</button><label>Spoken language <select id="${v("lang")}">${langs}</select></label></div>
-<progress id="${v("sbar")}" max="1" hidden aria-label="Transcription progress"></progress><p class="vc-status" id="${v("sstatus")}" role="status" aria-live="polite">The first time, your browser fetches the listening model once; after that it starts straight away.</p>
-<div class="vc-out" id="${v("sout")}" hidden><textarea id="${v("transcript")}" aria-label="Transcript" spellcheck="true"></textarea><div class="vc-row" style="margin-top:10px"><button type="button" class="vc-sec" id="${v("copy")}">Copy text</button><button type="button" class="vc-sec" data-fmt="txt">TXT</button><button type="button" class="vc-sec" data-fmt="srt">SRT subtitles</button><button type="button" class="vc-sec" data-fmt="vtt">VTT</button></div>${opts.upsellStt ? `<p class="vc-status">${opts.upsellStt}</p>` : ""}</div>
+<label class="vc-drop" id="${v("drop")}"><input type="file" id="${v("file")}" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.webm,.mp4,.mov,.flac,.aac"><b>${esc(L.drop)}</b><span>${esc(L.dropNote)}</span></label>
+<div class="vc-opts"><button type="button" class="vc-sec vc-rec" id="${v("rec")}">${L.record}</button><label>${esc(L.spokenLanguage)} <select id="${v("lang")}">${langs}</select></label></div>
+<progress id="${v("sbar")}" max="1" hidden aria-label="Transcription progress"></progress><p class="vc-status" id="${v("sstatus")}" role="status" aria-live="polite">${esc(L.sttStatus)}</p>
+<div class="vc-out" id="${v("sout")}" hidden><textarea id="${v("transcript")}" aria-label="${esc(L.transcript)}" spellcheck="true"></textarea><div class="vc-row" style="margin-top:10px"><button type="button" class="vc-sec" id="${v("copy")}">${esc(L.copy)}</button><button type="button" class="vc-sec" data-fmt="txt">TXT</button><button type="button" class="vc-sec" data-fmt="srt">${esc(L.srt)}</button><button type="button" class="vc-sec" data-fmt="vtt">VTT</button></div>${opts.upsellStt ? `<p class="vc-status">${opts.upsellStt}</p>` : ""}</div>
 </div>
-<div class="vc-foot"><span>No account</span><span>No credits or sign-up</span><span>Nothing uploaded</span><span>Free downloads</span></div>
-<noscript><p class="vc-pane">This console needs JavaScript. The same tools: <a href="${esc(opts.voiceSite)}/text-to-speech">text to speech</a> and <a href="${esc(opts.voiceSite)}/transcribe">transcription</a>.</p></noscript>
+<div class="vc-foot">${L.foot.map((x) => `<span>${esc(x)}</span>`).join("")}</div>
+<noscript><p class="vc-pane">${L.noscriptHtml(opts.voiceSite)}</p></noscript>
 </div>`;
 }
 
@@ -251,7 +272,8 @@ self.postMessage({type:"progress",done:Math.min(total,off+b.length/RATE),total,s
 self.postMessage({type:"result",segments:segs,seconds:total});}catch(err){self.postMessage({type:"error",message:String((err&&err.message)||err)});}};`;
 
 /** The console's script, once per page; it wires every .vc element. Inline, no framework, no tracking. */
-export function voiceConsoleScript(): string {
+/** `defaultVoice`: the voice a first-time visitor starts with (a page in another language passes one of its voices). */
+export function voiceConsoleScript(defaultVoice = "af_heart"): string {
   const voices = JSON.stringify(Object.fromEntries(CONSOLE_VOICES.map((x) => [x.id, x.hello])));
   return `<script>(()=>{"use strict";
 const TTS_SRC=${JSON.stringify(TTS_WORKER)},STT_SRC=${JSON.stringify(STT_WORKER)},HELLO=${voices.replace(/</g, "\\u003c")},SAMPLES=${JSON.stringify(CONSOLE_SAMPLES).replace(/</g, "\\u003c")},SAMPLE0=${JSON.stringify(CONSOLE_SAMPLE)},LANG_OF=${JSON.stringify(Object.fromEntries(CONSOLE_VOICES.map((x) => [x.id, x.lang])))},MAX=${CONSOLE_MAX_CHARS},SAMPLE_BASE=${JSON.stringify(`${VOICE_SITE}/samples/`)},PRESETS=${JSON.stringify(CONSOLE_PRESETS.map((p) => p.text)).replace(/</g, "\u003c")};
@@ -290,7 +312,7 @@ const respell=(t)=>{for(const line of pron.value.split("\\n")){const i=line.inde
 speed.oninput=()=>{$("speedv").textContent=Number(speed.value).toFixed(1)+"x";};
 // Graphics card mode (WebGPU), offered only where the browser has it; the engine is chosen when the voice loads.
 const gpuw=$("gpuw"),gpu=navigator.gpu?$("gpu"):null;if(gpu){gpuw.classList.add("on");gpu.checked=store.get("gc-vc-gpu")==="1";gpu.onchange=()=>{store.set("gc-vc-gpu",gpu.checked?"1":"0");if(tw&&!speak.disabled){tw.terminate();tw=null;ready=false;}};}
-let voice=store.get("gc-vc-voice")||"af_heart";const chips=root.querySelectorAll("[data-voice]");
+let voice=store.get("gc-vc-voice")||${JSON.stringify(defaultVoice)};const chips=root.querySelectorAll("[data-voice]");
 const mark=()=>chips.forEach((c)=>c.setAttribute("aria-pressed",String(c.dataset.voice===voice)));if(![...chips].some((c)=>c.dataset.voice===voice))voice="af_heart";mark();
 // mode: "main" builds the result sentence by sentence, "redo" replaces one sentence of it, "preview" only plays.
 let tw=null,ready=false,job=0,ctx=null,next=0,sents=[],mode="main",redoAt=-1,redoBuf=[],redoText="",rate=24000,last=null,t0=0,first=0;const tdl=dl();

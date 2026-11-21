@@ -82,6 +82,7 @@ const GUIDE_FILES = {
  */
 export function sourcesFor(page, site) {
   if (page === "/") return ["src/lib/home-page.ts", "src/lib/product-pages.ts"];
+  if (/^\/(es|de|fr)\/$/.test(page)) return ["src/lib/home-page.ts", "src/lib/product-pages.ts", "src/lib/i18n/home-strings.ts", `src/lib/i18n/home-${page.slice(1, 3)}.ts`];
   if (page === "/docs") return ["src/lib/site-pages.ts"];
   // 20 Nov 2026: the card-credits and free-key pages are indexable and in the sitemap; map them to their renderers.
   if (page === "/credits") return ["src/lib/credit-routes.ts", "src/lib/credits.ts"];

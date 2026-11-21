@@ -43,6 +43,7 @@ import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { guidesIndexHtml, taskGuide, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
+import { OTHER_LANGS, decideHome, homePath, withLanguages } from "./lib/i18n/locales";
 import { HSTS, NEGOTIATED_PATHS, setHtmlHeaders, varyOnAccept, withSocialTags } from "./lib/page-headers";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { alignAccepted, differsNote } from "./lib/accepted-terms";
@@ -852,17 +853,35 @@ app.route("/", oauth);
 app.route("/", store);
 
 const origin = (url: string) => new URL(url).origin;
-app.get("/", async (c) =>
+app.get("/", async (c) => {
   // Browsers and directory scrapers get a readable page, programs get the JSON service card.
   // With a public brand set (lib/public-brand.ts) people get the product site's front page; the agent catalogue page
   // stays at /agents. Programs always get the JSON service card.
-  prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
-    ? c.html(c.env.PUBLIC_BRAND?.trim()
-      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env), voiceTry: voiceTestKeysOn(c.env) })
-      : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
+  // The product site's front page also exists in other languages (lib/i18n): a person who chose one earlier (gc_lang
+  // cookie) is sent on to it; a person whose browser asks for one sees a one-tap bar; crawlers get the English page.
+  if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent")))
     // Programs get the short card (lib/first-call.ts, under 4 KB); the full one moved to SERVICE_CARD_PATH.
-    : c.json(rootCard(origin(c.req.url), { ...firstCallFacts(c.env), payTo: c.env.PAY_TO })),
-);
+    return c.json(rootCard(origin(c.req.url), { ...firstCallFacts(c.env), payTo: c.env.PAY_TO }));
+  if (!c.env.PUBLIC_BRAND?.trim()) return c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))));
+  const country = (c.req.raw as unknown as { cf?: { country?: unknown } }).cf?.country;
+  const decision = decideHome({ userAgent: c.req.header("user-agent"), acceptLanguage: c.req.header("accept-language"), cookie: c.req.header("cookie"), country: typeof country === "string" ? country : undefined });
+  const vary = { Vary: "Accept-Language, Cookie" };
+  if ("redirect" in decision) {
+    c.header("Vary", vary.Vary);
+    c.header("Cache-Control", "private, no-store");
+    return c.redirect(homePath(decision.redirect), 302);
+  }
+  const page = landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env), voiceTry: voiceTestKeysOn(c.env) });
+  return c.html(withLanguages(page, origin(c.req.url), "en", decision.offer), 200, vary);
+});
+// The front page in other languages (lib/i18n): one URL each, "/es/" with the slash; "/es" is a permanent redirect to it.
+// "/de" was a hop to /de/e-rechnung until the German front page existed; the German page links that section.
+for (const lang of OTHER_LANGS) {
+  app.get(`/${lang}`, (c) => c.redirect(homePath(lang), 301));
+  app.get(homePath(lang), (c) => c.env.PUBLIC_BRAND?.trim()
+    ? c.html(withLanguages(landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env), voiceTry: voiceTestKeysOn(c.env), lang }), origin(c.req.url), lang))
+    : c.redirect("/", 302));
+}
 // The full service card: every tool with its inputs, price and example (what "/" answered programs before 16 Nov 2026).
 app.get(SERVICE_CARD_PATH, (c) => c.json(serviceCard(origin(c.req.url), c.env.PAY_TO, c.env.NETWORK, paymentRails(c.env))));
 /** What the short llms.txt and the short root card say about this deployment. */
@@ -877,8 +896,6 @@ app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin
 // shows at #pricing; it used to send them to the developer card page. Without a public brand "/" is the agent
 // catalogue, so the card page stays the answer there. The query is kept.
 app.get("/pricing", (c) => c.redirect(`${c.env.PUBLIC_BRAND?.trim() ? "/" : "/credits"}${new URL(c.req.url).search}${c.env.PUBLIC_BRAND?.trim() ? "#pricing" : ""}`, 301));
-// /de answered 404 while every German page lives under /de/e-rechnung (the only German section): one hop to it.
-app.get("/de", (c) => c.redirect(`${EINVOICE_BASE_DE}${new URL(c.req.url).search}`, 301));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
   return {

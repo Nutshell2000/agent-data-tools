@@ -808,8 +808,9 @@ export const robotsTxt = (origin: string) =>
   ["User-agent: *", "Allow: /", "Disallow: /*trial=1", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
 
 import { lastmodTag } from "./lib/page-lastmod";
+import { SITEMAP_XHTML_NS, sitemapAlternates } from "./lib/i18n/locales";
 /** The pages people land on first, at the head of the sitemap (SEO audit, 21 Nov 2026). */
-const PEOPLE_FIRST = ["/", "/app", "/transcribe-pro", "/text-to-speech-api", "/speech-to-text-api"] as const;
+const PEOPLE_FIRST = ["/", "/es/", "/de/", "/fr/", "/app", "/transcribe-pro", "/text-to-speech-api", "/speech-to-text-api"] as const;
 /** Trust pages, linked from every footer (lib/legal.ts COMPANY_FOOTER); each names itself canonical. */
 export const TRUST_PAGES = ["/about", "/faq", "/contact", "/terms", "/privacy"] as const;
 
@@ -825,11 +826,11 @@ export function sitemapPaths(): string[] {
 }
 
 const urlset = (urls: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${SITEMAP_XHTML_NS}>${urls.join("")}</urlset>`;
 
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  return urlset(sitemapPaths().map((path) => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`));
+  return urlset(sitemapPaths().map((path) => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}${sitemapAlternates(origin, path)}</url>`));
 }
 
 /** lex.glyphcall.com's own sitemap: the LexGlyph page in each interface language, and its security page. */

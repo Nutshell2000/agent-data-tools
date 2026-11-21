@@ -38,6 +38,9 @@ import { SPEECH_INPUT_LIMIT } from "./openai-speech";
 import { SPEECH_CREDITS_PER_100 } from "./voice-billing";
 import { VOICE_TEST_SPEECH_CHARS } from "./voice-keys";
 import { offerCompare, offerLadder, tryLink, voicePrices, voiceProHours } from "./voice-pro";
+import { HOME_STRINGS, type HomeStrings } from "./i18n/home-strings";
+import { VOICE_PAGES, consoleLanguageNames, homePath, type Lang, type OtherLang } from "./i18n/locales";
+import { localLadder } from "./i18n/ladder";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -49,7 +52,7 @@ const money = (n: number) => `$${n.toFixed(3).replace(/(\.\d\d)0$/, "$1")}`;
 export { VOICE_SITE, STUDIO_SITE };
 
 /** Which group of the developer section each product sits in. A product not named here lands in the last group. */
-const SHELVES: readonly { id: string; kicker: string; title: string; slugs: readonly string[] }[] = [
+const SHELVES: readonly { id: "voice" | "documents" | "search"; kicker: string; title: string; slugs: readonly string[] }[] = [
   { id: "voice", kicker: "Voice", title: "Voice", slugs: ["speech-to-text-api", "text-to-speech-api"] },
   { id: "documents", kicker: "Documents", title: "Documents", slugs: ["pdf-to-text-api", "document-to-text-api", "invoice-data-extraction-api", "web-page-to-markdown-api", "bulk-web-reader-api"] },
   { id: "search", kicker: "Search and checks", title: "Search and checks", slugs: ["eu-law-search-api", "company-check-api", "eu-sanctions-screening-api"] },
@@ -80,27 +83,20 @@ const icon = (id: string) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="
 
 const shelfOf = (p: Product) => SHELVES.find((s) => s.slugs.includes(p.slug)) ?? SHELVES[SHELVES.length - 1];
 
-function productCard(p: Product, cardReady: boolean): string {
+function productCard(p: Product, cardReady: boolean, S: HomeStrings): string {
   const tool = BY_PATH.get(p.tool);
   const lead = productOffers(p, cardReady).find((o) => o.monthly);
   return `<article class="card"><h4><a href="/${esc(p.slug)}">${esc(p.name)}</a></h4><p>${esc(p.tagline)}</p>`
-    + `<div class="price"><span>Pay as you go</span><b>${tool ? `${esc(tool.price)} a call` : "See pricing"}</b></div>`
-    + `${lead ? `<p class="from">${esc(lead.label)}: ${esc(lead.calls)} ${esc(p.unit)}</p>` : ""}`
-    + `<a class="cover" href="/${esc(p.slug)}" aria-label="${esc(p.name)}: code, free try and plans"></a></article>`;
+    + `<div class="price"><span>${esc(S.card.payg)}</span><b>${tool ? esc(S.card.aCall(tool.price)) : esc(S.card.seePricing)}</b></div>`
+    + `${lead ? `<p class="from">${esc(planLabel(lead, S))}: ${esc(lead.calls)} ${esc(p.unit)}</p>` : ""}`
+    + `<a class="cover" href="/${esc(p.slug)}" aria-label="${esc(S.card.cover(p.name))}"></a></article>`;
 }
 
-/** The FAQ: plain questions first, the developer ones last. Every answer restates what the docs, the privacy page or the tool descriptions already say. */
-function faqItems(brand: string, languages: string, browserVoices: number, apiVoices: number): [q: string, a: string][] {
-  return [
-    ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no daily limit. You only pay if you want a long recording transcribed on our servers with Transcribe Pro, or if you build ${brand} into your own app or website.`],
-    ["Do I need to sign up?", `No. Type your text or drop your file and press the button. There is nothing to fill in.`],
-    ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it is ready on that device.`],
-    ["Which languages does it understand?", `${languages} Subtitles come as files for YouTube and most video apps (.srt) or for websites (.vtt).`],
-    ["How many voices are there?", `${browserVoices} voices in the free browser tools and ${apiVoices} through the API. Both are our own voices; nothing is uploaded to make either one speak.`],
-    ["Can I use it on my phone?", `Yes. Open this page on your phone, or install the free ${brand} app from glyphcall.com/app. It works on Windows, Mac, Linux, Android and iPhone, and keeps working offline.`],
-    ["What happens when an API call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
-    ["Can I cancel a plan?", `Any time, from the plan portal, with the e-mail address you paid with. Hours you don't use carry over, and one-off packs never expire.`],
-  ];
+/** A plan's label ("$3 a month", "$5 once") in the page's language; the price itself is the plan's own. */
+function planLabel(o: { label: string; monthly?: boolean }, S: HomeStrings): string {
+  const m = /^(\$[\d.,]+) (a month|once)$/.exec(o.label);
+  if (!m) return o.label;
+  return m[2] === "a month" ? S.devPricing.monthLabel(m[1]) : S.devPricing.onceLabel(m[1]);
 }
 
 // 21 Nov 2026 (front-page layout pass): on a phone the Play button sat under the sticky bar (y≈790 of 812) and the
@@ -160,43 +156,60 @@ const REDESIGN_CSS = `.vplans{margin:26px auto 0;max-width:820px;text-align:left
 @media (max-width:720px){main{display:flex;flex-direction:column}main>*{order:2}main>.hero{order:0}main>#pro,main>#pricing{order:1}.promise,.prow,.annc,.trow .mock,.tcopy p,.tcopy .kicker{display:none}.tour{gap:10px}.trow{padding:16px 18px;border-radius:18px}.tcopy h3{font-size:1.15rem;margin:4px 0 10px}.tcopy .free{margin-left:0}.tcopy .btn{padding:10px 16px;font-size:.92rem}#make .sub{margin-bottom:18px}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
 
 // Plays the ready-made voice samples (static files on the voice site, no model download): the first sound is instant.
-const SHOWCASE_SCRIPT = `<script data-gc-showcase>(()=>{let a=null,cur=null,ctx=null,an=null,raf=0;const note=document.getElementById("show-note"),hear=document.querySelector(".show-cta [data-sample]");const label=hear?hear.innerHTML:"";
+// `stopHtml` and `ready` ("{name} is ready below. …") come from the page's language (lib/i18n/home-strings.ts).
+const showcaseScript = (stopHtml: string, ready: string) => {
+  const [pre, post] = ready.split("{name}");
+  const note = `${pre ? `${JSON.stringify(pre)}+` : ""}b.dataset.voiceName${post ? `+${JSON.stringify(post)}` : ""}`;
+  return `<script data-gc-showcase>(()=>{let a=null,cur=null,ctx=null,an=null,raf=0;const note=document.getElementById("show-note"),hear=document.querySelector(".show-cta [data-sample]");const label=hear?hear.innerHTML:"";
 const glow=()=>{if(!an||!cur)return;const d=new Uint8Array(an.frequencyBinCount);an.getByteFrequencyData(d);let m=0;for(const v of d)m+=v;m=m/d.length/255;const o=cur.querySelector(".av");if(o)o.style.transform="scale("+(1+m*0.5).toFixed(3)+")";raf=requestAnimationFrame(glow)};
 const stop=()=>{cancelAnimationFrame(raf);if(a){a.pause();a=null}if(cur){cur.classList.remove("on");cur.setAttribute("aria-pressed","false");const o=cur.querySelector(".av");if(o)o.style.transform=""}if(hear)hear.innerHTML=label;cur=null};
-document.querySelectorAll("[data-sample]").forEach(b=>b.addEventListener("click",()=>{const same=cur===b;stop();if(same)return;a=new Audio();a.crossOrigin="anonymous";a.src=b.dataset.sample;cur=b;b.classList.add("on");b.setAttribute("aria-pressed","true");if(b===hear)b.innerHTML="&#9632;&nbsp; Stop";
+document.querySelectorAll("[data-sample]").forEach(b=>b.addEventListener("click",()=>{const same=cur===b;stop();if(same)return;a=new Audio();a.crossOrigin="anonymous";a.src=b.dataset.sample;cur=b;b.classList.add("on");b.setAttribute("aria-pressed","true");if(b===hear)b.innerHTML=${JSON.stringify(stopHtml)};
 try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();const src=ctx.createMediaElementSource(a);an=ctx.createAnalyser();an.fftSize=64;src.connect(an);an.connect(ctx.destination);ctx.resume&&ctx.resume();raf=requestAnimationFrame(glow)}}catch(e){}
 a.onended=stop;a.onerror=stop;a.play().catch(stop);
-const id=b.dataset.voicePick;if(id){const pick=document.querySelector('#hero-vc [data-voice="'+id+'"]');if(pick)pick.click();if(note)note.textContent=b.dataset.voiceName+" is ready below. Type your words and press Play."}}))})();</script>`;
+const id=b.dataset.voicePick;if(id){const pick=document.querySelector('#hero-vc [data-voice="'+id+'"]');if(pick)pick.click();if(note)note.textContent=${note}}}))})();</script>`;
+};
 const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
 
 /** The two studio-voice plans, from the plan constants (Voice Pro, and Voice Pro plus Transcribe Pro on one balance). */
-function voicePlans(): string {
+function voicePlans(S: HomeStrings): string {
   const usd = (c: number) => `$${c / 100}`;
-  const vp = speechCharacters(VOICE_STUDIO_PLAN.credits).toLocaleString("en-US");
-  const both = speechCharacters(VOICE_BUNDLE_PLAN.credits).toLocaleString("en-US");
-  return `<div class="vplans"><h3>Want studio voices too?</h3><div class="vplan-row">`
-    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small> / month</small></div><p>50 studio voices made on our servers: about ${vp} characters a month, on any device.</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">Get Voice Pro: ${usd(VOICE_STUDIO_PLAN.usdCents)} a month</a></div>`
-    + `<div class="vplan"><b>Voice and Transcribe Pro</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small> / month</small></div><p>One balance for both: about ${both} characters of studio voices, or transcription, or any mix.</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">Get both: ${usd(VOICE_BUNDLE_PLAN.usdCents)} a month</a></div>`
-    + `</div><p class="small">Pay by card, Apple Pay, Google Pay or Link. Hours and characters you don't use carry over. Cancel any time.</p></div>`;
+  const vp = speechCharacters(VOICE_STUDIO_PLAN.credits).toLocaleString(S.numberLocale);
+  const both = speechCharacters(VOICE_BUNDLE_PLAN.credits).toLocaleString(S.numberLocale);
+  const V = S.voicePlans;
+  return `<div class="vplans"><h3>${esc(V.h3)}</h3><div class="vplan-row">`
+    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.voiceText(vp))}</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">${esc(V.pay(usd(VOICE_STUDIO_PLAN.usdCents)))}</a></div>`
+    + `<div class="vplan"><b>${esc(V.bundleName)}</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.bundleText(both))}</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">${esc(V.pay(usd(VOICE_BUNDLE_PLAN.usdCents)))}</a></div>`
+    + `</div><p class="small">${esc(V.small)}</p></div>`;
 }
 
 /**
  * The front page of the product site. `cardReady`: card plans and packs can be bought (lib/credit-routes.ts).
  * `opts.trial`: free calls are on, so the developer tabs open with a request that needs no key (lib/first-call.ts);
  * `opts.freeKey`: free keys by e-mail are offered (lib/free-keys.ts `freeKeysOn`), so the page links /keys/free.
+ * `opts.lang`: the page's language (lib/i18n). Every visible word comes from lib/i18n/home-strings.ts, English being
+ * the default and the source. Another language is served at /es/, /de/, /fr/ with the same layout; there the console
+ * opens on speech to text in that language and "text to speech" links to the voice site's page in that language.
  */
-export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean; voiceTry?: boolean; creditsTrial?: boolean } = {}): string {
+export function landingPage(brand: string, origin: string, cardReady: boolean, opts: { trial?: boolean; freeKey?: boolean; voiceTry?: boolean; creditsTrial?: boolean; lang?: Lang } = {}): string {
+  const lang: Lang = opts.lang ?? "en";
+  const S = HOME_STRINGS[lang];
+  const native = lang === "en" ? undefined : VOICE_PAGES[lang];
+  const self = `${origin}${homePath(lang)}`;
+  const ttsHref = native ? `${VOICE_SITE}${native.tts}` : "#try";
+  const sttHref = native ? "#try" : `${VOICE_SITE}/transcribe`;
   const us = ourVoice();
   const hasLite = BY_PATH.has("/text-to-speech/lite");
   const longTool = BY_PATH.get("/transcribe/long");
-  const languages = longTool && /90\+ languages/.test(longTool.description) ? "More than 90 languages, detected by itself or chosen by you." : "Many languages; choose yours for the best result.";
+  const ninetyPlus = Boolean(longTool && /90\+ languages/.test(longTool.description));
+  const languages = S.languages(ninetyPlus);
   const voices = CONSOLE_VOICES.length;
   const proPrice = `$${VOICE_PRO_CENTS / 100}`;
   const proHours = voiceProHours(voicePrices().long);
+  const fill = (s: string) => s.replace(/\{brand\}/g, esc(brand)).replace(/\{languages\}/g, esc(languages));
 
   // Search titles lead with what people type (Search Console, 21 Nov: "text reader", "read aloud"); <=60 and <=160 characters.
-  const title = `Free Text to Speech and Transcription Online | ${brand}`.slice(0, 60);
-  const description = `Type any text and hear lifelike voices, or turn recordings into text and subtitles. Free in your browser: no sign-up, MP3 and WAV downloads.`.slice(0, 160);
+  const title = S.title(brand).slice(0, 60);
+  const description = S.description.slice(0, 160);
 
   // Developer code tabs: each runs a tool's own published example, so the request shown is one that works.
   const sample = (path: string) => {
@@ -210,20 +223,20 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
   // tool's published example answer (tests/first-call.test.cjs runs the printed URL and compares the two).
   const keyless = opts.trial ? firstCall(origin) : null;
   const tabs: [label: string, code: string, out: string][] = [
-    ...(keyless ? [["Try it now", `<pre><code><span class="k">curl</span> <span class="s">"${esc(keyless.url)}"</span></code></pre><pre class="res"><code>${esc(keyless.output)}</code></pre>`, `That is the real answer, and the request needs no key: ${FREE_HTTP_CALLS_PER_CALLER} free calls per caller on most tools. After that, one key runs everything.`] as [string, string, string]] : []),
+    ...(keyless ? [[S.tryNow, `<pre><code><span class="k">curl</span> <span class="s">"${esc(keyless.url)}"</span></code></pre><pre class="res"><code>${esc(keyless.output)}</code></pre>`, S.tryNowOut(FREE_HTTP_CALLS_PER_CALLER)] as [string, string, string]] : []),
     ...([
-      ["Transcribe", "/transcribe/long", `200 OK: transcript, SRT subtitles and word timings for up to an hour of audio. ${us.long}.`],
-      ["PDF to text", "/pdf/text", `200 OK: the text of every page as JSON. ${BY_PATH.get("/pdf/text")?.price ?? ""} a call.`],
-      ["EU law search", "/law/search", `200 OK: the exact articles, with act, article number, full text and EUR-Lex link.`],
+      [S.tabs.transcribe, "/transcribe/long", S.tabTranscribeOut(us.long)],
+      [S.tabs.pdf, "/pdf/text", S.tabPdfOut(BY_PATH.get("/pdf/text")?.price ?? "")],
+      [S.tabs.law, "/law/search", S.tabs.lawOut],
     ].filter(([, p]) => BY_PATH.has(p)).map(([label, path, out]) => [label, `<pre><code>${sample(path)}</code></pre>`, out] as [string, string, string])),
   ];
   const bars = Array.from({ length: 34 }, (_, i) => `<i style="animation-delay:-${((i * 137) % 1400) / 1000}s"></i>`).join("");
 
   // The API prices in three numbers, for developers.
   const stats: [n: string, l: string, s: string][] = [
-    [us.long, "for an hour of transcription", "Up to 60 minutes in one call, with subtitles and word timings"],
-    ...(hasLite ? [[money(us.lite1k), "per 1,000 characters of speech", "Natural voices back as MP3, no credit pool to convert"] as [string, string, string]] : []),
-    ["$0", "for any call that fails", "Errors, bad input and outages are never charged"],
+    [us.long, ...S.stats.hour],
+    ...(hasLite ? [[money(us.lite1k), ...S.stats.perK] as [string, string, string]] : []),
+    ["$0", ...S.stats.fail],
   ];
 
   // Products, group by group.
@@ -231,188 +244,171 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
     const rank = (p: Product) => (s.slugs.indexOf(p.slug) + 1) || 99;
     const items = PRODUCTS.filter((p) => shelfOf(p) === s).sort((a, b) => rank(a) - rank(b));
     if (!items.length) return "";
-    return `<div class="shelf" id="${s.id}"><h3>${icon(s.id)}${esc(s.title)}</h3><div class="cards">${items.map((p) => productCard(p, cardReady)).join("")}</div></div>`;
+    return `<div class="shelf" id="${s.id}"><h3>${icon(s.id)}${esc(S.shelves[s.id])}</h3><div class="cards">${items.map((p) => productCard(p, cardReady, S)).join("")}</div></div>`;
   }).join("");
 
   // Pricing: the free tools first, then the monthly plans as cards, the packs as chips, the full table folded.
+  const D = S.devPricing;
   const offers = productOffers(PRODUCTS[0], cardReady);
   const highlight = ["speech-to-text-api", "pdf-to-text-api", "web-page-to-markdown-api", "company-check-api"].map((slug) => PRODUCTS.find((p) => p.slug === slug)).filter(Boolean) as Product[];
   const planCards = offers.map((o, i) => ({ o, i })).filter(({ o }) => o.monthly).map(({ o, i }, k, all) => {
     const price = o.label.replace(/ a month$/, "");
-    return `<div class="plan"><div class="p">${esc(price)}<small> / month</small></div><ul>${highlight.map((p) => `<li><b>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</b> ${esc(p.unit)}</li>`).join("")}<li>One key for every API, unused credits roll over</li></ul><a class="btn${k === all.length - 1 ? " primary" : ""}" href="${esc(o.url)}">Start for ${esc(price)}</a></div>`;
+    return `<div class="plan"><div class="p">${esc(price)}<small>${esc(D.perMonth)}</small></div><ul>${highlight.map((p) => `<li><b>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</b> ${esc(p.unit)}</li>`).join("")}<li>${esc(D.oneKey)}</li></ul><a class="btn${k === all.length - 1 ? " primary" : ""}" href="${esc(o.url)}">${esc(D.start(price))}</a></div>`;
   }).join("");
   const packs = offers.filter((o) => !o.monthly);
-  const pricing = offers.length ? `<div class="devhead"><h3>For your own app or website</h3><p>Plans add credits every month and unused credits stay.</p></div><div class="plans">${planCards}</div>
-${packs.length ? `<p class="packs"><span>Or a one-off pack that never expires:</span>${packs.map((o) => `<a href="${esc(o.url)}">${esc(o.label.replace(/ once$/, ""))}</a>`).join("")}</p>` : ""}
-<details><summary>What each plan buys, API by API</summary><div><div class="scroll"><table><tr><th>Plan</th>${PRODUCTS.map((p) => `<th>${esc(p.unit.charAt(0).toUpperCase() + p.unit.slice(1))}</th>`).join("")}</tr>
-${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>${PRODUCTS.map((p) => `<td>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</td>`).join("")}</tr>`).join("\n")}
-</table></div><p class="small">Each column is what that amount buys if you spend it all on that one API. <a href="${esc(PLAN_PORTAL_URL)}">Cancel a plan at any time</a>. Details: <a href="/credits">pricing</a>.</p></div></details>`
-    : `<p><a href="/credits">Plans and packs</a></p>`;
+  const pricing = offers.length ? `<div class="devhead"><h3>${esc(D.h3)}</h3><p>${esc(D.p)}</p></div><div class="plans">${planCards}</div>
+${packs.length ? `<p class="packs"><span>${esc(D.packsLead)}</span>${packs.map((o) => `<a href="${esc(o.url)}">${esc(o.label.replace(/ once$/, ""))}</a>`).join("")}</p>` : ""}
+<details><summary>${esc(D.table)}</summary><div><div class="scroll"><table><tr><th>${esc(D.plan)}</th>${PRODUCTS.map((p) => `<th>${esc(p.unit.charAt(0).toUpperCase() + p.unit.slice(1))}</th>`).join("")}</tr>
+${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(planLabel(o, S))}</a></td>${PRODUCTS.map((p) => `<td>${esc(productOffers(p, cardReady)[i]?.calls ?? "")}</td>`).join("")}</tr>`).join("\n")}
+</table></div><p class="small">${D.footHtml(PLAN_PORTAL_URL)}</p></div></details>`
+    : `<p><a href="/credits">${esc(D.fallback)}</a></p>`;
 
   const ttsTagline = PRODUCTS.find((p) => p.slug === "text-to-speech-api")?.tagline ?? "";
   const apiVoices = Number(/(\d+) natural voices/.exec(ttsTagline)?.[1] ?? CONSOLE_VOICES.length);
-  const faq = faqItems(brand, languages, CONSOLE_VOICES.length, apiVoices);
+  const faq = S.faq({ brand, voices, apiVoices, proPrice, proHours, ninetyPlus }, languages);
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
       { "@type": "Organization", "@id": `${origin}/#org`, name: brand, url: `${origin}/`, logo: `${origin}/logo.png`, description },
       { "@type": "WebSite", "@id": `${origin}/#site`, name: brand, url: `${origin}/`, publisher: { "@id": `${origin}/#org` } },
-      { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+      { "@type": "FAQPage", ...(native ? { inLanguage: lang } : {}), mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     ],
   };
 
   // The product row above the console: the same jobs as the tour below, one tap each.
-  const prow: [ico: string, label: string, href: string][] = [
-    ["speaker", "Text to speech", "#try"],
-    ["text", "Speech to text", `${VOICE_SITE}/transcribe`],
-    ["book", "Read aloud", `${VOICE_SITE}/text-reader`],
-    ["captions", "Subtitles", `${VOICE_SITE}/srt-generator`],
-    ["speaker", "Clean audio", `${VOICE_SITE}/remove-background-noise`],
-    ["book", "Audiobooks", `${STUDIO_SITE}/audiobook`],
-    ["podcast", "Podcasts", `${STUDIO_SITE}/dialogue`],
-    ["phone", "App", "/app"],
-  ];
+  const prowIcons = ["speaker", "text", "book", "captions", "book", "podcast", "phone"];
+  const prowHrefs = [ttsHref, sttHref, `${VOICE_SITE}/text-reader`, `${VOICE_SITE}${native ? native.srt : "/srt-generator"}`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
+  const here = native ? 1 : 0;
   const v = (i: number) => esc(CONSOLE_VOICES[i % voices]?.name ?? "");
   const waveBars = Array.from({ length: 40 }, (_, i) => `<i style="height:${18 + ((i * 53) % 78)}%"></i>`).join("");
   // The product tour: one wide row per job, a drawn preview of the real tool, one button into it. Every claim is a thing
   // the linked free tool does today.
-  const tour: [kicker: string, title: string, line: string, href: string, go: string, mock: string][] = [
-    ["Voiceovers", "Make a voiceover: type it, hear it, download it.", "Type your script and pick a voice. Not happy with one line? Redo just that sentence; it is spliced into the same download.", "#try", "Make a voiceover",
-      `<div class="mock" aria-hidden="true"><div class="mwave">${waveBars}</div><div class="row"><span class="t">01</span>The harbour woke slowly.</div><div class="row on"><span class="t">02</span>Gulls called above the empty quay.<span class="tag">Redo</span></div><div class="row"><span class="t">03</span>The first boat slipped out.</div></div>`],
-    ["Transcripts and subtitles", "Turn a recording into text and subtitles.", `Drop a recording and get the text back, plus subtitle files for YouTube and most video editors. ${esc(languages)}`, `${VOICE_SITE}/transcribe`, "Transcribe a file",
-      `<div class="mock" aria-hidden="true"><div class="row"><span class="t">00:00:01</span>Welcome back to the show.</div><div class="row on"><span class="t">00:00:04</span>Today we talk about keeping it simple.</div><div class="row"><span class="t">00:00:09</span>Let&rsquo;s start with the first question.</div><div class="row"><span class="t">SRT</span>Subtitles ready<span class="tag">Download</span></div></div>`],
-    ["Remove background noise", "Clean up voice recordings. Nothing is uploaded.", "Hiss, hum, fans and traffic come out; voices stay clear. It works on your own device, so your recording never leaves it.", `${VOICE_SITE}/remove-background-noise`, "Clean a recording",
-      `<div class="mock" aria-hidden="true"><div class="row"><span class="t">Before</span><div class="mwave">${waveBars}</div></div><div class="row on"><span class="t">After</span>Clear voice, less noise<span class="tag">Download</span></div></div>`],
-    ["Audiobooks", "Turn a book or PDF into an audiobook.", "Open a PDF, EPUB or Word file in the studio, choose a narrator and get one audio file per chapter.", `${STUDIO_SITE}/audiobook`, "Open the audiobook studio",
-      `<div class="mock" aria-hidden="true"><div class="row"><span class="t">Ch 1</span>The Harbour<div class="bar"><i style="width:100%"></i></div></div><div class="row on"><span class="t">Ch 2</span>The Storm<div class="bar"><i style="width:64%"></i></div></div><div class="row"><span class="t">Ch 3</span>Home Again<div class="bar"><i style="width:0"></i></div></div><div class="row"><span class="t">Voice</span>${v(2)}<span class="tag">Narrator</span></div></div>`],
-    ["Podcasts and dialogue", "Make a podcast with a voice for each speaker.", "Write who says what, and every person gets their own voice in one audio file. Add pauses where you want them.", `${STUDIO_SITE}/dialogue`, "Make a podcast",
-      `<div class="mock" aria-hidden="true"><div class="bub"><small>${v(0)}</small>So what did you think of the ending?</div><div class="bub b"><small>${v(3)}</small>Honestly? I did not see it coming.</div><div class="bub"><small>${v(0)}</small>Neither did I. Let&rsquo;s talk about it.</div></div>`],
-    ["The app", "Use it on your phone or computer, even offline.", `Install ${esc(brand)} Voice from this site on Windows, Mac, Linux, Android or iPhone. It keeps working without a connection.`, "/app", `Get the ${esc(brand)} app`,
-      `<div class="mock" aria-hidden="true"><div class="row on"><span class="t">${icon("phone")}</span>${esc(brand)} Voice<span class="tag">Install</span></div><div class="row"><span class="t">${icon("check")}</span>Works offline after the first use</div><div class="row"><span class="t">${icon("lock")}</span>Your text and recordings stay on the device</div><div class="row"><span class="t">${icon("download")}</span>MP3, WAV and subtitle downloads</div></div>`],
+  const M = S.mocks;
+  const mocks = [
+    `<div class="mock" aria-hidden="true"><div class="mwave">${waveBars}</div><div class="row"><span class="t">01</span>${M.voice[0]}</div><div class="row on"><span class="t">02</span>${M.voice[1]}<span class="tag">${M.redo}</span></div><div class="row"><span class="t">03</span>${M.voice[2]}</div></div>`,
+    `<div class="mock" aria-hidden="true"><div class="row"><span class="t">00:00:01</span>${M.transcript[0]}</div><div class="row on"><span class="t">00:00:04</span>${M.transcript[1]}</div><div class="row"><span class="t">00:00:09</span>${M.transcript[2]}</div><div class="row"><span class="t">SRT</span>${M.subtitles}<span class="tag">${M.download}</span></div></div>`,
+    `<div class="mock" aria-hidden="true"><div class="row"><span class="t">${M.chapter} 1</span>${M.chapters[0]}<div class="bar"><i style="width:100%"></i></div></div><div class="row on"><span class="t">${M.chapter} 2</span>${M.chapters[1]}<div class="bar"><i style="width:64%"></i></div></div><div class="row"><span class="t">${M.chapter} 3</span>${M.chapters[2]}<div class="bar"><i style="width:0"></i></div></div><div class="row"><span class="t">${M.voiceTag}</span>${v(2)}<span class="tag">${M.narrator}</span></div></div>`,
+    `<div class="mock" aria-hidden="true"><div class="bub"><small>${v(0)}</small>${M.dialogue[0]}</div><div class="bub b"><small>${v(3)}</small>${M.dialogue[1]}</div><div class="bub"><small>${v(0)}</small>${M.dialogue[2]}</div></div>`,
+    `<div class="mock" aria-hidden="true"><div class="row on"><span class="t">${icon("phone")}</span>${esc(brand)} Voice<span class="tag">${M.app[0]}</span></div><div class="row"><span class="t">${icon("check")}</span>${M.app[1]}</div><div class="row"><span class="t">${icon("lock")}</span>${M.app[2]}</div><div class="row"><span class="t">${icon("download")}</span>${M.app[3]}</div></div>`,
   ];
+  const tourHrefs = [ttsHref, `${VOICE_SITE}${native ? native.stt : "/transcribe"}`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
   // Fair by design: the complaints people have about voice tools, answered as promises this service keeps.
-  const fair: [ico: string, title: string, line: string][] = [
-    ["user", "No account for the free tools", "Type, play, download. No e-mail, no sign-up form, no trial that ends."],
-    ["redo", "Retries and previews are free", "Audition every voice and redo any sentence as often as you like. Nothing is counted on this page."],
-    ["download", "No CAPTCHA, no watermark", "MP3, WAV and subtitle files from the free tools download clean, with nothing to solve first."],
-    ["coin", "A failed job costs nothing", "On paid plans and the API, only work that succeeds is counted. Errors and bad input are free."],
-    ["clock", "Packs never expire", "A one-off pack keeps its balance until you use it. No subscription needed."],
-    ["exit", "Cancel in one click", "Stop a plan any time from the plan portal with the e-mail you paid with. Hours you don't use carry over."],
-  ];
+  const fairIcons = ["user", "redo", "download", "coin", "clock", "exit"];
 
-  const navLinks = `<a href="#try">Text to speech</a><a href="${VOICE_SITE}/transcribe">Transcribe</a><a href="${STUDIO_SITE}/audiobook">Audiobooks</a><a href="/transcribe-pro">Pro</a><a href="#pricing">Pricing</a><a href="/guides">Guides</a><a href="#developers">Developers</a>`;
+  const N = S.nav;
+  const navLinks = `<a href="${esc(ttsHref)}">${esc(N.tts)}</a><a href="${esc(sttHref)}">${esc(N.transcribe)}</a><a href="${STUDIO_SITE}/audiobook">${esc(N.audiobooks)}</a><a href="/transcribe-pro">${esc(N.pro)}</a><a href="#pricing">${esc(N.pricing)}</a><a href="/guides">${esc(N.guides)}</a><a href="#developers">${esc(N.developers)}</a>`;
+  const proHref = cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro";
+  const anncHref = `${VOICE_SITE}${native ? (lang === "de" ? native.stt : native.tts) : "/text-to-speech"}`;
+  const consoleLang = native ? { first: "stt" as const, labels: S.console, language: native.whisper, languageNames: consoleLanguageNames(lang as OtherLang) } : {};
+  const ladder = native && S.ladder ? localLadder(S.ladder, brand, voices) : offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try", trial: opts.creditsTrial });
 
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="theme-color" content="#fbfaf7">
-<link rel="canonical" href="${esc(origin)}/">
+<link rel="canonical" href="${esc(self)}">
 <meta property="og:type" content="website"><meta property="og:site_name" content="${esc(brand)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="${esc(self)}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
-${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
+${webApplicationScript({ name: brand, url: self, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
 <style>${STYLE}${OFFER_CSS}${STUDIO_VOICES_CSS}${HOME_LAYOUT_CSS}${REDESIGN_CSS}</style></head><body class="has-stickbar">
-<p class="annc"><b>New</b><span class="long">The free voice tool now also speaks Spanish, French, Italian, Portuguese and Hindi. </span><span class="short">Five more languages in the free voice tool. </span><a href="${VOICE_SITE}/text-to-speech">Try a voice &rarr;</a></p>
-<header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
+<p class="annc"><b>${esc(S.annc.badge)}</b><span class="long">${esc(S.annc.long)}</span><span class="short">${esc(S.annc.short)}</span><a href="${esc(anncHref)}">${S.annc.linkHtml}</a></p>
+<header class="nav"><div class="wrap"><div class="home"><a href="${homePath(lang)}" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="${homePath(lang)}">${esc(brand)}</a></div>
 <nav aria-label="Main">${navLinks}</nav>
-<div class="nav-cta"><a class="btn sm" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="nav_pro">Get Pro: ${proPrice}</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
+<div class="nav-cta"><a class="btn sm" href="${proHref}" data-ev="nav_pro">${esc(S.getPro(proPrice))}</a><a class="btn sm primary" href="#try">${esc(S.tryFree)}</a><details class="menu"><summary aria-label="${esc(S.menu.label)}">${esc(S.menu.label)}</summary><div>${navLinks}<a href="/app">${esc(S.menu.app)}</a><a href="/docs">${esc(S.menu.docs)}</a>${opts.freeKey ? `<a href="/keys/free">${esc(S.menu.freeKey)}</a>` : ""}<a href="/credits">${esc(S.menu.apiKey)}</a></div></details></div></div></header>
 <main>
 <section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
-<p class="pill"><i></i>Free in your browser &middot; no account &middot; nothing uploaded</p>
-<h1>Lifelike voices for <span class="gt">anything you write.</span></h1>
-<p class="lede">Type words. Hear them spoken. Free, right here.</p>
-<div class="show" aria-label="Hear our voices">
-<div class="show-cta"><button type="button" class="btn primary big" data-sample="${esc(VOICE_SITE)}/samples/bf_emma.mp3" data-ev="hear_now">&#9654;&nbsp; Hear it now</button><a class="btn big" href="#make-own" data-ev="hero_try">Make your own, free</a></div>
-<div class="vwall">${CONSOLE_VOICES.slice(0, 8).map((v, i) => `<button type="button" class="vcard" data-ev="sample_play" aria-pressed="false" data-voice-pick="${esc(v.id)}" data-voice-name="${esc(v.name)}" data-sample="${esc(VOICE_SITE)}/samples/${esc(v.id)}.mp3" aria-label="Play ${esc(v.name)}, ${esc(v.accent)} ${esc(v.gender)}"><span class="av" style="--h1:${[262, 190, 330, 25, 290, 160, 210, 45][i]};--h2:${[190, 262, 25, 330, 160, 290, 45, 210][i]}" aria-hidden="true"></span><span class="vn"><b>${esc(v.name)}</b><small>${esc(v.accent)} ${esc(v.gender)}</small></span><span class="vw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`).join("")}</div>
-<p class="show-note" id="show-note" aria-live="polite">Tap a voice to hear it. Every voice here is free.</p>
+<p class="pill"><i></i>${S.hero.pillHtml}</p>
+<h1>${esc(S.hero.h1)} <span class="gt">${esc(S.hero.h1Accent)}</span></h1>
+<p class="lede">${esc(S.hero.lede)}</p>
+<div class="show" aria-label="${esc(S.show.label)}">
+<div class="show-cta"><button type="button" class="btn primary big" data-sample="${esc(VOICE_SITE)}/samples/bf_emma.mp3" data-ev="hear_now">${S.show.hearHtml}</button><a class="btn big" href="#make-own" data-ev="hero_try">${esc(S.show.makeOwn)}</a></div>
+<div class="vwall">${CONSOLE_VOICES.slice(0, 8).map((v, i) => `<button type="button" class="vcard" data-ev="sample_play" aria-pressed="false" data-voice-pick="${esc(v.id)}" data-voice-name="${esc(v.name)}" data-sample="${esc(VOICE_SITE)}/samples/${esc(v.id)}.mp3" aria-label="${esc(S.show.play(v.name, S.show.tag(v.accent, v.gender)))}"><span class="av" style="--h1:${[262, 190, 330, 25, 290, 160, 210, 45][i]};--h2:${[190, 262, 25, 330, 160, 290, 45, 210][i]}" aria-hidden="true"></span><span class="vn"><b>${esc(v.name)}</b><small>${esc(S.show.tag(v.accent, v.gender))}</small></span><span class="vw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`).join("")}</div>
+<p class="show-note" id="show-note" aria-live="polite">${esc(S.show.note)}</p>
 </div>
-<h2 class="own" id="make-own">Make your own</h2>
-<nav class="prow" aria-label="What you can make">${prow.map(([ic, label, href], i) => `<a href="${esc(href)}"${i === 0 ? ' aria-current="page"' : ""}>${icon(ic)}${esc(label)}</a>`).join("")}</nav>
-<div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
-<ul class="promise"><li>${icon("download")}Free MP3 and WAV downloads</li><li>${icon("redo")}Redo one sentence, keep the rest</li><li>${icon("check")}Unlimited previews and retries</li></ul>
-<p class="after">Rather use an app? <a href="/app">Install ${esc(brand)} Voice</a>, free on your phone or computer.</p>
+<h2 class="own" id="make-own">${esc(S.show.own)}</h2>
+<nav class="prow" aria-label="${esc(S.prowLabel)}">${S.prow.map((label, i) => `<a href="${esc(prowHrefs[i])}"${i === here ? ' aria-current="page"' : ""}>${icon(prowIcons[i])}${esc(label)}</a>`).join("")}</nav>
+<div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: S.hero.upsellTtsHtml(brand), upsellStt: S.hero.upsellSttHtml, ...consoleLang })}
+<ul class="promise"><li>${icon("download")}${esc(S.hero.promise[0])}</li><li>${icon("redo")}${esc(S.hero.promise[1])}</li><li>${icon("check")}${esc(S.hero.promise[2])}</li></ul>
+<p class="after">${S.hero.afterHtml(brand, ttsHref)}</p>
 </div>
 </div></section>
 
-<section class="stats" aria-label="Why people like it"><div class="wrap"><ul class="trust">
-<li>${icon("check")}Free, no daily limits</li><li>${icon("user")}No account needed</li><li>${icon("lock")}Your files stay on your device</li><li>${icon("download")}Download MP3, WAV or subtitles</li><li>${icon("speaker")}${voices} free browser voices</li>
+<section class="stats" aria-label="${esc(S.trustLabel)}"><div class="wrap"><ul class="trust">
+${S.trust(voices).map((t, i) => `<li>${icon(["check", "user", "lock", "download", "speaker"][i])}${esc(t)}</li>`).join("")}
 </ul></div></section>
 
 <section class="sec center" id="make"><div class="wrap">
-<h2>One studio for every voice job.</h2>
-<p class="sub">Voiceovers, transcripts, subtitles, audiobooks and podcasts. Every one of these is free to use.</p>
-<div class="tour">${tour.map(([k, t, line, href, go, mock]) => `<article class="trow"><div class="tcopy"><span class="kicker">${esc(k)}</span><span class="free">Free</span><h3>${esc(t)}</h3><p>${line}</p><a class="btn primary" href="${esc(href)}">${go} &rarr;</a></div>${mock}</article>`).join("")}</div>
+<h2>${esc(S.make.h2)}</h2>
+<p class="sub">${esc(S.make.sub)}</p>
+<div class="tour">${S.tour.map(([k, t, line, go], i) => `<article class="trow"><div class="tcopy"><span class="kicker">${esc(k)}</span><span class="free">${esc(S.make.free)}</span><h3>${esc(t)}</h3><p>${fill(line)}</p><a class="btn primary" href="${esc(tourHrefs[i])}">${fill(go)} &rarr;</a></div>${mocks[i]}</article>`).join("")}</div>
 </div></section>
 
 <section class="sec" id="pro"><div class="wrap"><div class="proband">
-<div><span class="kicker">Transcribe Pro</span><h2>Your long recording as text. <span class="gt">We do the work.</span></h2>
-<p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}. That is about ${Math.max(1, Math.round(VOICE_PRO_CENTS / proHours))}&cent; an hour.</p>
-<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Start Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
-<p class="paywith"><b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears on screen when you pay, with no account.</p></div>
-<ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
+<div><span class="kicker">${esc(S.pro.kicker)}</span><h2>${esc(S.pro.h2)} <span class="gt">${esc(S.pro.h2Accent)}</span></h2>
+<p class="sub">${esc(S.pro.sub(proHours, proPrice))} ${S.pro.centsHtml(Math.max(1, Math.round(VOICE_PRO_CENTS / proHours)))}</p>
+<div class="ctas"><a class="btn primary" href="${proHref}">${esc(S.pro.cta(proPrice))}</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, S.pro.trial, "btn") : `<a class="btn" href="/credits">${esc(S.pro.packs)}</a>`}</div>
+<p class="paywith">${S.pro.payWithHtml}</p></div>
+<ul>${S.pro.points.map(([b, s]) => `<li><b>${esc(b)}</b><span>${esc(s)}</span></li>`).join("")}</ul>
 </div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_STUDIO_PLAN.url, planPrice: `$${VOICE_STUDIO_PLAN.usdCents / 100}`, planCharacters: speechCharacters(VOICE_STUDIO_PLAN.credits), maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
 
 <section class="sec center" id="pricing"><div class="wrap">
-<h2>Free stays free. <span class="gt">Pro does the heavy lifting.</span></h2>
-<p class="sub">Everything you make on this page and in the app is free, on your own device. Pay only when you want the work done for you.</p>
-${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHref: "#try", trial: opts.creditsTrial }) : `<div class="freebox"><div><h3>${esc(brand)} Free</h3><div class="p">$0<small> forever</small></div><ul><li>Text to speech</li><li>Transcripts and subtitles</li><li>All ${voices} browser voices</li><li>Every download</li><li>No account, no limits</li></ul></div><a class="btn white" href="#try">Start for free</a></div>`}
-${cardReady ? voicePlans() : ""}
-${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
+<h2>${esc(S.pricing.h2)} <span class="gt">${esc(S.pricing.h2Accent)}</span></h2>
+<p class="sub">${esc(S.pricing.sub)}</p>
+${cardReady ? ladder : `<div class="freebox"><div><h3>${esc(S.pricing.freeName(brand))}</h3><div class="p">$0<small>${esc(S.pricing.forever)}</small></div><ul>${S.pricing.freeItems(voices).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div><a class="btn white" href="#try">${esc(S.pricing.freeGo)}</a></div>`}
+${cardReady ? voicePlans(S) : ""}
+${cardReady && !native ? `<details class="cmpbox"><summary>${esc(S.pricing.compare)}</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
 </div></section>
 
 <section class="sec center" id="fair"><div class="wrap">
-<h2>Fair by design. <span class="gt">No surprises on your bill.</span></h2>
-<p class="sub">The things people dislike about voice tools, answered as promises we keep.</p>
-<div class="fair">${fair.map(([ic, t, line]) => `<div><b>${icon(ic)}${esc(t)}</b><span>${esc(line)}</span></div>`).join("")}</div>
+<h2>${esc(S.fairHead.h2)} <span class="gt">${esc(S.fairHead.h2Accent)}</span></h2>
+<p class="sub">${esc(S.fairHead.sub)}</p>
+<div class="fair">${S.fair.map(([t, line], i) => `<div><b>${icon(fairIcons[i])}${esc(t)}</b><span>${esc(line)}</span></div>`).join("")}</div>
 </div></section>
 
 <section class="sec center" id="how"><div class="wrap">
-<h2>As easy as 1, 2, 3</h2>
-<p class="sub">No learning curve. If you can type, you can use ${esc(brand)}.</p>
+<h2>${esc(S.how.h2)}</h2>
+<p class="sub">${esc(S.how.sub(brand))}</p>
 <ol class="steps compact">
-<li><strong>Type or drop</strong><span>Write some text, or drop in a recording.</span></li>
-<li><strong>Pick a voice</strong><span>Choose from ${voices} voices and set the speed.</span></li>
-<li><strong>Press Play</strong><span>Listen, then download it. Done.</span></li>
+${S.how.steps(voices).map(([s, t]) => `<li><strong>${esc(s)}</strong><span>${esc(t)}</span></li>`).join("\n")}
 </ol>
-<div class="ctas" style="justify-content:center;margin-top:30px"><a class="btn primary" href="#try">Start now, it&rsquo;s free</a></div>
+<div class="ctas" style="justify-content:center;margin-top:30px"><a class="btn primary" href="#try">${S.how.goHtml}</a></div>
 </div></section>
 
 <section class="sec" id="faq"><div class="wrap">
-<div class="center"><h2>Questions</h2></div>
+<div class="center"><h2>${esc(S.faqTitle)}</h2></div>
 <div class="faq" style="margin-top:28px">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join("")}</div>
 </div></section>
 
 <section class="sec" id="developers"><div class="wrap"><div class="devbox">
-<span class="kicker">For developers</span><h2>Building an app? One key does it all.</h2>
-<p class="sub">The same voices and transcripts, plus document reading and search, as simple web requests. ${opts.trial ? "A free try on every page, and failed" : "Prepaid from $1, and failed"} calls cost nothing.</p>
-<div class="ctas"><a class="btn primary" href="/credits">Get an API key</a>${opts.freeKey ? `<a class="btn" href="/keys/free">Get a free key</a>` : ""}<a class="btn" href="/docs">Read the docs</a></div>
-<details class="devmore" id="apis"><summary>See every API, with prices and what each plan buys</summary>
+<span class="kicker">${esc(S.dev.kicker)}</span><h2>${esc(S.dev.h2)}</h2>
+<p class="sub">${esc(S.dev.sub(Boolean(opts.trial)))}</p>
+<div class="ctas"><a class="btn primary" href="/credits">${esc(S.dev.key)}</a>${opts.freeKey ? `<a class="btn" href="/keys/free">${esc(S.dev.freeKey)}</a>` : ""}<a class="btn" href="/docs">${esc(S.dev.docs)}</a></div>
+<details class="devmore" id="apis"><summary>${esc(S.dev.more)}</summary>
 <div class="dev"><div><ol>
-<li><b>${opts.trial ? "Try it." : "See it."}</b> ${opts.trial ? "Every product page runs the real thing on your own input, free." : "Every product page shows a real example answer."}</li>
-<li><b>Get a key.</b> Pay by card; the key is shown on screen when you pay. No account to create.</li>
-<li><b>Call it.</b> Requests in the formats most voice apps already use work as they are.</li>
+${S.dev.stepsHtml(Boolean(opts.trial)).map((x) => `<li>${x}</li>`).join("\n")}
 </ol></div>
-<div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
+<div class="term" aria-label="${esc(S.dev.examples)}"><div class="wave" aria-hidden="true">${bars}</div>
 <div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
 <div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div></div>
 <div class="nums">${stats.map(([n, l, s]) => `<div class="num"><div class="n gt">${esc(n)}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("")}</div>
 <div class="devpricing" id="api-pricing">${pricing}</div>
 <div id="products">${shelves}</div>
 <div class="agents">
-<h2>For AI agents</h2>
-<p>The same APIs, and the rest of a catalogue of ${TOOL_COUNT} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> ${opts.trial ? `(the first ${FREE_CALLS_PER_CALLER} successful calls are free)` : "(paid per call or with a prepaid key)"} and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
+<h2>${esc(S.dev.agents)}</h2>
+<p>${S.dev.agentsHtml(TOOL_COUNT, `${origin}/mcp`, opts.trial ? FREE_CALLS_PER_CALLER : 0)}</p>
 </div>
 </details>
 </div></div></section>
 
-<section class="final"><h2>Give it a try. <span class="gt">Type, play, download.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
-</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}${SHOWCASE_SCRIPT}
+<section class="final"><h2>${esc(S.final.h2)} <span class="gt">${esc(S.final.h2Accent)}</span></h2><p>${esc(S.final.sub)}</p><div class="ctas"><a class="btn primary" href="#try">${esc(S.final.go)}</a><a class="btn" href="/app">${esc(S.final.app)}</a></div></section>
+</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">${esc(S.sticky.tryFree)}</a><a class="btn" href="${proHref}" data-ev="sticky_pro">${esc(S.sticky.pro(proPrice))}</a></div>${voiceConsoleScript(native?.voice)}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}${showcaseScript(S.show.stopHtml, S.show.ready)}
 <footer><div class="wrap"><div class="cols">
-<div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
-${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
+<div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>${esc(S.footer.blurb)}</p><p><a href="${esc(`${VOICE_SITE}${native ? native.tts : "/text-to-speech"}`)}">${esc(S.footer.tts)}</a> · <a href="${esc(`${VOICE_SITE}${native ? native.stt : "/transcribe"}`)}">${esc(S.footer.transcribe)}</a> · <a href="${STUDIO_SITE}/audiobook">${esc(S.footer.studio)}</a> · <a href="/app">${esc(S.footer.app)}</a></p></div>
+${SHELVES.map((s) => `<div><h3>${esc(S.apis(S.shelves[s.id]))}</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
 </div>
-<p class="legal"><a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/transcribe-pro">Transcribe Pro</a> · <a href="/agents">For AI agents</a> · ${COMPANY_FOOTER}</p>
+<p class="legal"><a href="/docs">${esc(S.footer.docs)}</a> · <a href="/credits">${esc(S.footer.pricing)}</a> · <a href="/transcribe-pro">Transcribe Pro</a> · <a href="/agents">${esc(S.footer.agents)}</a> · ${COMPANY_FOOTER}</p>
 </div></footer></body></html>`;
 }

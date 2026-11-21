@@ -70,9 +70,9 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices, c
 }
 
 /** Hours of audio that `credits` buy through /transcribe/long. */
-const hoursFor = (credits: number, longPrice: string) => Math.floor(credits / creditsAt(longPrice));
+export const hoursFor = (credits: number, longPrice: string) => Math.floor(credits / creditsAt(longPrice));
 /** The larger monthly plan, when the card checkout offers one beside the entry plan (WEB_PLANS holds the developer plans only). */
-const largerPlan = () => WEB_PLANS.find((p) => p.usdCents > VOICE_PRO_CENTS);
+export const largerPlan = () => WEB_PLANS.find((p) => p.usdCents > VOICE_PRO_CENTS);
 
 /**
  * The steps people choose between, as cards (21 Nov 2026): Free on your device, one job paid once, and the monthly
