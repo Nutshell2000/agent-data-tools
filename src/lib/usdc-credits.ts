@@ -213,6 +213,11 @@ export async function buyCreditsWithUsdc(c: C): Promise<Response> {
       use,
     }), { status: 200, headers }));
   }
+  // A retry of a settlement that was already granted to another key (a top-up after a rotation) answers with that
+  // earlier record and no key: never show the new key, which was never stored (the card claim says the same).
+  if (fresh && !issued.key && (issued as { repeated?: boolean }).repeated) {
+    return send(new Response(JSON.stringify({ creditsAdded: 0, paid, note: `This payment was already added to a key. Use your current key; check it at ${origin}/credits/balance.` }), { status: 200, headers }));
+  }
   return send(new Response(JSON.stringify({
     ...(fresh ? { apiKey: issued.key ?? fresh, mcpUrl: `${origin}/mcp/k/${issued.key ?? fresh}` } : {}),
     creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), toppedUp: Boolean(topUp), paid,

@@ -252,7 +252,7 @@ function registerCompactTools(
         // key price as the refused-call hint, or this first-touch hint routes to /credits and understates a pack 10x.
         // 21 Nov 2026: for a tool inside the free calls this is how to pay LATER; opening with "PAYMENT NEEDED" made an
         // assistant tell its user to pay before trying a call that would have been free.
-        pay: CAPACITY_LIMITED.has(e.path)
+        pay: !freeEligible(e.path)
           ? paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price))
           : paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price)).replace(/^PAYMENT NEEDED /, "AFTER THE FREE CALLS, PAYMENT "),
       });
