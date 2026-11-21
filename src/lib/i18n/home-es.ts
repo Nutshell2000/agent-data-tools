@@ -132,5 +132,5 @@ export const ES: HomeStrings = {
     moreAsk: "¿Horas de audio cada día?", more: (p, h) => `${p} al mes por unas ${h} horas`, api: "¿Creas una app? Precios de la API (inglés)",
   },
   // "agentes de IA" names the agent catalogue's audience, as the English page does; no product is labelled AI.
-  banned: [/r[áa]pid[oa]s?\b/i, /al instante/i, /en segundos/i, /reembols/i, /devoluci[óo]n del dinero/i, /uso comercial/i, /crea(r)? (una )?cuenta/i, /inicia(r)? sesi[óo]n/i, /(?<!agentes de )\bIA\b/, /inteligencia artificial/i, /PayPal/i, /cripto/i],
+  banned: [/r[áa]pid[oa]s?\b/i, /al instante/i, /en segundos/i, /reembols/i, /devoluci[óo]n del dinero/i, /uso comercial/i, /crea(r)? (una )?cuenta/i, /inicia(r)? sesi[óo]n/i, /(?<!agentes de )\bIA\b/, /inteligencia artificial/i, /PayPal/i, /cripto/i, /esta noche|en minutos|en cuanto|al momento|enseguida|justo después/i],
 };

@@ -36,8 +36,9 @@ test("a tool page follows its own route file, the page template and, with search
 });
 
 test("the sitemap carries a valid past day or no lastmod at all, and the committed days are not all the same", () => {
-  const entries = [...site.xml.matchAll(/<url><loc>([^<]+)<\/loc>(?:<lastmod>([^<]*)<\/lastmod>)?<\/url>/g)];
-  assert.equal(entries.length, site.paths.length, "every <url> is a loc with at most one lastmod");
+  // The language homes also carry hreflang alternates (xhtml:link) after their lastmod (lib/i18n/locales.ts).
+  const entries = [...site.xml.matchAll(/<url><loc>([^<]+)<\/loc>(?:<lastmod>([^<]*)<\/lastmod>)?(?:<xhtml:link [^>]*\/>)*<\/url>/g)];
+  assert.equal(entries.length, site.paths.length, "every <url> is a loc with at most one lastmod (and language alternates)");
   const days = entries.map((m) => m[2]).filter((d) => d !== undefined);
   for (const day of days) {
     assert.match(day, DAY);

@@ -134,5 +134,5 @@ export const DE: HomeStrings = {
     moreAsk: "Jeden Tag stundenlang Audio?", more: (p, h) => `${p} im Monat für etwa ${h} Stunden`, api: "Du baust eine App? API-Preise (englisch)",
   },
   // "KI-Agenten" names the agent catalogue's audience, as the English page does; no product is labelled AI.
-  banned: [/schnell/i, /sofort/i, /in sekunden/i, /blitz/i, /erstatt/i, /geld[- ]zur[üu]ck/i, /kommerziell/i, /konto (an|er)legen/i, /registrier/i, /\bKI\b(?!-Agenten)/, /künstliche intelligenz/i, /PayPal/i, /krypto/i],
+  banned: [/schnell/i, /sofort/i, /in sekunden/i, /blitz/i, /erstatt/i, /geld[- ]zur[üu]ck/i, /kommerziell/i, /konto (an|er)legen/i, /registrier/i, /\bKI\b(?!-Agenten)/, /künstliche intelligenz/i, /PayPal/i, /krypto/i, /heute abend|in minuten|sobald|direkt nach|gleich nach/i],
 };
