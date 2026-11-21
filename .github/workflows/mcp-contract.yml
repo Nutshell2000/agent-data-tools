@@ -2,6 +2,10 @@ name: MCP contract
 
 on:
   push:
+    # Feature branches are covered by their pull request run; a push run per branch queued
+    # ~150 runs at once on 21 Nov 2026 and each timed-out run e-mailed a failure.
+    # release-* and ci/* stay: release.ps1 and the deploy guard need a push run for an exact commit.
+    branches: [main, 'release-*', 'ci/**']
   pull_request:
   # release.ps1 starts it by hand when GitHub did not start a push run for a merge commit (22 Oct 2026, 1.50.3);
   # the deploy guard needs a successful run for the exact commit.
@@ -12,9 +16,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mcp-contract-${{ github.event_name }}-${{ github.ref }}
+  # Never cancel a main run: the deploy guard needs it to finish for that exact commit.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -26,5 +36,4 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run check:mcp-contract
-      - run: npm run check:ownership
       - run: npm run check:ownership
