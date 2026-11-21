@@ -289,7 +289,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     slug: "speech-to-text-api",
     name: "Speech to text API",
-    tagline: "Send an audio file, get the transcript, subtitles (SRT or VTT) and word timings back. Up to an hour of audio for $0.05; OpenAI- and ElevenLabs-compatible.",
+    tagline: "Send an audio file, get the transcript, subtitles (SRT or VTT) and word timings back. Up to an hour of audio for $0.05. Works with the request formats most voice apps already use.",
     upload: true,
     tool: "/transcribe",
     also: ["/transcribe/long", "/ai/summarize-text", "/ai/translate"],
@@ -321,7 +321,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     slug: "text-to-speech-api",
     name: "Text to speech API",
-    tagline: "Send text, get one audio file back: 50 natural voices in English and Spanish, or a low-cost English voice at $0.02 per 1,000 characters. French, Chinese, Japanese and Korean were retired with MeloTTS (20 Nov 2026). ElevenLabs- and OpenAI-compatible.",
+    tagline: "Send text, get one audio file back: 50 natural voices in English and Spanish, or a low-cost English voice at $0.02 per 1,000 characters. Works with the request formats most voice apps already use.",
     tool: "/text-to-speech",
     also: ["/text-to-speech/lite", "/ai/speech"],
     points: [
