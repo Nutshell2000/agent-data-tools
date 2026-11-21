@@ -25,7 +25,7 @@ before(async () => {
 
 test("the front page leads with the products and their plans, under the brand", () => {
   const html = landingPage("Glyphcall", "https://x.test", true);
-  assert.match(html, /<title>Glyphcall: /);
+  assert.match(html, /<title>[^<]{10,48} \| Glyphcall<\/title>/, "the title leads with the search words, ends with the brand, and fits 60 characters");
   assert.match(html, /<a class="brand" href="\/">Glyphcall<\/a>/);
   for (const p of PRODUCTS) {
     assert.ok(html.includes(`href="/${p.slug}"`), p.slug);

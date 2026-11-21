@@ -164,8 +164,9 @@ export function landingPage(brand: string, origin: string, cardReady: boolean, o
   const proPrice = `$${VOICE_PRO_CENTS / 100}`;
   const proHours = voiceProHours(voicePrices().long);
 
-  const title = `${brand}: free text to speech and transcription, plus voice and document APIs`;
-  const description = `Turn text into natural speech and recordings into text, free in your browser with no sign-up. For apps: an hour of transcription for ${us.long}${hasLite ? `, speech from ${money(us.lite1k)} per 1,000 characters` : ""}, PDFs and web pages to text, and EU search. Failed calls are never charged.`.slice(0, 300);
+  // Search titles lead with what people type (Search Console, 21 Nov: "text reader", "read aloud"); <=60 and <=160 characters.
+  const title = `Free Text to Speech and Transcription Online | ${brand}`.slice(0, 60);
+  const description = `Type any text and hear lifelike voices, or turn recordings into text and subtitles. Free in your browser: no sign-up, MP3 and WAV downloads.`.slice(0, 160);
 
   // Developer code tabs: each runs a tool's own published example, so the request shown is one that works.
   const sample = (path: string) => {
@@ -224,7 +225,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "Organization", "@id": `${origin}/#org`, name: brand, url: `${origin}/`, logo: `${origin}/favicon.svg`, description },
+      { "@type": "Organization", "@id": `${origin}/#org`, name: brand, url: `${origin}/`, logo: `${origin}/logo.png`, description },
       { "@type": "WebSite", "@id": `${origin}/#site`, name: brand, url: `${origin}/`, publisher: { "@id": `${origin}/#org` } },
       { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     ],
