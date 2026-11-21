@@ -99,7 +99,7 @@ function faqItems(brand: string, languages: string, browserVoices: number, apiVo
     ["How many voices are there?", `${browserVoices} voices in the free browser tools and ${apiVoices} through the API. Both are our own voices; nothing is uploaded to make either one speak.`],
     ["Can I use it on my phone?", `Yes. Open this page on your phone, or install the free ${brand} app from glyphcall.com/app. It works on Windows, Mac, Linux, Android and iPhone, and keeps working offline.`],
     ["What happens when an API call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
-    ["Can I cancel a plan?", `Any time, from the plan portal, with the e-mail address you paid with. Unused credits stay on your key and one-off packs never expire.`],
+    ["Can I cancel a plan?", `Any time, from the plan portal, with the e-mail address you paid with. Hours you don't use carry over, and one-off packs never expire.`],
   ];
 }
 
@@ -294,7 +294,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
     ["download", "No CAPTCHA, no watermark", "MP3, WAV and subtitle files from the free tools download clean, with nothing to solve first."],
     ["coin", "A failed job costs nothing", "On paid plans and the API, only work that succeeds is counted. Errors and bad input are free."],
     ["clock", "Packs never expire", "A one-off pack keeps its balance until you use it. No subscription needed."],
-    ["exit", "Cancel in one click", "Stop a plan any time from the plan portal with the e-mail you paid with. Unused credits stay on your key."],
+    ["exit", "Cancel in one click", "Stop a plan any time from the plan portal with the e-mail you paid with. Hours you don't use carry over."],
   ];
 
   const navLinks = `<a href="#try">Text to speech</a><a href="${VOICE_SITE}/transcribe">Transcribe</a><a href="${STUDIO_SITE}/audiobook">Audiobooks</a><a href="/transcribe-pro">Pro</a><a href="#pricing">Pricing</a><a href="/guides">Guides</a><a href="#developers">Developers</a>`;
