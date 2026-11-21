@@ -104,10 +104,10 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
 <a class="btn" href="${esc(opts.freeHref)}" data-ev="free_start">Start free</a></div>`;
   const once = `<div class="tier"><h3>One job</h3><p class="for">A long recording, done for you once. No subscription.</p><div class="p">$1<small> once</small></div>
 <ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles as SRT or VTT, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
-<a class="btn" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Get ${pack} hours for $1</a><p class="fine">Paid once by card. No account.</p></div>`;
+<a class="btn primary" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Pay by card: $1 once</a><p class="fine">Pay by card (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account.</p></div>`;
   const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
 <ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Hours you don't use carry over to next month. Cancel any time.</li></ul>
-<a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account.${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
+<a class="btn primary" href="${esc(VOICE_PRO_URL)}">Pay by card: ${price} a month</a><p class="fine">Pay by card (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account. ${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
   return `<div class="ladder">${free}${once}${pro}</div>
 <p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month: also includes developer access</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
 }
@@ -165,9 +165,9 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <span class="kicker">${esc(brand)} Transcribe Pro</span>
 <h1>Any recording, turned into text.<br><span class="gt">Done for you.</span></h1>
 <p class="lede"><strong>About ${hours} hours of transcription a month for ${price}.</strong> Audio and video to text on our servers, with SRT and VTT subtitles and word timings, in more than 90 languages.</p>
-<div class="ctas" style="justify-content:center"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a>${tryLink(prices, trial, "Try Pro free on one file", "btn")}</div>
-<p class="after">Just one file?</p><p style="text-align:center;margin:8px 0 0"><a class="btn ghost" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">${hoursPack} hours for $1, paid once</a></p>
-<p class="after">Pay by card, Apple Pay, Google Pay or Link. No account: your key appears right after payment. Cancel any time.</p>
+<div class="ctas" style="justify-content:center"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Pay by card: ${price} a month</a>${tryLink(prices, trial, "Try Pro free on one file", "btn")}</div>
+<p class="after">Just one file?</p><p style="text-align:center;margin:8px 0 0"><a class="btn ghost" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Pay by card: $1 once (${hoursPack} hours)</a></p>
+<p class="after">Pay by card (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account. Cancel any time.</p>
 </div></section>
 
 <section class="sec center" id="how"><div class="wrap">
@@ -196,7 +196,7 @@ ${offerCompare(prices, CONSOLE_LANGUAGES.length)}
 <p class="small" style="margin-top:22px">For developers: the same account works from code. See the developer pages. <a href="/speech-to-text-api">Speech to text API</a> · <a href="/credits">all credit packs and plans</a> · <a href="${esc(PLAN_PORTAL_URL)}">manage or cancel a plan</a></p>
 </div></section>
 
-<section class="final"><h2>Drop a recording. <span class="gt">Get every word back.</span></h2><p>About ${hours} hours a month for ${price}. No account.</p><div class="ctas"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro</a>${tryLink(prices, trial, "Try it free on one file", "btn")}</div></section>
+<section class="final"><h2>Drop a recording. <span class="gt">Get every word back.</span></h2><p>About ${hours} hours a month for ${price}. No account.</p><div class="ctas"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Pay by card: ${price} a month</a>${tryLink(prices, trial, "Try it free on one file", "btn")}</div></section>
 </main>
 <footer><div class="wrap"><p class="legal"><a href="/">Home</a> · <a href="/docs">Docs</a> · <a href="/credits">Pricing</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refunds">Refunds</a></p></div></footer></body></html>`;
 }
