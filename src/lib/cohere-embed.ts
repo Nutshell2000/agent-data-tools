@@ -9,11 +9,11 @@ import { ENDPOINTS } from "../endpoints";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
 import { EMBED_TOOL_PATH, toEmbedText } from "./openai-embeddings";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const COHERE_EMBED_V2_PATH = "/v2/embed";
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 /** A Cohere v2 embed body as the one text /ai/embed can serve, or why it cannot be served. */
@@ -41,7 +41,7 @@ export function toCohereEmbed(text: string, result: { embedding?: number[]; mode
 
 /** Handles /v2/embed by forwarding the equivalent /ai/embed GET through the middleware. */
 export async function cohereEmbed(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, (params) => (params.text === undefined ? null : { texts: [params.text] }));
   const mapped = toCohereEmbedText(body);
   if ("error" in mapped && paying) return c.json({ message: mapped.error }, 400);
@@ -52,7 +52,7 @@ export async function cohereEmbed(c: C, forward: Forward): Promise<Response> {
   const inner = new URL(EMBED_TOOL_PATH, outer.origin);
   inner.searchParams.set("text", text);
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

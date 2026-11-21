@@ -85,8 +85,16 @@ export const EITHER_INPUT: Readonly<Record<string, readonly string[]>> = {
   "/price/token": ["symbol", "address"], "/token/price": ["symbol", "address"], "/price/crypto": ["symbol", "address"], "/token-price-api": ["symbol", "address"],
 };
 const eitherInput = (e: Endpoint) => (Object.hasOwn(EITHER_INPUT, e.path) ? { anyOf: EITHER_INPUT[e.path].map((name) => ({ required: [name] })) } : {});
+/**
+ * Tools that answer an empty call with a documented default (/weather: London) but whose LISTING still names the
+ * published example's input as required (21 Nov 2026). Mercator planned all three weather paths as `"input": {}`, so a
+ * "weather in Paris" job was answered, and paid, for London with no error anywhere. Naming `city` in the listing makes a
+ * planner send the place; the tools still answer an empty call (tests/buyer-inputs.test.cjs checks both).
+ */
+export const PLANNED_INPUT_PATHS: ReadonlySet<string> = new Set(["/weather", "/weather/forecast", "/weather/current"]);
 export const requiredInputs = (e: Endpoint) => {
   const required = Object.entries(e.params).filter(([, p]) => p.required).map(([k]) => k);
+  if (PLANNED_INPUT_PATHS.has(e.path) && !required.length) return exampleParams(e).map(([k]) => k);
   return required.length || !ONE_OF_INPUT_PATHS.has(e.path) || Object.hasOwn(EITHER_INPUT, e.path) ? required : exampleParams(e).map(([k]) => k);
 };
 /** The published example call's inputs: what the Bazaar sends when it checks a listed tool (HTTP and MCP alike). */
@@ -120,6 +128,8 @@ const GENERIC_TAGS = new Set(["blockchain", "evm", "utility", "chain-data", "dat
  */
 export const SEARCH_TAGS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   "/search": ["web-search", "search-api", "exa-search", "web-search-api"],
+  // 21 Nov 2026: its first five tags (vision, image, ocr, caption, ai) held no task phrase; Mercator ranked it #7 for "describe image".
+  "/describe": ["describe-image", "image-description"],
   // "email auth" (9 results) and "spf dkim dmarc" (20) on 6 Nov 2026: our pack was absent from both.
   "/pack/email-deliverability": ["email-auth", "spf-dkim-dmarc", "dmarc-check", "email-deliverability"],
   "/hyperliquid/account": ["hyperliquid-account", "hyperliquid-positions", "trader-positions"],
@@ -223,8 +233,17 @@ export function searchTagged(tags: readonly string[], path?: string): string[] {
  * search phrases go first, then the specific tags (usdc, payments, sanctions…), and the shared ones last.
  */
 export function listingTags(tags: readonly string[], path?: string): string[] {
+  return orderedTags(tags, path).slice(0, 5);
+}
+
+/**
+ * The full tag list in listing order (generic tags last), for our own discovery files. 21 Nov 2026: those files used
+ * searchTagged's order, so 241 tools showed blockchain, evm, utility or data among their first five, unlike the 402; a
+ * crawler that keeps five tags from our file then read different tags than the Bazaar holds.
+ */
+export function orderedTags(tags: readonly string[], path?: string): string[] {
   const all = searchTagged(tags, path);
-  return [...all.filter((t) => !GENERIC_TAGS.has(t)), ...all.filter((t) => GENERIC_TAGS.has(t))].slice(0, 5);
+  return [...all.filter((t) => !GENERIC_TAGS.has(t)), ...all.filter((t) => GENERIC_TAGS.has(t))];
 }
 
 const TRAILING_FILLER = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "its", "of", "on", "or", "the", "to", "under", "up", "via", "with", "without"]);

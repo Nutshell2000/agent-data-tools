@@ -6,13 +6,13 @@ import type { Context } from "hono";
 import { ENDPOINTS } from "../endpoints";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const OPENAI_MODERATIONS_PATH = "/v1/moderations";
 export const MODERATION_TOOL_PATH = "/ai/moderation";
 const TEXT_LIMIT = 8000;
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 const OPENAI_KEYS = ["harassment", "harassment/threatening", "hate", "hate/threatening", "illicit", "illicit/violent", "self-harm", "self-harm/intent", "self-harm/instructions", "sexual", "sexual/minors", "violence", "violence/graphic"] as const;
@@ -55,7 +55,7 @@ export function moderationBodyFromQuery(params: Record<string, string>): Record<
 
 /** Handles /v1/moderations (POST body, or GET query) by forwarding the equivalent /ai/moderation GET through the middleware. */
 export async function openAiModerations(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, moderationBodyFromQuery);
   const mapped = toModerationText(body);
   if ("error" in mapped && paying) return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
@@ -64,7 +64,7 @@ export async function openAiModerations(c: C, forward: Forward): Promise<Respons
   const inner = new URL(MODERATION_TOOL_PATH, outer.origin);
   inner.searchParams.set("text", text);
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

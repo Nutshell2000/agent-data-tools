@@ -5,6 +5,7 @@ import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
+import { CAPACITY_LIMITED } from "./capacity";
 import { TOOL_SEO } from "./tool-seo";
 import { keyOfferNumbers } from "./key-prices";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
@@ -104,7 +105,7 @@ ${freeCalls && !cappedTry ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} fre
 ${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}
 <pre><code>${esc(shown)}</code></pre>
 <h2>From an AI agent (MCP)</h2>
-<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
+<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>${CAPACITY_LIMITED.has(e.path) ? ". It is outside the free calls (each call costs us an outside service), so it is paid from the first call" : `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free`}:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
 ${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}

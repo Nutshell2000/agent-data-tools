@@ -7,6 +7,7 @@ import { ENDPOINTS } from "../endpoints";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, openApiGetVariant, requestBody } from "./openai-chat";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const OPENAI_EMBEDDINGS_PATH = "/v1/embeddings";
 export const EMBED_TOOL_PATH = "/ai/embed";
@@ -15,7 +16,6 @@ const TEXT_LIMIT = 4000;
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 /** The one text to embed from an OpenAI embeddings body, or why it cannot be served. */
@@ -49,7 +49,7 @@ export function embedBodyFromQuery(params: Record<string, string>): Record<strin
 
 /** Handles /v1/embeddings (POST body, or GET query) by forwarding the equivalent /ai/embed GET through the whole middleware chain. */
 export async function openAiEmbeddings(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, embedBodyFromQuery);
   const mapped = toEmbedText(body);
   if ("error" in mapped && paying) return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
@@ -59,7 +59,7 @@ export async function openAiEmbeddings(c: C, forward: Forward): Promise<Response
   const inner = new URL(EMBED_TOOL_PATH, outer.origin);
   inner.searchParams.set("text", text);
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

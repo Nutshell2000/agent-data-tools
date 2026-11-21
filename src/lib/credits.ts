@@ -118,9 +118,12 @@ export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28
  * deactivated before any checkout: keep one product under one name.
  */
 // 19 Nov 2026: owner dropped Transcribe Pro to $3/mo (half of ElevenLabs' $6 Starter). New product price/link created
-// in her Stripe: plink_1UdbbODhGrPcm8ScM06VQ2Yr on prod_VdEGz7ftudKRRG, metadata adt_credits=15000, success URL
+// in her Stripe: plink_1UdbbODhGrPcm8ScMO6VQzYr on prod_VdEGz7ftudKRRG, metadata adt_credits=15000, success URL
 // /credits/claim?for=voice&session_id={CHECKOUT_SESSION_ID}, tax off. The old $9 link is kept live for existing
 // subscribers; verifyCheckout still matches it via the hidden $9 plan in CREDIT_PLANS.
+// 21 Nov 2026: both links above were mistyped by hand on 19 Nov and led to Stripe's "page not found" (the lead $3 plan on
+// the homepage and /credits, and the Transcribe Pro button). The URLs now are the ones Stripe's API returns for
+// plink_1Udb2iDhGrPcm8ScTZNb5yyH and plink_1UdbbODhGrPcm8ScMO6VQzYr (read-only lookup); tests/credit-plans checks the shape.
 export const VOICE_PRO_URL: string = "https://buy.stripe.com/00w3cvbKygq3bFU5MNbII0e";
 export const VOICE_PRO_CREDITS = 15_000;
 /** Price of the Transcribe Pro plan in cents; the landing page and its JSON-LD derive their copy from this. */
@@ -129,7 +132,8 @@ export const VOICE_PRO_CENTS = 300;
 export const VOICE_HOURS_PACK_URL: string = "https://buy.stripe.com/9B6aEX5ma5LpcJYgrrbII0a";
 export const VOICE_HOURS_PACK_CREDITS = 1_000;
 /** The free browser voice tools, whose Pro card takes the key (glyphcall-voice-tools, public/transcribe.js). */
-export const VOICE_TOOLS_URL = "https://glyphcall-voice.pages.dev/";
+// 21 Nov 2026: the transcribe page itself (its Pro card is #fast); the pages.dev root only redirected to the voice home page.
+export const VOICE_TOOLS_URL = "https://voice.glyphcall.com/transcribe#fast";
 export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
 export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
 /** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
@@ -217,11 +221,14 @@ export async function grantPlanInvoices(storage: CreditStorage, keyHash: string,
 }
 
 /** The ids of a subscription's paid invoices, newest first, or null when Stripe could not be read (nothing is granted then). */
+/** Longest wait for one Stripe read; a buyer waiting on the claim page and the spend path's plan sync both depend on it. */
+export const STRIPE_TIMEOUT_MS = 8_000;
+
 export async function paidPlanInvoices(stripeKey: string | undefined, subscriptionId: string, fetchImpl: typeof fetch = fetch): Promise<string[] | null> {
   if (!stripeKey || !isSubscriptionId(subscriptionId)) return null;
   let res: Response;
   try {
-    res = await fetchImpl(`https://api.stripe.com/v1/invoices?subscription=${subscriptionId}&status=paid&limit=36`, { headers: { authorization: `Bearer ${stripeKey}` } });
+    res = await fetchImpl(`https://api.stripe.com/v1/invoices?subscription=${subscriptionId}&status=paid&limit=36`, { headers: { authorization: `Bearer ${stripeKey}` }, signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS) });
   } catch {
     return null;
   }
@@ -363,28 +370,43 @@ export class CheckoutError extends Error {
 export async function verifyCheckout(stripeKey: string | undefined, sessionId: string, fetchImpl: typeof fetch = fetch) {
   if (!stripeKey) throw new CheckoutError(503, "card payments are being set up; your payment is safe and this link will work once they are. Keep this page's address.");
   if (!/^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(sessionId)) throw new CheckoutError(400, "session_id is not a Stripe Checkout Session id");
+  // 21 Nov 2026 hardening: a timeout on every Stripe read (a hanging call held the claim page open without limit), and the
+  // payment's charge is read with the session so a refunded or disputed payment no longer grants credits. The read key
+  // may lack access to charges: if Stripe refuses the expansion, the session is read as before (no refund check).
+  const url = `https://api.stripe.com/v1/checkout/sessions/${sessionId}`;
+  const read = (u: string) => fetchImpl(u, { headers: { authorization: `Bearer ${stripeKey}` }, signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS) });
   let res: Response;
   try {
-    res = await fetchImpl(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, { headers: { authorization: `Bearer ${stripeKey}` } });
+    res = await read(`${url}?expand[]=payment_intent.latest_charge`);
+    if (res.status === 400 || res.status === 403) { await res.body?.cancel().catch(() => {}); res = await read(url); }
   } catch {
     throw new CheckoutError(502, "could not reach Stripe; reload this page in a minute");
   }
   if (res.status === 404) throw new CheckoutError(404, "no such checkout session");
   if (!res.ok) throw new CheckoutError(502, `Stripe answered ${res.status}; reload this page in a minute`);
-  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null; currency_conversion?: { amount_total?: number; source_currency?: string } | null; subscription?: unknown; invoice?: unknown };
+  const s = await res.json() as { status?: string; payment_status?: string; currency?: string; amount_total?: number; amount_subtotal?: number; mode?: string; metadata?: Record<string, string>; client_reference_id?: string | null; currency_conversion?: { amount_total?: number; amount_subtotal?: number; source_currency?: string } | null; subscription?: unknown; invoice?: unknown; payment_intent?: { latest_charge?: { refunded?: boolean; amount_refunded?: number; disputed?: boolean } | string | null } | string | null };
   if ((s.mode !== "payment" && s.mode !== "subscription") || s.status !== "complete" || s.payment_status !== "paid") throw new CheckoutError(402, "this checkout is not paid yet");
+  const charge = s.payment_intent && typeof s.payment_intent === "object" && s.payment_intent.latest_charge && typeof s.payment_intent.latest_charge === "object" ? s.payment_intent.latest_charge : undefined;
+  if (charge && (charge.refunded || (charge.amount_refunded ?? 0) > 0 || charge.disputed)) throw new CheckoutError(402, "this payment was refunded or disputed, so it does not grant credits");
   // Adaptive Pricing (on for the account): a buyer outside the US pays in their own currency, and the session then
   // carries that currency at the top level and the USD price in currency_conversion. Judge the pack on the USD price.
   const cc = s.currency_conversion;
   const usdTotal = cc?.source_currency === "usd" && typeof cc.amount_total === "number" ? cc.amount_total : s.currency === "usd" ? s.amount_total : undefined;
+  // A promotion code (FIRST1 on Transcribe Pro, DEVTO50 and the other launch codes on the packs) lowers amount_total below
+  // every price we sell, so until 21 Nov 2026 a discounted checkout was refused here and the buyer paid without getting a
+  // key. The price before discounts names the pack or plan; amount_total is used first so nothing else changes.
+  const usdSubtotal = cc?.source_currency === "usd" && typeof cc.amount_subtotal === "number" ? cc.amount_subtotal : s.currency === "usd" ? s.amount_subtotal : undefined;
+  const priced = <T extends { usdCents: number; credits: number }>(list: readonly T[]) =>
+    list.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits)
+    ?? (typeof usdTotal === "number" && typeof usdSubtotal === "number" && usdTotal < usdSubtotal ? list.find((p) => p.usdCents === usdSubtotal && String(p.credits) === s.metadata?.adt_credits) : undefined);
   const topUpKeyHash = keyHashFromReference(s.client_reference_id);
   if (s.mode === "subscription") {
     // The monthly plan: the checkout paid the subscription's first invoice. Renewals are read later (paidPlanInvoices).
-    const plan = CREDIT_PLANS.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits);
+    const plan = priced(CREDIT_PLANS);
     if (usdTotal === undefined || !plan || !isSubscriptionId(s.subscription) || !isInvoiceId(s.invoice)) throw new CheckoutError(400, "this checkout is not a credits plan");
     return { usdCents: plan.usdCents as number, credits: plan.credits as number, topUpKeyHash, plan: { subscriptionId: s.subscription, invoiceId: s.invoice } };
   }
-  const pack = CREDIT_PACKS.find((p) => p.usdCents === usdTotal && String(p.credits) === s.metadata?.adt_credits);
+  const pack = priced(CREDIT_PACKS);
   if (usdTotal === undefined || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");
   return { usdCents: pack.usdCents as number, credits: pack.credits as number, topUpKeyHash, plan: undefined };
 }

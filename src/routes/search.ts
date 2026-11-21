@@ -164,6 +164,10 @@ export async function webSearch(env: Env, o: WebSearchOptions, fetcher: typeof f
   } catch {
     throw new HttpError(503, "the search provider did not answer in time; try again");
   }
+  // 21 Nov 2026: Brave answers 400/422 for a query it cannot run (too long, only operators): that is the caller's input,
+  // so it is a 400 (uncharged, and not a server error that routers count against the service). Key, quota and rate
+  // answers (401, 403, 429) and Brave's own 5xx stay 503.
+  if (res.status === 400 || res.status === 422) { await res.body?.cancel().catch(() => {}); throw new HttpError(400, "the search provider could not run this query; shorten it or use plain words (nothing was charged)"); }
   if (!res.ok) throw new HttpError(503, `the search provider answered HTTP ${res.status}; try again`);
   const body = (await res.json().catch(() => null)) as { web?: { results?: BraveResult[] }; results?: BraveResult[] } | null;
   if (!body) throw new HttpError(503, "the search provider sent an unreadable answer");

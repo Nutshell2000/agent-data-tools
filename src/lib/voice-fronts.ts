@@ -25,6 +25,7 @@ import { voicePrices } from "./voice-pro";
 import { SPEECH_VOICES, OPENAI_VOICES } from "../routes/ai-text";
 import { SPEAKERS_PATH } from "../routes/voice-plus";
 import { fromElevenFormat } from "./speech-formats";
+import { forwardedHeaders } from "./paying-request";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
@@ -238,7 +239,7 @@ export async function transcribeFront(c: C, forward: Forward, shape: TranscriptS
   if (opts.language) inner.searchParams.set("language", opts.language);
   if (opts.format === "srt" || opts.format === "vtt") inner.searchParams.set("subtitles", opts.format);
   if ((opts.format === "verbose_json" || opts.format === "eleven") && tool !== SPEAKERS_PATH) inner.searchParams.set("timestamps", "true");
-  const headers = withXiKey(new Headers(c.req.raw.headers));
+  const headers = withXiKey(forwardedHeaders(c.req.raw));
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

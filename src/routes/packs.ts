@@ -244,7 +244,9 @@ export const PACKS: Entry[] = [
         seo: data.seo ? pick2(data.seo, ["score", "issues", "title", "description", "wordCount"]) : null,
         security: data.security ?? null,
         robots: data.robots ? pick2(data.robots, ["allowed", "matchedRule", "sitemaps"]) : null,
-        domain: dom ? { ...(dom.registration ? pick2(dom.registration, ["registrar", "registeredAt", "expiresAt", "ageDays"]) : {}), spfPolicy: dom.email?.spfPolicy ?? null, dmarcPolicy: dom.email?.dmarcPolicy ?? null } : null,
+        // 21 Nov 2026: the four registration keys are always present (null when unknown); they used to vanish when the
+        // registry had no record, and a buyer checking the answer against the published shape rejected it.
+        domain: dom ? { ...Object.fromEntries(["registrar", "registeredAt", "expiresAt", "ageDays"].map((k) => [k, dom.registration?.[k] ?? null])), spfPolicy: dom.email?.spfPolicy ?? null, dmarcPolicy: dom.email?.dmarcPolicy ?? null } : null,
         failed,
       };
     }, "$0.01"),

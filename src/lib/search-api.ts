@@ -12,6 +12,7 @@ import { ENDPOINTS } from "../endpoints";
 import { keyPrice } from "./key-prices";
 import { categoryOf } from "../routes/search";
 import { LAW_ACTS } from "../routes/law-search";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 /** Act names that mean the law wherever they appear; other names (CRA, MDR, Instant Payments) count only next to a law word. */
 const LEGAL_NAMES = new Set(["gdpr", "ai act", "dsa", "dma", "nis2", "dora", "mica", "csrd", "csddd", "psd2", "eidas", "eprivacy", "amlr", "amla", "cbam", "sfdr", "eudr", "vida", "gpsr", "ehds", "espr", "ucpd", "eudpr"]);
@@ -25,7 +26,6 @@ export function isLawQuestion(q: string): boolean {
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 export const SEARCH_API_PATHS = { "/v1/search": "/search", "/v1/findSimilar": "/search/similar", "/v1/contents": "/contents", "/v1/answer": "/ai/answer" } as const;
@@ -492,7 +492,7 @@ async function applyOutputSchema(env: Env, body: Record<string, unknown>, shaped
 
 /** Handles /v1/search, /v1/findSimilar, /v1/contents and /v1/answer by forwarding the equivalent tool GET through the middleware. */
 export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, bodyFromQuery);
   const stream = path === "/v1/answer" && !!body && typeof body === "object" && ((body as Record<string, unknown>).stream === true || (body as Record<string, unknown>).stream === "true");
   const mapped = toToolQuery(path, body);
@@ -504,7 +504,7 @@ export async function searchApi(c: C, path: SearchApiPath, forward: Forward): Pr
   const query = "error" in mapped ? (path === "/v1/contents" ? { urls: "https://example.com" } : path === "/v1/findSimilar" ? { url: "https://www.x402.org/" } : { q: "x402 payment protocol" }) : mapped.query;
   for (const [k, v] of Object.entries(query)) inner.searchParams.set(k, v);
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

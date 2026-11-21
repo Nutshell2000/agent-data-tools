@@ -154,6 +154,13 @@ test("a tool that refuses an empty call lists an input as required, so a router 
         assert.ok(Object.hasOwn(T.EMPTY_CALL_DEFAULTS, e.path), `${e.path} must answer an empty HTTP call (EMPTY_CALL_DEFAULTS)`);
         continue;
       }
+      if (B.PLANNED_INPUT_PATHS.has(e.path)) {
+        // Answers an empty call with its default, yet the listing names the example's input so a planner sends a place.
+        assert.ok(!refused, `${e.path} answers an empty call`);
+        assert.deepEqual(B.requiredInputs(e), Object.keys(B.exampleInput(e)), e.path);
+        assert.ok(B.requiredInputs(e).length >= 1, `${e.path} lists a required input`);
+        continue;
+      }
       if (refused) {
         const required = B.requiredInputs(e);
         assert.ok(required.length >= 1, `${e.path} lists a required input`);

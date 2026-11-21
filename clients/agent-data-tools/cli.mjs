@@ -16,7 +16,7 @@ const NAME = "agent-data-tools";
 // server that lists every tool as its own definition.
 const serverPath = (full) => (full ? "/mcp/all" : "/mcp/compact");
 const stdio = (full) => ({ command: "npx", args: full ? ["-y", NAME, "mcp", "--full"] : ["-y", NAME, "mcp"] });
-const TARGETS = ["claude-code", "claude-desktop", "cursor", "vscode"];
+const TARGETS = ["claude-code", "claude-desktop", "cursor", "vscode", "windsurf"];
 
 const origin = () => (process.env.AGENT_DATA_TOOLS_ORIGIN || ORIGIN).replace(/\/$/, "");
 const configFile = () => join(homedir(), ".agent-data-tools", "config.json");
@@ -67,7 +67,7 @@ function parseArgs(args) {
 }
 
 const HELP = `Usage:
-  agent-data-tools setup [claude-code|claude-desktop|cursor|vscode] [--key adt_...] [--print] [--full]
+  agent-data-tools setup [claude-code|claude-desktop|cursor|vscode|windsurf] [--key adt_...] [--print] [--full]
                                          add the tools to that client (--print shows the change without writing)
   agent-data-tools mcp [--key adt_...] [--full]
                                          stdio MCP server that forwards to ${ORIGIN}/mcp/compact
@@ -94,6 +94,7 @@ function menu() {
   agent-data-tools setup claude-desktop   writes claude_desktop_config.json
   agent-data-tools setup cursor           writes ~/.cursor/mcp.json
   agent-data-tools setup vscode           writes .vscode/mcp.json in the current folder
+  agent-data-tools setup windsurf         writes ~/.codeium/windsurf/mcp_config.json
 
 Add --print to see the change without writing, and --key adt_... to connect with a prepaid key.
 The client gets three tools that reach the whole catalog; add --full for every tool as its own definition.
@@ -145,6 +146,11 @@ function setup(target, { key, print, full }) {
   } else if (target === "cursor") {
     const entry = key ? { url, headers: { Authorization: `Bearer ${key}` } } : { url };
     if (mergeInto(join(homedir(), ".cursor", "mcp.json"), "mcpServers", entry, print)) console.error(`Cursor reads it for every project.${key ? ` The key (${tail(key)}) is sent as a header.` : saved ? `\n${savedNote}` : ""}`);
+  } else if (target === "windsurf") {
+    // Windsurf (21 Nov 2026) reads remote servers from ~/.codeium/windsurf/mcp_config.json as mcpServers.<name>.serverUrl.
+    const entry = key ? { serverUrl: url, headers: { Authorization: `Bearer ${key}` } } : { serverUrl: url };
+    if (mergeInto(join(homedir(), ".codeium", "windsurf", "mcp_config.json"), "mcpServers", entry, print)) console.error(`Open Windsurf's MCP settings and press Refresh to load it.${key ? ` The key (${tail(key)}) is sent as a header.` : saved ? `
+${savedNote}` : ""}`);
   } else {
     // A project file may be committed, so a key never goes into it: with a key, the entry is the stdio command, which reads the key itself.
     const entry = key || saved ? { type: "stdio", ...STDIO } : { type: "http", url };

@@ -146,10 +146,12 @@ export async function websiteAudit(env: Env, rawUrl: string) {
     url: rawUrl, finalUrl: page.finalUrl, status: page.status, title: page.title,
     score: overall, grade: overall >= 90 ? "A" : overall >= 75 ? "B" : overall >= 60 ? "C" : overall >= 40 ? "D" : "F",
     topIssues: top,
-    accessibility: accessibility ?? { error: page.axeError },
+    // 21 Nov 2026: a part that could not run keeps the same keys (null, empty) plus `error`, so an answer checked against
+    // the published shape is not rejected because one part failed.
+    accessibility: accessibility ?? { standard: "WCAG 2.1 A and AA (axe-core automated rules)", engine: null, score: null, violations: null, affectedElements: null, bySeverity: null, passedRules: null, needsReview: null, issues: [], error: page.axeError },
     performance,
     seo,
-    security: sec ?? { error: (security as { error: string }).error },
+    security: sec ?? { grade: null, score: null, missing: [], checks: [], error: (security as { error: string }).error },
     auditedAt: new Date().toISOString(),
   };
 }

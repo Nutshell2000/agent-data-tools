@@ -26,7 +26,9 @@ const MAX_PAGES = 5;
 type Page = { finalUrl: string; title?: string | null; text?: string; markdown?: string; textLength: number; truncated: boolean; lang?: string | null; sourceMetadata?: { authors: { value: string }[]; dates: { value: string; kind: string }[] } };
 
 export async function contents(urlsRaw: string, maxChars: number, format: "text" | "markdown") {
-  const urls = [...new Set(listInput(urlsRaw))];
+  // 21 Nov 2026: `url` gets https:// added when it has no scheme (tools.ts), but items of this list did not, so a batch
+  // row such as example.com/page failed while the same value as `url` worked.
+  const urls = [...new Set(listInput(urlsRaw).map((u) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(u) ? u : /^[\w-]+(\.[\w-]+)+(:\d+)?(\/|$)/.test(u) ? `https://${u}` : u)))];
   if (!urls.length) throw new HttpError(400, "urls is required: one to five page URLs");
   if (urls.length > MAX_PAGES) throw new HttpError(400, `at most ${MAX_PAGES} URLs per call (got ${urls.length})`);
   const settled = await Promise.allSettled(urls.map((u) => extract(u, String(maxChars), format) as Promise<Page>));

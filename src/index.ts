@@ -71,7 +71,7 @@ import { SERVICE_ICON_URL, SUPPORT_EMAIL } from "./endpoints";
 import { INDEXING_TEST_HOST, pageHtml, readPage } from "./routes/pages";
 import { paymentOptions, priceOn } from "./lib/networks";
 import { DISCOVERY_PAGE_LIMIT, discoveryResources, salesOrdered } from "./lib/discovery-index";
-import { apiKeyFrom } from "./lib/credits";
+import { USDC_PACKS, apiKeyFrom, usdcPackPath } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { freeKeys, freeKeysOn } from "./lib/free-keys";
@@ -99,7 +99,7 @@ import { payTempo, tempoChallenge, tempoEnabled, tempoProtocol } from "./lib/mpp
 import { credentialMethod, evmChallenge, evmEnabled, evmProtocol, payEvm } from "./lib/mpp-evm";
 import { bazaarExtensionFor, builderCodeExtension, listingDescription, listingName, listingNameFor, listingTags } from "./lib/bazaar-extension";
 import { pickFields } from "./lib/fields";
-import { LONG_INPUT_FIELDS, LONG_INPUT_MIN, holdLongInput, releaseLongInput } from "./lib/long-input";
+import { LONG_INPUT_MIN, holdLongInput, longFieldsFor, releaseLongInput } from "./lib/long-input";
 import { OPENAI_CHAT_PATH, OPENAI_MODELS_PATH, openAiChatCompletions, openAiModels } from "./lib/openai-chat";
 import { OPENAI_EMBEDDINGS_PATH, openAiEmbeddings } from "./lib/openai-embeddings";
 import { OPENAI_IMAGES_PATH, openAiImages } from "./lib/openai-images";
@@ -122,9 +122,13 @@ import { allowedValue } from "./family";
 import { isUpstreamFailure } from "./lib/env";
 import { withSafetyHeaders } from "./lib/response-headers";
 import { beaconed } from "./lib/page-beacon";
+import { readUpTo } from "./lib/fetch";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
+/** Largest POST body the tool flattener reads (lib/fetch.ts readUpTo); above it the call is refused with 413. */
+const POST_BODY_MAX = 2 * 1_048_576;
+const USDC_PACK_PATHS: ReadonlySet<string> = new Set(USDC_PACKS.map((p) => usdcPackPath(p)));
 const DEFERRED_PATHS = [
   "/airdrop-scanner",
   "/liquidity-return-analyzer",
@@ -279,9 +283,14 @@ app.use(async (c, next) => {
     }
   }
   // A flat JSON object, a form-encoded body, or the inputs nested one level down (lib/post-body.ts).
-  const body = unwrapBody(parseBody(await c.req.text().catch(() => ""), c.req.header("content-type")), (name) => name in endpoint.params || Boolean(ALIAS_OF[name]?.some((input) => input in endpoint.params)));
+  // 21 Nov 2026 hardening: the body is read through a byte cap (a chunked POST declares no length), before any payment
+  // check. The largest input any tool takes is 100,000 characters; 2 MB leaves room for JSON around several of them.
+  const capped = c.req.raw.body ? await readUpTo(c.req.raw.clone().body!, POST_BODY_MAX).catch(() => null) : null;
+  if (capped?.rest) { await capped.rest.cancel().catch(() => {}); return c.json({ error: `the request body is larger than ${POST_BODY_MAX / 1_048_576} MB; nothing was charged` }, 413); }
+  const bodyText = capped?.bytes ? new TextDecoder().decode(capped.bytes) : "";
+  const body = unwrapBody(parseBody(bodyText, c.req.header("content-type")), (name) => name in endpoint.params || Boolean(ALIAS_OF[name]?.some((input) => input in endpoint.params)));
   // A whole source file does not fit in a URL that the payment quote repeats (lib/long-input.ts): it travels as a reference.
-  const longFields = LONG_INPUT_FIELDS[c.req.path];
+  const longFields = longFieldsFor(c.req.path, endpoint.params);
   const heldRefs: string[] = [];
   if (body && typeof body === "object" && !Array.isArray(body)) {
     for (const [name, value] of Object.entries(body)) {
@@ -323,7 +332,8 @@ app.use(async (c, next) => {
 app.use(async (c, next) => {
   const legacy = c.req.header("x-payment"), signed = c.req.header("payment-signature");
   const forward = legacy && !signed ? asV2Header(legacy) : signed && !legacy ? (asV2Header(signed) !== signed ? asV2Header(signed) : null) : null;
-  if (!forward || !PAID_PATHS.has(c.req.path)) return next();
+  // 21 Nov 2026: the USDC credit packs too; a v2 client that buys a pack under X-PAYMENT was looped on 402.
+  if (!forward || !(PAID_PATHS.has(c.req.path) || USDC_PACK_PATHS.has(c.req.path))) return next();
   const headers = new Headers(c.req.raw.headers);
   headers.delete("x-payment");
   headers.set("payment-signature", forward);
@@ -687,6 +697,10 @@ for (const e of ENDPOINTS) {
 const PAUSED_SUCCESSORS: Readonly<Record<string, { to: string; add?: Readonly<Record<string, string>>; note: string }>> = {
   "/ai/model/qwen3-30b": { to: "/ai/chat-large", note: "Qwen3 30B was retired by Workers AI on 20 Nov 2026. /ai/chat-large answers with Llama 3.3 70B (default) or gpt-oss-120b." },
   "/ai/model/deepseek-r1": { to: "/ai/chat-large", add: { model: "gpt-oss-120b" }, note: "DeepSeek R1 distill was retired by Workers AI on 20 Nov 2026. /ai/chat-large answers with gpt-oss-120b, a reasoning model." },
+  // 21 Nov 2026: both still answered 503 to every probe although their pause text names the successor, and a router that
+  // still lists them counts each 503 against the whole service. Same inputs (`hash` for the transaction lookup).
+  "/base/gas": { to: "/base-gas", note: "/base/gas moved to /base-gas: the same Base gas data plus EIP-1559 fee suggestions." },
+  "/base/tx": { to: "/base-tx", note: "/base/tx moved to /base-tx: the same Base transaction lookup plus confirmations and method id." },
 };
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
   const successor = Object.hasOwn(PAUSED_SUCCESSORS, path) ? PAUSED_SUCCESSORS[path] : undefined;

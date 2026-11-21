@@ -51,7 +51,8 @@ test("the Bazaar listing: symbol or address, neither alone required, one example
     assert.match(query.properties.address.description, /instead of symbol \(when both are sent, the address is priced\)/, path);
   }
   // Every other one-of tool keeps naming its example input as required.
-  assert.deepEqual(B.requiredInputs(tool("/weather")), [], "/weather answers an empty call and lists no required input");
+  // 21 Nov 2026: /weather still answers an empty call, but its listing names city (PLANNED_INPUT_PATHS) so a planner sends a place.
+  assert.deepEqual(B.requiredInputs(tool("/weather")), ["city"], "/weather lists city for planners");
   assert.deepEqual(B.requiredInputs(tool("/company")), Object.keys(B.exampleInput(tool("/company"))));
   assert.equal("anyOf" in (B.bazaarExtensionFor(tool("/company")).bazaar ?? B.bazaarExtensionFor(tool("/company"))).schema.properties.input.properties.queryParams, false);
 });

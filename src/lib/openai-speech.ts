@@ -20,6 +20,7 @@ export function pronunciationsParam(raw: unknown): { value?: string } | { error:
   return pairs.length ? { value: JSON.stringify(Object.fromEntries(pairs)) } : {};
 }
 import { SPEECH_CREDITS_PER_100, asFrontKeyError, foreignKey, foreignKeySentence, frontError, setFrontKeyPrice, speechRatePrice, withSentenceFirst, type ErrorShape } from "./voice-billing";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const OPENAI_SPEECH_PATH = "/v1/audio/speech";
 export const SPEECH_TOOL_PATH = "/ai/speech";
@@ -31,7 +32,6 @@ const PROBE_TEXT = "Your payment was received. Thank you!";
 
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 /** What a key was charged and has left (set by the paywall on the tool's answer), shown on the front's answer too. */
 export const KEY_RESPONSE_HEADERS = ["x-credits-charged", "x-credits-remaining", "x-credits-low", "x-free-calls-left", "x-review-calls-left", "x-test-calls-left", "x-trial-files-left", "x-trial-minutes", "x-key-limits"];
@@ -85,7 +85,7 @@ export function audioBytes(base64: string): Uint8Array {
 
 /** Handles /v1/audio/speech (POST body, or GET query) by forwarding the equivalent speech-tool GET through the whole middleware chain. */
 export async function openAiSpeech(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, speechBodyFromQuery);
   const mapped = toSpeechRequest(body);
   if ("error" in mapped && paying) return c.json({ error: { message: mapped.error, type: "invalid_request_error" } }, 400);
@@ -103,7 +103,7 @@ export async function speakThrough(c: C, forward: Forward, request: SpeechReques
   if (request.lang) inner.searchParams.set("lang", request.lang);
   if (request.pronunciations) inner.searchParams.set("pronunciations", request.pronunciations);
   if (request.format && request.format.name !== "mp3") { inner.searchParams.set("format", request.format.name); if (request.format.sampleRate) inner.searchParams.set("sample_rate", String(request.format.sampleRate)); }
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

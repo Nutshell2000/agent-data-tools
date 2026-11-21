@@ -48,13 +48,19 @@ export async function exchangeRates(fromInput: string, toInput?: string, amountI
   const amount = amountInput === undefined || amountInput === "" ? 1 : Number(String(amountInput).replace(/(?<=\d)[,_\s](?=\d{3}\b)/g, ""));
   if (!Number.isFinite(amount) || amount <= 0) throw new HttpError(400, "amount must be a positive number");
 
+  // 21 Nov 2026: a target equal to the base (from=USD&to=USD, or USD inside a list) is rate 1. The source refuses it, so a
+  // batch row already in the target currency was a 404. It is answered here in the same shape; the rest comes from the ECB.
+  const same = to.includes(from);
+  const others = to.filter((c) => c !== from);
   const query = new URLSearchParams({ base: from });
-  if (to.length) query.set("symbols", to.join(","));
+  if (others.length) query.set("symbols", others.join(","));
+  else if (same) query.set("symbols", from === "EUR" ? "USD" : "EUR"); // only the publication date is used
   const data = await getJson<{ base: string; date: string; rates: Record<string, number> }>(
     `https://api.frankfurter.dev/v1/latest?${query}`,
     "exchange rate",
     "unknown currency code; the European Central Bank publishes rates for about 30 major currencies",
   );
+  if (same) data.rates = Object.fromEntries(to.map((c) => [c, c === from ? 1 : data.rates[c]]).filter(([, r]) => r !== undefined));
   return {
     from: data.base,
     amount,

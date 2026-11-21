@@ -9,13 +9,13 @@ import { asFrontQuote, requestBody } from "./openai-chat";
 import { KEY_RESPONSE_HEADERS, SPEECH_INPUT_LIMIT, withXiKey } from "./openai-speech";
 import { asFrontKeyError } from "./voice-billing";
 import { elevenVoice } from "./voice-fronts";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 type C = Context<{ Bindings: Env }>;
 type Forward = (request: Request) => Response | Promise<Response>;
 
 export const ELEVEN_TTS_TIMESTAMPS_PATH = "/v1/text-to-speech/:voice_id/with-timestamps";
 const CAPTIONS_TOOL = "/text-to-speech/captions";
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key", "xi-api-key"];
 const PASSTHROUGH = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-request-id", ...KEY_RESPONSE_HEADERS];
 const DESCRIPTION = "ElevenLabs-compatible text to speech with timestamps, pay per request: text in, base64 MP3 plus character alignment out (Deepgram Aura-2 voices; cue timings measured from the audio). Up to 2,000 characters, English or Spanish. No account; failed calls are not charged.";
 const META = { serviceName: "Text to speech with timestamps, ElevenLabs-compatible API", tags: ["text-to-speech", "elevenlabs-compatible", "timestamps", "alignment", "captions"] };
@@ -61,12 +61,12 @@ export function timestampsRequest(body: unknown, voiceId: string | undefined, ou
 /** Handles POST /v1/text-to-speech/{voice_id}/with-timestamps. */
 export async function elevenSpeechWithTimestamps(c: C, forward: Forward): Promise<Response> {
   const outer = new URL(c.req.url);
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const body = await requestBody(c, (q) => (q.text === undefined ? null : { text: q.text, language_code: q.language_code }));
   const mapped = timestampsRequest(body, c.req.param("voice_id"), c.req.query("output_format"));
   if ("error" in mapped && paying) return c.json({ detail: { status: "invalid_request", message: mapped.error } }, 400);
   const query = "error" in mapped ? new URLSearchParams({ text: PROBE_TEXT }) : mapped;
-  const headers = withXiKey(new Headers(c.req.raw.headers));
+  const headers = withXiKey(forwardedHeaders(c.req.raw));
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

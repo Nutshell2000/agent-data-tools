@@ -100,6 +100,22 @@ export interface FetchPublicOptions {
 }
 
 /**
+ * True only when DNS says the host does not exist (NXDOMAIN). 21 Nov 2026: a dead domain in a batch of scraped links
+ * answered 502 "could not reach target URL" on the page readers and /feed, and a router counts any 5xx against the
+ * whole service, although the link itself was the fault. Asked only after a fetch failed, with its own short timeout;
+ * any doubt (DoH slow or failing, SERVFAIL, an IP literal) keeps the 502.
+ */
+export async function hostMissing(hostname: string, fetchImpl: typeof fetch = fetch): Promise<boolean> {
+  if (!/[a-z]/i.test(hostname) || hostname.includes(":")) return false;
+  try {
+    const r = await fetchImpl(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(1500) });
+    if (!r.ok) return false;
+    const j = await r.json() as { Status?: number };
+    return j.Status === 3;
+  } catch { return false; }
+}
+
+/**
  * Fetches a public URL with the same guards as /extract. Throws HttpError on any failure.
  * `allowStatus` lists non-2xx answers to return instead of failing (e.g. 402 for /x402/check).
  * A target's 429/5xx or a network error is retried once within the 8 s budget (Workers share egress IPs, so an
@@ -133,6 +149,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     } catch (e) {
       const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");
       if (!timedOut && !retried && Date.now() + 700 < deadline) { retried = true; await sleep(700); continue; }
+      if (!timedOut && await hostMissing(current.hostname)) throw new HttpError(422, `the domain ${current.hostname} does not exist (no DNS record); nothing was charged`);
       throw targetDown(timedOut ? 504 : 502, timedOut ? `target did not respond within ${Math.round(budgetMs / 1000)} seconds` : "could not reach target URL");
     }
     if ([301, 302, 303, 307, 308].includes(res.status)) {
@@ -148,6 +165,8 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
       redirects++;
       continue;
     }
+    // Cloudflare answers a Worker's fetch of a hostname without DNS with its own 530 page (error 1016).
+    if (res.status === 530 && await hostMissing(current.hostname)) { await res.body?.cancel().catch(() => {}); throw new HttpError(422, `the domain ${current.hostname} does not exist (no DNS record); nothing was charged`); }
     const allowed = allowStatus.includes(res.status);
     if (!res.ok && !allowed) {
       await res.body?.cancel().catch(() => {});
@@ -218,4 +237,37 @@ export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp,
   tooBig ||= bytes.byteLength > maxBytes;
   if (tooBig) throw new HttpError(422, `file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit (nothing was charged)`);
   return { url: target.href, finalUrl: res.url || target.href, contentType: contentType.split(";")[0].trim(), bytes };
+}
+
+/**
+ * Reads `body` up to `limit` bytes. Within the limit: the bytes, and the stream is finished. Past it: no bytes are kept;
+ * `rest` is a stream that replays what was read and then the remainder, so the caller can still pass it on unbuffered.
+ */
+export async function readUpTo(body: ReadableStream<Uint8Array>, limit: number): Promise<{ bytes: ArrayBuffer; rest?: undefined } | { bytes?: undefined; rest: ReadableStream<Uint8Array> }> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.byteLength;
+    if (size > limit) {
+      const head = chunks.splice(0);
+      const rest = new ReadableStream<Uint8Array>({
+        pull: async (controller) => {
+          const next = head.shift();
+          if (next) { controller.enqueue(next); return; }
+          const { done: end, value: more } = await reader.read();
+          if (end) controller.close(); else controller.enqueue(more);
+        },
+        cancel: (reason) => reader.cancel(reason),
+      });
+      return { rest };
+    }
+  }
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) { bytes.set(c, at); at += c.byteLength; }
+  return { bytes: bytes.buffer };
 }
