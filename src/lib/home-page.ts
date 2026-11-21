@@ -284,7 +284,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <p class="annc"><b>New</b><span class="long">The free voice tool now also speaks Spanish, French, Italian, Portuguese and Hindi. </span><span class="short">Five more languages in the free voice tool. </span><a href="${VOICE_SITE}/text-to-speech">Try a voice &rarr;</a></p>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${navLinks}</nav>
-<div class="nav-cta"><a class="btn sm" href="/transcribe-pro">Get Pro</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
+<div class="nav-cta"><a class="btn sm" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="nav_pro">Get Pro: ${proPrice}</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
 <main>
 <section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
 <p class="pill"><i></i>Free in your browser &middot; no account &middot; nothing uploaded</p>
@@ -368,7 +368,7 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 </div></div></section>
 
 <section class="final"><h2>Give it a try. <span class="gt">Type, play, download.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
-</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="/transcribe-pro" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}
+</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
 ${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
