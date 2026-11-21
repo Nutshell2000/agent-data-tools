@@ -83,7 +83,7 @@ export const DE: HomeStrings = {
   pro: {
     kicker: "Transcribe Pro", h2: "Deine lange Aufnahme als Text.", h2Accent: "Wir machen die Arbeit.",
     sub: (h, p) => `Die kostenlosen Tools laufen auf deinem Handy oder Computer. Transcribe Pro arbeitet auf unseren Servern: lange Aufnahmen, auf jedem Gerät, etwa ${h} Stunden im Monat für ${p}.`,
-    cta: (p) => `Transcribe Pro: ${p} im Monat`, trial: "Pro kostenlos an einer Datei testen", packs: "Nur ein Auftrag? Die einmaligen Pakete ansehen", centsHtml: (c) => `Das sind etwa ${c}&nbsp;Cent pro Stunde.`,
+    cta: (p) => `Pro starten: ${p} im Monat`, trial: "Pro kostenlos an einer Datei testen", packs: "Nur ein Auftrag? Die einmaligen Pakete ansehen", centsHtml: (c) => `Das sind etwa ${c}&nbsp;Cent pro Stunde.`,
     payWithHtml: "<b>Bezahl mit Karte</b> (Visa, Mastercard, American Express) in einem Schritt. Apple Pay, Google Pay und Link gehen auch. Dein Schlüssel erscheint beim Bezahlen auf dem Bildschirm, ohne Konto.",
     points: [["Lange Aufnahmen", "Jede Länge im Browser-Tool: Die Datei wird für dich komprimiert und in Teilen gesendet."], ["Mehr als 90 Sprachen", "Auch Deutsch, von selbst erkannt, mit SRT- oder VTT-Untertiteln und Zeitangaben pro Wort."], ["Jedes Gerät", "Die Arbeit läuft auf unseren Servern, also ist ein einfaches Handy so gut wie ein starker Computer."]],
   },
@@ -97,7 +97,7 @@ export const DE: HomeStrings = {
   voicePlans: {
     h3: "Auch Studio-Stimmen?", voiceText: (c) => `50 Studio-Stimmen, auf unseren Servern erzeugt: etwa ${c} Zeichen im Monat, auf jedem Gerät.`,
     bundleName: "Voice und Transcribe Pro", bundleText: (c) => `Ein Guthaben für beides: etwa ${c} Zeichen Studio-Stimmen, oder Transkription, oder eine Mischung.`,
-    pay: (p) => `Mit Karte zahlen: ${p} im Monat`, small: "Nicht genutzte Stunden und Zeichen bleiben dir. Jederzeit kündbar.",
+    voiceGo: (p) => `Voice Pro holen: ${p} im Monat`, bundleGo: (p) => `Beides holen: ${p} im Monat`, small: "Bezahl mit Karte, Apple Pay, Google Pay oder Link. Nicht genutzte Stunden und Zeichen bleiben dir. Jederzeit kündbar.",
   },
   numberLocale: "de-DE",
   dev: {

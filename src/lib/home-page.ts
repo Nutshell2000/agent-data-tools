@@ -177,8 +177,8 @@ function voicePlans(S: HomeStrings): string {
   const both = speechCharacters(VOICE_BUNDLE_PLAN.credits).toLocaleString(S.numberLocale);
   const V = S.voicePlans;
   return `<div class="vplans"><h3>${esc(V.h3)}</h3><div class="vplan-row">`
-    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.voiceText(vp))}</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">${esc(V.pay(usd(VOICE_STUDIO_PLAN.usdCents)))}</a></div>`
-    + `<div class="vplan"><b>${esc(V.bundleName)}</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.bundleText(both))}</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">${esc(V.pay(usd(VOICE_BUNDLE_PLAN.usdCents)))}</a></div>`
+    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.voiceText(vp))}</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">${esc(V.voiceGo(usd(VOICE_STUDIO_PLAN.usdCents)))}</a></div>`
+    + `<div class="vplan"><b>${esc(V.bundleName)}</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small>${esc(S.devPricing.perMonth)}</small></div><p>${esc(V.bundleText(both))}</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">${esc(V.bundleGo(usd(VOICE_BUNDLE_PLAN.usdCents)))}</a></div>`
     + `</div><p class="small">${esc(V.small)}</p></div>`;
 }
 

@@ -81,7 +81,7 @@ export const ES: HomeStrings = {
   pro: {
     kicker: "Transcribe Pro", h2: "Tu grabación larga, en texto.", h2Accent: "Nosotros hacemos el trabajo.",
     sub: (h, p) => `Las herramientas gratuitas funcionan en tu móvil u ordenador. Transcribe Pro trabaja en nuestros servidores: grabaciones largas, en cualquier dispositivo, unas ${h} horas al mes por ${p}.`,
-    cta: (p) => `Transcribe Pro: ${p} al mes`, trial: "Prueba Pro gratis con un archivo", packs: "¿Un solo trabajo? Mira los packs únicos", centsHtml: (c) => `Unos ${c}&cent; la hora.`,
+    cta: (p) => `Empezar Pro: ${p} al mes`, trial: "Prueba Pro gratis con un archivo", packs: "¿Un solo trabajo? Mira los packs únicos", centsHtml: (c) => `Unos ${c}&cent; la hora.`,
     payWithHtml: "<b>Paga con tarjeta</b> (Visa, Mastercard, American Express) en un solo paso. También funcionan Apple Pay, Google Pay y Link. Tu clave aparece en pantalla al pagar, sin cuenta.",
     points: [["Grabaciones largas", "De cualquier duración en la herramienta del navegador: se comprime y se envía por partes."], ["Más de 90 idiomas", "Detecta el idioma solo, con subtítulos SRT o VTT y la hora de cada palabra."], ["Cualquier dispositivo", "El trabajo se hace en nuestros servidores, así que un móvil sencillo sirve igual que un ordenador potente."]],
   },
@@ -95,7 +95,7 @@ export const ES: HomeStrings = {
   voicePlans: {
     h3: "¿Quieres también voces de estudio?", voiceText: (c) => `50 voces de estudio creadas en nuestros servidores: unos ${c} caracteres al mes, en cualquier dispositivo.`,
     bundleName: "Voice y Transcribe Pro", bundleText: (c) => `Un saldo para los dos: unos ${c} caracteres de voces de estudio, o transcripción, o una mezcla.`,
-    pay: (p) => `Pagar con tarjeta: ${p} al mes`, small: "Las horas y los caracteres que no uses se guardan. Cancela cuando quieras.",
+    voiceGo: (p) => `Conseguir Voice Pro: ${p} al mes`, bundleGo: (p) => `Los dos: ${p} al mes`, small: "Paga con tarjeta, Apple Pay, Google Pay o Link. Las horas y los caracteres que no uses se guardan. Cancela cuando quieras.",
   },
   numberLocale: "es-ES",
   dev: {

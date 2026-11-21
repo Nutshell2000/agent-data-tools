@@ -82,7 +82,7 @@ export const FR: HomeStrings = {
   pro: {
     kicker: "Transcribe Pro", h2: "Votre long enregistrement en texte.", h2Accent: "On s'occupe de tout.",
     sub: (h, p) => `Les outils gratuits tournent sur votre téléphone ou votre ordinateur. Transcribe Pro travaille sur nos serveurs : longs enregistrements, sur n'importe quel appareil, environ ${h} heures par mois pour ${p}.`,
-    cta: (p) => `Transcribe Pro : ${p} par mois`, trial: "Essayer Pro gratuitement sur un fichier", packs: "Un seul travail ? Voir les packs uniques", centsHtml: (c) => `Soit environ ${c}&nbsp;centimes de l'heure.`,
+    cta: (p) => `Démarrer Pro : ${p} par mois`, trial: "Essayer Pro gratuitement sur un fichier", packs: "Un seul travail ? Voir les packs uniques", centsHtml: (c) => `Soit environ ${c}&nbsp;centimes de l'heure.`,
     payWithHtml: "<b>Payez par carte</b> (Visa, Mastercard, American Express) en une étape. Apple Pay, Google Pay et Link fonctionnent aussi. Votre clé s'affiche à l'écran au paiement, sans compte.",
     points: [["Longs enregistrements", "Toute durée dans l'outil du navigateur : le fichier est compressé et envoyé en plusieurs parties pour vous."], ["Plus de 90 langues", "Détectées toutes seules, avec sous-titres SRT ou VTT et l'horodatage de chaque mot."], ["Tous les appareils", "Le travail se fait sur nos serveurs : un téléphone modeste vaut un ordinateur puissant."]],
   },
@@ -96,7 +96,7 @@ export const FR: HomeStrings = {
   voicePlans: {
     h3: "Des voix de studio aussi ?", voiceText: (c) => `50 voix de studio créées sur nos serveurs : environ ${c} caractères par mois, sur tout appareil.`,
     bundleName: "Voice et Transcribe Pro", bundleText: (c) => `Un solde pour les deux : environ ${c} caractères de voix de studio, ou de la transcription, ou un mélange.`,
-    pay: (p) => `Payer par carte : ${p} par mois`, small: "Les heures et caractères non utilisés sont reportés. Résiliable à tout moment.",
+    voiceGo: (p) => `Obtenir Voice Pro : ${p} par mois`, bundleGo: (p) => `Les deux : ${p} par mois`, small: "Payez par carte, Apple Pay, Google Pay ou Link. Les heures et caractères non utilisés sont reportés. Résiliable à tout moment.",
   },
   numberLocale: "fr-FR",
   dev: {

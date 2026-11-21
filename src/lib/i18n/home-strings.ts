@@ -74,7 +74,7 @@ export interface HomeStrings {
   how: { h2: string; sub: (brand: string) => string; steps: (voices: number) => readonly Pair[]; goHtml: string };
   faqTitle: string;
   /** The studio-voice plans under the pricing cards. */
-  voicePlans: { h3: string; voiceText: (chars: string) => string; bundleName: string; bundleText: (chars: string) => string; pay: (price: string) => string; small: string };
+  voicePlans: { h3: string; voiceText: (chars: string) => string; bundleName: string; bundleText: (chars: string) => string; voiceGo: (price: string) => string; bundleGo: (price: string) => string; small: string };
   /** How numbers are written ("100,000" / "100.000" / "100 000"). */
   numberLocale: string;
   dev: { kicker: string; h2: string; sub: (trial: boolean) => string; key: string; freeKey: string; docs: string; more: string; stepsHtml: (trial: boolean) => readonly [string, string, string]; examples: string;
@@ -168,7 +168,7 @@ export const EN: HomeStrings = {
   pro: {
     kicker: "Transcribe Pro", h2: "Your long recording as text.", h2Accent: "We do the work.",
     sub: (h, p) => `The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${h} hours a month for ${p}.`,
-    cta: (p) => `Get Transcribe Pro: ${p} a month`, trial: "Try Pro free on one file", packs: "One job? See the one-off packs", centsHtml: (c) => `That is about ${c}&cent; an hour.`,
+    cta: (p) => `Start Pro: ${p} a month`, trial: "Try Pro free on one file", packs: "One job? See the one-off packs", centsHtml: (c) => `That is about ${c}&cent; an hour.`,
     payWithHtml: "<b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears on screen when you pay, with no account.",
     points: [["Long recordings", "Any length in the browser tool: it is compressed and sent in parts for you."], ["More than 90 languages", "Detected by itself, with SRT or VTT subtitles and word timings."], ["Any device", "The work is done on our servers, so a slow phone is as good as a fast computer."]],
   },
@@ -182,7 +182,7 @@ export const EN: HomeStrings = {
   voicePlans: {
     h3: "Want studio voices too?", voiceText: (c) => `50 studio voices made on our servers: about ${c} characters a month, on any device.`,
     bundleName: "Voice and Transcribe Pro", bundleText: (c) => `One balance for both: about ${c} characters of studio voices, or transcription, or any mix.`,
-    pay: (p) => `Pay by card: ${p} a month`, small: "Hours and characters you don't use carry over. Cancel any time.",
+    voiceGo: (p) => `Get Voice Pro: ${p} a month`, bundleGo: (p) => `Get both: ${p} a month`, small: "Pay by card, Apple Pay, Google Pay or Link. Hours and characters you don't use carry over. Cancel any time.",
   },
   numberLocale: "en-US",
   dev: {
