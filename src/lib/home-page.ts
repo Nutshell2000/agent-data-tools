@@ -113,7 +113,7 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 @media (hover:none) and (pointer:coarse){.vc-meta span:last-child{display:none}}
 @media (max-width:720px){.hero{padding:14px 0 18px}.hero h1{font-size:1.85rem;line-height:1.08;margin-bottom:8px}.hero .lede{font-size:1rem;margin:0 auto 14px}
 .hero .vc textarea{min-height:0;height:5.4em}.hero .vc-pane{padding:12px}.hero .vc-meta{margin:4px 2px 8px}
-.hero .vc-presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.hero .vc-presets::-webkit-scrollbar{display:none}.hero .vc-presets button{flex:none}}`;
+.hero .vc-presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.hero .vc-presets::-webkit-scrollbar{display:none}.hero .vc-presets button{flex:none;min-height:44px}}`;
 // 21 Nov 2026 redesign (owner: "more like elevenlabs ... the first thing hitting you should be the text thing", and "win
 // where elevenlabs looses and beat them where they win as well"). Internal research: business/voice-plan-2026-11-14/
 // internal-bench/homepage-research-2026-11-21.md. What it changed:
