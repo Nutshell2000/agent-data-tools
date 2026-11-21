@@ -161,7 +161,13 @@ test("the console speaks the page's language and opens on transcription; English
 
 test("the sitemap lists each language home", () => {
   const xml = sitemapXml(ORIGIN);
-  for (const l of L.OTHER_LANGS) assert.match(xml, new RegExp(`<loc>${ORIGIN}/${l}/</loc>`));
+  assert.match(xml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9" xmlns:xhtml="http:\/\/www\.w3\.org\/1999\/xhtml">/);
+  for (const home of ["/", "/es/", "/de/", "/fr/"]) {
+    const entry = new RegExp(`<url><loc>${ORIGIN}${home}</loc>[^]*?</url>`).exec(xml)?.[0] ?? "";
+    for (const l of L.LANGS) assert.ok(entry.includes(`<xhtml:link rel="alternate" hreflang="${l}" href="${ORIGIN}${l === "en" ? "/" : `/${l}/`}"/>`), `${home}: alternate ${l}`);
+    assert.ok(entry.includes(`hreflang="x-default" href="${ORIGIN}/"`), `${home}: x-default`);
+  }
+  assert.doesNotMatch(new RegExp(`<url><loc>${ORIGIN}/docs</loc>[^]*?</url>`).exec(xml)?.[0] ?? "", /xhtml:link/, "pages without languages get no alternates");
 });
 
 test("the Worker: / offers a bar or follows a choice, crawlers get English, /es redirects to /es/", async () => {
@@ -217,4 +223,17 @@ test("the voice showcase speaks the page's language: button labels, card tags an
   assert.match(es, /<small>mujer, inglés británico<\/small>/);
   assert.match(page("de"), /note\.textContent=b\.dataset\.voiceName\+" ist ausgewählt\./);
   assert.match(page("fr"), /<h2 class="own" id="make-own">À vous de jouer<\/h2>/);
+});
+
+test("/transcribe-pro search titles and descriptions fit in every language (step B drafts)", async () => {
+  const { TRANSCRIBE_PRO_META } = await loadTypeScript(require.resolve("../src/lib/i18n/transcribe-pro-strings.ts"));
+  for (const lang of L.LANGS) {
+    const m = TRANSCRIBE_PRO_META[lang];
+    for (const [h, p] of [[60, "$3"], [999, "$19"]]) {
+      const t = m.title("Glyphcall", h, p), d = m.description(h, p);
+      assert.ok(t.length <= 60, `${lang} title ${t.length}: ${t}`);
+      assert.ok(d.length <= 160, `${lang} description ${d.length}: ${d}`);
+      if (lang !== "en") for (const re of HOME_STRINGS[lang].banned) assert.doesNotMatch(`${t} ${d}`, re, `${lang}: banned ${re}`);
+    }
+  }
 });

@@ -150,6 +150,14 @@ export function withLanguages(html: string, origin: string, current: Lang = "en"
     .replace("</body>", `${LANGUAGE_SCRIPT}</body>`);
 }
 
+/** The language versions of a sitemap path, as xhtml:link alternates (with x-default), or "" for a path that has none. */
+export function sitemapAlternates(origin: string, path: string, pathOf: (lang: Lang) => string = homePath): string {
+  if (!LANGS.some((l) => pathOf(l) === path)) return "";
+  return LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin + pathOf(l))}"/>`).join("")
+    + `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(origin + pathOf("en"))}"/>`;
+}
+export const SITEMAP_XHTML_NS = ` xmlns:xhtml="http://www.w3.org/1999/xhtml"`;
+
 /** The voice site's own page in each language, where one exists (Cloudflare Pages project glyphcall-voice), and the
  * name the transcription model uses for the language. German has no voices yet, so its text to speech link is English. */
 export const VOICE_PAGES: Record<OtherLang, { tts: string; stt: string; srt: string; whisper: string; voice?: string }> = {
