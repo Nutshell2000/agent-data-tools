@@ -505,7 +505,7 @@ ${rows}
 <p>${esc(trialNote(trialsEnabled))}</p>
 <p class="note">Payments go to <code>${esc(payTo)}</code> on Base.</p>
 <p><strong>Speak OpenAI already?</strong> Point an OpenAI SDK at <code>${origin}/v1</code>: <code>POST /v1/chat/completions</code>, <code>POST /v1/responses</code>, <code>POST /v1/embeddings</code>, <code>POST /v1/images/generations</code> and <code>POST /v1/audio/speech</code> run the same paid tools at the same prices (Llama 4 Scout with function calling at ${catalogEndpoint(CHAT_TOOL_PATH).price}, Llama 3.3 70B or gpt-oss-120b at ${catalogEndpoint(CHAT_LARGE_TOOL_PATH).price} by model name, BGE-M3 embeddings at ${catalogEndpoint(EMBED_TOOL_PATH).price}). Pay with an x402 or MPP fetch wrapper, or use a card-credit key as the SDK apiKey. GET-only clients send the same inputs in the query (<code>/v1/chat/completions?prompt=…</code>).</p>
-    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, failed calls refunded.</p>
+    <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, and failed calls cost nothing.</p>
 
 <h2>Advanced TypeScript client</h2>
 <p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Most tools cost ${ORDINARY_PRICE}; a few cost up to ${TOP_PRICE}, so raise the cap to call those.</p>
@@ -821,7 +821,7 @@ export const TRUST_PAGES = ["/about", "/faq", "/contact", "/terms", "/privacy"] 
 export function sitemapPaths(): string[] {
   const guides = ["/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk"];
   const tools = ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path) && !chainCloneOf(e.path)).map((e) => `/tools/${toolSlug(e.path)}`);
-  return [...new Set([...PEOPLE_FIRST, ...productPaths(), ...guides, ...vatPagePaths(), ...registerPagePaths(), "/docs", "/credits", "/keys/free", ...TRUST_PAGES, "/examples/extract/", "/tools", ...tools])];
+  return [...new Set([...PEOPLE_FIRST, ...productPaths(), ...guides, ...vatPagePaths(), ...registerPagePaths(), "/docs", "/credits", ...TRUST_PAGES, "/examples/extract/", "/tools", ...tools])];
 }
 
 const urlset = (urls: string[]) => `<?xml version="1.0" encoding="UTF-8"?>

@@ -309,7 +309,7 @@ export const PRODUCTS: readonly Product[] = [
     unit: "transcriptions",
     // The free in-browser tool (Glyphcall Voice, Cloudflare Pages). Linked, never embedded: Hugging Face refuses model
     // downloads to pages served from *.workers.dev (found 14 Nov 2026).
-    more: [[VOICE_SITE + "/transcribe", "Try it free in your browser: transcribe audio without an account (the file stays on your device)"], ["/keys/voice-test", "Try the API free with no card: 25 test calls for an OpenAI or ElevenLabs SDK"]],
+    more: [[VOICE_SITE + "/transcribe", "Try it free in your browser: transcribe audio without an account (the file stays on your device)"]],
     faq: [
       ["How long can a recording be?", "Up to 60 minutes and 25 MB of MP3 or WAV in one call to /transcribe/long ($0.05). The file is cut into parts and the timings are joined, so subtitles cover the whole recording. Clips up to 5 MB in any common format go to /transcribe ($0.01)."],
       ["Can I keep my OpenAI or ElevenLabs code?", "Yes. Point the client's base URL here: POST /v1/audio/transcriptions takes OpenAI's request (file, language, response_format json, text, srt, vtt or verbose_json), and POST /v1/speech-to-text takes ElevenLabs' (file or cloud_storage_url, language_code, diarize for speaker labels). A prepaid key goes in Authorization: Bearer, X-API-Key or xi-api-key."],
@@ -336,7 +336,7 @@ export const PRODUCTS: readonly Product[] = [
       "MP3 in English and Spanish; no WAV in retired languages, no streaming in parts, no voice cloning.",
     ],
     unit: "requests",
-    more: [[VOICE_SITE + "/text-to-speech", "Try it free in your browser: text to speech without an account, WAV or MP3 download"], ["/keys/voice-test", "Try the API free with no card: 25 test calls for an OpenAI or ElevenLabs SDK"]],
+    more: [[VOICE_SITE + "/text-to-speech", "Try it free in your browser: text to speech without an account, WAV or MP3 download"]],
     faq: [
       ["Can I keep my ElevenLabs or OpenAI code?", "Yes. POST /v1/text-to-speech/{voice_id} takes ElevenLabs' request (text, model_id, output_format mp3_*), and ElevenLabs' premade voice IDs and names map to one of our voices of the same kind; the X-Voice header names it. The voice list, model list and key check ElevenLabs apps read on setup (GET /v1/voices, /v1/models, /v1/user) answer too. POST /v1/audio/speech takes OpenAI's request and voice names. Answers are MP3 by default; WAV, raw PCM, 8 kHz mu-law or A-law for phone lines (Twilio), Opus and FLAC on request, and a pronunciations list ({\"Nginx\":\"engine x\"}) says how to read names."],
       ["What does it cost?", "Up to 300 characters with a natural voice: $0.01 (ai/speech). Up to 2,000: $0.08 (text-to-speech). Up to 2,000 with the low-cost voice: $0.04 (text-to-speech/lite). Failed calls are never charged."],

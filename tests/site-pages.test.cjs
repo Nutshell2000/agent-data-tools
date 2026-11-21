@@ -112,5 +112,6 @@ test("the new pages are counted and listed", () => {
   assert.ok(sm.includes("<loc>https://x.test/guides</loc>"), "the guide hub is in the sitemap");
   // 20 Nov 2026: the two indexable acquisition pages (card credits + free key) were absent from the sitemap.
   assert.ok(sm.includes("<loc>https://x.test/credits</loc>"), "the pricing page is in the sitemap");
-  assert.ok(sm.includes("<loc>https://x.test/keys/free</loc>"), "the free-key page is in the sitemap");
+  // 21 Nov 2026: free keys by e-mail are off, so their page is not listed (an unpaid probe must not meet a 404 on a listed path).
+  assert.ok(!sm.includes("<loc>https://x.test/keys/free</loc>"), "the switched-off free-key page is not in the sitemap");
 });

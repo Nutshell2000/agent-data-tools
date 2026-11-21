@@ -201,7 +201,7 @@ export async function buyCreditsWithUsdc(c: C): Promise<Response> {
   const headers = new Headers({ "Cache-Control": "no-store", "content-type": "application/json; charset=utf-8" });
   for (const name of ["PAYMENT-RESPONSE", "X-PAYMENT-RESPONSE", "X-Request-ID"]) { const v = response.headers.get(name); if (v) headers.set(name, v); }
   const paid = { network: settled.network, transaction: settled.transaction };
-  const use = "Send the key as Authorization: Bearer <key> (or X-API-Key) on any tool call, or connect MCP clients to the mcpUrl. Each successful call spends the tool's price in credits; failed calls are refunded. Balance: GET /credits/balance with the key.";
+  const use = "Send the key as Authorization: Bearer <key> (or X-API-Key) on any tool call, or connect MCP clients to the mcpUrl. Each successful call spends the tool's price in credits; failed calls cost nothing. Balance: GET /credits/balance with the key.";
   if (!issued) {
     // Paid, and the ledger still cannot be written: keep the grant where the next balance check applies it.
     const parked = await c.env.TRIALS?.put(unsavedKey(keyHash, sessionId), JSON.stringify({ sessionId, credits: pack.credits })).then(() => true).catch(() => false);

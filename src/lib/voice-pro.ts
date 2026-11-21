@@ -145,7 +145,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
     ["Which files work?", "MP3 or WAV up to 25 MB and 60 minutes in one call; OGG, M4A, MP4 and other common formats up to 5 MB. A public link to the file works too. The browser tool splits longer recordings for you."],
     ["Which languages?", "More than 90, detected by itself or set by you (Whisper large-v3-turbo). Swedish, Norwegian, Danish, Finnish and German work as well as English."],
     ["Do I need an account?", "No. You pay with a card through Stripe and get a key. Keep the key private: anyone with it can use your credits."],
-    ["Can I try it first?", `Yes. In ${brand} Voice, drop a file and choose "Try Pro free on this file": one recording a day, up to 30 minutes, with no card.`],
+    ["Can I try it first?", `Yes, free and with no limit on your own device: ${brand} Voice transcribes in your browser and the file never leaves it. For one long recording done on our servers, One job is $1 once for ${hoursFor(VOICE_HOURS_PACK_CREDITS, prices.long)} hours.`],
     ["Can I cancel?", "Yes, any time, in Stripe's customer portal with the e-mail you paid with. Credits already added stay."],
     ["What else can the credits pay for?", `Summaries of a recording (${prices.summary}), text to speech, and every other tool in the catalog.`],
   ];
