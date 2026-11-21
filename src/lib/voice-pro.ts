@@ -165,7 +165,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <h1>Any recording, turned into text.<br><span class="gt">Done for you.</span></h1>
 <p class="lede"><strong>About ${hours} hours of transcription a month for ${price}.</strong> Audio and video to text on our servers, with SRT and VTT subtitles and word timings, in more than 90 languages.</p>
 <div class="ctas" style="justify-content:center"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a>${tryLink(prices, trial, "Try Pro free on one file", "btn")}</div>
-<p class="after">Just one file? <a href="${esc(VOICE_HOURS_PACK_URL)}">${hoursPack} hours for $1</a>, paid once, no subscription.</p>
+<p class="after">Just one file?</p><p style="text-align:center;margin:8px 0 0"><a class="btn ghost" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">${hoursPack} hours for $1, paid once</a></p>
 <p class="after">Card payment through Stripe. No account. Cancel any time. Failed transcriptions are never charged.</p>
 </div></section>
 
