@@ -13,7 +13,7 @@
 import { getAddress, isAddress } from "viem";
 import type { Env } from "./env";
 
-/** Earlier payout wallets that are still the owner's. 0x2074…77f5: her Coinbase Wallet, PAY_TO until 7 Nov 2026. */
+/** Earlier payout wallets that are still ours. 0x2074…77f5 was PAY_TO until 7 Nov 2026. */
 export const PREVIOUS_PAY_TO: readonly string[] = ["0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5"];
 
 /** Every payout wallet, current first, EVM addresses checksummed, without repeats. */

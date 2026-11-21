@@ -1,5 +1,5 @@
 /**
- * EU e-invoices: create, validate, convert (14 Nov 2026; plan `C:\MoneyWallet\business\tool-call-market-plan-2026-11-14.md`).
+ * EU e-invoices: create, validate, convert (14 Nov 2026).
  *
  * Why: German companies above EUR 800,000 turnover must issue structured e-invoices from 1 Jan 2027 and every company
  * from 1 Jan 2028; France follows for small firms in Sep 2027. The code libraries for the formats had 170,000-250,000

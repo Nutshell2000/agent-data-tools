@@ -16,9 +16,12 @@ before(async () => {
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
 const get = async (path) => L.legal.request(`${ORIGIN}${path}`);
-// Personal words are held as salted SHA-256 hashes, so this public file checks for them without spelling them (21 Nov 2026).
+// Personal words are checked as salted SHA-256 hashes read from a file outside this repository (its path in
+// ADT_PRIVATE_WORD_HASHES, one hash per line): neither the words nor their hashes are tracked. Without the file only
+// the pattern check runs.
 const { createHash } = require("node:crypto");
-const PRIVATE_WORDS = new Set(["0816a9e41fea8b25f98a767bc50fc07f28b1d319ab29f3fc3cbd734640414390","9e289a8e88161f5414cd1e69c056ee06bf36170e0b30aff8d6aa0a9d8b6f5574","d3495dc3ccedf1d14b96684e8cb0a3c8592b8bbb66b1983565b4d25e2915d0c1"]);
+const HASH_FILE = process.env.ADT_PRIVATE_WORD_HASHES;
+const PRIVATE_WORDS = new Set(HASH_FILE && require("node:fs").existsSync(HASH_FILE) ? readFileSync(HASH_FILE, "utf8").split(/\s+/).filter((h) => /^[0-9a-f]{64}$/.test(h)) : []);
 const PERSONAL_PATTERN = /personnummer|\b\d{6}-?\d{4}\b/i;
 const personal = (html) => PERSONAL_PATTERN.test(html) || (html.toLowerCase().match(/[a-z\u00e0-\u00ff]+/g) ?? []).some((w) => PRIVATE_WORDS.has(createHash("sha256").update(`adt-private-word:${w}`).digest("hex")));
 

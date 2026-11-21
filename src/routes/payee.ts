@@ -1,6 +1,5 @@
 /**
- * Verified payee records (owner's go, 15 Nov 2026: the 2027 flagship plan, Phase 0; plan file
- * C:\MoneyWallet\business\plans\spellzcode-2027-flagship-seal-2026-11-15.md). The product's working name is internal:
+ * Verified payee records (15 Nov 2026). The product's working name is internal:
  * paths and copy say "payee record" and never carry it.
  *
  * A business that sells to agents publishes /.well-known/agent-payee.json on its own domain: its company identifiers

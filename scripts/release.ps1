@@ -79,7 +79,8 @@ Step 'auth' { gh auth status 2>&1 | Select-Object -First 2; npx wrangler whoami 
 # The staging proofs pay from .test-wallet.json in THIS worktree. pay-test.mjs would otherwise create a fresh, unfunded
 # wallet here and every proof would fail with insufficient_balance; copy the funded one in, and tell pay-test to refuse
 # a missing file rather than invent one.
-$WalletSource = 'C:\MoneyWallet\x402-canonical\.test-wallet.json'
+# The funded wallet lives in the sibling checkout x402-canonical (or wherever ADT_TEST_WALLET points).
+$WalletSource = if ($env:ADT_TEST_WALLET) { $env:ADT_TEST_WALLET } else { Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'x402-canonical\.test-wallet.json' }
 Step 'wallet' {
   if (-not (Test-Path '.test-wallet.json')) {
     if (-not (Test-Path $WalletSource)) { throw "no .test-wallet.json here and none at $WalletSource" }

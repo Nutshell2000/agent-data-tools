@@ -86,7 +86,7 @@ for (const { slug, title, description } of extra) {
 // Drafts for the com.glyphcall namespace (16 Nov 2026): the same three servers under the brand's own domain. NOT
 // published: publish-mcp.yml reads server.json and registry/*.json only, and registry-drafts/ is outside both
 // (tests/glyphcall-registry-drafts.test.cjs holds that). Publishing needs the owner to prove control of
-// glyphcall.com to the registry first (docs/cloud-reports/2026-11-16-brand.md). No tool counts in these.
+// glyphcall.com to the registry first. No tool counts in these.
 const BRAND = "Glyphcall", BRAND_ORIGIN = "https://glyphcall.com";
 const rebased = (value) => JSON.parse(JSON.stringify(value).replaceAll(origin, BRAND_ORIGIN));
 const drafts = [

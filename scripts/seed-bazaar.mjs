@@ -1,6 +1,6 @@
 // Seeds the Coinbase Bazaar: pays each selected tool once through production, because Coinbase indexes a
-// resource only after its first settled payment through the CDP facilitator. Owner-approved on 2026-10-19
-// (docs/bazaar-seeding.md). The money goes from the owner's buyer wallet to the owner's PAY_TO; the ledger
+// resource only after its first settled payment through the CDP facilitator. Run by the operator only.
+// The money goes from the operator's buyer wallet to PAY_TO; the ledger
 // marks the buyer wallet as owned, so these settlements never count as revenue or demand.
 //
 //   node scripts/seed-bazaar.mjs wallet                       create the buyer wallet if needed, print its address

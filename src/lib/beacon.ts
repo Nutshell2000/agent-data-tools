@@ -13,7 +13,7 @@
 //   3. AI crawlers                      one point per GET of a page or discovery file by a crawler in lib/ai-crawlers.ts.
 //   4. utm into Stripe links            a page opened with utm_source (or src) hands it to its Stripe payment links as
 //                                       client_reference_id=utm_<source>[_<medium>[_<campaign>]]; needs no binding.
-// Layouts, SQL and the page snippet: docs/cloud-reports/2026-11-16-measurement.md and scripts/analytics-queries.mjs.
+// Layouts and SQL: scripts/analytics-queries.mjs.
 import type { Context, MiddlewareHandler } from "hono";
 import type { Env } from "./env";
 import { aiCrawlerName } from "./ai-crawlers";

@@ -385,7 +385,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const freeOnly = paid && !creditKey && Boolean(account);
   // Free calls per connection: an unpaid, keyless connection gets a signed token at initialize and sends it back as
   // Mcp-Session-Id (lib/free-sessions.ts). The transport stays stateless; the header is only the name of a counter.
-  // Free calls per connection stay OFF until the owner decides (her rule: 25 per caller); MCP_FREE_SESSIONS="on" enables them.
+  // Free calls per connection stay OFF until the owner decides (the rule: 25 per caller); MCP_FREE_SESSIONS="on" enables them.
   const freeSession = x402 && c.req.method === "POST" && (env as { MCP_FREE_SESSIONS?: string }).MCP_FREE_SESSIONS === "on" ? await freeSessionFor(env, c.req.header("mcp-session-id"), () => c.req.raw.clone().text()) : {};
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));

@@ -20,11 +20,11 @@ const DEFAULT_DAILY_CAP = 500;
 
 /** The Brave API terms' end-user obligations, stated in every answer (§4(c) of the terms). */
 /**
- * Price test from 11 Nov 2026 (owner: "Yes, start now" to "Start $0.03 on the three Mercator-bought tools now instead of
- * 19 Nov?"): /news, /pack/news-sentiment and /pack/web-research. Mercator's gateway (0x72c5…159b) bought these three about
+ * Price test from 11 Nov 2026 on the three Mercator-bought tools:
+ * /news, /pack/news-sentiment and /pack/web-research. Mercator's gateway bought these three about
  * nine times a day at $0.01, at its own search ranks 5, 6 and 12, and pays other sellers $0.02-0.15 for the same jobs; price
  * is 5% of its score. Entry paths (/news/search, /crypto/news) follow /news. Rule: if its calls to a tool stop for two days,
- * that tool goes back to $0.01 (see CLAUDE.md, 1.130.0).
+ * that tool goes back to $0.01 (1.130.0).
  *
  * Back at $0.01 since 1.136.0 (11 Nov 2026). Mercator's gateway keeps its own price per endpoint (0.01, "dynamic": false,
  * from its 6-7 Nov Bazaar import) and does not pay a quote above it: on 11 Nov it asked /pack/news-sentiment for a quote

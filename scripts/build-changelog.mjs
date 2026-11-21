@@ -4,7 +4,7 @@
 // The Worker has no git, so /changelog reads this snapshot; a release missing from it appears with the next run.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,8 +12,11 @@ const ref = process.argv[2] || "origin/main";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const log = execFileSync("git", ["log", "--first-parent", ref, "--format=%cs%x09%s"], { cwd: root, encoding: "utf8" });
 const RELEASE = /^(\d+\.\d+\.\d+): (.+?)(?: \(#\d+\))?$/;
-// Names that must not reach a public page, held as salted SHA-256 hashes so this public file does not spell them.
-const PRIVATE_WORDS = new Set(["0816a9e41fea8b25f98a767bc50fc07f28b1d319ab29f3fc3cbd734640414390"]);
+// Names that must not reach a public page are matched as salted SHA-256 hashes read from a file outside this
+// repository (its path in ADT_PRIVATE_WORD_HASHES, one hash per line). Without the file nothing is replaced.
+const hashFile = process.env.ADT_PRIVATE_WORD_HASHES;
+const PRIVATE_WORDS = new Set(hashFile && existsSync(hashFile) ? readFileSync(hashFile, "utf8").split(/\s+/).filter((h) => /^[0-9a-f]{64}$/.test(h)) : []);
+if (!PRIVATE_WORDS.size) console.warn("changelog: ADT_PRIVATE_WORD_HASHES is not set; no name is replaced");
 const isPrivate = (word) => PRIVATE_WORDS.has(createHash("sha256").update(`adt-private-word:${word.toLowerCase()}`).digest("hex"));
 const seen = new Set();
 const entries = [];

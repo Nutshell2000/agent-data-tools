@@ -3,8 +3,7 @@
 # Working in this repository
 
 This file is short on purpose. The operating notes for this service (release history, measurements, decisions and the
-reasons behind them) are kept outside this public repository. On the operator's machine they are in
-`C:\MoneyWallet\business\agentic\AGENT-DATA-TOOLS-NOTES.md`, with the runbook in `OPERATIONS.md` beside it. Before you
+reasons behind them) are kept outside this public repository, in the operator's private notes and runbook. Before you
 change a file, read the sections of those notes that concern it; write what the next person needs to know there, not
 here. Nothing about buyers, income, wallets' owners, people or pending decisions belongs in this repository.
 
@@ -30,8 +29,9 @@ here. Nothing about buyers, income, wallets' owners, people or pending decisions
   refuse Cloudflare's egress.
 - **The line `const result = await handler(env, normalizedInput(input));` in `src/tools.ts` stays verbatim;** a test
   patches it.
-- **No personal names, private addresses or local user paths in tracked files.** Checks that guard against them hold
-  salted hashes, not the words (`tests/company-pages.test.cjs`, `scripts/build-changelog.mjs`).
+- **No personal names, private addresses, local paths or internal notes in tracked files.** Checks that guard against
+  names read salted hashes from a file outside the repository (`ADT_PRIVATE_WORD_HASHES`); neither the words nor their
+  hashes are tracked (`tests/company-pages.test.cjs`, `scripts/build-changelog.mjs`).
 
 ## Releasing
 
