@@ -105,7 +105,7 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
 <ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles as SRT or VTT, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
 <a class="btn" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Get ${pack} hours for $1</a><p class="fine">Paid once by card. No account.</p></div>`;
   const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
-<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>One key that also runs the studio voices and the APIs</li><li>Unused credits stay; cancel any time</li></ul>
+<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Hours you don't use carry over. Cancel any time.</li></ul>
 <a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account.${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
   return `<div class="ladder">${free}${once}${pro}</div>
 <p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month for about ${hoursFor(more.credits, prices.long)} hours</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
@@ -121,11 +121,11 @@ export function offerCompare(prices: VoicePrices, browserLanguages: number): str
     ["Where the work is done", "On your own device", "On our servers"],
     ["Speed", "Depends on your device", "Does not depend on your device"],
     ["Longest recording", "What your device can handle", LIMITS_SENTENCE],
-    ["Speech-to-text model", "Whisper base; large-v3-turbo on browsers with a graphics card", "Whisper large-v3-turbo on every device"],
+    ["Accuracy", "Good", "Best"],
     ["Languages", `${browserLanguages} to choose from`, "More than 90, detected by itself or chosen by you"],
     ["Subtitles", "SRT and VTT", "SRT and VTT, with word timings"],
     ["Your files", "Never leave your device", "Sent to our servers for the job"],
-    ["Use from your own code", "No", "Yes: one API key, OpenAI-shaped requests work as they are"],
+    ["Use from your own code", "No", "Yes, for developers"],
     ["Price", "$0", `${price} a month for about ${voiceProHours(prices.long)} hours, or $1 once for ${hoursFor(VOICE_HOURS_PACK_CREDITS, prices.long)} hours`],
   ];
   return `<div class="scroll"><table class="cmp"><tr><th></th><th>Free</th><th>Transcribe Pro</th></tr>${rows.map(([what, a, b]) => `<tr><td>${esc(what)}</td><td>${esc(a)}</td><td class="yes">${esc(b)}</td></tr>`).join("")}</table></div>`;
@@ -140,7 +140,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
   const description = `Audio and video to text on our servers, with SRT and VTT subtitles in 90+ languages. ${price} a month is about ${hours} hours. No account, cancel any time.`;
   const faq: Array<[string, string]> = [
     ["How many hours do I get?", `About ${hours}. Each month adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits, and a recording of up to 60 minutes costs ${prices.long} (${creditsAt(prices.long)} credits). Short clips cost ${prices.short} each. Unused credits stay on your key.`],
-    ["How do I use it?", `Pay by card and your key is shown right away. Open ${brand} Voice Transcribe, paste the key under "Already have an access key?" in the Pro section, then press "Transcribe with Pro" and drop your file. The same key works from code.`],
+    ["How do I use it?", `Pay by card and you come straight back with Pro switched on. Drop your file. Developers can use the same key from code.`],
     ["Which files work?", "MP3 or WAV up to 25 MB and 60 minutes in one call; OGG, M4A, MP4 and other common formats up to 5 MB. A public link to the file works too. The browser tool splits longer recordings for you."],
     ["Which languages?", "More than 90, detected by itself or set by you (Whisper large-v3-turbo). Swedish, Norwegian, Danish, Finnish and German work as well as English."],
     ["Do I need an account?", "No. You pay with a card through Stripe and get a key. Keep the key private: anyone with it can use your credits."],
@@ -172,8 +172,8 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <section class="sec center" id="how"><div class="wrap">
 <h2>Three steps, no account</h2>
 <ol class="steps">
-<li><strong>Pay by card</strong><span>Your key is shown right after payment. Nothing to sign up for.</span></li>
-<li><strong>Paste the key</strong><span>Open <a href="${VOICE_SITE}/transcribe#fast">${esc(brand)} Voice Transcribe</a>, paste the key under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>.</span></li>
+<li><strong>Pay by card</strong><span>Nothing to sign up for. Your payment is taken in one step.</span></li>
+<li><strong>Come straight back</strong><span>You return to <a href="${VOICE_SITE}/transcribe">${esc(brand)} Voice</a> with Pro already switched on.</span></li>
 <li><strong>Drop your file</strong><span>Get the transcript and subtitles back. Long recordings are split for you.</span></li>
 </ol>
 </div></section>
@@ -192,7 +192,7 @@ ${offerCompare(prices, CONSOLE_LANGUAGES.length)}
 <section class="sec" id="faq"><div class="wrap">
 <div class="center"><h2>Questions</h2></div>
 <div class="faq" style="margin-top:28px">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join("")}</div>
-<p class="small" style="margin-top:22px">For developers: the same key works from code with <code>/transcribe/long</code> and the OpenAI-compatible <code>/v1/audio/transcriptions</code>. <a href="/speech-to-text-api">Speech to text API</a> · <a href="/credits">all credit packs and plans</a> · <a href="${esc(PLAN_PORTAL_URL)}">manage or cancel a plan</a></p>
+<p class="small" style="margin-top:22px">For developers: the same account works from code. See the developer pages. <a href="/speech-to-text-api">Speech to text API</a> · <a href="/credits">all credit packs and plans</a> · <a href="${esc(PLAN_PORTAL_URL)}">manage or cancel a plan</a></p>
 </div></section>
 
 <section class="final"><h2>Drop a recording. <span class="gt">Get every word back.</span></h2><p>About ${hours} hours a month for ${price}. No account.</p><div class="ctas"><a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro</a>${tryLink(prices, trial, "Try it free on one file", "btn")}</div></section>
