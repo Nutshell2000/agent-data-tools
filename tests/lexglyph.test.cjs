@@ -86,6 +86,7 @@ test("language of the question: named for the answer, coded for EUR-Lex", () => 
   assert.equal(law.eurlexIn(result.url, "PL"), "https://eur-lex.europa.eu/legal-content/PL/TXT/HTML/?uri=CELEX:02016R0679-20160504#art_37");
 });
 
-test("LexGlyph is in the sitemap", () => {
-  assert.ok(discovery.sitemapXml("https://x.test").includes("<loc>https://x.test/lexglyph</loc>"));
+test("LexGlyph is in its own host's sitemap, not the main one (21 Nov 2026)", () => {
+  assert.ok(!discovery.sitemapXml("https://x.test").includes("/lexglyph</loc>"));
+  assert.ok(discovery.lexSitemapXml().includes("<loc>https://lex.glyphcall.com/</loc>"));
 });

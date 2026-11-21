@@ -11,6 +11,7 @@ import { RULES, ruleSlug, type RuleDoc } from "./einvoice/validate";
 import { ruleDe, TERMS_DE } from "./einvoice/rules-de";
 import { EINVOICE_BASE, EINVOICE_BASE_DE, EINVOICE_RULES, EINVOICE_RULES_DE, TERMS, languageLinks, termsOf } from "./einvoice-pages";
 import { EXAMPLE_INVOICE_JSON, SAMPLE_XRECHNUNG } from "../routes/einvoice";
+import { metaDescription, seoTitle } from "./seo-text";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -43,8 +44,8 @@ export function einvoiceRulePageDe(r: RuleDoc, origin: string, tryIt: boolean, b
   const terms = termsOf(r);
   const names = terms.map(termName).join(", ");
   const kind = r.level === "error" ? "Fehler" : "Warnung";
-  const title = `${r.id}: ${rule.replace(/\.$/, "")} · ${r.standard === "XRechnung" ? "XRechnung" : "E-Rechnung"}: ${kind} und Lösung`.slice(0, 160);
-  const description = `Was ${r.id} in einer ${r.standard === "XRechnung" ? "XRechnung" : "E-Rechnung nach EN 16931 (XRechnung, ZUGFeRD, Factur-X, Peppol)"} bedeutet, welches XML-Element in CII und UBL betroffen ist und wie Sie den Fehler beheben. Datei hier prüfen.`;
+  const title = seoTitle(`${r.id}: ${rule.replace(/\.$/, "")}`, brand);
+  const description = metaDescription(`Was ${r.id} in einer ${r.standard === "XRechnung" ? "XRechnung" : "E-Rechnung nach EN 16931 (XRechnung, ZUGFeRD, Factur-X, Peppol)"} bedeutet, welches XML-Element in CII und UBL betroffen ist und wie Sie den Fehler beheben. Datei hier prüfen.`);
   const related = RULES.filter((o) => o !== r && o.field.split(",").some((f) => terms.includes(f.trim()))).slice(0, 8);
   const faq: [string, string][] = [
     [`Was bedeutet ${r.id}?`, `${rule} Die Regel stammt aus ${standardName(r)}.`],
@@ -89,8 +90,8 @@ export function einvoiceRulesIndexPageDe(origin: string, brand: string = SERVICE
     ["Umsatzsteuerkategorien (BR-S, BR-Z, BR-E, BR-AE, BR-IC, BR-G)", RULES.filter((r) => /^BR-(S|Z|E|AE|IC|G)-/.test(r.id))],
     ["Nachkommastellen (BR-DEC)", RULES.filter((r) => r.id.startsWith("BR-DEC"))],
   ];
-  const title = `XRechnung-Fehler erklärt: ${RULES.length} Prüfregeln (BR-DE, BR-CO, EN 16931) mit Lösung · ${brand}`;
-  const description = "Was jede Fehlermeldung bei der Prüfung einer E-Rechnung bedeutet und wie Sie sie beheben: die BR-DE-Regeln der XRechnung und die BR-, BR-CO- und Umsatzsteuerregeln der EN 16931, die auch für ZUGFeRD, Factur-X und Peppol gelten.";
+  const title = seoTitle([`XRechnung-Fehler erklärt: ${RULES.length} Prüfregeln mit Lösung`, "XRechnung-Fehler erklärt"], brand);
+  const description = metaDescription("Was jede Fehlermeldung bei der Prüfung einer E-Rechnung bedeutet und wie Sie sie beheben: die BR-DE-Regeln der XRechnung und die BR-, BR-CO- und Umsatzsteuerregeln der EN 16931, die auch für ZUGFeRD, Factur-X und Peppol gelten.");
   return `${head(title, description, EINVOICE_RULES, EINVOICE_RULES_DE, origin)}
 <nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE_DE}">E-Rechnungs-API</a> · <a href="${EINVOICE_RULES}" hreflang="en" lang="en">English</a></nav>
 <h1>Prüfregeln für E-Rechnungen, verständlich erklärt</h1>
@@ -106,8 +107,8 @@ ${foot()}`;
 /** /de/e-rechnung: the German product page of the three tools. */
 export function einvoiceIndexPageDe(origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const create = tool("/einvoice/create"), validate = tool("/einvoice/validate"), toJson = tool("/einvoice/to-json");
-  const title = `E-Rechnungs-API: XRechnung, ZUGFeRD und Factur-X erstellen, prüfen und umwandeln · ${brand}`;
-  const description = "XRechnung- und ZUGFeRD-/Factur-X-XML aus JSON erstellen, E-Rechnungen gegen die Geschäftsregeln von EN 16931 und XRechnung prüfen und E-Rechnungs-XML in JSON umwandeln. Je ein HTTP-Aufruf, ohne eigene Bibliothek.";
+  const title = seoTitle(["E-Rechnungs-API: XRechnung, ZUGFeRD und Factur-X", "E-Rechnungs-API"], brand);
+  const description = metaDescription("XRechnung- und ZUGFeRD-/Factur-X-XML aus JSON erstellen, E-Rechnungen gegen die Geschäftsregeln von EN 16931 und XRechnung prüfen und E-Rechnungs-XML in JSON umwandeln. Je ein HTTP-Aufruf, ohne eigene Bibliothek.");
   const faq: [string, string][] = [
     ["Welche Formate werden unterstützt?", "XRechnung 3.0 in beiden Syntaxen (UN/CEFACT CII und UBL), die XML von ZUGFeRD 2.x und Factur-X im Profil EN 16931 sowie andere Rechnungen nach EN 16931 in UBL oder CII, etwa Peppol BIS Billing 3.0. Ein ZUGFeRD- oder Factur-X-PDF können Sie unverändert senden: Die eingebettete XML wird gelesen."],
     ["Wird auch das ZUGFeRD-PDF erzeugt?", "Ja, mit dem Format zugferd-pdf: eine lesbare A4-Rechnung mit eingebetteter factur-x.xml, aufgebaut nach PDF/A-3b mit eingebetteten Schriften. Das Layout ist schlicht und fest vorgegeben (kein Logo, kein eigenes Design), und die Datei wurde nicht von einem PDF/A-Validator zertifiziert. Eine XML in ein von Ihnen erzeugtes PDF einzubetten ist nicht möglich."],

@@ -7,6 +7,7 @@ import { ENDPOINTS, type Endpoint } from "../endpoints";
 import { PLAN_PORTAL_URL } from "./credits";
 import { COMPANY_FOOTER } from "./legal";
 import { PRODUCTS } from "./product-pages";
+import { metaDescription, seoTitle } from "./seo-text";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -36,8 +37,8 @@ export { landingPage } from "./home-page";
 /** /docs: how to call any of the APIs with a key. Only what the service does today. */
 export function docsPage(brand: string, origin: string, freeKey = false): string {
   const pdf = BY_PATH.get("/pdf/text");
-  const title = `Docs: keys, requests, errors and uploads · ${brand}`;
-  const description = `How to call the ${brand} APIs: send your key in a header, read JSON back, what an error looks like, how to check your balance, replace a key and send a file.`;
+  const title = seoTitle("Docs: keys, requests, errors and uploads", brand);
+  const description = metaDescription(`How to call the ${brand} APIs: send your key in a header, read JSON back, what an error looks like, how to check your balance, replace a key and send a file.`);
   const keyed = `curl -H "Authorization: Bearer $API_KEY" "${origin}/vat/validate?vat=SE556703748501"`;
   const upload = pdf ? `curl -H "Authorization: Bearer $API_KEY" -F "file=@report.pdf" "${origin}${pdf.path}"` : "";
   return `<!doctype html>

@@ -10,8 +10,9 @@
 // Pieces: GET /app (this page), /manifest.webmanifest, /sw.js (scope /app only; it caches the page shell and the
 // model runtime so the app opens offline, while the model files themselves are cached by the Transformers.js runtime
 // in the browser's Cache Storage after the first use).
-import { CONSOLE_VOICES, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
+import { CONSOLE_VOICES, CONSOLE_VOICE_LANGS, VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
 import { webApplicationScript } from "./app-jsonld";
+import { metaDescription, seoTitle } from "./seo-text";
 
 export const APP_PATH = "/app";
 export const APP_VERSION = "1";
@@ -42,7 +43,11 @@ export function appManifest(brand: string): Record<string, unknown> {
   };
 }
 
-/** The service worker. Cache-first for the shell, stale-while-revalidate for the model runtime on public CDNs. */
+/**
+ * The service worker. Cache-first for the shell, stale-while-revalidate for the model runtime on public CDNs. The
+ * espeak-ng files for the non-English voices (jsDelivr, about 18 MB) are fetched on demand, the first time such a voice
+ * speaks, and cached by the same CDN rule then: offline, a non-English voice works only after one use online.
+ */
 export function appServiceWorker(): string {
   return `const V="glyphcall-app-v${APP_VERSION}",SHELL=["${APP_PATH}","/logo.png","/favicon.svg"];
 const CDN=/^https:\\/\\/(cdn\\.jsdelivr\\.net|cdnjs\\.cloudflare\\.com)\\//;
@@ -67,8 +72,9 @@ footer{max-width:860px;margin:30px auto 40px;padding:0 16px;color:#a3a3bf;font-s
 
 export function appPage(brand: string, origin: string): string {
   const voiceCount = CONSOLE_VOICES.length;
-  const title = `${brand} Voice app: free text to speech and transcription, offline`;
-  const description = `Install ${brand} Voice on Windows, Mac, Linux, Android or iPhone. ${voiceCount} natural voices and speech to text that run on your own device: no account, no limits, works offline.`;
+  // 21 Nov 2026: through lib/seo-text.ts (at most 60 / 160 characters); the data block repeats the same description.
+  const title = seoTitle([`${brand} Voice app: free text to speech and transcription, offline`, `${brand} Voice: free text to speech app, works offline`, `${brand} Voice: free text to speech app`], brand);
+  const description = metaDescription(`Install ${brand} Voice on Windows, Mac, Linux, Android or iPhone. ${voiceCount} natural voices and speech to text that run on your own device: no account, no limits, works offline.`);
   // 20 Nov 2026: questions the page visibly answers, reused verbatim in the FAQPage JSON-LD above.
   const APP_FAQ: [string, string][] = [
     ["Can I install it on Windows, Mac, Android or iPhone?", "Yes: Windows, Mac and Linux in Chrome, Edge or Brave; on Android from the browser menu; on iPhone with Share, then Add to Home Screen."],
@@ -77,7 +83,7 @@ export function appPage(brand: string, origin: string): string {
   ];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
-${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, description, brand, offers: [] })}
+${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, description, brand, offers: [], category: "MultimediaApplication", free: true })}
 <link rel="canonical" href="${esc(origin)}${APP_PATH}"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07070c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${esc(brand)}">
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${APP_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta name="twitter:card" content="summary_large_image">
@@ -86,9 +92,9 @@ ${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, de
 <header class="bar"><a class="brand" href="/"><img src="/logo.png" alt="" width="30" height="30">${esc(brand)} Voice</a><button type="button" class="btn primary" id="install" hidden>Install app</button></header>
 <main class="wrap">
 <h1>Your voice studio, on your own device.</h1>
-<p class="lede">Text to speech in ${voiceCount} voices and transcription of any recording, free and unlimited. Nothing is uploaded and there is no account.</p>
+<p class="lede">Text to speech in ${voiceCount} voices (${CONSOLE_VOICE_LANGS.length} languages) and transcription of any recording, free and unlimited. Nothing is uploaded and there is no account.</p>
 <div class="offline" id="offline" role="status">You are offline. The app still works once its voice and listening models have been fetched on this device.</div>
-${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts", upsellTts: `Want this in your own app? Our <a href="/text-to-speech-api">text to speech API</a> speaks your text on our servers.`, upsellStt: `Need transcription in your app? See the <a href="/speech-to-text-api">speech to text API</a>.` })}
+${voiceConsole({ id: "app-vc", voiceSite: VOICE_SITE, first: "tts", persist: true, upsellTts: `Want this in your own app? Our <a href="/text-to-speech-api">text to speech API</a> speaks your text on our servers.`, upsellStt: `Need transcription in your app? See the <a href="/speech-to-text-api">speech to text API</a>.` })}
 <div class="card" id="how"><h2>Install it like any app</h2>
 <ul><li><strong>Windows, Mac, Linux (Chrome, Edge, Brave):</strong> press <em>Install app</em> above, or the install icon in the address bar. It gets its own window and a desktop or Start menu icon.</li>
 <li><strong>Android:</strong> open this page in Chrome, menu, <em>Install app</em>.</li>
