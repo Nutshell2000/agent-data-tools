@@ -199,7 +199,7 @@ voiceKeys.post(VOICE_TEST_PATH, async (c) => {
   c.header("Cache-Control", "no-store");
   const origin = new URL(c.req.url).origin;
   const html = prefersHtml(c.req.header("accept"), c.req.header("user-agent"));
-  const errPage = (message: string) => html ? c.html(testKeyPage("Your free test key", `<h1>No key this time</h1><p>${message}</p><p><a href="${VOICE_TEST_PATH}">Back</a> · <a href="/credits">Buy a key from $1</a></p>`)) : null;
+  const errPage = (message: string) => html ? c.html(testKeyPage("Voice test key", `<h1>No key this time</h1><p>${message}</p><p><a href="${VOICE_TEST_PATH}">Back</a> · <a href="/credits">Buy a key from $1</a></p>`)) : null;
   if (!voiceTestKeysOn(c.env)) return errPage(testKeysOff(origin)) ?? c.json({ error: testKeysOff(origin), code: "not_offered", more: paidOptions(origin) }, 404);
   const issued = await issueVoiceKey(c.env, "test", c.req.header("cf-connecting-ip")).catch((e: unknown) => { console.error("voice test key: not issued", e); return null; });
   if (!issued) return errPage(`A test key cannot be issued right now; try again in a few minutes.`) ?? c.json({ error: `A test key cannot be issued right now; try again in a few minutes. ${paidSentence(origin)}`, code: "unavailable", more: paidOptions(origin) }, 503, { "Retry-After": "300" });
