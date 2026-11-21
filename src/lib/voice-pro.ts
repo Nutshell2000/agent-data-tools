@@ -155,7 +155,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${VOICE_PRO_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:price:amount" content="${(VOICE_PRO_CENTS / 100).toFixed(2)}"><meta property="og:price:currency" content="USD"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script><script type="application/ld+json">${JSON.stringify(faqLd).replace(/</g, "\\u003c")}</script>
-<style>${STYLE}${OFFER_CSS}</style></head><body>
+<style>${STYLE}${OFFER_CSS}.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}@media (max-width:720px){header.nav .btn.sm{min-height:44px;display:inline-flex;align-items:center}}@media (max-width:520px){header.nav .nav-cta>a.btn.sm:first-child{display:none}}</style></head><body>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${nav}</nav>
 <div class="nav-cta"><a class="btn sm" href="/#try">Try it free</a><a class="btn sm primary" href="${esc(VOICE_PRO_URL)}">Get Pro</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${nav}<a href="/app">Get the app</a><a href="/docs">Docs</a></div></details></div></div></header>
