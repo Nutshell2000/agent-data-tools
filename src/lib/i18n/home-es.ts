@@ -95,7 +95,7 @@ export const ES: HomeStrings = {
   voicePlans: {
     h3: "¿Quieres también voces de estudio?", voiceText: (c) => `50 voces de estudio creadas en nuestros servidores: unos ${c} caracteres al mes, en cualquier dispositivo.`,
     bundleName: "Voice y Transcribe Pro", bundleText: (c) => `Un saldo para los dos: unos ${c} caracteres de voces de estudio, o transcripción, o una mezcla.`,
-    voiceGo: (p) => `Conseguir Voice Pro: ${p} al mes`, bundleGo: (p) => `Los dos: ${p} al mes`, small: "Paga con tarjeta, Apple Pay, Google Pay o Link. Las horas y los caracteres que no uses se guardan. Cancela cuando quieras.",
+    voiceGo: (p) => `Conseguir Voice Pro: ${p} al mes`, bundleGo: (p) => `Los dos: ${p} al mes`, smallHtml: "Paga con tarjeta, Apple Pay, Google Pay o Link. Las horas y los caracteres que no uses se guardan. Cancela cuando quieras.",
   },
   numberLocale: "es-ES",
   dev: {

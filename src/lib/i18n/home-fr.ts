@@ -96,7 +96,7 @@ export const FR: HomeStrings = {
   voicePlans: {
     h3: "Des voix de studio aussi ?", voiceText: (c) => `50 voix de studio créées sur nos serveurs : environ ${c} caractères par mois, sur tout appareil.`,
     bundleName: "Voice et Transcribe Pro", bundleText: (c) => `Un solde pour les deux : environ ${c} caractères de voix de studio, ou de la transcription, ou un mélange.`,
-    voiceGo: (p) => `Obtenir Voice Pro : ${p} par mois`, bundleGo: (p) => `Les deux : ${p} par mois`, small: "Payez par carte, Apple Pay, Google Pay ou Link. Les heures et caractères non utilisés sont reportés. Résiliable à tout moment.",
+    voiceGo: (p) => `Obtenir Voice Pro : ${p} par mois`, bundleGo: (p) => `Les deux : ${p} par mois`, smallHtml: "Payez par carte, Apple Pay, Google Pay ou Link. Les heures et caractères non utilisés sont reportés. Résiliable à tout moment.",
   },
   numberLocale: "fr-FR",
   dev: {

@@ -74,7 +74,7 @@ export interface HomeStrings {
   how: { h2: string; sub: (brand: string) => string; steps: (voices: number) => readonly Pair[]; goHtml: string };
   faqTitle: string;
   /** The studio-voice plans under the pricing cards. */
-  voicePlans: { h3: string; voiceText: (chars: string) => string; bundleName: string; bundleText: (chars: string) => string; voiceGo: (price: string) => string; bundleGo: (price: string) => string; small: string };
+  voicePlans: { h3: string; voiceText: (chars: string) => string; bundleName: string; bundleText: (chars: string) => string; voiceGo: (price: string) => string; bundleGo: (price: string) => string; smallHtml: string };
   /** How numbers are written ("100,000" / "100.000" / "100 000"). */
   numberLocale: string;
   dev: { kicker: string; h2: string; sub: (trial: boolean) => string; key: string; freeKey: string; docs: string; more: string; stepsHtml: (trial: boolean) => readonly [string, string, string]; examples: string;
@@ -182,7 +182,7 @@ export const EN: HomeStrings = {
   voicePlans: {
     h3: "Want studio voices too?", voiceText: (c) => `50 studio voices made on our servers: about ${c} characters a month, on any device.`,
     bundleName: "Voice and Transcribe Pro", bundleText: (c) => `One balance for both: about ${c} characters of studio voices, or transcription, or any mix.`,
-    voiceGo: (p) => `Get Voice Pro: ${p} a month`, bundleGo: (p) => `Get both: ${p} a month`, small: "Pay by card, Apple Pay, Google Pay or Link. Hours and characters you don't use carry over. Cancel any time.",
+    voiceGo: (p) => `Get Voice Pro: ${p} a month`, bundleGo: (p) => `Get both: ${p} a month`, smallHtml: "Pay by card, Apple Pay, Google Pay or Link. Hours and characters you don't use carry over. Cancel any time.",
   },
   numberLocale: "en-US",
   dev: {

@@ -155,7 +155,7 @@ test("the console speaks the page's language and opens on transcription; English
   assert.match(es, /Suelta aquí una grabación/);
   const de = page("de");
   assert.match(de, /<option value="german" selected>Deutsch<\/option>/);
-  assert.match(de, /Diese Stimmen sprechen Englisch/, "German page says plainly that the voices read English");
+  assert.match(de, /noch kein Deutsch/, "German page says plainly that no voice reads German yet");
   assert.match(page("fr"), /<option value="french" selected>Français<\/option>/);
 });
 
