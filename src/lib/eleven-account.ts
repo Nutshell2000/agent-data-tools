@@ -15,6 +15,7 @@ import { SPEECH_INPUT_LIMIT, withXiKey } from "./openai-speech";
 import { SPEECH_CREDITS_PER_100 } from "./voice-billing";
 import { VOICE_TEST_CALLS, VOICE_TEST_SPEECH_CHARS } from "./voice-keys";
 import { apiKeyFrom } from "./credits";
+import { forwardedHeaders } from "./paying-request";
 
 type C = Context<{ Bindings: Env }>;
 type Forward = (request: Request) => Response | Promise<Response>;
@@ -99,7 +100,7 @@ const unauthorized = (c: C, message: string) => c.json({ detail: { status: "inva
  * false. The balance comes from GET /credits/balance with the same key, so free test and trial keys answer too.
  */
 export async function elevenSubscription(c: C, forward: Forward): Promise<{ sub: Record<string, unknown> } | Response> {
-  const headers = withXiKey(new Headers(c.req.raw.headers));
+  const headers = withXiKey(forwardedHeaders(c.req.raw));
   const key = apiKeyFrom((n) => headers.get(n) ?? undefined);
   const origin = new URL(c.req.url).origin;
   if (!key) return unauthorized(c, `Send a Glyphcall key as xi-api-key (get one at ${origin}/credits; a free voice test key may be available at ${origin}/keys/voice-test).`);

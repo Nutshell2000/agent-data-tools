@@ -69,3 +69,21 @@ test("a timeout or server error on Yahoo's first chart host is read from the sec
     assert.equal(hosts.length, 1);
   } finally { globalThis.fetch = real; }
 });
+
+test("a comma-separated symbol answers every ticker in one call; one ticker answers exactly as before (21 Nov 2026)", async () => {
+  const fake = async (s) => {
+    if (s === "NOPE") throw new Error("unreadable");
+    return { symbol: s, price: 1 };
+  };
+  assert.deepEqual(await S.stockQuoteList("AAPL", fake), { symbol: "AAPL", price: 1 });
+  const many = await S.stockQuoteList(" AAPL, MSFT ,AAPL,^GSPC", fake);
+  assert.equal(many.count, 3);
+  assert.deepEqual(many.quotes.map((q) => q.symbol), ["AAPL", "MSFT", "^GSPC"]);
+  assert.deepEqual(many.failed, []);
+  const partial = await S.stockQuoteList("AAPL,NOPE", fake);
+  assert.equal(partial.count, 1);
+  assert.deepEqual(partial.failed, [{ symbol: "NOPE", error: "could not be read" }]);
+  await assert.rejects(S.stockQuoteList("NOPE,NOPE2", async () => { throw Object.assign(new Error("x"), {}); }), (e) => e.status === 502);
+  const eleven = Array.from({ length: S.QUOTE_LIST_MAX + 1 }, (_, i) => `T${i}`).join(",");
+  await assert.rejects(S.stockQuoteList(eleven, fake), (e) => e.status === 400);
+});

@@ -14,6 +14,7 @@ import { CHAT_MODEL } from "../routes/ai-text";
 import type { Env } from "./env";
 import { LARGE_CHAT_MODELS, MODEL_ENDPOINTS } from "../routes/ai-text";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const OPENAI_CHAT_PATH = "/v1/chat/completions";
 export const OPENAI_MODELS_PATH = "/v1/models";
@@ -165,7 +166,6 @@ export function toOpenAiResponse(query: ChatQuery, result: ChatResult, requested
   };
 }
 
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 export const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 
 /**
@@ -221,7 +221,7 @@ export async function openAiChatCompletions(c: C, forward: Forward): Promise<Res
 export async function completeChat(c: C, forward: Forward, body: unknown): Promise<
   { ok: true; answer: Response; query: ChatQuery; result: ChatResult; requestedModel?: string } | { ok: false; response: Response }
 > {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const mapped = toChatQuery(body);
   if ("error" in mapped && paying) {
     // Invalid input with a payment attached: refuse before anything is forwarded, so nothing is charged.
@@ -247,8 +247,8 @@ export async function completeChat(c: C, forward: Forward, body: unknown): Promi
     if (query.native.tool_choice !== undefined) inner.searchParams.set("tool_choice", typeof query.native.tool_choice === "string" ? query.native.tool_choice : JSON.stringify(query.native.tool_choice));
     if (query.native.response_format) inner.searchParams.set("response_format", JSON.stringify(query.native.response_format));
   }
-  if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  if (outer.searchParams.get("trial") === "1" && c.req.method !== "HEAD") inner.searchParams.set("trial", "1");
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

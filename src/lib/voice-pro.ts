@@ -29,7 +29,7 @@ export function voiceKeyJson(origin: string, key: string, prices: VoicePrices) {
   return {
     voicePro: {
       hoursEachMonth: voiceProHours(prices.long),
-      browser: `Open ${VOICE_TOOLS_URL}, choose Fast mode and paste the key.`,
+      browser: `Open ${VOICE_TOOLS_URL}, paste the key under "Already have an access key?" in the Pro section, then use "Transcribe with Pro".`,
       transcribe: `curl -H "Authorization: Bearer ${key}" "${origin}/transcribe/long?url=<public audio URL>&subtitles=srt"`,
       openaiSdk: `OpenAI SDK: base_url="${origin}/v1", api_key="${key}", then audio.transcriptions.create(model="whisper-1", file=...)`,
     },
@@ -41,7 +41,7 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices) {
   const hours = voiceProHours(prices.long);
   return `<h2>Use it for transcription</h2>
 <p>Your plan adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits each month: about ${hours} hours of audio at ${esc(prices.long)} an hour.</p>
-<ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice</a>, choose <b>Fast mode</b> and paste the key above. Your files are then transcribed on our servers in seconds, with SRT or VTT subtitles.</li>
+<ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice Transcribe</a>, paste the key above under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>. Your files are then transcribed on our servers in seconds, with SRT or VTT subtitles.</li>
 <li><b>From code:</b> <pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/transcribe/long?url=https://example.com/episode.mp3&amp;subtitles=srt"</pre></li>
 <li><b>With the OpenAI SDK:</b> set the base URL to <code>${esc(origin)}/v1</code> and the API key to your key; <code>audio.transcriptions.create</code> works as before.</li></ol>`;
 }
@@ -103,7 +103,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
   const description = `Audio and video to text on our servers, with SRT and VTT subtitles in 90+ languages. ${price} a month is about ${hours} hours. No account, cancel any time.`;
   const faq: Array<[string, string]> = [
     ["How many hours do I get?", `About ${hours}. Each month adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits, and a recording of up to 60 minutes costs ${prices.long} (${creditsAt(prices.long)} credits). Short clips cost ${prices.short} each. Unused credits stay on your key.`],
-    ["How do I use it?", `Pay by card and your key is shown right away. Open ${brand} Voice, choose Fast mode, paste the key and drop your file. The same key works from code.`],
+    ["How do I use it?", `Pay by card and your key is shown right away. Open ${brand} Voice Transcribe, paste the key under "Already have an access key?" in the Pro section, then press "Transcribe with Pro" and drop your file. The same key works from code.`],
     ["Which files work?", "MP3 or WAV up to 25 MB and 60 minutes in one call; OGG, M4A, MP4 and other common formats up to 5 MB. A public link to the file works too. The browser tool splits longer recordings for you."],
     ["Which languages?", "More than 90, detected by itself or set by you (Whisper large-v3-turbo). Swedish, Norwegian, Danish, Finnish and German work as well as English."],
     ["Do I need an account?", "No. You pay with a card through Stripe and get a key. Keep the key private: anyone with it can use your credits."],
@@ -136,7 +136,7 @@ export function voiceProPage(origin: string, prices: VoicePrices, brand = "Glyph
 <h2>Three steps, no account</h2>
 <ol class="steps">
 <li><strong>Pay by card</strong><span>Your key is shown right after payment. Nothing to sign up for.</span></li>
-<li><strong>Paste the key</strong><span>Open <a href="${VOICE_SITE}/transcribe">${esc(brand)} Voice</a> and choose Fast mode.</span></li>
+<li><strong>Paste the key</strong><span>Open <a href="${VOICE_SITE}/transcribe#fast">${esc(brand)} Voice Transcribe</a>, paste the key under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>.</span></li>
 <li><strong>Drop your file</strong><span>Get the transcript and subtitles back. Long recordings are split for you.</span></li>
 </ol>
 </div></section>

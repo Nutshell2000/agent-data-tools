@@ -47,10 +47,15 @@ test("FluxA's proxy secret serves tools priced at most $0.01 unpaid; a wrong sec
 
 test('paused tools reject GET, HEAD and signed requests without payment or an upstream call',async()=>{
  const before=(await revenue()).settlements;
- for(const path of ['/solana/tx','/base/gas','/base/tx'])for(const method of ['GET','HEAD']){
+ for(const path of ['/solana/tx'])for(const method of ['GET','HEAD']){
   const r=await mf.dispatchFetch('https://api.test'+path,{method,headers:{'PAYMENT-SIGNATURE':'untrusted-not-a-payment'}});
   assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);
   if(method==='GET')assert.equal((await r.json()).code,'TOOL_PAUSED');else assert.equal(await r.text(),'');
+ }
+ // 21 Nov 2026: /base/gas and /base/tx moved to /base-gas and /base-tx the same way.
+ for(const [path,location] of [['/base/gas','/base-gas'],['/base/tx?hash=0x1','/base-tx?hash=0x1']]){
+  const r=await mf.dispatchFetch('https://api.test'+path,{redirect:'manual',headers:{'PAYMENT-SIGNATURE':'untrusted-not-a-payment'}});
+  assert.equal(r.status,308,path);assert.equal(r.headers.get('location'),location);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);assert.match((await r.json()).error,/not charged/);
  }
  // 21 Nov 2026: the two retired model paths are still on the Bazaar, so a probe gets a 308 to the tool that answers
  // instead of a 503; the redirect itself never quotes or charges, and its body names the model that will answer.

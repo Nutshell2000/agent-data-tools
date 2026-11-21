@@ -137,8 +137,13 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
     throw new HttpError(415, "unsupported source character encoding");
   }
   const source = decoder.decode(bytes);
+  // 21 Nov 2026: documentation sites answer a request that asks for Markdown with Markdown labelled text/plain
+  // (react.dev/learn), and it came back backslash-escaped ("\<Intro\>", "\[link\]"). Plain text that opens with front
+  // matter or a top heading and carries more Markdown headings is read as Markdown.
+  const sniffed = plain && !markdownSource && looksLikeMarkdown(source);
   try {
-    const result = await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam });
+    const result = await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html, markdownSource: markdownSource || sniffed, markdownPath, inputTruncated, maxChars, formatParam, sectionParam });
+    if (sniffed) result.warnings.push("markdown_inferred_from_content");
     if (otherText) result.warnings.push("non_html_source");
     return result;
   } catch (e) {
@@ -241,4 +246,12 @@ async function buildExtractionOnce(input: Parameters<typeof buildExtraction>[0])
     hashFormat,
     fetchedAt: new Date().toISOString(),
   };
+}
+
+/** Plain text that is evidently Markdown: front matter or a top heading at the start, and at least two headings. */
+export function looksLikeMarkdown(source: string): boolean {
+  const head = source.slice(0, 4_000).replace(/^﻿/, "");
+  const start = /^\s*(---\r?\n[\s\S]{0,2000}?\r?\n---\r?\n|#{1,2} \S)/.test(head);
+  const headings = (head.match(/^#{1,6} \S/gm) ?? []).length;
+  return start && headings >= 2;
 }

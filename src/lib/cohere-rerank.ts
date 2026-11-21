@@ -4,6 +4,7 @@
 import type { Context } from "hono";
 import type { Env } from "./env";
 import { FRONT_DESCRIPTIONS, asFrontQuote, requestBody } from "./openai-chat";
+import { carriesPayment, forwardedHeaders } from "./paying-request";
 
 export const COHERE_RERANK_PATH = "/v1/rerank";
 // Cohere v2 is the default SDK generation (ClientV2 / cohere.v2.rerank) and calls POST /v2/rerank. Its request body is
@@ -14,7 +15,6 @@ export const COHERE_RERANK_V2_PATH = "/v2/rerank";
 export const RERANK_TOOL_PATH = "/ai/rerank";
 type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const PASSTHROUGH_RESPONSE_HEADERS = ["payment-response", "x-payment-response", "payment-receipt", "extension-responses", "x-free-trial-remaining", "x-request-id"];
 const EXAMPLE = { query: "What is the capital of France?", documents: ["France has hundreds of cheeses.", "Berlin is the capital of Germany.", "Paris is the capital and largest city of France."] };
 
@@ -60,7 +60,7 @@ export function toCohereRerankV2(result: { results?: { index: number; relevance_
 
 /** Handles /v1/rerank and /v2/rerank (POST body, or GET query) by forwarding the equivalent /ai/rerank GET through the middleware. */
 export async function cohereRerank(c: C, forward: Forward): Promise<Response> {
-  const paying = PAYMENT_HEADERS.some((h) => c.req.header(h));
+  const paying = carriesPayment((h) => c.req.header(h));
   const mapped = toRerankQuery(await requestBody(c, rerankBodyFromQuery));
   if ("error" in mapped && paying) return c.json({ message: mapped.error }, 400);
   const q = "error" in mapped ? { ...EXAMPLE, topN: undefined, returnDocuments: false } : mapped;
@@ -70,7 +70,7 @@ export async function cohereRerank(c: C, forward: Forward): Promise<Response> {
   inner.searchParams.set("documents", JSON.stringify(q.documents));
   if (q.topN !== undefined) inner.searchParams.set("top_n", String(q.topN));
   if (outer.searchParams.get("trial") === "1") inner.searchParams.set("trial", "1");
-  const headers = new Headers(c.req.raw.headers);
+  const headers = forwardedHeaders(c.req.raw);
   headers.delete("content-type");
   headers.delete("content-length");
   headers.set("accept", "application/json");

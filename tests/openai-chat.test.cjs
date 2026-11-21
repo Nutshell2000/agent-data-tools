@@ -245,3 +245,60 @@ test('/v1/models is free; OpenAPI declares the POST, the GET variant and the mod
   assert.equal(get.responses['402'].description, 'Payment Required');
   assert.deepEqual(api.paths['/v1/models'].get.security, []);
 });
+
+test('an SDK\'s own key is not a payment: its empty probe gets the quote, not 400 (21 Nov 2026)', async () => {
+  for (const headers of [{ authorization: 'Bearer sk-test' }, { 'x-api-key': 'sk-ant-test' }]) {
+    const head = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'HEAD', headers });
+    assert.equal(head.status, 402, `HEAD ${JSON.stringify(headers)}`);
+    const post = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: '{}' });
+    assert.equal(post.status, 402, `POST {} ${JSON.stringify(headers)}`);
+    await post.arrayBuffer();
+  }
+  // A real payment header still makes bad input a 400 before anything is forwarded.
+  const paid = await mf.dispatchFetch('https://api.test/v1/chat/completions', { method: 'POST', headers: { 'payment-signature': 'e30=', 'content-type': 'application/json' }, body: '{}' });
+  assert.equal(paid.status, 400);
+  await paid.arrayBuffer();
+});
+
+test('retired paths with a successor redirect instead of answering 503 (21 Nov 2026)', async () => {
+  for (const [from, to] of [['/base/gas', '/base-gas'], ['/base/tx?hash=0x1', '/base-tx?hash=0x1']]) {
+    const res = await mf.dispatchFetch(`https://api.test${from}`, { redirect: 'manual' });
+    assert.equal(res.status, 308, from);
+    assert.equal(res.headers.get('location'), to);
+    await res.arrayBuffer();
+  }
+});
+
+test('HEAD on the chat front never forwards a payment or key: it is answered like an unpaid probe (21 Nov 2026)', async () => {
+  for (const headers of [{ 'payment-signature': 'e30=' }, { authorization: 'Bearer adt_' + 'a'.repeat(43) }, { 'x-payment': 'e30=' }]) {
+    const head = await mf.dispatchFetch('https://api.test/v1/chat/completions?prompt=hi&trial=1', { method: 'HEAD', headers });
+    assert.equal(head.status, 402, JSON.stringify(headers));
+  }
+});
+
+
+test('a long POSTed chat history travels as a held reference: the quote fits common clients and names the same resource each time (21 Nov 2026)', async () => {
+  const messages = Array.from({ length: 40 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(200) + ' turn ' + i }));
+  const quote = async () => {
+    const res = await mf.dispatchFetch('https://api.test/ai/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ messages }) });
+    assert.equal(res.status, 402);
+    let total = 0; res.headers.forEach((v, k) => { total += k.length + v.length + 4; });
+    const url = JSON.parse(Buffer.from(res.headers.get('payment-required'), 'base64').toString()).resource.url;
+    await res.arrayBuffer();
+    return { total, url };
+  };
+  const a = await quote(), b = await quote();
+  assert.ok(a.total < 16_000, `quote headers are ${a.total} bytes`);
+  assert.match(a.url, /messages=%40sha256%3A[0-9a-f]{64}/);
+  assert.equal(a.url, b.url, 'the unpaid quote and the paid retry name the same resource');
+  // A hand-built GET with a reference that is not held is refused 400 only once a payment is attached; unpaid it is quoted.
+  const handmade = await mf.dispatchFetch('https://api.test/ai/chat?messages=%40sha256%3A' + '0'.repeat(64));
+  assert.equal(handmade.status, 402);
+  await handmade.arrayBuffer();
+});
+
+test('a POST body over 2 MB is refused 413 before anything else runs (21 Nov 2026)', async () => {
+  const res = await mf.dispatchFetch('https://api.test/ai/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'x'.repeat(2_200_000) }) });
+  assert.equal(res.status, 413);
+  await res.arrayBuffer();
+});

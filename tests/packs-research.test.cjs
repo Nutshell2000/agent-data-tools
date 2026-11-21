@@ -42,6 +42,16 @@ test('url safety still answers from local signals when every upstream lookup fai
   assert.ok(['low', 'medium', 'high'].includes(out.risk), 'the existing risk enum is unchanged');
 });
 
+test('url safety: a high-risk link is never verdict "clear" (21 Nov 2026)', async () => {
+  const { PACKS_RESEARCH } = await load();
+  const safety = PACKS_RESEARCH.find((e) => e.endpoint.path === '/pack/url-safety');
+  // A bare public IP as the host is a high local signal; with no upstream answering, the verdict must still warn.
+  const out = await safety.run({}, (n) => (n === 'url' ? 'http://8.8.8.8/login' : undefined));
+  assert.equal(out.risk, 'high');
+  assert.ok(out.signals.some((s) => s.code === 'ip_host'), JSON.stringify(out.signals));
+  assert.equal(out.verdict, 'caution');
+});
+
 test('research packs: names within 32 characters, descriptions within 450, one cent, inputs checked before any request', async () => {
   const { PACKS_RESEARCH } = await load();
   assert.deepEqual(PACKS_RESEARCH.map((e) => e.endpoint.path), ['/pack/web-research', '/ai/answer', '/ai/fact-check', '/pack/news-sentiment', '/phishing/check', '/pack/url-safety']);

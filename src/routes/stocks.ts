@@ -27,12 +27,13 @@ export async function stockSearch(query: string, limit = 8) {
 
 /** A ticker as typed (AAPL, ^GSPC, BTC-USD, EURUSD=X, VOLV-B.ST) or a company name, resolved through search. */
 async function resolveSymbol(raw: string) {
-  let up = raw.trim().toUpperCase().replace(/^\$/, "");
+  // 21 Nov 2026: "NASDAQ:MSFT" / "NYSE: KO" (the TradingView and Google Finance form) was a 404; the exchange prefix is dropped.
+  let up = raw.trim().toUpperCase().replace(/^\$/, "").replace(/^(NASDAQ|NYSE|NYSEARCA|NYSEAMERICAN|AMEX|ARCA|BATS|OTC|OTCMKTS|LSE|TSX|TSXV|ASX|XETRA|ETR|FRA|EPA|AMS|BIT|BME|SIX|STO|HEL|CPH|OSL|TYO|HKG|NSE|BSE)\s*:\s*/, "");
   // 11 Nov 2026 truth audit: share classes written with a dot (BRK.B, BF.B, the common US form) resolved to other
   // instruments (a YieldMax ETF, an option). Yahoo writes US classes with a dash; exchange suffixes (VOLV-B.ST, SAP.DE)
   // keep their dot because the part after it is longer than one letter.
   if (/^[A-Z]{1,5}\.[A-Z]$/.test(up)) up = up.replace(".", "-");
-  if (TICKER.test(up) && !/\s/.test(raw.trim())) return up;
+  if (TICKER.test(up) && !/\s/.test(up)) return up;
   const hits = await stockSearch(raw, 1);
   if (!hits.length) throw new HttpError(404, `no ticker found for "${raw}"`);
   return hits[0].symbol;
@@ -101,6 +102,34 @@ export async function stockQuote(raw: string) {
     marketTime: typeof m.regularMarketTime === "number" ? new Date(m.regularMarketTime * 1000).toISOString() : null,
     timezone: (m.exchangeTimezoneName ?? null) as string | null, note: NOTE,
   };
+}
+
+/** Most tickers one /stock/quote call reads when `symbol` holds a comma-separated list. */
+export const QUOTE_LIST_MAX = 10;
+
+/**
+ * `symbol` may hold up to QUOTE_LIST_MAX tickers separated by commas (AAPL,MSFT,^GSPC): one call answers them all, in the
+ * order sent, each with exactly the fields of a single quote. Why (21 Nov 2026): a trading agent that searches a
+ * catalogue for each job paid another seller $0.02 a call for a multi-ticker snapshot. One ticker answers as before, so
+ * existing callers and the listing are unchanged. A ticker that cannot be read is listed in `failed` and the rest answer;
+ * only when none can be read is the call refused (uncharged), with the first ticker's own status.
+ */
+export async function stockQuoteList(raw: string, quote: typeof stockQuote = stockQuote) {
+  const symbols = [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
+  if (symbols.length <= 1) return quote(symbols[0] ?? raw);
+  if (symbols.length > QUOTE_LIST_MAX) throw new HttpError(400, `at most ${QUOTE_LIST_MAX} tickers per call, separated by commas`);
+  const settled = await Promise.allSettled(symbols.map((s) => quote(s)));
+  const quotes: Awaited<ReturnType<typeof stockQuote>>[] = [];
+  const failed: { symbol: string; error: string }[] = [];
+  settled.forEach((r, i) => {
+    if (r.status === "fulfilled") quotes.push(r.value);
+    else failed.push({ symbol: symbols[i], error: r.reason instanceof HttpError ? r.reason.message : "could not be read" });
+  });
+  if (!quotes.length) {
+    const first = settled[0] as PromiseRejectedResult;
+    throw first.reason instanceof HttpError ? first.reason : new HttpError(502, "the quote source did not answer; nothing was charged");
+  }
+  return { count: quotes.length, quotes, failed, note: NOTE };
 }
 
 export async function stockHistory(raw: string, rangeIn?: string, intervalIn?: string) {
@@ -326,11 +355,11 @@ export async function commodityPrice(raw: string, quote: typeof stockQuote = sto
 
 export const STOCKS: Entry[] = [
   entry("/stock/quote", "Stock price, stock quote",
-    "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Use to price a stock in an agent, check a move, or value a portfolio line.",
+    "Stock price and quote for any ticker or company name: last price, change and percent, previous close, day high and low, volume, 52-week high and low, currency, exchange and market time. Works for US and world stocks, ETFs, indices (^GSPC), currencies (EURUSD=X) and crypto pairs (BTC-USD). Up to 10 comma-separated tickers in one call return a quotes list. Use to price a stock in an agent, check a move, or value a portfolio line.",
     ["stock-price", "stock-quote", "stocks", "equities", "market-data"],
-    { symbol: { type: "string", description: "Ticker (AAPL, VOLV-B.ST, ^GSPC, BTC-USD) or a company name", required: true, example: "AAPL" } },
+    { symbol: { type: "string", description: "Ticker (AAPL, VOLV-B.ST, ^GSPC, BTC-USD) or a company name; up to 10 tickers separated by commas (AAPL,MSFT,^GSPC) return { count, quotes, failed }", required: true, example: "AAPL" } },
     { symbol: "AAPL", name: "Apple Inc.", exchange: "NasdaqGS", type: "EQUITY", currency: "USD", price: 270.37, previousClose: 268.5, change: 1.87, changePercent: 0.6965, dayHigh: 271.2, dayLow: 267.9, volume: 41234567, fiftyTwoWeekHigh: 280.1, fiftyTwoWeekLow: 169.21, marketTime: "2026-11-05T21:00:00.000Z", timezone: "America/New_York", note: NOTE },
-    (_env, q) => stockQuote(need(q, "symbol", 100))),
+    (_env, q) => stockQuoteList(need(q, "symbol", 400))),
   entry("/stock/history", "Historical stock prices, OHLCV",
     "Stock price history as OHLCV bars for any ticker or company name: open, high, low, close, adjusted close and volume from 1-minute to monthly bars over 1 day to the full history, plus first, last, change, high and low. Use to chart a stock, backtest a signal, compute returns or feed indicators.",
     ["stock-ohlcv-history", "stock-history", "ohlcv", "historical-stock-prices", "stocks"],

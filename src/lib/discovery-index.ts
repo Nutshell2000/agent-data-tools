@@ -1,4 +1,11 @@
-import { bazaarExtensionFor, listingDescription, listingName, listingNameFor, searchTagged } from "./bazaar-extension";
+import { bazaarExtensionFor, listingDescription, listingName, listingNameFor, orderedTags } from "./bazaar-extension";
+
+/** The extension with `method: "GET"` on its input, as the live 402 has it (every catalog tool is a GET). */
+export function withGetMethod<T>(ext: T): T {
+  const info = (ext as { bazaar?: { info?: { input?: Record<string, unknown> } } })?.bazaar?.info;
+  if (!info?.input || info.input.method) return ext;
+  return { ...ext, bazaar: { ...(ext as { bazaar: object }).bazaar, info: { ...info, input: { ...info.input, method: "GET" } } } } as T;
+}
 // The x402 discovery index of this service at /discovery/resources, in the shape the facilitator-run Bazaar
 // (`GET /discovery/resources`) and the @x402/extensions bazaar client use, so crawlers that read sellers directly
 // (x402-discovery-index and the like) can index every tool without a first settled payment. Nothing here is a
@@ -85,9 +92,11 @@ export function discoveryResources(env: Env, origin: string, limit = DISCOVERY_P
     description: listingDescription(e),
     mimeType: "application/json",
     serviceName: listingNameFor(e),
-    tags: searchTagged(e.tags, e.path),
-    extensions: bazaarExtensionFor(e),
-    metadata: { description: listingDescription(e), mimeType: "application/json", serviceName: listingNameFor(e), tags: searchTagged(e.tags, e.path), openapi: `${origin}/openapi.json` },
+    tags: orderedTags(e.tags, e.path),
+    // 21 Nov 2026: the live 402 carries the method (the x402 library adds it from the route); the extension built here did
+    // not, although its own embedded schema requires ["type", "method"], so a strict client validating this file refused it.
+    extensions: withGetMethod(bazaarExtensionFor(e)),
+    metadata: { description: listingDescription(e), mimeType: "application/json", serviceName: listingNameFor(e), tags: orderedTags(e.tags, e.path), openapi: `${origin}/openapi.json` },
   }));
   const size = Math.min(Math.max(1, Math.floor(limit) || DISCOVERY_PAGE_LIMIT), DISCOVERY_PAGE_LIMIT);
   const start = Math.max(0, Math.floor(offset) || 0);

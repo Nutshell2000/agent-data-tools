@@ -3,6 +3,7 @@ import { messagesAsArray } from "./lib/chat-messages";
 import { sitemap } from "./routes/sitemap";
 import { HttpError, type Env } from "./lib/env";
 import { FILE_REF_INPUT } from "./lib/file-input";
+import { resolvedPromptInput } from "./lib/long-input";
 import { ENDPOINTS, PAUSED_FAMILY_TOOLS } from "./endpoints";
 import { describeImage, generateImage, summarize, transcribe } from "./routes/ai";
 import { bitcoinAddress, bitcoinFees, lightningInvoice } from "./routes/bitcoin";
@@ -99,7 +100,7 @@ const INPUT_ALIASES: Readonly<Record<string, readonly string[]>> = {
   businessId: ["business_id", "businessid", "ytunnus", "y_tunnus", "y-tunnus", "company_id"],
   orgnr: ["organisationsnummer", "organisasjonsnummer", "org_nr", "orgNr", "org_number", "orgNumber", "organization_number", "organisation_number", "company_number", "registration_number", "vat_number", "vatNumber"],
   // Price lists as other price APIs take them (openverbs /v1/price?ids=coingecko:bitcoin,...).
-  symbols: ["ids", "coins", "tickers", "tokens", "assets", "symbol"], symbol: ["coin", "ticker", "id", "ids", "asset", "token", "currency", "name", "stock", "symbols", "q", "query", "company"],
+  symbols: ["ids", "coins", "tickers", "tokens", "assets", "symbol"], symbol: ["coin", "ticker", "id", "ids", "asset", "token", "currency", "name", "stock", "symbols", "tickers", "q", "query", "company"],
   coin: ["symbol", "ticker", "asset", "token", "market", "pair", "name", "id"], ticker: ["symbol", "stock", "q", "query", "name"],
   a: ["version", "v1", "from"], b: ["other", "v2", "compare", "to"],
   json: ["text", "input", "data"], yaml: ["text", "input"], xml: ["text", "input"], csv: ["text", "input", "data"],
@@ -206,7 +207,9 @@ export const ALIAS_OF: Readonly<Record<string, readonly string[]>> = Object.free
 
 /** A host with an optional port, path, query or fragment and no scheme: "example.com/a?b=1", "localhost:8080", "10.0.0.1/x". */
 const SCHEMELESS_URL = /^(localhost|[a-z0-9-]+(\.[a-z0-9-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?#]|$)/i;
-export const normalizedInput = (sent: Input): Input => (name) => {
+export const normalizedInput = (raw: Input): Input => (name) => {
+  // A long prompt-style input POSTed to a tool travels as a held reference (lib/long-input.ts); resolve it for every tool.
+  const sent: Input = Object.assign((n: string) => resolvedPromptInput(n, raw(n)), raw);
   // An alias that is one of this tool's own inputs is never read as another input (declaredInputs): /time?city= stays
   // unread as `zone` on a tool that has a city input, and /ai/chat keeps its own `messages`.
   const own = (sent as { [DECLARED]?: ReadonlySet<string> })[DECLARED];

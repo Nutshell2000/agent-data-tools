@@ -89,6 +89,15 @@ test('a paid subscription checkout is accepted as a plan; anything else about it
   // The packs are judged as before and carry no plan.
   const pack = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 500, metadata: { adt_credits: '5000' } }));
   assert.deepEqual(pack, { usdCents: 500, credits: 5000, topUpKeyHash: undefined, plan: undefined });
+  // 21 Nov 2026: a promotion code lowers amount_total below every price; the price before discounts names the purchase.
+  const promo = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ ...subscribed, amount_total: 100, amount_subtotal: 900 }));
+  assert.equal(promo.credits, 15000); assert.ok(promo.plan);
+  const halfPack = await credits.verifyCheckout('rk_test_key', id, sessionFetch({ mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 250, amount_subtotal: 500, metadata: { adt_credits: '5000' } }));
+  assert.equal(halfPack.credits, 5000);
+  // The subtotal is read only for a real discount, and it must still name a price we sell with its own credits.
+  await reject({ ...subscribed, amount_total: 100, amount_subtotal: 100 }, 400);
+  await reject({ ...subscribed, amount_total: 100, amount_subtotal: 900, metadata: { adt_credits: '40000' } }, 400);
+  await reject({ ...subscribed, amount_total: 1900, amount_subtotal: 900 }, 400);
 });
 
 test('the first invoice is granted with the checkout and never again; each later paid invoice is granted once', async () => {
@@ -243,7 +252,7 @@ test('claiming a plan checkout issues a key once and says how the plan works; a 
   const { fetch } = app(env);
   const realFetch = globalThis.fetch;
   try {
-    globalThis.fetch = async (url) => { assert.match(String(url), /\/v1\/checkout\/sessions\/cs_live_PlanClaim0001$/); return new Response(JSON.stringify(subscribed)); };
+    globalThis.fetch = async (url) => { assert.match(String(url), /\/v1\/checkout\/sessions\/cs_live_PlanClaim0001(\?expand\[\]=payment_intent\.latest_charge)?$/); return new Response(JSON.stringify(subscribed)); };
     const first = await (await fetch('/credits/claim?session_id=cs_live_PlanClaim0001', { accept: 'application/json' })).json();
     assert.match(first.apiKey, /^adt_/);
     assert.equal(first.creditsAdded, 15000); assert.equal(first.balanceCredits, 15000);
@@ -302,4 +311,19 @@ test('a key without a plan never causes a read of Stripe', async () => {
     assert.equal(balance.balanceCredits, 5);
     assert.equal('monthlyPlan' in balance, false);
   } finally { globalThis.fetch = realFetch; }
+});
+
+test('a refunded or disputed checkout grants nothing; a key without charge access still claims (21 Nov 2026)', async () => {
+  const id = 'cs_live_RefundCheck0001';
+  const pack = { mode: 'payment', status: 'complete', payment_status: 'paid', currency: 'usd', amount_total: 500, metadata: { adt_credits: '5000' } };
+  for (const charge of [{ refunded: true }, { amount_refunded: 100 }, { disputed: true }]) {
+    await assert.rejects(credits.verifyCheckout('rk_test_key', id, sessionFetch({ ...pack, payment_intent: { latest_charge: charge } })), (e) => e.status === 402 && /refunded or disputed/.test(e.message));
+  }
+  assert.equal((await credits.verifyCheckout('rk_test_key', id, sessionFetch({ ...pack, payment_intent: { latest_charge: { refunded: false, amount_refunded: 0, disputed: false } } }))).credits, 5000);
+  // A restricted key that may not expand charges: Stripe refuses the expansion, the plain session is read instead.
+  const seen = [];
+  const fallback = async (url) => { seen.push(String(url)); return String(url).includes('expand') ? new Response('{"error":{}}', { status: 403 }) : new Response(JSON.stringify(pack)); };
+  assert.equal((await credits.verifyCheckout('rk_test_key', id, fallback)).credits, 5000);
+  assert.equal(seen.length, 2);
+  assert.ok(!seen[1].includes('expand'));
 });

@@ -171,13 +171,30 @@ export async function payTempo(c: C, endpoint: Endpoint, header: string, next: N
     markStage("verification_failed");
     return refusal(c, endpoint, "payment invalid: this payment credential was already used; request a new challenge");
   }
+  // 21 Nov 2026: alreadySettled only sees a credential that was broadcast before, so the same signed credential sent many
+  // times at once passed it every time and ran the tool for each copy (one settled, the rest failed at broadcast). An
+  // atomic claim on the signed transaction, taken before the tool runs, admits one copy, as the evm rail and x402 v1 do.
+  // It is released whenever nothing was charged, so an honest retry of the same still-valid credential is not refused.
+  const claimKey = tempoClaimKey(credential);
+  const store = c.env.METRICS ? c.env.METRICS.get(c.env.METRICS.idFromName("global")) : undefined;
+  const claimed = claimKey && store ? await store.mppClaim(claimKey, Date.now() + TEMPO_CLAIM_MS).catch((e: unknown) => { console.error("mpp tempo claim failed", e); return null; }) : true;
+  if (claimed === null) {
+    markStage("facilitator_unavailable");
+    return c.json({ error: "the payment could not be recorded right now; nothing was charged, try again later" }, 503, { "Retry-After": "60" });
+  }
+  if (!claimed) {
+    markStage("verification_failed");
+    return refusal(c, endpoint, "payment invalid: this payment credential is already being used; request a new challenge");
+  }
+  const release = () => { if (claimKey && store) void store.mppDelete(claimKey).catch(() => {}); };
   markStage("verified");
-  await next();
-  if (c.res.status >= 400) return; // failed calls are never broadcast, so never charged
+  try { await next(); } catch (e) { release(); throw e; }
+  if (c.res.status >= 400) { release(); return; } // failed calls are never broadcast, so never charged
   let receipt;
   try {
     receipt = await mppx.broadcastCredential(credential, options);
   } catch (e) {
+    release();
     markStage("settlement_failed");
     const message = String((e as Error)?.message ?? "broadcast failed").slice(0, 200);
     console.warn(`mpp tempo settlement_failed ${endpoint.path}: ${message.slice(0, 160)}`);
@@ -190,6 +207,16 @@ export async function payTempo(c: C, endpoint: Endpoint, header: string, next: N
   const { network, currency } = tempoTerms(c.env);
   const payer = String(validation.payer ?? "").toLowerCase();
   c.executionCtx.waitUntil(recordTempo(c.env, endpoint.path, network, currency, payTo(c.env)!, payer, receipt.reference, String(BigInt(usdMicros(endpoint.price)!))));
+}
+
+/** How long the pre-run claim on a Tempo credential lives: past any call's run and broadcast, then mppx's own marker holds. */
+const TEMPO_CLAIM_MS = 10 * 60 * 1000;
+/** The claim key for a signed Tempo credential (its transaction hash), or undefined when it cannot be read here. */
+export function tempoClaimKey(credential: string): string | undefined {
+  try {
+    const signed = (Credential.deserialize(credential).payload as { signature?: `0x${string}` }).signature;
+    return signed ? `tempo:claim:${keccak256(signed).toLowerCase()}` : undefined;
+  } catch { return undefined; }
 }
 
 /** True when mppx's replay marker for this signed transaction (keyed by its hash) is still live; null when the store is down. */

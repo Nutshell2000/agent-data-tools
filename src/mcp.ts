@@ -247,7 +247,11 @@ function registerCompactTools(
         charged: "Only a successful call is charged; a failed call costs nothing.",
         // The same funding path an agent otherwise sees only after a refused call. Pass the same card-ready flag and
         // key price as the refused-call hint, or this first-touch hint routes to /credits and understates a pack 10x.
-        pay: paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price)),
+        // 21 Nov 2026: for a tool inside the free calls this is how to pay LATER; opening with "PAYMENT NEEDED" made an
+        // assistant tell its user to pay before trying a call that would have been free.
+        pay: CAPACITY_LIMITED.has(e.path)
+          ? paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price))
+          : paymentHint(origin, e.price, false, Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price)).replace(/^PAYMENT NEEDED /, "AFTER THE FREE CALLS, PAYMENT "),
       });
     },
   );

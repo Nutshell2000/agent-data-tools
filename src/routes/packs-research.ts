@@ -241,7 +241,10 @@ export const PACKS_RESEARCH: Entry[] = [
       // meaning, so agents parsing the old answer are unaffected; agents that read verdict get the honest signal.
       const coverage = { blocklist: seen.length > 0, redirects: !!redirects, domain: !!d, headers: !!h };
       const covered = coverage.blocklist || coverage.redirects || coverage.domain || coverage.headers;
-      const verdict = hits.length ? "block" : (lookalike || medium || d?.trust === "low") ? "caution" : covered ? "clear" : "unverified";
+      // 21 Nov 2026 (owner: "Yes, fix it"): a high signal (a domain under 30 days old, an IP-literal host, a high-level
+      // local signal) made risk "high" while the verdict still read "clear", so an agent reading only `verdict` treated a
+      // link we rated high-risk as safe. Any high signal is now at least "caution"; a list hit stays "block".
+      const verdict = hits.length ? "block" : (high || lookalike || medium || d?.trust === "low") ? "caution" : covered ? "clear" : "unverified";
       const note = covered ? undefined : "Only the link's own address could be judged; the phishing lists, redirect check, domain register and security headers did not answer. Treat this as unverified, not safe.";
       return {
         pack: "url-safety", url: input.href, finalUrl: final?.href ?? null,

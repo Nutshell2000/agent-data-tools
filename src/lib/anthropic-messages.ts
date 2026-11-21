@@ -10,6 +10,7 @@ import type { Env } from "./env";
 import { PASSTHROUGH_RESPONSE_HEADERS, completeChat, openAiModels, openApiGetVariant, toOpenAiResponse } from "./openai-chat";
 import { CHAT_MODEL } from "../routes/ai-text";
 import { paymentInfo as buildPaymentInfo } from "./payment-info";
+import { carriesPayment } from "./paying-request";
 
 export const ANTHROPIC_MESSAGES_PATH = "/v1/messages";
 export const ANTHROPIC_COUNT_TOKENS_PATH = "/v1/messages/count_tokens";
@@ -17,7 +18,6 @@ type Forward = (request: Request) => Response | Promise<Response>;
 type C = Context<{ Bindings: Env }>;
 type Block = { type?: string; text?: string; id?: string; name?: string; input?: unknown; tool_use_id?: string; content?: unknown };
 
-const PAYMENT_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key"];
 const textOfBlocks = (content: unknown): string => typeof content === "string" ? content
   : Array.isArray(content) ? content.map((b) => (b && typeof b === "object" && (b as Block).type === "text" ? String((b as Block).text ?? "") : "")).join("\n").trim() : "";
 
@@ -124,7 +124,7 @@ export function toMessagesStream(answer: ReturnType<typeof toMessagesAnswer>): s
 export async function anthropicMessages(c: C, forward: Forward): Promise<Response> {
   const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
   const model = String(body?.model ?? "");
-  if (/claude/i.test(model) && PAYMENT_HEADERS.some((h) => c.req.header(h))) {
+  if (/claude/i.test(model) && carriesPayment((h) => c.req.header(h))) {
     return c.json({ type: "error", error: { type: "invalid_request_error", message: `${model} is not served here: this endpoint runs open models (${CHAT_MODEL} by default; see /v1/models). Nothing was charged.` } }, 400);
   }
   const done = await completeChat(c, forward, toChatBody(body ? { ...body, model: /claude/i.test(model) ? undefined : body.model } : null));

@@ -1,3 +1,4 @@
+import { HttpError } from "./env";
 // Long POST fields that must not travel in the URL (1.131.0, 11 Nov 2026). A POST to a tool is forwarded as the GET
 // with its fields in the query (src/index.ts), and the payment quote repeats that URL in the PAYMENT-REQUIRED header:
 // a 7,000-character field already makes a 15.8 KB header (measured on /ai/chat), and Node's fetch refuses headers over
@@ -51,3 +52,26 @@ export function longInput(value: string | undefined): string | undefined | null 
 }
 
 export const __test = { held };
+
+/**
+ * The prompt-style inputs (21 Nov 2026). A POSTed chat history of about 8 KB made a 17.5 KB PAYMENT-REQUIRED header on
+ * /ai/chat (the quote repeats the URL the body was flattened into), above the 16 KB that Node's fetch accepts, so the
+ * buyer could not read the price. On any tool that takes one of these inputs, a long value travels as a reference too;
+ * the shared input wrapper (normalizedInput in src/tools.ts) resolves it for every tool.
+ */
+export const PROMPT_LONG_FIELDS: readonly string[] = ["messages", "prompt", "system", "tools", "input", "text"];
+
+/** The inputs of `path` that travel as references when long: the tool's own list, else its prompt-style inputs. */
+export function longFieldsFor(path: string, params: Readonly<Record<string, unknown>>): readonly string[] | undefined {
+  if (Object.hasOwn(LONG_INPUT_FIELDS, path)) return LONG_INPUT_FIELDS[path];
+  const prompt = PROMPT_LONG_FIELDS.filter((name) => Object.hasOwn(params, name));
+  return prompt.length ? prompt : undefined;
+}
+
+/** A prompt-style input as sent, with a held reference resolved; a reference that is not held is refused with 400. */
+export function resolvedPromptInput(name: string, value: string | undefined): string | undefined {
+  if (value === undefined || !PROMPT_LONG_FIELDS.includes(name)) return value;
+  const text = longInput(value);
+  if (text === null) throw new HttpError(400, `${name} is a reference to a text that is not held here; send the text itself in the POST body`);
+  return text;
+}

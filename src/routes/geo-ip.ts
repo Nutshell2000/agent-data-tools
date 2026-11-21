@@ -53,7 +53,9 @@ const OWN_IP_NOTE = "No ip was sent, so this is the public address this request 
  */
 export function ipOrCaller(q: Input): { ip: string; own: boolean } {
   const sent = opt(q, "ip", 64);
-  if (sent) return { ip: sent.replace(/^\[|\]$/g, ""), own: false };
+  // 21 Nov 2026: also the forms a server log or Node's req.ip gives for the same address: an IPv4-mapped IPv6
+  // (::ffff:8.8.8.8), a bracketed IPv6 with a port ([2001:db8::1]:443) and an IPv4 with a port (8.8.8.8:443).
+  if (sent) return { ip: ipAsSent(sent), own: false };
   const caller = q(CALLER_IP_INPUT)?.trim() ?? "";
   const v = ipKind(caller);
   if (v && !isNonPublic(caller, v)) return { ip: caller, own: true };
@@ -248,3 +250,12 @@ export const GEO_IP: Entry[] = [
       return { km: r(g.km, 2), miles: r(g.km / 1.609344, 2), nauticalMiles: r(g.km / 1.852, 2), bearing: r(g.bearing, 1), compass: COMPASS[Math.round(g.bearing / 22.5) % 16], midpoint: { lat: r(g.midLat, 4), lon: r(g.midLon, 4) } };
     }),
 ];
+
+/** The address in the forms logs and frameworks write it: brackets, a port, or the IPv4-mapped IPv6 prefix removed. */
+export function ipAsSent(raw: string): string {
+  let s = raw.trim();
+  const bracketed = /^\[([0-9a-fA-F:.]+)\](?::\d{1,5})?$/.exec(s); if (bracketed) s = bracketed[1];
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(s); if (mapped) s = mapped[1];
+  const withPort = /^(\d{1,3}(?:\.\d{1,3}){3}):\d{1,5}$/.exec(s); if (withPort) s = withPort[1];
+  return s;
+}
