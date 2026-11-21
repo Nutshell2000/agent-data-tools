@@ -146,7 +146,7 @@ const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc
 .fair{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-top:8px}
 .fair div{padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.fair b{display:flex;gap:10px;align-items:center;font-size:1.1rem;color:var(--fg);margin-bottom:6px}.fair b .ico{color:var(--g);width:22px;height:22px;flex:none}.fair span{color:var(--muted);font-size:.97rem}
 .steps.compact li{padding:22px}
-.svwrap{margin-top:18px}.paywith{margin:12px 0 0;color:var(--dim);font-size:.9rem}
+.svwrap{margin-top:18px}.hero .after a{display:inline-block;padding:12px 4px}.paywith{margin:12px 0 0;color:var(--dim);font-size:.9rem}
 @media (max-width:860px){.trow{grid-template-columns:1fr;padding:20px}.trow:nth-child(even) .tcopy{order:0}.fair{grid-template-columns:1fr}.mock{min-height:0}}
 @media (max-width:720px){main{display:flex;flex-direction:column}main>*{order:2}main>.hero{order:0}main>#pro,main>#pricing{order:1}.promise,.prow,.annc,.trow .mock,.tcopy p,.tcopy .kicker{display:none}.tour{gap:10px}.trow{padding:16px 18px;border-radius:18px}.tcopy h3{font-size:1.15rem;margin:4px 0 10px}.tcopy .free{margin-left:0}.tcopy .btn{padding:10px 16px;font-size:.92rem}#make .sub{margin-bottom:18px}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
 
