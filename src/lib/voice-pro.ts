@@ -65,7 +65,8 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices, c
 <p><b>Studio voices:</b> open <a href="${esc(origin)}/#try">the voice console</a>, paste the key above under the studio voices and press Play. From code: <code>POST ${esc(origin)}/v1/audio/speech</code> with the key as the Bearer token.</p>` : ""}
 <ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice Transcribe</a>, paste the key above under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>. Your files are then transcribed on our servers, with SRT or VTT subtitles.</li>
 <li><b>From code:</b> <pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/transcribe/long?url=https://example.com/episode.mp3&amp;subtitles=srt"</pre></li>
-<li><b>With the OpenAI SDK:</b> set the base URL to <code>${esc(origin)}/v1</code> and the API key to your key; <code>audio.transcriptions.create</code> works as before.</li></ol>`;
+<li><b>With the OpenAI SDK:</b> set the base URL to <code>${esc(origin)}/v1</code> and the API key to your key; <code>audio.transcriptions.create</code> works as before.</li></ol>
+<details class="lostkey"><summary>Lost your key?</summary><p>Open the page you came back to after paying (it shows the same key every time), or the key file you downloaded. Still stuck? E-mail support with the e-mail you paid with.</p></details>`;
 }
 
 /** Hours of audio that `credits` buy through /transcribe/long. */
