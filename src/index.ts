@@ -44,6 +44,11 @@ import { guidesIndexHtml, taskGuide, taskGuideHtml, taskGuideMarkdown } from "./
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
+import { alignAccepted, differsNote } from "./lib/accepted-terms";
+import { parseBody, unwrapBody } from "./lib/post-body";
+import { rejoinedTargetUrl } from "./lib/target-url";
+/** Tools whose `url` input is used exactly as sent: the URL-safety pack and its entry path are never changed. */
+const TARGET_URL_AS_SENT: ReadonlySet<string> = new Set(["/pack/url-safety", "/url/safety-check"]);
 import { callerFamily } from "./lib/caller";
 import { measurement } from "./lib/beacon";
 import { activeTrace, isCatalogFile, isDiscoveryVisit, isHumanPage, markStage, referrerFamily, withRequestTrace } from "./lib/funnel";
@@ -236,7 +241,8 @@ app.use(async (c, next) => {
       }
     }
   }
-  const body = await c.req.json().catch(() => null) as Record<string, unknown> | null;
+  // A flat JSON object, a form-encoded body, or the inputs nested one level down (lib/post-body.ts).
+  const body = unwrapBody(parseBody(await c.req.text().catch(() => ""), c.req.header("content-type")), (name) => name in endpoint.params || Boolean(ALIAS_OF[name]?.some((input) => input in endpoint.params)));
   // A whole source file does not fit in a URL that the payment quote repeats (lib/long-input.ts): it travels as a reference.
   const longFields = LONG_INPUT_FIELDS[c.req.path];
   const heldRefs: string[] = [];
@@ -290,6 +296,31 @@ app.use(async (c, next) => {
   const answered = new Response(res.body, res);
   answered.headers.set("X-PAYMENT-RESPONSE", receipt);
   return answered;
+});
+
+// A v2 payment refused only because its `accepted` object is not written exactly as our terms (lib/accepted-terms.ts)
+// is sent on once with the matching term written our way. Nothing ran on the refused attempt: the library refuses a
+// payment without matching terms before it verifies or runs anything. The marker header stops a second retry.
+const ALIGNED_HEADER = "x-accepted-aligned";
+app.use(async (c, next) => {
+  const signed = c.req.header("payment-signature");
+  if (!signed || c.req.method !== "GET" || !PAID_PATHS.has(c.req.path) || c.req.header(ALIGNED_HEADER)) return next();
+  await next();
+  if (c.res.status !== 402 || !c.res.headers.get("payment-required")) return;
+  const required = c.res.headers.get("payment-required");
+  if (decodedChallengeError(required) !== "No matching payment requirements") return;
+  const aligned = alignAccepted(signed, required);
+  if (!aligned.header) {
+    console.warn(`x402 v2 terms not matched ${c.req.path}${differsNote(aligned)}`);
+    return;
+  }
+  console.warn(`x402 v2 terms aligned ${c.req.path}${differsNote(aligned)}`);
+  const headers = new Headers(c.req.raw.headers);
+  headers.set("payment-signature", aligned.header);
+  headers.set(ALIGNED_HEADER, "1");
+  const retried = await app.fetch(new Request(c.req.url, { method: "GET", headers }), c.env, c.executionCtx);
+  c.res = undefined;
+  c.res = retried;
 });
 
 app.use(async (c, next) => withRequestTrace(c.env, c.req.path, c.req.header("X402-Source") ?? null,
@@ -574,7 +605,7 @@ app.use(async (c, next) => {
 for (const e of ENDPOINTS) {
   // The IP tools answer a call without `ip` for the address the request came from; no other input is read from a header.
   // NO_INPUT tells a tool that the request carried nothing but control parameters (EMPTY_CALL_DEFAULTS in src/tools.ts).
-  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === FILE_REF_INPUT ? (e.path in FILE_INPUT_PATHS ? c.req.query(FILE_INPUT) : undefined) : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
+  app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === FILE_REF_INPUT ? (e.path in FILE_INPUT_PATHS ? c.req.query(FILE_INPUT) : undefined) : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : name === "url" && !TARGET_URL_AS_SENT.has(e.path) ? rejoinedTargetUrl(new URL(c.req.url).searchParams, (n) => n in e.params || CONTROL_PARAMS.has(n) || Boolean(ALIAS_OF[n]?.some((input) => input in e.params))) : c.req.query(name))), c.req.query("only"))));
 }
 
 /**

@@ -98,8 +98,23 @@ export const FORMAT_ALIASES: Readonly<Record<string, string>> = Object.freeze({
 export const allowedValue = <T extends string>(raw: string, values: readonly T[]): T | undefined => {
   const lower = raw.trim().toLowerCase();
   const via = (alias: string | undefined) => (alias === undefined ? undefined : values.find((v) => v.toLowerCase() === alias));
-  return values.find((v) => v.toLowerCase() === lower) ?? via(CHAIN_ALIASES[lower]) ?? via(FORMAT_ALIASES[lower]);
+  return values.find((v) => v.toLowerCase() === lower) ?? via(CHAIN_ALIASES[lower]) ?? via(FORMAT_ALIASES[lower])
+    // Only for a list made of two-letter codes: "base-sepolia" must never be read as "base" in a list of networks.
+    ?? (values.every((v) => /^[a-z]{2}$/i.test(v)) ? via(languageAlias(lower)) : undefined);
 };
+
+/**
+ * A regional language tag, three-letter code or English name as the two-letter code a list of language codes holds
+ * ("en-US", "en_GB", "eng" and "english" are "en"). It only ever matches a value the list really has. The handler must
+ * read the input the same way (lib/melo.ts `languageCode`).
+ */
+const LANGUAGE_WORDS: Readonly<Record<string, string>> = { eng: "en", english: "en", spa: "es", spanish: "es", "español": "es" };
+function languageAlias(lower: string): string | undefined {
+  if (Object.hasOwn(LANGUAGE_WORDS, lower)) return LANGUAGE_WORDS[lower];
+  const primary = /^([a-z]{2,3})[-_][a-z0-9]{2,8}(?:[-_][a-z0-9]{2,8})?$/.exec(lower)?.[1];
+  if (!primary) return undefined;
+  return Object.hasOwn(LANGUAGE_WORDS, primary) ? LANGUAGE_WORDS[primary] : primary;
+}
 
 export function pick<T extends string>(q: Input, name: string, values: readonly T[], fallback?: T): T {
   const raw = q(name)?.trim().toLowerCase();
