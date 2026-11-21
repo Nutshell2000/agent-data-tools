@@ -1,3 +1,4 @@
+import { SUPPORT_EMAIL } from "../endpoints";
 // Studio voices on the front page (21 Nov 2026): the first place where a visitor can USE a paid voice feature.
 //
 // The free console (lib/voice-console.ts) makes speech on the visitor's own device, after a 90 MB download, with 21
@@ -46,7 +47,7 @@ export function studioVoices(o: StudioVoicesOptions): string {
 <button type="button" class="go" id="sv-play" data-ev="studio_play">&#9654; Play with a studio voice</button></div>
 <audio id="sv-audio" controls hidden></audio>
 <p class="msg" id="sv-msg" role="status" aria-live="polite">Studio voices need a paid key. With <a href="${esc(o.planUrl)}">a Pro key (${esc(o.planPrice)} a month)</a> you get about ${o.planCharacters.toLocaleString("en-US")} characters of studio speech every month.</p>
-<details class="key"><summary>I have a key</summary><div class="sv-row"><label class="sr" for="sv-key" style="position:absolute;left:-9999px">Your key</label><input id="sv-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key (it starts with adt_)"><button type="button" id="sv-save">Use this key</button><button type="button" id="sv-forget" hidden>Forget the key</button></div></details>
+<details class="key"><summary>I have a key</summary><div class="sv-row"><label class="sr" for="sv-key" style="position:absolute;left:-9999px">Your key</label><input id="sv-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key (it starts with adt_)"><button type="button" id="sv-save">Use this key</button><button type="button" id="sv-forget" hidden>Forget the key</button></div><details class="lost"><summary>Lost your key?</summary><p>Reopen the page you saw right after paying: the same address shows the same key again. Saved it with Download key? It is in that file. Still stuck? Write to <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> with the e-mail you paid with, and we will send you the way back to it.</p></details></details>
 <noscript><p>Studio voices need JavaScript. <a href="${esc(o.planUrl)}">Get a Pro key</a> or use the <a href="/text-to-speech-api">speech API</a>.</p></noscript>
 </div>`;
 }
