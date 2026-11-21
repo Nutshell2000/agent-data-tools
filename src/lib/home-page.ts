@@ -233,6 +233,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   const prow: [ico: string, label: string, href: string][] = [
     ["speaker", "Text to speech", "#try"],
     ["text", "Speech to text", `${VOICE_SITE}/transcribe`],
+    ["book", "Read aloud", `${VOICE_SITE}/text-reader`],
     ["captions", "Subtitles", `${VOICE_SITE}/srt-generator`],
     ["book", "Audiobooks", `${STUDIO_SITE}/audiobook`],
     ["podcast", "Podcasts", `${STUDIO_SITE}/dialogue`],
