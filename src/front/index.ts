@@ -49,6 +49,12 @@ const CREDENTIAL_HEADERS = ["payment-signature", "x-payment", "authorization", "
 const CONTROL_PARAMS = ["trial", "sample", "api_key", "apikey", "key"];
 /** Paths that are never a tool quote; they go straight to the core without a KV read. */
 const NEVER = /^\/(?:$|mcp|v1\/|\.well-known|tools|credits|guides|discovery|openapi|llms|sitemap|robots|favicon|og|metrics|revenue|status|health|e$|app|docs|from\/)/;
+/**
+ * Paid tools whose path starts with one of the NEVER prefixes (21 Nov 2026). The prefixes are meant for /sitemap.xml,
+ * /robots.txt, /openapi.json and the /mcp servers, but they also caught these four tools, so every probe of their
+ * listings woke the core. tests/quote-front-worker.test.cjs fails when a catalogue path is caught and not listed here.
+ */
+const TOOLS_UNDER_NEVER = new Set(["/sitemap", "/robots", "/openapi/summary", "/mcp/inspect"]);
 
 /** Whether this request may be answered from a stored quote (the core's own quote-cache rules, plus Origin). */
 function quotable(request: Request): URL | undefined {
@@ -56,7 +62,7 @@ function quotable(request: Request): URL | undefined {
   for (const name of CREDENTIAL_HEADERS) if (request.headers.has(name)) return undefined;
   if (/text\/html/i.test(request.headers.get("accept") ?? "") || /mozilla/i.test(request.headers.get("user-agent") ?? "")) return undefined;
   const url = new URL(request.url);
-  if (NEVER.test(url.pathname)) return undefined;
+  if (NEVER.test(url.pathname) && !TOOLS_UNDER_NEVER.has(url.pathname)) return undefined;
   for (const name of CONTROL_PARAMS) if (url.searchParams.has(name)) return undefined;
   if (url.href.length > 1500) return undefined;
   return url;

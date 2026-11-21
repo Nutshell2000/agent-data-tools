@@ -24,7 +24,7 @@ import { capBytes, fetchPublic, parseTarget } from "../lib/fetch";
 import { blockAtTime, recentBlockSeconds } from "../lib/block-time";
 import { CHAINS, USDC, client, historyRead, logsClient, rpc } from "./chain-reads";
 import { analyze } from "./x402-check";
-import { signPayload } from "./payee";
+import { KEYS_PATH, signPayload } from "./payee";
 
 const SEARCH = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as const;
@@ -215,6 +215,8 @@ const EX_ENDPOINT = "https://agent-data-tools.revmesh2074.workers.dev/weather";
 const EX_PAY_TO = "0x6293ded2684F1A76E26bEcef87c137D691Fbf800";
 /** A settled x402 payment to us on Base (11 Nov 2026, Mercator's gateway 0x72c5 paying $0.01, block 56,118,430): the receipt example. */
 const EX_TX = "0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933";
+/** Who signs an evidence bundle: this service, on the host its key document is published on. */
+const BUNDLE_ISSUER = "https://agent-data-tools.revmesh2074.workers.dev";
 
 type Q = Parameters<Entry["run"]>[1];
 
@@ -367,7 +369,7 @@ export const TRUST: Entry[] = [
     (env, q) => receiptFor(env, q)),
 
   entry("/evidence/bundle", "Signed evidence bundle: receipt, listing match and seller facts",
-    "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the listed resource's advertised price and whether it matched, plus explicit limits. Signed with our Ed25519 key. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books.",
+    "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the price the same host and path advertise on the Coinbase Bazaar and whether it matched, plus explicit limits. Signed with our Ed25519 key and issued in our name, whoever the seller is. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books.",
     ["proof-of-payment", "seller-verification", "attestation", "receipt", "x402"], {
       hash: { type: "string", description: "Transaction hash of the payment (0x, 64 hex characters)", required: true, example: "0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933" },
       chain: { type: "string", description: "Network: base (default), eth, arb, op or polygon", enum: CHAIN_SLUGS, example: "base" },
@@ -376,9 +378,18 @@ export const TRUST: Entry[] = [
     },
     {
       type: "agent-data-tools.evidence-bundle.v1", receipt: { receiptId: "rcpt_fbcd04404acc94e2", amount: "0.01", amountAtomic: "10000", chain: "base" },
-      listing: { url: "https://example.test/news", advertisedPrice: "$0.01", matchesReceipt: true, checkedAt: "2026-11-20T00:00:00Z" },
-      errors: [], limitations: ["Proof that USDC moved and the listing price matched; not proof of delivery.", "Self-published evidence, signed with our published key."],
-      canonical: "{}", alg: "EdDSA", kid: null, signature: null,
+      // The shape the handler returns when the key is configured (21 Nov 2026: the example used to show "$0.01", a null
+      // signature and no issuer). advertisedPrice is a plain decimal string, as the handler computes it.
+      v: 1, iss: BUNDLE_ISSUER, iat: "2026-11-20T00:00:00.000Z",
+      listing: { url: "https://agent-data-tools.revmesh2074.workers.dev/news", advertisedPrice: "0.01", matchesReceipt: true, checkedAt: "2026-11-20T00:00:00.000Z" },
+      errors: [],
+      limitations: [
+        "Proof that USDC moved on chain and that the advertised price matched at check time; it does NOT prove what was delivered.",
+        "Self-published evidence signed with our Ed25519 key; verify with the key named by kid.",
+        "Self-payments and owned-wallet settlements are excluded from our revenue figures but a receipt cannot tell who owns the payer wallet.",
+      ],
+      canonical: "{\"errors\":[],\"iat\":\"2026-11-20T00:00:00.000Z\",…}", alg: "EdDSA", kid: "…", signature: "…", keys: `${BUNDLE_ISSUER}${KEYS_PATH}`,
+      note: "Verify Ed25519 over the UTF-8 bytes of canonical, with the key named by kid. It attests the facts at iat only.",
     },
     async (env, q) => {
       const receipt = await receiptFor(env, q);
@@ -390,7 +401,10 @@ export const TRUST: Entry[] = [
           const url = new URL(resource);
           const data = await getJson<{ resources?: { resource?: string; accepts?: { amount?: string }[] }[] }>(
             `https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?${new URLSearchParams({ query: url.pathname, limit: "20" })}`, { timeoutMs: 8_000 });
-          const hit = (data.resources ?? []).find((x) => x.resource && new URL(x.resource).pathname === url.pathname);
+          // Same host AND path (21 Nov 2026): the path alone matched any seller's listing with that path, so another
+          // seller's price could be reported as this resource's advertised price.
+          const sameResource = (listed: string) => { try { const l = new URL(listed); return l.host.toLowerCase() === url.host.toLowerCase() && l.pathname === url.pathname; } catch { return false; } };
+          const hit = (data.resources ?? []).find((x) => x.resource && sameResource(x.resource));
           if (!hit) { errors.push("no Bazaar listing found for that resource"); }
           else {
             const atomic = hit.accepts?.[0]?.amount ?? null;
@@ -398,7 +412,10 @@ export const TRUST: Entry[] = [
           }
         } catch (e) { errors.push(`listing check failed: ${String(e).slice(0, 80)}`); }
       } else errors.push("no resource supplied, so no listing price could be checked");
-      const origin = q("resource") ? new URL(q("resource")!).origin : "https://agent-data-tools.revmesh2074.workers.dev";
+      // The issuer is always this service (21 Nov 2026). It used to be the origin of the caller's `resource`, so a bundle
+      // about another seller named that seller as issuer and pointed verifiers at a key document on that seller's site;
+      // a malformed `resource` also threw here, outside the try above.
+      const origin = BUNDLE_ISSUER;
       const payload = {
         v: 1, type: "agent-data-tools.evidence-bundle.v1", iss: origin, iat: new Date().toISOString(),
         receipt, listing, errors,

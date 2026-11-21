@@ -95,6 +95,28 @@ const hitAfter = async (url, headers = JSON_CLIENT, tries = 20) => {
   return false;
 };
 
+test("paid tools under a reserved prefix are answered by the front; their page siblings never are (21 Nov 2026)", async () => {
+  // /sitemap, /robots, /openapi/summary and /mcp/inspect are paid tools that share a prefix with /sitemap.xml,
+  // /robots.txt, /openapi.json and the /mcp servers. Until 1.323.0 the prefix kept all four away from the front.
+  const source = require("node:fs").readFileSync(path.resolve("src/front/index.ts"), "utf8");
+  const never = new RegExp(source.match(/const NEVER = \/(.+)\/;/)[1]);
+  const listed = new Set(JSON.parse(`[${source.match(/const TOOLS_UNDER_NEVER = new Set\(\[([^\]]+)\]\)/)[1]}]`));
+  const { ENDPOINTS } = await load(require.resolve("../src/endpoints.ts"), "endpoints-front-never-test.js");
+  const caught = ENDPOINTS.map((e) => e.path).filter((p) => never.test(p));
+  assert.deepEqual([...caught].sort(), [...listed].sort(), "every catalogue path a NEVER prefix catches is listed in TOOLS_UNDER_NEVER, and nothing else is");
+  for (const p of listed) {
+    const first = await ask(O + p);
+    await first.text();
+    assert.equal(first.status, 402, `${p}: a paid tool`);
+    let hit = false;
+    for (let i = 0; i < 20 && !hit; i++) { const r = await ask(O + p); await r.text(); hit = r.headers.get("x-quote-front") === "hit"; if (!hit) await new Promise((s) => setTimeout(s, 25)); }
+    assert.ok(hit, `${p}: the front answers the repeat`);
+  }
+  for (const p of ["/sitemap.xml", "/robots.txt", "/openapi.json", "/mcp", "/llms.txt"]) {
+    for (let i = 0; i < 3; i++) { const r = await ask(O + p); await r.arrayBuffer(); assert.equal(r.headers.get("x-quote-front"), null, `${p}: always the core`); }
+  }
+});
+
 test("a URL with a query is stored only after a second miss, then answered with its own resource URL", async () => {
   const url = O + "/pack/url-safety?url=https%3A%2F%2Fexample.com%2Fa%20b";
   const kv = await mf.getKVNamespace("QUOTES", "front");

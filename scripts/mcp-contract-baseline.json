@@ -1,5 +1,5 @@
 {
-  "version": "1.322.1",
+  "version": "1.323.0",
   "tools": [
     {
       "name": "extract",
@@ -1564,7 +1564,7 @@
     },
     {
       "name": "answers_page_evidence",
-      "description": "One call for one public URL: fetch the page as clean text, read its HTTPS/security headers, and return a SHA-256 of the text with an Ed25519-signed receipt naming the URL, the result hash and the payment terms. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses. Example: url=https://example.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for one public URL: fetch the page as clean text, grade its HTTP security headers, and return a SHA-256 of the extracted text with a receipt naming the URL, the result hash and the payment terms, Ed25519-signed with our published key. The hash covers the text as read, not the page's raw bytes. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses. Example: url=https://example.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1588,7 +1588,7 @@
     },
     {
       "name": "answers_company_diligence",
-      "description": "One call for one company domain: site identity, tech stack, email security, hosting, DNS and registration age, plus an OFAC name screen. Use when an agent must vet a counterparty before dealing with it: a deterministic answer with a signed receipt and per-section failures. Public sources only; no private data. Example: domain=stripe.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for one company domain: site identity, tech stack, email provider and email security, hosting, DNS and registration age, plus a sanctions-list screen (OFAC, EU, UN, UK) of the domain's own name, the label before the first dot. No company register is read. Use when an agent must vet a counterparty's website before dealing with it: one answer with a signed receipt and per-section failures. Public sources only; no private data. Example: domain=stripe.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12664,7 +12664,7 @@
     },
     {
       "name": "evidence_bundle",
-      "description": "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the listed resource's advertised price and whether it matched, plus explicit limits. Signed with our Ed25519 key. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the price the same host and path advertise on the Coinbase Bazaar and whether it matched, plus explicit limits. Signed with our Ed25519 key and issued in our name, whoever the seller is. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19057,7 +19057,7 @@
     },
     {
       "name": "full_website_audit",
-      "description": "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers, SEO metadata and uptime, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers and on-page SEO from one load in a real browser, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19081,7 +19081,7 @@
     },
     {
       "name": "website_audit",
-      "description": "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Website audit of any public URL in one call: uptime and response time, the redirect chain, on-page SEO with a score, HTTP security headers with a grade, robots.txt, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Use to check a site's basics before a launch, a purchase or an agent handoff. No account, pay per call over x402. Example: url=https://www.wikipedia.org/. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19105,7 +19105,7 @@
     },
     {
       "name": "text_to_speech_generate",
-      "description": "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Text to speech API: convert up to 300 characters of English or Spanish text into natural MP3 audio (base64) with Deepgram Aura-2 voices, 40 English and 10 Spanish. Use when an agent needs spoken output for a notification or a short voice response; for up to 2,000 characters use text_to_speech. No account, pay per call over x402. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19166,7 +19166,7 @@
     },
     {
       "name": "news_sentiment",
-      "description": "News sentiment for a company or topic: recent headlines with a sentiment score each. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "News sentiment for a company or topic: recent headlines, each labelled positive or negative with a score. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402. Example: q=bitcoin. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19200,7 +19200,7 @@
     },
     {
       "name": "sentiment_analysis",
-      "description": "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Sentiment analysis of English text: returns a positive or negative label with a confidence score for each, from a DistilBERT model fine-tuned on SST-2. Use to gauge customer feedback, reviews, support messages or social posts before a decision. One call, no API key. Example: text=The checkout was fast and support answered within minutes.. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19296,7 +19296,7 @@
     },
     {
       "name": "image_generation",
-      "description": "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402. Example: prompt=a lighthouse on a cliff at sunset, watercolor. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Image generation from a text prompt: create a 1024x1024 JPEG with FLUX.1 schnell, returned as base64 with its content type. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402. Example: prompt=a lighthouse on a cliff at sunset, watercolor. Price $0.03/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19326,7 +19326,7 @@
     },
     {
       "name": "ip_geolocation",
-      "description": "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "IP geolocation for any public IPv4 or IPv6 address: city, region, country, continent and approximate latitude and longitude, with the address range the record covers, from DB-IP City Lite data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key. Example: ip=8.8.8.8. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19626,7 +19626,7 @@
     },
     {
       "name": "verify_x402_payment",
-      "description": "Verify an x402 payment path before paying: decode the endpoint's 402 requirements and score its listing quality, with network, asset, payTo and timeout. Never signs. Use to confirm a paid endpoint is safe to call. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Verify the payment terms an x402 endpoint asks for before paying: decode its 402 requirements (price, network, asset, payTo, timeout) and score its listing quality. It reads the endpoint's terms and never looks at a payment already made; for that use x402_receipt. Never signs. Use to confirm what a paid endpoint will charge, and to whom, before calling it. Example: url=https://agent-data-tools.revmesh2074.workers.dev/btc-fees. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -20060,7 +20060,7 @@
     },
     {
       "name": "ai_tts",
-      "description": "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused uncharged; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -23486,7 +23486,7 @@
     },
     {
       "name": "ai_speech",
-      "description": "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2. fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn up to 300 characters of text into natural, human-sounding speech: MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2. fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused uncharged; use en or es. Pick a voice by name or leave the default. Use for voice replies, audio notes, accessibility and phone or chat bots; for up to 2,000 characters use text_to_speech. Example: text=Your payment was received. Thank you!. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -23547,7 +23547,7 @@
     },
     {
       "name": "text_to_speech",
-      "description": "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2, ; fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Text to speech for a paragraph or a page: up to 2,000 characters as one MP3 in English (40 voices) or Spanish (10 voices) with Deepgram Aura-2; fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026). Pick a voice by name or leave the default. Use for narration, article and summary read-outs, voice replies, IVR prompts and accessibility; for a sentence of up to 300 characters ai_speech costs less. Price $0.08/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,

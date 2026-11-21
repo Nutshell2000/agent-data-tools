@@ -3,6 +3,7 @@
 // Run before a release: node scripts/build-changelog.mjs [git ref, default origin/main]
 // The Worker has no git, so /changelog reads this snapshot; a release missing from it appears with the next run.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,12 @@ const ref = process.argv[2] || "origin/main";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const log = execFileSync("git", ["log", "--first-parent", ref, "--format=%cs%x09%s"], { cwd: root, encoding: "utf8" });
 const RELEASE = /^(\d+\.\d+\.\d+): (.+?)(?: \(#\d+\))?$/;
+// Names that must not reach a public page are matched as salted SHA-256 hashes read from a file outside this
+// repository (its path in ADT_PRIVATE_WORD_HASHES, one hash per line). Without the file nothing is replaced.
+const hashFile = process.env.ADT_PRIVATE_WORD_HASHES;
+const PRIVATE_WORDS = new Set(hashFile && existsSync(hashFile) ? readFileSync(hashFile, "utf8").split(/\s+/).filter((h) => /^[0-9a-f]{64}$/.test(h)) : []);
+if (!PRIVATE_WORDS.size) console.warn("changelog: ADT_PRIVATE_WORD_HASHES is not set; no name is replaced");
+const isPrivate = (word) => PRIVATE_WORDS.has(createHash("sha256").update(`adt-private-word:${word.toLowerCase()}`).digest("hex"));
 const seen = new Set();
 const entries = [];
 for (const line of log.split("\n")) {
@@ -19,7 +26,7 @@ for (const line of log.split("\n")) {
   if (!m || seen.has(m[1])) continue;
   seen.add(m[1]);
   // No personal names on a public page: early commit subjects name the owner.
-  const subjectText = m[2].replace(/\bowner's\b/g, "the owner's").replace(/\bowner\b/g, "the owner");
+  const subjectText = m[2].replace(/\b([A-Za-z]+)('s)?\b/g, (all, word, possessive) => (isPrivate(word) ? `the owner${possessive ?? ""}` : all));
   const text = subjectText.length > 240 ? `${subjectText.slice(0, 237).trimEnd()}…` : subjectText;
   entries.push({ version: m[1], date, text });
 }

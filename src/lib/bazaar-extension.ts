@@ -259,7 +259,8 @@ export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   // Each <=32 chars and a literal description of what the tool returns; no engine or data claim is added.
   "/company": "Company enrichment, profile",
   "/news": "News, latest headlines",
-  "/base-gas": "Gas price, live EVM gas fees",
+  // 21 Nov 2026: the tool reads Base only, so the name says Base ("live EVM gas fees" claimed every EVM network).
+  "/base-gas": "Gas price on Base, live gas fees",
   "/ai/embed": "Embeddings, text embeddings",
   "/check/payee": "Address and wallet screening",
   "/sanctions/check": "Sanctions screening, OFAC",
@@ -267,9 +268,11 @@ export const LISTING_NAME_OF: Readonly<Record<string, string>> = Object.freeze({
   "/domain/whois": "WHOIS, domain RDAP lookup",
   "/ip/geolocate": "IP geolocation, IPv4 & IPv6",
   // 1.314.0, 20 Nov 2026: "smart money" / whale flow is a $688/30d Bazaar job (3 listings, 6-17 payers each) where
-  // we rank #2 for "whale transfers" but are absent for "smart money". This is a raw large-transfer feed, so the
-  // name says what it returns and does not claim wallet labelling.
-  "/whale/transfers": "Whale transfers, smart money flow",
+  // we rank #2 for "whale transfers" but are absent for "smart money". This is a raw large-transfer feed of USDC and
+  // USDT with unlabelled addresses, so the name says what it returns. 21 Nov 2026: "smart money flow" was removed (it
+  // implies labelled wallets, which the tool's own description rules out, and the name was 33 characters, over the 32
+  // the x402 schema allows).
+  "/whale/transfers": "Whale transfers, stablecoin flow",
 });
 /**
  * Paths whose listing description must open with the override name, not the summary's lead phrase (19 Nov 2026).
