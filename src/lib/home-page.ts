@@ -69,6 +69,10 @@ const ICON: Record<string, string> = {
   lock: `<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>`,
   user: `<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>`,
   download: `<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>`,
+  redo: `<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>`,
+  coin: `<circle cx="12" cy="12" r="9"/><path d="M9 9.5c0-1 1.3-1.8 3-1.8s3 .8 3 1.8-1.3 1.6-3 2-3 1-3 2 1.3 1.8 3 1.8 3-.8 3-1.8M12 6v12"/>`,
+  clock: `<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
+  exit: `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>`,
 };
 const icon = (id: string) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICON[id] ?? ICON.search}</svg>`;
 
@@ -110,6 +114,39 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 @media (max-width:720px){.hero{padding:14px 0 18px}.hero h1{font-size:1.85rem;line-height:1.08;margin-bottom:8px}.hero .lede{font-size:1rem;margin:0 auto 14px}
 .hero .vc textarea{min-height:0;height:5.4em}.hero .vc-pane{padding:12px}.hero .vc-meta{margin:4px 2px 8px}
 .hero .vc-presets{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.hero .vc-presets::-webkit-scrollbar{display:none}.hero .vc-presets button{flex:none}}`;
+// 21 Nov 2026 redesign (owner: "more like elevenlabs ... the first thing hitting you should be the text thing", and "win
+// where elevenlabs looses and beat them where they win as well"). Internal research: business/voice-plan-2026-11-14/
+// internal-bench/homepage-research-2026-11-21.md. What it changed:
+// - a one-line news bar, a product row above the console (the big studio-style text box stays the first thing seen),
+//   and a promise row under it that names what visitors elsewhere pay for or sign up for: downloads, retries, accounts;
+// - the six tiles became a product tour: one wide row per product, each with a drawn preview of the real tool and one
+//   button into it (the market leader wins on showing breadth; this shows ours without a word of jargon);
+// - a "Fair by design" block: the billing and privacy complaints people have about voice tools, answered as promises
+//   the code keeps (free retries, failed calls cost nothing, packs never expire, cancel from the portal, no account).
+// Still: no rival named, no speed claim, no AI label, every number computed.
+const REDESIGN_CSS = `.annc{position:relative;z-index:21;background:linear-gradient(90deg,rgba(139,92,246,.22),rgba(34,211,238,.18));border-bottom:1px solid rgba(255,255,255,.07);font-size:.9rem;text-align:center;padding:8px 16px;color:var(--fg)}
+.annc a{color:var(--fg);font-weight:650}.annc .short{display:none}.annc b{color:#07070c;background:var(--grad);border-radius:999px;padding:1px 8px;margin-right:8px;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.hero{padding-top:40px}.hero h1{font-size:clamp(2rem,4.6vw,3.5rem);max-width:20ch;margin-bottom:10px}.hero .lede{margin-bottom:20px}.hero .pill{display:inline-flex;gap:8px;align-items:center;margin:0 0 18px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:.9rem}.hero .pill i{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
+.prow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 14px;max-width:900px}
+.prow a{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font-size:.93rem;font-weight:600}.prow a .ico{width:17px;height:17px}
+.prow a:hover,.prow a[aria-current]{color:var(--fg);border-color:#4a4a70;background:rgba(255,255,255,.08);text-decoration:none}.prow a[aria-current]{border-color:var(--c)}
+.promise{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px;margin:16px 0 0;padding:0;list-style:none}.promise li{display:flex;align-items:center;gap:7px;font-size:.9rem;color:var(--muted);padding:6px 12px;border-radius:999px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.22)}.promise .ico{width:16px;height:16px;color:var(--g)}
+.tour{display:grid;gap:18px;margin-top:8px;text-align:left}
+.trow{display:grid;grid-template-columns:1fr 1.1fr;gap:28px;align-items:center;padding:28px;border-radius:26px;border:1px solid var(--line);background:radial-gradient(520px 220px at 0 0,rgba(139,92,246,.10),transparent 65%),var(--card)}
+.trow:nth-child(even){background:radial-gradient(520px 220px at 100% 0,rgba(34,211,238,.09),transparent 65%),var(--card)}.trow:nth-child(even) .tcopy{order:2}
+.tcopy h3{font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.12;letter-spacing:-.02em;margin:6px 0 10px}.tcopy p{color:var(--muted);margin:0 0 18px}.tcopy .free{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);padding:3px 9px;border-radius:999px;margin-left:8px}
+.mock{border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,#141422,#0c0c15);padding:18px;font-size:.9rem;color:var(--muted);min-height:190px}
+.mock .row{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.03);margin:0 0 8px}.mock .row.on{background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.35);color:var(--fg)}
+.mock .t{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--c);font-size:.8rem;flex:none}.mock .tag{margin-left:auto;font-size:.75rem;font-weight:700;color:#07070c;background:var(--grad);border-radius:999px;padding:2px 9px;flex:none}
+.mock .bar{height:6px;border-radius:6px;background:#25253a;overflow:hidden;flex:1}.mock .bar i{display:block;height:100%;background:var(--grad)}
+.mock .bub{max-width:82%;padding:9px 13px;border-radius:14px;margin:0 0 8px;background:rgba(139,92,246,.14);color:var(--fg)}.mock .bub.b{margin-left:auto;background:rgba(34,211,238,.12)}.mock .bub small{display:block;color:var(--c);font-weight:700;font-size:.74rem}
+.mock .mwave{display:flex;gap:3px;align-items:center;height:44px;margin:4px 0 12px}.mock .mwave i{flex:1;border-radius:3px;background:var(--grad);opacity:.85}
+.fair{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-top:8px}
+.fair div{padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.fair b{display:flex;gap:10px;align-items:center;font-size:1.1rem;color:var(--fg);margin-bottom:6px}.fair b .ico{color:var(--g);width:22px;height:22px;flex:none}.fair span{color:var(--muted);font-size:.97rem}
+.steps.compact li{padding:22px}
+@media (max-width:860px){.trow{grid-template-columns:1fr;padding:20px}.trow:nth-child(even) .tcopy{order:0}.fair{grid-template-columns:1fr}.mock{min-height:0}}
+@media (max-width:720px){.promise,.prow,.annc,.trow:not(:first-child) .mock{display:none}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
+
 const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
 
 /**
@@ -192,14 +229,39 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
     ],
   };
 
-  // What people come to make. Every tile opens a free tool; one line each, no jargon.
-  const tiles: [ico: string, title: string, line: string, href: string, go: string][] = [
-    ["speaker", "Voiceovers", "Type your text, pick a voice, download the audio.", "#try", "Make a voiceover"],
-    ["text", "Transcripts", "Drop a recording and get every word back as text.", `${VOICE_SITE}/transcribe`, "Transcribe a file"],
-    ["captions", "Subtitles", "Subtitle files for your videos, ready for YouTube.", `${VOICE_SITE}/transcribe`, "Make subtitles"],
-    ["book", "Audiobooks", "Turn a PDF, EPUB or Word file into an audiobook.", `${STUDIO_SITE}/audiobook`, "Open the studio"],
-    ["podcast", "Podcasts", "Write a script and hear it as a two-voice show.", `${STUDIO_SITE}/dialogue`, "Make a podcast"],
-    ["phone", "The app", "Install it on your phone or computer. Works offline.", "/app", `Get the ${brand} app`],
+  // The product row above the console: the same jobs as the tour below, one tap each.
+  const prow: [ico: string, label: string, href: string][] = [
+    ["speaker", "Text to speech", "#try"],
+    ["text", "Speech to text", `${VOICE_SITE}/transcribe`],
+    ["captions", "Subtitles", `${VOICE_SITE}/transcribe`],
+    ["book", "Audiobooks", `${STUDIO_SITE}/audiobook`],
+    ["podcast", "Podcasts", `${STUDIO_SITE}/dialogue`],
+    ["phone", "App", "/app"],
+  ];
+  const v = (i: number) => esc(CONSOLE_VOICES[i % voices]?.name ?? "");
+  const waveBars = Array.from({ length: 40 }, (_, i) => `<i style="height:${18 + ((i * 53) % 78)}%"></i>`).join("");
+  // The product tour: one wide row per job, a drawn preview of the real tool, one button into it. Every claim is a thing
+  // the linked free tool does today.
+  const tour: [kicker: string, title: string, line: string, href: string, go: string, mock: string][] = [
+    ["Voiceovers", "Fix one sentence, not the whole take.", "Type your script and pick a voice. Not happy with one line? Redo just that sentence; it is spliced into the same download.", "#try", "Make a voiceover",
+      `<div class="mock" aria-hidden="true"><div class="mwave">${waveBars}</div><div class="row"><span class="t">01</span>The harbour woke slowly.</div><div class="row on"><span class="t">02</span>Gulls called above the empty quay.<span class="tag">Redo</span></div><div class="row"><span class="t">03</span>The first boat slipped out.</div></div>`],
+    ["Transcripts and subtitles", "Every word, with the time it was said.", `Drop a recording and get the text back, plus SRT or VTT subtitles for YouTube or any video editor. ${esc(languages)}`, `${VOICE_SITE}/transcribe`, "Transcribe a file",
+      `<div class="mock" aria-hidden="true"><div class="row"><span class="t">00:00:01</span>Welcome back to the show.</div><div class="row on"><span class="t">00:00:04</span>Today we talk about keeping it simple.</div><div class="row"><span class="t">00:00:09</span>Let&rsquo;s start with the first question.</div><div class="row"><span class="t">SRT</span>Subtitles ready<span class="tag">Download</span></div></div>`],
+    ["Audiobooks", "Your book, read aloud. Chapter by chapter.", "Open a PDF, EPUB or Word file in the studio, choose a narrator and get one audio file per chapter.", `${STUDIO_SITE}/audiobook`, "Open the audiobook studio",
+      `<div class="mock" aria-hidden="true"><div class="row"><span class="t">Ch 1</span>The Harbour<div class="bar"><i style="width:100%"></i></div></div><div class="row on"><span class="t">Ch 2</span>The Storm<div class="bar"><i style="width:64%"></i></div></div><div class="row"><span class="t">Ch 3</span>Home Again<div class="bar"><i style="width:0"></i></div></div><div class="row"><span class="t">Voice</span>${v(2)}<span class="tag">Narrator</span></div></div>`],
+    ["Podcasts and dialogue", "A voice for every speaker. One whole show.", "Write who says what, and every person gets their own voice in one audio file. Add pauses where you want them.", `${STUDIO_SITE}/dialogue`, "Make a podcast",
+      `<div class="mock" aria-hidden="true"><div class="bub"><small>${v(0)}</small>So what did you think of the ending?</div><div class="bub b"><small>${v(3)}</small>Honestly? I did not see it coming.</div><div class="bub"><small>${v(0)}</small>Neither did I. Let&rsquo;s talk about it.</div></div>`],
+    ["The app", "On your phone. On your computer. Offline.", `Install ${esc(brand)} Voice from this site on Windows, Mac, Linux, Android or iPhone. It keeps working without a connection.`, "/app", `Get the ${esc(brand)} app`,
+      `<div class="mock" aria-hidden="true"><div class="row on"><span class="t">${icon("phone")}</span>${esc(brand)} Voice<span class="tag">Install</span></div><div class="row"><span class="t">${icon("check")}</span>Works offline after the first use</div><div class="row"><span class="t">${icon("lock")}</span>Your text and recordings stay on the device</div><div class="row"><span class="t">${icon("download")}</span>MP3, WAV and subtitle downloads</div></div>`],
+  ];
+  // Fair by design: the complaints people have about voice tools, answered as promises this service keeps.
+  const fair: [ico: string, title: string, line: string][] = [
+    ["user", "No account for the free tools", "Type, play, download. No e-mail, no sign-up form, no trial that ends."],
+    ["redo", "Retries and previews are free", "Audition every voice and redo any sentence as often as you like. Nothing is counted on this page."],
+    ["download", "Downloads are not locked", "MP3, WAV and subtitle files from the free tools are yours to keep."],
+    ["coin", "A failed job costs nothing", "On paid plans and the API, only work that succeeds uses credits. Errors and bad input are free."],
+    ["clock", "Packs never expire", "A one-off pack keeps its credits until you use them. No subscription needed."],
+    ["exit", "Cancel in one click", "Stop a plan any time from the plan portal with the e-mail you paid with. Unused credits stay on your key."],
   ];
 
   const navLinks = `<a href="#try">Text to speech</a><a href="${VOICE_SITE}/transcribe">Transcribe</a><a href="${STUDIO_SITE}/audiobook">Audiobooks</a><a href="/transcribe-pro">Pro</a><a href="#pricing">Pricing</a><a href="/guides">Guides</a><a href="#developers">Developers</a>`;
@@ -215,15 +277,19 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, offers: offers.map((o) => ({ label: o.label })) })}
-<style>${STYLE}${OFFER_CSS}${STUDIO_VOICES_CSS}${HOME_LAYOUT_CSS}</style></head><body class="has-stickbar">
+<style>${STYLE}${OFFER_CSS}${STUDIO_VOICES_CSS}${HOME_LAYOUT_CSS}${REDESIGN_CSS}</style></head><body class="has-stickbar">
+<p class="annc"><b>New</b><span class="long">The free voice tool now also speaks Spanish, French, Italian, Portuguese and Hindi. </span><span class="short">Five more languages in the free voice tool. </span><a href="${VOICE_SITE}/text-to-speech">Try a voice &rarr;</a></p>
 <header class="nav"><div class="wrap"><div class="home"><a href="/" aria-hidden="true" tabindex="-1">${LOGO}</a><a class="brand" href="/">${esc(brand)}</a></div>
 <nav aria-label="Main">${navLinks}</nav>
 <div class="nav-cta"><a class="btn sm" href="/transcribe-pro">Get Pro</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
 <main>
 <section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
-<h1>Make any text talk.<br><span class="gt">Turn voice into text.</span></h1>
-<p class="lede">Free, right here in your browser. No sign-up, nothing to install.</p>
+<p class="pill"><i></i>Free in your browser &middot; no account &middot; nothing uploaded</p>
+<h1>Lifelike voices for <span class="gt">anything you write.</span></h1>
+<p class="lede">Type, pick a voice, press Play. Download it free. No sign-up, nothing to install.</p>
+<nav class="prow" aria-label="What you can make">${prow.map(([ic, label, href], i) => `<a href="${esc(href)}"${i === 0 ? ' aria-current="page"' : ""}>${icon(ic)}${esc(label)}</a>`).join("")}</nav>
 <div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
+<ul class="promise"><li>${icon("download")}Free MP3 and WAV downloads</li><li>${icon("redo")}Redo one sentence, keep the rest</li><li>${icon("check")}Unlimited previews and retries</li></ul>
 <p class="after">Rather use an app? <a href="/app">Install ${esc(brand)} Voice</a>, free on your phone or computer.</p>
 ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_PRO_URL, planPrice: proPrice, planCharacters: Math.floor(VOICE_PRO_CREDITS / SPEECH_CREDITS_PER_100) * 100, maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div>
 </div></section>
@@ -233,9 +299,9 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 </ul></div></section>
 
 <section class="sec center" id="make"><div class="wrap">
-<h2>What do you want to make?</h2>
-<p class="sub">Pick one and start. Every one of these is free.</p>
-<div class="tiles">${tiles.map(([ic, t, line, href, go]) => `<a class="tile" href="${esc(href)}"><span class="free">Free</span><span class="badge">${icon(ic)}</span><h3>${esc(t)}</h3><p>${esc(line)}</p><span class="go">${esc(go)} &rarr;</span></a>`).join("")}</div>
+<h2>One studio for every voice job.</h2>
+<p class="sub">Voiceovers, transcripts, subtitles, audiobooks and podcasts. Every one of these is free to use.</p>
+<div class="tour">${tour.map(([k, t, line, href, go, mock]) => `<article class="trow"><div class="tcopy"><span class="kicker">${esc(k)}</span><span class="free">Free</span><h3>${esc(t)}</h3><p>${line}</p><a class="btn primary" href="${esc(href)}">${go} &rarr;</a></div>${mock}</article>`).join("")}</div>
 </div></section>
 
 <section class="sec" id="pro"><div class="wrap"><div class="proband">
@@ -252,10 +318,16 @@ ${cardReady ? offerLadder(voicePrices(), { brand, browserVoices: voices, freeHre
 ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro</summary><div>${offerCompare(voicePrices(), CONSOLE_LANGUAGES.length)}</div></details>` : ""}
 </div></section>
 
+<section class="sec center" id="fair"><div class="wrap">
+<h2>Fair by design. <span class="gt">No surprises on your bill.</span></h2>
+<p class="sub">The things people dislike about voice tools, answered as promises we keep.</p>
+<div class="fair">${fair.map(([ic, t, line]) => `<div><b>${icon(ic)}${esc(t)}</b><span>${esc(line)}</span></div>`).join("")}</div>
+</div></section>
+
 <section class="sec center" id="how"><div class="wrap">
 <h2>As easy as 1, 2, 3</h2>
 <p class="sub">No learning curve. If you can type, you can use ${esc(brand)}.</p>
-<ol class="steps">
+<ol class="steps compact">
 <li><strong>Type or drop</strong><span>Write some text, or drop in a recording.</span></li>
 <li><strong>Pick a voice</strong><span>Choose from ${voices} voices and set the speed.</span></li>
 <li><strong>Press Play</strong><span>Listen, then download it. Done.</span></li>
