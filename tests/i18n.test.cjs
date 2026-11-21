@@ -237,3 +237,22 @@ test("/transcribe-pro search titles and descriptions fit in every language (step
     }
   }
 });
+
+test("the language cookie is a preference only and the privacy page says so", async () => {
+  const { PRIVACY_HTML } = await loadTypeScript(require.resolve("../src/lib/legal.ts"));
+  assert.match(PRIVACY_HTML, /<code>gc_lang<\/code>/, "the privacy page names the cookie");
+  assert.match(PRIVACY_HTML, /for one year/, "and how long it lasts");
+  assert.match(PRIVACY_HTML, /preference only/);
+  assert.doesNotMatch(PRIVACY_HTML, /The pages set no cookies\./, "no longer claims there are no cookies at all");
+  // The script sets exactly gc_lang with the same lifetime the page states, and only on a tap (a click handler).
+  assert.match(L.LANGUAGE_SCRIPT, /addEventListener\("click"/);
+  assert.match(L.LANGUAGE_SCRIPT, /document\.cookie="gc_lang="\+a\.getAttribute\("data-gc-lang"\)\+";path=\/;max-age=31536000;samesite=lax"/);
+  assert.equal((L.LANGUAGE_SCRIPT.match(/document\.cookie/g) ?? []).length, 1, "no other cookie");
+  // Crawlers: the English page stays whole and reachable; no bar, no redirect, whatever the cookie or language.
+  const en = landingPage("Glyphcall", ORIGIN, true);
+  for (const ua of ["Googlebot/2.1 (+http://www.google.com/bot.html)", "Mozilla/5.0 (compatible; bingbot/2.0)"]) {
+    assert.deepEqual(L.decideHome({ userAgent: ua, acceptLanguage: "de-DE", cookie: "gc_lang=de", country: "DE" }), {});
+  }
+  const offered = L.withLanguages(en, ORIGIN, "en", "es");
+  assert.ok(offered.includes(en.slice(en.indexOf("<main>"), en.indexOf("</main>"))), "the bar adds a strip; the English page under it is unchanged");
+});

@@ -90,7 +90,7 @@ test("lex has its own sitemap, named in its robots.txt; the main site's /lexglyp
 test("the main sitemap: people's pages first, trust pages in, no lex page, no SKILL.md, one page per chain method", async () => {
   const xml = await (await ask(`${SITE}/sitemap.xml`)).text();
   const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
-  assert.deepEqual(paths.slice(0, 5), ["/", "/app", "/transcribe-pro", "/text-to-speech-api", "/speech-to-text-api"]);
+  assert.deepEqual(paths.slice(0, 8), ["/", "/es/", "/de/", "/fr/", "/app", "/transcribe-pro", "/text-to-speech-api", "/speech-to-text-api"], "the front page in each language comes first (lib/i18n)");
   for (const p of ["/about", "/faq", "/contact", "/terms", "/privacy", "/tools/eth-balance", "/tools/eth-call", "/vat-number-check"]) assert.ok(paths.includes(p), p);
   for (const p of ["/tools/base-balance", "/tools/gnosis-gas-history", "/lexglyph", "/skills/spellzcode-x402-reader/SKILL.md"]) assert.ok(!paths.includes(p), p);
   assert.equal(new Set(paths).size, paths.length, "no URL twice");
@@ -195,7 +195,7 @@ test("/pricing sends people to the plans on the front page; /de goes to the Germ
   assert.equal(p.headers.get("location"), "/?ref=x#pricing");
   const d = await ask(`${SITE}/de`);
   assert.equal(d.status, 301);
-  assert.equal(d.headers.get("location"), "/de/e-rechnung");
+  assert.equal(d.headers.get("location"), "/de/", "the German front page (lib/i18n), which links the e-Rechnung section");
 });
 
 test("guide links do not swallow the punctuation after a URL", async () => {

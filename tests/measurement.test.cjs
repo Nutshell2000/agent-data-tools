@@ -261,7 +261,7 @@ test('the privacy page says what the measurement records', async () => {
   const html = await (await get('/privacy', page)).text();
   assert.match(html, /Visit counts without cookies/);
   assert.match(html, /no cookie, no identifier and no address/);
-  assert.match(html, /The pages set no cookies\./);
+  assert.match(html, /The pages set no tracking cookies: the only cookie is the language choice above, and only after you pick a language\./);
 });
 
 test('both wrangler files bind an Analytics Engine dataset and still parse', () => {

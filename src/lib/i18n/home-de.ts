@@ -110,6 +110,7 @@ export const DE: HomeStrings = {
   final: { h2: "Probier es aus.", h2Accent: "Datei rein, Text raus.", sub: "Kostenlos, ohne Konto und ohne Installation.", go: "Kostenlos testen, ohne Konto", app: "App holen" },
   sticky: { tryFree: "Kostenlos testen", pro: (p) => `Pro: ${p}/Monat` },
   footer: { blurb: "Kostenlos Audio transkribieren und Text vorlesen im Browser, dazu einfache APIs für Sprache, Dokumente und Suche.", tts: "Vorlesen", transcribe: "Transkribieren", studio: "Hörbuch-Studio", app: "App", docs: "Dokumentation", pricing: "Preise", agents: "Für KI-Agenten" },
+  footerExtraHtml: `<a href="/de/e-rechnung">E-Rechnung prüfen (XRechnung, ZUGFeRD)</a>`,
   console: {
     tabs: "Kostenlose Voice-Tools", tts: "Vorlesen", stt: "Sprache in Text", textLabel: "Text zum Vorlesen", playKeys: "<kbd>Strg</kbd> + <kbd>Enter</kbd> zum Abspielen",
     longHtml: (max, studio) => `Länger als ${max} Zeichen? <a href="${studio}/audiobook">Mach ein Hörbuch im Studio</a>.`, presets: "Beispieltext ausprobieren", voice: "Stimme",

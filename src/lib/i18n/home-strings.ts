@@ -82,6 +82,8 @@ export interface HomeStrings {
   final: { h2: string; h2Accent: string; sub: string; go: string; app: string };
   sticky: { tryFree: string; pro: (price: string) => string };
   footer: { blurb: string; tts: string; transcribe: string; studio: string; app: string; docs: string; pricing: string; agents: string };
+  /** Optional extra footer link for this language only (HTML), for example the German e-invoice section. */
+  footerExtraHtml?: string;
   console?: ConsoleLabels;
   ladder?: LadderStrings;
   /** Words that must never appear on this language's page (speed claims, AI labels, refund promises, accounts). */

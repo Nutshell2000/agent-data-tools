@@ -35,6 +35,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Request counts.</strong> Per tool and per day: how many calls were quoted, paid, free, failed or paid with credits. No inputs or outputs are stored in these counts.</li>
 <li><strong>Request processing logs.</strong> Our host, Cloudflare, records request logs (including IP address, user agent, URL and timing) for operations and debugging, kept for Cloudflare's standard retention period. Tool inputs passed in the URL appear in those logs.</li>
 <li><strong>Visit counts without cookies.</strong> Counted events, with no cookie, no identifier and no address in them: an event name and the page path (never its query string); the family of the site a visit came from (for example "google" or "direct", never the full referring address); the kind of software that asked (for example "browser", never the full user agent); the country Cloudflare reports for the request; and a campaign tag if the page address carried one. For AI crawlers that name themselves we count which crawler read which page per day, and for an app that connects over MCP the name of the software and the tag in its connection address. A page opened with a campaign tag passes that tag to its Stripe payment links, so a purchase can be attributed to the campaign; it names no person.</li>
+<li><strong>Your language choice.</strong> Only when you pick a language in the language bar or the language menu, your browser keeps one cookie, <code>gc_lang</code>, holding that choice and nothing else (for example "es"), for one year, so the front page opens in that language next time. It is a preference only: it carries no identifier, is not counted or logged by us, and is not used for tracking or advertising. You can delete it in your browser at any time; the site then shows English again, with a one-tap offer of your browser's language.</li>
 <li><strong>Uploaded PDF files.</strong> A PDF you send in a request body is read in memory to answer that one request and then dropped. It is not written to any store, cache or log, and it is not fetched again. A payment quote for an upload names the file by a one-way hash, never by its content.</li>
 <li><strong>Free calls.</strong> A one-way hash of your IP address and a count of free calls used. The IP address itself is not stored for this.</li>
 <li><strong>Crypto payments (x402).</strong> For each settled payment: the paying wallet address, amount, network, transaction reference and tool. Blockchain payments are public by nature.</li>
@@ -55,7 +56,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 </ul>
 <h2>What we do not do</h2>
 <ul>
-<li>We do not sell or share data with advertisers, and we do not track you across other sites. The pages set no cookies.</li>
+<li>We do not sell or share data with advertisers, and we do not track you across other sites. The pages set no tracking cookies: the only cookie is the language choice above, and only after you pick a language.</li>
 <li>We do not keep the content you ask a tool to read or compute, beyond the request logs above and what you save with the memory tools.</li>
 <li>Tools that read the web fetch the public URL you give them; that site sees a request from our servers.</li>
 </ul>
