@@ -577,8 +577,25 @@ for (const e of ENDPOINTS) {
   app.get(e.path, async (c) => c.json(pickFields(await TOOLS[e.path](c.env, (name) => (name === PDF_TRY_INPUT ? (pdfTryRequests.has(c.req.raw) ? "1" : undefined) : name === CALLER_IP_INPUT ? c.req.header("cf-connecting-ip") : name === FILE_REF_INPUT ? (e.path in FILE_INPUT_PATHS ? c.req.query(FILE_INPUT) : undefined) : name === NO_INPUT ? (Object.entries(c.req.query()).every(([k, v]) => CONTROL_PARAMS.has(k) || v.trim() === "") ? "1" : undefined) : c.req.query(name))), c.req.query("only"))));
 }
 
+/**
+ * Paused paths with a successor that does the same job answer a 308 to it, query kept (21 Nov 2026). Both model paths
+ * were sold until 20 Nov and stay on the Coinbase Bazaar for 30 days after their last settlement, so routers still
+ * probe them, and a router counts every non-402 error against the whole service (lib/tool-errors.ts). The redirect is
+ * not a silent swap: its body names the model that will answer, the successor's own 402 quote and answer name it again,
+ * and nothing is charged for a redirect. Paused paths without a successor keep the honest 503.
+ */
+const PAUSED_SUCCESSORS: Readonly<Record<string, { to: string; add?: Readonly<Record<string, string>>; note: string }>> = {
+  "/ai/model/qwen3-30b": { to: "/ai/chat-large", note: "Qwen3 30B was retired by Workers AI on 20 Nov 2026. /ai/chat-large answers with Llama 3.3 70B (default) or gpt-oss-120b." },
+  "/ai/model/deepseek-r1": { to: "/ai/chat-large", add: { model: "gpt-oss-120b" }, note: "DeepSeek R1 distill was retired by Workers AI on 20 Nov 2026. /ai/chat-large answers with gpt-oss-120b, a reasoning model." },
+};
 for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
-  app.all(path, c => c.json({ code: "TOOL_PAUSED", error: reason + " This request was not charged." }, 503));
+  const successor = Object.hasOwn(PAUSED_SUCCESSORS, path) ? PAUSED_SUCCESSORS[path] : undefined;
+  app.all(path, (c) => {
+    if (!successor) return c.json({ code: "TOOL_PAUSED", error: reason + " This request was not charged." }, 503);
+    const url = new URL(c.req.url);
+    for (const [name, value] of Object.entries(successor.add ?? {})) if (!url.searchParams.has(name)) url.searchParams.set(name, value);
+    return c.json({ code: "TOOL_MOVED", movedTo: successor.to, error: `${successor.note} This request was not charged.` }, 308, { Location: `${successor.to}${url.search}` });
+  });
 }
 
 for (const path of DEFERRED_PATHS) {

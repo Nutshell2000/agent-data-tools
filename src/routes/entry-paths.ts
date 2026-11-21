@@ -244,23 +244,23 @@ export const ENTRY_PATHS: Entry[] = [
   // the lowest price. Each door below leads with the buyer's words and runs a canonical tool at its live
   // price. Map to full report: reports/SMARTENING - reverse-engineered router wins - 20 Nov 2026.md.
   door("/full-website-audit", "Full website audit: WCAG, speed, SEO in one call",
-    "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers, SEO metadata and uptime, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice.",
+    "Full website audit in one call: WCAG 2.1 A/AA accessibility violations via axe-core, page speed, page weight, security headers and on-page SEO from one load in a real browser, with a scored verdict and the issues that matter. Use when an agent needs a complete audit of one public URL before launch or before paying for a site. Not legal advice.",
     ["full-website-audit", "website-audit", "wcag", "accessibility", "seo", "page-speed"], from(SITE_AUDIT, "/audit/website")),
 
   door("/website/audit", "Website audit: uptime, SEO, security in one call",
-    "Website audit of any public URL: uptime, DNS, security headers, SEO metadata, page speed and technology signals in one call. Use to check a site's basics before a launch, a purchase or an agent handoff. Delayed checks, no account, pay per call over x402.",
+    "Website audit of any public URL in one call: uptime and response time, the redirect chain, on-page SEO with a score, HTTP security headers with a grade, robots.txt, and the domain's DNS, email authentication and registration age. Server-side HTML only, no JavaScript. Use to check a site's basics before a launch, a purchase or an agent handoff. No account, pay per call over x402.",
     ["website-audit", "site-audit", "seo-audit", "security-headers", "uptime", "onpage"], from(PACKS, "/pack/website-audit")),
 
   door("/text-to-speech-generate", "Text to speech API: natural voices, MP3 audio",
-    "Text to speech API: convert text up to 2000 characters into natural MP3 audio with multiple voices and languages. Use when an agent needs spoken output for a notification, audiobook clip or voice response. No account, pay per call over x402.",
+    "Text to speech API: convert up to 300 characters of English or Spanish text into natural MP3 audio (base64) with Deepgram Aura-2 voices, 40 English and 10 Spanish. Use when an agent needs spoken output for a notification or a short voice response; for up to 2,000 characters use text_to_speech. No account, pay per call over x402.",
     ["text-to-speech", "tts-api", "tts", "speech-synthesis", "audio", "voice"], from(AI_TEXT, "/ai/speech")),
 
-  door("/news/sentiment", "News sentiment: headlines scored positive, negative, neutral",
-    "News sentiment for a company or topic: recent headlines with a sentiment score each. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402.",
+  door("/news/sentiment", "News sentiment: headlines scored positive or negative",
+    "News sentiment for a company or topic: recent headlines, each labelled positive or negative with a score. Use to gauge media coverage tone for a brand or subject before a decision. No account, pay per call over x402.",
     ["news-sentiment", "headline-sentiment", "media-sentiment", "brand-sentiment", "news", "sentiment"], from(PACKS_RESEARCH, "/pack/news-sentiment")),
 
-  door("/sentiment/analysis", "Sentiment analysis of any text: positive, negative, neutral",
-    "Sentiment analysis of any text or topic: returns a scored sentiment label (positive, negative, neutral), a numeric score, confidence and the key drivers. Use to gauge customer feedback, news, reviews or social chatter before a decision. One call, no API key.",
+  door("/sentiment/analysis", "Sentiment analysis, English text: positive or negative, scored",
+    "Sentiment analysis of English text: returns a positive or negative label with a confidence score for each, from a DistilBERT model fine-tuned on SST-2. Use to gauge customer feedback, reviews, support messages or social posts before a decision. One call, no API key.",
     ["sentiment-analysis", "text-sentiment", "sentiment", "nlp", "opinion", "ai"], from(AI_TEXT, "/ai/sentiment")),
 
   door("/web/extraction", "Web extraction: any page to clean Markdown and text",
@@ -272,12 +272,12 @@ export const ENTRY_PATHS: Entry[] = [
     ["web-scraping", "scrape-webpage", "web-extraction", "page-to-markdown", "crawler", "markdown"], from(RETRIEVAL, "/contents")),
 
   door("/image/generation", "Image generation: from a text prompt",
-    "Image generation from a text prompt: create an image with FLUX, returning the image URL and metadata. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402.",
+    "Image generation from a text prompt: create a 1024x1024 JPEG with FLUX.1 schnell, returned as base64 with its content type. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402.",
     ["image-generation", "text-to-image", "ai-image", "flux", "generate-image", "media"], CORE_IMAGE),
 
   door("/ip/geolocation", "IP geolocation lookup: city, region, country, coordinates",
-    "IP geolocation for any public IPv4 or IPv6 address: city, region, country, latitude and longitude, ASN and timezone from public GeoIP data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key.",
-    ["ip-geolocation", "ip-lookup", "geoip", "ip-location", "asn", "network"], from(GEO_IP, "/ip/geolocate")),
+    "IP geolocation for any public IPv4 or IPv6 address: city, region, country, continent and approximate latitude and longitude, with the address range the record covers, from DB-IP City Lite data. Use to locate a visitor, flag a surprising login or add regional context to an agent task. No API key.",
+    ["ip-geolocation", "ip-lookup", "geoip", "ip-location", "ip-to-city", "network"], from(GEO_IP, "/ip/geolocate")),
 
   // 1.306.0, 20 Nov 2026: four more Agent402 high-match gaps where we already sell the tool but our slug
   // did not match the buyer's phrase — market data (40,371 matches), dex pools (12,190), whale alert (5,932),
@@ -326,8 +326,8 @@ export const ENTRY_PATHS: Entry[] = [
     "Vet an x402 seller before you pay: decode its 402 terms (price, network, asset, payTo), score listing quality and check sanctions and domain evidence. Never signs. Use to audit a paid endpoint before sending funds.",
     ["vet-x402-seller", "x402-seller-audit", "check-before-paying", "x402", "payments", "security"], from(X402_CHECK, "/check/x402-seller")),
 
-  door("/verify-x402-payment", "Verify an x402 payment path: decode and score",
-    "Verify an x402 payment path before paying: decode the endpoint's 402 requirements and score its listing quality, with network, asset, payTo and timeout. Never signs. Use to confirm a paid endpoint is safe to call.",
+  door("/verify-x402-payment", "Verify x402 payment terms: decode a 402 before paying",
+    "Verify the payment terms an x402 endpoint asks for before paying: decode its 402 requirements (price, network, asset, payTo, timeout) and score its listing quality. It reads the endpoint's terms and never looks at a payment already made; for that use x402_receipt. Never signs. Use to confirm what a paid endpoint will charge, and to whom, before calling it.",
     ["verify-x402-payment", "x402-preflight", "payment-check", "check-before-paying", "x402", "security"], from(X402_CHECK, "/x402/check")),
 
   door("/keyword/research", "Keyword research: SEO keyword ideas for a seed",
@@ -390,7 +390,7 @@ export const ENTRY_PATHS: Entry[] = [
     ["exchange-rates", "currency-exchange-rates", "forex", "currency-conversion", "fx-rates", "finance"], CORE_FX),
 
   door("/ai/tts", "Text to speech API, TTS: natural voices, MP3 audio from text",
-    "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused with 400; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility.",
+    "Text to speech API: turn up to 300 characters of text into natural, human-sounding speech as an MP3 (base64) with Deepgram Aura-2 voices in English (40) or Spanish (10). fr, zh, ja and ko are retired with MeloTTS (Workers AI, 20 Nov 2026) and are refused uncharged; use en or es. Pick a voice by name or keep the default. Use for voice replies, narration, audio notes, IVR prompts and accessibility.",
     ["text-to-speech", "tts", "tts-api", "voice", "speech-synthesis", "audio"], from(AI_TEXT, "/ai/speech")),
 
   door("/news/search", "News search API: current news articles on any topic as JSON",
@@ -772,7 +772,7 @@ export const ENTRY_PATHS: Entry[] = [
   // all for "exa search", /ai/chat was #7 for "chat completions", /price/token #4 for "token price" and /contents
   // #15 for "web read". Each new URL gets a first crawl and inherits its canonical's price, inputs, output and
   // category; the canonical listings are untouched. Prices are unchanged.
-  door("/exa/search", "Exa search API, web search: results with contents",
+  door("/exa/search", "Exa-compatible search API: web results with contents",
     "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Use for an Exa search, a neural web search or a drop-in Exa-compatible search endpoint. No account or API key; failed calls are never charged.",
     ["exa-search", "exa-compatible-search", "web-search-api", "neural-search", "search-with-contents"], from(SEARCH, "/search")),
 

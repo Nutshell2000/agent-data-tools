@@ -3,6 +3,7 @@
 // Run before a release: node scripts/build-changelog.mjs [git ref, default origin/main]
 // The Worker has no git, so /changelog reads this snapshot; a release missing from it appears with the next run.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,9 @@ const ref = process.argv[2] || "origin/main";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const log = execFileSync("git", ["log", "--first-parent", ref, "--format=%cs%x09%s"], { cwd: root, encoding: "utf8" });
 const RELEASE = /^(\d+\.\d+\.\d+): (.+?)(?: \(#\d+\))?$/;
+// Names that must not reach a public page, held as salted SHA-256 hashes so this public file does not spell them.
+const PRIVATE_WORDS = new Set(["0816a9e41fea8b25f98a767bc50fc07f28b1d319ab29f3fc3cbd734640414390"]);
+const isPrivate = (word) => PRIVATE_WORDS.has(createHash("sha256").update(`adt-private-word:${word.toLowerCase()}`).digest("hex"));
 const seen = new Set();
 const entries = [];
 for (const line of log.split("\n")) {
@@ -19,7 +23,7 @@ for (const line of log.split("\n")) {
   if (!m || seen.has(m[1])) continue;
   seen.add(m[1]);
   // No personal names on a public page: early commit subjects name the owner.
-  const subjectText = m[2].replace(/\bPeter's\b/g, "the owner's").replace(/\bPeter\b/g, "the owner");
+  const subjectText = m[2].replace(/\b([A-Za-z]+)('s)?\b/g, (all, word, possessive) => (isPrivate(word) ? `the owner${possessive ?? ""}` : all));
   const text = subjectText.length > 240 ? `${subjectText.slice(0, 237).trimEnd()}…` : subjectText;
   entries.push({ version: m[1], date, text });
 }
