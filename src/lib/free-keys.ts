@@ -18,6 +18,7 @@ import { FREE_KEY_CALLS, hashCreditKey, newCreditKey, planLinks, topUpLinks, utc
 import { callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
 import { markStage } from "./funnel";
+import { switchedOff } from "./switches";
 
 type C = Context<{ Bindings: Env }>;
 
@@ -118,7 +119,7 @@ freeKeys.post("/keys/free", async (c) => {
   const answer = (status: 200 | 400 | 404 | 429 | 503, title: string, text: string) => html
     ? c.html(page(title, `<h1>${esc(title)}</h1><p>${esc(text)}</p>`), status)
     : c.json(status === 200 ? { sent: true, note: text } : { error: text }, status);
-  if (!freeKeysOn(c.env)) return answer(404, "Free keys are not offered right now", "Try a tool without a key, or buy credits at /credits.");
+  if (!freeKeysOn(c.env) || await switchedOff(c.env, "free-keys")) return answer(404, "Free keys are not offered right now", "Try a tool without a key, or buy credits at /credits.");
   const type = c.req.header("content-type") ?? "";
   const input = (type.includes("json")
     ? await c.req.json().catch(() => null) as { email?: unknown; updates?: unknown } | null
@@ -152,7 +153,7 @@ freeKeys.get("/keys/free/confirm", async (c) => {
   c.header("Referrer-Policy", "no-referrer");
   const html = prefersHtml(c.req.header("accept"), c.req.header("user-agent"));
   const fail = (status: 400 | 404 | 503, text: string) => html ? c.html(page("Free API key", `<h1>Not ready</h1><p>${esc(text)}</p>`), status) : c.json({ error: text }, status);
-  if (!freeKeysOn(c.env)) return fail(404, "Free keys are not offered right now.");
+  if (!freeKeysOn(c.env) || await switchedOff(c.env, "free-keys")) return fail(404, "Free keys are not offered right now.");
   const token = c.req.query("token") ?? "";
   if (!/^[A-Za-z0-9_-]{40,50}$/.test(token)) return fail(400, "This link is not complete. Open the link from the message again.");
   const kv = c.env.TRIALS!;

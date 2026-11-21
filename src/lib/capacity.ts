@@ -31,3 +31,6 @@ for (const p of ["/full-website-audit", "/image/generation", "/text-to-speech-ge
 // Voice studio (1.206.0, routes/voice-studio.ts): Aura-2 for every line or caption, paid only (16 Nov 2026: they were
 // missing here, so the free calls and the local smoke run would have run them).
 for (const p of ["/dialogue", "/text-to-speech/captions"]) CAPACITY_LIMITED.add(p);
+// 21 Nov 2026: the signed answers and the evidence bundle ($0.05) put this service's signature on a receipt, so a free
+// call handed out signed attestations; they were missing here and only began to answer in 1.323.0. Paid only.
+for (const p of ["/answers/page-evidence", "/answers/company-diligence", "/evidence/bundle"]) CAPACITY_LIMITED.add(p);

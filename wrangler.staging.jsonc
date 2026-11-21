@@ -29,16 +29,21 @@
   // (node scripts/analytics-queries.mjs prints the queries).
   "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "glyphcall_events_staging" }],
   "vars": {
-    // Free keys by e-mail, as in production, so a sign-up can be proven here first.
-    "FREE_KEYS": "on",
+    // Staging is a public address that takes faucet money, so anything it gives away or meters is real cost paid with
+    // nothing (safety audit, 21 Nov 2026). The free offers are therefore OFF here, and the metered upstreams get caps
+    // just large enough for a release's payment proofs and a few manual checks. To prove a free offer before a
+    // release, switch it to "on" for that one staging deploy and back again.
+    "FREE_KEYS": "off",
     "FREE_KEY_FROM": "keys@tools.funwords.eu",
-    // Free voice keys without e-mail (lib/voice-keys.ts, 16 Nov 2026). Anything but "on" switches a route off (404) and
-    // stops its keys at once. Worst case per UTC day if every limit is reached, from the model prices in that file:
-    // test keys about $3.50 (never above $6: 2,000 counted calls of at most $0.003), trial keys about $0.15.
-    "VOICE_TEST_KEYS": "on",
-    "VOICE_TEST_KEYS_PER_DAY": "100",
-    "CREDITS_TRIAL": "on",
-    "CREDITS_TRIAL_MINUTES": "200",
+    "VOICE_TEST_KEYS": "off",
+    "VOICE_TEST_KEYS_PER_DAY": "5",
+    "CREDITS_TRIAL": "off",
+    "CREDITS_TRIAL_MINUTES": "10",
+    "AI_DAILY_CAP": "40",
+    "BROWSER_DAILY_CAP": "5",
+    "SEARCH_DAILY_CAP": "10",
+    // Search engines are told to stay out of staging (/robots.txt answers Disallow: /).
+    "NOINDEX": "on",
     // Same recipient as production; on Sepolia it receives faucet USDC only.
     "PAY_TO": "0x2074c40346ae2a90e0e4a391bcee6f16bf5277f5",
     // Base Sepolia only: no mainnet network is offered here, so nothing real can ever be paid to staging.

@@ -1,5 +1,5 @@
 {
-  "version": "1.323.0",
+  "version": "1.324.0",
   "tools": [
     {
       "name": "extract",
@@ -1564,7 +1564,7 @@
     },
     {
       "name": "answers_page_evidence",
-      "description": "One call for one public URL: fetch the page as clean text, grade its HTTP security headers, and return a SHA-256 of the extracted text with a receipt naming the URL, the result hash and the payment terms, Ed25519-signed with our published key. The hash covers the text as read, not the page's raw bytes. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses. Example: url=https://example.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for one public URL: fetch the page as clean text, grade its HTTP security headers, and return a SHA-256 of the extracted text with a receipt naming the URL, the result hash and the payment terms, Ed25519-signed with our published key. The hash covers the text as read, not the page's raw bytes. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses. Example: url=https://example.com. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1588,7 +1588,7 @@
     },
     {
       "name": "answers_company_diligence",
-      "description": "One call for one company domain: site identity, tech stack, email provider and email security, hosting, DNS and registration age, plus a sanctions-list screen (OFAC, EU, UN, UK) of the domain's own name, the label before the first dot. No company register is read. Use when an agent must vet a counterparty's website before dealing with it: one answer with a signed receipt and per-section failures. Public sources only; no private data. Example: domain=stripe.com. Price $0.05/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "One call for one company domain: site identity, tech stack, email provider and email security, hosting, DNS and registration age, plus a sanctions-list screen (OFAC, EU, UN, UK) of the domain's own name, the label before the first dot. No company register is read. Use when an agent must vet a counterparty's website before dealing with it: one answer with a signed receipt and per-section failures. Public sources only; no private data. Example: domain=stripe.com. Price $0.05/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -12664,7 +12664,7 @@
     },
     {
       "name": "evidence_bundle",
-      "description": "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the price the same host and path advertise on the Coinbase Bazaar and whether it matched, plus explicit limits. Signed with our Ed25519 key and issued in our name, whoever the seller is. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Turn a settled x402 payment into a signed bundle: the on-chain receipt with canonical text and SHA-256, the price the same host and path advertise on the Coinbase Bazaar and whether it matched, plus explicit limits. Signed with our Ed25519 key and issued in our name, whoever the seller is. It does NOT prove what was delivered. Failed lookups return partial evidence with errors. Use before approving a payment or closing an agent's books. Example: hash=0x778c8c1b1fd1b320bf045eae0af7274e74a9e2e1f83c34ec96d9f825aea3b933. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
