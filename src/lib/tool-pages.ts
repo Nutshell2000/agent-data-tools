@@ -107,7 +107,7 @@ ${freeCalls && !cappedTry ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} fre
 ${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}
 <pre><code>${esc(shown)}</code></pre>
 <h2>From an AI agent (MCP)</h2>
-<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>${!freeEligible(e.path) ? ". It is outside the free calls (each call costs us an outside service), so it is paid from the first call" : `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free`}:</p>
+<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>${freeEligible(e.path) ? `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free` : ", paid from the first call"}:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
 ${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}
