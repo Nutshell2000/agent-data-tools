@@ -124,7 +124,15 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 // - a "Fair by design" block: the billing and privacy complaints people have about voice tools, answered as promises
 //   the code keeps (free retries, failed calls cost nothing, packs never expire, cancel from the portal, no account).
 // Still: no rival named, no speed claim, no AI label, every number computed.
-const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#ffffff;--vc-ok:#0b7a54;--vc-err:#b42318}
+const REDESIGN_CSS = `.show{margin:6px auto 34px;max-width:900px}.show-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 22px}.btn.big{padding:16px 28px;font-size:1.05rem}
+.vwall{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.vcard{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s;min-height:56px}
+.vcard:hover{border-color:#cfc9bf;transform:translateY(-2px);box-shadow:0 10px 24px -16px rgba(22,22,29,.35)}.vcard .av{flex:none;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff 0,hsla(var(--h1),90%,70%,.95) 22%,transparent 60%),radial-gradient(circle at 70% 75%,hsla(var(--h2),85%,55%,.95) 0,transparent 65%),conic-gradient(from 0deg,hsl(var(--h1),80%,60%),hsl(var(--h2),80%,55%),hsl(var(--h1),80%,60%));box-shadow:inset 0 -6px 12px rgba(22,22,29,.18),0 4px 12px -4px hsla(var(--h2),70%,45%,.55)}.vcard.on .av{animation:orb 2.4s linear infinite}@keyframes orb{to{filter:hue-rotate(360deg)}}
+.vcard .vn{display:flex;flex-direction:column;line-height:1.2;min-width:0}.vcard .vn small{color:var(--muted);font-size:.8rem}.vcard .vw{margin-left:auto;display:flex;gap:2px;align-items:center;height:18px}.vcard .vw i{width:3px;height:30%;border-radius:2px;background:#cfc9bf}
+.vcard.on{border-color:var(--c);box-shadow:0 0 0 3px rgba(15,118,110,.12)}.vcard.on .vw i{background:var(--c);animation:vb .9s ease-in-out infinite}.vcard.on .vw i:nth-child(2){animation-delay:-.2s}.vcard.on .vw i:nth-child(3){animation-delay:-.4s}.vcard.on .vw i:nth-child(4){animation-delay:-.6s}.vcard.on .vw i:nth-child(5){animation-delay:-.8s}
+@keyframes vb{0%,100%{height:25%}50%{height:100%}}@media (prefers-reduced-motion:reduce){.vcard.on .vw i{animation:none;height:70%}}
+.show-note{margin:12px 0 0;color:var(--dim);font-size:.92rem}.own{font-size:clamp(1.3rem,2.4vw,1.7rem);margin:0 0 14px;scroll-margin-top:80px}
+@media (max-width:720px){.vwall{grid-template-columns:repeat(2,1fr)}.show{margin-bottom:24px}.btn.big{width:100%}}
+.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#ffffff;--vc-ok:#0b7a54;--vc-err:#b42318}
 .hero .vc{box-shadow:0 30px 70px -30px rgba(22,22,29,.22),0 0 0 1px rgba(22,22,29,.03)}
 .annc{position:relative;z-index:21;background:linear-gradient(90deg,rgba(79,70,229,0.099),rgba(15,118,110,0.099));border-bottom:1px solid rgba(22,22,29,0.049);font-size:.9rem;text-align:center;padding:8px 16px;color:var(--fg)}
 .annc a{color:var(--fg);font-weight:650}.annc .short{display:none}.annc b{color:#ffffff;background:var(--grad);border-radius:999px;padding:1px 8px;margin-right:8px;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
@@ -150,6 +158,8 @@ const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc
 @media (max-width:860px){.trow{grid-template-columns:1fr;padding:20px}.trow:nth-child(even) .tcopy{order:0}.fair{grid-template-columns:1fr}.mock{min-height:0}}
 @media (max-width:720px){main{display:flex;flex-direction:column}main>*{order:2}main>.hero{order:0}main>#pro,main>#pricing{order:1}.promise,.prow,.annc,.trow .mock,.tcopy p,.tcopy .kicker{display:none}.tour{gap:10px}.trow{padding:16px 18px;border-radius:18px}.tcopy h3{font-size:1.15rem;margin:4px 0 10px}.tcopy .free{margin-left:0}.tcopy .btn{padding:10px 16px;font-size:.92rem}#make .sub{margin-bottom:18px}.annc .short{display:inline}.annc{font-size:.82rem;padding:6px 12px}.hero .pill{display:none}.prow{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;margin-bottom:10px}.prow::-webkit-scrollbar{display:none}.prow a{flex:none;padding:7px 12px}}`;
 
+// Plays the ready-made voice samples (static files on the voice site, no model download): the first sound is instant.
+const SHOWCASE_SCRIPT = `<script data-gc-showcase>(()=>{let a=null,cur=null;const stop=()=>{if(a){a.pause();a=null}if(cur)cur.classList.remove("on");cur=null};document.querySelectorAll("[data-sample]").forEach(b=>b.addEventListener("click",()=>{const same=cur===b;stop();if(same)return;a=new Audio(b.dataset.sample);cur=b;b.classList.add("on");a.onended=stop;a.onerror=stop;a.play().catch(stop)}))})();</script>`;
 const OPEN_FOLDED_TARGET = `<script data-gc-fold>(()=>{const open=()=>{const t=location.hash&&document.getElementById(decodeURIComponent(location.hash.slice(1)));const d=t&&t.closest&&t.closest("details.devmore");if(d&&!d.open){d.open=true;t.scrollIntoView();}};addEventListener("hashchange",open);open();})();</script>`;
 
 /**
@@ -289,9 +299,15 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <div class="nav-cta"><a class="btn sm" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="nav_pro">Get Pro: ${proPrice}</a><a class="btn sm primary" href="#try">Try it free</a><details class="menu"><summary aria-label="Menu">Menu</summary><div>${navLinks}<a href="/app">Get the app</a><a href="/docs">Docs</a>${opts.freeKey ? `<a href="/keys/free">Get a free key</a>` : ""}<a href="/credits">Get an API key</a></div></details></div></div></header>
 <main>
 <section class="hero" id="try"><div class="glow"></div><div class="grid-bg"></div><div class="wrap">
-<p class="pill"><i></i>Free in your browser &middot; no account &middot; nothing uploaded</p>
+<p class="pill"><i></i>Free in your browser &middot; Pro from ${proPrice} a month &middot; no account</p>
 <h1>Lifelike voices for <span class="gt">anything you write.</span></h1>
-<p class="lede">Type, pick a voice, press Play. Download it free. No sign-up, nothing to install.</p>
+<p class="lede">Studio-quality speech and transcripts, free right here. Pro from ${proPrice} a month when you want more.</p>
+<div class="show" aria-label="Hear our voices">
+<div class="show-cta"><button type="button" class="btn primary big" data-sample="${esc(VOICE_SITE)}/samples/bf_emma.mp3" data-ev="hear_now">&#9654;&nbsp; Hear it now</button><a class="btn big" href="#make-own" data-ev="hero_try">Make your own, free</a></div>
+<div class="vwall">${CONSOLE_VOICES.slice(0, 8).map((v, i) => `<button type="button" class="vcard" data-ev="sample_play" data-sample="${esc(VOICE_SITE)}/samples/${esc(v.id)}.mp3" aria-label="Play ${esc(v.name)}, ${esc(v.accent)} ${esc(v.gender)}"><span class="av" style="--h1:${[262, 190, 330, 25, 290, 160, 210, 45][i]};--h2:${[190, 262, 25, 330, 160, 290, 45, 210][i]}" aria-hidden="true"></span><span class="vn"><b>${esc(v.name)}</b><small>${esc(v.accent)} ${esc(v.gender)}</small></span><span class="vw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>`).join("")}</div>
+<p class="show-note">Tap a voice to hear it. Every voice here is free to use.</p>
+</div>
+<h2 class="own" id="make-own">Make your own</h2>
 <nav class="prow" aria-label="What you can make">${prow.map(([ic, label, href], i) => `<a href="${esc(href)}"${i === 0 ? ' aria-current="page"' : ""}>${icon(ic)}${esc(label)}</a>`).join("")}</nav>
 <div class="stage">${voiceConsole({ id: "hero-vc", voiceSite: VOICE_SITE, upsellTts: `Want it inside your own app? See <a href="#developers">${esc(brand)} for developers</a>.`, upsellStt: `Long recording? <a href="/transcribe-pro">Transcribe Pro</a> does up to an hour for you.` })}
 <ul class="promise"><li>${icon("download")}Free MP3 and WAV downloads</li><li>${icon("redo")}Redo one sentence, keep the rest</li><li>${icon("check")}Unlimited previews and retries</li></ul>
@@ -370,7 +386,7 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 </div></div></section>
 
 <section class="final"><h2>Give it a try. <span class="gt">Type, play, download.</span></h2><p>Free, no account, and nothing to install.</p><div class="ctas"><a class="btn primary" href="#try">Try it free, no account</a><a class="btn" href="/app">Get the app</a></div></section>
-</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}
+</main><div class="stickbar"><a class="btn primary" href="#try" data-ev="sticky_try">Try it free</a><a class="btn" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}" data-ev="sticky_pro">Get Pro: ${proPrice}/month</a></div>${voiceConsoleScript()}${cardReady ? studioVoicesScript() : ""}${OPEN_FOLDED_TARGET}${SHOWCASE_SCRIPT}
 <footer><div class="wrap"><div class="cols">
 <div><div class="home" style="margin-bottom:10px">${LOGO.replace(/gc-logo/g, "gc-logo-f")}<strong style="color:var(--fg)">${esc(brand)}</strong></div><p>Free text to speech and transcription in your browser, and simple APIs for voice, documents and search.</p><p><a href="${VOICE_SITE}/text-to-speech">Text to speech</a> · <a href="${VOICE_SITE}/transcribe">Transcribe</a> · <a href="${STUDIO_SITE}/audiobook">Audiobook studio</a> · <a href="/app">App</a></p></div>
 ${SHELVES.map((s) => `<div><h3>${esc(s.kicker)} APIs</h3><ul>${PRODUCTS.filter((p) => shelfOf(p) === s).map((p) => `<li><a href="/${esc(p.slug)}">${esc(p.name.replace(/ API( for .*)?$/, ""))}</a></li>`).join("")}</ul></div>`).join("")}
