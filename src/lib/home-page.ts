@@ -276,8 +276,8 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(planLabel(o, S))}<
   };
 
   // The product row above the console: the same jobs as the tour below, one tap each.
-  const prowIcons = ["speaker", "text", "book", "captions", "book", "podcast", "phone"];
-  const prowHrefs = [ttsHref, sttHref, `${VOICE_SITE}/text-reader`, `${VOICE_SITE}${native ? native.srt : "/srt-generator"}`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
+  const prowIcons = ["speaker", "text", "book", "captions", "speaker", "book", "podcast", "phone"];
+  const prowHrefs = [ttsHref, sttHref, `${VOICE_SITE}/text-reader`, `${VOICE_SITE}${native ? native.srt : "/srt-generator"}`, `${VOICE_SITE}/remove-background-noise`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
   const here = native ? 1 : 0;
   const v = (i: number) => esc(CONSOLE_VOICES[i % voices]?.name ?? "");
   const waveBars = Array.from({ length: 40 }, (_, i) => `<i style="height:${18 + ((i * 53) % 78)}%"></i>`).join("");
@@ -287,11 +287,12 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(planLabel(o, S))}<
   const mocks = [
     `<div class="mock" aria-hidden="true"><div class="mwave">${waveBars}</div><div class="row"><span class="t">01</span>${M.voice[0]}</div><div class="row on"><span class="t">02</span>${M.voice[1]}<span class="tag">${M.redo}</span></div><div class="row"><span class="t">03</span>${M.voice[2]}</div></div>`,
     `<div class="mock" aria-hidden="true"><div class="row"><span class="t">00:00:01</span>${M.transcript[0]}</div><div class="row on"><span class="t">00:00:04</span>${M.transcript[1]}</div><div class="row"><span class="t">00:00:09</span>${M.transcript[2]}</div><div class="row"><span class="t">SRT</span>${M.subtitles}<span class="tag">${M.download}</span></div></div>`,
+    `<div class="mock" aria-hidden="true"><div class="row"><span class="t">${M.before}</span><div class="mwave">${waveBars}</div></div><div class="row on"><span class="t">${M.after}</span>${M.clean}<span class="tag">${M.download}</span></div></div>`,
     `<div class="mock" aria-hidden="true"><div class="row"><span class="t">${M.chapter} 1</span>${M.chapters[0]}<div class="bar"><i style="width:100%"></i></div></div><div class="row on"><span class="t">${M.chapter} 2</span>${M.chapters[1]}<div class="bar"><i style="width:64%"></i></div></div><div class="row"><span class="t">${M.chapter} 3</span>${M.chapters[2]}<div class="bar"><i style="width:0"></i></div></div><div class="row"><span class="t">${M.voiceTag}</span>${v(2)}<span class="tag">${M.narrator}</span></div></div>`,
     `<div class="mock" aria-hidden="true"><div class="bub"><small>${v(0)}</small>${M.dialogue[0]}</div><div class="bub b"><small>${v(3)}</small>${M.dialogue[1]}</div><div class="bub"><small>${v(0)}</small>${M.dialogue[2]}</div></div>`,
     `<div class="mock" aria-hidden="true"><div class="row on"><span class="t">${icon("phone")}</span>${esc(brand)} Voice<span class="tag">${M.app[0]}</span></div><div class="row"><span class="t">${icon("check")}</span>${M.app[1]}</div><div class="row"><span class="t">${icon("lock")}</span>${M.app[2]}</div><div class="row"><span class="t">${icon("download")}</span>${M.app[3]}</div></div>`,
   ];
-  const tourHrefs = [ttsHref, `${VOICE_SITE}${native ? native.stt : "/transcribe"}`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
+  const tourHrefs = [ttsHref, `${VOICE_SITE}${native ? native.stt : "/transcribe"}`, `${VOICE_SITE}/remove-background-noise`, `${STUDIO_SITE}/audiobook`, `${STUDIO_SITE}/dialogue`, "/app"];
   // Fair by design: the complaints people have about voice tools, answered as promises this service keeps.
   const fairIcons = ["user", "redo", "download", "coin", "clock", "exit"];
 

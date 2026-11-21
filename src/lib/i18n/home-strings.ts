@@ -50,12 +50,12 @@ export interface HomeStrings {
   devPricing: { h3: string; p: string; perMonth: string; best: string; oneKey: string; start: (price: string) => string; packsLead: string; table: string; plan: string;
     footHtml: (portalUrl: string) => string; fallback: string; monthLabel: (price: string) => string; onceLabel: (price: string) => string };
   faq: (f: HomeFacts, languages: string) => readonly Pair[];
-  prow: readonly [string, string, string, string, string, string, string];
+  prow: readonly [string, string, string, string, string, string, string, string];
   prowLabel: string;
-  tour: readonly [Tour, Tour, Tour, Tour, Tour];
+  tour: readonly [Tour, Tour, Tour, Tour, Tour, Tour];
   /** HTML (entities allowed). */
   mocks: { voice: readonly [string, string, string]; redo: string; transcript: readonly [string, string, string]; subtitles: string; download: string;
-    chapters: readonly [string, string, string]; chapter: string; voiceTag: string; narrator: string; dialogue: readonly [string, string, string]; app: readonly [string, string, string, string] };
+    before: string; after: string; clean: string; chapters: readonly [string, string, string]; chapter: string; voiceTag: string; narrator: string; dialogue: readonly [string, string, string]; app: readonly [string, string, string, string] };
   fair: readonly Pair[];
   nav: { tts: string; transcribe: string; audiobooks: string; pro: string; pricing: string; guides: string; developers: string };
   menu: { label: string; app: string; docs: string; freeKey: string; apiKey: string };
@@ -122,11 +122,12 @@ export const EN: HomeStrings = {
     ["What happens when an API call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
     ["Can I cancel a plan?", `Any time, from the plan portal, with the e-mail address you paid with. Hours you don't use carry over, and one-off packs never expire.`],
   ],
-  prow: ["Text to speech", "Speech to text", "Read aloud", "Subtitles", "Audiobooks", "Podcasts", "App"],
+  prow: ["Text to speech", "Speech to text", "Read aloud", "Subtitles", "Clean audio", "Audiobooks", "Podcasts", "App"],
   prowLabel: "What you can make",
   tour: [
     ["Voiceovers", "Make a voiceover: type it, hear it, download it.", "Type your script and pick a voice. Not happy with one line? Redo just that sentence; it is spliced into the same download.", "Make a voiceover"],
     ["Transcripts and subtitles", "Turn a recording into text and subtitles.", "Drop a recording and get the text back, plus subtitle files for YouTube and most video editors. {languages}", "Transcribe a file"],
+    ["Remove background noise", "Clean up voice recordings. Nothing is uploaded.", "Hiss, hum, fans and traffic come out; voices stay clear. It works on your own device, so your recording never leaves it.", "Clean a recording"],
     ["Audiobooks", "Turn a book or PDF into an audiobook.", "Open a PDF, EPUB or Word file in the studio, choose a narrator and get one audio file per chapter.", "Open the audiobook studio"],
     ["Podcasts and dialogue", "Make a podcast with a voice for each speaker.", "Write who says what, and every person gets their own voice in one audio file. Add pauses where you want them.", "Make a podcast"],
     ["The app", "Use it on your phone or computer, even offline.", "Install {brand} Voice from this site on Windows, Mac, Linux, Android or iPhone. It keeps working without a connection.", "Get the {brand} app"],
@@ -134,6 +135,7 @@ export const EN: HomeStrings = {
   mocks: {
     voice: ["The harbour woke slowly.", "Gulls called above the empty quay.", "The first boat slipped out."], redo: "Redo",
     transcript: ["Welcome back to the show.", "Today we talk about keeping it simple.", "Let&rsquo;s start with the first question."], subtitles: "Subtitles ready", download: "Download",
+    before: "Before", after: "After", clean: "Clear voice, less noise",
     chapters: ["The Harbour", "The Storm", "Home Again"], chapter: "Ch", voiceTag: "Voice", narrator: "Narrator",
     dialogue: ["So what did you think of the ending?", "Honestly? I did not see it coming.", "Neither did I. Let&rsquo;s talk about it."],
     app: ["Install", "Works offline after the first use", "Your text and recordings stay on the device", "MP3, WAV and subtitle downloads"],

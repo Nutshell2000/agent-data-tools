@@ -33,11 +33,12 @@ export const FR: HomeStrings = {
     ["Que se passe-t-il si un appel à l'API échoue ?", "Vous ne payez rien. Une mauvaise saisie, une page illisible ou une source externe en panne sont gratuites ; seules les réponses réussies utilisent des crédits."],
     ["Puis-je résilier une offre ?", "À tout moment, depuis le portail des offres, avec l'e-mail utilisé pour payer. Les heures non utilisées sont reportées et les packs uniques n'expirent jamais."],
   ],
-  prow: ["Synthèse vocale", "Voix en texte", "Lecture à voix haute", "Sous-titres", "Livres audio", "Podcasts", "Appli"],
+  prow: ["Synthèse vocale", "Voix en texte", "Lecture à voix haute", "Sous-titres", "Nettoyer l'audio", "Livres audio", "Podcasts", "Appli"],
   prowLabel: "Ce que vous pouvez faire",
   tour: [
     ["Voix off", "Créez une voix off : écrivez, écoutez, téléchargez.", "Écrivez votre texte et choisissez une voix. Une ligne ne vous plaît pas ? Refaites seulement cette phrase ; elle est insérée dans le même fichier.", "Créer une voix off"],
     ["Transcriptions et sous-titres", "Transformez un enregistrement en texte et sous-titres.", "Déposez un enregistrement et récupérez le texte, avec des fichiers de sous-titres pour YouTube et la plupart des logiciels de montage. {languages}", "Transcrire un fichier"],
+    ["Supprimer le bruit de fond", "Nettoyez vos enregistrements de voix. Rien n'est envoyé.", "Souffle, bourdonnement, ventilateurs et circulation disparaissent ; les voix restent nettes. Tout se passe sur votre appareil, votre enregistrement ne le quitte jamais.", "Nettoyer un enregistrement"],
     ["Livres audio", "Transformez un livre ou un PDF en livre audio.", "Ouvrez un PDF, un EPUB ou un fichier Word dans le studio, choisissez un narrateur et obtenez un fichier audio par chapitre.", "Ouvrir le studio de livres audio"],
     ["Podcasts et dialogues", "Créez un podcast avec une voix par personne.", "Écrivez qui dit quoi, et chaque personne a sa propre voix dans un seul fichier audio. Ajoutez des pauses où vous voulez.", "Créer un podcast"],
     ["L'appli", "Sur téléphone ou ordinateur, même hors ligne.", "Installez {brand} Voice depuis ce site sur Windows, Mac, Linux, Android ou iPhone. Elle fonctionne même sans connexion.", "Installer l'appli {brand}"],
@@ -45,6 +46,7 @@ export const FR: HomeStrings = {
   mocks: {
     voice: ["Le port s'éveillait lentement.", "Les mouettes criaient au-dessus du quai vide.", "Le premier bateau a pris la mer."], redo: "Refaire",
     transcript: ["Bienvenue dans l'émission.", "Aujourd'hui, on parle de faire simple.", "Commençons par la première question."], subtitles: "Sous-titres prêts", download: "Télécharger",
+    before: "Avant", after: "Après", clean: "Voix nette, moins de bruit",
     chapters: ["Le port", "La tempête", "Le retour"], chapter: "Ch.", voiceTag: "Voix", narrator: "Narrateur",
     dialogue: ["Alors, la fin, tu en as pensé quoi ?", "Franchement ? Je ne l'ai pas vue venir.", "Moi non plus. Parlons-en."],
     app: ["Installer", "Fonctionne hors ligne après la première utilisation", "Votre texte et vos enregistrements restent sur l'appareil", "Téléchargements MP3, WAV et sous-titres"],

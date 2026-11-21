@@ -35,11 +35,12 @@ export const DE: HomeStrings = {
     ["Was passiert, wenn ein API-Aufruf fehlschlägt?", "Du zahlst nichts. Falsche Eingaben, eine Seite, die sich nicht lesen lässt, oder eine ausgefallene externe Quelle sind kostenlos; nur Antworten, die klappen, verbrauchen Guthaben."],
     ["Kann ich einen Plan kündigen?", "Jederzeit, im Plan-Portal mit der E-Mail-Adresse, mit der du bezahlt hast. Nicht genutzte Stunden bleiben dir, und einmalige Pakete verfallen nie."],
   ],
-  prow: ["Vorlesen", "Sprache in Text", "Text vorlesen", "Untertitel", "Hörbücher", "Podcasts", "App"],
+  prow: ["Vorlesen", "Sprache in Text", "Text vorlesen", "Untertitel", "Audio säubern", "Hörbücher", "Podcasts", "App"],
   prowLabel: "Was du machen kannst",
   tour: [
     ["Sprachaufnahmen", "Sprachaufnahme: tippen, anhören, herunterladen.", "Schreib dein Skript und wähl eine Stimme. Gefällt dir eine Zeile nicht? Mach nur diesen Satz neu; er landet in derselben Datei. Die Stimmen sprechen Englisch, Spanisch, Französisch, Italienisch, Portugiesisch und Hindi.", "Sprachaufnahme erstellen"],
     ["Transkripte und Untertitel", "Mach aus einer Aufnahme Text und Untertitel.", "Zieh eine Aufnahme hierher und erhalte den Text, dazu Untertitel-Dateien für YouTube und die meisten Videoprogramme. {languages}", "Datei transkribieren"],
+    ["Hintergrundgeräusche entfernen", "Sprachaufnahmen säubern. Nichts wird hochgeladen.", "Rauschen, Brummen, Lüfter und Verkehr verschwinden; Stimmen bleiben klar. Es läuft auf deinem eigenen Gerät, deine Aufnahme verlässt es also nie.", "Aufnahme säubern"],
     ["Hörbücher", "Mach aus einem Buch oder PDF ein Hörbuch.", "Öffne ein PDF, EPUB oder Word-Dokument im Studio, wähl einen Sprecher und erhalte eine Audiodatei pro Kapitel.", "Hörbuch-Studio öffnen"],
     ["Podcasts und Dialoge", "Ein Podcast mit einer Stimme für jede Person.", "Schreib, wer was sagt, und jede Person bekommt ihre eigene Stimme in einer Audiodatei. Pausen setzt du, wo du willst.", "Podcast erstellen"],
     ["Die App", "Auf Handy oder Computer, auch offline.", "Installiere {brand} Voice von dieser Seite auf Windows, Mac, Linux, Android oder iPhone. Sie funktioniert auch ohne Verbindung.", "{brand}-App holen"],
@@ -47,6 +48,7 @@ export const DE: HomeStrings = {
   mocks: {
     voice: ["The harbour woke slowly.", "Gulls called above the empty quay.", "The first boat slipped out."], redo: "Neu",
     transcript: ["Willkommen zurück in der Sendung.", "Heute geht es darum, es einfach zu halten.", "Fangen wir mit der ersten Frage an."], subtitles: "Untertitel fertig", download: "Herunterladen",
+    before: "Vorher", after: "Nachher", clean: "Klare Stimme, weniger Lärm",
     chapters: ["Der Hafen", "Der Sturm", "Wieder zu Hause"], chapter: "Kap.", voiceTag: "Stimme", narrator: "Sprecher",
     dialogue: ["Wie fandest du das Ende?", "Ehrlich? Damit hab ich nicht gerechnet.", "Ich auch nicht. Lass uns drüber reden."],
     app: ["Installieren", "Funktioniert nach dem ersten Start offline", "Text und Aufnahmen bleiben auf dem Gerät", "Download als MP3, WAV und Untertitel"],

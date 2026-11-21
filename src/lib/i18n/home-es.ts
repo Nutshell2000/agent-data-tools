@@ -33,11 +33,12 @@ export const ES: HomeStrings = {
     ["¿Qué pasa si una llamada a la API falla?", "No pagas nada. Una entrada incorrecta, una página que no se puede leer o una fuente externa caída son gratis; solo cuentan las respuestas que salen bien."],
     ["¿Puedo cancelar un plan?", "Cuando quieras, desde el portal de planes, con el correo con el que pagaste. Las horas que no uses se guardan y los packs únicos no caducan."],
   ],
-  prow: ["Texto a voz", "Voz a texto", "Leer en voz alta", "Subtítulos", "Audiolibros", "Pódcasts", "App"],
+  prow: ["Texto a voz", "Voz a texto", "Leer en voz alta", "Subtítulos", "Limpiar audio", "Audiolibros", "Pódcasts", "App"],
   prowLabel: "Qué puedes hacer",
   tour: [
     ["Locuciones", "Crea una locución: escríbela, escúchala, descárgala.", "Escribe tu guion y elige una voz. ¿No te gusta una línea? Rehaz solo esa frase; se une a la misma descarga.", "Crear una locución"],
     ["Transcripciones y subtítulos", "Convierte una grabación en texto y subtítulos.", "Suelta una grabación y recibe el texto, además de archivos de subtítulos para YouTube y la mayoría de editores de vídeo. {languages}", "Transcribir un archivo"],
+    ["Quitar el ruido de fondo", "Limpia grabaciones de voz. No se sube nada.", "Siseos, zumbidos, ventiladores y tráfico desaparecen; las voces quedan claras. Funciona en tu propio dispositivo, así que tu grabación nunca sale de él.", "Limpiar una grabación"],
     ["Audiolibros", "Convierte un libro o PDF en audiolibro.", "Abre un PDF, EPUB o Word en el estudio, elige un narrador y recibe un archivo de audio por capítulo.", "Abrir el estudio de audiolibros"],
     ["Pódcasts y diálogos", "Crea un pódcast con una voz para cada persona.", "Escribe quién dice qué y cada persona tendrá su propia voz en un solo archivo de audio. Añade pausas donde quieras.", "Crear un pódcast"],
     ["La app", "Úsalo en tu móvil u ordenador, incluso sin conexión.", "Instala {brand} Voice desde esta web en Windows, Mac, Linux, Android o iPhone. Sigue funcionando sin conexión.", "Descargar la app de {brand}"],
@@ -45,6 +46,7 @@ export const ES: HomeStrings = {
   mocks: {
     voice: ["El puerto despertó despacio.", "Las gaviotas sobrevolaban el muelle vacío.", "El primer barco salió del puerto."], redo: "Rehacer",
     transcript: ["Bienvenidos de nuevo al programa.", "Hoy hablamos de cómo hacerlo simple.", "Empecemos por la primera pregunta."], subtitles: "Subtítulos listos", download: "Descargar",
+    before: "Antes", after: "Después", clean: "Voz clara, menos ruido",
     chapters: ["El puerto", "La tormenta", "De vuelta a casa"], chapter: "Cap.", voiceTag: "Voz", narrator: "Narrador",
     dialogue: ["¿Qué te pareció el final?", "¿Sinceramente? No me lo esperaba.", "Yo tampoco. Hablemos de ello."],
     app: ["Instalar", "Funciona sin conexión después del primer uso", "Tu texto y tus grabaciones se quedan en el dispositivo", "Descargas en MP3, WAV y subtítulos"],
