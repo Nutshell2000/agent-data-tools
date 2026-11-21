@@ -51,7 +51,7 @@ test("the front page leads with the products and their plans, under the brand", 
   // 21 Nov 2026 offer ladder: Free, one job paid once, the monthly plan; the larger plan is a line under the cards.
   for (const plan of ["Glyphcall Free", "One job", "Transcribe Pro"]) assert.ok(prices.includes(`<h3>${plan}</h3>`), `${plan} is a plan card`);
   assert.ok(!prices.includes("<h3>Transcribe Pro Plus</h3>"), "the larger plan is no longer a card of its own");
-  assert.match(prices, /data-ev="pack_click">Pay by card: \$1 once</, "the one-job card buys the $1 pack by card");
+  assert.match(prices, /data-ev="pack_click">Get \d+ hours: \$1 once</, "the one-job button buys the $1 pack");
   assert.match(prices, /Building an app\?[\s\S]*?\$19 a month for developers/, "the developer plan is offered as a small link under the cards");
   assert.match(prices, /About \d+ hours<\/b> of transcription a month/, "the plan says what it buys in hours");
   assert.match(prices, /Compare Free and Transcribe Pro/, "Free and Pro side by side");
