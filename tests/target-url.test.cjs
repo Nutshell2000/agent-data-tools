@@ -31,6 +31,12 @@ test('nothing changes when the target has no query, is encoded, or nothing unkno
   assert.equal(await run('url=ftp://x/y?a=1&b=2'), 'ftp://x/y?a=1', 'not an http target: left for the tool to refuse');
 });
 
+test('a tool path written another way has one plain form; a plain or impossible path has none', async () => {
+  const { plainToolPath } = await load();
+  for (const [sent, plain] of [['/btc-fees/', '/btc-fees'], ['/BTC-FEES', '/btc-fees'], ['//weather', '/weather'], ['/weather.json', '/weather'], ['/Pack//URL-Safety/', '/pack/url-safety'], ['/weather///', '/weather']]) assert.equal(plainToolPath(sent), plain, sent);
+  for (const sent of ['/btc-fees', '/', '//', '/weather%3Fcity', '/a b', '/' + 'x'.repeat(250) + '/']) assert.equal(plainToolPath(sent), undefined, sent);
+});
+
 test('the URL-safety pack and its entry path read the URL exactly as sent', () => {
   const source = readFileSync('src/index.ts', 'utf8');
   const set = source.match(/const TARGET_URL_AS_SENT: ReadonlySet<string> = new Set\(\[([^\]]+)\]\)/)[1];

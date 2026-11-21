@@ -355,6 +355,9 @@ test('a v2 payment whose accepted terms are ours in substance but not in spellin
  const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
  const q=await mf.dispatchFetch(url);assert.equal(q.status,402);await q.arrayBuffer();
  const ours=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
+ // 1.325.0: a tool address with a trailing slash, capitals or a doubled slash is the tool, not a 404; other paths are untouched.
+ for(const p of ['/extract/','/EXTRACT','//extract','/extract.json']){const r=await mf.dispatchFetch('https://api.test'+p+'?url=https%3A%2F%2Fpublic.example%2Farticle');assert.equal(r.status,402,p);assert.ok(r.headers.get('PAYMENT-REQUIRED'),p);await r.arrayBuffer();}
+ {const r=await mf.dispatchFetch('https://api.test/no-such-tool/',{headers:{accept:'application/json'}});assert.equal(r.status,404);await r.arrayBuffer();}
  const send=(accepted,nonce)=>mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':Buffer.from(JSON.stringify(payload(accepted,nonce))).toString('base64')}});
  // Lower-case addresses, another timeout, a number for the amount and two v1-style fields: the same terms.
  const loose={...ours,payTo:ours.payTo.toLowerCase(),asset:ours.asset.toLowerCase(),amount:Number(ours.amount),maxTimeoutSeconds:60,resource:url,description:'page text'};

@@ -46,7 +46,7 @@ import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { alignAccepted, differsNote } from "./lib/accepted-terms";
 import { parseBody, unwrapBody } from "./lib/post-body";
-import { rejoinedTargetUrl } from "./lib/target-url";
+import { plainToolPath, rejoinedTargetUrl } from "./lib/target-url";
 /** Tools whose `url` input is used exactly as sent: the URL-safety pack and its entry path are never changed. */
 const TARGET_URL_AS_SENT: ReadonlySet<string> = new Set(["/pack/url-safety", "/url/safety-check"]);
 import { callerFamily } from "./lib/caller";
@@ -126,6 +126,18 @@ const DEFERRED_PATHS = [
   "/pair-analyzer",
   "/wallet-history",
 ] as const;
+
+// A tool address written another way (21 Nov 2026): "/btc-fees/", "/BTC-FEES", "//weather" and "/weather.json" answered
+// 404, which a router counts as a failed endpoint and a client as a dead link. When such a path is not a route of its
+// own and its plain form is a tool, the request is answered as that tool (same method, headers, query and body). No
+// redirect: a client that carries a payment may not resend it after one.
+app.use(async (c, next) => {
+  const plain = PAID_PATHS.has(c.req.path) ? undefined : plainToolPath(c.req.path);
+  if (!plain || !PAID_PATHS.has(plain)) return next();
+  const url = new URL(c.req.url);
+  url.pathname = plain;
+  return app.fetch(new Request(url.href, c.req.raw), c.env, c.executionCtx);
+});
 
 app.use(
   cors({

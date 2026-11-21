@@ -9,7 +9,17 @@
 // service. Those are put back on the target in the order they were sent. A target without a query is never changed:
 // an unknown input next to it is more likely an option meant for us.
 
-const NAME = /^[A-Za-z0-9_.~\-[\]]{1,64}$/;
+/**
+ * A request path in its plain form: lower case, single slashes, no trailing slash, no ".json" ending. Undefined when the
+ * path is already plain or cannot be a tool path. The caller checks that the result is a tool before using it.
+ */
+export function plainToolPath(path: string): string | undefined {
+  if (path.length > 200 || !/^\/[A-Za-z0-9/._-]*$/.test(path)) return undefined;
+  const plain = path.toLowerCase().replace(/\/{2,}/g, "/").replace(/\.json$/, "").replace(/\/+$/, "") || "/";
+  return plain !== path && plain !== "/" ? plain : undefined;
+}
+
+const NAME =/^[A-Za-z0-9_.~\-[\]]{1,64}$/;
 
 /**
  * The `url` input with the rest of its query put back, or the value as sent. `ours(name)` is true for every query name
