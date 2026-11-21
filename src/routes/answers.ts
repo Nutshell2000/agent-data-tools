@@ -5,7 +5,7 @@
 import { entry, need, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { call, runSections } from "./packs";
-import { signPayload } from "./payee";
+import { KEYS_PATH, signPayload } from "./payee";
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
 const b64 = (b: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(b)));
@@ -24,10 +24,19 @@ async function receipt(env: Env, kind: string, subject: string, result: unknown)
 
 export const ANSWERS: Entry[] = [
   entry("/answers/page-evidence", "Page evidence pack: read, headers and signed hash",
-    "One call for one public URL: fetch the page as clean text, read its HTTPS/security headers, and return a SHA-256 of the text with an Ed25519-signed receipt naming the URL, the result hash and the payment terms. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses.",
+    "One call for one public URL: fetch the page as clean text, grade its HTTP security headers, and return a SHA-256 of the extracted text with a receipt naming the URL, the result hash and the payment terms, Ed25519-signed with our published key. The hash covers the text as read, not the page's raw bytes. Use when an agent needs citable evidence that a page said something at a point in time. Failures are never charged; nulls are never guesses.",
     ["page-evidence", "signed-evidence", "web-evidence", "attestation", "answer"],
     { url: { type: "string", description: "Public http(s) URL to capture", required: true, example: "https://example.com" } },
-    { pack: "page-evidence", url: "https://example.com", text: "Example Domain", hashSha256: "…", security: { https: true, score: 80 }, signature: null, failed: {} },
+    // The shape the handler returns (21 Nov 2026: the example used to show a top-level signature and no receipt).
+    {
+      pack: "page-evidence", url: "https://example.com", text: "Example Domain\nThis domain is for use in documentation examples…", textLength: 126,
+      security: { grade: "D", score: 40 }, hashSha256: "…",
+      receipt: {
+        payload: { v: 1, kind: "page-evidence", subject: "https://example.com", iss: ORIGIN, iat: "2026-11-21T00:00:00.000Z", resultSha256: "…", terms: { currency: "USDC", network: "eip155:8453", unit: "per answer", payTo: "0x6293ded2684f1a76e26becef87c137d691fbf800" } },
+        signature: "…", alg: "EdDSA", kid: "…", keys: `${ORIGIN}${KEYS_PATH}`, note: "Verify Ed25519 over the UTF-8 bytes of canonical, with the key named by kid. It attests the facts at iat only.",
+      },
+      failed: {},
+    },
     async (env, q) => {
       const url = need(q, "url", 2000);
       const { data, failed } = await runSections({
@@ -40,11 +49,21 @@ export const ANSWERS: Entry[] = [
       return { pack: "page-evidence", ...result, receipt: await receipt(env, "page-evidence", url, result), failed };
     }, "$0.05"),
 
-  entry("/answers/company-diligence", "Company diligence: domain, company and sanctions in one answer",
-    "One call for one company domain: site identity, tech stack, email security, hosting, DNS and registration age, plus an OFAC name screen. Use when an agent must vet a counterparty before dealing with it: a deterministic answer with a signed receipt and per-section failures. Public sources only; no private data.",
+  entry("/answers/company-diligence", "Company diligence: domain intel and sanctions in one answer",
+    "One call for one company domain: site identity, tech stack, email provider and email security, hosting, DNS and registration age, plus a sanctions-list screen (OFAC, EU, UN, UK) of the domain's own name, the label before the first dot. No company register is read. Use when an agent must vet a counterparty's website before dealing with it: one answer with a signed receipt and per-section failures. Public sources only; no private data.",
     ["company-diligence", "vendor-diligence", "counterparty", "company-research", "answer"],
     { domain: { type: "string", description: "Company domain such as stripe.com", required: true, example: "stripe.com" } },
-    { pack: "company-diligence", domain: "stripe.com", site: { siteName: "Stripe" }, registration: { registrar: "SafeNames Ltd.", ageDays: 11000 }, sanctions: null, receipt: null, failed: {} },
+    // The shape the handler returns (21 Nov 2026: the example used to show site and registration at the top level).
+    {
+      pack: "company-diligence", domain: "stripe.com",
+      intel: { pack: "domain-intel", domain: "stripe.com", site: { siteName: "Stripe" }, email: { provider: "Google Workspace", spfPolicy: "~all", dmarcPolicy: "reject" }, registration: { registrar: "SafeNames Ltd.", ageDays: 11000 }, failed: {} },
+      sanctions: { query: { name: "stripe" }, verdict: "pass", listed: false, matches: [] },
+      receipt: {
+        payload: { v: 1, kind: "company-diligence", subject: "stripe.com", iss: ORIGIN, iat: "2026-11-21T00:00:00.000Z", resultSha256: "…", terms: { currency: "USDC", network: "eip155:8453", unit: "per answer", payTo: "0x6293ded2684f1a76e26becef87c137d691fbf800" } },
+        signature: "…", alg: "EdDSA", kid: "…", keys: `${ORIGIN}${KEYS_PATH}`, note: "Verify Ed25519 over the UTF-8 bytes of canonical, with the key named by kid. It attests the facts at iat only.",
+      },
+      failed: {},
+    },
     async (env, q) => {
       const domain = need(q, "domain", 300);
       const { data, failed } = await runSections({

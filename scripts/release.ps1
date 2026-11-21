@@ -20,7 +20,7 @@ param(
   [string]$ProofPath = '/btc-fees',
   [string]$StagingOrigin = 'https://agent-data-tools-staging.revmesh2074.workers.dev',
   [string]$Origin = 'https://agent-data-tools.revmesh2074.workers.dev',
-  [string]$DiscoveryDist = 'C:\Users\peter\AppData\Local\npm-cache\_npx\6af1a5211e496a90\node_modules\@agentcash\discovery\dist\index.js',
+  [string]$DiscoveryDist = (Join-Path $env:LOCALAPPDATA 'npm-cache\_npx\6af1a5211e496a90\node_modules\@agentcash\discovery\dist\index.js'),
   [string]$DataDir = "$env:LOCALAPPDATA\agent-data-tools\release",
   [switch]$Dry,
   [switch]$Resume,
@@ -252,6 +252,9 @@ else {
 # 90 s later). One retry after 30 s; a second miss fails the run.
 Step 'check:live' { $first = (npm run check:live 2>&1 | ForEach-Object { "$_" }); if (($first -join "`n") -match '(\d+)/\1 ready') { $first } else { Write-Host '[retry] check:live not all ready; retrying in 30 s' -ForegroundColor Yellow; Write-Host (($first | Select-String 'FAIL|ready') -join "`n"); Start-Sleep 30; npm run check:live } } '(\d+)/\1 ready'
 RevertGenerated
+# Every deploy of the core retires the quotes the front holds (their fingerprint carries the version). Ask for them again
+# now, most-bought tools first, so router probes are answered by the front and not by a cold core. Unpaid GETs only.
+Step 'warm-quotes' { node scripts/warm-quotes.mjs $Origin } 'warm-quotes: warmed' -Optional
 if (Test-Path $DiscoveryDist) { Step 'agentcash-discovery-check' { node scripts/check-agent-discovery.mjs $DiscoveryDist } '"readable402":true' -Optional } else { Write-Host "[skip] discovery check: $DiscoveryDist not found" }
 if (-not (git ls-remote --tags origin "refs/tags/v$Version")) { Step 'tag' { git tag "v$Version" origin/main; git push -q origin "v$Version"; 'tagged' } 'tagged' } else { Write-Host "tag v$Version exists" }
 Step 'indexnow' { node scripts/indexnow.mjs --changed-since 'origin/main~1' } 'IndexNow' -Optional

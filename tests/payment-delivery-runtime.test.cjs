@@ -52,6 +52,14 @@ test('paused tools reject GET, HEAD and signed requests without payment or an up
   assert.equal(r.status,503);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);
   if(method==='GET')assert.equal((await r.json()).code,'TOOL_PAUSED');else assert.equal(await r.text(),'');
  }
+ // 21 Nov 2026: the two retired model paths are still on the Bazaar, so a probe gets a 308 to the tool that answers
+ // instead of a 503; the redirect itself never quotes or charges, and its body names the model that will answer.
+ for(const [path,location,model] of [['/ai/model/qwen3-30b?prompt=hi','/ai/chat-large?prompt=hi',/Llama 3\.3 70B/],['/ai/model/deepseek-r1?prompt=hi','/ai/chat-large?prompt=hi&model=gpt-oss-120b',/gpt-oss-120b/]]){
+  const r=await mf.dispatchFetch('https://api.test'+path,{redirect:'manual',headers:{'PAYMENT-SIGNATURE':'untrusted-not-a-payment'}});
+  assert.equal(r.status,308);assert.equal(r.headers.get('location'),location);assert.equal(r.headers.has('PAYMENT-REQUIRED'),false);assert.equal(r.headers.has('PAYMENT-RESPONSE'),false);
+  const body=await r.json();assert.equal(body.code,'TOOL_MOVED');assert.equal(body.movedTo,'/ai/chat-large');assert.match(body.error,model);assert.match(body.error,/not charged/);
+ }
+ const followed=await mf.dispatchFetch('https://api.test/ai/chat-large?prompt=hi&model=gpt-oss-120b',{headers:{accept:'application/json'}});assert.equal(followed.status,402,'the successor quotes as usual');await followed.arrayBuffer();
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');const client=new Client({name:'paused-tools-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{fetch:(u,i)=>mf.dispatchFetch(u,i)}));
   const names=(await client.listTools()).tools.map(t=>t.name);

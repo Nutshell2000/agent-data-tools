@@ -16,7 +16,11 @@ before(async () => {
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
 const get = async (path) => L.legal.request(`${ORIGIN}${path}`);
-const PERSONAL = /peter|bellbring|alicia|personnummer|\b\d{6}-?\d{4}\b/i;
+// Personal words are held as salted SHA-256 hashes, so this public file checks for them without spelling them (21 Nov 2026).
+const { createHash } = require("node:crypto");
+const PRIVATE_WORDS = new Set(["0816a9e41fea8b25f98a767bc50fc07f28b1d319ab29f3fc3cbd734640414390","9e289a8e88161f5414cd1e69c056ee06bf36170e0b30aff8d6aa0a9d8b6f5574","d3495dc3ccedf1d14b96684e8cb0a3c8592b8bbb66b1983565b4d25e2915d0c1"]);
+const PERSONAL_PATTERN = /personnummer|\b\d{6}-?\d{4}\b/i;
+const personal = (html) => PERSONAL_PATTERN.test(html) || (html.toLowerCase().match(/[a-z\u00e0-\u00ff]+/g) ?? []).some((w) => PRIVATE_WORDS.has(createHash("sha256").update(`adt-private-word:${w}`).digest("hex")));
 
 test("/about names SpellzCode as the seller, links the trust files and carries no personal details", async () => {
   const res = await get("/about");
@@ -24,7 +28,7 @@ test("/about names SpellzCode as the seller, links the trust files and carries n
   const html = await res.text();
   for (const want of ["SpellzCode", "/.well-known/paycheck.json", "/status", "/changelog", "/.well-known/security.txt", 'id="security"']) assert.ok(html.includes(want), want);
   assert.match(html, /registration: in progress/i);
-  assert.doesNotMatch(html, PERSONAL);
+  assert.equal(personal(html), false, "no personal details on the page");
 });
 
 test("/changelog lists releases newest first, without personal names", async () => {
@@ -35,7 +39,7 @@ test("/changelog lists releases newest first, without personal names", async () 
   assert.ok(versions.length > 100, `only ${versions.length} releases`);
   const num = (v) => v.split(".").map(Number).reduce((a, n) => a * 1000 + n, 0);
   for (let i = 1; i < versions.length; i++) assert.ok(num(versions[i - 1]) > num(versions[i]), `${versions[i - 1]} before ${versions[i]}`);
-  assert.doesNotMatch(html, PERSONAL);
+  assert.equal(personal(html), false, "no personal details on the page");
 });
 
 test("security.txt follows RFC 9116: contact, an expiry under a year, canonical on the host asked", async () => {

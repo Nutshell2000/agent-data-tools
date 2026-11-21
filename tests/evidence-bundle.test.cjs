@@ -22,6 +22,17 @@ test('evidence bundle: registered at the one-cent cap with honest limits and no 
   assert.ok(original, 'the original receipt tool still exists');
 });
 
+test('evidence bundle: the published example names this service as issuer and shows the price as the handler computes it', async () => {
+  const { TRUST } = await load();
+  const e = TRUST.find((x) => x.endpoint.path === '/evidence/bundle');
+  const ex = e.endpoint.outputExample;
+  assert.equal(ex.iss, 'https://agent-data-tools.revmesh2074.workers.dev');
+  assert.ok(ex.keys.startsWith(ex.iss), 'the key document is on the issuer\'s host');
+  assert.equal(ex.listing.advertisedPrice, '0.01', 'a plain decimal, not "$0.01"');
+  assert.match(e.endpoint.description, /same host and path/);
+  assert.match(e.endpoint.description, /issued in our name/);
+});
+
 test('evidence bundle: invalid hash is a 400 and never signed', async () => {
   const { TRUST } = await load();
   const e = TRUST.find((x) => x.endpoint.path === '/evidence/bundle');

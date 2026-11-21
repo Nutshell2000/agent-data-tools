@@ -23,10 +23,21 @@ let llmsTxt;
 let openApi;
 let mcpServerCard;
 let mcpServerVersion;
+let topPrice;
+let endpoints;
 
 before(async () => {
-  ({ homePage, llmsTxt, openApi, mcpServerCard, MCP_SERVER_VERSION: mcpServerVersion } =
+  ({ homePage, llmsTxt, openApi, mcpServerCard, MCP_SERVER_VERSION: mcpServerVersion, TOP_PRICE: topPrice, ENDPOINTS: endpoints } =
     await loadTypeScript(require.resolve("../src/discovery.ts")));
+});
+
+// 21 Nov 2026: the guidance said "up to $0.10" while two tools cost $1.00. The ceiling it names is now read from the catalogue.
+const ceilingSentence = () => new RegExp(`Most tools cost \\$0\\.01; a few cost up to ${topPrice.replace(/[$.]/g, "\\$&")}`);
+
+test("the price ceiling in buyer guidance is the dearest tool's price", () => {
+  const dearest = Math.max(...endpoints.map((e) => Number(e.price.slice(1))));
+  assert.equal(topPrice, `$${dearest.toFixed(2)}`);
+  assert.ok(dearest >= 0.01);
 });
 
 function decodeHtml(value) {
@@ -69,8 +80,8 @@ test("publishes the same safely capped client example on homepage and llms.txt",
   assert.doesNotMatch(example, /0x[0-9a-fA-F]{64}/, "the example must not contain a private-key literal");
   assert.match(homepage, /npm install @x402\/fetch @x402\/evm viem/);
   assert.match(llms, /npm install --save-dev typescript tsx @types\/node/);
-  assert.match(homepage, /Most tools cost \$0.01; a few cost up to \$0.10/); // price test 5-19 Nov 2026: a few tools above the cap
-  assert.match(llms, /Most tools cost \$0.01; a few cost up to \$0.10/);
+  assert.match(homepage, ceilingSentence()); // a few tools cost more than the example's cap
+  assert.match(llms, ceilingSentence());
   assert.match(homepage, /Free trials are disabled/);
   assert.match(llms, /Free trials are disabled/);
   assert.doesNotMatch(llms, /Free trials are disabled by default, and the example/);
@@ -83,7 +94,7 @@ test("OpenAPI discovery keeps package-audit price and default-off trial guidance
   const guidance = api.info["x-guidance"];
 
   assert.equal(api.paths["/package-audit"].get["x-payment-info"].price.amount, "0.01");
-  assert.match(guidance, /Most tools cost \$0.01; a few cost up to \$0.10/);
+  assert.match(guidance, ceilingSentence());
   assert.match(guidance, /Free trials are disabled/);
 });
 
