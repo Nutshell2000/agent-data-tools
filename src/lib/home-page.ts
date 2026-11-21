@@ -347,7 +347,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <div><span class="kicker">Transcribe Pro</span><h2>Your long recording as text. <span class="gt">We do the work.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}. That is about ${Math.max(1, Math.round(VOICE_PRO_CENTS / proHours))}&cent; an hour.</p>
 <div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
-<p class="paywith"><b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears right after payment, with no account.</p></div>
+<p class="paywith"><b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears on screen when you pay, with no account.</p></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_STUDIO_PLAN.url, planPrice: `$${VOICE_STUDIO_PLAN.usdCents / 100}`, planCharacters: speechCharacters(VOICE_STUDIO_PLAN.credits), maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
 
@@ -388,7 +388,7 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 <details class="devmore" id="apis"><summary>See every API, with prices and what each plan buys</summary>
 <div class="dev"><div><ol>
 <li><b>${opts.trial ? "Try it." : "See it."}</b> ${opts.trial ? "Every product page runs the real thing on your own input, free." : "Every product page shows a real example answer."}</li>
-<li><b>Get a key.</b> Pay by card; the key is shown right after payment. No account to create.</li>
+<li><b>Get a key.</b> Pay by card; the key is shown on screen when you pay. No account to create.</li>
 <li><b>Call it.</b> Requests in the formats most voice apps already use work as they are.</li>
 </ol></div>
 <div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
