@@ -10,6 +10,7 @@
  */
 import { entry, flag, need, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { languageCode } from "../lib/melo";
 import { addsForeignPlace, seedNamesPlace } from "../lib/place-names";
 
 const UA = { "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)" };
@@ -63,7 +64,8 @@ const COMMERCIAL = /\b(best|top|cheap|price|pricing|cost|buy|review|reviews|vs|a
 export async function keywordIdeas(seedIn: string, opts: { engines?: string; deep?: boolean; lang?: string; country?: string }) {
   const seed = seedIn.trim().toLowerCase().replace(/\s+/g, " ");
   if (seed.length < 2 || seed.length > 80) throw new HttpError(400, "seed must be 2-80 characters");
-  const lang = (opts.lang ?? "en").toLowerCase();
+  // 21 Nov 2026: "en-US" or "English" is en (lib/melo.ts languageCode); both were refused as "not two-letter codes".
+  const lang = languageCode(opts.lang ?? "en");
   const country = (opts.country ?? "us").toLowerCase();
   if (!/^[a-z]{2}$/.test(lang) || !/^[a-z]{2}$/.test(country)) throw new HttpError(400, "lang and country are two-letter codes, e.g. en and us");
   const asked = opts.engines ? opts.engines.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean) : ENGINES;
@@ -134,5 +136,5 @@ export const KEYWORDS: Entry[] = [
       note: "Phrases real users type, from search-engine autocomplete. engineCount is a popularity signal, not a search volume.",
       checkedAt: "2026-11-05T19:30:00.000Z",
     },
-    (_env, q) => keywordIdeas(need(q, "seed", 200), { engines: opt(q, "engines", 100), deep: flag(q, "deep"), lang: opt(q, "lang", 5), country: opt(q, "country", 5) })),
+    (_env, q) => keywordIdeas(need(q, "seed", 200), { engines: opt(q, "engines", 100), deep: flag(q, "deep"), lang: opt(q, "lang", 12), country: opt(q, "country", 5) })),
 ];

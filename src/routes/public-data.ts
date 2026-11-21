@@ -31,6 +31,8 @@ const LATLON = {
   lon: { type: "number" as const, description: "Longitude (-180 to 180)", required: true, example: 18.07 },
 };
 const enc = encodeURIComponent;
+/** Wikipedia editions whose code holds a hyphen; any other hyphenated `lang` is a regional tag of its first part. */
+const WIKI_HYPHENATED: ReadonlySet<string> = new Set(["zh-yue", "zh-min-nan", "zh-classical", "bat-smg", "be-tarask", "be-x-old", "cbk-zam", "fiu-vro", "map-bms", "nds-nl", "roa-rup", "roa-tara"]);
 /** Plain text of a Wiktionary HTML fragment. */
 export const stripHtml = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
@@ -163,7 +165,10 @@ export const PUBLIC_DATA: Entry[] = [
     ["wikipedia", "knowledge", ...P], { title: { type: "string", description: "Article title", required: true, example: "Stockholm" }, lang: { type: "string", description: "Language code (default en)", example: "en" } },
     { title: "Stockholm", description: "Capital of Sweden", extract: "Stockholm is the capital and most populous city of Sweden…", url: "https://en.wikipedia.org/wiki/Stockholm", thumbnail: "https://upload.wikimedia.org/…", licence: "CC BY-SA 4.0", attribution: "Text from the Wikipedia article \"Stockholm\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
-      const lang = (opt(q, "lang", 12) ?? "en").toLowerCase();
+      // 21 Nov 2026: a regional tag ("en-US", "pt_BR") named a host that does not exist (en-us.wikipedia.org), which
+      // came out as our 502. It is read as its language unless it is one of Wikipedia's own hyphenated editions.
+      const sentLang = (opt(q, "lang", 12) ?? "en").toLowerCase();
+      const lang = /[-_]/.test(sentLang) && !WIKI_HYPHENATED.has(sentLang) ? sentLang.split(/[-_]/)[0] : sentLang;
       if (!/^[a-z-]{2,12}$/.test(lang)) throw new HttpError(400, "lang must be a Wikipedia language code like en, sv, de");
       const r = await getJson<{ title: string; description?: string; extract: string; content_urls?: { desktop?: { page?: string } }; thumbnail?: { source: string }; type: string }>(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${enc(need(q, "title", 300).replace(/ /g, "_"))}`, { notFound: "no article with that title" });
       return { title: r.title, description: r.description ?? null, extract: r.extract, type: r.type, url: r.content_urls?.desktop?.page ?? null, thumbnail: r.thumbnail?.source ?? null, licence: "CC BY-SA 4.0", attribution: `Text from the Wikipedia article "${r.title}" by its contributors, licensed CC BY-SA 4.0` };
@@ -223,7 +228,7 @@ export const PUBLIC_DATA: Entry[] = [
       return { uvIndex: r.current.uv_index, category: cat(r.current.uv_index), todayMax: max, todayMaxCategory: cat(max), advice: max < 3 ? "No protection needed for most people." : max < 6 ? "Protection is advisable around midday." : "Seek shade at midday; use sunscreen, a hat and sunglasses." };
     }),
 
-  entry("/geocode", "Geocode address, geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
+  entry("/geocode", "Geocode a place, geocoding: place name to latitude and longitude", "Find places by name in Wikidata (CC0) and get their coordinates, description, country, administrative region, population and elevation where recorded, best match first. Cities, towns, landmarks and other places with coordinates. Use before weather, sun or distance lookups, or to tell two places of the same name apart.",
     ["geocode", "geo", "places", ...P], { name: { type: "string", description: "Place name", required: true, example: "Lisbon" }, count: { type: "integer", description: "Max results (1-10, default 5)", example: 3 } },
     { count: 1, results: [{ name: "Lisbon", description: "municipality and capital city of Portugal", country: "Portugal", region: "Lisbon", lat: 38.708, lon: -9.139, population: 545796, elevation: 100, wikidataId: "Q597" }], source: "Wikidata (CC0 public domain)" },
     async (_e, q) => {

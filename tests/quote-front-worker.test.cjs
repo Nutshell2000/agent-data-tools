@@ -202,6 +202,58 @@ test("a new core release retires every stored quote; FRONT=off passes everything
   await start();
 });
 
+test("only a tool's own address is stored: other spellings go to the core every time and never reach KV (21 Nov 2026)", async () => {
+  // Safety audit: "/btc-%66ees" was a KV key of its own, stored on its first miss, so anyone could fill the store and
+  // use up the write allowance with spellings of one tool. The core answers these spellings as the tool (a 402 quote),
+  // so they must stay 402s: only never stored, never looked up, never an error.
+  const source = require("node:fs").readFileSync(path.resolve("src/front/index.ts"), "utf8");
+  const plain = new RegExp(source.match(/const PLAIN_PATH = \/(.+)\/;/)[1]);
+  const { ENDPOINTS } = await load(require.resolve("../src/endpoints.ts"), "endpoints-front-plain-test.js");
+  const odd = ENDPOINTS.map((e) => e.path).filter((p) => !plain.test(p));
+  assert.deepEqual(odd, [], "every catalogue path has the plain shape the front stores");
+  for (const p of ["/btc-%66ees", "/BTC-FEES", "/btc-fees/", "//btc-fees", "/btc-fees//", "/Btc-Fees?x=1", "/btc-fees%2F"]) assert.equal(plain.test(new URL(O + p).pathname), false, `${p} is not a plain path`);
+  const kv = await mf.getKVNamespace("QUOTES", "front");
+  const spellings = ["/btc-%66ees", "/BTC-FEES", "/btc-fees/", "//btc-fees", "/btc-fees.json"];
+  for (const p of spellings) {
+    for (let i = 0; i < 4; i++) {
+      const r = await ask(O + p); await r.text();
+      assert.equal(r.status, 402, `${p}: still the tool's quote, try ${i + 1}`);
+      assert.ok(r.headers.get("payment-required"), `${p}: with its payment terms`);
+      assert.equal(r.headers.get("x-quote-front"), null, `${p}: answered by the core, try ${i + 1}`);
+      assert.ok(r.headers.get("x-quote-release"), `${p}: the core's stamp`);
+    }
+  }
+  await new Promise((s) => setTimeout(s, 150));
+  const keys = (await kv.list()).keys.map((k) => k.name);
+  for (const p of spellings) assert.ok(!keys.some((k) => k.endsWith(O + p)), `${p}: no KV key`);
+  assert.ok(!keys.some((k) => /%66|BTC|btc-fees\/$|\/\/btc-fees|\.json$/.test(k.slice(k.indexOf("https://") + 8))), `no spelling of the tool in KV: ${keys.filter((k) => /btc/i.test(k)).join(" ")}`);
+  // The tool's own address is stored and served as before.
+  assert.ok(await hitAfter(O + "/btc-fees"), "the plain path is answered by the front");
+  assert.ok(keys.length === 0 || keys.every((k) => k === "q:release" || /^q:[^:]+:https:\/\//.test(k)));
+});
+
+test("a location that has used its hourly write allowance stores nothing more; quotes are still answered (21 Nov 2026)", async () => {
+  // The per-isolate limit multiplies with the number of isolates, so the front also counts writes in the location's
+  // edge cache, shared by its isolates. The count is put above the limit here, as many isolates' writes would.
+  const cache = (await mf.getCaches()).default;
+  const hour = Math.floor(Date.now() / 3_600_000);
+  const marks = [hour, hour + 1].map((h) => `https://quote-front-writes.invalid/${h}`);
+  for (const key of marks) await cache.put(key, new Response("999999", { headers: { "cache-control": "max-age=3600" } }));
+  const kv = await mf.getKVNamespace("QUOTES", "front");
+  const p = O + "/uuid";
+  for (let i = 0; i < 6; i++) {
+    const r = await ask(p); await r.text();
+    assert.equal(r.status, 402, "the quote is answered all the same");
+    assert.equal(r.headers.get("x-quote-front"), null, "by the core: nothing was stored");
+    await new Promise((s) => setTimeout(s, 25));
+  }
+  assert.ok(!(await kv.list()).keys.some((k) => k.name.endsWith(p)), "no KV write above the location's allowance");
+  for (const key of marks) await cache.delete(key);
+  assert.ok(await hitAfter(p), "with the allowance back, the quote is stored and the front answers");
+  const held = await cache.match(marks[0]) ?? await cache.match(marks[1]);
+  assert.ok(held && Number(await held.text()) >= 1, "each stored quote is counted in the location's cache");
+});
+
 test("the core gets the secrets the front holds, and its own settings win", async () => {
   const withToken = await ask(O + "/revenue", { ...JSON_CLIENT, authorization: "Bearer front-held-revenue-token" });
   const body = await withToken.json();

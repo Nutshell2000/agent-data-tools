@@ -5,6 +5,7 @@ import { entry, need, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { selfFetch } from "../lib/self-fetch";
 import { fetchPublic } from "../lib/fetch";
+import { textCapped } from "../lib/read-capped";
 import { robotsVerdict } from "./lookups";
 
 const AI_CRAWLERS = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended", "CCBot", "Applebot-Extended"];
@@ -25,7 +26,8 @@ async function grab(env: Env, origin: string, path: string) {
   const target = new URL(path, origin);
   const res = await (selfFetch(env, target, "*/*") ?? fetchPublic(target, "*/*", Array.from({ length: 200 }, (_, i) => 300 + i), { budgetMs: 6_000 })).catch(() => null);
   if (!res || res.status >= 300) { await res?.body?.cancel().catch(() => {}); return null; }
-  const text = (await res.text().catch(() => "")).slice(0, 300_000);
+  // 21 Nov 2026: a counted read. Sixteen of these run at once on files the site chooses; `res.text()` took each whole.
+  const text = (await textCapped(res.body, 1_200_000).catch(() => ({ text: "" }))).text.slice(0, 300_000);
   return { url: new URL(path, origin).href, type: res.headers.get("content-type") ?? "", text };
 }
 

@@ -121,16 +121,22 @@ async function brreg<T>(url: string): Promise<{ status: number; body: T | null }
   // 19 Nov 2026: one retry was still not enough on the shared Workers egress IP (/status: 1 error in 7 calls). A
   // 429/503 is now asked up to three times total, each with a fresh timeout. A source that asks to wait longer than
   // 2 s is respected: no further retry, fall through to 502. 404 and 410 are final and never retried.
+  // 21 Nov 2026: the one failure /status showed in the seven days after that change was "did not answer in time", the
+  // case the loop above never retried: a request that timed out or could not connect threw at once. It is now asked
+  // once more, and only once, with 5 s for the second try (13 s at most, inside the time a caller waits for a register).
+  let unanswered = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      res = await fetch(url, { headers, signal: AbortSignal.timeout(8_000) });
+      res = await fetch(url, { headers, signal: AbortSignal.timeout(unanswered ? 5_000 : 8_000) });
       if (res.status !== 429 && res.status !== 503) break;
       const wait = retryDelayMs(res);
       await res.body?.cancel().catch(() => {});
       if (wait === null || attempt === 2) break;
       await new Promise((r) => setTimeout(r, wait));
     } catch {
-      throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");
+      if (unanswered) throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");
+      unanswered = true;
+      res = undefined;
     }
   }
   if (!res) throw new HttpError(502, "the Norwegian register did not answer in time; try again, nothing was charged");

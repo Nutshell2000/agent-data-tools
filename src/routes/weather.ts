@@ -1,4 +1,5 @@
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 import { placeCoordinates } from "../lib/wikidata";
 import { countryCode } from "../lib/country-code";
 
@@ -107,7 +108,7 @@ export async function weather(latInput?: string, lonInput?: string, hoursInput?:
     throw new HttpError(502, "the weather data source did not respond");
   }
   if (!res.ok) throw new HttpError(502, `the weather data source returned HTTP ${res.status}`);
-  const body = (await res.json()) as {
+  const body = (await sourceJson(res, "the weather data source")) as {
     geometry: { coordinates: number[] };
     properties: { meta: { updated_at: string }; timeseries: Step[] };
   };

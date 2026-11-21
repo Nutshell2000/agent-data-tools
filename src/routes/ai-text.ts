@@ -9,7 +9,7 @@ import { MODELS, runAi } from "../lib/ai";
 import { messagesAsArray } from "../lib/chat-messages";
 import { DOCUMENT_RULES, fieldHints } from "../lib/extract-hints";
 import { HttpError, type Env } from "../lib/env";
-import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, SPEECH_LANGS, isMeloLang, meloSentences, meloSpeech, retiredSpeechLang, speechLangOf } from "../lib/melo";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, SPEECH_LANGS, isMeloLang, languageCode, meloSentences, meloSpeech, retiredSpeechLang, speechLangOf } from "../lib/melo";
 
 export const AI_PRICE = "$0.01";
 const T = ["ai", "llm", "text"];
@@ -460,7 +460,10 @@ export const AI_TEXT: Entry[] = [
     ["translation", "language", "i18n"], { text: { type: "string", description: "Text, up to 4,000 characters", required: true, example: "Payment received, thank you!" }, to: { type: "string", description: "Target language code, e.g. sv", required: true, example: "sv" }, from: { type: "string", description: "Source language code (default: detected)", example: "en" } },
     { translatedText: "Betalning mottagen, tack!", from: "en", to: "sv", chars: 28, chunks: 1, model: TRANSLATE_MODEL },
     async (env, q) => {
-      const code = (name: string, value: string) => { const v = value.toLowerCase(); if (!/^[a-z]{2,3}$/.test(v)) throw new HttpError(400, `${name} must be a 2-3 letter language code`); return v; };
+      // 21 Nov 2026: "en-US", "pt_BR", "German" and "deu" are the two-letter code they stand for (lib/melo.ts
+      // languageCode); they were refused. A Chinese script or region tag (zh-TW, zh-Hant) is still refused: the
+      // answer would be plain zh, which is not what was asked for.
+      const code = (name: string, value: string) => { const v = /^zh[-_](?!cn$|hans)/i.test(value.trim()) ? value.trim().toLowerCase() : languageCode(value); if (!/^[a-z]{2,3}$/.test(v)) throw new HttpError(400, `${name} must be a language code such as en, sv or de (a tag such as en-US or a name such as German also works)`); return v; };
       const to = code("to", opt(q, "to", 10) ?? "");
       const given = opt(q, "from", 10);
       const from = given ? code("from", given) : undefined;

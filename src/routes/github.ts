@@ -14,6 +14,7 @@
  */
 import { entry, flag, need, num, opt, pick, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 const API = "https://api.github.com";
 const SOURCE = "GitHub REST API (public repository data)";
@@ -65,7 +66,7 @@ export async function github<T>(env: Pick<Env, "GITHUB_TOKEN">, path: string, fe
   }
   if (res.status === 422) throw new HttpError(400, "GitHub could not read that search; simplify the query");
   if (!res.ok) throw new HttpError(502, `GitHub answered HTTP ${res.status}; try again`);
-  return (await res.json()) as T;
+  return sourceJson<T>(res, "GitHub");
 }
 
 interface Repo {

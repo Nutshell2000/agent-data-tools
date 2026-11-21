@@ -19,7 +19,7 @@ async function signed(method, path, bodyObj) {
   const nonce = randomUUID();
   const bodyHash = createHash("sha256").update(body ?? "").digest("hex");
   const signature = await account.signMessage({ message: `${method}:${path}:${bodyHash}:${timestamp}:${nonce}` });
-  const headers = { "x-zero-address": account.address, "x-zero-timestamp": timestamp, "x-zero-nonce": nonce, "x-zero-signature": signature, "x-zero-sdk-version": "1.36.0", "user-agent": "agent-data-tools-release/1.0", accept: "application/json" };
+  const headers = { "x-zero-address": account.address, "x-zero-timestamp": timestamp, "x-zero-nonce": nonce, "x-zero-signature": signature, "x-zero-sdk-version": "1.36.0", "user-agent": "agent-data-tools-release/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/json" };
   if (body !== undefined) headers["content-type"] = "application/json";
   const res = await fetch(BASE + path, { method, headers, body, signal: AbortSignal.timeout(60_000) });
   const text = await res.text();

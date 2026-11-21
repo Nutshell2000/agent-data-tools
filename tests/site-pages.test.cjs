@@ -38,8 +38,19 @@ test("the front page leads with the products and their plans, under the brand", 
   assert.match(html, /Long recording\? <a href="\/transcribe-pro">Transcribe Pro<\/a>/, "the long-recording upsell links to the paid plan, not the free browser tool");
   // 19 Nov 2026: the page no longer tells a consumer with a long recording that there is nothing to pay for.
   assert.match(html, /want a long recording transcribed on our servers with Transcribe Pro/, "the FAQ names the paid server-side option");
-  assert.match(html, /want a long recording done on our servers with <a href="\/transcribe-pro">Transcribe Pro<\/a>/, "the pricing section links the paid option");
-  assert.match(html, /<a href="\/transcribe-pro">Transcribe Pro<\/a> handles any length/, "a line near the tiles points at the paid long-recording product");
+  // 21 Nov 2026: the one sentence near the tiles and the "Free for everyone" block became a Transcribe Pro band and a
+  // three-plan ladder, so a visitor meets the paid product, its price and a free trial without reading the small print.
+  const band = html.slice(html.indexOf('id="pro"'), html.indexOf('id="how"'));
+  assert.match(band, /When your device is not enough/, "a band right after the free tiles sells the paid product");
+  assert.match(band, /buy\.stripe\.com\/[A-Za-z0-9]+">Get Transcribe Pro: \$\d+ a month/, "the band's first button is the checkout");
+  assert.match(band, /transcribe#fast" data-ev="trial_click">Try Pro free on one file/, "and a free trial is one click away");
+  const prices = html.slice(html.indexOf('id="pricing"'), html.indexOf('id="developers"'));
+  for (const plan of ["Glyphcall Free", "Transcribe Pro", "Transcribe Pro Plus"]) assert.ok(prices.includes(`<h3>${plan}</h3>`), `${plan} is a plan card`);
+  assert.match(prices, /About \d+ hours<\/b> of transcription a month/, "the plan says what it buys in hours");
+  assert.match(prices, /Compare Free and Transcribe Pro/, "Free and Pro side by side");
+  assert.ok(!prices.includes("7,500 PDFs"), "developer credit tables are not in the consumer pricing");
+  assert.match(html.slice(html.indexOf('id="developers"')), /id="api-pricing"/, "the developer credit plans sit in the developer block");
+  assert.match(html, /<a href="\/transcribe-pro">Pro<\/a>/, "Pro is in the navigation");
   assert.match(html, /<a href="\/transcribe-pro">Transcribe Pro<\/a> · <a href="\/agents">/, "the footer links the paid product");
   const above = html.slice(0, html.indexOf("<h2>For AI agents</h2>"));
   assert.doesNotMatch(above, /x402|MPP|USDC|Tempo|wallet/i, "no payment protocol before the agents section");

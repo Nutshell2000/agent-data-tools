@@ -28,7 +28,9 @@ async function receipt(env: Env, kind: string, subject: string, result: unknown)
 // (packs-intel.ts, which imports packs.ts) are outside it: until 1.323.0 both answers called them through `call()`,
 // which threw "pack references unknown tool" before any section ran, so every call ended in a 500 (found by
 // smoke:examples on 21 Nov 2026). Both run from their own module now, inside a promise so a failure stays a section's.
-const pageText = (url: string) => Promise.resolve().then(() => extract(url, "20000", "text"));
+// No archive fallback here (safety audit, 21 Nov 2026): the receipt says what the page said when it was read, so an
+// Internet Archive copy must never stand in for the live page. A page that is down fails the call, uncharged.
+const pageText = (url: string) => Promise.resolve().then(() => extract(url, "20000", "text", undefined, { archiveFallback: false }));
 const domainIntel = (env: Env, domain: string) => Promise.resolve().then(() => {
   const pack = PACKS_INTEL.find((x) => x.endpoint.path === "/pack/domain-intel");
   if (!pack) throw new Error("the domain-intel pack is missing");

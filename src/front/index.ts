@@ -75,7 +75,7 @@ const WRITES_PER_ISOLATE_HOUR = 300;
 const PER_ANSWER = new Set(["www-authenticate", "x-request-id", "date", "content-length", "set-cookie", "x-quote-cache", "cf-ray", "report-to", "nel", "server", "alt-svc", RELEASE_HEADER,
   // Encoding is negotiated per client by the runtime; a stored "br" would be sent to a client that never accepted it.
   "content-encoding", "transfer-encoding"]);
-const CREDENTIAL_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key", "x-rapidapi-proxy-secret", "x-fluxa-proxy-secret", "cookie", "origin"];
+const CREDENTIAL_HEADERS = ["payment-signature", "x-payment", "authorization", "x-api-key", "x-rapidapi-proxy-secret", "x-fluxa-proxy-secret", "x-orthogonal-proxy-secret", "cookie", "origin"];
 const CONTROL_PARAMS = ["trial", "sample", "api_key", "apikey", "key"];
 /** Paths that are never a tool quote; they go straight to the core without a KV read. */
 const NEVER = /^\/(?:$|mcp|v1\/|\.well-known|tools|credits|guides|discovery|openapi|llms|sitemap|robots|favicon|og|metrics|revenue|status|health|e$|app|docs|from\/)/;
@@ -85,6 +85,15 @@ const NEVER = /^\/(?:$|mcp|v1\/|\.well-known|tools|credits|guides|discovery|open
  * listings woke the core. tests/quote-front-worker.test.cjs fails when a catalogue path is caught and not listed here.
  */
 const TOOLS_UNDER_NEVER = new Set(["/sitemap", "/robots", "/openapi/summary", "/mcp/inspect"]);
+/**
+ * The only path spelling a quote is stored or looked up for (21 Nov 2026, safety audit). Until now "/btc-%66ees" was a
+ * key of its own, stored on its first miss, so anyone could fill KV and use up the write allowance with spellings of
+ * one tool. A catalogue path is lower-case letters, digits, "-", "_" and "." in segments divided by single slashes.
+ * Anything else ("/BTC-FEES", "/btc-fees/", "//weather", a percent-escape) is passed to the core, which answers it as
+ * the tool where it is one: never an error here, only never a stored quote. The front does not know the catalogue, so
+ * the second half of the rule is in toStored(): the core's quote must name this very path as its resource.
+ */
+const PLAIN_PATH = /^(?:\/[a-z0-9._-]+)+$/;
 
 /** Whether this request may be answered from a stored quote (the core's own quote-cache rules, plus Origin). */
 function quotable(request: Request): URL | undefined {
@@ -93,6 +102,7 @@ function quotable(request: Request): URL | undefined {
   if (/text\/html/i.test(request.headers.get("accept") ?? "") || /mozilla/i.test(request.headers.get("user-agent") ?? "")) return undefined;
   const url = new URL(request.url);
   if (NEVER.test(url.pathname) && !TOOLS_UNDER_NEVER.has(url.pathname)) return undefined;
+  if (!PLAIN_PATH.test(url.pathname)) return undefined;
   for (const name of CONTROL_PARAMS) if (url.searchParams.has(name)) return undefined;
   if (url.href.length > 1500) return undefined;
   return url;
@@ -100,10 +110,26 @@ function quotable(request: Request): URL | undefined {
 
 const quoteKey = (release: string, href: string) => `q:${release}:${href}`;
 
-/** A stored quote from one core answer, or undefined when the answer is not a plain x402 quote. */
-function toStored(response: Response, body: string, release: string): StoredQuote | undefined {
-  if (response.status !== 402 || !response.headers.get("payment-required")) return undefined;
+/**
+ * The path the core's quote names as its resource, or undefined when PAYMENT-REQUIRED cannot be read. The core answers
+ * "/weather.json" as the tool /weather and names "/weather" in the quote: that difference is how the front, which does
+ * not know the catalogue, tells a tool's own address from another spelling of it.
+ */
+function quotedPath(paymentRequired: string): string | undefined {
+  try {
+    const terms = JSON.parse(atob(paymentRequired)) as { resource?: { url?: unknown } };
+    return typeof terms.resource?.url === "string" ? new URL(terms.resource.url).pathname : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A stored quote from one core answer, or undefined when the answer is not a plain x402 quote for exactly this path. */
+function toStored(response: Response, body: string, release: string, pathname: string): StoredQuote | undefined {
+  const paymentRequired = response.headers.get("payment-required");
+  if (response.status !== 402 || !paymentRequired) return undefined;
   if (response.headers.has("x-free-trial-unavailable") || response.headers.has("set-cookie")) return undefined;
+  if (quotedPath(paymentRequired) !== pathname) return undefined;
   const headers: [string, string][] = [];
   response.headers.forEach((value, name) => { if (!PER_ANSWER.has(name.toLowerCase())) headers.push([name, value]); });
   const mpp: MppTerms[] = [];
@@ -172,10 +198,36 @@ function mayWrite(): boolean {
   return writes.count++ < WRITES_PER_ISOLATE_HOUR;
 }
 
-async function store(env: FrontEnv, href: string, response: Response, rel: string) {
+/**
+ * A second write limit that the isolates of one Cloudflare location share (21 Nov 2026, safety audit). The limit above
+ * is per isolate, so a caller who is spread over many isolates multiplies it. This count lives in the location's edge
+ * cache: free, no KV or Durable Object write, and touched only when a quote is about to be stored, never per request.
+ * It is approximate (two isolates can read the same count at once) and it is per location, not global: a limit over
+ * all locations would need a central store written per quote, which this service does not do for unpaid traffic.
+ * 2,000 an hour lets one warm-up run of the whole catalogue through. With no cache, or on any error, the write goes on.
+ */
+const WRITES_PER_LOCATION_HOUR = 2000;
+async function locationMayWrite(): Promise<boolean> {
   try {
-    const quote = toStored(response, await response.text(), rel);
-    if (!quote) return;
+    const cache = edgeCache();
+    if (!cache) return true;
+    const key = new Request(`https://quote-front-writes.invalid/${Math.floor(Date.now() / 3_600_000)}`);
+    const held = await cache.match(key);
+    const count = held ? Number(await held.text()) || 0 : 0;
+    if (count >= WRITES_PER_LOCATION_HOUR) return false;
+    await cache.put(key, new Response(String(count + 1), { headers: { "cache-control": "max-age=3600" } }));
+  } catch {
+    // The count is a guard only.
+  }
+  return true;
+}
+
+async function store(env: FrontEnv, url: URL, response: Response, rel: string) {
+  try {
+    const href = url.href;
+    const quote = toStored(response, await response.text(), rel, url.pathname);
+    // The limits are asked last, so an answer that is not a storable quote never uses them up.
+    if (!quote || !mayWrite() || !(await locationMayWrite())) return;
     await env.QUOTES.put(quoteKey(rel, href), JSON.stringify(quote), { expirationTtl: QUOTE_TTL_SECONDS });
   } catch {
     // Storing is an optimization only.
@@ -200,12 +252,13 @@ export default {
     // Store a quote only for a bare tool path or a URL asked before in this colo: a crawler's one-off URLs never reach
     // KV, while a router's repeated probe of a listing does after its second miss. The "asked before" mark lives in the
     // colo's edge cache (free, shared by its isolates): an isolate-only mark missed on the rehearsal Worker (19 Nov),
-    // because consecutive requests landed on different isolates.
+    // because consecutive requests landed on different isolates. Since 21 Nov 2026 only a plain path whose quote names
+    // that same path is stored (PLAIN_PATH, toStored), within a per-isolate and a per-location write allowance.
     if (url && rel && response.status === 402) {
       const copy = response.clone();
       ctx.waitUntil((async () => {
         if (url.search !== "" && !(await askedBefore(url.href))) return;
-        if (mayWrite()) await store(env, url.href, copy, rel);
+        await store(env, url, copy, rel);
       })());
     }
     return response;

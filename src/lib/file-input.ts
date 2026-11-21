@@ -34,6 +34,8 @@ export const FILE_INPUT = "file";
 /** Reserved input the HTTP route sets from that query value (never a declared tool input): the tool reads the reference here. */
 export const FILE_REF_INPUT = "@file";
 
+import { readCapped } from "./read-capped";
+
 const held = new Map<string, { bytes: Uint8Array; holders: number }>();
 const REF = /^@file:[0-9a-f]{64}$/;
 
@@ -86,12 +88,30 @@ export type SentFile =
 export async function sentFile(request: Request, limit: number): Promise<SentFile> {
   const type = (request.headers.get("content-type") ?? "").toLowerCase();
   const declared = Number(request.headers.get("content-length") ?? "0");
-  // Base64 in JSON is a third larger than the file it holds.
-  if (declared > limit * 1.4 + 4096) return { kind: "too-large", limit };
+  // Base64 in JSON is a third larger than the file it holds; a form adds its boundaries and other fields.
+  const wrapped = limit * 1.4 + 4096;
+  if (declared > wrapped) return { kind: "too-large", limit };
   const fields: Record<string, string> = {};
   let bytes: Uint8Array | null = null;
-  if (type.startsWith("multipart/form-data")) {
-    const form = await request.clone().formData().catch(() => null);
+  const multipart = type.startsWith("multipart/form-data");
+  const json = !multipart && type.includes("json");
+  // audio/* and video/* (1.195.0): browsers, the voice pages and the Obsidian plugin send a recording with its own type;
+  // until then only application/octet-stream reached the transcription tools as a file.
+  // image/*: a scan or a photo sent as the body. Until 1.187.0 it was read as "no file" and the caller was asked for a
+  // url, although the document tools read PNG, JPEG and WebP (found 14 Nov 2026 by sending invoice2data's PNG invoices).
+  const raw = !multipart && !json && (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.|ogg)|binary\/|image\/|audio\/|video\/|text\/xml)/.test(type));
+  if (!multipart && !json && !raw) return { kind: "none", fields };
+  // 21 Nov 2026: the body is read through a counter and dropped at the limit. It used to be read whole
+  // (arrayBuffer / formData / json) before its size was known, and the only earlier test was the declared
+  // Content-Length, which a chunked upload does not send: an unpaid 100 MB POST was buffered in full, twice (body and
+  // clone), before the 402 quote. Now a body over the tool's limit is refused after at most that many bytes.
+  let body: { bytes: Uint8Array; over: boolean };
+  try { body = await readCapped(request.clone().body, Math.floor(raw ? limit : wrapped)); }
+  catch { return { kind: "none", fields }; }
+  if (body.over) return { kind: "too-large", limit };
+  if (multipart) {
+    // Parsed from the counted bytes, with the request's own boundary.
+    const form = await new Response(body.bytes, { headers: { "content-type": request.headers.get("content-type") ?? "" } }).formData().catch(() => null);
     if (!form) return { kind: "none", fields };
     for (const [name, value] of form.entries()) {
       if (typeof value === "string") { if (value.length <= 2000) fields[name] = value; continue; }
@@ -100,22 +120,20 @@ export async function sentFile(request: Request, limit: number): Promise<SentFil
       if (part.size > limit) return { kind: "too-large", limit };
       bytes = new Uint8Array(await part.arrayBuffer());
     }
-  } else if (type.includes("json")) {
-    const body = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
-    if (!body || typeof body !== "object" || Array.isArray(body)) return { kind: "none", fields };
+  } else if (json) {
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(new TextDecoder().decode(body.bytes)); } catch { /* not JSON: no file */ }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { kind: "none", fields };
+    const record = parsed as Record<string, unknown>;
     for (const name of [FILE_INPUT, "data", "content", "base64", "pdf", "document", "image"]) {
-      const value = body[name];
+      // Own keys only: the body is the caller's, and "constructor" or "__proto__" must never read as a field.
+      const value = Object.hasOwn(record, name) ? record[name] : undefined;
       if (typeof value !== "string" || value.length < 16) continue;
       bytes = fromBase64(value);
       if (bytes) break;
     }
-  // audio/* and video/* (1.195.0): browsers, the voice pages and the Obsidian plugin send a recording with its own type;
-  // until then only application/octet-stream reached the transcription tools as a file.
-  // image/*: a scan or a photo sent as the body. Until 1.187.0 it was read as "no file" and the caller was asked for a
-  // url, although the document tools read PNG, JPEG and WebP (found 14 Nov 2026 by sending invoice2data's PNG invoices).
-  } else if (type === "" || /^(application\/(pdf|xml|octet-stream|zip|x-zip-compressed|msword|vnd\.|ogg)|binary\/|image\/|audio\/|video\/|text\/xml)/.test(type)) {
-    const buffer = await request.clone().arrayBuffer().catch(() => null);
-    if (buffer && buffer.byteLength > 0) bytes = new Uint8Array(buffer);
+  } else if (body.bytes.byteLength > 0) {
+    bytes = body.bytes;
   }
   if (!bytes) return { kind: "none", fields };
   if (bytes.byteLength > limit) return { kind: "too-large", limit };

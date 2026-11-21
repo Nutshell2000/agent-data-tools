@@ -4,10 +4,11 @@
 import { formatUnits, getAddress, type PublicClient } from "viem";
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 import { recentBlockSeconds } from "../lib/block-time";
 import { erc20Abi } from "../lib/rpc";
 import { tokenAddress } from "../lib/tickers";
-import { CHAINS, LOG_WINDOW_MAX, SPARSE_FIRST_WINDOW, client, codeKind, logsClient, recentLogs, rpc, scaledBlocks, topicLogsClient } from "./chain-reads";
+import { CHAINS, LOG_WINDOW_MAX, SPARSE_FIRST_WINDOW, client, codeKind, logsClient, recentLogs, rpc, scaledBlocks, tokenReadError, topicLogsClient } from "./chain-reads";
 import { chainSlug } from "./whale";
 
 const CHAIN_IDS: Record<string, number> = { eth: 1, base: 8453, arb: 42161, op: 10, polygon: 137 };
@@ -40,7 +41,7 @@ export async function sourcify(chainId: number, address: string, fields: string)
   catch { throw new HttpError(502, "Sourcify did not answer in time; try again"); }
   if (res.status === 404) return null;
   if (!res.ok) throw new HttpError(502, `Sourcify answered HTTP ${res.status}; try again`);
-  return (await res.json()) as Sourcify;
+  return sourceJson<Sourcify>(res, "Sourcify");
 }
 
 const poolAbi = [
@@ -138,12 +139,14 @@ export const CHAIN_MORE: Entry[] = [
       const slug = chainSlug(opt(q, "chain", 30));
       const token = tokenInput(need(q, "token", 60), slug);
       const cl = client(env, def(slug));
-      const [supply, decimals, name, symbol] = await rpc(() => Promise.all([
+      // 21 Nov 2026: a wallet or a contract that is not a token (the caller's input) came out as "the network's public
+      // nodes did not answer" (502, counted as our failure); it is a 422 now, and a real node failure stays 502.
+      const [supply, decimals, name, symbol] = await Promise.all([
         cl.readContract({ address: token, abi: erc20Abi, functionName: "totalSupply" }) as Promise<bigint>,
         cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }) as Promise<number>,
         (cl.readContract({ address: token, abi: erc20Abi, functionName: "name" }) as Promise<string>).catch(() => null),
         (cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }) as Promise<string>).catch(() => null),
-      ]));
+      ]).catch((e) => { throw tokenReadError(e); });
       return { chain: def(slug).name, token: getAddress(token), name, symbol, decimals: Number(decimals), totalSupply: Number(formatUnits(supply, Number(decimals))), totalSupplyRaw: supply.toString() };
     }),
 

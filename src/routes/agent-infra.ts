@@ -3,12 +3,14 @@
 // Every target goes through parseTarget (no private, loopback or credentialed hosts) and redirects are not followed.
 import { entry, need, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
-import { capBytes, parseTarget } from "../lib/fetch";
+import { capBytes, parseTarget, refuseOwnHost } from "../lib/fetch";
 import { call, runSections } from "./packs";
 import { X402_CHECK } from "./x402-check";
 
 const UA = "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
 async function getCapped(url: URL, init: RequestInit, limit: number) {
+  // Never our own hosts (21 Nov 2026, lib/fetch.ts refuseOwnHost): these checks send up to twenty requests a call.
+  refuseOwnHost(url);
   let res: Response;
   try { res = await fetch(url.href, { ...init, redirect: "manual", signal: AbortSignal.timeout(9_000), headers: { "user-agent": UA, ...(init.headers as Record<string, string> | undefined) } }); }
   catch (e) { throw new HttpError(e instanceof Error && e.name === "TimeoutError" ? 504 : 502, "the server could not be reached or did not answer within 9 seconds"); }

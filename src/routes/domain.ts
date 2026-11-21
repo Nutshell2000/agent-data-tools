@@ -1,4 +1,5 @@
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 const DOH = "https://cloudflare-dns.com/dns-query";
 const RDAP = "https://rdap.org/domain/";
@@ -23,7 +24,7 @@ async function doh(name: string, type: string): Promise<DohResponse> {
     signal: AbortSignal.timeout(6_000),
   });
   if (!res.ok) throw new HttpError(502, `DNS resolver returned ${res.status}`);
-  return res.json();
+  return sourceJson<DohResponse>(res, "the DNS resolver");
 }
 
 const answers = (r: DohResponse, type: number) => (r.Answer ?? []).filter((a) => a.type === type).map((a) => a.data);
@@ -53,7 +54,7 @@ async function rdapRead(url: string): Promise<{ status: number; data: Rdap | nul
     signal: AbortSignal.timeout(6_000),
   });
   if (!res.ok) { await res.body?.cancel().catch(() => {}); return { status: res.status, data: null }; }
-  return { status: res.status, data: (await res.json()) as Rdap };
+  return { status: res.status, data: await sourceJson<Rdap>(res, "the RDAP registry") };
 }
 /** RDAP only knows registrable domains, so strip subdomain labels until one resolves. */
 async function rdapLookup(name: string): Promise<{ domain: string; data: Rdap } | null> {

@@ -20,7 +20,13 @@ param(
   [string]$ProofPath = '/btc-fees',
   [string]$StagingOrigin = 'https://agent-data-tools-staging.revmesh2074.workers.dev',
   [string]$Origin = 'https://agent-data-tools.revmesh2074.workers.dev',
-  [string]$DiscoveryDist = (Join-Path $env:LOCALAPPDATA 'npm-cache\_npx\6af1a5211e496a90\node_modules\@agentcash\discovery\dist\index.js'),
+  # The installed @agentcash/discovery entry point for the read-only discovery check. Empty: looked for by
+  # FindDiscoveryDist below (21 Nov 2026: this used to be one hard-coded npx cache folder name, which is a hash that
+  # changes with the package spec, so the check could silently stop running or run whatever sat in that folder).
+  [string]$DiscoveryDist = '',
+  # The exact agentcash CLI version for the x402scan registration, for example -AgentcashVersion 1.2.3. Empty runs the
+  # newest published version, as before; give a version to run the same code on every release.
+  [string]$AgentcashVersion = '',
   [string]$DataDir = "$env:LOCALAPPDATA\agent-data-tools\release",
   [switch]$Dry,
   [switch]$Resume,
@@ -32,6 +38,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must be x.y.z" }
+if ($AgentcashVersion -and $AgentcashVersion -notmatch '^\d+\.\d+\.\d+$') { throw "AgentcashVersion must be an exact version x.y.z" }
 if (-not (Test-Path $MessageFile)) { throw "MessageFile not found: $MessageFile" }
 $Repo = Split-Path -Parent $PSScriptRoot
 Set-Location $Repo
@@ -72,6 +79,64 @@ function WaitFor([string]$What, [scriptblock]$Done, [int]$CapMinutes = 20) {
   $until = (Get-Date).AddMinutes($CapMinutes)
   while ((Get-Date) -lt $until) { $r = & $Done; if ($r -eq 'ok') { return }; if ($r -eq 'fail') { throw "$What failed" }; Start-Sleep 20 }
   throw "${What}: still pending after $CapMinutes minutes"
+}
+
+# Which new (untracked) files a release commit may take (21 Nov 2026, safety audit). The commit used `git add -A`, which
+# publishes every file in the folder that .gitignore does not name: a key or token file left there would have gone to
+# the public repository. Now: every change to a tracked file is staged, and a new file is staged only when it sits in a
+# folder the repository already tracks and its name does not look like a key, token, wallet or environment file. A new
+# file at the top of the folder is never taken automatically: commit it on the branch yourself before the release.
+# Returns @{ add = <paths to stage>; left = <paths left out> }.
+$SecretLikeFile = '(?i)(^|/)\.env|\.dev\.vars|\.(pem|key|p12|pfx|keystore|jks)$|(^|/)id_(rsa|dsa|ecdsa|ed25519)|wallet[^/]*\.json$|credentials?[^/]*\.json$|service-account[^/]*\.json$|(^|/)\.[^/]*(token|secret|wallet|credential|key)'
+function SelectNewFiles([string[]]$Untracked, [string[]]$TrackedFolders) {
+  $add = @(); $left = @()
+  foreach ($f in $Untracked) {
+    $path = "$f".Trim().Replace('\', '/')
+    if (-not $path) { continue }
+    $folder = ($path -split '/')[0]
+    if ($path -notmatch '/' -or $TrackedFolders -cnotcontains $folder -or $path -match $SecretLikeFile) { $left += $path } else { $add += $path }
+  }
+  return @{ add = $add; left = $left }
+}
+function StageRelease {
+  git add -u
+  $folders = @(git ls-tree -d --name-only HEAD)
+  $untracked = @(git -c core.quotepath=off ls-files --others --exclude-standard)
+  $picked = SelectNewFiles $untracked $folders
+  foreach ($f in $picked.add) { git add -- $f }
+  if ($picked.left.Count) {
+    Write-Host "[warn] $($picked.left.Count) new file(s) were NOT added to the release commit (top-level, in a folder the repository does not track, or named like a secret). Commit the ones that belong on the branch yourself:" -ForegroundColor Yellow
+    foreach ($f in $picked.left) { Write-Host "         $f" -ForegroundColor Yellow }
+  }
+}
+
+# The @agentcash/discovery entry point for the optional discovery check, or $null with the reason printed. Looked for,
+# in this order: the -DiscoveryDist argument, the AGENTCASH_DISCOVERY_DIST environment variable, this checkout's
+# node_modules, the operator's own install beside the release data, and last the npx cache (any folder name; the
+# highest version found there).
+function FindDiscoveryDist {
+  $tail = 'node_modules\@agentcash\discovery\dist\index.js'
+  if ($DiscoveryDist) {
+    if (Test-Path $DiscoveryDist) { return (Resolve-Path $DiscoveryDist).Path }
+    Write-Host "[warn] discovery check skipped: -DiscoveryDist '$DiscoveryDist' does not exist" -ForegroundColor Yellow; return $null
+  }
+  if ($env:AGENTCASH_DISCOVERY_DIST) {
+    if (Test-Path $env:AGENTCASH_DISCOVERY_DIST) { return (Resolve-Path $env:AGENTCASH_DISCOVERY_DIST).Path }
+    Write-Host "[warn] discovery check skipped: AGENTCASH_DISCOVERY_DIST '$($env:AGENTCASH_DISCOVERY_DIST)' does not exist" -ForegroundColor Yellow; return $null
+  }
+  $looked = @((Join-Path $Repo $tail), (Join-Path $env:LOCALAPPDATA "agent-data-tools\agentcash-discovery\$tail"))
+  foreach ($candidate in $looked) { if (Test-Path $candidate) { return $candidate } }
+  $cache = Join-Path $env:LOCALAPPDATA 'npm-cache\_npx'
+  $inCache = @(if (Test-Path $cache) { Get-ChildItem $cache -Directory | ForEach-Object { Join-Path $_.FullName $tail } | Where-Object { Test-Path $_ } | Sort-Object { try { [version](PackageVersionOf $_) } catch { [version]'0.0' } } -Descending })
+  if ($inCache.Count) {
+    Write-Host "[warn] discovery check uses a copy from the npx cache (not a version you installed on purpose): $($inCache[0])" -ForegroundColor Yellow
+    return $inCache[0]
+  }
+  Write-Host "[warn] discovery check skipped: @agentcash/discovery was not found. Looked at: $(($looked + "$cache\*\$tail") -join '; '). Install an exact version (npm install --prefix `"$env:LOCALAPPDATA\agent-data-tools\agentcash-discovery`" @agentcash/discovery@<version>) or pass -DiscoveryDist." -ForegroundColor Yellow
+  return $null
+}
+function PackageVersionOf([string]$EntryPoint) {
+  try { return (Get-Content (Join-Path (Split-Path -Parent (Split-Path -Parent $EntryPoint)) 'package.json') -Raw | ConvertFrom-Json).version } catch { return 'unknown' }
 }
 
 # ---- 0. preconditions ---------------------------------------------------------------------------------------------
@@ -158,7 +223,7 @@ $pr = $existing | Where-Object { $_.state -eq 'OPEN' } | Select-Object -First 1
 $merged = $existing | Where-Object { $_.state -eq 'MERGED' } | Select-Object -First 1
 if (-not $merged) {
   if (-not $pr) {
-    Step 'commit+push' { git add -A; if (git status --porcelain) { git commit -q -F $MessageFile }; git push -q -u origin $branch; 'pushed' } 'pushed'
+    Step 'commit+push' { StageRelease; if (git diff --cached --name-only) { git commit -q -F $MessageFile }; git push -q -u origin $branch; 'pushed' } 'pushed'
     $created = Step 'pr-create' { gh pr create --base main --head $branch --title $title --body-file $MessageFile } 'pull/\d+'
     $pr = [pscustomobject]@{ number = [int]([regex]::Match($created, 'pull/(\d+)').Groups[1].Value) }
   }
@@ -256,7 +321,8 @@ RevertGenerated
 # Every deploy of the core retires the quotes the front holds (their fingerprint carries the version). Ask for them again
 # now, most-bought tools first, so router probes are answered by the front and not by a cold core. Unpaid GETs only.
 Step 'warm-quotes' { node scripts/warm-quotes.mjs $Origin } 'warm-quotes: warmed' -Optional
-if (Test-Path $DiscoveryDist) { Step 'agentcash-discovery-check' { node scripts/check-agent-discovery.mjs $DiscoveryDist } '"readable402":true' -Optional } else { Write-Host "[skip] discovery check: $DiscoveryDist not found" }
+$discoveryEntry = FindDiscoveryDist
+if ($discoveryEntry) { Write-Host "discovery check with @agentcash/discovery $(PackageVersionOf $discoveryEntry) at $discoveryEntry"; Step 'agentcash-discovery-check' { node scripts/check-agent-discovery.mjs $discoveryEntry } '"readable402":true' -Optional }
 if (-not (git ls-remote --tags origin "refs/tags/v$Version")) { Step 'tag' { git tag "v$Version" origin/main; git push -q origin "v$Version"; 'tagged' } 'tagged' } else { Write-Host "tag v$Version exists" }
 Step 'indexnow' { node scripts/indexnow.mjs --changed-since 'origin/main~1' } 'IndexNow' -Optional
 $state.reliability = Step 'reliability' { node scripts/reliability-line.mjs $Origin } -Optional; Save
@@ -274,7 +340,11 @@ function Once([string]$Registry, [scriptblock]$Run, [string]$Expect = '') {
 # registration from 22 to 26 Oct timed out and AgentCash search never indexed the catalog. A local copy with the
 # fetch timeout raised to 15 min (DEFAULT_USER_FETCH_TIMEOUT = 9e5) is used when present.
 $agentcashLong = Join-Path $env:LOCALAPPDATA 'agent-data-tools\agentcash-long\node_modules\agentcash\dist\esm\index.js'
-Once 'x402scan' { if (Test-Path $agentcashLong) { node $agentcashLong register $Origin } else { npx --yes agentcash register $Origin } } '"success":\s*true'
+# 21 Nov 2026 (safety audit): without a version npx downloads and runs whatever is newest on this machine, which holds
+# the deploy and repository credentials. -AgentcashVersion runs one exact version; without it the call is as before.
+$agentcashSpec = if ($AgentcashVersion) { "agentcash@$AgentcashVersion" } else { 'agentcash' }
+if (-not (Test-Path $agentcashLong) -and -not $AgentcashVersion) { Write-Host '[warn] x402scan registration runs the newest agentcash from npm (no version given); pass -AgentcashVersion x.y.z to pin it' -ForegroundColor Yellow }
+Once 'x402scan' { if (Test-Path $agentcashLong) { node $agentcashLong register $Origin } else { npx --yes $agentcashSpec register $Origin } } '"success":\s*true'
 Once 'agent402' { (Invoke-RestMethod -Method Post 'https://agent402.tools/api/index/register' -ContentType 'application/json' -Body (@{ origin = $Origin } | ConvertTo-Json) -TimeoutSec 120 | ConvertTo-Json -Compress -Depth 2) } '"listed":\s*true'
 Once 'zero' { node scripts/register-zero.mjs $Origin } '-> 20\d'
 Once '402index' { $dry = node scripts/register-402index.mjs --dry 2>&1 | Out-String; $dry; if ($dry -match '(\d+) to register' -and [int]$Matches[1] -gt 0) { Start-Process node -ArgumentList 'scripts/register-402index.mjs' -WorkingDirectory $Repo -WindowStyle Hidden; "started background registration of $($Matches[1]) paths" } } 'to register'

@@ -55,10 +55,11 @@ export function analyze(url: string, status: number, header: string | null, body
   const accepts = (required.accepts as unknown[]).map((raw) => {
     const a = obj(raw);
     const network = str(a.network) ?? "";
-    const caip = V1_NETWORKS[network] ?? network;
+    // 21 Nov 2026: the network and asset names come from the seller's own 402 answer, so both tables are read with Object.hasOwn.
+    const caip = Object.hasOwn(V1_NETWORKS, network) ? V1_NETWORKS[network] : network;
     const atomic = str(a.amount) ?? str(a.maxAmountRequired);
     const asset = (str(a.asset) ?? "").toLowerCase();
-    const isUsdc = Boolean(asset) && USDC[caip] === asset;
+    const isUsdc = Boolean(asset) && Object.hasOwn(USDC, caip) && USDC[caip] === asset;
     return {
       scheme: str(a.scheme), network: caip || null, asset: str(a.asset), payTo: str(a.payTo), amountAtomic: atomic,
       priceUsd: isUsdc && atomic && /^\d+$/.test(atomic) ? Number(atomic) / 1e6 : null, assetIsNativeUsdc: isUsdc,
@@ -106,7 +107,7 @@ export const X402_CHECK: Entry[] = [
     async (env, q) => {
       const target = parseTarget(q("url"));
       const res = isSelfHost(env, target.hostname) && env.SELF
-        ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" } })
+        ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8_000) }) // 21 Nov 2026: the one fetch here without a time limit
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
       return analyze(target.href, res.status, res.headers.get("payment-required"), body);
@@ -130,7 +131,7 @@ export const X402_CHECK: Entry[] = [
     async (env, q) => {
       const target = parseTarget(q("url"));
       const res = isSelfHost(env, target.hostname) && env.SELF
-        ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" } })
+        ? await env.SELF.fetch(target.href, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8_000) }) // 21 Nov 2026: the one fetch here without a time limit
         : await fetchPublic(target, "application/json", [402]);
       const body = res.body ? await new Response(capBytes(res.body, 262_144, () => {})).text() : "";
       const terms = analyze(target.href, res.status, res.headers.get("payment-required"), body);

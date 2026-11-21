@@ -94,8 +94,9 @@ export const DEFI_YIELDS: Entry[] = [
       const key: Record<string, (p: Pool) => number> = { apy: (p) => p.apy ?? -Infinity, tvl: (p) => p.tvlUsd, apymean30d: (p) => p.apyMean30d ?? -Infinity };
       if (!Object.hasOwn(key, sort)) throw new HttpError(400, "sort must be apy, tvl or apyMean30d");
       const limit = num(q, "limit", { min: 1, max: 50, fallback: 20, integer: true });
+      // 21 Nov 2026: read with Object.hasOwn, so a prototype name (constructor, toString) sent as the value is not found in the table.
       const rows = filterPools(await pools(), {
-        chains: anyOf(opt(q, "chain", 200)).map((c) => LLAMA_CHAIN[c] ?? c), projects: anyOf(opt(q, "project", 200)), symbol: opt(q, "symbol", 40)?.toLowerCase(),
+        chains: anyOf(opt(q, "chain", 200)).map((c) => (Object.hasOwn(LLAMA_CHAIN, c) ? LLAMA_CHAIN[c] : c)), projects: anyOf(opt(q, "project", 200)), symbol: opt(q, "symbol", 40)?.toLowerCase(),
         stable: flag(q, "stablecoin"), noIl: flag(q, "noIl"), single: flag(q, "single"),
         minTvl: num(q, "minTvl", { min: 0, max: 1e13, fallback: 1_000_000 }), minApy: num(q, "minApy", { min: -100, max: 1e6, fallback: 0 }),
         maxApy: num(q, "maxApy", { min: 0, max: 1e7, fallback: 1_000 }), includeOutliers: false,

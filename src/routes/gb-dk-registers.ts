@@ -9,6 +9,7 @@
  *   (they are named after a person), and beneficial-owner data (closed since 1 Sep 2025) is never asked for.
  * Register facts only: no score, rating or opinion on creditworthiness, the same line as /se/company.
  */
+import { jsonCapped } from "../lib/read-capped";
 import { HttpError, type Env } from "../lib/env";
 import { rankByName } from "./cz-ee-company";
 
@@ -50,7 +51,8 @@ export async function gbSearch(key: string, name: string, limit: number, fetcher
   if (r.status === 404) return { matches: [] };
   if (r.status === 429) throw new HttpError(503, "Companies House is busy (rate limit); try again in a minute");
   if (!r.ok) throw new HttpError(502, `Companies House answered HTTP ${r.status}`);
-  return { matches: gbMatches(await r.json(), name, limit) };
+  // At most 50 short rows are asked for; 2 MB is the most that is read (21 Nov 2026).
+  return { matches: gbMatches(await jsonCapped(r, 2_000_000), name, limit) };
 }
 
 const DK_FIELDS = ["cvrNummer", "nyesteNavn.navn", "nyesteVirksomhedsform.langBeskrivelse", "nyesteBeliggenhedsadresse.postdistrikt", "sammensatStatus"];
@@ -77,14 +79,32 @@ export function dkMatches(body: unknown, query: string, limit: number): Register
   return activeFirst(rows, query).slice(0, limit);
 }
 
+const DK_SEARCH_PATH = "distribution.virk.dk/cvr-permanent/virksomhed/_search";
+/**
+ * 21 Nov 2026: the search goes out over https. The register documents the http address, and that is what was used:
+ * the account's name and password crossed the network readable by anyone on the path. http stays only as the second
+ * try, and only when the https connection itself cannot be made (a thrown network error, not a timeout and not any
+ * HTTP answer): whether the register's host accepts https from the platform has not been confirmed from a deployment,
+ * and a search that worked must not stop working. The warning in the log says when the fallback was taken, so it can
+ * be removed once it is seen never to be.
+ */
 export async function dkSearch(user: string, password: string, name: string, limit: number, fetcher: typeof fetch = fetch) {
-  const r = await fetcher("http://distribution.virk.dk/cvr-permanent/virksomhed/_search", {
+  const init = () => ({
     method: "POST", body: JSON.stringify(dkQuery(name, Math.min(50, limit * 4))),
     headers: { authorization: `Basic ${btoa(`${user}:${password}`)}`, "content-type": "application/json", accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(8_000),
   });
+  let r: Response;
+  try {
+    r = await fetcher(`https://${DK_SEARCH_PATH}`, init());
+  } catch (e) {
+    const name_ = e instanceof Error ? e.name : "";
+    if (name_ === "TimeoutError" || name_ === "AbortError") throw e;
+    console.warn("CVR register: the https connection failed, falling back to http");
+    r = await fetcher(`http://${DK_SEARCH_PATH}`, init());
+  }
   if (r.status === 401 || r.status === 403) throw new HttpError(503, "the Danish CVR register refused our credentials");
   if (!r.ok) throw new HttpError(502, `the Danish CVR register answered HTTP ${r.status}`);
-  return { matches: dkMatches(await r.json(), name, limit) };
+  return { matches: dkMatches(await jsonCapped(r, 2_000_000), name, limit) };
 }
 
 /** The searchers whose credentials are set on this deployment (none on a deployment without the secrets). */

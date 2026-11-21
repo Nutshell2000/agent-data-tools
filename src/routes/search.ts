@@ -293,7 +293,7 @@ export function similarQuery(page: { title?: string | null; description?: string
 export const SEARCH: Entry[] = [
   entry("/search", "Web search API with contents: Exa-style search, filters, page text and highlights",
     "Exa-style web search: top 1-20 results with title, URL, snippet, published date and favicon (Brave index); optional domain, date, category and phrase filters; optional live page text, highlights and AI summaries of the top 10 pages. Results are for immediate use only: no storing, resale or model training (Brave API terms). Failures return 503, uncharged. Use when an agent needs current information or sources from the open web.",
-    ["web-search", "search-api", "exa-search", "search", "web", "research", "rag", "neural-search"], {
+    ["web-search", "search-api", "exa-search", "search", "web", "research", "rag"], {
       q: { type: "string", description: "Search query, at most 400 characters", required: true, example: "x402 payment protocol" },
       count: { type: "integer", description: "Number of results (1-20, default 10)", example: 10 },
       ...SEARCH_PARAMS,

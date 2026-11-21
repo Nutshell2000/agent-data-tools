@@ -399,7 +399,7 @@ export const TRUST: Entry[] = [
       if (resource) {
         try {
           const url = new URL(resource);
-          const data = await getJson<{ resources?: { resource?: string; accepts?: { amount?: string }[] }[] }>(
+          const data = await getJson<{ resources?: { resource?: string; accepts?: { amount?: string; payTo?: string }[] }[] }>(
             `https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?${new URLSearchParams({ query: url.pathname, limit: "20" })}`, { timeoutMs: 8_000 });
           // Same host AND path (21 Nov 2026): the path alone matched any seller's listing with that path, so another
           // seller's price could be reported as this resource's advertised price.
@@ -408,7 +408,12 @@ export const TRUST: Entry[] = [
           if (!hit) { errors.push("no Bazaar listing found for that resource"); }
           else {
             const atomic = hit.accepts?.[0]?.amount ?? null;
-            listing = { url: hit.resource, advertisedPrice: atomic ? String(Number(atomic) / 1e6) : null, matchesReceipt: atomic === receipt.amountAtomic, checkedAt: new Date().toISOString() };
+            // The receipt matches a listing only when the money went to a wallet that listing pays (safety audit, 21 Nov
+            // 2026). The amount alone matched any payment of the same size to anybody, so a caller could name a
+            // resource and get "matchesReceipt: true" signed for a payment that was never made for it.
+            const paysListing = receiptPaysListing(hit.accepts ?? [], receipt.amountAtomic, String(receipt.payee));
+            if (atomic === receipt.amountAtomic && !paysListing) errors.push("the amount equals the listing's price, but the payment went to a wallet this listing does not pay, so it is not shown as a match");
+            listing = { url: hit.resource, advertisedPrice: atomic ? String(Number(atomic) / 1e6) : null, matchesReceipt: paysListing, checkedAt: new Date().toISOString() };
           }
         } catch (e) { errors.push(`listing check failed: ${String(e).slice(0, 80)}`); }
       } else errors.push("no resource supplied, so no listing price could be checked");
@@ -430,4 +435,9 @@ export const TRUST: Entry[] = [
     "$0.01"),
 ];
 
-export const __test = { payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW, CHAIN_SLUGS };
+/** True when one of a listing's terms has this amount AND pays this wallet (letter case of the address ignored). */
+export function receiptPaysListing(accepts: readonly { amount?: string; payTo?: string }[], amountAtomic: string, payee: string): boolean {
+  return accepts.some((a) => a.amount === amountAtomic && typeof a.payTo === "string" && a.payTo.toLowerCase() === payee.toLowerCase());
+}
+
+export const __test = { receiptPaysListing, payoutVerdict, declaredWallets, canonicalJson, scanInflows, SCAN_WINDOW, CHAIN_SLUGS };

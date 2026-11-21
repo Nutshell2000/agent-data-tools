@@ -25,7 +25,9 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 // Named to match the .gitignore pattern for seeding files, so the key can never be committed.
 const WALLET_FILE = new URL("../.seed-bazaar-wallet.json", import.meta.url);
 if (process.argv[2] === "wallet") {
-  if (!existsSync(WALLET_FILE)) writeFileSync(WALLET_FILE, JSON.stringify({ note: "Bazaar seeding buyer wallet (Base mainnet). Fund with about 1 USDC; never commit.", key: generatePrivateKey() }));
+  if (!existsSync(WALLET_FILE)) writeFileSync(WALLET_FILE, JSON.stringify({ note: "Bazaar seeding buyer wallet (Base mainnet). Fund with about 1 USDC; never commit.", key: generatePrivateKey() }),
+    // 21 Nov 2026: "wx" never writes over an existing wallet (its key would be lost with the money on it); 0o600 keeps it to this user where the system supports that.
+    { flag: "wx", mode: 0o600 });
   console.log(privateKeyToAccount(JSON.parse(readFileSync(WALLET_FILE, "utf8")).key).address);
   process.exit(0);
 }
@@ -37,7 +39,8 @@ const NETWORK = process.env.SEED_NETWORK ?? "eip155:8453";
 const BASE_USDC = (process.env.SEED_USDC ?? "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913").toLowerCase();
 if (ORIGIN.includes("staging") !== (NETWORK !== "eip155:8453")) throw new Error("staging origin needs SEED_NETWORK=eip155:84532 and SEED_USDC; production takes no overrides");
 const DISCOVERY = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources";
-const UA = "agent-data-tools-seed/1.0";
+// With a contact address since 21 Nov 2026, so the outside services this asks can see who is calling.
+const UA = "agent-data-tools-seed/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);

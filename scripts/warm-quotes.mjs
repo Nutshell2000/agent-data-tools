@@ -14,6 +14,7 @@
 //   node scripts/warm-quotes.mjs [origin] [--limit N] [--concurrency N] [--dry]
 import { build } from "esbuild";
 import { createRequire } from "node:module";
+import { countAnswer, countUrl, newTally, summaryLine } from "./warm-quotes-tally.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
@@ -58,25 +59,31 @@ const work = plan.slice(0, limit);
 if (dry) { console.log(`warm-quotes (dry): ${work.length} URLs, ${work.reduce((n, [, t]) => n + t, 0)} requests, first: ${work.slice(0, 5).map(([u]) => u).join(" ")}`); process.exit(0); }
 
 const HEADERS = { accept: "application/json", "user-agent": "agent-data-tools-release-warm/1" };
-const tally = { asked: 0, quoted: 0, fromFront: 0, other: 0, failed: 0 };
+// Requests and URLs are counted apart (21 Nov 2026): an example URL is asked twice, so the old line added both
+// requests to "warmed" and printed "warmed 860 of 830 URLs". A URL is warmed when its last request got a 402 quote.
+const tally = newTally();
 const oddities = [];
+/** One request; true when it was answered with a 402 quote. */
 async function ask(url) {
   try {
     const res = await fetch(url, { headers: HEADERS, redirect: "manual", signal: AbortSignal.timeout(20_000) });
     await res.arrayBuffer();
-    tally.asked++;
-    if (res.status === 402) { tally.quoted++; if (res.headers.get("x-quote-front") === "hit") tally.fromFront++; }
-    else { tally.other++; if (oddities.length < 12) oddities.push(`${res.status} ${url}`); }
+    const kind = countAnswer(tally, res.status, res.headers.get("x-quote-front"));
+    if (kind === "other" && oddities.length < 12) oddities.push(`${res.status} ${url}`);
+    return kind === "quoted";
   } catch (e) {
-    tally.failed++;
+    countAnswer(tally, null, null);
     if (oddities.length < 12) oddities.push(`failed ${url}: ${String(e).slice(0, 80)}`);
+    return false;
   }
 }
 let next = 0;
 await Promise.all(Array.from({ length: concurrency }, async () => {
   while (next < work.length) {
     const [url, times] = work[next++];
-    for (let i = 0; i < times; i++) await ask(url);
+    let quoted = false;
+    for (let i = 0; i < times; i++) quoted = await ask(url);
+    countUrl(tally, quoted);
   }
 }));
 
@@ -91,5 +98,5 @@ for (const path of check) {
   } catch { /* counted as a miss */ }
 }
 for (const line of oddities) console.log(`  note: ${line}`);
-console.log(`warm-quotes: warmed ${tally.quoted} of ${work.length} URLs (${tally.asked} requests, ${tally.fromFront} already from the front, ${tally.other} not a 402, ${tally.failed} failed); front answers ${hits}/${check.length} of the top tools`);
+console.log(`${summaryLine(tally, work.length)}; front answers ${hits}/${check.length} of the top tools`);
 // Storing is an optimisation: a cold front is slower, not broken, so this step never fails a release.

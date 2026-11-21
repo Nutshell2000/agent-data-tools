@@ -7,7 +7,7 @@ import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
 import { EDGE_RPCS, LOG_RPCS, erc20Abi, logTransport, requestClient, rpcUrls } from "../lib/rpc";
-import { tokenAddress } from "../lib/tickers";
+import { TICKERS, coinIdTicker, tokenAddress } from "../lib/tickers";
 import { fetchFile } from "../lib/fetch";
 
 interface ChainDef {
@@ -106,6 +106,28 @@ export async function rpc<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Whether a failed token read failed at the node (time-out, HTTP error, rate limit) rather than in the contract.
+ * 21 Nov 2026: token-balance and token-info answered every failure of their reads as 422 "this contract does not behave
+ * like an ERC-20 token", so a node outage told the caller that a good token (USDC itself) was not a token, and the
+ * outage was counted as the caller's mistake. A revert or an answer that cannot be decoded is still the contract's.
+ */
+export function nodeFailed(e: unknown): boolean {
+  const seen: { name?: string; message?: string }[] = [];
+  for (let at = e as { name?: string; message?: string; cause?: unknown } | undefined, i = 0; at && typeof at === "object" && i < 8; at = at.cause as typeof at, i++) seen.push(at);
+  if (seen.some((x) => /revert|returned no data|out of gas|invalid opcode|invalid jump|stack (under|over)flow|bad instruction|vm exception/i.test(String(x.message ?? "")) || /Reverted|ZeroData|AbiDecoding/.test(String(x.name ?? "")))) return false;
+  return seen.some((x) => /^(HttpRequestError|TimeoutError|WebSocketRequestError|SocketClosedError|UnknownNodeError)$|RpcError$|RpcRequestError$/.test(String(x.name ?? "")));
+}
+/** The refusal for a token whose ERC-20 reads failed: 502 when the node failed, else the contract is not an ERC-20 token (422). */
+export const tokenReadError = (e: unknown) => e instanceof HttpError ? e : nodeFailed(e)
+  ? new HttpError(502, "the network's public nodes did not answer; try again")
+  : new HttpError(422, "this contract does not behave like an ERC-20 token");
+/**
+ * No contract at the token address. 21 Nov 2026: "no contract at this address on this network" did not say which input
+ * was wrong (these tools take a token and one or two wallets) or why an address that is a token elsewhere fails here.
+ */
+const noTokenContract = (network: string) => new HttpError(404, `token: no contract at this address on ${network}; a token has a different contract address on each network, so pass its address on ${network} or a ticker such as USDC`);
+
 const address = (v: string | undefined, name = "address") => {
   const a = v?.trim();
   if (!a || !isAddress(a)) throw new HttpError(400, `${name} must be a 0x address (40 hex characters)`);
@@ -143,7 +165,16 @@ const fmtBlocks = (n: number) => n.toLocaleString("en-US");
 const tokenInput = (v: string | undefined, slug: string) => {
   const t = v?.trim();
   if (!t) throw new HttpError(400, "token is required: a ticker such as USDC or a 0x token contract address");
-  return /^0x/i.test(t) ? address(t, "token") : tokenAddress(t, slug);
+  if (/^0x/i.test(t)) return address(t, "token");
+  // 21 Nov 2026: the ticker table (lib/tickers.ts) covers Base, Ethereum, Arbitrum, Optimism and Polygon only, so on the
+  // thirteen later networks token=USDC was refused although every token tool there offers tickers and publishes USDC
+  // as its example. USDC is the one token checked on each of them (the `USDC` table below); any other ticker is told so.
+  if (!Object.hasOwn(TICKERS, slug) && Object.hasOwn(USDC, slug)) {
+    const ticker = t.replace(/^\$(?=[A-Za-z])/, "");
+    if ((coinIdTicker(ticker) ?? ticker.toUpperCase()) === "USDC") return USDC[slug];
+    throw new HttpError(400, `"${ticker.slice(0, 20)}" is not a 0x token address, and USDC is the only ticker known on this network; pass the token's 0x address`);
+  }
+  return tokenAddress(t, slug);
 };
 const txHash = (v: string | undefined) => {
   const h = v?.trim();
@@ -238,12 +269,12 @@ function chainEntries(c: ChainDef): Entry[] {
         const cl = client(env, c);
         // Same rule as token-info: no code is 404; a contract that cannot answer ERC-20 reads is 422.
         const code = await rpc(() => cl.getCode({ address: token }));
-        if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
-        const [raw, decimals, symbol] = await rpc(() => Promise.all([
+        if (!code || code === "0x") throw noTokenContract(c.name);
+        const [raw, decimals, symbol] = await Promise.all([
           cl.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [a] }),
           cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }),
           cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
-        ])).catch(() => { throw new HttpError(422, "this contract does not behave like an ERC-20 token"); });
+        ]).catch((e) => { throw tokenReadError(e); });
         return head({ token, symbol, decimals: Number(decimals), address: a, raw: raw.toString(), balance: formatUnits(raw, Number(decimals)) });
       }),
 
@@ -255,13 +286,13 @@ function chainEntries(c: ChainDef): Entry[] {
         const token = tokenInput(q("token"), c.slug);
         const cl = client(env, c);
         const code = await rpc(() => cl.getCode({ address: token }));
-        if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
-        const [name, symbol, decimals, supply] = await rpc(() => Promise.all([
+        if (!code || code === "0x") throw noTokenContract(c.name);
+        const [name, symbol, decimals, supply] = await Promise.all([
           cl.readContract({ address: token, abi: erc20Abi, functionName: "name" }).catch(() => null),
           cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
           cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }),
           cl.readContract({ address: token, abi: erc20Abi, functionName: "totalSupply" }),
-        ])).catch(() => { throw new HttpError(422, "this contract does not behave like an ERC-20 token"); });
+        ]).catch((e) => { throw tokenReadError(e); });
         return head({ token, name, symbol, decimals: Number(decimals), totalSupply: formatUnits(supply, Number(decimals)), totalSupplyRaw: supply.toString() });
       }),
 
@@ -797,7 +828,7 @@ function contractEntries(c: ChainDef): Entry[] {
         const owner = address(q("owner"), "owner");
         const spender = address(q("spender"), "spender");
         const cl = client(env, c);
-        await needCode(cl, token);
+        await needCode(cl, token).catch((e) => { throw e instanceof HttpError && e.status === 404 ? noTokenContract(c.name) : e; });
         const [raw, decimals, symbol] = await Promise.all([
           contractRead(() => cl.readContract({ address: token, abi: allowanceAbi, functionName: "allowance", args: [owner, spender] }), "this contract does not behave like an ERC-20 token"),
           contractRead(() => cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }), "this contract does not behave like an ERC-20 token"),

@@ -2,6 +2,7 @@
 // API; the owner approved this tool on 2026-10-20). Funding, open interest and volume are the most-paid derivatives data.
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson, unreadableSource } from "../lib/source-json";
 
 type Universe = { name: string; maxLeverage: number; isDelisted?: boolean }[];
 type Ctx = { funding: string; openInterest: string; prevDayPx: string; dayNtlVlm: string; premium: string | null; oraclePx: string; markPx: string; midPx: string | null };
@@ -19,7 +20,9 @@ async function markets() {
     throw new HttpError(502, "Hyperliquid did not answer in time; try again");
   }
   if (!res.ok) throw new HttpError(502, `Hyperliquid answered HTTP ${res.status}; try again`);
-  const [meta, ctxs] = (await res.json()) as [{ universe: Universe }, Ctx[]];
+  const answer = await sourceJson<[{ universe: Universe }, Ctx[]]>(res, "Hyperliquid");
+  if (!Array.isArray(answer) || !Array.isArray(answer[0]?.universe) || !Array.isArray(answer[1])) throw unreadableSource("Hyperliquid");
+  const [meta, ctxs] = answer;
   snapshot = { at: Date.now(), universe: meta.universe, ctxs };
   return snapshot;
 }
@@ -34,7 +37,7 @@ export async function info<T>(body: Record<string, unknown>): Promise<T> {
   }
   if (res.status === 422 || res.status === 400) throw new HttpError(404, "Hyperliquid has no market for that coin");
   if (!res.ok) throw new HttpError(502, `Hyperliquid answered HTTP ${res.status}; try again`);
-  return (await res.json()) as T;
+  return sourceJson<T>(res, "Hyperliquid");
 }
 
 /** Coin names agents send instead of the ticker (24 Oct 2026: "Bitcoin", "ETH-PERP", "ETHUSDT" were refused). */

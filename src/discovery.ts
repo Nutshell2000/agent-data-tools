@@ -8,7 +8,7 @@ import { vatPagePaths } from "./lib/vat-pages";
 import { LEXGLYPH_PATH } from "./lib/lexglyph-page";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
-import { TOOL_COUNT } from "./endpoints";
+import { LOWEST_PRICE, TOOL_COUNT, USUAL_PRICE } from "./endpoints";
 import { SERVICE_BRAND } from "./lib/public-brand";
 import { serviceIconUrl } from "./lib/public-site";
 import { ENDPOINTS, EXTRA_LINKS, GUIDANCE, PAUSED_FAMILY_TOOLS, SERVICE_ICON_URL, SERVICE_ID, SERVICE_NAME, SERVICE_SUMMARY, SUPPORT_EMAIL, exampleParams, toolSlug, type Endpoint } from "./endpoints";
@@ -18,7 +18,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.327.0";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.328.0";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -190,7 +190,7 @@ function endpointSpendCap(path: string) {
  * The per-payment cap in the published client example: the ordinary per-call price, which most tools charge.
  * An example capped at the cheapest tool's price would make an agent that copies it refuse almost every tool.
  */
-export const ORDINARY_PRICE = "$0.01";
+export const ORDINARY_PRICE = USUAL_PRICE;
 const atomicOf = (price: string) => {
   const match = /^\$(\d+)(?:\.(\d{1,6}))?$/.exec(price);
   if (!match) throw new Error(`Cannot express ${price} as six-decimal USDC`);
@@ -390,7 +390,7 @@ const GOOGLE_SITE_VERIFICATION = "HeQjGo464TFyKSavKXvOaOF3C2o62GLeO5XySvLiHco";
 /** What a tool does first, then its fine print: directories and agents read the opening words to pick a tool. */
 export const fullDescription = (e: Pick<Endpoint, "description"> & { details?: string }) => e.details ? `${e.description} Details: ${e.details}` : e.description;
 
-export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${TOOL_COUNT} tools, 25 free calls, then from $0.002`;
+export const PAGE_TITLE = `${SERVICE_NAME}: token prices, wallet and chain data, OFAC sanctions screening, web and PDF reading. ${TOOL_COUNT} tools, ${FREE_CALLS_PER_CALLER} free calls over MCP, then from ${LOWEST_PRICE}`;
 
 /**
  * One-click installs of the MCP server: Cursor and VS Code deep links (each opens the editor's own "add server"
@@ -485,7 +485,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <p><strong>APIs for developers, by monthly plan or pay as you go:</strong> ${PRODUCTS.map((p) => `<a href="/${p.slug}">${esc(p.name)}</a>`).join(" · ")}</p>
 ${firstCallHtml(origin, trialsEnabled)}
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
-<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first 25 successful calls are free, and failed calls never count.
+<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first ${FREE_CALLS_PER_CALLER} successful calls are free, and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
 Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). To pay per call from your own wallet with no account, start <code>npx -y agent-data-tools mcp</code> with <code>AGENT_DATA_TOOLS_WALLET_KEY</code> set (USDC on Base, $0.10 a call and $1 a day at most by default); for the Vercel AI SDK, <code>agent-data-tools/ai-sdk</code>: <a href="/guides/ai-sdk">AI SDK and wallet guide</a>. These connect the compact server, <code>${esc(install.url)}</code>: three tools that find, describe and run any tool in the catalog at the same prices, so your assistant's context stays small. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. For every tool as its own definition, connect <code>${esc(install.full)}</code>, or one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
@@ -506,7 +506,7 @@ ${rows}
     <p><strong>No crypto wallet? Pay by card.</strong> <a href="/credits">Buy prepaid credits</a> ($1, $5, $20 or $100) and get an API key; send it as <code>Authorization: Bearer adt_…</code> on any call or on the MCP server, or as <code>api_key=adt_…</code> in the URL when your client can only fetch a URL. Same prices, failed calls refunded.</p>
 
 <h2>Advanced TypeScript client</h2>
-<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Most tools cost $0.01; a few cost up to ${TOP_PRICE}, so raise the cap to call those.</p>
+<p>Install with <code>npm install @x402/fetch @x402/evm viem</code> and <code>npm install --save-dev typescript tsx @types/node</code>. Save this as <code>client.ts</code> and run <code>npx tsx client.ts</code>. It reads the private key only from the environment, pins Base, this service's recipient and Base USDC, and caps spend at the <code>/extract</code> price. It does not request a free trial. Most tools cost ${ORDINARY_PRICE}; a few cost up to ${TOP_PRICE}, so raise the cap to call those.</p>
 <pre class="client-example"><code>${esc(clientExample)}</code></pre>
 
 <p class="note">Agent Data Tools is a service of <a href="/about">SpellzCode</a>, Sweden · <a href="/status">Status</a> · <a href="/changelog">Changelog</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></p>

@@ -84,8 +84,8 @@ export async function snapshot<T>(env: Env, key: string): Promise<Snapshot<T>> {
 const NOTE = "Monthly averages of the interest paid on outstanding securities, not today's market yields.";
 
 export const TREASURY: Entry[] = [
-  entry("/econ/national-debt", "US national debt, Treasury data: total public debt outstanding today and its change",
-    "US national debt from the Treasury's Debt to the Penny dataset: total public debt outstanding, debt held by the public and intragovernmental holdings (USD) at the latest record date, the change over 1 day, 30 days and 1 year, and a daily history (1-365 days). US federal data, public domain; the snapshot's record date is in the answer. Use when an agent needs the current US federal debt figure, its trend, or a daily series for a chart or brief.",
+  entry("/econ/national-debt", "US national debt, Treasury data: total public debt outstanding at the latest record date and its change",
+    "US national debt from the Treasury's Debt to the Penny dataset: total public debt outstanding, debt held by the public and intragovernmental holdings (USD) at the latest record date, the change over 1 day, 30 days and 1 year, and a daily history (1-365 days). US federal data, public domain; the snapshot's record date is in the answer. Use when an agent needs the latest US federal debt record, its trend, or a daily series for a chart or brief.",
     ["national-debt", "us-national-debt", "treasury", "public-debt", "fiscal-data", "us-economy", "macro"],
     { days: { type: "integer", description: "Days of daily history to return, 1-365 (default 30)", example: 30 } },
     {

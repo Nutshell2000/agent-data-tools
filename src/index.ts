@@ -46,6 +46,10 @@ import { prefersHtml } from "./lib/negotiate";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { alignAccepted, differsNote } from "./lib/accepted-terms";
 import { parseBody, unwrapBody } from "./lib/post-body";
+import { claimV2Payment } from "./lib/v2-claim";
+import { decodePaymentRequiredHeader, encodePaymentRequiredHeader } from "@x402/core/http";
+/** The reason a v2 client reads when its payment is already running another call or was settled. */
+const PAYMENT_IN_USE = "this payment is already in use or was already settled; sign a new payment";
 import { plainToolPath, rejoinedTargetUrl } from "./lib/target-url";
 /** Tools whose `url` input is used exactly as sent: the URL-safety pack and its entry path are never changed. */
 const TARGET_URL_AS_SENT: ReadonlySet<string> = new Set(["/pack/url-safety", "/url/safety-check"]);
@@ -116,6 +120,8 @@ import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 import { allowedValue } from "./family";
 import { isUpstreamFailure } from "./lib/env";
+import { withSafetyHeaders } from "./lib/response-headers";
+import { beaconed } from "./lib/page-beacon";
 
 const app = new Hono<{ Bindings: Env }>();
 const PAID_PATHS = new Set([...ENDPOINTS.map((e) => e.path), ...BUY_PATHS]);
@@ -161,6 +167,25 @@ app.use(async (c, next) => {
     c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
     c.res.headers.set("X-Quote-Release", releaseStamp.value);
   }
+});
+
+// Browser safety headers (21 Nov 2026, safety audit): pages could be framed by another site and carried no nosniff or
+// referrer rule. Adds only what a route did not set itself, and never touches status, body or payment headers
+// (lib/response-headers.ts holds the whole rule and the reasons).
+app.use(async (c, next) => {
+  await next();
+  const safe = withSafetyHeaders(c.res);
+  if (safe !== c.res) { c.res = undefined as never; c.res = safe; }
+});
+
+// The visit beacon on every page for people (21 Nov 2026, lib/page-beacon.ts): the receiver below had been live for
+// five days and no page called it, so real visitors were never counted. Added here, to the finished page, so no page
+// builder has to carry it. Only a 200 HTML answer to a GET is touched; everything else passes through unchanged.
+app.use(async (c, next) => {
+  await next();
+  if (c.req.method !== "GET") return;
+  const page = await beaconed(c.res, c.req.path);
+  if (page !== c.res) { c.res = undefined as never; c.res = page; }
 });
 
 // Cookieless measurement on Analytics Engine (lib/beacon.ts): the /e beacon, MCP client names, AI-crawler reads, and a
@@ -556,23 +581,55 @@ app.use(async (c, next) => {
   // (lib/quote-cache.ts). Anything with a payment, a key, a free-call request or a browser gets no key and goes on below.
   const quoteKey = endpoint ? quoteCacheKey(c.env, MCP_SERVER_VERSION, c.req.method, c.req.url, (name) => c.req.header(name)) : undefined;
   let answer = quoteKey ? await readQuote(quoteKey) : undefined;
+  // One signed v2 payment runs one call at a time (lib/v2-claim.ts): claimed here, before the library verifies and the
+  // tool runs, and released below whenever nothing was settled.
+  const v2Claim = endpoint && !answer ? await claimV2Payment(c.env, c.req.header("payment-signature")) : undefined;
+  if (v2Claim?.taken) {
+    markStage("verification_failed");
+    console.warn(`x402 v2 payment already in use ${c.req.path}`);
+    // The ordinary quote for this request, saying why the payment was not taken.
+    const headers = new Headers(c.req.raw.headers);
+    for (const name of ["payment-signature", "x-payment", ALIGNED_HEADER]) headers.delete(name);
+    const quote = await app.fetch(new Request(c.req.url, { method: "GET", headers }), c.env, c.executionCtx);
+    const refused = new Response(quote.body, quote);
+    try {
+      const required = decodePaymentRequiredHeader(quote.headers.get("payment-required") ?? "");
+      refused.headers.set("PAYMENT-REQUIRED", encodePaymentRequiredHeader({ ...required, error: PAYMENT_IN_USE } as never));
+    } catch { /* the quote is still a valid 402 */ }
+    refused.headers.set("Cache-Control", "no-store");
+    return refused;
+  }
   if (!answer) {
   let ran = false;
   const tool = () => { ran = true; return next(); };
   const single = !paywall && endpoint && !endpoint.path.startsWith("/buy/") && gatewayRequests++ < coldSingleRoutes(c.env);
   let candidate = paywall ?? buildPaywall(c.env, single ? endpoint : undefined);
-  let result = await candidate(c, tool);
+  let result: Awaited<ReturnType<typeof candidate>>;
+  try {
+    result = await candidate(c, tool);
+  } catch (e) {
+    await v2Claim?.release();
+    throw e;
+  }
   if (!ran && gatewayFailed(result)) {
     console.error(`paywall start-up failed on ${c.req.path}; retrying on a fresh gateway`);
     paywall = undefined;
     candidate = buildPaywall(c.env);
-    result = await candidate(c, tool);
+    try {
+      result = await candidate(c, tool);
+    } catch (e) {
+      await v2Claim?.release();
+      throw e;
+    }
     if (!ran && gatewayFailed(result)) {
+      await v2Claim?.release();
       return c.json({ error: "payment terms could not be prepared just now; nothing was charged, retry in a few seconds", code: "PAYWALL_UNAVAILABLE" }, 503, { "Retry-After": "5", "Cache-Control": "no-store" });
     }
   }
   if (!single && c.res.status < 500 && !gatewayFailed(result)) paywall ??= candidate;
   const response = result instanceof Response ? result : c.res;
+  // Nothing was settled (refused payment, failed tool, failed settlement): the same payment may be sent again.
+  if (v2Claim && !(response.status < 400 && response.headers.has("payment-response"))) await v2Claim.release();
   // A signed v2 request answered 402 is a refused payment. The hooks in lib/payments.ts cover facilitator
   // rejections; anything else (no matching terms, unreadable header) is refused by the library before verify.
   if (response.status === 402 && c.req.header("payment-signature")) {
@@ -637,7 +694,7 @@ for (const [path, reason] of Object.entries(PAUSED_FAMILY_TOOLS)) {
     if (!successor) return c.json({ code: "TOOL_PAUSED", error: reason + " This request was not charged." }, 503);
     const url = new URL(c.req.url);
     for (const [name, value] of Object.entries(successor.add ?? {})) if (!url.searchParams.has(name)) url.searchParams.set(name, value);
-    return c.json({ code: "TOOL_MOVED", movedTo: successor.to, error: `${successor.note} This request was not charged.` }, 308, { Location: `${successor.to}${url.search}` });
+    return c.json({ code: "TOOL_MOVED", movedTo: successor.to, error: `${successor.note} This request was not charged.` }, 308, { Location: `${successor.to}${url.search}`, "Cache-Control": "no-store" });
   });
 }
 
@@ -734,7 +791,7 @@ app.get("/", async (c) =>
   // stays at /agents. Programs always get the JSON service card.
   prefersHtml(c.req.header("accept"), c.req.header("user-agent"))
     ? c.html(c.env.PUBLIC_BRAND?.trim()
-      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env) })
+      ? landingPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), Boolean(c.env.STRIPE_READ_KEY), { trial: trialsEnabled(c.env), freeKey: freeKeysOn(c.env), voiceTry: voiceTestKeysOn(c.env) })
       : homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url))))
     // Programs get the short card (lib/first-call.ts, under 4 KB); the full one moved to SERVICE_CARD_PATH.
     : c.json(rootCard(origin(c.req.url), { ...firstCallFacts(c.env), payTo: c.env.PAY_TO })),

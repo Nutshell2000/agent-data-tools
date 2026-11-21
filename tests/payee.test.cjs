@@ -41,6 +41,9 @@ async function signedDeclaration() {
   return { account, doc: { version: 1, company: { name: "Example Shop AB", country: "SE", id: "559999-9999", vat: "SE559999999901" }, payTo: [{ address: account.address, network: "base", signature }], einvoice: { peppolId: "0007:5599999999", formats: ["ubl"] } } };
 }
 
+// A register that holds this domain as the company's website: the one independent tie between company and domain.
+const kybLinked = () => kybPass({ company: { ...kybPass().company, website: "https://www.example.com" } });
+
 const deps = (doc, over = {}) => ({
   declaration: async () => (doc === null ? { found: false, reason: "HTTP 404" } : { found: true, text: JSON.stringify(doc) }),
   kyb: async () => kybPass(),
@@ -73,10 +76,28 @@ test("a declaration is read leniently and its problems are named", () => {
   assert.deepEqual(payee.parseDeclaration([1, 2]).problems, ["the file is not a JSON object"]);
 });
 
-test("a registered company with a signed wallet is verified", async () => {
+test("a registered company with a signed wallet is not verified on the domain's word alone", async () => {
+  // Safety audit, 21 Nov 2026: the declaration is the domain's own file and a company's name, VAT number and LEI are
+  // public, so without an outside tie any domain could be shown, signed by us, as a real company.
   const { doc, account } = await signedDeclaration();
-  const r = await payee.verifyPayee(DOMAIN, deps(doc));
+  const claimed = await payee.verifyPayee(DOMAIN, deps(doc));
+  assert.equal(claimed.status, "partial");
+  assert.equal(claimed.checks.company, "pass");
+  assert.equal(claimed.checks.companyLink, "not-proven");
+  assert.ok(claimed.flags.some((f) => /no register ties it to shop\.example\.com/.test(f)));
+  assert.equal(payee.checkVerdict(claimed, payee.walletMatches([account.address], claimed), false).verdict, "partial");
+  const elsewhere = await payee.verifyPayee(DOMAIN, deps(doc, { kyb: async () => kybPass({ company: { ...kybPass().company, website: "www.other-company.example" } }) }));
+  assert.equal(elsewhere.status, "partial", "a register website on another domain is no tie");
+  assert.equal(payee.domainCompanyLink("shop.example.com", "example.com"), "register-website");
+  assert.equal(payee.domainCompanyLink("example.com", "https://www.example.com/en"), "register-website");
+  for (const w of [null, "", "com", "notexample.com", "shop.example.com.evil.test", "::::"]) assert.equal(payee.domainCompanyLink("shop.example.com", w), "not-proven", String(w));
+});
+
+test("a registered company with a signed wallet is verified when a register ties it to the domain", async () => {
+  const { doc, account } = await signedDeclaration();
+  const r = await payee.verifyPayee(DOMAIN, deps(doc, { kyb: async () => kybLinked() }));
   assert.equal(r.status, "verified");
+  assert.equal(r.checks.companyLink, "register-website");
   assert.equal(r.checks.company, "pass");
   assert.deepEqual(r.wallets, [{ address: account.address, network: "base", proof: "signature", sanctions: "pass" }]);
   assert.equal(r.expiresAt, "2026-12-15T12:00:00.000Z");
@@ -112,7 +133,7 @@ test("a sanctions match, a blocked wallet or a different register ID means revie
 
 test("the paid check compares the quote's wallet with the record", async () => {
   const { doc, account } = await signedDeclaration();
-  const record = await payee.verifyPayee(DOMAIN, deps(doc));
+  const record = await payee.verifyPayee(DOMAIN, deps(doc, { kyb: async () => kybLinked() }));
   const same = payee.walletMatches([account.address.toLowerCase()], record);
   assert.equal(same[0].match, "signed");
   assert.equal(payee.checkVerdict(record, same, false).verdict, "pass");
@@ -125,7 +146,7 @@ test("the paid check compares the quote's wallet with the record", async () => {
 
 test("the attestation is signed with Ed25519 and verifies against the published key", async () => {
   const { doc } = await signedDeclaration();
-  const record = await payee.verifyPayee(DOMAIN, deps(doc));
+  const record = await payee.verifyPayee(DOMAIN, deps(doc, { kyb: async () => kybLinked() }));
   const unsigned = await payee.attest(record, {}, "https://issuer.example");
   assert.equal(unsigned.signature, null);
   assert.equal(unsigned.payload.wallets.length, 1);

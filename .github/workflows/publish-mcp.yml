@@ -18,22 +18,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # 21 Nov 2026 (safety audit): the manifests are built BEFORE the sign-in, and dependencies are installed without
+      # their install scripts (the builder needs only esbuild, which runs without one), so nothing a dependency ships
+      # runs while this job holds the registry sign-in.
+      - name: Build section manifests
+        run: |
+          npm ci --ignore-scripts
+          node scripts/build-registry-manifests.mjs
+
+      # Still the newest publisher release, not a fixed version with a checksum: see the safety notes of 21 Nov 2026.
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Build section manifests
-        run: |
-          npm ci
-          node scripts/build-registry-manifests.mjs
 
       # The main server, then one entry per MCP section server (/mcp/<section>). A version that is
       # already published is reported and skipped, so re-running the workflow is safe.

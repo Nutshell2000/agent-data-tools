@@ -1,5 +1,7 @@
 import { HttpError } from "./env";
 import { retryDelayMs, sleep } from "./retry";
+import { peekBody } from "./read-capped";
+import { isOwnHost } from "./self-fetch";
 
 /** Rejects targets that are never legitimate for a public fetch service. */
 export function parseTarget(raw: string | undefined): URL {
@@ -30,6 +32,17 @@ export function parseTarget(raw: string | undefined): URL {
     !host.includes(".");
   if (privateHost) throw new HttpError(400, "private, loopback and IPv6-literal hosts are not supported");
   return url;
+}
+
+/**
+ * Refuses this service's own hostnames on the network path (21 Nov 2026). A tool that reads a caller's URL must not
+ * be turned on the service itself: the inner request arrives from the platform's shared egress address, could use
+ * that address's free calls, and one paid call could fan out into many requests against our own Worker. Tools that
+ * have a reason to read our own pages (the x402 and payee checks, agent readiness) use the service binding instead
+ * (lib/self-fetch.ts) and never come here for those hosts.
+ */
+export function refuseOwnHost(url: URL): void {
+  if (isOwnHost(url.hostname)) throw new HttpError(400, "this URL is on this service's own host, which the tools do not fetch; call the tool you want directly (nothing was charged)");
 }
 
 /** Passes at most `limit` bytes through, then ends the stream. */
@@ -81,6 +94,9 @@ export interface FetchPublicOptions {
   /** Total time for the request, redirects, retry and body (default 8 s). Large files need more: arXiv sends a 2.2 MB
    *  paper in about 8 s (26 Oct 2026), so /pdf/text timed out on it. */
   budgetMs?: number;
+  /** The most the caller will read. With `cacheSeconds`, a body is held in memory only up to this (and never beyond
+   *  the cache's own ceiling); a larger one is handed on as a stream for the caller's own cap to refuse or cut. */
+  maxBytes?: number;
 }
 
 /**
@@ -91,7 +107,7 @@ export interface FetchPublicOptions {
  * caller's input and are never retried. With `cacheSeconds`, a 2xx body is kept in the edge cache so repeated reads
  * of the same document do not spend the target's limit again (never for `allowStatus` answers).
  */
-export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = [], { cacheSeconds = 0, budgetMs = BUDGET_MS }: FetchPublicOptions = {}): Promise<Response> {
+export async function fetchPublic(target: URL, accept: string, allowStatus: readonly number[] = [], { cacheSeconds = 0, budgetMs = BUDGET_MS, maxBytes }: FetchPublicOptions = {}): Promise<Response> {
   let current = parseTarget(target.href);
   const deadline = Date.now() + budgetMs;
   const cache = cacheSeconds > 0 && typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
@@ -147,17 +163,21 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     }
     if (!res.body && !allowed) throw targetDown(502, "target returned an empty body");
     if (cache && cacheKey && res.ok && res.body) {
-      const bytes = await bodyWithin(res.arrayBuffer(), budgetMs);
+      // 21 Nov 2026: this used to be `res.arrayBuffer()`, the whole body whatever its size, before any caller's limit
+      // could run (the runtime also inflates gzip, so a 1 MB answer could be 1 GB here). Now at most the cache ceiling
+      // (or the caller's own limit, when smaller) is held; a larger body is not cached and goes on as a stream,
+      // exactly like an uncached fetch, so the caller's cap refuses or cuts it without it ever being buffered.
+      const held = await bodyWithin(peekBody(res.body, Math.min(CACHE_MAX_BYTES, maxBytes ?? CACHE_MAX_BYTES)), budgetMs);
       const headers = new Headers(res.headers);
       headers.delete("set-cookie");
       headers.delete("content-length");
-      if (bytes.byteLength <= CACHE_MAX_BYTES) {
+      if ("complete" in held) {
         const stored = new Headers(headers);
         stored.set("cache-control", `max-age=${cacheSeconds}`);
         stored.set("x-final-url", current.href);
-        await cache.put(cacheKey, new Response(bytes.slice(0), { status: 200, headers: stored })).catch(() => undefined);
+        await cache.put(cacheKey, new Response(held.complete.slice(0), { status: 200, headers: stored })).catch(() => undefined);
       }
-      const out = new Response(bytes, { status: res.status, headers });
+      const out = new Response("complete" in held ? held.complete : held.rest, { status: res.status, headers });
       Object.defineProperty(out, "url", { value: current.href });
       return out;
     }
@@ -188,12 +208,14 @@ export async function bodyWithin<T>(read: Promise<T>, budgetMs: number): Promise
 /** Downloads a file of an expected media type, refusing anything over `maxBytes`. */
 export async function fetchFile(rawUrl: string | undefined, typePattern: RegExp, maxBytes: number, what: string, options: FetchPublicOptions = {}) {
   const target = parseTarget(rawUrl);
-  const res = await fetchPublic(target, "*/*", [], options);
+  // The limit goes down to the cached read too, so a file over it is never held whole (21 Nov 2026).
+  const res = await fetchPublic(target, "*/*", [], { ...options, maxBytes });
   const contentType = res.headers.get("content-type") ?? "";
-  if (!typePattern.test(contentType)) throw new HttpError(415, `url must point to ${what}; got ${contentType || "an unknown type"}`);
+  if (!typePattern.test(contentType)) { await res.body?.cancel().catch(() => {}); throw new HttpError(415, `url must point to ${what}; got ${contentType || "an unknown type"}`); }
   let tooBig = Number(res.headers.get("content-length")) > maxBytes;
+  if (tooBig) await res.body?.cancel().catch(() => {});
   const bytes = tooBig ? new Uint8Array() : new Uint8Array(await bodyWithin(new Response(capBytes(res.body!, maxBytes + 1, () => {})).arrayBuffer(), options.budgetMs ?? BUDGET_MS));
   tooBig ||= bytes.byteLength > maxBytes;
-  if (tooBig) throw new HttpError(422, `file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit`);
+  if (tooBig) throw new HttpError(422, `file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit (nothing was charged)`);
   return { url: target.href, finalUrl: res.url || target.href, contentType: contentType.split(";")[0].trim(), bytes };
 }

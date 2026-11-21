@@ -4,6 +4,7 @@
 // the edge for a day per rounded point because the service is shared and slow when cold (about 2 s, then 0.2 s).
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 import { call, runSections } from "./packs";
 
 const WDQS = "https://query.wikidata.org/sparql";
@@ -100,7 +101,7 @@ export const GEO_MORE: Entry[] = [
         if (!res.ok) throw new HttpError(502, `Wikidata answered HTTP ${res.status}; try again`);
         if (cache) { const copy = new Response(await res.clone().arrayBuffer(), { headers: { "content-type": "application/json", "cache-control": "max-age=86400" } }); await cache.put(url, copy).catch(() => undefined); }
       }
-      const body = (await res.json()) as { results?: { bindings?: Binding[] } };
+      const body = await sourceJson<{ results?: { bindings?: Binding[] } }>(res, "Wikidata");
       const shaped = shapePlaces(body.results?.bindings ?? []);
       if (!shaped.nearest) throw new HttpError(404, `no populated place within ${radius} km; try a larger radius`);
       return { lat, lon, radiusKm: radius, ...shaped, places: shaped.places.slice(0, 10), source: "Wikidata (CC0)" };

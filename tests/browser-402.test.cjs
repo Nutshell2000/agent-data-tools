@@ -36,7 +36,7 @@ test('a browser opening a paid tool gets a page with the tool, a free trial and 
   assert.match(html, /href="\/credits"/);
   assert.match(html, /href="\/credits\/buy\/1"/, 'MPP agents can fund a key without a checkout page');
   assert.match(html, /https:\/\/api\.test\/mcp/);
-  assert.doesNotMatch(html, /<script/i, 'static page, nothing executes');
+  assert.doesNotMatch(html.replace(/<script data-gc-beacon>[\s\S]*?<\/script>/g, ''), /<script/i, 'static page, nothing executes');
 });
 
 test('a bare tool link offers the trial on the published example inputs', async () => {
@@ -66,7 +66,7 @@ test('a free trial opened in a browser shows its result as a page; code still ge
   assert.match(html, /free calls left/);
   assert.match(html, /&quot;timezone&quot;|&quot;zone&quot;|UTC/);
   assert.match(html, /href="\/credits"/);
-  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html.replace(/<script data-gc-beacon>[\s\S]*?<\/script>/g, ''), /<script/i);
   const json = await mf.dispatchFetch('https://api.test/time?zone=UTC&trial=1', { headers: { accept: 'application/json', 'cf-connecting-ip': '198.51.100.8' } });
   assert.equal(json.status, 200);
   assert.match(json.headers.get('content-type'), /application\/json/);
@@ -99,7 +99,7 @@ test('a browser trial result offers another run; refused inputs come back as a p
   const html = await bad.text();
   assert.match(html, /Nothing was charged and this did not use a free call/);
   assert.match(html, /name="zone" type="text" value="Not\/A_Zone"/, 'keeps what the visitor typed');
-  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html.replace(/<script data-gc-beacon>[\s\S]*?<\/script>/g, ''), /<script/i);
   const json = await mf.dispatchFetch('https://api.test/time?zone=Not%2FA_Zone&trial=1', { headers: { accept: 'application/json', 'cf-connecting-ip': '198.51.100.23' } });
   assert.match(json.headers.get('content-type'), /application\/json/, 'code still gets the JSON error');
 });
@@ -199,7 +199,7 @@ test('/demo is a static walkthrough page that points at the recording and the fr
   assert.match(html, /<img src="\/demo\.gif"/);
   assert.match(html, /bc_09e30bdm/);
   assert.match(html, /href="\/tools\/check-counterparty"/);
-  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html.replace(/<script data-gc-beacon>[\s\S]*?<\/script>/g, ''), /<script/i);
 });
 
 test('the A2A v1.0 endpoint answers SendMessage for free through the worker', async () => {

@@ -377,6 +377,32 @@ test('a v2 payment whose accepted terms are ours in substance but not in spellin
  await new Promise(r=>setTimeout(r,200));
  const after=await revenue();assert.equal(after.settlements,before.settlements+2);
 });
+test('one signed v2 payment runs one call: a parallel or later copy is refused, and a failed call frees it',async()=>{
+ // 1.328.0 (src/lib/v2-claim.ts). Before it, every copy of one signed payment ran the tool and only settlement told them apart.
+ const before=await revenue();
+ const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';
+ const q=await mf.dispatchFetch(url);assert.equal(q.status,402);await q.arrayBuffer();
+ const ours=JSON.parse(Buffer.from(q.headers.get('PAYMENT-REQUIRED'),'base64')).accepts[0];
+ const header=(nonce)=>Buffer.from(JSON.stringify(payload(ours,nonce))).toString('base64');
+ const reason=(r)=>JSON.parse(Buffer.from(r.headers.get('PAYMENT-REQUIRED'),'base64')).error;
+ // Five copies at once: one answer, four refusals that carry valid terms and the reason.
+ const same=header('5'.repeat(60)+'ee01');
+ const burst=await Promise.all(Array.from({length:5},()=>mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':same}})));
+ assert.deepEqual(burst.map(r=>r.status).sort(),[200,402,402,402,402]);
+ for(const r of burst){if(r.status===402){assert.match(reason(r),/already in use or was already settled/);assert.equal(r.headers.get('cache-control'),'no-store');}await r.arrayBuffer();}
+ // The settled payment sent again later is refused before anything runs.
+ const later=await mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':same}});
+ assert.equal(later.status,402);assert.match(reason(later),/already in use or was already settled/);await later.arrayBuffer();
+ // A payment whose call failed was never settled: the same payment runs again (here it fails again, as the tool does).
+ const failing='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Ffail';
+ const lost=header('5'.repeat(60)+'ee02');
+ for(let i=0;i<2;i++){const r=await mf.dispatchFetch(failing,{headers:{'PAYMENT-SIGNATURE':lost}});assert.ok(r.status>=400&&r.status!==402,`try ${i+1} reached the tool`);await r.arrayBuffer();}
+ // And it still pays for a call that works.
+ const good=await mf.dispatchFetch(url,{headers:{'PAYMENT-SIGNATURE':lost}});
+ assert.equal(good.status,200,await good.clone().text());await good.arrayBuffer();
+ await new Promise(r=>setTimeout(r,200));
+ const after=await revenue();assert.equal(after.settlements,before.settlements+2,'two payments, two settlements');
+});
 test('a payment whose envelope lacks x402Version is still paid: v2 in PAYMENT-SIGNATURE or X-PAYMENT, and the flat v1 shape in X-PAYMENT',async()=>{
  const before=await revenue();
  const url='https://api.test/extract?url=https%3A%2F%2Fpublic.example%2Farticle';

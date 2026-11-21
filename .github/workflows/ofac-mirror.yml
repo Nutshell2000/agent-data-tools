@@ -22,8 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Create and update the ofac-latest release
-    env:
-      GH_TOKEN: ${{ github.token }}
+    # 21 Nov 2026 (safety audit): the write token is given only to the two steps that upload release files, never to
+    # the steps that install or run dependencies, and dependencies are installed without their install scripts. A
+    # compromised package could otherwise have replaced the sanctions index that production loads.
     steps:
       - name: Download SDN.CSV and ALT.CSV from OFAC
         run: |
@@ -50,10 +51,13 @@ jobs:
       - name: Build the pre-parsed index the Worker loads
         run: |
           set -euo pipefail
-          cd repo && npm ci --no-audit --no-fund
+          # No install scripts: the builders need only esbuild, which runs without its install script.
+          cd repo && npm ci --ignore-scripts --no-audit --no-fund
           node scripts/build-ofac-index.mjs ../SDN.CSV ../ALT.CSV ../ofac-index.json
 
       - name: Publish as the ofac-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
@@ -65,7 +69,9 @@ jobs:
       # EU, UN and UK lists for name screening (src/lib/intl-sanctions.ts). All three must download and
       # pass their size checks, or the step fails and the previous intl-sanctions-index.json stays published.
       # Licences: EU Commission reuse policy (Decision 2011/833/EU), UN public, UK Open Government Licence v3.0.
-      - name: Build and publish the EU, UN and UK index
+      # Two steps since 21 Nov 2026: the build runs without the write token, the upload runs only after a good build.
+      - name: Build the EU, UN and UK index
+        id: intl
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -74,4 +80,10 @@ jobs:
           curl -fsSL --retry 3 -o uk.xml "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml"
           ls -l eu.xml un.xml uk.xml
           (cd repo && node scripts/build-intl-sanctions-index.mjs ../eu.xml ../un.xml ../uk.xml ../intl-sanctions-index.json)
-          gh release upload ofac-latest intl-sanctions-index.json --repo "${{ github.repository }}" --clobber
+
+      - name: Publish the EU, UN and UK index
+        if: steps.intl.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ofac-latest intl-sanctions-index.json --repo "${{ github.repository }}" --clobber

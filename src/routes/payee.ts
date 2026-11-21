@@ -213,7 +213,7 @@ export async function verifyPayee(domain: string, deps: PayeeDeps) {
     if (sanctioned || idDiffers || (kyb.vat as { given?: boolean; valid?: boolean } | null)?.given && (kyb.vat as { valid?: boolean }).valid === false) review = true;
     company = {
       declared: c,
-      register: reg ? { name: reg.name, country: reg.country, idType: reg.idType, id: reg.id, legalForm: reg.legalForm ?? null, status: reg.status ?? null, source: reg.source } : null,
+      register: reg ? { name: reg.name, country: reg.country, idType: reg.idType, id: reg.id, legalForm: reg.legalForm ?? null, status: reg.status ?? null, source: reg.source, website: typeof (reg as { website?: unknown }).website === "string" ? (reg as { website?: string }).website! : null } : null,
       vat: kyb.vat ? { vat: (kyb.vat as Record<string, unknown>).vat ?? null, valid: (kyb.vat as Record<string, unknown>).valid ?? null, name: (kyb.vat as Record<string, unknown>).name ?? null, derived: (kyb.vat as Record<string, unknown>).derived ?? false } : null,
       lei: kyb.lei ? { lei: kyb.lei.lei ?? null, legalName: kyb.lei.legalName ?? null, entityStatus: kyb.lei.entityStatus ?? null } : null,
       sanctions: { verdict: kyb.sanctions.verdict, matches: kyb.sanctions.matches.length, screenedNames: kyb.sanctions.screenedNames },
@@ -251,16 +251,35 @@ export async function verifyPayee(domain: string, deps: PayeeDeps) {
   if (!declaration.accepts.length) flags.push("no accepts list: buyers can only be told about the wallets in payTo");
 
   const proven = wallets.some((w) => w.proof === "signature");
-  const status = review ? "review" as const : companyCheck === "pass" && proven ? "verified" as const : "partial" as const;
+  // "verified" needs something outside the domain's own file that ties the company to this domain (safety audit, 21 Nov
+  // 2026). The declaration is written by whoever controls the domain, and a company's name, VAT number and LEI are all
+  // public: any domain could name a real company, sign with its own wallet and be shown, signed by us, as that
+  // company. The one independent link read today is a website a register holds for the company; without it the
+  // record stays "partial" and says why.
+  const companyLink = domainCompanyLink(domain, (company as { register?: { website?: unknown } | null } | null)?.register?.website);
+  if (companyCheck === "pass" && companyLink === "not-proven") flags.push(`the declared company is in the registers, but no register ties it to ${domain}: the company is this domain's own claim, so the record is not shown as verified`);
+  const status = review ? "review" as const : companyCheck === "pass" && proven && companyLink === "register-website" ? "verified" as const : "partial" as const;
   return {
     ...base, status, flags,
-    checks: { domain: "proven", company: companyCheck, wallets: wallets.map((w) => ({ address: w.address, proof: w.proof, sanctions: w.sanctions })), einvoice: declaration.einvoice ? "declared" : "not-declared" },
+    checks: { domain: "proven", company: companyCheck, companyLink, wallets: wallets.map((w) => ({ address: w.address, proof: w.proof, sanctions: w.sanctions })), einvoice: declaration.einvoice ? "declared" : "not-declared" },
     company, wallets, einvoice: declaration.einvoice, accepts: declaration.accepts,
     sources: [...sources],
   };
 }
 
 export type PayeeRecord = Awaited<ReturnType<typeof verifyPayee>>;
+
+/**
+ * Whether a website a register holds for the company is this domain: the same host, or the domain is a subdomain of it
+ * ("www." ignored). "not-proven" when the register gives no website or another one.
+ */
+export function domainCompanyLink(domain: string, registerWebsite: unknown): "register-website" | "not-proven" {
+  if (typeof registerWebsite !== "string" || !registerWebsite.trim()) return "not-proven";
+  let host: string;
+  try { host = new URL(/^https?:\/\//i.test(registerWebsite.trim()) ? registerWebsite.trim() : `https://${registerWebsite.trim()}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "not-proven"; }
+  const d = domain.toLowerCase().replace(/^www\./, "");
+  return host.includes(".") && (d === host || d.endsWith(`.${host}`)) ? "register-website" : "not-proven";
+}
 
 // ---- Signed attestation (Ed25519). The private key is the Worker secret PAYEE_SIGNING_KEY, a JWK with d and x. ----
 
