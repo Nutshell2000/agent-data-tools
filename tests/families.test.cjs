@@ -224,7 +224,8 @@ test("AI tools parse model output, keep labels and fields within what was asked,
 
   await assert.rejects(call("/ai/chat", () => { throw new Error("4006: you have used up your daily free allocation of 10,000 neurons"); }, { prompt: "hi" }), (err) => err.status === 503);
   await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "sv" }), (err) => err.status === 502);
-  await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "swedish" }), (err) => err.status === 400);
+  // 21 Nov 2026: a language name is now read as its code (tests/tool-handler-quality.test.cjs); a word that names no language is still refused.
+  await assert.rejects(call("/ai/translate", {}, { text: "hi", to: "elvish" }), (err) => err.status === 400);
 });
 
 test("Uniswap v3 sqrtPriceX96 converts to quote units per token in both token orders", async () => {

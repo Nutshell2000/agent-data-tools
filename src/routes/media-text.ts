@@ -2,10 +2,11 @@
 // over the top 20, nothing of ours: exif 55, image metadata 31, detect language 57, language detection 47, favicon 38,
 // user agent parser 28. Local parsing (EXIF, user agents), franc-min 6.2.0 (MIT) for languages, and the public-URL
 // fetcher for images and pages.
+import { textCapped } from "../lib/read-capped";
 import { franc, francAll } from "franc-min";
 import { entry, need, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { fetchFile, fetchPublic, parseTarget } from "../lib/fetch";
+import { bodyWithin, fetchFile, fetchPublic, parseTarget } from "../lib/fetch";
 import { AI_CRAWLERS } from "../lib/ai-crawlers";
 
 const U = ["utility", "data"];
@@ -153,7 +154,8 @@ export const MEDIA_TEXT: Entry[] = [
     async (_e, q) => {
       const page = parseTarget(need(q, "url", 2_000));
       const res = await fetchPublic(page, "text/html,*/*;q=0.5", [], { cacheSeconds: 600 });
-      const html = (await new Response(res.body).text()).slice(0, 500_000);
+      // 21 Nov 2026: a counted read (the whole page used to be read, then cut): 2 MB holds 500,000 characters of any script.
+      const html = (await bodyWithin(textCapped(res.body, 2_000_000), 8_000)).text.slice(0, 500_000);
       const base = new URL(res.headers.get("x-final-url") ?? res.url ?? page.href);
       const abs = (h: string) => { try { return new URL(h, base).href; } catch { return null; } };
       const links = html.match(/<link\b[^>]*>/gi) ?? [];

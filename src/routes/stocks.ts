@@ -45,21 +45,25 @@ interface ChartResult {
 }
 /** Yahoo serves the chart API from two hosts. 12 Nov 2026: the quote's only failure in three days was a timeout on one of them. */
 export const CHART_HOSTS = [CHART, CHART.replace("query1.", "query2.")];
+/** 21 Nov 2026: "unknown ticker X" (and the source's own "No data found, symbol may be delisted") did not say what a symbol looks like or how to find one. */
+const unknownTicker = (symbol: string) => `unknown ticker ${symbol.slice(0, 20)}: symbol is a Yahoo Finance ticker such as AAPL, VOLV-B.ST or BTC-USD; /stock/search finds the ticker for a company name; nothing was charged`;
 type ChartBody = { chart?: { result?: ChartResult[] | null; error?: { description?: string } | null } };
 /** The chart from the first host; on a timeout or a server error (502 from getJson) once more from the second, inside the same 8 s each. */
 export async function chartBody(symbol: string, range: string, interval: string, get: typeof getJson = getJson): Promise<ChartBody> {
   const query = `${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&includePrePost=false`;
   try {
-    return await get<ChartBody>(`${CHART_HOSTS[0]}${query}`, { notFound: `unknown ticker ${symbol}` });
+    return await get<ChartBody>(`${CHART_HOSTS[0]}${query}`, { notFound: unknownTicker(symbol) });
   } catch (e) {
     if (!(e instanceof HttpError) || e.status !== 502) throw e;
-    return get<ChartBody>(`${CHART_HOSTS[1]}${query}`, { notFound: `unknown ticker ${symbol}` });
+    return get<ChartBody>(`${CHART_HOSTS[1]}${query}`, { notFound: unknownTicker(symbol) });
   }
 }
 async function chart(symbol: string, range: string, interval: string) {
   const r = await chartBody(symbol, range, interval);
   const res = r.chart?.result?.[0];
-  if (!res?.meta) throw new HttpError(404, r.chart?.error?.description ?? `unknown ticker ${symbol}`);
+  // The source's own description is kept when it is about something other than a symbol it does not know.
+  const said = r.chart?.error?.description;
+  if (!res?.meta) throw new HttpError(404, said && !/no data found|not found|delisted/i.test(said) ? said : unknownTicker(symbol));
   return res;
 }
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -237,7 +241,8 @@ interface ScreenQuote {
 }
 export async function stockScreen(screenIn?: string, countIn?: number) {
   const key = (screenIn ?? "day-gainers").trim().toLowerCase().replace(/[\s_]+/g, "-");
-  const screen = SCREENS[key];
+  // 21 Nov 2026: read with Object.hasOwn, so a prototype name (constructor, toString) sent as the value is not found in the table.
+  const screen = Object.hasOwn(SCREENS, key) ? SCREENS[key] : undefined;
   if (!screen) throw new HttpError(400, `screen must be one of: ${Object.keys(SCREENS).join(", ")}`);
   const count = Math.min(25, Math.max(1, Math.trunc(countIn ?? 10)));
   const r = await getJson<{ finance?: { result?: { title?: string; description?: string; total?: number; quotes?: ScreenQuote[] }[] } }>(

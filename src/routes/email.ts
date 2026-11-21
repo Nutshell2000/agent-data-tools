@@ -1,4 +1,5 @@
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 const DOH = "https://cloudflare-dns.com/dns-query";
 // Community-maintained list of throwaway mailbox providers (CC0).
@@ -31,14 +32,14 @@ async function disposableDomains(): Promise<Set<string> | null> {
 async function txt(name: string): Promise<string[]> {
   const res = await fetch(`${DOH}?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(6_000) });
   if (!res.ok) return [];
-  const body = (await res.json()) as { Answer?: { type: number; data: string }[] };
+  const body = await sourceJson<{ Answer?: { type: number; data: string }[] }>(res, "the DNS resolver");
   return (body.Answer ?? []).filter((a) => a.type === 16).map((a) => a.data.replace(/"\s+"/g, "").replace(/^"|"$/g, ""));
 }
 
 async function mxHosts(domain: string): Promise<{ exists: boolean; hosts: string[] }> {
   const res = await fetch(`${DOH}?name=${encodeURIComponent(domain)}&type=MX`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(6_000) });
   if (!res.ok) throw new HttpError(502, `DNS resolver returned ${res.status}`);
-  const body = (await res.json()) as { Status: number; Answer?: { type: number; data: string }[] };
+  const body = await sourceJson<{ Status: number; Answer?: { type: number; data: string }[] }>(res, "the DNS resolver");
   const hosts = (body.Answer ?? [])
     .filter((a) => a.type === 15)
     .map((a) => a.data.split(/\s+/)[1]?.replace(/\.$/, "") ?? "")

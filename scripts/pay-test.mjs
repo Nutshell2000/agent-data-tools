@@ -29,7 +29,11 @@ const KEY_FILE = new URL("../.test-wallet.json", import.meta.url);
 // PAY_TEST_REQUIRE_WALLET=1 so a missing file is an error there instead of a silent new wallet.
 if (!existsSync(KEY_FILE)) {
   if (process.env.PAY_TEST_REQUIRE_WALLET) throw new Error(`no ${KEY_FILE.pathname} in this checkout; copy the funded test wallet here before running proofs`);
-  writeFileSync(KEY_FILE, JSON.stringify({ note: "Base Sepolia test wallet. Faucet tokens only.", key: generatePrivateKey() }));
+  // 21 Nov 2026 (safety audit): only the `address` command (or no command) makes a wallet. A payment command used to
+  // make an empty one without saying so and then fail with insufficient_balance, leaving a key file nobody asked for.
+  if (process.argv[2] && process.argv[2] !== "address") throw new Error("no .test-wallet.json in this checkout, and a payment command never creates one. Run `node scripts/pay-test.mjs address` to create the test wallet, fund that address from the faucet, then run this again.");
+  // "wx": never write over a file that appeared meanwhile; 0o600: readable by this user only where the system supports it.
+  writeFileSync(KEY_FILE, JSON.stringify({ note: "Base Sepolia test wallet. Faucet tokens only.", key: generatePrivateKey() }), { flag: "wx", mode: 0o600 });
 }
 const account = privateKeyToAccount(JSON.parse(readFileSync(KEY_FILE, "utf8")).key);
 

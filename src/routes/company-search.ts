@@ -16,6 +16,7 @@
 import { entry, getJson, num, need, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { countryCode } from "../lib/country-code";
+import { WORLD_BANK_COUNTRIES } from "../data/world-bank.generated";
 import { NAME_REGISTERS, SEARCHERS, coreName } from "./company-verify";
 import { leiView } from "./registries";
 import { CZ_EE_SEARCHERS } from "./cz-ee-company";
@@ -76,13 +77,31 @@ const leiSearch: LeiSearch = async (name, limit, country) => {
   return r.data ?? [];
 };
 
-/** ISO codes from "SE,NO", "Sweden, Germany", "EU" (all) or nothing (all). Unknown names are refused. */
+/**
+ * 21 Nov 2026: /status showed a paid /pack/kyb-eu call refused with "country ... is not a country code or name". The
+ * list took two-letter codes and English names only; three-letter ISO codes (SWE, DEU) and the names European
+ * countries call themselves were refused, and the refusal did not say what is accepted.
+ */
+const OWN_NAMES: Readonly<Record<string, string>> = {
+  deutschland: "DE", sverige: "SE", norge: "NO", suomi: "FI", danmark: "DK", "españa": "ES", espana: "ES", italia: "IT", "österreich": "AT", osterreich: "AT",
+  nederland: "NL", polska: "PL", "česko": "CZ", cesko: "CZ", eesti: "EE", belgique: "BE", "belgië": "BE", belgie: "BE", schweiz: "CH", suisse: "CH",
+  "éire": "IE", eire: "IE", "république française": "FR", "ísland": "IS", island: "IS", latvija: "LV", lietuva: "LT", "magyarország": "HU", magyarorszag: "HU",
+  "românia": "RO", hrvatska: "HR", slovensko: "SK", slovenija: "SI", "ελλάδα": "GR", hellas: "GR", "türkiye": "TR", turkiye: "TR", "the uk": "GB", "u.k.": "GB", "u.s.": "US", "u.s.a.": "US",
+};
+function alpha3OrOwnName(part: string): string | null {
+  const key = part.trim().toLowerCase().replace(/\s+/g, " ");
+  if (Object.hasOwn(OWN_NAMES, key)) return OWN_NAMES[key];
+  const upper = part.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(upper) && Object.hasOwn(WORLD_BANK_COUNTRIES, upper) && /^[A-Z]{2}$/.test(WORLD_BANK_COUNTRIES[upper].iso2) ? WORLD_BANK_COUNTRIES[upper].iso2 : null;
+}
+
+/** ISO codes from "SE,NO", "Sweden, Germany", "SWE", "EU" (all) or nothing (all). Unknown names are refused. */
 export function countriesOf(raw: string | undefined): string[] | null {
   if (!raw?.trim() || /^(eu|all|europe)$/i.test(raw.trim())) return null;
   const out = new Set<string>();
   for (const part of raw.split(/[,;]+/).map((s) => s.trim()).filter(Boolean)) {
-    const code = /^[A-Za-z]{2}$/.test(part) ? part.toUpperCase() : countryCode(part);
-    if (!code || !/^[A-Z]{2}$/.test(code)) throw new HttpError(400, `country "${part.slice(0, 40)}" is not a country code or name`);
+    const code = /^[A-Za-z]{2}$/.test(part) ? part.toUpperCase() : countryCode(part) ?? alpha3OrOwnName(part);
+    if (!code || !/^[A-Z]{2}$/.test(code)) throw new HttpError(400, `country "${part.slice(0, 40)}" is not a country code or name; use ISO codes such as SE or DEU or English names such as Sweden, comma-separated`);
     out.add(code === "UK" ? "GB" : code === "EL" ? "GR" : code);
   }
   if (out.size > 10) throw new HttpError(400, "country takes at most 10 countries");

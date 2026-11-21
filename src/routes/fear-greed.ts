@@ -4,6 +4,7 @@
 // as alternative.me's own service. The index updates once a day, so answers are cached at the edge for 10 minutes.
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 const ATTRIBUTION = "Crypto Fear & Greed Index by alternative.me (https://alternative.me/crypto/fear-and-greed-index/)";
 type Row = { value: string; value_classification: string; timestamp: string; time_until_update?: string };
@@ -44,7 +45,7 @@ export const FEAR_GREED: Entry[] = [
         if (!res.ok) throw new HttpError(502, `the index source answered HTTP ${res.status}; try again`);
         if (cache) { const copy = new Response(await res.clone().arrayBuffer(), { headers: { "content-type": "application/json", "cache-control": "max-age=600" } }); await cache.put(url, copy).catch(() => undefined); }
       }
-      const body = (await res.json()) as { data?: Row[]; metadata?: { error?: string | null } };
+      const body = await sourceJson<{ data?: Row[]; metadata?: { error?: string | null } }>(res, "the index source");
       if (body.metadata?.error) throw new HttpError(502, "the index source reported an error; try again");
       return { ...summarise(body.data ?? [], days), source: "alternative.me", attribution: ATTRIBUTION };
     }),

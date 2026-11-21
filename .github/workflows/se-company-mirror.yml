@@ -10,7 +10,7 @@ on:
     - cron: "41 5 * * 2"
   workflow_dispatch:
   push:
-    branches: [main, claude/se-company]
+    branches: [main] # the build branch of 11 Nov 2026 is merged and gone; its trigger was removed on 21 Nov 2026
     paths:
       - scripts/build-se-company-index.mjs
       - .github/workflows/se-company-mirror.yml
@@ -25,8 +25,7 @@ jobs:
     timeout-minutes: 240
     permissions:
       contents: write # Create and update the se-register release
-    env:
-      GH_TOKEN: ${{ github.token }}
+    # The write token is given to the Publish step only (21 Nov 2026), not to the download and build steps.
     steps:
       - uses: actions/checkout@v5
         with:
@@ -69,6 +68,8 @@ jobs:
           ls -l out
 
       - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"

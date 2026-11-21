@@ -2,10 +2,11 @@
 // nothing of ours: developer utilities 173 (EVM developer utilities listings among them), seo analysis 37 and seo toolkit 24,
 // multichain gas 34 and gas tracker 29, company research 30, lead enrichment 21 and domain intelligence 17, tech stack 28.
 // The detection rules below are our own list of public fingerprints (script hosts, headers, generator tags, cookies).
+import { textCapped } from "../lib/read-capped";
 import { formatUnits, getAddress, hexToBigInt, isHex, keccak256, parseUnits, toBytes, toFunctionSelector, toHex, type Hex } from "viem";
 import { entry, need, num, opt, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
-import { fetchPublic, parseTarget } from "../lib/fetch";
+import { bodyWithin, fetchPublic, parseTarget } from "../lib/fetch";
 import { bitcoinFees } from "./bitcoin";
 import { domainInfo } from "./domain";
 import { decodeCalldata } from "./evm-tools";
@@ -174,7 +175,8 @@ const TECH: Entry[] = [
     async (_e, q) => {
       const target = parseTarget(need(q, "url", 2_000));
       const res = await fetchPublic(target, "text/html,*/*;q=0.5", [], { cacheSeconds: 600 });
-      const html = (await new Response(res.body).text()).slice(0, 1_000_000);
+      // 21 Nov 2026: a counted read (the whole page used to be read, then cut): 4 MB holds 1,000,000 characters of any script.
+      const html = (await bodyWithin(textCapped(res.body, 4_000_000), 8_000)).text.slice(0, 1_000_000);
       const out = detectTech(html, res.headers);
       return { url: res.url || target.href, ...out, count: out.technologies.length };
     }),

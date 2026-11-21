@@ -110,7 +110,8 @@ export const COMPANY: Entry[] = [
     async (_env, q) => {
       const rawId = opt(q, "id", 20)?.trim().toUpperCase();
       const name = opt(q, "name", 200)?.trim();
-      if (!rawId && !name) throw new HttpError(400, "name or id is required");
+      // 21 Nov 2026: the refusals below say what each input takes and where to look next (a paid call that sent nothing, and two names with no match, left the caller guessing).
+      if (!rawId && !name) throw new HttpError(400, "name or id is required: name is a company name or its website (Spotify, stripe.com), id is a Wikidata item ID such as Q60269744");
       if (rawId && !/^Q\d{1,12}$/.test(rawId)) throw new HttpError(400, "id must be a Wikidata item ID such as Q60269744");
       // A domain or URL ("stripe.com", "https://www.stripe.com/pricing"): search its label and prefer the company whose
       // official website (P856) is on that domain. Wikidata's text search finds nothing for a bare domain.
@@ -126,7 +127,7 @@ export const COMPANY: Entry[] = [
       // Several items can carry one name; bestCompany picks between them.
       const matches = rawId ? candidates.filter(isCompany) : domain ? candidates.filter((e) => isCompany(e) && onDomain(e)) : candidates.filter((e) => isCompany(e) && namedAs(e, name!));
       const best = rawId ? matches[0] : bestCompany(matches, domain ? undefined : name);
-      if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : domain ? `no company on Wikidata has ${domain} as its website; nothing was charged` : "no company found under this name; nothing was charged");
+      if (!best) throw new HttpError(404, rawId ? "this Wikidata item is not a company" : domain ? `no company on Wikidata has ${domain} as its website; nothing was charged` : "no company found under this name on Wikidata; try the full legal name or the company's website, or /company/search for the official registers; nothing was charged");
       const labels = await labelsOf(linkedIds(best));
       const facts = companyFacts([best], labels)!;
       // A holding or operating company often has no Wikipedia article of its own: the article hangs on the item of the

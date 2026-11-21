@@ -2,10 +2,11 @@
 // yaml to json (44 summed payers), phone number validation (56), vin decoder (52), robots.txt (54).
 // YAML and phone numbers are local (yaml 2.9.1 ISC, libphonenumber-js 1.13.15 MIT); VINs use NHTSA's vPIC API (US
 // federal data, no restrictions on reuse); robots.txt is fetched from the site itself through the public-URL fetcher.
+import { jsonCapped, textCapped } from "../lib/read-capped";
 import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/max";
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { fetchPublic } from "../lib/fetch";
+import { bodyWithin, fetchPublic } from "../lib/fetch";
 
 const U = ["utility", "data"];
 
@@ -87,7 +88,31 @@ export function parseRobots(text: string) {
   }
   return { groups, sitemaps };
 }
-const ruleRegex = (path: string) => new RegExp(`^${path.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$")}`);
+/**
+ * Whether a robots.txt rule path matches a URL path: a prefix match where `*` stands for any run of characters and a
+ * final `$` ties the rule to the end of the path. 21 Nov 2026: each rule used to become a regular expression with
+ * `.*` for every `*`, and a robots.txt is the fetched site's text: a rule like /*a*a*a*a*a*a*a$ against a long path
+ * backtracked for minutes. This walks the pieces between the stars from left to right, each at its first place
+ * (enough for a prefix match), and the last piece at the very end when the rule ends in `$`: time grows with the
+ * path length, never with the number of stars. Same answers as the expression on every rule (tested side by side).
+ */
+export function robotsRuleMatches(rule: string, path: string): boolean {
+  const anchored = rule.endsWith("$");
+  const pieces = (anchored ? rule.slice(0, -1) : rule).split("*");
+  if (!path.startsWith(pieces[0])) return false;
+  if (pieces.length === 1) return !anchored || path.length === pieces[0].length;
+  let at = pieces[0].length;
+  const lastAt = pieces.length - 1;
+  for (let i = 1; i < lastAt; i++) {
+    if (pieces[i] === "") continue;
+    const found = path.indexOf(pieces[i], at);
+    if (found === -1) return false;
+    at = found + pieces[i].length;
+  }
+  const last = pieces[lastAt];
+  if (!anchored) return last === "" || path.indexOf(last, at) !== -1;
+  return path.length - last.length >= at && path.endsWith(last);
+}
 /** Google's matching: the group naming the agent (longest product-token match) or "*"; the longest matching rule wins, allow on ties. */
 export function robotsVerdict(text: string, agent: string, path: string) {
   const { groups, sitemaps } = parseRobots(text);
@@ -98,7 +123,7 @@ export function robotsVerdict(text: string, agent: string, path: string) {
   const rules = chosen.flatMap((g) => g.rules);
   let decisive: { allow: boolean; path: string } | null = null;
   for (const r of rules) {
-    if (!ruleRegex(r.path).test(path)) continue;
+    if (!robotsRuleMatches(r.path, path)) continue;
     const len = r.path.replace(/\*/g, "").length;
     const best = decisive ? decisive.path.replace(/\*/g, "").length : -1;
     if (len > best || (len === best && r.allow && !decisive!.allow)) decisive = r;
@@ -145,7 +170,8 @@ export const LOOKUPS: Entry[] = [
         res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json${year ? `&modelyear=${year}` : ""}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) });
       } catch { throw new HttpError(502, "NHTSA's VIN service did not answer in time; try again"); }
       if (!res.ok) throw new HttpError(502, `NHTSA's VIN service answered HTTP ${res.status}; try again`);
-      const row = ((await res.json()) as { Results?: Record<string, string>[] }).Results?.[0] ?? {};
+      // A decode is a few kilobytes; 1 MB is the most that is read (21 Nov 2026).
+      const row = ((await jsonCapped(res, 1_000_000)) as { Results?: Record<string, string>[] } | null)?.Results?.[0] ?? {};
       const out: Record<string, unknown> = { vin, checkDigitValid: vinCheckDigit(vin) === vin[8] };
       for (const [from, to] of VIN_FIELDS) { const v = row[from]?.trim(); if (v && v !== "Not Applicable") out[to] = v; }
       if (!out.make) throw new HttpError(404, `NHTSA has no decode for this VIN${row.ErrorText ? ` (${row.ErrorText.slice(0, 160)})` : ""}`);
@@ -169,7 +195,9 @@ export const LOOKUPS: Entry[] = [
       const res = await fetchPublic(robotsUrl, "text/plain,*/*;q=0.5", fourXX, { cacheSeconds: 600 });
       const path = `${page.pathname}${page.search}`;
       if (res.status >= 400) return { url: page.href, robotsUrl: robotsUrl.href, status: res.status, agent, allowed: true, matchedRule: null, group: null, rulesInGroup: 0, sitemaps: [], note: "no robots.txt (4xx): everything is allowed" };
-      const text = (await res.text()).slice(0, 500_000);
+      // 21 Nov 2026: a counted read. `res.text()` took the whole body first, whatever its size, and cut it afterwards.
+      // 2 MB holds the 500,000 characters used here even when every one of them is a four-byte character.
+      const text = (await bodyWithin(textCapped(res.body, 2_000_000), 8_000)).text.slice(0, 500_000);
       return { url: page.href, robotsUrl: robotsUrl.href, status: res.status, agent, ...robotsVerdict(text, agent === "*" ? "*" : agent, path) };
     }),
 ];

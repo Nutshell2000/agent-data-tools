@@ -12,6 +12,7 @@ import { entry, pick, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { MODELS, runAi } from "../lib/ai";
 import { fetchFile } from "../lib/fetch";
+import { languageCode } from "../lib/melo";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles, type TimedSegment } from "./ai";
 import { CHAT_MODEL, OPENAI_VOICES, audioToBase64, base64Bytes, chat, id3Length, joinMp3, speechParts } from "./ai-text";
@@ -204,10 +205,16 @@ export async function transcribeAudio(env: Env, bytes: Uint8Array, language: str
   return { format: plan.format, seconds, parts: plan.parts.length, text, language: lead?.language ?? null, languageProbability: lead?.languageProbability ?? null, segments, words };
 }
 
-function languageInput(q: Input): string {
+export function languageInput(q: Input): string {
   const langRaw = (q("language") ?? "").trim().toLowerCase();
-  if (langRaw && !/^[a-z]{2,3}([-_][a-z0-9]+)?$/.test(langRaw)) throw new HttpError(400, "language must be a 2-3 letter code such as en, sv or de");
-  return langRaw.slice(0, 2);
+  if (!langRaw) return "";
+  // 21 Nov 2026: the model takes two-letter codes. A three-letter code used to be cut to its first two letters, so
+  // "swe" was read as sw (Swahili) and "spa" as sp (no language), and the paid transcript came out in the wrong
+  // language; a name ("Swedish") was refused. Now a name, a three-letter code or a regional tag is the code it stands
+  // for (lib/melo.ts languageCode), and a code that cannot be read is refused instead of guessed.
+  const code = languageCode(langRaw);
+  if (!/^[a-z]{2}$/.test(code)) throw new HttpError(400, "language must be a two-letter code such as en, sv or de (a tag such as en-US or a name such as Swedish also works); leave it out to detect the language");
+  return code;
 }
 
 // ---- Voice note / meeting summary ------------------------------------------------------------------------------------

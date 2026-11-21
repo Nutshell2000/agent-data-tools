@@ -114,7 +114,8 @@ function parseSpec(item: string): PackageSpec {
   }
 
   const ecosystem = item.slice(0, colon).trim().toLowerCase();
-  if (!OSV_ECOSYSTEMS[ecosystem]) {
+  // 21 Nov 2026: read with Object.hasOwn, so a prototype name (constructor, toString) sent as the value is not found in the table.
+  if (!Object.hasOwn(OSV_ECOSYSTEMS, ecosystem)) {
     throw new HttpError(400, `ecosystem must be one of: ${Object.keys(OSV_ECOSYSTEMS).join(", ")}`);
   }
   const packageAndVersion = item.slice(colon + 1).trim();

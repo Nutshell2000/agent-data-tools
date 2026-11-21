@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Env } from "./env";
 import { canBatch, queueBatched } from "./metrics-batch";
+import { boundedFamily } from "./caller";
 
 // A payment attempt that never reached the facilitator ends in one of the refused_* stages: wrong amount or
 // recipient, a network we do not accept, or a header we could not read. facilitator_unavailable means the
@@ -46,6 +47,10 @@ export function markStage(stage: FunnelStage, path?: string) {
   const trace = activeTrace();
   if (!trace || trace.stages.has(stage)) return;
   trace.stages.add(stage);
+  // /read/<software> and /caller/<software> carry a name the caller chose (its User-Agent token): the number of
+  // different names is bounded before it becomes a key of the day's counter row (21 Nov 2026; lib/caller.ts).
+  const labelled = path === undefined ? null : /^\/(read|caller)\/(.+)$/.exec(path);
+  if (labelled) path = `/${labelled[1]}/${boundedFamily(labelled[2])}`;
   trace.emit({ requestId: trace.requestId, path: path ?? trace.path, transport: trace.transport,
     ...(trace.source ? { source: trace.source } : {}), stage, at: new Date().toISOString() });
 }

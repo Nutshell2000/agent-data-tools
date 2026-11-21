@@ -13,6 +13,7 @@
  */
 import { entry, pick, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
+import { languageCode } from "../lib/melo";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { longInput } from "../lib/long-input";
@@ -131,7 +132,8 @@ export const EINVOICE: Entry[] = [
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "invoice must be a JSON object with number, issueDate, seller, buyer and lines");
       const wanted = q("format")?.trim().toLowerCase();
       if (wanted && PDF_FORMAT_NAMES.has(wanted)) {
-        const language = q("language")?.trim().toLowerCase();
+        // 21 Nov 2026: "de-DE", "German", "deu" and "en-GB" are de and en (lib/melo.ts languageCode); they were refused.
+        const language = q("language")?.trim() ? languageCode(q("language")) : undefined;
         if (language && language !== "de" && language !== "en") throw new HttpError(400, "language must be one of: de, en");
         const hybrid = createEinvoice(input, "zugferd");
         const pdf = writeZugferdPdf(hybrid.invoice, hybrid.xml, language ? { lang: language as "de" | "en" } : {});

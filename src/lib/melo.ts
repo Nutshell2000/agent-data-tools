@@ -28,7 +28,26 @@ export const SPEECH_LANGS = ["en", "es"] as const;
 export type SpeechLang = (typeof SPEECH_LANGS)[number];
 /** Languages MeloTTS served before Workers AI retired it (owner: "MeloTTS is retired by Cloudflare on 20 Nov 2026"). Callers must refuse a retired language with `retiredSpeechLang`, not treat it as Aura-2. */
 export const RETIRED_SPEECH_LANGS: ReadonlySet<string> = new Set(["fr", "zh", "ja", "ko"]);
-const LANG_NAMES: Readonly<Record<string, string>> = { eng: "en", spa: "es", fra: "fr", fre: "fr", zho: "zh", chi: "zh", jpn: "ja", kor: "ko", english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
+/**
+ * 21 Nov 2026: other widely used languages, by English name, own name and ISO 639-2 code, for the tools that take any
+ * language (translation, transcription, the German e-invoice PDF). Before this "German", "deu" and "Swedish" were
+ * refused, and the transcription tools read a three-letter code by its first two letters ("swe" became sw, Swahili).
+ * None of these is a speech language, so the speech tools still refuse them as before.
+ */
+const MORE_LANG_NAMES: Readonly<Record<string, string>> = {
+  german: "de", deutsch: "de", deu: "de", ger: "de", swedish: "sv", svenska: "sv", swe: "sv", italian: "it", italiano: "it", ita: "it",
+  portuguese: "pt", "português": "pt", por: "pt", dutch: "nl", nederlands: "nl", nld: "nl", dut: "nl", polish: "pl", polski: "pl", pol: "pl",
+  russian: "ru", rus: "ru", ukrainian: "uk", ukr: "uk", turkish: "tr", tur: "tr", arabic: "ar", ara: "ar", hindi: "hi", hin: "hi",
+  indonesian: "id", ind: "id", vietnamese: "vi", vie: "vi", thai: "th", tha: "th", finnish: "fi", suomi: "fi", fin: "fi",
+  danish: "da", dansk: "da", dan: "da", norwegian: "no", norsk: "no", nor: "no", nob: "no", czech: "cs", ces: "cs", cze: "cs",
+  greek: "el", ell: "el", gre: "el", hebrew: "he", heb: "he", romanian: "ro", ron: "ro", rum: "ro", hungarian: "hu", hun: "hu",
+  bulgarian: "bg", bul: "bg", swahili: "sw", swa: "sw", bengali: "bn", ben: "bn", tamil: "ta", tam: "ta", malay: "ms", msa: "ms", may: "ms",
+  persian: "fa", farsi: "fa", fas: "fa", per: "fa", urdu: "ur", urd: "ur", afrikaans: "af", afr: "af", estonian: "et", est: "et",
+  lithuanian: "lt", lit: "lt", latvian: "lv", lav: "lv", slovak: "sk", slk: "sk", slo: "sk", slovenian: "sl", slv: "sl",
+  croatian: "hr", hrv: "hr", serbian: "sr", srp: "sr", catalan: "ca", cat: "ca", filipino: "tl", tagalog: "tl", fil: "tl", tgl: "tl",
+  icelandic: "is", isl: "is", ice: "is", irish: "ga", gle: "ga", welsh: "cy", cym: "cy", wel: "cy",
+};
+const LANG_NAMES: Readonly<Record<string, string>> = { ...MORE_LANG_NAMES, eng: "en", spa: "es", fra: "fr", fre: "fr", zho: "zh", chi: "zh", jpn: "ja", kor: "ko", english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
 /** A language code or English name as one of `SPEECH_LANGS`, else undefined. A name in `RETIRED_SPEECH_LANGS` is still undefined (so callers see a language that was never served), but `retiredSpeechLang` names it. */
 /**
  * A language as callers write it, as a two-letter code: a name ("English"), a three-letter code ("eng", "spa") or a

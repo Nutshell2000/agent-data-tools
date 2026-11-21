@@ -1,4 +1,5 @@
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 // deps.dev (Google Open Source Insights): free, keyless, data under CC-BY 4.0.
 const DEPS = "https://api.deps.dev/v3";
@@ -14,7 +15,7 @@ async function deps<T>(path: string): Promise<T | null> {
   }
   if (res.status === 404) return null;
   if (!res.ok) throw new HttpError(502, `the package data source returned HTTP ${res.status}`);
-  return res.json();
+  return sourceJson(res, "the package data source");
 }
 
 interface Pkg {

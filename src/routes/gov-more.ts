@@ -6,7 +6,8 @@
 // Register API (federalregister.gov, US government work, no key) and the ClinicalTrials.gov API v2 (NLM, no key).
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { govFetch, resolveCik } from "./gov-data";
+import { sourceJson } from "../lib/source-json";
+import { govFetch, govJson, resolveCik } from "./gov-data";
 
 const tag = (xml: string, name: string) => xml.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`))?.[1]?.trim() ?? null;
 const all = (xml: string, name: string) => [...xml.matchAll(new RegExp(`<(?:\\w+:)?${name}[^>]*>([\\s\\S]*?)</(?:\\w+:)?${name}>`, "g"))].map((m) => m[1]);
@@ -28,7 +29,7 @@ type Submissions = { name: string; tickers?: string[]; filings: { recent: Record
 async function submissions(cik: string): Promise<Submissions> {
   const res = await govFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, 600, "application/json");
   if (res.status === 404) throw new HttpError(404, `no SEC filer with CIK ${Number(cik)}`);
-  return (await res.json()) as Submissions;
+  return sourceJson<Submissions>(res, "the SEC");
 }
 const archive = (cik: string, accession: string) => `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession.replaceAll("-", "")}`;
 const company = (q: (n: string) => string | undefined) => {
@@ -163,7 +164,7 @@ export const GOV_MORE: Entry[] = [
       const i = (r.form ?? []).findIndex((f) => f === "13F-HR" || f === "13F-HR/A");
       if (i < 0) throw new HttpError(404, `${s.name} has no recent 13F-HR filing`);
       const base = archive(cik, r.accessionNumber[i]);
-      const index = (await (await govFetch(`${base}/index.json`, 86_400, "application/json")).json()) as { directory?: { item?: { name: string }[] } };
+      const index = (await govJson(await govFetch(`${base}/index.json`, 86_400, "application/json"))) as { directory?: { item?: { name: string }[] } };
       const table = (index.directory?.item ?? []).map((x) => x.name).find((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n));
       if (!table) throw new HttpError(502, "the 13F filing has no information table the SEC returned; try again");
       const parsed = parse13F(await (await govFetch(`${base}/${table}`, 86_400, "application/xml")).text());
@@ -199,7 +200,7 @@ export const GOV_MORE: Entry[] = [
       if (typeIn) u.searchParams.append("conditions[type][]", TYPES[typeIn]);
       if (agency) u.searchParams.append("conditions[agencies][]", agency);
       for (const f of ["title", "type", "abstract", "document_number", "html_url", "pdf_url", "publication_date", "agencies", "comments_close_on", "effective_on"]) u.searchParams.append("fields[]", f);
-      const j = (await (await govFetch(u.href, 900, "application/json")).json()) as { count?: number; results?: { title: string; type: string; abstract: string | null; document_number: string; html_url: string; pdf_url: string | null; publication_date: string; agencies?: { name?: string; raw_name?: string }[]; comments_close_on: string | null; effective_on: string | null }[] };
+      const j = (await govJson(await govFetch(u.href, 900, "application/json"))) as { count?: number; results?: { title: string; type: string; abstract: string | null; document_number: string; html_url: string; pdf_url: string | null; publication_date: string; agencies?: { name?: string; raw_name?: string }[]; comments_close_on: string | null; effective_on: string | null }[] };
       const docs = (j.results ?? []).map((d) => ({ title: d.title, type: d.type, agencies: (d.agencies ?? []).map((a) => a.name ?? a.raw_name).filter(Boolean), abstract: d.abstract ? d.abstract.slice(0, 600) : null, published: d.publication_date, commentsClose: d.comments_close_on, effective: d.effective_on, documentNumber: d.document_number, url: d.html_url, pdf: d.pdf_url }));
       return { query: term, total: j.count ?? docs.length, count: docs.length, documents: docs, source: "Federal Register API (federalregister.gov)" };
     }),
@@ -229,7 +230,7 @@ export const GOV_MORE: Entry[] = [
       u.searchParams.set("pageSize", String(limit));
       u.searchParams.set("countTotal", "true");
       type Study = { protocolSection?: Record<string, Record<string, unknown>> };
-      const j = (await (await govFetch(u.href, 900, "application/json")).json()) as { totalCount?: number; studies?: Study[] };
+      const j = (await govJson(await govFetch(u.href, 900, "application/json"))) as { totalCount?: number; studies?: Study[] };
       const studies = (j.studies ?? []).map(({ protocolSection: p = {} }) => {
         const id = p.identificationModule ?? {}, st = p.statusModule ?? {}, design = p.designModule ?? {}, cond = p.conditionsModule ?? {}, arms = p.armsInterventionsModule ?? {}, spons = p.sponsorCollaboratorsModule ?? {}, loc = p.contactsLocationsModule ?? {};
         const locations = (loc.locations as { country?: string }[] | undefined) ?? [];

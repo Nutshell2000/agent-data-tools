@@ -37,7 +37,8 @@ export function normalizeZone(raw: string): string {
     // Etc/GMT zones carry the opposite sign (Etc/GMT-2 is UTC+2); minutes need an offset zone, which recent engines accept.
     return m === 0 ? `Etc/GMT${sign > 0 ? "-" : "+"}${h}` : `${sign > 0 ? "+" : "-"}${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
-  const city = CITY_ZONES[z.toLowerCase()];
+  // 21 Nov 2026: read with Object.hasOwn, so a prototype name (constructor, toString) sent as the value is not found in the table.
+  const city = Object.hasOwn(CITY_ZONES, z.toLowerCase()) ? CITY_ZONES[z.toLowerCase()] : undefined;
   if (city) return city;
   return z.replace(/\s+/g, "_");
 }

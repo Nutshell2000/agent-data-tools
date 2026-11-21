@@ -13,7 +13,7 @@ import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
 import { tidyTranslation } from "../lib/translation-tidy";
-import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, meloSentences, meloSpeech, retiredSpeechLang } from "../lib/melo";
+import { MELO_MAX_CHARS, MELO_MODEL, MELO_PART_MAX, isMeloLang, languageCode, meloSentences, meloSpeech, retiredSpeechLang } from "../lib/melo";
 import { fetchFile } from "../lib/fetch";
 import { FILE_REF_INPUT, heldFile, isFileRef } from "../lib/file-input";
 import { toSubtitles } from "./ai";
@@ -157,12 +157,15 @@ export const DUB_TARGETS = ["en", "es"] as const;
 const LANGUAGE_NAMES: Readonly<Record<(typeof DUB_TARGETS)[number], string>> = { en: "English", es: "Spanish" };
 const DUB_TARGET_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", español: "es", french: "fr", français: "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
 /** The target language as a code, from a code or an English name. A retired language is a 422 saying so; anything else is a 400 naming en and es. */
-export function dubTarget(raw: string | undefined): (typeof DUB_TARGETS)[number] {
-  const t = (raw ?? "").trim().toLowerCase();
+export function dubTarget(raw: string | undefined, name = "to"): (typeof DUB_TARGETS)[number] {
+  // 21 Nov 2026: a regional tag or a three-letter code ("en-US", "es_MX", "eng") is the language it stands for, as on
+  // the other speech tools (lib/melo.ts languageCode): /status counted /dub and /voice/agent calls refused for them.
+  // The refusal names the input that was sent: /voice/agent's is lang, and it used to be told "to must be...".
+  const t = languageCode(raw);
   const retired = retiredSpeechLang(t);
   if (retired) throw new HttpError(422, `${retired} speech is retired (MeloTTS is off at Workers AI, 20 Nov 2026); use en or es, nothing was charged`);
   const code = Object.hasOwn(DUB_TARGET_NAMES, t) ? DUB_TARGET_NAMES[t] : t;
-  if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `to must be one of ${DUB_TARGETS.join(", ")}: the languages the voices speak (nothing was charged)`);
+  if (!(DUB_TARGETS as readonly string[]).includes(code)) throw new HttpError(400, `${name} must be one of ${DUB_TARGETS.join(", ")}: the languages the voices speak (nothing was charged)`);
   return code as (typeof DUB_TARGETS)[number];
 }
 
@@ -227,7 +230,7 @@ export const VOICE_PLUS: Entry[] = [
     },
     { heard: "What time do you open on Saturday?", reply: "On Saturday we are open from seven in the morning until five in the afternoon.", contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 61440, voice: "luna", lang: "en", history: [{ role: "user", content: "What time do you open on Saturday?" }, { role: "assistant", content: "On Saturday we are open from seven in the morning until five in the afternoon." }], model: CHAT_MODEL, speechModel: "@cf/deepgram/aura-2-en" },
     async (env: Env, q: Input) => {
-      const lang = q("lang")?.trim() ? dubTarget(q("lang")) : "en";
+      const lang = q("lang")?.trim() ? dubTarget(q("lang"), "lang") : "en";
       const melo = isMeloLang(lang);
       const { voice, model } = melo ? { voice: "default", model: MELO_MODEL } : speechVoice((k) => (k === "lang" ? lang : q(k)));
       const instructions = (q("instructions") ?? "").trim();
@@ -324,7 +327,9 @@ export const VOICE_PLUS: Entry[] = [
       if (subtitles && subtitles !== "srt" && subtitles !== "vtt") throw new HttpError(400, "subtitles must be srt or vtt");
       const redactRaw = (q("redact") ?? "").trim().toLowerCase();
       if (redactRaw && !(REDACT as readonly string[]).includes(redactRaw)) throw new HttpError(400, `redact must be one of ${REDACT.join(", ")}`);
-      const languageRaw = (q("language") ?? "").trim().toLowerCase();
+      // 21 Nov 2026: an English name or a three-letter code ("German", "deu") is its two-letter code; a code or regional tag goes to the model as sent.
+      const languageSent = (q("language") ?? "").trim().toLowerCase();
+      const languageRaw = /^[a-z]{2}([-_][a-z0-9]+)?$/.test(languageSent) ? languageSent : languageCode(languageSent);
       if (languageRaw && !/^[a-z]{2,3}([-_][a-z0-9]+)?$/.test(languageRaw)) throw new HttpError(400, "language must be a code such as en, es or de");
       const { bytes, url } = await audioInput(q);
       const contentType = audioType(bytes);

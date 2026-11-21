@@ -53,7 +53,7 @@ test('every task guide is a 200 page titled as the query, with the free, card-ke
     assert.match(html, new RegExp(`href="/tools/${path.slice(1).replace(/\//g, '-')}"`), `${slug} links the tool page`);
     assert.doesNotMatch(html, /noindex/);
     // Only the schema.org data runs no script; the page itself has none.
-    assert.equal((html.match(/<script/g) ?? []).length, (html.match(/<script type="application\/ld\+json">/g) ?? []).length);
+    assert.equal((html.replace(/<script data-gc-beacon>[\s\S]*?<\/script>/g, '').match(/<script/g) ?? []).length, (html.match(/<script type="application\/ld\+json">/g) ?? []).length);
     const md = await mf.dispatchFetch(`https://api.test/guides/${slug}.md`);
     assert.equal(md.status, 200);
     const text = await md.text();

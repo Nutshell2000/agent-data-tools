@@ -10,9 +10,26 @@ export class XmlError extends Error {}
 
 export const MAX_XML_CHARS = 2_000_000;
 
+/**
+ * Whether a DOCTYPE stands anywhere before the root element (21 Nov 2026). Only the first 4,000 characters were
+ * searched, and the official ZUGFeRD samples already open with a licence comment longer than that: a DOCTYPE placed
+ * after a long comment was not seen. The parser neither loads a DTD nor expands entities, so nothing followed from
+ * it, but the rule is "a DOCTYPE is refused" and it now holds for the whole prolog. A DOCTYPE can only come before
+ * the root element, between comments, processing instructions and white space, so those are stepped over one by one.
+ */
+export function prologHasDoctype(xml: string): boolean {
+  let i = xml.charCodeAt(0) === 0xfeff ? 1 : 0;
+  for (;;) {
+    while (i < xml.length && (xml.charCodeAt(i) === 0x20 || xml.charCodeAt(i) === 0x09 || xml.charCodeAt(i) === 0x0a || xml.charCodeAt(i) === 0x0d)) i++;
+    if (xml.startsWith("<?", i)) { const end = xml.indexOf("?>", i + 2); if (end === -1) return false; i = end + 2; continue; }
+    if (xml.startsWith("<!--", i)) { const end = xml.indexOf("-->", i + 4); if (end === -1) return false; i = end + 3; continue; }
+    return xml.slice(i, i + 9).toUpperCase() === "<!DOCTYPE";
+  }
+}
+
 export function parseXml(xml: string): Node {
   if (xml.length > MAX_XML_CHARS) throw new XmlError("the XML is larger than 2 MB");
-  if (/<!DOCTYPE/i.test(xml.slice(0, 4000))) throw new XmlError("the XML has a DOCTYPE, which is not read");
+  if (/<!DOCTYPE/i.test(xml.slice(0, 4000)) || prologHasDoctype(xml)) throw new XmlError("the XML has a DOCTYPE, which is not read");
   const parser = new SaxesParser({ xmlns: false });
   const root: Node = { name: "#root", attrs: {}, kids: [], text: "" };
   const stack: Node[] = [root];

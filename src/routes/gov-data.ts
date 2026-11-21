@@ -4,6 +4,7 @@
 // work (17 U.S.C. §105).
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson, unreadableSource } from "../lib/source-json";
 
 export const SEC_UA = "AgentDataTools/1.0 (spellz111122@gmail.com)";
 
@@ -18,6 +19,15 @@ export async function govFetch(url: string, cacheTtl: number, accept: string): P
   if (res.status === 404) return res;
   if (!res.ok) throw new HttpError(502, `the government data source answered HTTP ${res.status}; try again`);
   return res;
+}
+/**
+ * The JSON of an answer from govFetch, for the reads where a 404 is not "no such record". 21 Nov 2026: govFetch hands a
+ * 404 back so the lookups by number can say "no such filer", but the searches and file lists read the 404's body as
+ * their answer: a search came back as a paid answer with no results, or as our own error when the body was a web page.
+ */
+export async function govJson<T>(res: Response): Promise<T> {
+  if (res.status === 404) throw new HttpError(502, "the government data source answered HTTP 404; try again");
+  return sourceJson<T>(res, "the government data source");
 }
 
 type TickerMap = Record<string, { cik_str: number; ticker: string; title: string }>;
@@ -46,7 +56,7 @@ export async function resolveCik(ticker?: string, cik?: string): Promise<string>
   }
   const query = (ticker ?? "").trim();
   if (!/^[A-Za-z0-9 .,&'\-]{1,60}$/.test(query)) throw new HttpError(400, "ticker must be a stock ticker such as AAPL or a company name (or pass cik)");
-  const map = (await (await govFetch("https://www.sec.gov/files/company_tickers.json", 86_400, "application/json")).json()) as TickerMap;
+  const map = await govJson<TickerMap>(await govFetch("https://www.sec.gov/files/company_tickers.json", 86_400, "application/json"));
   const hit = secCompanyMatch(Object.values(map), query);
   if (!hit) throw new HttpError(404, `no SEC-registered company with ticker or name ${query.toUpperCase()}`);
   return String(hit.cik_str).padStart(10, "0");
@@ -79,7 +89,7 @@ export const GOV_DATA: Entry[] = [
       const cik = await resolveCik(ticker, cikInput);
       const res = await govFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, 600, "application/json");
       if (res.status === 404) throw new HttpError(404, `no SEC filer with CIK ${Number(cik)}`);
-      const s = (await res.json()) as { name: string; cik: string; tickers: string[]; sic: string; sicDescription: string; filings: { recent: Record<string, string[]> } };
+      const s = (await sourceJson(res, "the SEC")) as { name: string; cik: string; tickers: string[]; sic: string; sicDescription: string; filings: { recent: Record<string, string[]> } };
       const r = s.filings.recent;
       const rows = (r.form ?? []).map((f, i) => ({ f, i })).filter(({ f }) => !form || f.toUpperCase() === form).slice(0, limit);
       const plainCik = String(Number(cik));
@@ -110,7 +120,12 @@ export const GOV_DATA: Entry[] = [
       // A US ICAO code is K plus the IATA code (KJFK is JFK); FAA's feed names airports by IATA code.
       const code = opt(q, "airport", 40)?.trim().toUpperCase().replace(/^K([A-Z]{3})$/, "$1");
       if (code && !/^[A-Z0-9]{3,4}$/.test(code)) throw new HttpError(400, `airport must be a 3-letter IATA code such as LGA, not "${code.slice(0, 20)}"`);
-      const xml = await (await govFetch("https://nasstatus.faa.gov/api/airport-status-information", 60, "application/xml")).text();
+      // 21 Nov 2026: a 404 from the FAA feed was read as a feed with no delays, a paid answer saying every airport runs on time.
+      const feed = await govFetch("https://nasstatus.faa.gov/api/airport-status-information", 60, "application/xml");
+      if (feed.status === 404) throw new HttpError(502, "the FAA status feed answered HTTP 404; nothing was charged, try again");
+      const xml = await feed.text();
+      // An empty answer or a web page (an error or block page served with 200) is not the feed; it used to read as "no delays".
+      if (!xml.trim() || /^\s*<(!doctype\s+html|html[\s>])/i.test(xml)) throw unreadableSource("the FAA status feed");
       const groups = all(xml, "Delay_type");
       const items = (list: string, item: string) => groups.flatMap((g) => all(g, list).flatMap((l) => all(l, item)));
       const mine = <T extends { airport: string | null }>(rows: T[]) => (code ? rows.filter((r) => r.airport === code) : rows);

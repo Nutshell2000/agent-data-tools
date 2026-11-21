@@ -7,6 +7,11 @@ on:
   # the deploy guard needs a successful run for the exact commit.
   workflow_dispatch:
 
+# Reads the repository only (21 Nov 2026). `npm ci` keeps its install scripts here: the tests start workerd and
+# esbuild, the two packages that have one, and this job holds no token that can write.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

@@ -5,7 +5,7 @@ import { getAddress, type PublicClient } from "viem";
 import { entry, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { erc20Abi } from "../lib/rpc";
-import { CHAINS, USDC, client, rpc, testPriced } from "./chain-reads";
+import { CHAINS, USDC, client, rpc, testPriced, tokenReadError } from "./chain-reads";
 import { DEFAULT_TOKENS } from "./wallet";
 import { tokenAddress, knowsTicker, tickerNetwork } from "../lib/tickers";
 
@@ -140,11 +140,13 @@ const PRICE_TOOLS: Entry[] = [
 
       const code = await rpc(() => cl.getCode({ address: token }));
       if (!code || code === "0x") throw new HttpError(404, "no contract at this address on this network");
-      const [decimals, symbol, block] = await rpc(() => Promise.all([
+      // 21 Nov 2026: rpc() turned every failure of these reads into 502, so a contract that is not a token (the caller's
+      // input) was reported and counted as our nodes failing, and the 422 below could never be reached.
+      const [decimals, symbol, block] = await Promise.all([
         cl.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }).then(Number),
         cl.readContract({ address: token, abi: erc20Abi, functionName: "symbol" }).catch(() => null),
         cl.getBlockNumber().then(Number),
-      ])).catch((e) => { throw e instanceof HttpError && e.status === 502 ? e : new HttpError(422, "this contract does not behave like an ERC-20 token"); });
+      ]).catch((e) => { throw tokenReadError(e); });
 
       const tokenInfo = { address: token, symbol, decimals };
       if (token === getAddress(USDC[slug])) {

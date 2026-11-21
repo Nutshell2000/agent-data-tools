@@ -6,6 +6,7 @@
  */
 import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson, unreadableSource } from "../lib/source-json";
 import { exchangeRates } from "./rates";
 
 const SOURCE = "Source: ECB statistics (euro foreign exchange reference rates via Frankfurter), one rate per working day around 16:00 CET; reference mid rates, not tradable bid/ask quotes.";
@@ -20,7 +21,8 @@ export async function fxSymbols() {
     throw new HttpError(502, "the exchange rate data source did not respond");
   }
   if (!res.ok) throw new HttpError(502, `the exchange rate data source returned HTTP ${res.status}`);
-  const names = (await res.json()) as Record<string, string>;
+  const names = await sourceJson<Record<string, string>>(res, "the exchange rate data source");
+  if (!names || typeof names !== "object" || Array.isArray(names)) throw unreadableSource("the exchange rate data source");
   const symbols = Object.entries(names).filter(([code, name]) => /^[A-Z]{3}$/.test(code) && typeof name === "string")
     .map(([code, name]) => ({ code, name })).sort((x, y) => x.code.localeCompare(y.code));
   if (!symbols.length) throw new HttpError(502, "the exchange rate data source returned no currencies");

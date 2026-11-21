@@ -291,7 +291,7 @@ export const SE_COMPANY: Entry[] = [
       const name = opt(q, "name", 120) ?? opt(q, "q", 120);
       if (!raw && !name) throw new HttpError(400, "give orgnr (such as 556703-7485) or name");
       if (!raw) {
-        const limitRaw = opt(q, "limit", 4);
+        const limitRaw = opt(q, "limit", 12); // 21 Nov 2026: limit=10000 was refused as "longer than 4 characters"; it is held to 10 below
         const limit = Math.min(10, Math.max(1, Number.isInteger(Number(limitRaw)) && limitRaw ? Number(limitRaw) : 5));
         return searchName(name!, limit, fetch, opt(q, "city", 60));
       }

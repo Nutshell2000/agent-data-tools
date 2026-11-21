@@ -1,4 +1,5 @@
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 
 const HEADERS = { "user-agent": "AgentDataTools/1.0" };
 const CODE = /^[A-Z]{3}$/;
@@ -16,7 +17,8 @@ const CURRENCY_ALIASES: Record<string, string> = {
 };
 const currencyCode = (raw: string) => {
   const s = raw.trim().toLowerCase().replace(/\s+/g, " ");
-  return CURRENCY_ALIASES[s] ?? s.toUpperCase();
+  // 21 Nov 2026: read with Object.hasOwn, so a prototype name (constructor, toString) sent as the value is not found in the table.
+  return Object.hasOwn(CURRENCY_ALIASES, s) ? CURRENCY_ALIASES[s] : s.toUpperCase();
 };
 
 async function getJson<T>(url: string, source: string, notFound: string): Promise<T> {
@@ -28,7 +30,7 @@ async function getJson<T>(url: string, source: string, notFound: string): Promis
   }
   if (res.status === 404 || res.status === 422) throw new HttpError(404, notFound);
   if (!res.ok) throw new HttpError(502, `the ${source} data source returned HTTP ${res.status}`);
-  return res.json();
+  return sourceJson(res, `the ${source} data source`);
 }
 
 /** European Central Bank reference rates, published once per working day. */

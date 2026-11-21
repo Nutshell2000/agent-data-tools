@@ -57,36 +57,36 @@ A Cloudflare Worker that sells 673 tools to AI agents. Each call is paid in USDC
 |---|---|---|
 | `GET /sitemap?url=&contains=&maxUrls=&offset=` | XML sitemap URLs, source-reported dates and pagination (bounded, no crawling) | $0.002 |
 | `GET /extract?url=` | Web page as clean text, headings and links | $0.002 |
-| `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.005 |
-| `GET /domain-report?name=` | Domain trust verdict and email-auth flags | $0.01 |
+| `GET /domain?name=` | DNS, registration age, SPF/DMARC | $0.01 |
+| `GET /domain-report?name=` | Domain trust verdict and email-auth flags | $0.02 |
 | `GET /token?address=` | Base ERC-20 facts and risk flags | $0.01 |
 | `GET /token-report?address=` | Base token risks and live DEX market data | $0.01 |
-| `GET /wallet?address=` | Base wallet balances and account nonce | $0.005 |
+| `GET /wallet?address=` | Base wallet balances and account nonce | $0.01 |
 | `GET /summarize?url=` | Short summary and key points of a page | $0.01 |
 | `GET /screenshot?url=` | JPEG of the rendered page (base64) | $0.01 |
-| `GET /image?prompt=` | Generated 1024x1024 image (base64) | $0.01 |
+| `GET /image?prompt=` | Generated 1024x1024 image (base64) | $0.03 |
 | `GET /transcribe?url=` | Text of an audio file (max 5 MB) | $0.01 |
 | `GET /describe?url=` | Description of an image, or an answer about it | $0.01 |
 | `GET /btc-fees` | Bitcoin fee rates and mempool status | $0.002 |
 | `GET /btc-address?address=` | Bitcoin address balance and activity | $0.01 |
-| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | | $0.002 |.003 |
+| `GET /ln-invoice?invoice=` | Decoded Lightning invoice | $0.01 |
 | `GET /package-audit?packages=` | Audit up to 10 dependencies; supports exact-version advisories and fixes | $0.01 |
 | `GET /wallet-audit?address=` | Base token holdings and nonce-based heuristic risk indicators | $0.01 |
 | `GET /contract-risk?address=` | Limited bytecode, EIP-1967 slot and zero-supply heuristics | $0.01 |
 | `GET /trade-insight?token=&wallet=` | Separate token and wallet risk indicators; no trade recommendation | $0.01 |
 | `GET /liquidity-pool-audit?address=` | Verified Base DEX pair details and reported market data | $0.01 |
 | `GET /mev-simulator` | Base gas-cost estimates using fixed typical gas units; not a quote | $0.01 |
-| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | | $0.002 |.003 |
-| `GET /email?address=` | Email validation without sending mail | | $0.002 |.003 |
+| `GET /package?ecosystem=&name=&version=` | Latest or pinned package metadata and bounded dependency-risk signals (not a safety guarantee) | $0.002 |
+| `GET /email?address=` | Email validation without sending mail | $0.01 |
 | `GET /papers?query=` | Academic paper search | $0.01 |
-| `GET /fx?from=&to=` | Currency exchange rates and conversion | | $0.002 |.003 |
-| `GET /btc-price` | Bitcoin price in major currencies | | $0.002 |.003 |
+| `GET /fx?from=&to=` | Currency exchange rates and conversion | $0.002 |
+| `GET /btc-price` | Bitcoin price in major currencies | $0.002 |
 | `GET /base-gas` | Base network gas price and fee estimate | $0.002 |
 | `GET /base-tx?hash=` | Base transaction status and details | $0.003 |
 | `GET /base-allowance?token=&owner=&spender=` | ERC-20 approval check on Base | $0.002 |
-| `GET /ens?name=` | ENS name/address resolution | | $0.002 |.003 |
-| `GET /weather?lat=&lon=` | Current weather and hourly forecast | | $0.002 |.003 |
-| `GET /time?zone=` | Current time and time zone conversion | | $0.002 |.003 |
+| `GET /ens?name=` | ENS name/address resolution | $0.002 |
+| `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
+| `GET /time?zone=` | Current time and time zone conversion | $0.01 |
 
 Free calls are on: 25 successful calls per caller over MCP, 3 over HTTP (not `/pdf/text`), and 2,000 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP. Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
 

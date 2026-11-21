@@ -4,6 +4,7 @@
 // type and registration country. It is not city-level geolocation, and the copy says so. /geo/distance is local math.
 import { entry, num, opt, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceJson } from "../lib/source-json";
 import { countryName } from "../lib/country-code";
 import { bigToIp, findInShard, isReservedIp, parseIp, shardIndex, shardKey } from "../lib/ip-geo";
 import { CITIES } from "./weather";
@@ -221,7 +222,7 @@ export const GEO_IP: Entry[] = [
       }
       if (res.status === 404) throw new HttpError(404, "no registry record for this address");
       if (!res.ok) throw new HttpError(502, `the registry answered HTTP ${res.status}; try again`);
-      const d = (await res.json()) as RdapIp;
+      const d = await sourceJson<RdapIp>(res, "the registry");
       const holder = holderOf(d.entities);
       const event = (a: string) => d.events?.find((e) => e.eventAction === a)?.eventDate ?? null;
       return mine({

@@ -263,13 +263,13 @@ export const ENTRY_PATHS: Entry[] = [
     "Sentiment analysis of English text: returns a positive or negative label with a confidence score for each, from a DistilBERT model fine-tuned on SST-2. Use to gauge customer feedback, reviews, support messages or social posts before a decision. One call, no API key.",
     ["sentiment-analysis", "text-sentiment", "sentiment", "nlp", "opinion", "ai"], from(AI_TEXT, "/ai/sentiment")),
 
-  door("/web/extraction", "Web extraction: any page to clean Markdown and text",
-    "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
+  door("/web/extraction", "Web extraction: pages to clean text or Markdown",
+    "Web extraction from one to five public URLs in one call: each page's clean text (or Markdown with format=markdown), title, author and published date where the page declares them, up to 20,000 characters a page (default 4,000). Static HTML, Markdown and plain text; no JavaScript rendering. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
     ["web-extraction", "web-scraping", "page-to-markdown", "extract", "contents", "markdown"], from(RETRIEVAL, "/contents")),
 
-  door("/web/scraping", "Web scraping: any page to clean Markdown",
-    "Web scraping of any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
-    ["web-scraping", "scrape-webpage", "web-extraction", "page-to-markdown", "crawler", "markdown"], from(RETRIEVAL, "/contents")),
+  door("/web/scraping", "Web scraping: pages to clean text or Markdown",
+    "Web scraping of one to five public URLs in one call: each page's clean text (or Markdown with format=markdown), title, author and published date where the page declares them, up to 20,000 characters a page (default 4,000). Static HTML, Markdown and plain text; no JavaScript rendering and no crawling of links. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402.",
+    ["web-scraping", "scrape-webpage", "web-extraction", "page-to-markdown", "page-contents", "markdown"], from(RETRIEVAL, "/contents")),
 
   door("/image/generation", "Image generation: from a text prompt",
     "Image generation from a text prompt: create a 1024x1024 JPEG with FLUX.1 schnell, returned as base64 with its content type. Use when an agent needs an illustration, social post or product mock-up from a short description. No account, pay per call over x402.",
@@ -287,12 +287,12 @@ export const ENTRY_PATHS: Entry[] = [
     ["market-data", "crypto-market", "market-overview", "funding-rate", "sentiment", "market"],
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(PACKS, "/pack/crypto-market"))),
 
-  door("/dex/pools", "DEX pools: trending token pairs and liquidity on Base",
-    "DEX pools: the trending token pairs on Base with liquidity and volume signals, from public on-chain data. Use to find active pools or tokens before a trade. Read-only, no API key, pay per call over x402.",
-    ["dex-pools", "liquidity-pools", "token-pairs", "uniswap", "base-dex", "defi"], from(CHAIN_MORE, "/dex/trending")),
+  door("/dex/pools", "DEX pools on Base: trending tokens and their busiest pool",
+    "DEX pools on Base: the tokens with the most swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, each with its swap count, share of swaps, number of pools and busiest pool address. No liquidity, volume or price figures; for a pool's depth use uniswap_pool. Use to find active pools or tokens before a trade. Read-only, no API key, pay per call over x402.",
+    ["dex-pools", "trending-tokens", "dex-swaps", "uniswap", "base-dex", "defi"], from(CHAIN_MORE, "/dex/trending")),
 
   door("/whale/alert", "Whale alert: large USDC and USDT transfers on 5 chains",
-    "Whale alert: the largest USDC and USDT transfers of the last minutes on Base, Ethereum, Arbitrum, Optimism and Polygon above a size you choose, with sender, receiver and amount. Use for flow monitoring or market-moving transfer alerts. Read-only, no API key.",
+    "Whale alert: the largest USDC and USDT transfers of the last minutes on Ethereum, Base, Arbitrum, Optimism or Polygon (one network per call) above a size you choose, with sender, receiver, amount and transaction. Addresses are not labelled. Use for flow monitoring or market-moving transfer alerts. Read-only, no API key.",
     ["whale-alert", "whale-transfers", "large-transfers", "stablecoin", "onchain-data", "monitoring"], from(WHALE, "/whale/transfers")),
 
   door("/orderbook-live", "Orderbook: live crypto bids, asks, spread and depth",
@@ -331,7 +331,7 @@ export const ENTRY_PATHS: Entry[] = [
     ["verify-x402-payment", "x402-preflight", "payment-check", "check-before-paying", "x402", "security"], from(X402_CHECK, "/x402/check")),
 
   door("/keyword/research", "Keyword research: SEO keyword ideas for a seed",
-    "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call.",
+    "Keyword research from a seed keyword: the phrases people type, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, ranked by how many engines suggest each, with question and buying-intent phrases listed apart. No search volumes. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call.",
     ["keyword-research", "seo-keywords", "keyword-ideas", "keywords", "seo", "content-planning"],
     // /keywords/ideas is acquisition-repriced to $0.002 in the live catalog, not the KEYWORDS list's $0.01.
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(KEYWORDS, "/keywords/ideas"))),
@@ -374,18 +374,18 @@ export const ENTRY_PATHS: Entry[] = [
     ["web-search", "search-api", "web-search-api", "search-engine", "research", "rag"], from(SEARCH, "/search")),
 
   door("/domain/whois", "WHOIS lookup, domain lookup: registrar, age, DNS records and email setup of a domain",
-    "WHOIS and domain lookup in one call: registrar, registration and expiry dates with the domain's age (RDAP/WHOIS), DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC, and email authentication (SPF, DMARC). Use to check who owns a domain, how old it is, where it is hosted or whether it accepts mail, for lead research, trust and phishing checks.",
+    "WHOIS and domain lookup in one call: registrar, registration and expiry dates with the domain's age (RDAP/WHOIS), DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC, and email authentication (SPF, DMARC). Use to check a domain's registrar, how old it is, where it points or whether it accepts mail, for lead research, trust and phishing checks. The registrant (owner) is not returned.",
     ["whois-lookup", "domain-lookup", "whois", "dns-records", "domain-age", "registrar"], CORE_DOMAIN),
 
   door("/company/lookup", "Company lookup, company data: profile of any company by name, domain or id",
     "Company lookup by name, website domain or Wikidata id: official website, founding date, country, headquarters, industries, CEO, founders, parent, employee count, stock tickers and LEI, from Wikidata (CC0). No match is an uncharged 422. Use to enrich a lead, vendor or counterparty with company data, or to ground an answer about a business.",
     ["company-lookup", "company-data", "company-enrichment", "business-data", "kyb", "wikidata"], from(COMPANY, "/company")),
 
-  door("/geocode/address", "Geocode an address, coordinates: place or address name to latitude and longitude",
-    "Geocode a place or address to latitude and longitude: a city, town, landmark or address name becomes coordinates, with country, region, population and elevation where known, best match first (Wikidata, CC0). Use to turn a place name into coordinates for maps, distance, weather or routing.",
-    ["geocoding", "geocode", "coordinates", "latitude-longitude", "address-lookup", "places"], from(PUBLIC_DATA, "/geocode")),
+  door("/geocode/address", "Geocode a place, coordinates: city, town or landmark name to latitude and longitude",
+    "Geocode a place name to latitude and longitude: a city, town, landmark or other place recorded in Wikidata becomes coordinates, with country, region, population and elevation where known, best match first (Wikidata, CC0). Street addresses and postcodes are not resolved. Use to turn a place name into coordinates for maps, distance, weather or routing.",
+    ["geocoding", "geocode", "coordinates", "latitude-longitude", "place-lookup", "places"], from(PUBLIC_DATA, "/geocode")),
 
-  door("/fx/rates", "Currency exchange rates API: live rates and conversion for 30 major currencies",
+  door("/fx/rates", "Currency exchange rates API: daily ECB rates and conversion for 30 major currencies",
     "Currency exchange rates and conversion: rates from a base currency to one or many currencies (USD, EUR, GBP, JPY, CHF, SEK, CAD, AUD, CNY, INR and about 20 more), with an optional amount to convert, from European Central Bank reference rates. Use to convert prices, settle an invoice in another currency or show a rate in an agent's answer.",
     ["exchange-rates", "currency-exchange-rates", "forex", "currency-conversion", "fx-rates", "finance"], CORE_FX),
 
@@ -427,9 +427,9 @@ export const ENTRY_PATHS: Entry[] = [
     "Web scraping API: fetch any public web page URL and get its main content as clean text or Markdown (headings, code blocks, tables and links kept), ready for an LLM, RAG or an agent's context; static HTML, Markdown or text pages, up to 100,000 characters. JavaScript-rendered pages: /extract/rendered. Empty pages, bot walls and errors are never charged. Use to read articles, docs and product pages at scale.",
     ["web-scraping", "scrape", "scraper", "web-page-to-markdown", "extract", "rag"], CORE_EXTRACT),
 
-  door("/page/host", "Host static website, web page: a public URL for HTML your agent made",
+  door("/page/host", "Host a static web page, 7 days: a public URL for HTML your agent made",
     "Host a static web page: send HTML (up to 200,000 characters) and an optional title and get a public URL at once, valid up to 7 days; the page is sanitised (no scripts, styles, frames or forms), screened by content moderation and served with noindex. Use to hand a person a report, dashboard or summary your agent produced, or to share results between agents.",
-    ["host-static-website", "web-hosting", "publish-html", "host-web-page", "static-site", "share-page"], from(PAGES, "/page/publish")),
+    ["host-static-page", "temporary-page", "publish-html", "host-web-page", "static-page", "share-page"], from(PAGES, "/page/publish")),
 
   door("/llm/chat", "LLM chat completion API: text generation with Llama 4 Scout",
     "LLM chat completion and text generation: send a prompt (or an OpenAI messages array with tools and JSON mode) and get an answer from Meta's Llama 4 Scout, up to 1,024 output tokens, in a couple of seconds; OpenAI-compatible at /v1/chat/completions. Use for drafting, summaries, classification, reasoning steps and any quick LLM call without an AI provider account.",
@@ -476,7 +476,7 @@ export const ENTRY_PATHS: Entry[] = [
     "OFAC sanctions check: screen a crypto wallet address (EVM, Bitcoin, Tron and more) or a person or company name against the OFAC SDN list and get a verdict (block, review, pass) with every match, SDN id and program. A screening aid, not legal advice. Use before paying or accepting funds, or when onboarding a counterparty.",
     ["ofac", "sanctions-screening", "sanctions-check", "sdn", "aml", "compliance"], from(SANCTIONS, "/sanctions/check")),
 
-  door("/whois/lookup", "WHOIS lookup: who owns a domain",
+  door("/whois/lookup", "WHOIS lookup: registrar, dates and age of a domain",
     "WHOIS lookup for a domain: registrar, creation and expiry date and age (RDAP/WHOIS), plus its DNS records and email setup (SPF, DMARC). Use to check who registered a domain, how old it is and where it is hosted, for lead research and phishing checks.",
     ["whois", "whois-lookup", "domain-whois", "registrar", "domain-age", "rdap"], CORE_DOMAIN),
 
@@ -572,8 +572,8 @@ export const ENTRY_PATHS: Entry[] = [
     "Trending crypto right now: the coins people search most on CoinGecko in the last 24 hours, with symbol, market-cap rank, price and 24-hour change, plus the trending categories. No input needed. Use to see what the market is watching today, seed a watchlist, or give a trading agent or daily brief its market context.",
     ["trending-crypto", "market-trending", "trending-coins", "crypto", "market-data", "watchlist"], from(CRYPTO_TRENDING, "/crypto/trending")),
 
-  door("/market/ohlcv", "Crypto OHLCV: candles for any coin",
-    "Crypto OHLCV candles for any coin (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history.",
+  door("/market/ohlcv", "Crypto OHLCV: Hyperliquid perp candles",
+    "Crypto OHLCV candles for any coin with a Hyperliquid perpetual (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history.",
     ["crypto-ohlcv", "ohlcv", "candles", "price-history", "klines", "market-data"], from(HYPERLIQUID, "/hyperliquid/candles")),
   // Round 7 (10 Nov 2026, placed here so it does not collide with round 6 at the end of the list): three jobs buyers pay other sellers for under a path that names the job, while ours sat under
   // /time and /hyperliquid/market. Bazaar snapshot of 9 Nov, 30-day figures: listings with "timezone" in the path 850 calls
@@ -603,7 +603,7 @@ export const ENTRY_PATHS: Entry[] = [
   // slug scores 39 and should take #1. Same tool, inputs, output and $0.002 price. Hyperliquid only — no
   // multi-exchange claim.
   door("/perpetual/funding/rates", "Perpetual funding rates: live by coin",
-    "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate, 8h-equivalent APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice.",
+    "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate and its APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice.",
     ["perpetual-funding", "funding-rates", "perps", "hyperliquid", "derivatives", "open-interest"], from(HYPERLIQUID, "/hyperliquid/market")),
 
   // Round 5 (10 Nov 2026): the tasks most open shoppers pay for that we already sell under another name. Counted in a
@@ -629,7 +629,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Crypto news today: the latest cryptocurrency headlines (bitcoin, ethereum, DeFi, regulation, markets), or news on any coin or topic you name, as JSON with title, URL, snippet, publisher and age, 1-20 results, from the past day unless you choose a week or month. Results are for immediate use only (Brave API terms). Use to brief a trading agent, follow a coin's news or build a daily crypto digest.",
     ["crypto-news", "cryptocurrency-news", "bitcoin-news", "market-news", "headlines", "news"], NEWS,
     (env, q) => NEWS.run(env, cryptoNewsInput(q)),
-    { ...NEWS.endpoint.params, q: { type: "string", description: "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)", example: "bitcoin ETF" } }),
+    { ...NEWS.endpoint.params, q: { type: "string", description: "Coin or topic, e.g. bitcoin ETF (default: cryptocurrency news in general)", example: "bitcoin ETF" }, freshness: { ...NEWS.endpoint.params.freshness, description: "Only articles from the past day, week or month (default: day)" } }),
 
   // Round 6 (11 Nov 2026), written for the full re-settle of that day: a settlement is the one moment a listing's name
   // reaches the Bazaar, and a new URL starts its listing age (about 30 days outside the scored tier) from its first
@@ -646,7 +646,7 @@ export const ENTRY_PATHS: Entry[] = [
     "Bitcoin fee estimate: current fee rates in sat/vB for next-block, half-hour, one-hour and economy confirmation, what a typical payment costs in sats, mempool size and pending fees, and the latest block height, from mempool.space. No input needed. Use before sending a Bitcoin transaction or to decide whether to wait for lower fees.",
     ["bitcoin-fees", "bitcoin-fee-estimate", "mempool", "btc-fees", "sat-vb", "bitcoin"], CORE_BTC_FEES),
 
-  door("/gas/price", "Gas price: every major EVM chain",
+  door("/gas/price", "Gas price: 5 EVM chains in one call",
     "Gas price now on Base, Ethereum, Arbitrum, Optimism and Polygon in one call: gas price, base fee and priority fee in gwei, what a plain transfer costs in the native coin and, for the ETH chains, in US dollars, sorted cheapest first, plus Bitcoin fee rates. No input needed. Use to pick the cheapest chain, time a transaction or show current fees in a wallet.",
     ["gas-price", "gas-fees", "gwei", "gas-tracker", "multichain-gas", "evm"], from(PACKS_INTEL, "/pack/gas-tracker")),
 
@@ -668,7 +668,7 @@ export const ENTRY_PATHS: Entry[] = [
 
   // 1.131.0: the same audit under the path order other sellers and searches use ("contract audit").
   door("/contract/audit", "Contract audit: Solidity security review by address or source",
-    "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, in about a minute. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract.",
+    "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, within a minute or two. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract.",
     ["contract-audit", "solidity-audit", "smart-contract-audit", "security-review", "audit", "evm"], from(CONTRACT_AUDIT, "/audit/contract")),
 
   door("/url/unshorten", "URL unshortener: final destination",
@@ -677,9 +677,9 @@ export const ENTRY_PATHS: Entry[] = [
 
   // 1.222.0 (18 Nov 2026): the same batch agent paid ShopperPulse's "Know Your Merchant trust score" 463 times ($0.02); the
   // trust verdict of /domain-report answers that job, under a name no merchant-trust search found. Its first door.
-  door("/merchant/trust", "Merchant trust score: is this shop legit",
-    "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee.",
-    ["merchant-trust", "know-your-merchant", "is-this-site-legit", "vendor-check", "trust-score", "domain"], CORE_DOMAIN_REPORT),
+  door("/merchant/trust", "Merchant domain trust check: is this shop's domain legit",
+    "Merchant domain trust check for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail). Domain signals only: no reviews or sales history. Use before an agent buys from, pays or sends data to an online merchant. Not a guarantee.",
+    ["merchant-trust", "know-your-merchant", "is-this-site-legit", "vendor-check", "domain-trust", "domain"], CORE_DOMAIN_REPORT),
 
   // 1.222.0 (18 Nov 2026): Mercator's "url safety check" and "is this link safe" lists hold the providers an agent paid
   // ~460 times each on 16-17 Nov; /pack/url-safety appeared under neither phrase. Its first door.
@@ -773,8 +773,8 @@ export const ENTRY_PATHS: Entry[] = [
   // #15 for "web read". Each new URL gets a first crawl and inherits its canonical's price, inputs, output and
   // category; the canonical listings are untouched. Prices are unchanged.
   door("/exa/search", "Exa-compatible search API: web results with contents",
-    "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Use for an Exa search, a neural web search or a drop-in Exa-compatible search endpoint. No account or API key; failed calls are never charged.",
-    ["exa-search", "exa-compatible-search", "web-search-api", "neural-search", "search-with-contents"], from(SEARCH, "/search")),
+    "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Results come from the Brave index, keyword-ranked. Use for an Exa-style search request or a drop-in Exa-compatible endpoint. No API key; failed calls are never charged.",
+    ["exa-search", "exa-compatible-search", "web-search-api", "search-api", "search-with-contents"], from(SEARCH, "/search")),
 
   door("/chat/completions", "Chat completions API: cheap OpenAI-compatible LLM",
     "Chat completions API for agents: send a prompt or an OpenAI messages array and get an answer from Llama 4 Scout in one paid call, with no account and no API key, at a fraction of a cent. OpenAI-compatible at /v1/chat/completions, with tools and JSON mode. Use for cheap chat completions, drafting, classification and reasoning steps inside an agent workflow.",

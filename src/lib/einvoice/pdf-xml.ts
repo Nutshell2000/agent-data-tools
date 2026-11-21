@@ -4,6 +4,8 @@
 // its dictionary is always in plain bytes. Flate-compressed streams are inflated with DecompressionStream. An
 // encrypted PDF yields nothing readable and is reported as having no invoice XML.
 
+import { readCapped } from "../read-capped";
+
 const latin1 = (bytes: Uint8Array, from: number, to: number) => {
   let s = "";
   for (let i = from; i < to; i += 8192) s += String.fromCharCode(...bytes.subarray(i, Math.min(to, i + 8192)));
@@ -19,10 +21,19 @@ function indexOf(bytes: Uint8Array, needle: string, from: number): number {
   return -1;
 }
 
+/** The largest embedded file that is read, and how many compressed ones are opened in one PDF. */
+const MAX_EMBEDDED_BYTES = 5 * 1024 * 1024;
+const MAX_INFLATED_STREAMS = 40;
+
+/**
+ * A Flate stream's content, or null when it is damaged or larger than the limit. 21 Nov 2026: it used to be inflated
+ * whole and measured afterwards, and Flate packs repeated bytes about a thousand to one, so a 5 MB upload could ask
+ * for gigabytes of memory. The read is counted, as in lib/zip.ts, and stops at the limit.
+ */
 async function inflate(data: Uint8Array): Promise<Uint8Array | null> {
   try {
-    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate"));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
+    const { bytes, over } = await readCapped(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate")), MAX_EMBEDDED_BYTES);
+    return over ? null : bytes;
   } catch { return null; }
 }
 
@@ -33,6 +44,9 @@ const looksLikeInvoice = (xml: string) => /<(\w+:)?(CrossIndustryInvoice|CrossIn
 export async function embeddedInvoiceXml(pdf: Uint8Array): Promise<string | null> {
   let found: string | null = null;
   let at = 0;
+  // An invoice PDF embeds one XML file, with a few more for attachments. Each compressed stream may expand to the
+  // limit above, so only the first forty are opened (21 Nov 2026).
+  let inflated = 0;
   for (let guard = 0; guard < 5000; guard++) {
     const s = indexOf(pdf, "stream", at);
     if (s === -1) break;
@@ -54,8 +68,10 @@ export async function embeddedInvoiceXml(pdf: Uint8Array): Promise<string | null
       while (end > start && (pdf[end - 1] === 0x0a || pdf[end - 1] === 0x0d)) end--;
     }
     const raw = pdf.subarray(start, end);
-    const data = /\/FlateDecode/.test(head) ? await inflate(raw) : raw;
-    if (!data || data.length > 5 * 1024 * 1024) continue;
+    const packed = /\/FlateDecode/.test(head);
+    if (packed && ++inflated > MAX_INFLATED_STREAMS) break;
+    const data = packed ? await inflate(raw) : raw;
+    if (!data || data.length > MAX_EMBEDDED_BYTES) continue;
     const xml = new TextDecoder().decode(data);
     if (looksLikeInvoice(xml)) found = xml;
   }

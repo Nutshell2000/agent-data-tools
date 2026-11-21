@@ -1,5 +1,6 @@
 // Text and data utilities computed locally: no outside services, so fast and nearly never failing.
 // Inputs are size-capped to stay well inside a Worker's CPU budget.
+import { regexRisk } from "../lib/regex-guard";
 import { entry, flag, need, num, opt, pick, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
 import { parseDate } from "../lib/relative-date";
@@ -238,7 +239,7 @@ export function ibanCheck(raw: string) {
   const country = iban.slice(0, 2);
   const reasons: string[] = [];
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(iban)) reasons.push("format must be 2 letters, 2 check digits, then letters and digits");
-  const expected = IBAN_LENGTHS[country];
+  const expected = Object.hasOwn(IBAN_LENGTHS, country) ? IBAN_LENGTHS[country] : undefined;
   if (!expected) reasons.push(`country ${country} is not in the IBAN registry list used here`);
   else if (iban.length !== expected) reasons.push(`${country} IBANs have ${expected} characters, this has ${iban.length}`);
   const rearranged = iban.slice(4) + iban.slice(0, 4);
@@ -728,11 +729,26 @@ export const UTILS: Entry[] = [
     ["regex-tester", "regex", ...U], { pattern: T("(\\d{4})-(\\d{2})", "The pattern without slashes"), text: T("2026-10 and 2027-01", "The text to search"), flags: { type: "string", description: "Flags such as g, i, m, s, u (g is always added)", example: "i" } }, { valid: true, count: 2, matches: [{ match: "2026-10", index: 0, groups: ["2026", "10"], named: null }] },
     (_e, q) => {
       const pattern = need(q, "pattern", 300); const text = need(q, "text", 5000); const flags = (q("flags") ?? "").replace(/[^imsuy]/g, "");
-      // Unpaused 25 Oct 2026 (Workers Paid: a runaway match now costs CPU time, not the request). A quantified group that itself
-      // holds a quantifier, or a backreference, is the shape of every catastrophic pattern, so those are refused up front.
-      if (/\((?:[^()\\]|\\.)*[*+?{](?:[^()\\]|\\.)*\)\s*[*+?{]/.test(pattern) || /\\[1-9]|\\k</.test(pattern)) throw new HttpError(400, "pattern refused: a quantified group that contains a quantifier (such as (a+)+) or a backreference can run for an unbounded time");
+      // Unpaused 25 Oct 2026 (Workers Paid: a runaway match now costs CPU time, not the request). A running match cannot
+      // be stopped, so the pattern is checked before it runs. 21 Nov 2026: the one-line check that stood here let
+      // (a|aa)+$, ((a+))+ and a*a*a*a*b through and refused every quantified (?:...) group by mistake; the check is now
+      // lib/regex-guard.ts, which reads the pattern properly and also weighs it against the length of the text.
       let re: RegExp; try { re = new RegExp(pattern, `${flags}g`); } catch (e) { return { valid: false, error: String((e as Error).message) }; }
-      const matches = [...text.matchAll(re)].slice(0, 200).map((m) => ({ match: m[0], index: m.index, groups: m.slice(1), named: m.groups ?? null }));
+      const risk = regexRisk(pattern, flags, text.length);
+      if (!risk.ok) {
+        if (risk.reason === "overlap") throw new HttpError(400, risk.maxText > 0
+          ? `pattern refused for a text this long: it has repeats that can match the same characters (such as a*a*b or .*x.*y), so the time grows steeply with the text; send at most ${risk.maxText} characters of text with this pattern, or put a different required character between the repeats (nothing was charged)`
+          : "pattern refused: it has too many repeats that can match the same characters (such as a?a?a?... or a*a*a*a*b) and can run for an unbounded time (nothing was charged)");
+        if (risk.reason === "alternation") throw new HttpError(400, "pattern refused: a repeated group whose alternatives can start with the same character (such as (a|aa)+ or (\\d|\\w)*) can run for an unbounded time; make each alternative start with a different character (nothing was charged)");
+        if (risk.reason === "unreadable") throw new HttpError(400, "pattern refused: it uses syntax this tool cannot check for safety before running it (nothing was charged)");
+        throw new HttpError(400, "pattern refused: a quantified group that contains a quantifier (such as (a+)+) or a backreference can run for an unbounded time");
+      }
+      // Stops at the 200th match instead of collecting every match first.
+      const matches: { match: string; index: number | undefined; groups: string[]; named: Record<string, string> | null }[] = [];
+      for (const m of text.matchAll(re)) {
+        matches.push({ match: m[0], index: m.index, groups: m.slice(1), named: m.groups ?? null });
+        if (matches.length >= 200) break;
+      }
       return { valid: true, count: matches.length, matches };
     }),
   entry("/cron/next", "Cron expression next run times", "Next run times (in UTC) of a standard 5-field cron expression (minute hour day month weekday; ranges, lists, steps and names like MON or JAN supported). Use to check a schedule before deploying it.",

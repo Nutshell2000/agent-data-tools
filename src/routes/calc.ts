@@ -118,7 +118,8 @@ export function morse(text: string, mode: "encode" | "decode" | "auto") {
   const decode = mode === "decode" || (mode === "auto" && /^[.\-\s/]+$/.test(text.trim()));
   if (decode) {
     const unknown: string[] = [];
-    const result = text.trim().split(/\s*\/\s*|\s{3,}/).map((w) => w.split(/\s+/).filter(Boolean).map((c) => FROM_MORSE[c] ?? (unknown.push(c), "")).join("")).join(" ");
+    // 21 Nov 2026: read with Object.hasOwn; "constructor" sent for decoding came back as the text of a JavaScript function instead of as an unknown code.
+    const result = text.trim().split(/\s*\/\s*|\s{3,}/).map((w) => w.split(/\s+/).filter(Boolean).map((c) => (Object.hasOwn(FROM_MORSE, c) ? FROM_MORSE[c] : (unknown.push(c), ""))).join("")).join(" ");
     return { mode: "decode", result: result.toUpperCase(), unknown: [...new Set(unknown)] };
   }
   const skipped = new Set<string>();

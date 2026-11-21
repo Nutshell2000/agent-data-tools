@@ -18,6 +18,7 @@
 import { entry, flag, num, need, opt, type Entry } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { runAi } from "../lib/ai";
+import { languageCode } from "../lib/melo";
 import { franc } from "franc-min";
 import { RERANK_MODEL } from "./retrieval";
 import { CHAT_MODEL, LARGE_CHAT_MODELS, chat } from "./ai-text";
@@ -322,7 +323,8 @@ export const LAW_SEARCH: Entry[] = [
       if (kindRaw && kindRaw !== "article" && kindRaw !== "recital") throw new HttpError(400, "kind is article or recital");
       const kind = kindRaw as "article" | "recital" | undefined;
       const count = num(q, "count", { min: 1, max: 10, fallback: 5, integer: true });
-      const textLang = (opt(q, "lang", 5) ?? "en").toLowerCase();
+      // 21 Nov 2026: a regional tag or a name ("de-DE", "German") is its two-letter code (lib/melo.ts languageCode).
+      const textLang = languageCode(opt(q, "lang", 12) ?? "en");
       if (textLang !== "en" && !INDEXED_LANGS.includes(textLang)) throw new HttpError(400, `lang is en or ${INDEXED_LANGS.join(", ")}`);
       const deps = lawDeps(env);
       const found = await lawSearch(query, { act, kind, count }, deps);
