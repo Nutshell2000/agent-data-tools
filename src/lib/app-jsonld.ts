@@ -22,15 +22,19 @@ export function offerPrice(label: string): string | undefined {
   return amount === undefined ? undefined : Number(amount).toFixed(2);
 }
 
-export function webApplicationLd(o: { name: string; url: string; description: string; brand: string; offers: readonly ShownOffer[] }) {
-  const offers = o.offers.flatMap(({ label, note }) => {
+/**
+ * `category`: schema.org applicationCategory, DeveloperApplication unless the page says otherwise (the free voice app is
+ * a MultimediaApplication). `free`: the app costs nothing, published as one Offer at price 0.
+ */
+export function webApplicationLd(o: { name: string; url: string; description: string; brand: string; offers: readonly ShownOffer[]; category?: string; free?: boolean }) {
+  const offers = o.free ? [{ "@type": "Offer", price: "0", priceCurrency: "USD" }] : o.offers.flatMap(({ label, note }) => {
     const price = offerPrice(label);
     return price === undefined ? [] : [{ "@type": "Offer", price, priceCurrency: "USD", description: note ? `${label}: ${note}` : label }];
   });
   const maker = { "@type": "Organization", name: MAKER, brand: { "@type": "Brand", name: o.brand } };
   return {
     "@context": "https://schema.org", "@type": "WebApplication", name: o.name, url: o.url, description: o.description,
-    applicationCategory: "DeveloperApplication", operatingSystem: "Any",
+    applicationCategory: o.category ?? "DeveloperApplication", operatingSystem: "Any",
     ...(offers.length ? { offers } : {}),
     provider: maker, publisher: maker,
   };

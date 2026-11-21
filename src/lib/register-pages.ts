@@ -7,6 +7,7 @@ import { TOOL_COUNT } from "../endpoints";
 import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { PAGE_STYLE, VAT_BASE } from "./vat-pages";
 import { COMPANY_FOOTER } from "./legal";
+import { metaDescription, seoTitle } from "./seo-text";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -83,8 +84,8 @@ const queryOf = (e: Endpoint) => exampleParams(e).map(([k, p]) => `${k}=${encode
 export function registerCountryPage(c: RegisterCountry, origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const e = toolOf(c);
   const url = `${origin}${REGISTER_BASE}/${c.slug}`;
-  const title = `${c.adjective} company register lookup and API: ${c.numberName.replace(/ \(.*$/, "")} check · ${brand}`;
-  const description = `Look up a ${c.adjective} company by ${c.numberName.replace(/ \(.*$/, "")} or name, from ${c.authority}. The number's format and check digit, a live lookup, and an API for your own code.`.slice(0, 300);
+  const title = seoTitle([`${c.adjective} company register lookup and API: ${c.numberName.replace(/ \(.*$/, "")} check`, `${c.adjective} company register lookup and API`, `${c.adjective} company register lookup`], brand);
+  const description = metaDescription(`Look up a ${c.adjective} company by ${c.numberName.replace(/ \(.*$/, "")} or name, from ${c.authority}. The number's format and check digit, a live lookup, and an API for your own code.`.slice(0, 300));
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 2200 ? `${example.slice(0, 2200)}\n…` : example;
   const faq: [string, string][] = [
@@ -133,8 +134,8 @@ ${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}
 /** /company-register: the registers side by side. */
 export function registerIndexPage(origin: string, brand: string = SERVICE_NAME): string {
   const url = `${origin}${REGISTER_BASE}`;
-  const title = `Company register lookup: Sweden, Norway, Finland, France · ${brand}`;
-  const description = "Look up companies in the Swedish, Norwegian, Finnish and French registers by company number or name: number formats, check digits, VAT numbers, and one API for all four.";
+  const title = seoTitle(["Company register lookup: Sweden, Norway, Finland, France", "Company register lookup API"], brand);
+  const description = metaDescription("Look up companies in the Swedish, Norwegian, Finnish and French registers by company number or name: number formats, check digits, VAT numbers, and one API for all four.");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>

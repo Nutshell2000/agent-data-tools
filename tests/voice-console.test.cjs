@@ -29,8 +29,8 @@ test("the front page opens on the console, with text already in it and a voice c
   assert.match(hero, /id="hero-vc"/);
   assert.match(hero, /<textarea id="hero-vc-text"[^>]*>Welcome!/);
   assert.match(hero, /on your own phone or computer/, "the console also works on a phone");
-  // 19 Nov 2026: the textarea is capped at 200,000 characters — the copy must not promise "no limit".
-  assert.match(html, /characters \(up to 200,000\)/, "the runtime counter states the real cap");
+  // The counter states the real cap (19 Nov 2026: 200,000; 21 Nov 2026: 20,000, CONSOLE_MAX_CHARS), never "no limit".
+  assert.ok(html.includes('characters (up to "+MAX.toLocaleString()') && html.includes("MAX=20000"), "the runtime counter states the real cap");
   assert.doesNotMatch(hero, /no limit|No credits or limits/i, "no false no-limit claim in the visible copy");
   assert.match(hero, /data-voice="af_heart" aria-pressed="true"/);
   assert.equal((hero.match(/aria-pressed="true"/g) ?? []).length, 1, "one voice preselected");
@@ -88,10 +88,72 @@ test("the two voice product pages carry the console where they had no try", () =
 test("the console keeps the copy rules and names only what the browser tools do", () => {
   const all = VC.voiceConsole({ voiceSite: "https://voice.x.test" }) + VC.voiceConsoleScript();
   assert.doesNotMatch(all, /x402|MPP|USDC|Tempo|wallet/i);
-  assert.doesNotMatch(all, /faster|fastest|instant|cheapest/i, "no speed or price superlatives");
+  // Whole words: the worker calls the espeak-ng module's instantiateWasm hook (21 Nov 2026).
+  assert.doesNotMatch(all, /\b(?:faster|fastest|instant|cheapest)\b/i, "no speed or price superlatives");
   assert.doesNotMatch(all, /localStorage\.(get|set)Item\([^)]*\)(?![^;]*catch)/, "storage is wrapped");
-  for (const v of VC.CONSOLE_VOICES) assert.match(v.id, /^[ab][fm]_[a-z]+$/, "a Kokoro English voice id");
+  for (const v of VC.CONSOLE_VOICES) assert.match(v.id, /^[abefiph][fm]_[a-z]+$/, "a Kokoro v1.0 voice id");
   assert.equal(new Set(VC.CONSOLE_VOICES.map((v) => v.id)).size, VC.CONSOLE_VOICES.length);
   // Every library the console fetches names an exact version.
   for (const url of all.match(/https:\/\/cdn[^"'\s]+/g)) assert.match(url, /@\d+\.\d+\.\d+|\/\d+\.\d+\.\d+\//, url);
+});
+
+// 21 Nov 2026: parity with voice.glyphcall.com's tts.js and tts-worker.js.
+test("41 voices in 7 languages: English chips first, the rest under More voices grouped by language", () => {
+  assert.equal(VC.CONSOLE_VOICES.length, 41);
+  assert.deepEqual([...new Set(VC.CONSOLE_VOICES.map((v) => v.lang))], ["en-us", "en-gb", "es", "fr", "it", "pt-br", "hi"]);
+  assert.ok(VC.CONSOLE_VOICES.slice(0, VC.CONSOLE_VOICES_SHOWN).every((v) => v.lang.startsWith("en")), "the chips are English");
+  const html = VC.voiceConsole({ voiceSite: "https://voice.x.test" });
+  assert.match(html, /<summary>35 more voices, 7 languages<\/summary>/);
+  const more = html.slice(html.indexOf('<details class="vc-more">'), html.indexOf("</details>"));
+  for (const label of ["English (American)", "English (British)", "Español", "Français", "Italiano", "Português (Brasil)"]) assert.ok(more.includes(`<p class="vc-lang">${label}</p>`), label);
+  assert.match(more, /data-voice="ef_dora" lang="es"/);
+  assert.match(html, /id="vc-gpu"/, "the graphics card option is in the markup (shown only with WebGPU)");
+});
+
+test("the worker phonemizes other languages with espeak-ng, falls back from WebGPU and posts each sentence", () => {
+  const js = VC.voiceConsoleScript();
+  assert.ok(js.includes("https://cdn.jsdelivr.net/npm/espeak-ng@1.0.2/dist/espeak-ng.js"));
+  assert.ok(js.includes("https://cdn.jsdelivr.net/npm/espeak-ng@1.0.2/dist/espeak-ng.wasm"));
+  assert.ok(js.includes("WebAssembly.compile"), "compiled once");
+  assert.ok(js.includes("generate_from_ids") && js.includes("model.tokenizer"));
+  assert.ok(js.includes('device:\\"webgpu\\"') && js.includes('dtype:\\"q8\\",device:\\"wasm\\"'), "WebGPU with the wasm engine as fallback");
+  assert.ok(js.includes('type:\\"chunk\\"'), "playback starts with the first sentence");
+  assert.match(js, /navigator\.gpu\?/, "the option is offered only where WebGPU exists");
+});
+
+// 21 Nov 2026 review of the console: retry, mobile data, pauses, pronunciations, memory, accessibility.
+test("a failed load can be retried, the warm-up spares mobile data, and the text is capped for memory", () => {
+  const html = VC.voiceConsole({ voiceSite: "https://voice.x.test" });
+  const js = VC.voiceConsoleScript();
+  assert.ok(js.includes("loading=null;throw err;"), "the worker forgets a failed load");
+  assert.match(js, /function fail\(msg\)\{if\(tw\)\{tw\.terminate\(\);tw=null;\}/, "the page drops a failed worker");
+  assert.ok(js.includes("Press Play to try again."));
+  assert.doesNotMatch(js, /addEventListener\("focus",warm/, "no download on focus");
+  assert.ok(js.includes("saveData") && js.includes('effectiveType!=="4g"'), "no warm-up on Save-Data or slow connections");
+  assert.match(html, /<span class="vc-size" id="vc-size">about 90 MB, once<\/span>/);
+  assert.equal(VC.CONSOLE_MAX_CHARS, 20000);
+  assert.match(html, /maxlength="20000"/);
+  assert.match(html, /href="https:\/\/studio\.glyphcall\.com\/audiobook"/);
+  assert.doesNotMatch(js, /addEventListener\("input",\(\)=>\{upd\(\);store\.set/, "storage writes are debounced");
+});
+
+test("paragraph pauses, a pronunciation list, and accessible controls", () => {
+  const html = VC.voiceConsole({ voiceSite: "https://voice.x.test" });
+  const js = VC.voiceConsoleScript();
+  assert.ok(js.includes("GAP=0.12,PARA=0.5") && js.includes('type:\\"para\\"'), "a longer pause after a paragraph");
+  assert.match(html, /<summary>Pronunciations<\/summary>/);
+  assert.ok(js.includes('store.get("gc-vc-pron")') && js.includes("const respell="), "saved on the device and applied before speaking");
+  assert.match(VC.VOICE_CONSOLE_CSS, /\.vc-voices button\{[^}]*min-height:44px/);
+  assert.match(VC.VOICE_CONSOLE_CSS, /\.vc-presets button\{[^}]*min-height:44px/);
+  assert.match(html, /<progress id="vc-tbar" max="1" hidden aria-label="Speech progress">/);
+  assert.match(html, /id="vc-tpct" aria-live="off"/);
+  for (const v of VC.CONSOLE_VOICES) assert.deepEqual(Object.keys(v).sort(), ["accent", "gender", "hello", "id", "lang", "name"], v.id);
+});
+
+test("a voice chip plays its recorded sample through one reused audio element, before any download", () => {
+  const js = VC.voiceConsoleScript();
+  assert.ok(js.includes('SAMPLE_BASE="https://voice.glyphcall.com/samples/"'));
+  assert.ok(js.includes('const clip=new Audio();clip.preload="none"'));
+  assert.ok(js.includes('clip.src=SAMPLE_BASE+encodeURIComponent(voice)+".mp3"'));
+  assert.doesNotMatch(js, /300 hours|commercial use|voice-test/i);
 });

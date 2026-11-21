@@ -30,11 +30,13 @@ test("the brand is the owner's setting when it is a plain name, otherwise the se
 
 test("pages for people carry the brand in the title, the crumbs and the structured data", () => {
   const page = productPage(PRODUCTS[0], "https://x.test", false, () => undefined, undefined, true, "Glyphcall");
-  assert.match(page, /<title>[^<]* · Glyphcall<\/title>/);
+  // 21 Nov 2026: " | brand" only while the title still fits 60 characters (lib/seo-text.ts); never the service name.
+  assert.doesNotMatch(page.match(/<title>[^<]*<\/title>/)[0], /Agent Data Tools/);
   assert.match(page, /<nav class="crumbs"><a href="\/">Glyphcall<\/a>/);
   assert.match(page, /"provider":\{"@type":"Organization","name":"Glyphcall"/);
   assert.doesNotMatch(page.slice(0, page.indexOf("<h2>For AI agents</h2>")), /Agent Data Tools/);
-  assert.match(vatIndexPage("https://x.test", false, "Glyphcall"), / · Glyphcall<\/title>/);
-  assert.match(registerIndexPage("https://x.test", "Glyphcall"), / · Glyphcall<\/title>/);
-  assert.match(productPage(PRODUCTS[0], "https://x.test", false, () => undefined), / · Agent Data Tools<\/title>/, "default stays the service name");
+  // 21 Nov 2026: the people's VIES page title spends its 60 characters on the search words, not the brand.
+  assert.match(vatIndexPage("https://x.test", false, "Glyphcall"), /<title>Free VIES VAT number validation[^<]*<\/title>/);
+  assert.doesNotMatch(registerIndexPage("https://x.test", "Glyphcall").match(/<title>[^<]*<\/title>/)[0], /Agent Data Tools/);
+  assert.doesNotMatch(productPage(PRODUCTS[0], "https://x.test", false, () => undefined).match(/<title>[^<]*<\/title>/)[0], /Glyphcall/, "default keeps the service name");
 });

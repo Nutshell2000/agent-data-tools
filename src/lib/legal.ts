@@ -2,11 +2,13 @@
 // update them whenever logging, storage or payment handling changes.
 import { Hono } from "hono";
 import type { Env } from "./env";
-import { SUPPORT_EMAIL } from "../endpoints";
+import { SERVICE_NAME, SUPPORT_EMAIL } from "../endpoints";
 import { PLAN_PORTAL_URL, WEB_PLANS } from "./credits";
 import { FREE_KEY_LINK_HOURS } from "./free-keys";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { CHANGELOG } from "../data/changelog.generated";
+import { publicBrand } from "./public-brand";
+import { seoTitle } from "./seo-text";
 
 const UPDATED = "26 October 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
@@ -180,14 +182,37 @@ export function securityTxt(origin: string, now = Date.now()): string {
   ].join("\n");
 }
 
+/**
+ * A page as served (SEO audit, 21 Nov 2026): the title with the public brand in at most 60 characters, and a canonical
+ * naming the page itself (these pages are linked from every footer and had none). Pages on other hosts get the public
+ * site's address from the canonical rewrite in src/index.ts.
+ */
+const DESCRIPTIONS: Record<string, (brand: string) => string> = {
+  "/privacy": (b) => `What ${b} stores when you or your agent use it, why it is kept, and for how long.`,
+  "/terms": (b) => `The terms of service for ${b}: pay-per-call APIs, card credits, free calls and x402 payments.`,
+  "/support": (b) => `How to get help with ${b}: keys, credits, failed calls and payments.`,
+  "/contact": (b) => `How to reach ${b} by e-mail.`,
+  "/refunds": (b) => `When ${b} refunds or credits a payment, and when it does not.`,
+  "/faq": (b) => `Answers to common questions about ${b}: free calls, card credits, x402 payments and refunds.`,
+  "/about": (b) => `About ${b}, a SpellzCode service: pay-per-call data, voice and document APIs for people and AI agents.`,
+  "/changelog": (b) => `What changed in each ${b} release.`,
+};
+
+function served(env: Env | undefined, requestUrl: string, html: string): string {
+  const url = new URL(requestUrl);
+  const brand = publicBrand(env ?? {}, SERVICE_NAME);
+  const description = Object.hasOwn(DESCRIPTIONS, url.pathname) ? `<meta name="description" content="${esc(DESCRIPTIONS[url.pathname](brand))}">` : "";
+  return html.replace(/<title>([^<]*) · Agent Data Tools<\/title>/, (_, title: string) => `<title>${esc(seoTitle(title, brand))}</title>${description}<link rel="canonical" href="${esc(url.origin + url.pathname)}">`);
+}
+
 export const legal = new Hono<{ Bindings: Env }>();
-legal.get("/privacy", (c) => c.html(PRIVACY_HTML));
-legal.get("/terms", (c) => c.html(TERMS_HTML));
-legal.get("/support", (c) => c.html(SUPPORT_HTML));
-legal.get("/contact", (c) => c.html(CONTACT_HTML));
-legal.get("/refunds", (c) => c.html(REFUNDS_HTML));
-legal.get("/faq", (c) => c.html(FAQ_HTML));
-legal.get("/about", (c) => c.html(ABOUT_HTML));
-legal.get("/changelog", (c) => c.html(CHANGELOG_HTML));
+legal.get("/privacy", (c) => c.html(served(c.env, c.req.url, PRIVACY_HTML)));
+legal.get("/terms", (c) => c.html(served(c.env, c.req.url, TERMS_HTML)));
+legal.get("/support", (c) => c.html(served(c.env, c.req.url, SUPPORT_HTML)));
+legal.get("/contact", (c) => c.html(served(c.env, c.req.url, CONTACT_HTML)));
+legal.get("/refunds", (c) => c.html(served(c.env, c.req.url, REFUNDS_HTML)));
+legal.get("/faq", (c) => c.html(served(c.env, c.req.url, FAQ_HTML)));
+legal.get("/about", (c) => c.html(served(c.env, c.req.url, ABOUT_HTML)));
+legal.get("/changelog", (c) => c.html(served(c.env, c.req.url, CHANGELOG_HTML)));
 legal.get("/.well-known/security.txt", (c) => c.text(securityTxt(new URL(c.req.url).origin), 200, { "Cache-Control": "public, max-age=86400" }));
 legal.get("/security.txt", (c) => c.redirect("/.well-known/security.txt", 301));

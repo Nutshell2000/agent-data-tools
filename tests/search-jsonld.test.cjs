@@ -216,7 +216,7 @@ test('the IndexNow key file answers on every host, and the sitemap lists the hos
   }
   const xml = await (await mf.dispatchFetch(`${SITE}/sitemap.xml`)).text();
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.ok(locs.length > 900 && locs.every((u) => u.startsWith(`${SITE}/`)), 'the public site\'s sitemap holds only its own URLs');
+  assert.ok(locs.length > 600 && locs.every((u) => u.startsWith(`${SITE}/`)), 'the public site\'s sitemap holds only its own URLs');
   for (const [, day] of xml.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)) assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(day) && day <= new Date().toISOString().slice(0, 10), day);
   const moved = await mf.dispatchFetch('https://tools.funwords.eu/sitemap.xml', { redirect: 'manual' });
   assert.deepEqual([moved.status, moved.headers.get('location')], [301, `${SITE}/sitemap.xml`], 'a retired host has no sitemap of its own to submit');

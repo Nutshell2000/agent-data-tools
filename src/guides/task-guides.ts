@@ -11,6 +11,7 @@ import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
 import { keyOfferNumbers } from "../lib/key-prices";
 import { TOOL_SEO } from "../lib/tool-seo";
 import { COMPANY_FOOTER } from "../lib/legal";
+import { breadcrumbs, metaDescription, seoTitle } from "../lib/seo-text";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -218,30 +219,32 @@ nav.crumbs{color:var(--muted);font-size:.9rem;margin-bottom:12px}.meta{color:var
 pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:.85rem;line-height:1.45}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 p{margin:8px 0}a{color:var(--accent)}details{margin:8px 0}summary{cursor:pointer;color:var(--muted)}footer{margin-top:36px;color:var(--muted);font-size:.9rem}ul{padding-left:20px}`;
 
-export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean): string | undefined {
+export function taskGuideHtml(slug: string, origin: string, freeCalls: boolean, brand: string = SERVICE_NAME): string | undefined {
   const g = BY_SLUG.get(slug);
   if (!g) return undefined;
   const tools = g.tools.map((p) => byPath.get(p)).filter((e): e is Endpoint => Boolean(e));
   const main = tools[0];
-  const title = `${g.phrase}: from ${main.price} per call, no signup · ${SERVICE_NAME}`;
+  // 21 Nov 2026 (SEO audit): at most 60 characters with the public brand; the price is on the page.
+  const title = seoTitle([`${g.phrase} guide`, g.phrase], brand);
   const url = `${origin}/guides/${g.slug}`;
   const lead = leadOf(g, main), uses = usesOf(g, main);
   const product = PRODUCT_FOR_TOOL.get(main.path);
   const seoFaq = TOOL_SEO[main.path]?.faq ?? [];
   const faq: [string, string][] = [...(g.faq ?? []), ...seoFaq.filter(([q]) => !(g.faq ?? []).some(([gq]) => gq === q)),
     ["How do I pay?", `Each successful call costs the tool's price; failed calls are not charged. ${freeCalls && httpFree(main.path) ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free. Then` : "Then"} pay with card credits from $1 (the key goes in an Authorization header or as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`]];
-  const ld = { "@context": "https://schema.org", "@type": "TechArticle", headline: `${g.phrase}`, description: lead, url, author: { "@type": "Organization", name: SERVICE_NAME, url: origin }, about: tools.map((e) => ({ "@type": "WebAPI", name: e.summary, url: `${origin}/tools/${toolSlug(e.path)}`, offers: { "@type": "Offer", price: e.price.replace(/^\$/, ""), priceCurrency: "USD" } })) };
+  const ld = { "@context": "https://schema.org", "@type": "TechArticle", headline: `${g.phrase}`, description: lead, url, author: { "@type": "Organization", name: brand, url: origin }, about: tools.map((e) => ({ "@type": "WebAPI", name: e.summary, url: `${origin}/tools/${toolSlug(e.path)}`, offers: { "@type": "Offer", price: e.price.replace(/^\$/, ""), priceCurrency: "USD" } })) };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="${esc(lead.slice(0, 300))}">
+<meta name="description" content="${esc(metaDescription(`${g.phrase}: ${lead}`))}">
 <link rel="canonical" href="${esc(url)}"><link rel="alternate" type="text/markdown" href="${esc(url)}.md">
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(lead.slice(0, 300))}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
+<script type="application/ld+json">${jsonLd(breadcrumbs(origin, brand, [["Guides", "/guides"], [g.phrase, `/guides/${g.slug}`]]))}</script>
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(metaDescription(lead))}"><meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
 <script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>
 <style>${STYLE}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/guides">Guides</a></nav>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/guides">Guides</a></nav>
 <h1>${esc(g.phrase)}</h1>
 <p class="meta">From ${esc(main.price)} per successful call · failed calls are never charged · no account needed · Markdown version: <a href="${esc(`/guides/${g.slug}.md`)}">${esc(`/guides/${g.slug}.md`)}</a></p>
 <p>${esc(lead)}</p>
@@ -267,10 +270,10 @@ export function taskGuideMarkdown(slug: string, origin: string, freeCalls: boole
 }
 
 /** /guides: the task guides and the older buying guides. */
-export function guidesIndexHtml(origin: string): string {
+export function guidesIndexHtml(origin: string, brand: string = SERVICE_NAME): string {
   const older: [string, string][] = [["/guides/web-reading", "Read a web page with a capped x402 client"], ["/guides/sitemap", "Discover documentation URLs from a sitemap"], ["/guides/bitcoin-fees", "Bitcoin fee estimates"], ["/guides/dependency-audit", "Dependency audit buying guide"], ["/guides/local-mcp", "Local MCP adapter"]];
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Guides: pay-per-call data tools for AI agents · ${esc(SERVICE_NAME)}</title><meta name="description" content="How to do common agent jobs with Agent Data Tools: PDF to text, URL to Markdown, OFAC wallet screening, news headlines, image description, chat completions and token prices, pay per call with a free trial."><link rel="canonical" href="${esc(origin)}/guides"><link rel="icon" href="/favicon.ico"><style>${STYLE}</style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › Guides</nav><h1>Guides</h1>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(seoTitle("Guides: pay-per-call data tools for AI agents", brand))}</title><meta name="description" content="How to do common agent jobs: PDF to text, URL to Markdown, OFAC wallet screening, news, image description, chat and token prices, pay per call."><link rel="canonical" href="${esc(origin)}/guides"><link rel="icon" href="/favicon.ico"><style>${STYLE}</style></head><body><main>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › Guides</nav><h1>Guides</h1>
 <p>One page per job, with the request in every way an agent can make it: free trial, card key, x402 or MPP, MCP.</p>
 <p><strong>By monthly plan, one API key:</strong> ${PRODUCTS.map((p) => `<a href="/${esc(p.slug)}">${esc(p.name)}</a>`).join(" · ")}</p>
 <ul>${TASK_GUIDES.map((g) => { const e = byPath.get(g.tools[0]); return `<li><a href="/guides/${esc(g.slug)}">${esc(g.phrase)}</a>${e ? ` · from ${esc(e.price)}: ${esc(leadOf(g, e).slice(0, 160))}` : ""}</li>`; }).join("")}</ul>
