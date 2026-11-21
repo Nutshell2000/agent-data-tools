@@ -185,8 +185,8 @@ export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSi
 <label class="vc-speed">Speed <input type="range" id="${v("speed")}" min="0.6" max="1.6" step="0.1" value="1"><span id="${v("speedv")}">1.0x</span></label></div>
 <label class="vc-gpu" id="${v("gpuw")}"><input type="checkbox" id="${v("gpu")}"> Graphics card mode (uses your GPU; a one-time 330 MB download instead of 90 MB)</label>
 <details class="vc-fix vc-pron"><summary>Pronunciations</summary><label class="vc-hint" for="${v("pron")}">One per line: word = how to say it (whole words). Saved on this device.</label><textarea id="${v("pron")}" rows="3" spellcheck="false" placeholder="Glyphcall = glif call"></textarea></details>
-<progress id="${v("tbar")}" max="1" hidden aria-label="Speech progress"></progress><p class="vc-status" id="${v("tstatus")}" role="status" aria-live="polite">First play fetches the voice once (about 90 MB); after that it is saved on this device.</p><p class="vc-status vc-pct" id="${v("tpct")}" aria-live="off"></p>
-<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><details class="vc-fix"><summary>Fix one sentence without redoing the rest</summary><ol id="${v("sents")}"></ol></details><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-speech.wav" href="#">Download WAV</a><button type="button" class="vc-sec" id="${v("mp3")}">Download MP3</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
+<progress id="${v("tbar")}" max="1" hidden aria-label="Speech progress"></progress><p class="vc-status" id="${v("tstatus")}" role="status" aria-live="polite">First play downloads the voice once (about 90 MB, like a short video). After that it is ready on this device.</p><p class="vc-status vc-pct" id="${v("tpct")}" aria-live="off"></p>
+<div class="vc-out" id="${v("tout")}" hidden><audio id="${v("player")}" controls></audio><details class="vc-fix"><summary>Fix one sentence without redoing the rest</summary><ol id="${v("sents")}"></ol></details><div class="vc-row"><a class="vc-sec" id="${v("wav")}" download="glyphcall-voice.wav" href="#">Download WAV</a><button type="button" class="vc-sec" id="${v("mp3")}">Download MP3</button></div>${opts.upsellTts ? `<p class="vc-status">${opts.upsellTts}</p>` : ""}</div>
 </div>
 <div class="vc-pane" id="${v("stt")}" role="tabpanel" aria-labelledby="${v("t-stt")}"${first === "stt" ? "" : " hidden"}>
 <label class="vc-drop" id="${v("drop")}"><input type="file" id="${v("file")}" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.webm,.mp4,.mov,.flac,.aac"><b>Drop a recording here, or click to choose one</b><span>MP3, M4A, WAV, OGG, WebM or a video. It stays on your computer.</span></label>
@@ -206,7 +206,8 @@ export function voiceConsole(opts: { id?: string; first?: "tts" | "stt"; voiceSi
 // instance), punctuation kept for pauses, then model.tokenizer and generate_from_ids; and an optional graphics-card
 // mode (WebGPU, fp32) that falls back to the standard engine (wasm, q8). The worker is built from this string through a
 // blob URL, so every import is an absolute URL.
-const TTS_WORKER = `import { KokoroTTS, TextSplitterStream } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm";
+const TTS_WORKER = `import "data:text/javascript,if(typeof%20ReadableStream!%3D%3D%22undefined%22%26%26!(Symbol.asyncIterator%20in%20ReadableStream.prototype))%7BReadableStream.prototype%5BSymbol.asyncIterator%5D%3Dasync%20function*()%7Bconst%20r%3Dthis.getReader()%3Btry%7Bfor(%3B%3B)%7Bconst%7Bdone%2Cvalue%7D%3Dawait%20r.read()%3Bif(done)return%3Byield%20value%3B%7D%7Dfinally%7Br.releaseLock()%3B%7D%7D%3B%7D"; // iOS/Safari polyfill, must stay the first import
+import { KokoroTTS, TextSplitterStream } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm";
 const MODEL="onnx-community/Kokoro-82M-v1.0-ONNX",ESPEAK={e:"es",f:"fr-fr",i:"it",p:"pt-br",h:"hi"};
 const ESPEAK_JS="https://cdn.jsdelivr.net/npm/espeak-ng@1.0.2/dist/espeak-ng.js",ESPEAK_WASM="https://cdn.jsdelivr.net/npm/espeak-ng@1.0.2/dist/espeak-ng.wasm";
 let tts=null,loading=null,device="wasm",cancelled=0,esF=null,esM=null;
@@ -277,6 +278,7 @@ function show(k){for(const [n,b] of Object.entries(tabs)){const on=n===k;b.setAt
 tabs.tts.onclick=()=>show("tts");tabs.stt.onclick=()=>show("stt");
 root.querySelector(".vc-tabs").addEventListener("keydown",(e)=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){const k=tabs.tts.getAttribute("aria-selected")==="true"?"stt":"tts";show(k);tabs[k].focus();}});
 // Text to speech
+const fname=(ext)=>"glyphcall-"+String(voice).replace(/^[a-z]{2}_/,"")+"-"+(String(text.value).trim().split(/\s+/).slice(0,4).join(" ").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||"audio")+"."+ext;
 const text=$("text"),count=$("count"),speak=$("speak"),stop=$("stop"),speed=$("speed"),tbar=$("tbar"),tst=$("tstatus"),tout=$("tout"),player=$("player"),wav=$("wav");
 const saved=store.get("gc-vc-text");if(saved)text.value=saved.slice(0,MAX);
 const upd=()=>{count.textContent=text.value.length.toLocaleString()+" characters (up to "+MAX.toLocaleString()+")";};upd();
@@ -326,7 +328,7 @@ function finish(cancelled){speak.disabled=false;stop.hidden=true;tbar.hidden=tru
 if(was==="preview"){if(!cancelled)say(tst,"That was "+preview+". Press Play to hear your own text in this voice.","ok");return;}
 if(was==="redo"){const ok=!cancelled&&redoBuf.length;if(ok){sents[redoAt].pcm=redoBuf;sents[redoAt].text=redoText;}redoBuf=[];if(!ok)return;}
 if(!sents.length)return;const audio=flat();
-last={parts:audio,rate};const blob=toWav(audio,rate);if(wav.href.startsWith("blob:"))URL.revokeObjectURL(wav.href);const url=URL.createObjectURL(blob);wav.href=url;player.src=url;tout.hidden=false;listSents();
+last={parts:audio,rate};wav.download=fname("wav");const blob=toWav(audio,rate);if(wav.href.startsWith("blob:"))URL.revokeObjectURL(wav.href);const url=URL.createObjectURL(blob);wav.href=url;player.src=url;tout.hidden=false;listSents();
 let secs=0;for(const p of audio)secs+=p.length;say(tst,was==="redo"?"Sentence "+(redoAt+1)+" redone; the download has the new take.":"Done: "+(secs/rate).toFixed(1)+" seconds of audio. Edit the text and press Play to make it again, or fix one sentence below. Free.","ok");}
 let preview="";
 function redoOne(i,t){mode="redo";redoAt=i;redoBuf=[];redoText=t;run(respell(t),voice);}
@@ -349,7 +351,7 @@ try{clip.pause();clip.src=SAMPLE_BASE+encodeURIComponent(voice)+".mp3";const p=c
 // metered or slow connection (Save-Data, or anything below 4G): there the download waits for Play.
 const thrifty=()=>{const c=navigator.connection;return !!c&&(!!c.saveData||(!!c.effectiveType&&c.effectiveType!=="4g"));};
 text.addEventListener("input",()=>{if(!thrifty())warm();},{once:true});
-$("mp3").onclick=async(e)=>{if(!last)return;const b=e.currentTarget;b.disabled=true;b.textContent="Encoding...";try{save(await toMp3(last.parts,last.rate),"glyphcall-speech.mp3");}catch(err){say(tst,String(err.message||err),"err");}b.disabled=false;b.textContent="Download MP3";};
+$("mp3").onclick=async(e)=>{if(!last)return;const b=e.currentTarget;b.disabled=true;b.textContent="Encoding...";try{save(await toMp3(last.parts,last.rate),fname("mp3"));}catch(err){say(tst,String(err.message||err),"err");}b.disabled=false;b.textContent="Download MP3";};
 // Speech to text
 const drop=$("drop"),file=$("file"),rec=$("rec"),lang=$("lang"),sbar=$("sbar"),sst=$("sstatus"),sout=$("sout"),tr=$("transcript");
 const lg=store.get("gc-vc-lang");if(lg)lang.value=lg;lang.onchange=()=>store.set("gc-vc-lang",lang.value);

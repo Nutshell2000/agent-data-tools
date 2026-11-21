@@ -58,17 +58,22 @@ if(u.origin===location.origin&&(u.pathname==="${APP_PATH}"||SHELL.includes(u.pat
 if(CDN.test(r.url)){e.respondWith(caches.open(V).then(async(c)=>{const hit=await c.match(r);const net=fetch(r).then((res)=>{if(res.ok)c.put(r,res.clone());return res;}).catch(()=>hit);return hit||net;}));}});`;
 }
 
+// Light palette from the redesign (next release after 1.330.0): page #fbfaf7, cards #fff, alt #f7f6f3, lines #e7e3dc,
+// text #16161d, muted #55555f, links #0f766e, primary buttons #16161d with white text, logo gradient indigo to teal;
+// the console takes the same colours through its --vc-* variables on .vc.
 const STYLE = `*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;background:#07070c;color:#f4f4fb;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
-a{color:#22d3ee}.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+body{margin:0;background:#fbfaf7;color:#16161d;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+a{color:#0f766e}.wrap{max-width:860px;margin:0 auto;padding:0 16px}
 header.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;max-width:860px;margin:0 auto}
-header.bar .brand{display:flex;align-items:center;gap:10px;color:#f4f4fb;text-decoration:none;font-weight:750}header.bar img{width:30px;height:30px;border-radius:8px}
-.btn{appearance:none;font:inherit;font-weight:650;font-size:.92rem;border:1px solid #25253a;background:none;color:#f4f4fb;padding:8px 14px;border-radius:10px;cursor:pointer;text-decoration:none}
-.btn.primary{border:0;background:linear-gradient(100deg,#a78bfa,#22d3ee);color:#07070c}
-h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.15;margin:8px 0 6px}p.lede{color:#a3a3bf;margin:0 0 18px}
-.card{border:1px solid #25253a;border-radius:16px;background:#0e0e18;padding:16px;margin:20px 0}.card h2{margin:0 0 6px;font-size:1.05rem}.card p,.card li{color:#a3a3bf;font-size:.93rem}.card ul{margin:8px 0 0;padding-left:20px}
-.offline{display:none;background:#1f2937;border:1px solid #374151;border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:.9rem}.offline.on{display:block}
-footer{max-width:860px;margin:30px auto 40px;padding:0 16px;color:#a3a3bf;font-size:.85rem}`;
+header.bar .brand{display:flex;align-items:center;gap:10px;color:#16161d;text-decoration:none;font-weight:750}header.bar img{width:30px;height:30px;border-radius:8px}
+.logo-grad{background:linear-gradient(100deg,#4f46e5,#0f766e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{appearance:none;font:inherit;font-weight:650;font-size:.92rem;border:1px solid #e7e3dc;background:#fff;color:#16161d;padding:8px 14px;border-radius:10px;cursor:pointer;text-decoration:none}
+.btn.primary{border:0;background:#16161d;color:#fff}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.15;margin:8px 0 6px}p.lede{color:#55555f;margin:0 0 18px}
+.card{border:1px solid #e7e3dc;border-radius:16px;background:#fff;padding:16px;margin:20px 0}.card h2{margin:0 0 6px;font-size:1.05rem}.card p,.card li{color:#55555f;font-size:.93rem}.card ul{margin:8px 0 0;padding-left:20px}
+.offline{display:none;background:#f7f6f3;border:1px solid #e7e3dc;border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:.9rem}.offline.on{display:block}
+footer{max-width:860px;margin:30px auto 40px;padding:0 16px;color:#55555f;font-size:.85rem}
+.vc{--vc-card:#fff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#fff;--vc-ok:#0f766e;--vc-err:#b42318}`;
 
 export function appPage(brand: string, origin: string): string {
   const voiceCount = CONSOLE_VOICES.length;
@@ -84,7 +89,7 @@ export function appPage(brand: string, origin: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
 ${webApplicationScript({ name: `${brand} Voice`, url: `${origin}${APP_PATH}`, description, brand, offers: [], category: "MultimediaApplication", free: true })}
-<link rel="canonical" href="${esc(origin)}${APP_PATH}"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#07070c">
+<link rel="canonical" href="${esc(origin)}${APP_PATH}"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#fbfaf7">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${esc(brand)}">
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin)}${APP_PATH}"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json" data-ld="faq">${JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: APP_FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c")}</script>
