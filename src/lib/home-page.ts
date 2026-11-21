@@ -310,7 +310,7 @@ ${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, plan
 <div><span class="kicker">Transcribe Pro</span><h2>When your device is not enough, <span class="gt">we do it for you.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}.</p>
 <div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
-<p class="paywith">Pay by card, PayPal, Apple Pay or Google Pay. No account: your key appears right after payment.</p></div></div>
+<p class="paywith">Pay by card, Apple Pay, Google Pay or Link. No account: your key appears right after payment.</p></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div></div></section>
 
