@@ -175,9 +175,9 @@ function voicePlans(): string {
   const vp = speechCharacters(VOICE_STUDIO_PLAN.credits).toLocaleString("en-US");
   const both = speechCharacters(VOICE_BUNDLE_PLAN.credits).toLocaleString("en-US");
   return `<div class="vplans"><h3>Want studio voices too?</h3><div class="vplan-row">`
-    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small> / month</small></div><p>50 studio voices made on our servers: about ${vp} characters a month, on any device.</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">Pay by card: ${usd(VOICE_STUDIO_PLAN.usdCents)} a month</a></div>`
-    + `<div class="vplan"><b>Voice and Transcribe Pro</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small> / month</small></div><p>One balance for both: about ${both} characters of studio voices, or transcription, or any mix.</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">Pay by card: ${usd(VOICE_BUNDLE_PLAN.usdCents)} a month</a></div>`
-    + `</div><p class="small">Hours and characters you don't use carry over. Cancel any time.</p></div>`;
+    + `<div class="vplan"><b>Voice Pro</b><div class="p">${usd(VOICE_STUDIO_PLAN.usdCents)}<small> / month</small></div><p>50 studio voices made on our servers: about ${vp} characters a month, on any device.</p><a class="btn primary" href="${esc(VOICE_STUDIO_PLAN.url)}" data-ev="voicepro_click">Get Voice Pro: ${usd(VOICE_STUDIO_PLAN.usdCents)} a month</a></div>`
+    + `<div class="vplan"><b>Voice and Transcribe Pro</b><div class="p">${usd(VOICE_BUNDLE_PLAN.usdCents)}<small> / month</small></div><p>One balance for both: about ${both} characters of studio voices, or transcription, or any mix.</p><a class="btn" href="${esc(VOICE_BUNDLE_PLAN.url)}" data-ev="bundle_click">Get both: ${usd(VOICE_BUNDLE_PLAN.usdCents)} a month</a></div>`
+    + `</div><p class="small">Pay by card, Apple Pay, Google Pay or Link. Hours and characters you don't use carry over. Cancel any time.</p></div>`;
 }
 
 /**
@@ -346,7 +346,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 <section class="sec" id="pro"><div class="wrap"><div class="proband">
 <div><span class="kicker">Transcribe Pro</span><h2>Your long recording as text. <span class="gt">We do the work.</span></h2>
 <p class="sub">The free tools run on your phone or computer. Transcribe Pro runs on our servers: long recordings, any device, about ${proHours} hours a month for ${proPrice}. That is about ${Math.max(1, Math.round(VOICE_PRO_CENTS / proHours))}&cent; an hour.</p>
-<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Get Transcribe Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
+<div class="ctas"><a class="btn primary" href="${cardReady ? esc(VOICE_PRO_URL) : "/transcribe-pro"}">Start Pro: ${proPrice} a month</a>${cardReady ? tryLink(voicePrices(), opts.creditsTrial ?? false, "Try Pro free on one file", "btn") : `<a class="btn" href="/credits">One job? See the one-off packs</a>`}</div>
 <p class="paywith"><b>Pay by card</b> (Visa, Mastercard, American Express) in one step. Apple Pay, Google Pay and Link work too. Your key appears on screen when you pay, with no account.</p></div>
 <ul><li><b>Long recordings</b><span>Any length in the browser tool: it is compressed and sent in parts for you.</span></li><li><b>More than 90 languages</b><span>Detected by itself, with SRT or VTT subtitles and word timings.</span></li><li><b>Any device</b><span>The work is done on our servers, so a slow phone is as good as a fast computer.</span></li></ul>
 </div><div class="svwrap">${cardReady ? studioVoices({ textId: "hero-vc-text", voices: SPEECH_VOICES, planUrl: VOICE_STUDIO_PLAN.url, planPrice: `$${VOICE_STUDIO_PLAN.usdCents / 100}`, planCharacters: speechCharacters(VOICE_STUDIO_PLAN.credits), maxCharacters: SPEECH_INPUT_LIMIT, testCharacters: VOICE_TEST_SPEECH_CHARS, freeTry: false }) : ""}</div></div></section>
