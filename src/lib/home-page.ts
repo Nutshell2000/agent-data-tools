@@ -92,10 +92,10 @@ function productCard(p: Product, cardReady: boolean): string {
 /** The FAQ: plain questions first, the developer ones last. Every answer restates what the docs, the privacy page or the tool descriptions already say. */
 function faqItems(brand: string, languages: string, browserVoices: number, apiVoices: number): [q: string, a: string][] {
   return [
-    ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no limit. You only pay if you want a long recording transcribed on our servers with Transcribe Pro, or if you build ${brand} into your own app or website.`],
+    ["Is it really free?", `Yes. Making speech and transcripts on this page, on voice.glyphcall.com and in the ${brand} app is free, with no account and no daily limit. You only pay if you want a long recording transcribed on our servers with Transcribe Pro, or if you build ${brand} into your own app or website.`],
     ["Do I need to sign up?", `No. Type your text or drop your file and press the button. There is nothing to fill in.`],
     ["Are my files private?", `The free tools run on your own device, so your text and recordings are never uploaded. The first time you press Play, your browser downloads the voice once; after that it is ready on that device.`],
-    ["Which languages does it understand?", `${languages} Subtitles come back as SRT or VTT files you can add to any video.`],
+    ["Which languages does it understand?", `${languages} Subtitles come as files for YouTube and most video apps (.srt) or for websites (.vtt).`],
     ["How many voices are there?", `${browserVoices} voices in the free browser tools and ${apiVoices} through the API. Both are our own voices; nothing is uploaded to make either one speak.`],
     ["Can I use it on my phone?", `Yes. Open this page on your phone, or install the free ${brand} app from glyphcall.com/app. It works on Windows, Mac, Linux, Android and iPhone, and keeps working offline.`],
     ["What happens when an API call fails?", `You pay nothing. Wrong input, a page that cannot be read or an outside source that is down are all free; only answers that succeed use credits.`],
@@ -250,7 +250,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   const tour: [kicker: string, title: string, line: string, href: string, go: string, mock: string][] = [
     ["Voiceovers", "Fix one sentence, not the whole take.", "Type your script and pick a voice. Not happy with one line? Redo just that sentence; it is spliced into the same download.", "#try", "Make a voiceover",
       `<div class="mock" aria-hidden="true"><div class="mwave">${waveBars}</div><div class="row"><span class="t">01</span>The harbour woke slowly.</div><div class="row on"><span class="t">02</span>Gulls called above the empty quay.<span class="tag">Redo</span></div><div class="row"><span class="t">03</span>The first boat slipped out.</div></div>`],
-    ["Transcripts and subtitles", "Every word, with the time it was said.", `Drop a recording and get the text back, plus SRT or VTT subtitles for YouTube or any video editor. ${esc(languages)}`, `${VOICE_SITE}/transcribe`, "Transcribe a file",
+    ["Transcripts and subtitles", "Every word, with the time it was said.", `Drop a recording and get the text back, plus subtitle files for YouTube and most video editors. ${esc(languages)}`, `${VOICE_SITE}/transcribe`, "Transcribe a file",
       `<div class="mock" aria-hidden="true"><div class="row"><span class="t">00:00:01</span>Welcome back to the show.</div><div class="row on"><span class="t">00:00:04</span>Today we talk about keeping it simple.</div><div class="row"><span class="t">00:00:09</span>Let&rsquo;s start with the first question.</div><div class="row"><span class="t">SRT</span>Subtitles ready<span class="tag">Download</span></div></div>`],
     ["Audiobooks", "Your book, read aloud. Chapter by chapter.", "Open a PDF, EPUB or Word file in the studio, choose a narrator and get one audio file per chapter.", `${STUDIO_SITE}/audiobook`, "Open the audiobook studio",
       `<div class="mock" aria-hidden="true"><div class="row"><span class="t">Ch 1</span>The Harbour<div class="bar"><i style="width:100%"></i></div></div><div class="row on"><span class="t">Ch 2</span>The Storm<div class="bar"><i style="width:64%"></i></div></div><div class="row"><span class="t">Ch 3</span>Home Again<div class="bar"><i style="width:0"></i></div></div><div class="row"><span class="t">Voice</span>${v(2)}<span class="tag">Narrator</span></div></div>`],
@@ -300,7 +300,7 @@ ${webApplicationScript({ name: brand, url: `${origin}/`, description, brand, off
 </div></section>
 
 <section class="stats" aria-label="Why people like it"><div class="wrap"><ul class="trust">
-<li>${icon("check")}Free, no limits</li><li>${icon("user")}No account needed</li><li>${icon("lock")}Your files stay on your device</li><li>${icon("download")}Download MP3, WAV or subtitles</li><li>${icon("speaker")}${voices} free browser voices</li>
+<li>${icon("check")}Free, no daily limits</li><li>${icon("user")}No account needed</li><li>${icon("lock")}Your files stay on your device</li><li>${icon("download")}Download MP3, WAV or subtitles</li><li>${icon("speaker")}${voices} free browser voices</li>
 </ul></div></section>
 
 <section class="sec center" id="make"><div class="wrap">
@@ -349,17 +349,17 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 <section class="sec" id="developers"><div class="wrap"><div class="devbox">
 <span class="kicker">For developers</span><h2>Building an app? One key does it all.</h2>
 <p class="sub">The same voices and transcripts, plus document reading and search, as simple web requests. ${opts.trial ? "A free try on every page, and failed" : "Prepaid from $1, and failed"} calls cost nothing.</p>
+<div class="ctas"><a class="btn primary" href="/credits">Get an API key</a>${opts.freeKey ? `<a class="btn" href="/keys/free">Get a free key</a>` : ""}<a class="btn" href="/docs">Read the docs</a></div>
+<details class="devmore" id="apis"><summary>See every API, with prices and what each plan buys</summary>
 <div class="dev"><div><ol>
 <li><b>${opts.trial ? "Try it." : "See it."}</b> ${opts.trial ? "Every product page runs the real thing on your own input, free." : "Every product page shows a real example answer."}</li>
 <li><b>Get a key.</b> Pay by card; the key is shown right after payment. No account to create.</li>
-<li><b>Call it.</b> OpenAI- and ElevenLabs-shaped requests work as they are.</li>
-</ol>
-<div class="ctas"><a class="btn primary" href="/credits">Get an API key</a>${opts.freeKey ? `<a class="btn" href="/keys/free">Get a free key</a>` : ""}<a class="btn" href="/docs">Read the docs</a></div></div>
+<li><b>Call it.</b> Requests in the formats most voice apps already use work as they are.</li>
+</ol></div>
 <div class="term" aria-label="Example requests"><div class="wave" aria-hidden="true">${bars}</div>
 <div class="tabs">${tabs.map(([label], i) => `<input type="radio" name="hero-tab" id="t${i + 1}"${i === 0 ? " checked" : ""}><label for="t${i + 1}">${esc(label)}</label>`).join("")}
 <div class="panes" style="width:100%">${tabs.map(([, code, out], i) => `<div class="pane p${i + 1}">${code}<p class="out">${esc(out)}</p></div>`).join("")}</div></div></div></div>
 <div class="nums">${stats.map(([n, l, s]) => `<div class="num"><div class="n gt">${esc(n)}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("")}</div>
-<details class="devmore" id="apis"><summary>See every API, with prices and what each plan buys</summary>
 <div class="devpricing" id="api-pricing">${pricing}</div>
 <div id="products">${shelves}</div>
 <div class="agents">
