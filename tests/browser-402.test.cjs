@@ -136,7 +136,11 @@ test('every tool has an indexable page (200, canonical, in the sitemap); the too
   const listed = [...sitemap.matchAll(/<loc>https:\/\/api\.test(\/tools\/[^<]+)<\/loc>/g)].map((m) => m[1]);
   assert.ok(listed.length >= 150, `sitemap lists ${listed.length} tool pages`);
   assert.equal(new Set(listed).size, listed.length, 'slugs are unique');
-  assert.deepEqual([...linked].sort(), [...listed].sort(), '/tools links exactly the pages in the sitemap');
+  // 21 Nov 2026: /tools still links every tool page; the sitemap leaves out per-chain copies of another network's page
+  // (lib/tool-clones.ts), which answer with noindex, follow.
+  assert.ok(listed.every((p) => linked.has(p)), '/tools links every page in the sitemap');
+  const copies = [...linked].filter((p) => !listed.includes(p));
+  assert.ok(copies.length > 200 && copies.every((p) => /^\/tools\/(?:eth|base|arb|op|polygon|avax|gnosis|linea|zksync|scroll|mantle|celo|sonic|unichain|hyperevm|bera|ink|sei)-/.test(p)), `only per-chain copies are left out (${copies.length})`);
   assert.doesNotMatch(sitemap, /<loc>[^<]*\?/, 'no payment URLs in the sitemap');
   for (const path of listed.slice(0, 40)) assert.equal((await mf.dispatchFetch(`https://api.test${path}`)).status, 200, path);
 

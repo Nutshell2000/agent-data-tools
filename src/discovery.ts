@@ -5,7 +5,9 @@ import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/rea
 import { TASK_GUIDES } from "./guides/task-guides";
 import { PRODUCTS, productPaths } from "./lib/product-pages";
 import { vatPagePaths } from "./lib/vat-pages";
-import { LEXGLYPH_PATH } from "./lib/lexglyph-page";
+import { LEXGLYPH_SECURITY_PATH, LEX_ORIGIN } from "./lib/lexglyph-page";
+import { UI_LANGS } from "./lib/lexglyph-i18n";
+import { chainCloneOf } from "./lib/tool-clones";
 import { registerPagePaths } from "./lib/register-pages";
 import { ENTRY_OF } from "./routes/entry-paths";
 import { LOWEST_PRICE, TOOL_COUNT, USUAL_PRICE } from "./endpoints";
@@ -18,7 +20,7 @@ import { salesOrdered } from "./lib/discovery-index";
 export * from "./endpoints";
 
 /** Version of the MCP tool catalog (server.json and serverInfo); raised when tools are added or changed. */
-export const MCP_SERVER_VERSION = "1.329.0";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
+export const MCP_SERVER_VERSION = "1.330.0";/** Version of the downloadable reader client under /clients/reader/ (package.json version). */
 export const READER_VERSION = "1.7.7";
 
 // Always carries at least one parameter so "path?query" stays well-formed.
@@ -806,8 +808,32 @@ export const robotsTxt = (origin: string) =>
   ["User-agent: *", "Allow: /", "Disallow: /*trial=1", "Content-Signal: ai-train=no, search=yes, ai-input=yes", "", `Sitemap: ${origin}/sitemap.xml`].join("\n");
 
 import { lastmodTag } from "./lib/page-lastmod";
+/** The pages people land on first, at the head of the sitemap (SEO audit, 21 Nov 2026). */
+const PEOPLE_FIRST = ["/", "/app", "/transcribe-pro", "/text-to-speech-api", "/speech-to-text-api"] as const;
+/** Trust pages, linked from every footer (lib/legal.ts COMPANY_FOOTER); each names itself canonical. */
+export const TRUST_PAGES = ["/about", "/faq", "/contact", "/terms", "/privacy"] as const;
+
+/**
+ * The sitemap's paths, people's pages first. Only owned, free HTML pages: never payment URLs, never a non-HTML file
+ * (the reader skill's SKILL.md is in llms.txt), never a tool's second name (ENTRY_OF) or a per-chain copy of another
+ * network's page (lib/tool-clones.ts: those pages stay up with noindex). LexGlyph lives on its own host and sitemap.
+ */
+export function sitemapPaths(): string[] {
+  const guides = ["/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk"];
+  const tools = ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path) && !chainCloneOf(e.path)).map((e) => `/tools/${toolSlug(e.path)}`);
+  return [...new Set([...PEOPLE_FIRST, ...productPaths(), ...guides, ...vatPagePaths(), ...registerPagePaths(), "/docs", "/credits", "/keys/free", ...TRUST_PAGES, "/examples/extract/", "/tools", ...tools])];
+}
+
+const urlset = (urls: string[]) => `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+
 /** Index only owned, free documentation and demonstrations, never payment URLs. */
 export function sitemapXml(origin: string) {
-  const paths = ["/", "/docs", "/credits", "/keys/free", "/app", "/transcribe-pro", ...productPaths(), LEXGLYPH_PATH, ...vatPagePaths(), ...registerPagePaths(), "/tools", ...ENDPOINTS.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)).map((e) => `/tools/${toolSlug(e.path)}`), "/guides", ...TASK_GUIDES.map((g) => `/guides/${g.slug}`), "/guides/web-reading", "/guides/bitcoin-fees", "/guides/dependency-audit", "/guides/sitemap", "/guides/local-mcp", "/guides/ai-sdk", "/skills/spellzcode-x402-reader/SKILL.md", "/examples/extract/"];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(path => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`).join("")}</urlset>`;
+  return urlset(sitemapPaths().map((path) => `<url><loc>${esc(origin + path)}</loc>${lastmodTag(path)}</url>`));
+}
+
+/** lex.glyphcall.com's own sitemap: the LexGlyph page in each interface language, and its security page. */
+export function lexSitemapXml() {
+  const urls = [`${LEX_ORIGIN}/`, ...UI_LANGS.filter((l) => l !== "en").map((l) => `${LEX_ORIGIN}/?lang=${l}`), `${LEX_ORIGIN}${LEXGLYPH_SECURITY_PATH}`];
+  return urlset(urls.map((u) => `<url><loc>${esc(u)}</loc>${lastmodTag("/lexglyph")}</url>`));
 }

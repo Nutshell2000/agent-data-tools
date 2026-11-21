@@ -25,8 +25,9 @@ import { takeDailyBudget } from "./daily-cap";
 import { HttpError, type Env } from "./env";
 import { INDEXED_LANGS, LAW_ACTS, actOf, eurlexIn, inLanguage, lawAnswer, lawKeywordDeps, lawSearch, questionLang } from "../routes/law-search";
 import { MORE, STRINGS, UI_LANGS, UI_LANG_NAMES, languageName, pickUiLang, type UiLang } from "./lexglyph-i18n";
-import type { GroundedClaim } from "./law-grounding";
-import { caseParaUrl, caseTitle, casesForArticle, seKeywordDeps, seLabel, seSearch, swedishImplementations, type CaseRef, type SeSection } from "../routes/law-layers";
+import type { GroundedClaim, GroundSource } from "./law-grounding";
+import { caseParaUrl, caseSource, caseTitle, casesForArticle, seDeps, seKeywordDeps, seLabel, seSearch, seSource, swedishImplementations, type CaseRef, type SeSection } from "../routes/law-layers";
+import { metaDescription, seoTitle } from "./seo-text";
 
 export const LEXGLYPH_PATH = "/lexglyph";
 export const LEXGLYPH_SECURITY_PATH = "/lexglyph/security";
@@ -34,6 +35,15 @@ export const LEXGLYPH_VERSION_PATH = "/lexglyph/version";
 export const LEXGLYPH_EXPORT_PATH = "/lexglyph/export";
 export const LEXGLYPH_PER_VISITOR = 20;
 export const LEXGLYPH_DAILY_CAP = 500;
+/**
+ * LexGlyph's own address (SEO audit, 21 Nov 2026). There the page lives at "/" and names itself canonical, with its
+ * language versions as ?lang= (x-default the root); everything else on that host is a redirect to the main site
+ * (src/index.ts), so the page's links to the rest of the site and its API lines name the main site.
+ */
+export const LEX_ORIGIN = "https://lex.glyphcall.com";
+const MAIN_SITE = "https://glyphcall.com";
+/** On LexGlyph's own host: relative links to the main site's pages made absolute (LexGlyph's own paths stay). */
+const toMainSite = (html: string) => html.replace(/href="\/(?!lexglyph|\?|"|favicon)/g,`href="${MAIN_SITE}/`);
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 
@@ -110,9 +120,13 @@ const PAGE_STYLE = `
 export function lexglyphPage(origin: string, brand: string, s: LexState = {}): string {
   const ui = s.ui ?? "en";
   const t = STRINGS[ui];
-  const url = `${origin}${LEXGLYPH_PATH}`;
+  const onLex = origin === LEX_ORIGIN;
+  // On lex the page is the root; on any other host it is /lexglyph (the main site sends that path to lex).
+  const home = onLex ? "/" : LEXGLYPH_PATH;
+  const url = onLex ? `${LEX_ORIGIN}/` : `${origin}${LEXGLYPH_PATH}`;
+  const api = onLex ? MAIN_SITE : origin;
   const title = s.q ? `${s.q.slice(0, 60)} | LexGlyph` : `LexGlyph: ${t.lead(LAW_ACTS.length).split(". ")[0]}`;
-  const description = t.lead(LAW_ACTS.length);
+  const description = metaDescription(t.lead(LAW_ACTS.length));
   const more = MORE[ui];
   // 185 acts (18 Nov 2026): grouped by practice area, in the order a lawyer looks for them.
   const option = (a: (typeof LAW_ACTS)[number]) => `<option value="${esc(a.short)}"${s.act === a.short ? " selected" : ""} lang="en">${esc(a.short === a.name ? a.name : `${a.short}: ${a.name}`)}</option>`;
@@ -127,7 +141,7 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
   const dateForm = (r: LawResult) => `<form method="get" action="${LEXGLYPH_VERSION_PATH}" class="ondate"><input type="hidden" name="lang" value="${ui}"><input type="hidden" name="act" value="${esc(r.short)}"><input type="hidden" name="article" value="${esc(r.label.replace(/^Article /, ""))}"><label>${esc(more.onDate)} <input type="date" name="date" required max="${new Date().toISOString().slice(0, 10)}"></label> <button type="submit" class="tool">${esc(more.onDateGo)}</button></form>`;
   // The official text in the asker's language: the question's language, else the interface language, unless English.
   const officialCode = s.qLang && s.qLang.eurlex !== "EN" ? s.qLang.eurlex : ui !== "en" ? ui.toUpperCase() : null;
-  const keep = (lang: UiLang) => `${LEXGLYPH_PATH}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}) })}`;
+  const keep = (lang: UiLang) => `${home}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}), ...(s.q && !s.explain ? { explain: "0" } : {}) })}`;
   const results = s.results ?? [];
   const resultHtml = results.map((r, i) => {
     // The text shown is in the reader's language where the index holds it (Swedish); its link opens the same language.
@@ -173,7 +187,7 @@ ${exportForm()}</div>`
 <div class="lex">
 <h1>LexGlyph</h1>
 <p class="lead">${esc(t.lead(LAW_ACTS.length))}</p>
-<form method="get" action="${LEXGLYPH_PATH}" role="search">
+<form method="get" action="${home}" role="search">
 <input type="hidden" name="lang" value="${ui}">
 <label for="q" class="sr">${esc(t.question)}</label>
 <input id="q" name="q" type="search" required maxlength="400" value="${esc(s.q ?? "")}" placeholder="${esc(t.placeholder)}" autocomplete="off" aria-describedby="qhelp" aria-keyshortcuts="/">
@@ -182,7 +196,7 @@ ${exportForm()}</div>`
 <button type="submit" class="btn primary">${esc(t.search)}</button>
 </form>
 <p id="qhelp" class="note">${esc(t.help)} ${esc(t.notAdvice)} <span class="js" hidden>${esc(t.shortcut)}.</span></p>
-${s.q ? "" : `<h2>${esc(t.tryOne)}</h2><ul class="chips">${EXAMPLES.map(([lang, label, q]) => `<li><a lang="${lang}" href="${LEXGLYPH_PATH}?${new URLSearchParams({ lang: ui, q })}">${esc(q)} <span class="note">(${esc(label)})</span></a></li>`).join("")}</ul>`}
+${s.q ? "" : `<h2>${esc(t.tryOne)}</h2><ul class="chips">${EXAMPLES.map(([lang, label, q]) => `<li><a lang="${lang}" href="${home}?${new URLSearchParams({ lang: ui, q })}">${esc(q)} <span class="note">(${esc(label)})</span></a></li>`).join("")}</ul>`}
 <section id="results" aria-live="polite" tabindex="-1">
 ${status}
 ${answerHtml}
@@ -194,9 +208,9 @@ ${seHtml}
 <section lang="en">
 <h2>For developers and AI agents</h2>
 <ul>
-<li>API: <code>GET ${esc(origin)}/law/search?q=…</code>, $0.005 a search, pay per call or with a key. <a href="/eu-law-search-api">API details and plans</a>.</li>
+<li>API: <code>GET ${esc(api)}/law/search?q=…</code>, $0.005 a search, pay per call or with a key. <a href="/eu-law-search-api">API details and plans</a>.</li>
 <li>The search on this page matches words and is free. The API also searches by meaning, takes a question in any EU language and, with <code>answer=true</code>, writes a plain-words answer in which every sentence comes with the quote it rests on and a pinpoint citation. Swedish text: <code>lang=sv</code>.</li>
-<li>MCP: add <code>${esc(origin)}/mcp</code> to your AI assistant and ask it EU-law questions.</li>
+<li>MCP: add <code>${esc(api)}/mcp</code> to your AI assistant and ask it EU-law questions.</li>
 </ul>
 </section>
 </div>
@@ -214,12 +228,12 @@ ${s.q ? 'document.getElementById("results").focus();' : ""}})();</script>`;
     accessibilityFeature: ["readingOrder", "structuralNavigation", "highContrastDisplay", "ttsMarkup"], accessMode: ["textual", "auditory"],
     offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, publisher: { "@type": "Organization", name: brand },
   }];
-  return `<!doctype html>
+  const doc = `<!doctype html>
 <html lang="${ui}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${esc(ui === "en" ? url : `${url}?lang=${ui}`)}">
-${UI_LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(l === "en" ? url : `${url}?lang=${l}`)}">`).join("")}
+${UI_LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(l === "en" ? url : `${url}?lang=${l}`)}">`).join("")}<link rel="alternate" hreflang="x-default" href="${esc(url)}">
 <meta property="og:type" content="website"><meta property="og:title" content="LexGlyph"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(url)}">
 ${s.q ? '<meta name="robots" content="noindex">' : ""}
 <link rel="icon" href="/favicon.ico">
@@ -228,6 +242,7 @@ ${ld.map((x) => `<script type="application/ld+json">${jsonLd(x)}</script>`).join
 ${body}
 <footer>LexGlyph · ${esc(brand)}. <a href="${LEXGLYPH_SECURITY_PATH}?lang=${ui}">${esc(MORE[ui].security)}</a>. <span lang="en">Legal texts: © European Union, EUR-Lex, reused under the Commission's reuse policy.</span> ${COMPANY_FOOTER}</footer>
 </main></body></html>`;
+  return onLex ? toMainSite(doc) : doc;
 }
 
 async function visitorKey(ip: string | undefined, day: string) {

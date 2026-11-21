@@ -16,7 +16,8 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const today = () => new Date().toISOString().slice(0, 10);
 
 test("every sitemap URL resolves to a mapping rule whose files exist", () => {
-  assert.ok(site.paths.length > 900, `${site.paths.length} sitemap paths`);
+  // 21 Nov 2026: about 690 (per-chain copies of one method left the sitemap, lib/tool-clones.ts).
+  assert.ok(site.paths.length > 600, `${site.paths.length} sitemap paths`);
   for (const page of site.paths) {
     const files = sourcesFor(page, site);
     assert.ok(files?.length, `no rule in sourcesFor (scripts/build-page-lastmod.mjs) for ${page}`);

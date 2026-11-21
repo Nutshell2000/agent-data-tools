@@ -15,6 +15,7 @@ import { TRY_FORM_CSS, tryForm } from "./try-form";
 import { COMPANY_FOOTER } from "./legal";
 import { webApplicationScript } from "./app-jsonld";
 import { VOICE_CONSOLE_CSS, VOICE_SITE, voiceConsole, voiceConsoleScript } from "./voice-console";
+import { metaDescription, seoTitle } from "./seo-text";
 
 /** Which product pages carry the free voice console, and the tab it opens on. */
 const VOICE_CONSOLE_FIRST: Record<string, "tts" | "stt"> = { "/transcribe": "stt", "/text-to-speech": "tts" };
@@ -431,8 +432,8 @@ export function productPage(p: Product, origin: string, tryIt: boolean, guideTit
   const keyPrice = keyPriceOf(e);
   const example = JSON.stringify(e.outputExample, null, 2);
   const shown = example.length > 2500 ? `${example.slice(0, 2500)}\n…` : example;
-  const title = `${p.name}: ${lead ? `from ${lead.label.replace(" once", "")}` : `${keyPrice} per call`} · ${brand}`;
-  const description = `${p.tagline} ${lead ? `${lead.label}: ${lead.calls} ${p.unit}.` : ""} Failed calls are never charged.`.slice(0, 300);
+  const title = seoTitle([`${p.name}: ${lead ? `from ${lead.label.replace(" once", "")}` : `${keyPrice} per call`}`, p.name], brand);
+  const description = metaDescription(`${p.tagline} ${lead ? `${lead.label}: ${lead.calls} ${p.unit}.` : ""} Failed calls are never charged.`.slice(0, 300));
   const also = p.also.map((path) => BY_PATH.get(path)).filter((o): o is Endpoint => Boolean(o));
   const guides = p.guides.map((g) => [g, guideTitle(g)] as const).filter((g): g is readonly [string, string] => Boolean(g[1]));
   const params = Object.entries(e.params).filter(([name]) => name !== "only");

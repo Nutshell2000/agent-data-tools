@@ -70,6 +70,8 @@ export interface Env {
   STRIPE_READ_KEY?: string;
   /** Owner-only bearer token for private sales figures on /revenue (card-credit totals). Optional secret. */
   REVENUE_TOKEN?: string;
+  /** Seconds an anonymous /metrics, /metrics/callers, /status or /revenue answer is kept per isolate (src/index.ts report()). */
+  REPORT_CACHE_SECONDS?: string;
   // MPP (agent card payments for credit packs): restricted key with PaymentIntents write, and the Stripe profile id.
   STRIPE_MPP_KEY?: string;
   STRIPE_PROFILE_ID?: string;

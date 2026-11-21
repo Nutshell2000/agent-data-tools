@@ -91,6 +91,8 @@ export function sourcesFor(page, site) {
   if (page === "/transcribe-pro") return ["src/lib/voice-pro.ts"];
   if (site.productPaths.has(page)) return ["src/lib/product-pages.ts"];
   if (page === "/lexglyph") return ["src/lib/lexglyph-page.ts", "src/lib/lexglyph-i18n.ts"];
+  // 21 Nov 2026: the trust pages linked from every footer joined the sitemap (lib/legal.ts renders them).
+  if (["/about", "/faq", "/contact", "/terms", "/privacy"].includes(page)) return ["src/lib/legal.ts"];
   if (page === "/vat-number-check" || page.startsWith("/vat-number-check/")) return ["src/lib/vat-pages.ts"];
   if (page === "/company-register" || page.startsWith("/company-register/")) return ["src/lib/register-pages.ts"];
   if (page === "/tools") return ["src/lib/tool-pages.ts", "src/endpoints.ts", "src/families.ts"];

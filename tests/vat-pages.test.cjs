@@ -46,7 +46,8 @@ test("a country page states the format, offers the check and links the product",
   const html = vatCountryPage(de, "https://x.test", true);
   assert.match(html, /<h1>Check a German VAT number<\/h1>/);
   assert.match(html, /USt-IdNr\./);
-  assert.match(html, /form class="try" method="get" action="\/vat\/validate"/);
+  // 21 Nov 2026: the people's checker (runs in the page, plain GET form without JavaScript).
+  assert.match(html, /form class="try vatc" method="get" action="\/vat\/validate"/);
   assert.match(html, /<link rel="canonical" href="https:\/\/x\.test\/vat-number-check\/germany">/);
   assert.match(html, /href="\/company-check-api"/);
   assert.match(html, /"@type":"FAQPage"/);

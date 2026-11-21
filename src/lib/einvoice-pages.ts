@@ -12,6 +12,7 @@ import { PAGE_STYLE } from "./vat-pages";
 import { TRY_FORM_CSS } from "./try-form";
 import { RULES, ruleDoc, ruleSlug, type RuleDoc } from "./einvoice/validate";
 import { EXAMPLE_INVOICE_JSON, SAMPLE_XRECHNUNG } from "../routes/einvoice";
+import { metaDescription, seoTitle } from "./seo-text";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
@@ -117,8 +118,8 @@ export function einvoiceRulePage(r: RuleDoc, origin: string, tryIt: boolean, bra
   const url = `${origin}${EINVOICE_RULES}/${ruleSlug(r.id)}`;
   const terms = termsOf(r);
   const names = terms.map((t) => TERMS[t][0]).join(", ");
-  const title = `${r.id}: ${r.rule.replace(/\.$/, "")} · ${r.standard} e-invoice ${r.level === "error" ? "error" : "warning"} and fix`.slice(0, 160);
-  const description = `What ${r.id} means in an ${r.standard === "XRechnung" ? "XRechnung" : "EN 16931 (XRechnung, ZUGFeRD, Factur-X, Peppol)"} e-invoice, which XML element it concerns in CII and UBL, and how to fix it. Check your file here.`;
+  const title = seoTitle(`${r.id}: ${r.rule.replace(/\.$/, "")}`, brand);
+  const description = metaDescription(`What ${r.id} means in an ${r.standard === "XRechnung" ? "XRechnung" : "EN 16931 (XRechnung, ZUGFeRD, Factur-X, Peppol)"} e-invoice, which XML element it concerns in CII and UBL, and how to fix it. Check your file here.`);
   const related = RULES.filter((o) => o !== r && o.field.split(",").some((f) => terms.includes(f.trim()))).slice(0, 8);
   const faq: [string, string][] = [
     [`What does ${r.id} mean?`, `${r.rule} It is a rule of ${standardName(r)}.`],
@@ -164,8 +165,8 @@ export function einvoiceRulesIndexPage(origin: string, brand: string = SERVICE_N
     ["VAT categories (BR-S, BR-Z, BR-E, BR-AE, BR-IC, BR-G)", RULES.filter((r) => /^BR-(S|Z|E|AE|IC|G)-/.test(r.id))],
     ["Decimals (BR-DEC)", RULES.filter((r) => r.id.startsWith("BR-DEC"))],
   ];
-  const title = `XRechnung and EN 16931 validation rules explained: ${RULES.length} error codes with fixes · ${brand}`;
-  const description = `What each e-invoice validation error means and how to fix it: BR-DE rules of XRechnung, and the BR, BR-CO and VAT category rules of EN 16931 that ZUGFeRD, Factur-X and Peppol share.`;
+  const title = seoTitle([`XRechnung and EN 16931 validation rules: ${RULES.length} fixes`, "XRechnung and EN 16931 validation rules"], brand);
+  const description = metaDescription(`What each e-invoice validation error means and how to fix it: BR-DE rules of XRechnung, and the BR, BR-CO and VAT category rules of EN 16931 that ZUGFeRD, Factur-X and Peppol share.`);
   return `${head(title, description, url, origin)}
 <nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="${EINVOICE_BASE}">E-invoice API</a> · <a href="${EINVOICE_RULES_DE}" hreflang="de" lang="de">Deutsch</a></nav>
 <h1>E-invoice validation rules, explained</h1>
@@ -182,8 +183,8 @@ ${foot()}`;
 export function einvoiceIndexPage(origin: string, tryIt: boolean, brand: string = SERVICE_NAME): string {
   const url = `${origin}${EINVOICE_BASE}`;
   const create = tool("/einvoice/create"), validate = tool("/einvoice/validate"), toJson = tool("/einvoice/to-json");
-  const title = `E-invoice API: create, validate and convert XRechnung, ZUGFeRD and Factur-X · ${brand}`;
-  const description = "Create XRechnung and ZUGFeRD / Factur-X XML from JSON, validate e-invoices against EN 16931 and XRechnung business rules with plain-language errors, and convert e-invoice XML to JSON. One HTTP call each, no library to run.";
+  const title = seoTitle(["E-invoice API: XRechnung, ZUGFeRD and Factur-X", "E-invoice API"], brand);
+  const description = metaDescription("Create XRechnung and ZUGFeRD / Factur-X XML from JSON, validate e-invoices against EN 16931 and XRechnung business rules with plain-language errors, and convert e-invoice XML to JSON. One HTTP call each, no library to run.");
   const faq: [string, string][] = [
     ["Which formats does it handle?", "XRechnung 3.0 in both syntaxes (UN/CEFACT CII and UBL), the XML of ZUGFeRD 2.x and Factur-X in the EN 16931 profile, and other EN 16931 UBL or CII invoices such as Peppol BIS Billing 3.0. A ZUGFeRD or Factur-X PDF can be sent as it is: the embedded XML is read."],
     ["Does it create the ZUGFeRD PDF?", "Yes, with format zugferd-pdf: a readable A4 invoice with the factur-x.xml embedded, built to PDF/A-3b with embedded fonts. The layout is plain and fixed (no logo, no custom design), and the file has not been certified by a PDF/A validator. It does not attach XML to a PDF you made yourself."],

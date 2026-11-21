@@ -5,7 +5,7 @@ import { aiSdkHtml, aiSdkMarkdown } from "./guides/ai-sdk";
 import { readerSkillMarkdown, readerSkillIndex, READER_SKILL_NAME, READER_SKILL_DESCRIPTION } from "./guides/reader-skill";
 import { agentSkillsIndex, catalogSkillMarkdown, CATALOG_SKILL_NAME } from "./guides/catalog-skill";
 import { loadReaderDemo } from "./guides/reader-buying";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { paymentMiddleware } from "@x402/hono";
 import type { RouteConfig } from "@x402/core/server";
@@ -16,7 +16,7 @@ import { browserTrialErrorPage, browserTrialPausedPage, browserTrialResultPage, 
 import { toolBySlug, toolDocPage, toolIndexPage } from "./lib/tool-pages";
 import { PRODUCTS as PRODUCT_PAGES, productPage } from "./lib/product-pages";
 import { removedPageTarget } from "./lib/removed-pages";
-import { LEXGLYPH_EXPORT_PATH, LEXGLYPH_PATH, LEXGLYPH_SECURITY_PATH, LEXGLYPH_VERSION_PATH, lexglyphHtml } from "./lib/lexglyph-page";
+import { LEXGLYPH_EXPORT_PATH, LEXGLYPH_PATH, LEXGLYPH_SECURITY_PATH, LEXGLYPH_VERSION_PATH, LEX_ORIGIN, lexglyphHtml } from "./lib/lexglyph-page";
 import { lexglyphExport, lexglyphVersionHtml } from "./lib/lexglyph-extra";
 import { lexglyphSecurityHtml } from "./lib/lexglyph-security";
 import { pickUiLang } from "./lib/lexglyph-i18n";
@@ -33,7 +33,7 @@ import { docsPage, landingPage } from "./lib/site-pages";
 import { demoPage } from "./lib/demo-page";
 import { TOOL_COUNT } from "./endpoints";
 import { asV2Header, payV1, v1Requirements } from "./lib/x402-v1";
-import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, serviceCard, suggestTools } from "./discovery";
+import { CAPACITY_LIMITED, ENDPOINTS, PAUSED_FAMILY_TOOLS, READER_VERSION, SERVICE_NAME, exampleQuery, agentCard, aiPluginManifest, apiCatalog, byCategory, homePage, llmsTxt, marketplaceOpenApi, mcpServerCard, openApi, robotsTxt, sitemapXml, lexSitemapXml, serviceCard, suggestTools } from "./discovery";
 import { HttpError, trialsEnabled, type Env } from "./lib/env";
 import { withFrontSecrets } from "./lib/front-secrets";
 import { toolErrorAnswer } from "./lib/tool-errors";
@@ -43,6 +43,7 @@ import { toolGuideHtml, toolGuideMarkdown } from "./guides/tool-buying";
 import { guidesIndexHtml, taskGuide, taskGuideHtml, taskGuideMarkdown } from "./guides/task-guides";
 import { headPaymentProbe } from "./lib/payment-probe";
 import { prefersHtml } from "./lib/negotiate";
+import { HSTS, NEGOTIATED_PATHS, setHtmlHeaders, varyOnAccept, withSocialTags } from "./lib/page-headers";
 import { decodedChallengeError, requestMetricsMiddleware } from "./lib/request-metrics";
 import { alignAccepted, differsNote } from "./lib/accepted-terms";
 import { parseBody, unwrapBody } from "./lib/post-body";
@@ -165,13 +166,36 @@ app.use(async (c, next) => {
   await next();
   if (releaseStamp?.env !== c.env) releaseStamp = { env: c.env, value: quoteFingerprint(c.env, MCP_SERVER_VERSION) };
   try {
-    c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("Strict-Transport-Security", HSTS);
     c.res.headers.set("X-Quote-Release", releaseStamp.value);
   } catch {
     c.res = new Response(c.res.body, c.res); // immutable headers (e.g. asset responses): copy first
-    c.res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    c.res.headers.set("Strict-Transport-Security", HSTS);
     c.res.headers.set("X-Quote-Release", releaseStamp.value);
   }
+});
+// HTML pages (21 Nov 2026, lib/page-headers.ts): Permissions-Policy (framing, nosniff and referrer come from
+// lib/response-headers.ts, release 1.328.0); twitter:card
+// and og:image where a page has none; Vary: Accept where the body depends on Accept. Runs after every page rewrite
+// below (canonical, moves). No storage is touched; a 200 HTML GET is read once more as text, nothing else is.
+app.use(async (c, next) => {
+  await next();
+  const type = c.res.headers.get("content-type") ?? "";
+  const html = /text\/html/i.test(type);
+  const negotiated = NEGOTIATED_PATHS.has(c.req.path);
+  if (!html && !negotiated) return;
+  if (html && c.req.method === "GET" && c.res.status === 200) {
+    const text = await c.res.text();
+    const headers = new Headers(c.res.headers);
+    headers.delete("content-length");
+    const page = new Response(withSocialTags(text, origin(c.req.url), publicBrand(c.env, SERVICE_NAME)), { status: 200, headers });
+    c.res = undefined as never;
+    c.res = page;
+  } else {
+    c.res = new Response(c.res.body, c.res); // headers of some responses are immutable: copy first
+  }
+  if (html) setHtmlHeaders(c.res.headers);
+  if (negotiated) varyOnAccept(c.res.headers);
 });
 
 // Browser safety headers (21 Nov 2026, safety audit): pages could be framed by another site and carried no nosniff or
@@ -197,16 +221,43 @@ app.use(async (c, next) => {
 // visitor's utm tag carried into Stripe links. No Durable Object write; a no-op without the ANALYTICS binding.
 app.use(measurement(PAID_PATHS));
 
-// lex.glyphcall.com (17 Nov 2026): LexGlyph's own address. Its root is the LexGlyph page; every other path answers as on
-// the main host. The page names itself canonical there (the canonical rewrite below skips this host).
+// lex.glyphcall.com (17 Nov 2026): LexGlyph's own address. 21 Nov 2026 (SEO audit): it used to answer every path as on
+// the main host and name itself canonical, so search engines saw a second copy of the whole site (990 pages). Now only
+// LexGlyph lives there: "/" is the LexGlyph page (canonical https://lex.glyphcall.com/, languages as ?lang=), its
+// security, version and Word-export paths answer there, and so do robots.txt, its own sitemap, the IndexNow key and the
+// icons. Every other path is a redirect to the same path and query on the main site (301 for GET and HEAD, 308 for
+// other methods so a POST keeps its body). The page itself calls nothing on its own origin but those paths (a GET form
+// to "/", the version form, the export POST); its API and MCP lines name the main site.
 const LEX_HOST = "lex.glyphcall.com";
+// IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
+const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
+const LEX_OWN_PATHS = new Set([LEXGLYPH_SECURITY_PATH, LEXGLYPH_VERSION_PATH, LEXGLYPH_EXPORT_PATH, "/favicon.ico", "/favicon.svg", "/og.png", "/og-glyphcall.png", `/${INDEXNOW_KEY}.txt`, "/health", "/.well-known/security.txt"]);
 // tts.glyphcall.com (1.260.0): the speech tools only, so routers that group listings by host see a text-to-speech service.
 app.use(async (c, next) => ttsHostAnswer(c.req.url) ?? next());
 app.use(async (c, next) => {
   const url = new URL(c.req.url);
-  if (url.hostname === LEX_HOST && c.req.method === "GET" && url.pathname === "/") {
-    return c.html(await lexglyphHtml(c.env, origin(c.req.url), url.searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language")));
+  if (url.hostname !== LEX_HOST) return next();
+  const read = c.req.method === "GET" || c.req.method === "HEAD";
+  if (url.pathname === "/" && read) {
+    return c.html(await lexglyphHtml(c.env, LEX_ORIGIN, url.searchParams, c.req.header("cf-connecting-ip"), c.req.header("accept-language")));
   }
+  // The page's old address on this host: the same query on the root.
+  if (url.pathname === LEXGLYPH_PATH && read) return c.redirect(`/${url.search}`, 301);
+  if (url.pathname === "/sitemap.xml" && read) return c.body(lexSitemapXml(), 200, { "Content-Type": "application/xml; charset=utf-8" });
+  if (url.pathname === "/robots.txt" && read) return c.text(c.env.NOINDEX === "on" ? "User-agent: *\nDisallow: /\n" : robotsTxt(LEX_ORIGIN));
+  if (LEX_OWN_PATHS.has(url.pathname)) return next();
+  const site = c.env.PUBLIC_SITE_ORIGIN?.trim().replace(/\/+$/, "") || "https://glyphcall.com";
+  return new Response(null, { status: read ? 301 : 308, headers: { Location: `${site}${url.pathname}${url.search}`, "Cache-Control": "public, max-age=3600" } });
+});
+// The main site's /lexglyph pages moved to LexGlyph's own host (one address for one page, 21 Nov 2026): a GET or HEAD
+// there is a 301 to the same page and query on lex. Only where the main site is glyphcall.com (production), so other
+// deployments keep their own copy. The Word export (a POST) answers on every host.
+app.use(async (c, next) => {
+  if (c.env.PUBLIC_SITE_ORIGIN?.trim().replace(/\/+$/, "") !== "https://glyphcall.com" || (c.req.method !== "GET" && c.req.method !== "HEAD")) return next();
+  const url = new URL(c.req.url);
+  if (url.hostname === LEX_HOST) return next();
+  if (url.pathname === LEXGLYPH_PATH) return new Response(null, { status: 301, headers: { Location: `${LEX_ORIGIN}/${url.search}`, "Cache-Control": "public, max-age=3600" } });
+  if (url.pathname === LEXGLYPH_SECURITY_PATH || url.pathname === LEXGLYPH_VERSION_PATH) return new Response(null, { status: 301, headers: { Location: `${LEX_ORIGIN}${url.pathname}${url.search}`, "Cache-Control": "public, max-age=3600" } });
   return next();
 });
 // Human pages served from a host other than the public one name the public host's URL as canonical (lib/public-site.ts).
@@ -223,7 +274,8 @@ app.use(async (c, next) => {
   // A host that used to be the public home sends people and search engines on to the new one, page for page. Only
   // pages move: tool calls, catalogs and payments on that host answer as before.
   const moved = movedPageUrl(c.req.url, site, c.env.RETIRED_PUBLIC_HOSTS);
-  if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600" } }); return; }
+  // Vary: on "/" the page (and so the move) depends on Accept; programs asking for JSON are answered here.
+  if (moved) { c.res = undefined as never; c.res = new Response(null, { status: 301, headers: { Location: moved, "Cache-Control": "public, max-age=3600", Vary: "Accept" } }); return; }
   if (!isPage) return;
   const html = await c.res.text();
   const headers = new Headers(c.res.headers);
@@ -821,7 +873,12 @@ function firstCallFacts(env: Env): FirstCallFacts {
 app.get("/agents", async (c) => c.html(homePage(origin(c.req.url), c.env.PAY_TO, trialsEnabled(c.env), await loadReaderDemo(c.env.ASSETS, origin(c.req.url)))));
 // Quick-start docs for people who call the APIs with a key (lib/site-pages.ts); /pricing is the card page.
 app.get("/docs", (c) => c.html(docsPage(publicBrand(c.env, SERVICE_NAME), origin(c.req.url), freeKeysOn(c.env))));
-app.get("/pricing", (c) => c.redirect("/credits", 302));
+// 21 Nov 2026: people who type /pricing want the plans for people (free tools, Transcribe Pro), which the front page
+// shows at #pricing; it used to send them to the developer card page. Without a public brand "/" is the agent
+// catalogue, so the card page stays the answer there. The query is kept.
+app.get("/pricing", (c) => c.redirect(`${c.env.PUBLIC_BRAND?.trim() ? "/" : "/credits"}${new URL(c.req.url).search}${c.env.PUBLIC_BRAND?.trim() ? "#pricing" : ""}`, 301));
+// /de answered 404 while every German page lives under /de/e-rechnung (the only German section): one hop to it.
+app.get("/de", (c) => c.redirect(`${EINVOICE_BASE_DE}${new URL(c.req.url).search}`, 301));
 /** The cards list what a buyer can really pay with, not just Base: every x402 network, then MPP (Tempo first). */
 function paymentRails(env: Env) {
   return {
@@ -868,12 +925,12 @@ for (const kind of ["web-reading", "bitcoin-fees"] as const) {
   app.get(`/guides/${kind}.md`, c => c.text(toolGuideMarkdown(kind, origin(c.req.url), c.env.PAY_TO)));
 }
 // Task guides (guides/task-guides.ts): one page per job agents search for, after the specific guide routes above.
-app.get("/guides", (c) => c.html(guidesIndexHtml(origin(c.req.url))));
+app.get("/guides", (c) => c.html(guidesIndexHtml(origin(c.req.url), publicBrand(c.env, SERVICE_NAME))));
 app.get("/guides/:name{[a-z0-9.-]+}", (c) => {
   const name = c.req.param("name");
   const md = name.endsWith(".md");
   const slug = md ? name.slice(0, -3) : name;
-  const page = md ? taskGuideMarkdown(slug, origin(c.req.url), trialsEnabled(c.env)) : taskGuideHtml(slug, origin(c.req.url), trialsEnabled(c.env));
+  const page = md ? taskGuideMarkdown(slug, origin(c.req.url), trialsEnabled(c.env)) : taskGuideHtml(slug, origin(c.req.url), trialsEnabled(c.env), publicBrand(c.env, SERVICE_NAME));
   if (page === undefined) return c.notFound();
   return md ? c.text(page) : c.html(page);
 });
@@ -930,7 +987,7 @@ app.post(LEXGLYPH_EXPORT_PATH, async (c) => {
 const voicePriceOf = (path: string) => ENDPOINTS.find((e) => e.path === path)?.price ?? "$0.05";
 setVoicePrices({ long: voicePriceOf("/transcribe/long"), short: voicePriceOf("/transcribe"), summary: voicePriceOf("/transcribe/summary") });
 app.get(VOICE_PRO_PATH, (c) => c.html(voiceProPage(origin(c.req.url), voicePrices())));
-app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory())));
+app.get("/tools", (c) => c.html(toolIndexPage(origin(c.req.url), byCategory(), publicBrand(c.env, SERVICE_NAME))));
 app.get("/tools/:slug", async (c) => {
   const tool = toolBySlug(c.req.param("slug"));
   if (!tool) return c.notFound();
@@ -938,10 +995,9 @@ app.get("/tools/:slug", async (c) => {
   const live = await liveAnswer(tool, c.env, (p) => c.executionCtx.waitUntil(p));
   // Capacity-limited tools (AI media, rendering, transcription, search) are outside the free calls, so no free button.
   const capped = trialsEnabled(c.env) && pdfTryOn(c.env, tool.path);
-  return c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && (httpFree(tool.path) || capped), live, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined));
+  return c.html(toolDocPage(tool, origin(c.req.url), trialsEnabled(c.env) && (httpFree(tool.path) || capped), live, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, publicBrand(c.env, SERVICE_NAME)));
 });
-// IndexNow (Bing, Yandex, Seznam, Naver): the key is public by design; it proves the submitter controls this host.
-const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
+// IndexNow: INDEXNOW_KEY is defined with the lex host's paths above.
 app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
 app.get("/sitemap.xml", (c) => c.body(withEinvoicePages(sitemapXml(origin(c.req.url)), origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
 app.get("/robots.txt", (c) => c.env.NOINDEX === "on" ? c.text("User-agent: *\nDisallow: /\n") : c.text(withPublicSitemap(robotsTxt(origin(c.req.url)), origin(c.req.url), c.env.PUBLIC_SITE_ORIGIN)));
@@ -1033,35 +1089,6 @@ async function fromMetrics(read: () => Promise<Response>): Promise<Response> {
     );
   }
 }
-// Daily request counts per paid path. Aggregates only, so it is safe to leave public.
-app.get("/metrics", (c) => fromMetrics(async () => {
-  if (!c.env.METRICS) return c.json({});
-  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-  await sendBatchNow(metrics);
-  // Whether counters are being written (buffer age, last write, last write error): the body stays the report.
-  c.header("X-Metrics-State", JSON.stringify(await metrics.flushState()));
-  return c.json(await metrics.report());
-}));
-// Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
-// Only the software name is stored, never the full User-Agent or any caller address.
-app.get("/metrics/callers", (c) => fromMetrics(async () => {
-  if (!c.env.METRICS) return c.json({});
-  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-  await sendBatchNow(metrics);
-  const [http, mcp] = await Promise.all([metrics.callers(), metrics.mcpClients()]);
-  return c.json({ http, mcpConnections: mcp });
-}));
-// Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
-app.get("/status", async (c) => {
-  const generatedAt = new Date().toISOString();
-  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx, and a target URL that did not answer), which are never charged; server errors (5xx) are never charged either. `recent` is the same count over the newest 3 UTC days (today included); byDay shows each day.";
-  if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
-  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-  return fromMetrics(async () => {
-    await sendBatchNow(metrics);
-    return c.json({ generatedAt, note, ...await metrics.status(ENDPOINTS.map((e) => e.path)) });
-  });
-});
 /** True when `header` is "Bearer <token>" for the configured token; digests compared, so no early exit on a prefix. */
 async function ownerToken(token: string | undefined, header: string | undefined): Promise<boolean> {
   if (!token || !header?.startsWith("Bearer ")) return false;
@@ -1069,13 +1096,74 @@ async function ownerToken(token: string | undefined, header: string | undefined)
   const [a, b] = await Promise.all([digest(token), digest(header.slice(7))]);
   return a.every((byte, i) => byte === b[i]);
 }
-app.get("/revenue", (c) => fromMetrics(async () => {
+/**
+ * The report routes (security scan H1, 21 Nov 2026). Every GET used to send the isolate's pending counters to the
+ * Metrics object and then read a report of up to 2.2 MB, so a loop of anonymous GETs ran up Durable Object requests
+ * and Worker CPU. With REPORT_CACHE_SECONDS set (wrangler.jsonc: 300), an anonymous answer is built at most once per
+ * that many seconds in an isolate and kept in memory (no KV, no cache write, no Durable Object write), and an anonymous
+ * read never sends the counters: they reach the object on their own schedule (lib/metrics-batch.ts), so an anonymous
+ * report can be a few minutes behind. Without the variable (tests, local runs) every read is fresh, as before.
+ * Anonymous answers carry Cache-Control: public, max-age=300; X-Metrics-State and the card figures only go to a caller
+ * with the REVENUE_TOKEN bearer, whose report is always fresh (counters sent first) and never cached. Who may read what
+ * is otherwise unchanged.
+ */
+const REPORT_CACHE = { "Cache-Control": "public, max-age=300" };
+const reportMemo = new Map<string, { env: unknown; at: number; body: string; type: string }>();
+type ReportMode = { owner: boolean; flush: boolean };
+async function report(c: Context<{ Bindings: Env }>, build: (mode: ReportMode) => Promise<Response>): Promise<Response> {
+  const owner = await ownerToken(c.env.REVENUE_TOKEN, c.req.header("authorization"));
+  if (owner) {
+    const res = await fromMetrics(() => build({ owner: true, flush: true }));
+    const fresh = new Response(res.body, res);
+    fresh.headers.set("Cache-Control", "private, no-store");
+    return fresh;
+  }
+  const ttlMs = Math.max(0, Math.min(3600, Number(c.env.REPORT_CACHE_SECONDS) || 0)) * 1000;
+  const memo = reportMemo.get(c.req.path);
+  if (ttlMs && memo && memo.env === c.env && Date.now() - memo.at < ttlMs) {
+    return new Response(memo.body, { status: 200, headers: { "Content-Type": memo.type, ...REPORT_CACHE } });
+  }
+  const res = await fromMetrics(() => build({ owner: false, flush: !ttlMs }));
+  if (res.status !== 200) return res;
+  const body = await res.text();
+  const type = res.headers.get("content-type") ?? "application/json; charset=UTF-8";
+  if (ttlMs) reportMemo.set(c.req.path, { env: c.env, at: Date.now(), body, type });
+  return new Response(body, { status: 200, headers: { "Content-Type": type, ...REPORT_CACHE } });
+}
+// Daily request counts per paid path. Aggregates only, so it is safe to leave public.
+app.get("/metrics", (c) => report(c, async ({ owner, flush }) => {
+  if (!c.env.METRICS) return c.json({});
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  if (flush) await sendBatchNow(metrics);
+  // Whether counters are being written (buffer age, last write, last write error): for the owner only.
+  if (owner) c.header("X-Metrics-State", JSON.stringify(await metrics.flushState()));
+  return c.json(await metrics.report());
+}));
+// Requests per day by calling software family (bots, HTTP libraries, agents) and outcome.
+// Only the software name is stored, never the full User-Agent or any caller address.
+app.get("/metrics/callers", (c) => report(c, async ({ flush }) => {
+  if (!c.env.METRICS) return c.json({});
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  if (flush) await sendBatchNow(metrics);
+  const [http, mcp] = await Promise.all([metrics.callers(), metrics.mcpClients()]);
+  return c.json({ http, mcpConnections: mcp });
+}));
+// Reliability per tool over 7 days: executed calls only (unpaid quotes are not counted).
+app.get("/status", (c) => report(c, async ({ flush }) => {
+  const generatedAt = new Date().toISOString();
+  const note = "Counts calls the tool actually ran (paid, marketplace or trial). successRate excludes caller errors (4xx, and a target URL that did not answer), which are never charged; server errors (5xx) are never charged either. `recent` is the same count over the newest 3 UTC days (today included); byDay shows each day.";
+  if (!c.env.METRICS) return c.json({ generatedAt, note, windowDays: 7, served: 0, serverErrors: 0, successRate: null, tools: [] });
+  const metrics = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+  if (flush) await sendBatchNow(metrics);
+  return c.json({ generatedAt, note, ...await metrics.status(ENDPOINTS.map((e) => e.path)) });
+}));
+app.get("/revenue", (c) => report(c, async ({ owner, flush }) => {
   if (!c.env.METRICS) return c.json({ error: "revenue storage unavailable" }, 503);
   const global = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
-  await sendBatchNow(global);
+  if (flush) await sendBatchNow(global);
   const x402 = await global.revenueSummary();
   // Card-credit sales are private business figures: shown only with the owner's REVENUE_TOKEN.
-  if (!(await ownerToken(c.env.REVENUE_TOKEN, c.req.header("authorization")))) return c.json(x402);
+  if (!owner) return c.json(x402);
   const cardCredits = await c.env.METRICS.get(c.env.METRICS.idFromName("credits")).creditSummary();
   return c.json({ ...x402, cardCredits });
 }));

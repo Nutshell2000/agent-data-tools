@@ -5,6 +5,8 @@
 export interface ToolSeo {
   /** Page <title> and <h1>; the price and "no signup" are added by the page. */
   title: string;
+  /** The meta description when the tool description does not fit the search (at most 160 characters). */
+  description?: string;
   /** Short situations the tool is for, one line each. */
   uses: string[];
   /** Question and answer pairs, also published as schema.org FAQPage data. */
@@ -12,6 +14,14 @@ export interface ToolSeo {
 }
 
 export const TOOL_SEO: Record<string, ToolSeo> = {
+  // 21 Nov 2026: Google shows this page for "vies vat validation"; the page is for developers, the free checker for
+  // people is /vat-number-check (linked at the top of the page, src/lib/tool-pages.ts PEOPLE_PAGE).
+  "/vat/validate": {
+    title: "VIES VAT validation API for EU VAT numbers",
+    description: "VIES VAT validation API: check an EU VAT number in one GET request and get valid or not, with the registered name and address where shared. JSON back.",
+    uses: ["Check a B2B customer's VAT number before invoicing without VAT", "Confirm a supplier is registered for intra-EU trade", "Verify a business by name in the French, Swedish, Norwegian and Finnish registers"],
+    faq: [["Where does the answer come from?", "EU VIES, the European Commission's VAT Information Exchange System, which asks the member state's own tax database at the moment of the check."], ["Can I check a number by hand?", "Yes: the free checker at /vat-number-check runs the same check in your browser."]],
+  },
   "/sanctions/check": {
     title: "OFAC sanctions check API for crypto wallets and names",
     uses: ["Screen a wallet address against the OFAC SDN list before paying or onboarding it", "Check a person or company name against SDN names and aliases", "Add a sanctions step to an AI agent's payment flow"],

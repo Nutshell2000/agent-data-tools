@@ -16,6 +16,8 @@ import { COMPANY_FOOTER } from "./legal";
 import { PRODUCT_FOR_TOOL } from "./product-pages";
 import { ENTRY_OF } from "../routes/entry-paths";
 import { REGISTER_BASE, REGISTER_FOR_TOOL } from "./register-pages";
+import { breadcrumbs, metaDescription, seoTitle } from "./seo-text";
+import { chainCloneOf } from "./tool-clones";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -25,11 +27,22 @@ export const toolBySlug = (slug: string) => BY_SLUG.get(slug);
 /** Inline JSON for a <script type="application/ld+json"> block: "<" escaped so the data cannot close the tag. */
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 
-export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }, cappedTry?: string): string {
+/**
+ * Tool pages a person may land on from a search for the job, with the free page for people that does it by hand
+ * (21 Nov 2026: Search Console shows /tools/vat-validate for "vies vat validation"). Shown at the top, above the API.
+ */
+const PEOPLE_PAGE: Record<string, readonly [path: string, label: string]> = {
+  "/vat/validate": ["/vat-number-check", "Check a VAT number by hand: free VIES checker"],
+};
+
+/** `brand` is the public brand (lib/public-brand.ts) on the people's pages; the service name elsewhere. */
+export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, live?: { result: unknown; at: string }, cappedTry?: string, brand: string = SERVICE_NAME): string {
   const slug = toolSlug(e.path);
   const url = `${origin}/tools/${slug}`;
   // An entry path is a second name for a tool: its page tells search engines the tool's own page is the original.
   const canonical = Object.hasOwn(ENTRY_OF, e.path) ? `${origin}/tools/${toolSlug(ENTRY_OF[e.path])}` : url;
+  // A per-chain copy of another network's page (lib/tool-clones.ts) stays reachable but out of the index.
+  const cloneOf = Object.hasOwn(ENTRY_OF, e.path) ? undefined : chainCloneOf(e.path);
   const keyOffer = keyOfferNumbers(e.path, e.price);
   const query = exampleQuery(e);
   const request = `${origin}${e.path}?${query}`;
@@ -40,7 +53,10 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
   const shown = example.length > 4000 ? `${example.slice(0, 4000)}\n…` : example;
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
-  const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
+  // 21 Nov 2026 (SEO audit): at most 60 characters with the public brand; the price is on the page, not in the title.
+  const title = seoTitle(seo ? [seo.title] : [`${e.summary} API`, e.summary], brand);
+  // An entry path shares its tool's description: its page says it is the other address, so the two do not repeat.
+  const description = seo?.description && !Object.hasOwn(ENTRY_OF, e.path) ? metaDescription(seo.description) : metaDescription(Object.hasOwn(ENTRY_OF, e.path) ? `${e.summary}, also at /tools/${toolSlug(ENTRY_OF[e.path])}. ${e.description}` : e.description);
   const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${cappedTry ? `A browser can try it free on this page (at most 2 pages a read, ${FREE_HTTP_CALLS_PER_CALLER} tries); through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : freeEligible(e.path) ? `Over HTTP this tool is paid from the first call; through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : `This tool is not in the free calls (they run ${FREE_TOOLS_KIND}); from the first call`} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
   const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
@@ -50,22 +66,24 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
   const ld = {
     "@context": "https://schema.org",
     "@type": "WebAPI",
-    name: `${e.summary} (${SERVICE_NAME})`,
+    name: `${e.summary} (${brand})`,
     description: e.description,
     url,
     documentation: url,
-    provider: { "@type": "Organization", name: SERVICE_NAME, url: origin },
+    provider: { "@type": "Organization", name: brand, url: origin },
     offers: { "@type": "Offer", price: amount, priceCurrency: "USD", description: `${e.price} per successful call; failed calls are not charged` },
   };
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="${esc(e.description.slice(0, 300))}">
-<link rel="canonical" href="${esc(canonical)}">
-<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(e.description.slice(0, 300))}">
+<meta name="description" content="${esc(description)}">
+<link rel="canonical" href="${esc(canonical)}">${cloneOf ? `
+<meta name="robots" content="noindex, follow">` : ""}
+<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}"><meta property="og:image" content="${esc(origin)}/og.png">
 <link rel="icon" href="/favicon.ico">
 <script type="application/ld+json">${jsonLd(ld)}</script>
+<script type="application/ld+json">${jsonLd(breadcrumbs(origin, brand, [[category, "/tools"], [heading, `/tools/${slug}`]]))}</script>
 ${faq.length ? `<script type="application/ld+json">${jsonLd({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) })}</script>` : ""}
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--card:#f6f7f9;--line:#e3e5e8;--accent:#0b57d0;--accent-fg:#fff}
@@ -73,6 +91,7 @@ ${faq.length ? `<script type="application/ld+json">${jsonLd({ "@context": "https
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
 main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.6rem;line-height:1.25;margin:0 0 8px}
 nav.crumbs{color:var(--muted);font-size:.9rem;margin-bottom:12px}
+p.people{font-size:1.05rem;margin:4px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .meta{color:var(--muted);margin:0 0 20px}.price{font-weight:600;color:var(--fg)}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 28px}
 .btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
@@ -83,8 +102,10 @@ table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border-bottom:1
 .wrap{overflow-x:auto}ul.related{padding-left:20px}footer{margin-top:36px;color:var(--muted);font-size:.9rem}
 ${freeCalls ? TRY_FORM_CSS : ""}
 </style></head><body><main>
-<nav class="crumbs"><a href="/">${esc(SERVICE_NAME)}</a> › <a href="/tools">${esc(category)}</a></nav>
-<h1>${esc(heading)}</h1>
+<nav class="crumbs"><a href="/">${esc(brand)}</a> › <a href="/tools">${esc(category)}</a></nav>${cloneOf ? `
+<p class="meta">The same method on other networks: <a href="/tools/${esc(toolSlug(cloneOf))}">${esc(cloneOf)}</a> and its related tools.</p>` : ""}
+<h1>${esc(heading)}</h1>${Object.hasOwn(PEOPLE_PAGE, e.path) ? `
+<p class="people"><strong><a href="${esc(PEOPLE_PAGE[e.path][0])}">${esc(PEOPLE_PAGE[e.path][1])}</a></strong></p>` : ""}
 <p class="meta"><span class="price">${keyOffer ? `${esc(keyOffer.price)} per call with a key` : `${esc(e.price)} per call`}</span>${keyOffer ? ` (${esc(e.price)} paid per call from a wallet)` : ""} · failed calls are never charged · no account needed: a card key or USDC</p>${PRODUCT_FOR_TOOL.has(e.path) ? `\n<p><strong><a href="/${esc(PRODUCT_FOR_TOOL.get(e.path)!.slug)}">${esc(PRODUCT_FOR_TOOL.get(e.path)!.name)}</a>:</strong> code samples in curl, Python and Node, and monthly plans.</p>` : ""}
 <p>${esc(e.description)}</p>
 ${seo ? `<h2>When to use it</h2><ul>${seo.uses.map((u) => `<li>${esc(u)}</li>`).join("")}</ul>` : ""}
@@ -117,14 +138,15 @@ ${related.length ? `<h2>Related tools</h2><ul class="related">${related.map((o) 
 }
 
 /** /tools: every tool page, grouped like the homepage catalog. */
-export function toolIndexPage(origin: string, groups: { name: string; tools: readonly Endpoint[] }[]): string {
+export function toolIndexPage(origin: string, groups: { name: string; tools: readonly Endpoint[] }[], brand: string = SERVICE_NAME): string {
   // Entry paths are second names for tools: the index and the sitemap list each tool once, under its own name.
   groups = groups.map((g) => ({ name: g.name, tools: g.tools.filter((e) => !Object.hasOwn(ENTRY_OF, e.path)) })).filter((g) => g.tools.length > 0);
-  const title = `All ${TOOL_COUNT} tools · ${SERVICE_NAME}`;
+  const heading = `All ${TOOL_COUNT} tools`;
+  const title = seoTitle(`All ${TOOL_COUNT} data tools for AI agents`, brand);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<meta name="description" content="Pay-per-call data tools for AI agents and developers: web and PDF reading, OFAC sanctions checks, token prices, chain reads, FX, weather and more. No signup; free calls to start.">
+<meta name="description" content="Pay-per-call data tools for AI agents: web and PDF reading, OFAC sanctions checks, token prices, chain reads, FX, weather. No signup; free calls to start.">
 <link rel="canonical" href="${esc(origin)}/tools"><link rel="icon" href="/favicon.ico">
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#5f6368;--line:#e3e5e8;--accent:#0b57d0}
@@ -133,8 +155,8 @@ export function toolIndexPage(origin: string, groups: { name: string; tools: rea
 main{max-width:760px;margin:0 auto;padding:32px 16px 48px}h1{font-size:1.6rem;margin:0 0 8px}h2{font-size:1.1rem;margin:28px 0 8px}
 ul{padding-left:20px}li{margin:3px 0}a{color:var(--accent)}.muted{color:var(--muted)}
 </style></head><body><main>
-<p class="muted"><a href="/">${esc(SERVICE_NAME)}</a></p>
-<h1>${esc(title)}</h1>
+<p class="muted"><a href="/">${esc(brand)}</a></p>
+<h1>${esc(heading)}</h1>
 <p class="muted">Each tool is one GET request that returns JSON, or an MCP tool at <code>${esc(origin)}/mcp</code>. ${FREE_CALLS_PER_CALLER} free calls through MCP (${FREE_HTTP_CALLS_PER_CALLER} over HTTP) on ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR}. ${FREE_REST_PAID} After the free calls, pay per call by card credits, x402 or MPP.</p>
 ${groups.map((g) => `<h2>${esc(g.name)} (${g.tools.length})</h2><ul>${g.tools.map((e) => `<li><a href="/tools/${esc(toolSlug(e.path))}">${esc(e.summary)}</a> <span class="muted">· ${esc(e.price)}</span></li>`).join("")}</ul>`).join("\n")}
 </main></body></html>`;
