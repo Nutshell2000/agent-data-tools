@@ -2,9 +2,11 @@
 // data point: tollkit's diligence and attest endpoints, StableEnrich's bundles, dTelecom's one-call session. These
 // routes chain tools we already own into one paid call, return a deterministic contract, and attach an Ed25519
 // receipt (the same key as payee attestations, via signPayload) so a buyer can verify what was served.
-import { entry, need, type Entry } from "../family";
+import { entry, need, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { extract } from "./extract";
 import { call, runSections } from "./packs";
+import { PACKS_INTEL } from "./packs-intel";
 import { KEYS_PATH, signPayload } from "./payee";
 
 const ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
@@ -21,6 +23,18 @@ async function receipt(env: Env, kind: string, subject: string, result: unknown)
   const signed = await signPayload(payload, env, ORIGIN);
   return { payload, signature: signed.signature, alg: signed.alg, kid: signed.kid, keys: signed.keys, note: signed.note };
 }
+
+// packs.ts's `call()` reaches only the modules packs.ts imports. /extract (a core tool) and /pack/domain-intel
+// (packs-intel.ts, which imports packs.ts) are outside it: until 1.323.0 both answers called them through `call()`,
+// which threw "pack references unknown tool" before any section ran, so every call ended in a 500 (found by
+// smoke:examples on 21 Nov 2026). Both run from their own module now, inside a promise so a failure stays a section's.
+const pageText = (url: string) => Promise.resolve().then(() => extract(url, "20000", "text"));
+const domainIntel = (env: Env, domain: string) => Promise.resolve().then(() => {
+  const pack = PACKS_INTEL.find((x) => x.endpoint.path === "/pack/domain-intel");
+  if (!pack) throw new Error("the domain-intel pack is missing");
+  const q: Input = (name) => (name === "domain" ? domain : undefined);
+  return pack.run(env, q);
+});
 
 export const ANSWERS: Entry[] = [
   entry("/answers/page-evidence", "Page evidence pack: read, headers and signed hash",
@@ -40,7 +54,7 @@ export const ANSWERS: Entry[] = [
     async (env, q) => {
       const url = need(q, "url", 2000);
       const { data, failed } = await runSections({
-        text: call(env, "/extract", { url }),
+        text: pageText(url),
         security: call(env, "/http/security-headers", { url }),
       });
       const text = (data.text as { text?: string } | undefined)?.text ?? "";
@@ -67,7 +81,7 @@ export const ANSWERS: Entry[] = [
     async (env, q) => {
       const domain = need(q, "domain", 300);
       const { data, failed } = await runSections({
-        intel: call(env, "/pack/domain-intel", { domain }),
+        intel: domainIntel(env, domain),
         sanctions: call(env, "/sanctions/check", { name: domain.replace(/\..*$/, "") }),
       });
       if (!data.intel) throw new HttpError(502, "the company lookup failed; nothing was charged");
