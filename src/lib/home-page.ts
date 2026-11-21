@@ -270,9 +270,9 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 
 <section class="sec" id="developers"><div class="wrap"><div class="devbox">
 <span class="kicker">For developers</span><h2>Building an app? One key does it all.</h2>
-<p class="sub">The same voices and transcripts, plus document reading and search, as simple web requests. A free try on every page, and failed calls cost nothing.</p>
+<p class="sub">The same voices and transcripts, plus document reading and search, as simple web requests. ${opts.trial ? "A free try on every page, and failed" : "Prepaid from $1, and failed"} calls cost nothing.</p>
 <div class="dev"><div><ol>
-<li><b>Try it.</b> Every product page runs the real thing on your own input, free.</li>
+<li><b>${opts.trial ? "Try it." : "See it."}</b> ${opts.trial ? "Every product page runs the real thing on your own input, free." : "Every product page shows a real example answer."}</li>
 <li><b>Get a key.</b> Pay by card; the key is shown right after payment. No account to create.</li>
 <li><b>Call it.</b> OpenAI- and ElevenLabs-shaped requests work as they are.</li>
 </ol>
@@ -286,7 +286,7 @@ ${cardReady ? `<details class="cmpbox"><summary>Compare Free and Transcribe Pro<
 <div id="products">${shelves}</div>
 <div class="agents">
 <h2>For AI agents</h2>
-<p>The same APIs, and the rest of a catalogue of ${TOOL_COUNT} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> (the first ${FREE_CALLS_PER_CALLER} successful calls are free) and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
+<p>The same APIs, and the rest of a catalogue of ${TOOL_COUNT} tools, are available to AI agents: an MCP server at <code>${esc(origin)}/mcp</code> ${opts.trial ? `(the first ${FREE_CALLS_PER_CALLER} successful calls are free)` : "(paid per call or with a prepaid key)"} and pay-per-call over HTTP. <a href="/agents">Agent catalogue and payment details</a> · <a href="/tools">all tools</a> · <a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">OpenAPI</a></p>
 </div>
 </details>
 </div></div></section>
