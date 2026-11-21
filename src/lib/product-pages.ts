@@ -405,7 +405,7 @@ function batchSection(e: Endpoint, origin: string, keyPrice: string): string {
 const STYLE = `:root{--bg:#fff;--fg:#16181d;--muted:#5b616b;--card:#f5f6f8;--line:#e2e5ea;--accent:#0b57d0;--accent-fg:#fff;--ok:#0b6e4f}
 @media (prefers-color-scheme:dark){:root{--bg:#111316;--fg:#e9ebee;--muted:#a2a8b0;--card:#1a1d22;--line:#2b3037;--accent:#8ab4f8;--accent-fg:#0b1a33;--ok:#5fd0a5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
-main{max-width:820px;margin:0 auto;padding:28px 16px 56px}nav.crumbs{color:var(--muted);font-size:.9rem;margin-bottom:18px}
+main{max-width:820px;margin:0 auto;padding:28px 16px 56px}nav.crumbs{color:var(--muted);font-size:.9rem;margin-bottom:18px}@media (max-width:720px){nav.crumbs a,main p a,main li a{display:inline-block;padding:11px 0;min-height:44px;line-height:22px}}
 h1{font-size:2.1rem;line-height:1.15;margin:0 0 10px;letter-spacing:-.01em}.tag{font-size:1.15rem;color:var(--muted);margin:0 0 18px}
 h2{font-size:1.25rem;margin:38px 0 10px}h3{font-size:1rem;margin:18px 0 4px}p{margin:8px 0}a{color:var(--accent)}
 ul.points{list-style:none;padding:0;margin:0 0 8px}ul.points li{padding:5px 0 5px 26px;position:relative}ul.points li::before{content:"\\2713";position:absolute;left:2px;color:var(--ok);font-weight:700}
