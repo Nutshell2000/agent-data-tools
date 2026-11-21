@@ -860,7 +860,7 @@ app.get("/tools/:slug", async (c) => {
 const INDEXNOW_KEY = "d0d511e1d96310e1565397ebc5e3fe54";
 app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY));
 app.get("/sitemap.xml", (c) => c.body(withEinvoicePages(sitemapXml(origin(c.req.url)), origin(c.req.url)), 200, { "Content-Type": "application/xml; charset=utf-8" }));
-app.get("/robots.txt", (c) => c.text(withPublicSitemap(robotsTxt(origin(c.req.url)), origin(c.req.url), c.env.PUBLIC_SITE_ORIGIN)));
+app.get("/robots.txt", (c) => c.env.NOINDEX === "on" ? c.text("User-agent: *\nDisallow: /\n") : c.text(withPublicSitemap(robotsTxt(origin(c.req.url)), origin(c.req.url), c.env.PUBLIC_SITE_ORIGIN)));
 const FAVICON = Uint8Array.from(atob(FAVICON_ICO_BASE64), (ch) => ch.charCodeAt(0));
 app.get("/favicon.ico", (c) => c.body(FAVICON, 200, { "Content-Type": "image/x-icon", "Cache-Control": "public, max-age=86400" }));
 const LOGO = Uint8Array.from(atob(LOGO_PNG_BASE64), (ch) => ch.charCodeAt(0));

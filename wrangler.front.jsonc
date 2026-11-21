@@ -27,6 +27,11 @@
   "services": [{ "binding": "CORE", "service": "agent-data-tools-core" }],
   // Stored quotes and the current core release (q:release). Created 19 Nov 2026 as agent-data-tools-quotes.
   "kv_namespaces": [{ "binding": "QUOTES", "id": "4d4418c049814a55b4f8604b532ccc28" }],
+  // Flood guard (21 Nov 2026): at most 1,500 requests a minute from one address at one Cloudflare location, about
+  // seventeen times the busiest caller's average. Above it the front answers 429 itself. The count is approximate and
+  // per location (Cloudflare's rate limiting binding), so it stops a single-source flood, not a spread-out one.
+  // Change the number here and redeploy the front; remove the block to switch the guard off.
+  "ratelimits": [{ "name": "FLOOD", "namespace_id": "1001", "simple": { "limit": 1500, "period": 60 } }],
   // MPP challenges are signed from the same secret as the core (MPP_SECRET_KEY, else CDP_API_KEY_SECRET), both held here.
   // "off" passes every request to the core: the first rollback step (a config deploy, no code change).
   "vars": { "FRONT": "on" }

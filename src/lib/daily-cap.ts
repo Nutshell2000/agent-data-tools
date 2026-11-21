@@ -1,4 +1,5 @@
 import { HttpError, type Env } from "./env";
+import { switchedOff } from "./switches";
 
 /**
  * A per-UTC-day call budget for a metered upstream (Workers AI, Browser Rendering), counted in KV like the search cap.
@@ -10,6 +11,8 @@ import { HttpError, type Env } from "./env";
 export async function takeDailyBudget(env: Env, kind: string, capSetting: string | undefined, defaultCap: number, what: string): Promise<void> {
   // No KV binding (unit tests, odd deployments): nothing to count against, so nothing is refused.
   if (!env.TRIALS) return;
+  // The operator's off-switch for this resource (lib/switches.ts): refused before anything is counted or run.
+  if (await switchedOff(env, kind)) throw new HttpError(503, `${what} calls are paused by the operator right now; nothing was charged, try again later`, "PAUSED_BY_OPERATOR");
   const cap = Number(capSetting) || defaultCap;
   if (cap <= 0) return;
   const key = `cap:${kind}:${new Date().toISOString().slice(0, 10)}`;
