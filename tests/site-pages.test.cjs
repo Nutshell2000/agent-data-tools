@@ -41,7 +41,7 @@ test("the front page leads with the products and their plans, under the brand", 
   // 21 Nov 2026: the one sentence near the tiles and the "Free for everyone" block became a Transcribe Pro band and a
   // three-plan ladder, so a visitor meets the paid product, its price and a free trial without reading the small print.
   const band = html.slice(html.indexOf('id="pro"'), html.indexOf('id="how"'));
-  assert.match(band, /When your device is not enough/, "a band right after the free tiles sells the paid product");
+  assert.match(band, /Your long recording as text/, "a band right after the free tiles sells the paid product");
   assert.match(band, /buy\.stripe\.com\/[A-Za-z0-9]+">Get Transcribe Pro: \$\d+ a month/, "the band's first button is the checkout");
   // 21 Nov 2026 (owner: free things must cost nothing): the free server trial runs Workers AI, so the band offers the $1
   // one-off pack in its place, and no page links the trial.
